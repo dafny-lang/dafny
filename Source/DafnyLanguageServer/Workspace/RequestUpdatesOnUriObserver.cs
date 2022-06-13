@@ -26,7 +26,7 @@ class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisp
     subscription = mergeOrdered.Subscribe(observer);
   }
 
-  public IObservable<bool> Idle => mergeOrdered.Select(_ => mergeOrdered.Idle).DistinctUntilChanged();
+  public IObservable<bool> IdleChanges => mergeOrdered.IdleChanges;
 
   public void Dispose() {
     subscription.Dispose();

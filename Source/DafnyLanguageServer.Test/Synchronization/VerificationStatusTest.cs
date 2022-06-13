@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -24,7 +23,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var methodHeader = new Position(0, 7);
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
-    await WaitUntilAllStatusAreCompleted();
+    await WaitUntilAllStatusAreCompleted(documentItem);
 
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
@@ -73,8 +72,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, diagnostics.Length);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     client.SaveDocument(documentItem);
@@ -94,8 +92,6 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
 
     var barRange = new Range(new Position(1, 7), new Position(1, 10));
 
@@ -119,8 +115,6 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
 
     FileVerificationStatus status;
     do {
@@ -140,8 +134,6 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
 
@@ -170,9 +162,8 @@ method Bar() { assert true; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await WaitUntilAllStatusAreCompleted();
+    await WaitUntilAllStatusAreCompleted(documentItem);
 
-    await GetLastDiagnostics(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
     await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -180,11 +171,14 @@ method Bar() { assert true; }";
     Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
   }
 
-  private async Task WaitUntilAllStatusAreCompleted() {
+  private async Task WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
+    var lastDocument = await Documents.GetLastDocumentAsync(documentId);
+    var symbols = lastDocument!.ImplementationViewsView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
+    } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
+             beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
   }
 
   [TestMethod]
@@ -283,7 +277,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
 ";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await WaitUntilAllStatusAreCompleted();
+    await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "Garbage"); // Remove 'm'
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
   }
@@ -296,7 +290,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, status1.NamedVerifiables.Count);
-    await WaitUntilAllStatusAreCompleted();
+    await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "\n" + NeverVerifies); // Remove 'm'
     var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(2, status2.NamedVerifiables.Count);
@@ -338,7 +332,7 @@ module Refinement2 refines BaseModule {
     var source = @"method Foo() { assert false; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await WaitUntilAllStatusAreCompleted();
+    await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
     var migratedRange = new Range(1, 7, 1, 10);
 

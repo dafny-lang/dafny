@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     // TODO why is this nullable again?
-    IReadOnlyDictionary<ImplementationId, ImplementationView>? ImplementationViewsView,
+    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViewsView,
     IReadOnlyList<Counterexample> CounterExamplesView,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
@@ -39,9 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   ) {
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationViewsView == null
-        ? ArraySegment<Diagnostic>.Empty
-        : ImplementationViewsView.SelectMany(kv => kv.Value.Diagnostics));
+      ImplementationViewsView.SelectMany(kv => kv.Value.Diagnostics));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;

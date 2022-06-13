@@ -1,12 +1,9 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -30,14 +27,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
-      if (document.ImplementationViewsView == null) {
-        return;
-      }
-
       var notification = GetFileVerificationStatus(document);
       var previous = GetFileVerificationStatus(previousDocument);
       if (previous.Version > notification.Version ||
           previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+        return;
       }
 
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);

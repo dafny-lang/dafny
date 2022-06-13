@@ -88,7 +88,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
       documents.Add(document.Uri, documentEntry);
 
-
       documentEntry.Observe(
         resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
         Concat(translatedDocument.ToObservableSkipCancelled()));
@@ -231,9 +230,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
       var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-      if (resolvedDocument.ImplementationViewsView == null) {
-        return withVerificationTasks;
-      }
 
       return withVerificationTasks with {
         ImplementationViewsView = withVerificationTasks.ImplementationViewsView!.ToDictionary(
@@ -297,7 +293,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         TranslatedDocument = translatedDocument;
         Version = version;
         ResolvedDocument = resolvedDocument;
-        LastDocument = observer.Idle.Where(idle => idle).Select(_ => Observer.PreviouslyPublishedDocument).ToTask();
+        LastDocument = observer.IdleChanges.Where(idle => idle).Select(_ => Observer.PreviouslyPublishedDocument).FirstAsync().ToTask();
       }
 
       public void CancelPendingUpdates() {
