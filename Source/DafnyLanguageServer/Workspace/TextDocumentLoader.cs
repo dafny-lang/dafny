@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected readonly ICompilationStatusNotificationPublisher notificationPublisher;
     protected readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
-    protected readonly IDiagnosticPublisher diagnosticPublisher;
+    protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -48,8 +48,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher,
-      IDiagnosticPublisher diagnosticPublisher,
+      ICompilationStatusNotificationPublisher statusPublisher,
+      INotificationPublisher notificationPublisher,
       VerifierOptions verifierOptions) {
       VerifierOptions = verifierOptions;
       this.parser = parser;
@@ -57,10 +57,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
-      this.notificationPublisher = notificationPublisher;
+      this.notificationPublisher = statusPublisher;
       this.loggerFactory = loggerFactory;
-      this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
-      this.diagnosticPublisher = diagnosticPublisher;
+      logger = loggerFactory.CreateLogger<TextDocumentLoader>();
+      NotificationPublisher = notificationPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -69,12 +69,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher,
+      ICompilationStatusNotificationPublisher statusPublisher,
       ILoggerFactory loggerFactory,
-      IDiagnosticPublisher diagnosticPublisher,
+      INotificationPublisher notificationPublisher,
       VerifierOptions verifierOptions
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher, verifierOptions);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher, verifierOptions);
     }
 
     public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -329,7 +329,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
       return new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, notificationPublisher, diagnosticPublisher);
+        document, notificationPublisher, NotificationPublisher);
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
@@ -346,7 +346,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     // Called only in the case there is a parsing or resolution error on the document
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
+      NotificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
 
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {

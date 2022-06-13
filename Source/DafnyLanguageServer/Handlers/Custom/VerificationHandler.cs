@@ -25,15 +25,14 @@ public record CancelVerificationParams : TextDocumentPositionParams, IRequest;
 public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Unit>, IJsonRpcRequestHandler<CancelVerificationParams, Unit> {
   private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
-  private readonly DafnyTextDocumentHandler documentHandler;
   private readonly ITextDocumentLoader documentLoader;
 
-  public VerificationHandler(ILogger<VerificationHandler> logger, IDocumentDatabase documents,
-    DafnyTextDocumentHandler documentHandler,
+  public VerificationHandler(
+    ILogger<VerificationHandler> logger,
+    IDocumentDatabase documents,
     ITextDocumentLoader documentLoader) {
     this.logger = logger;
     this.documents = documents;
-    this.documentHandler = documentHandler;
     this.documentLoader = documentLoader;
   }
 
@@ -50,7 +49,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
     foreach (var taskToRun in tasks) {
       try {
         var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-        documentHandler.ForwardDiagnostics(request.TextDocument.Uri, verifiedDocuments);
+        documentEntry.Observe(verifiedDocuments);
       } catch (InvalidOperationException e) {
         if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
           failedTaskRuns++;
