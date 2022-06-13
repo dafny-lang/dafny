@@ -59,8 +59,10 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
       new Dictionary<ImplementationId, ImplementationView>(),
       ArraySegment<Counterexample>.Empty,
       ArraySegment<Diagnostic>.Empty,
+#pragma warning disable CS8625
       null,
       null,
+#pragma warning restore CS8625
       null,
       true);
     this.logger = logger;

@@ -9,20 +9,19 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.JsonRpc.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom;
 
 [Parallel]
 [Method(DafnyRequestNames.VerifySymbol, Direction.ClientToServer)]
-public record VerificationParams : TextDocumentPositionParams, IRequest;
+public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
 [Parallel]
 [Method(DafnyRequestNames.CancelVerifySymbol, Direction.ClientToServer)]
-public record CancelVerificationParams : TextDocumentPositionParams, IRequest;
+public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
-public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Unit>, IJsonRpcRequestHandler<CancelVerificationParams, Unit> {
+public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
   private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
   private readonly ITextDocumentLoader documentLoader;
@@ -36,16 +35,15 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
     this.documentLoader = documentLoader;
   }
 
-  public async Task<Unit> Handle(VerificationParams request, CancellationToken cancellationToken) {
+  public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
     if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
-      return Unit.Value;
+      return false;
     }
 
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
     var failedTaskRuns = 0;
-    Exception? lastException = null;
     foreach (var taskToRun in tasks) {
       try {
         var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
@@ -53,7 +51,6 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
       } catch (InvalidOperationException e) {
         if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
           failedTaskRuns++;
-          lastException = e;
         } else {
           throw;
         }
@@ -61,11 +58,10 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
     }
 
     if (failedTaskRuns == tasks.Count) {
-      throw new RequestException(412,
-        "No verification can be started at this position because it's already running or completed", null, lastException!);
+      return false;
     }
 
-    return Unit.Value;
+    return true;
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
@@ -75,9 +71,9 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
     });
   }
 
-  public async Task<Unit> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
+  public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
     if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
-      return Unit.Value;
+      return false;
     }
 
     var translatedDocument = await documentEntry.TranslatedDocument;
@@ -87,14 +83,13 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Un
         taskToRun.Cancel();
       } catch (InvalidOperationException e) {
         if (e.Message.Contains("no ongoing run")) {
-          throw new RequestException(412,
-            "Verification can not be cancelled at this position because there is none running", null, e);
+          return false;
         }
 
         throw;
       }
     }
 
-    return Unit.Value;
+    return true;
   }
 }

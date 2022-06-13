@@ -61,36 +61,54 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.OpenDocument(DocumentTextBuffer.From(notification.TextDocument));
+      try {
+        documents.OpenDocument(DocumentTextBuffer.From(notification.TextDocument));
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
-      CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+      try {
+        CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.UpdateDocument(notification);
+      try {
+        documents.UpdateDocument(notification);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.SaveDocument(notification.TextDocument);
+      try {
+        documents.SaveDocument(notification.TextDocument);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
+
       return Unit.Task;
     }
 
     private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
       try {
         await documents.CloseDocumentAsync(documentId);
+        notificationPublisher.HideDiagnostics(documentId);
       } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
         logger.LogError(e, "error while closing the document");
       }
 
-      notificationPublisher.HideDiagnostics(documentId);
     }
   }
 }
