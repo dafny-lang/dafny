@@ -11,22 +11,22 @@ module CompilerRewriter {
     import DCC = DafnyCompilerCommon
     import opened DCC.AST
 
-    function IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
+    function {:verify false} IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
       y => exists x | f.requires(x) :: y == f(x)
     }
 
-    lemma Map_All_IsMap<A, B>(f: A --> B, xs: seq<A>)
+    lemma {:verify false} Map_All_IsMap<A, B>(f: A --> B, xs: seq<A>)
       requires forall a | a in xs :: f.requires(a)
       ensures Seq.All(IsMap(f), Seq.Map(f, xs))
     {}
 
-    lemma Map_All_PC<A, B>(f: A --> B, P: B -> bool, xs: seq<A>)
+    lemma {:verify false} Map_All_PC<A, B>(f: A --> B, P: B -> bool, xs: seq<A>)
       requires forall a | a in xs :: f.requires(a)
       requires forall a | a in xs :: P(f(a))
       ensures Seq.All(P, Seq.Map(f, xs))
     {}
 
-    predicate Map_All_Rel<A(!new), B>(f: A --> B, rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
+    predicate {:verify false} Map_All_Rel<A(!new), B>(f: A --> B, rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
       requires |xs| == |ys|
       requires forall a | a in xs :: f.requires(a)
       requires forall a | a in xs :: rel(a, f(a))
@@ -36,14 +36,14 @@ module CompilerRewriter {
         rel(xs[0], ys[0]) && Map_All_Rel(f, rel, xs[1..], ys[1..])
     }
 
-    predicate All_Rel_Forall<A, B>(rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
+    predicate {:verify false} All_Rel_Forall<A, B>(rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
     {
       && |xs| == |ys|
       && forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
     }
 
     // TODO: remove?
-    function method {:opaque} MapWithPost_old<A, B>(f: A ~> B, ghost post: B -> bool, xs: seq<A>) : (ys: seq<B>)
+    function method {:verify false} {:opaque} MapWithPost_old<A, B>(f: A ~> B, ghost post: B -> bool, xs: seq<A>) : (ys: seq<B>)
       reads f.reads
       requires forall a | a in xs :: f.requires(a)
       requires forall a | a in xs :: post(f(a))
@@ -56,7 +56,7 @@ module CompilerRewriter {
       Seq.Map(f, xs)
     }
 
-    function method {:opaque} MapWithPost<A(!new), B>(
+    function method {:verify false} {:opaque} MapWithPost<A(!new), B>(
       f: A ~> B, ghost post: B -> bool, ghost rel: (A,B) -> bool, xs: seq<A>) : (ys: seq<B>)
       reads f.reads
       requires forall a | a in xs :: f.requires(a)
@@ -72,24 +72,24 @@ module CompilerRewriter {
       Seq.Map(f, xs)
     }
 
-    datatype Transformer'<!A, !B> =
+    datatype {:verify false} Transformer'<!A, !B> =
       TR(f: A --> B, ghost post: B -> bool, ghost rel: (A,B) -> bool)
 
-    predicate HasValidPost<A(!new), B>(tr: Transformer'<A, B>) {
+    predicate {:verify false} HasValidPost<A(!new), B>(tr: Transformer'<A, B>) {
       forall a: A :: tr.f.requires(a) ==> tr.post(tr.f(a))
     }
 
-    predicate HasValidRel<A(!new), B(0)>(tr: Transformer'<A, B>) {
+    predicate {:verify false} HasValidRel<A(!new), B(0)>(tr: Transformer'<A, B>) {
       forall a: A :: tr.f.requires(a) ==> tr.rel(a, tr.f(a))
     }
 
-    type Transformer<!A(!new), !B(0)> = tr: Transformer'<A, B>
+    type {:verify false} Transformer<!A(!new), !B(0)> = tr: Transformer'<A, B>
       | HasValidPost(tr) && HasValidRel(tr)
       witness *
 
-    type ExprTransformer = Transformer<Expr, Expr>
+    type {:verify false} ExprTransformer = Transformer<Expr, Expr>
 
-    lemma Map_All_TR<A(!new), B(00)>(tr: Transformer<A, B>, ts: seq<A>)
+    lemma {:verify false} Map_All_TR<A(!new), B(00)>(tr: Transformer<A, B>, ts: seq<A>)
       requires forall x | x in ts :: tr.f.requires(x)
       ensures Seq.All(tr.post, Seq.Map(tr.f, ts))
     {}
@@ -110,18 +110,18 @@ module CompilerRewriter {
       import opened DCC.Predicates
       import opened Transformer
 
-      function method {:opaque} Map_Method(m: Method, tr: ExprTransformer) : (m': Method)
+      function method {:verify false} {:opaque} Map_Method(m: Method, tr: ExprTransformer) : (m': Method)
         requires Shallow.All_Method(m, tr.f.requires)
         ensures Shallow.All_Method(m', tr.post) // FIXME Deep
         ensures tr.rel(m.methodBody, m'.methodBody)
       {
         match m {
           case Method(CompileName, methodBody) =>
-            Method(CompileName, tr.f(methodBody))
+            Method (CompileName, tr.f(methodBody))
         }
       }
 
-      function method {:opaque} Map_Program(p: Program, tr: ExprTransformer) : (p': Program)
+      function method {:verify false} {:opaque} Map_Program(p: Program, tr: ExprTransformer) : (p': Program)
         requires Shallow.All_Program(p, tr.f.requires)
         ensures Shallow.All_Program(p', tr.post)
         ensures tr.rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
@@ -150,7 +150,7 @@ module CompilerRewriter {
       // - all the children of `e'` deeply satisfy the post of `f`
       // Then:
       // - `e'` satisfies the pre of `f`
-      predicate MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool) {
+      predicate {:verify false} MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool) {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e)
@@ -165,13 +165,13 @@ module CompilerRewriter {
       // - `e` satisfies the pre of `f`
       // Then:
       // - `f(e)` deeply satisfies the post of `f`
-      predicate TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool) {
+      predicate {:verify false} TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool) {
         forall e: Expr | Deep.AllChildren_Expr(e, post) && f.requires(e) ::
           Deep.All_Expr(f(e), post)
       }
 
       // TODO: add comment
-      predicate TransformerPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+      predicate {:verify false} TransformerPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e')
@@ -182,7 +182,7 @@ module CompilerRewriter {
       }
       
       // Predicate for ``BottomUpTransformer``
-      predicate IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool) {
+      predicate {:verify false} IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool) {
         && TransformerMatchesPrePost(f, post)
         && MapChildrenPreservesPre(f, post)
         && TransformerPreservesRel(f, rel)
@@ -190,31 +190,31 @@ module CompilerRewriter {
 
       // Identity bottom-up transformer: we need it only because we need a witness when
       // defining ``BottomUpTransformer``, to prove that the type is inhabited.
-      const IdentityTransformer: ExprTransformer :=
+      const {:verify false} IdentityTransformer: ExprTransformer :=
         TR(d => d, _ => true, (_,_) => true)
 
-      lemma IdentityMatchesPrePost()
+      lemma {:verify false} IdentityMatchesPrePost()
         ensures TransformerMatchesPrePost(IdentityTransformer.f, IdentityTransformer.post)
       { }
 
-      lemma IdentityPreservesPre()
+      lemma {:verify false} IdentityPreservesPre()
         ensures MapChildrenPreservesPre(IdentityTransformer.f, IdentityTransformer.post)
       { }
 
-      lemma IdentityPreservesRel()
+      lemma {:verify false} IdentityPreservesRel()
         ensures TransformerPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
       
       // A bottom-up transformer, i.e.: a transformer we can recursively apply bottom-up to
       // an expression, and get the postcondition we expect on the resulting expression.
-      type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.post, tr.rel)
+      type {:verify false} BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.post, tr.rel)
         witness (IdentityMatchesPrePost();
                  IdentityPreservesPre();
                  IdentityPreservesRel();
                  IdentityTransformer)
 
       // Apply a transformer bottom-up on the children of an expression.
-      function method {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
+      function method {:verify false} {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
         (e': Expr)
         decreases e, 0
         requires Deep.AllChildren_Expr(e, tr.f.requires)
@@ -251,7 +251,7 @@ module CompilerRewriter {
       }
 
       // Apply a transformer bottom-up on an expression.
-      function method Map_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
+      function method {:verify false} Map_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 1
         requires Deep.All_Expr(e, tr.f.requires)
         ensures Deep.All_Expr(e', tr.post)
@@ -262,7 +262,7 @@ module CompilerRewriter {
 
       // Auxiliary function
       // TODO: remove?
-      function method MapChildren_Expr_Transformer'(tr: BottomUpTransformer) :
+      function method {:verify false} MapChildren_Expr_Transformer'(tr: BottomUpTransformer) :
         (tr': Transformer'<Expr,Expr>) {
         TR(e requires Deep.AllChildren_Expr(e, tr.f.requires) => MapChildren_Expr(e, tr),
            e' => Deep.AllChildren_Expr(e', tr.post),
@@ -271,13 +271,13 @@ module CompilerRewriter {
 
       // We can write aggregated statements only in lemmas.
       // This forces me to cut this definition into pieces...
-      function method Map_Expr_Transformer'(tr: BottomUpTransformer) : (tr': Transformer'<Expr,Expr>) {
+      function method {:verify false} Map_Expr_Transformer'(tr: BottomUpTransformer) : (tr': Transformer'<Expr,Expr>) {
         TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
            e' => Deep.All_Expr(e', tr.post),
            tr.rel)
       }
 
-      lemma {:vcs_split_on_every_assert} Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
+      lemma {:verify false} {:vcs_split_on_every_assert} Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
         ensures HasValidRel(Map_Expr_Transformer'(tr))
       {
         var tr' := Map_Expr_Transformer'(tr);
@@ -305,7 +305,7 @@ module CompilerRewriter {
 
       // Given a bottom-up transformer tr, return a transformer which applies tr in a bottom-up
       // manner.
-      function method Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
+      function method {:verify false} Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       {
         var tr': Transformer'<Expr,Expr> := Map_Expr_Transformer'(tr);
         Map_Expr_Transformer'_Lem(tr);
@@ -313,7 +313,7 @@ module CompilerRewriter {
       }
 
       // Apply a transformer to a method, in a bottom-up manner.
-      function method {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
+      function method {:verify false} {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
         requires Deep.All_Method(m, tr.f.requires)
         ensures Deep.All_Method(m', tr.post)
         ensures tr.rel(m.methodBody, m'.methodBody)
@@ -322,7 +322,7 @@ module CompilerRewriter {
       }
 
       // Apply a transformer to a program, in a bottom-up manner.
-      function method {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
+      function method {:verify false} {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
         requires Deep.All_Program(p, tr.f.requires)
         ensures Deep.All_Program(p', tr.post)
         ensures tr.rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
@@ -348,7 +348,7 @@ module CompilerRewriter {
     // Auxiliarly function (no postcondition): flip the negated binary operations
     // (of the form "not binop(...)") to the equivalent non-negated operations ("binop(...)").
     // Ex.: `neq` ~~> `eq`
-    function method FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
+    function method {:verify false} FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
     {
       match op {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
@@ -364,24 +364,24 @@ module CompilerRewriter {
       }
     }
 
-    function method FlipNegatedBinop(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
+    function method {:verify false} FlipNegatedBinop(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
       ensures !IsNegatedBinop(op')
     {
       FlipNegatedBinop'(op)
     }
 
-    predicate method IsNegatedBinop(op: BinaryOps.BinaryOp) {
+    predicate method {:verify false} IsNegatedBinop(op: BinaryOps.BinaryOp) {
       FlipNegatedBinop'(op) != op
     }
 
-    predicate method IsNegatedBinopExpr(e: Exprs.T) {
+    predicate method {:verify false} IsNegatedBinopExpr(e: Exprs.T) {
       match e {
         case Apply(Eager(BinaryOp(op)), _) => IsNegatedBinop(op)
         case _ => false
       }
     }
 
-    predicate NotANegatedBinopExpr(e: Exprs.T) {
+    predicate {:verify false} NotANegatedBinopExpr(e: Exprs.T) {
       !IsNegatedBinopExpr(e)
     }
 
@@ -398,13 +398,13 @@ module CompilerRewriter {
     //   }
     // }
 
-    predicate Tr_Expr_Post(e: Exprs.T) {
+    predicate {:verify false} Tr_Expr_Post(e: Exprs.T) {
       NotANegatedBinopExpr(e)
     }
     
     // Interpretation results are "similar".
     // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
-    predicate SameResult(res: InterpResult<WV>, res': InterpResult<WV>) {
+    predicate {:verify false} SameResult<T(0)>(res: InterpResult<T>, res': InterpResult<T>) {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
           && v == v'
@@ -416,7 +416,18 @@ module CompilerRewriter {
       }
     }
 
-    predicate SameSeq1Result(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
+    predicate {:verify true} SamePureResult<T(0)>(res: PureInterpResult<T>, res': PureInterpResult<T>) {
+      match (res, res') {
+        case (Success(v), Success(v')) =>
+          && v == v'
+        case (Failure(_), Failure(_)) =>
+          true
+        case _ =>
+          false
+      }
+    }
+
+    predicate {:verify false} SameSeq1Result(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(sv,ctx'))) =>
           && [v] == sv
@@ -429,7 +440,7 @@ module CompilerRewriter {
     }
 
     // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating the single expression.
-    lemma InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
+    lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
       ensures SameSeq1Result(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
@@ -449,13 +460,272 @@ module CompilerRewriter {
       }
     }
 
-    predicate Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
+    // TODO: move
+    predicate {:verify false} SameInterp(e: Exprs.T, e': Exprs.T) {
       SupportsInterp(e) ==>
       (&& SupportsInterp(e')
        && forall fuel, ctx :: SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)))
     }
 
-    function method FlipNegatedBinop_Expr(op: BinaryOp, args: seq<Expr>) : (e':Exprs.T)
+    // TODO: move
+    // Sometimes, quantifiers are not triggered
+    lemma {:verify false} SameInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State)
+      requires SupportsInterp(e)
+      requires SameInterp(e, e')
+      ensures SupportsInterp(e')
+      ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+    {}
+
+    // TODO: move - TODO: remove?
+    predicate {:verify false} Tr_SameInterp(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+      forall e | f.requires(e) :: rel(e, f(e)) ==> SameInterp(e, f(e))
+    }
+
+    // TODO: move
+    lemma {:verify false} All_Rel_Forall_SameInterp_SameResult_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State)
+      requires forall e | e in es :: SupportsInterp(e)
+      requires All_Rel_Forall(SameInterp, es, es')
+      ensures forall e | e in es' :: SupportsInterp(e)
+      ensures SameResult(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx))
+    {
+      if es == [] {}
+      else {
+        // Evaluate the first expression in the sequence
+        match InterpExpr(es[0], fuel, ctx) {
+          case Success(Return(v, ctx1)) => {
+            var res1: InterpResult<WV> := InterpExpr(es'[0], fuel, ctx);
+            assert res1.Success?;
+
+            // TODO: the following statement generates the error:
+            // "value does not satisfy the subset constraints of 'WV' (dafny)"
+            //var Success(Return(v', ctx1')) := res1;
+            //assert v' == v;
+            //assert ctx1' == ctx1;
+
+            // Evaluate the rest of the sequence
+            All_Rel_Forall_SameInterp_SameResult_Lem(es[1..], es'[1..], fuel, ctx1);
+          }
+          case Failure(_) => {}
+        }
+      }
+    }
+
+    lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>)
+      ensures SamePureResult(Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
+                             Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
+    {
+      if argvs == [] {
+        
+      }
+      else {
+        var argv := argvs[0];
+        assert SamePureResult(PairOfMapDisplaySeq(e, argv), PairOfMapDisplaySeq(e', argv));
+        reveal Seq.MapResult();
+        Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..]);
+      }
+    }
+
+    // TODO: move
+    lemma {:verify false} InterpMapDisplay_SameArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>)
+      ensures SamePureResult(InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs)) {
+        Map_PairOfMapDisplaySeq_Lem(e, e', argvs);
+    }
+
+    // TODO: move
+    lemma {:verify true} Tr_SameInterp_Expr_Lem(f: Expr --> Expr)
+      requires forall e | f.requires(e) :: SameInterp(e, f(e))
+      //requires Tr_SameInterp(f,rel)
+      //requires TransformerPreservesRel(f,rel)
+      ensures TransformerPreservesRel(f, SameInterp)
+    {
+      forall e, e' |
+        && Exprs.ConstructorsMatch(e, e')
+        && f.requires(e')
+        && All_Rel_Forall(SameInterp, e.Children(), e'.Children())
+        && SupportsInterp(e) // Constraining a bit
+        ensures SameInterp(e, f(e'))
+        {
+          forall exprs, exprs', fuel, ctx | (forall e | e in exprs :: SupportsInterp(e)) && All_Rel_Forall(SameInterp, exprs, exprs')
+            ensures forall e | e in exprs' :: SupportsInterp(e)
+            ensures SameResult(InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx)) {
+              All_Rel_Forall_SameInterp_SameResult_Lem(exprs, exprs', fuel, ctx);
+          }
+
+          match e {
+            case Var(_) => {
+              assert SameInterp(e, e');
+            }
+            case Literal(lit_) => {
+              assert SameInterp(e, e');
+            }
+            case Abs(vars, body) => {
+              assume SupportsInterp(e'); // TODO
+              assume SameInterp(e, e'); // TODO
+            }
+            case Apply(Eager(op), exprs) => {
+              assert SupportsInterp(e');
+
+              var Apply(Eager(op'), exprs') := e';
+              assert op' == op;
+              assert All_Rel_Forall(SameInterp, exprs, exprs');
+              forall fuel, ctx
+                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+              {
+                var res := InterpExpr(e, fuel, ctx);
+                var res' := InterpExpr(e', fuel, ctx);
+
+                // The arguments evaluate to similar results
+                assert SameResult(InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx));
+                
+                // Check that the applications also evaluate to similar results
+                match InterpExprs(exprs, fuel, ctx) {
+                  case Success(Return(vs:seq<WV>, ctx1)) => {
+
+                    // TODO: this doesn't work for some reason:
+                    // var Success(Return(vs':seq<WV>, ctx1')) := InterpExprs(exprs', fuel, ctx);
+                    assert InterpExprs(exprs', fuel, ctx).Success?;
+                    var vs' := InterpExprs(exprs', fuel, ctx).value.ret;
+                    var ctx1' := InterpExprs(exprs', fuel, ctx).value.ctx;
+                    assert vs' == vs;
+                    assert ctx1' == ctx1;
+                    
+                    match op {
+                      case UnaryOp(op: UnaryOp) => {
+                        assert SameResult(res, res');
+                      }
+                      case BinaryOp(bop: BinaryOp) => {
+                        assert SameResult(res, res');
+                      }
+                      case TernaryOp(top: TernaryOp) => {
+                        assert SameResult(res, res');
+                      }
+                      case Builtin(Display(ty)) => {
+                        assert res == LiftPureResult(ctx1, InterpDisplay(e, ty.kind, vs));
+                        assert res' == LiftPureResult(ctx1, InterpDisplay(e', ty.kind, vs));
+                        match ty.kind {
+                          case Map(_) => {
+                            InterpMapDisplay_SameArgs_Lem(e, e', vs);
+                            assert SameResult(res, res');
+                          }
+                          case _ => {
+                            assert SameResult(res, res');
+                          }
+                        }
+                      }
+                      case FunctionCall() => {
+                        var fn := vs[0];
+                        var argvs := vs[1..];
+                        assert res == LiftPureResult(ctx1, InterpFunctionCall(e, fuel, fn, argvs));
+                        assert res' == LiftPureResult(ctx1, InterpFunctionCall(e', fuel, fn, argvs));
+                        assert SameResult(res, res');
+                      }
+                    }
+                  }
+                  case Failure(_) => {
+                    assert SameResult(res, res');
+                  }
+                }
+              }
+
+              assert SameInterp(e, e');
+            }
+            case Apply(Lazy(op), exprs) => {
+              forall fuel, ctx
+                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+              {
+                var res := InterpExpr(e, fuel, ctx);
+                var res' := InterpExpr(e', fuel, ctx);
+
+                assert res == InterpLazy(e, fuel, ctx);
+                assert res' == InterpLazy(e', fuel, ctx);
+
+                var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
+                var op', e0', e1' := e'.aop.lOp, e'.args[0], e'.args[1];
+                assert op == op';
+
+                SameInterp_Lem(e0, e0', fuel, ctx);
+                var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
+                var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx);
+                assert SameResult(res0, res0');
+                
+                match res0 {
+                  case Success(Return(v0, ctx0)) => {
+                    SameInterp_Lem(e1, e1', fuel, ctx0);
+                    assert SameResult(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
+                    assert SameResult(res, res');
+                  }
+                  case Failure(_) => {
+                    assert res.Failure?;
+                    assert res0'.Failure?; // Fails without this
+                    assert SameResult(res, res');
+                  }
+                }
+                assume SameResult(res, res');
+              }
+              
+              assert SameInterp(e, e');
+            }
+            case Block(exprs) => {
+              assert SameInterp(e, e');
+            }
+            case If(cond, thn, els) => {
+              var If(cond', thn', els') := e';
+
+              assert cond == e.Children()[0];
+              assert thn == e.Children()[1];
+              assert els == e.Children()[2];
+
+              assert cond' == e'.Children()[0];
+              assert thn' == e'.Children()[1];
+              assert els' == e'.Children()[2];
+
+              assert SameInterp(cond, cond');
+              assert SameInterp(thn, thn');
+              assert SameInterp(els, els');
+
+              assert SupportsInterp(e');
+
+              forall fuel, ctx
+                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+                  var res := InterpExpr(e, fuel, ctx);
+                  var res' := InterpExpr(e', fuel, ctx);
+
+                  var res1 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
+                  var res1' := InterpExprWithType(cond', Type.Bool, fuel, ctx);
+
+                  SameInterp_Lem(cond, cond', fuel, ctx); // Below assert fails without this lemma
+                  assert SameResult(res1, res1');
+
+                  match res1 {
+                    case Success(Return(condv, ctx1)) => {
+                      var condv' := res1'.value.ret;
+                      var ctx1' := res1'.value.ctx;
+
+                      assert condv' == condv;
+                      assert ctx1' == ctx1;
+                      
+                      SameInterp_Lem(thn, thn', fuel, ctx1); // Proof fails without this lemma
+                      SameInterp_Lem(els, els', fuel, ctx1); // Proof fails without this lemma
+                    }
+                    case Failure(_) => {
+                      assert InterpExprWithType(cond', Type.Bool, fuel, ctx).Failure?; // Proof fails without this
+                      assert SameResult(res, res');
+                    }
+                  }
+              }
+              assert SameInterp(e, e');
+            }
+          }
+          assert SameInterp(e, e');
+          assert SameInterp(e, f(e'));
+        }
+    }
+    
+    predicate {:verify false} Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
+      SameInterp(e, e')
+    }
+
+    function method {:verify false} FlipNegatedBinop_Expr(op: BinaryOp, args: seq<Expr>) : (e':Exprs.T)
       requires IsNegatedBinop(op)
     {
       var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
@@ -463,7 +733,7 @@ module CompilerRewriter {
       e'
     }
 
-    lemma FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
+    lemma {:verify false} FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
       requires IsNegatedBinop(op)
       ensures (
         var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
@@ -514,7 +784,7 @@ module CompilerRewriter {
       }
     }
 
-    function method Tr_Expr_Shallow(e: Exprs.T) : (e': Exprs.T)
+    function method {:verify false} Tr_Expr_Shallow(e: Exprs.T) : (e': Exprs.T)
       ensures Tr_Expr_Post(e')
       ensures Tr_Expr_Rel(e, e')
     {
@@ -530,30 +800,23 @@ module CompilerRewriter {
       }
     }
 
-    lemma TrMatchesPrePost()
+    lemma {:verify false} TrMatchesPrePost()
       ensures TransformerMatchesPrePost(Tr_Expr_Shallow, Tr_Expr_Post)
     {}
 
-    lemma TrPreservesPre()
+    lemma {:verify false} TrPreservesPre()
       ensures MapChildrenPreservesPre(Tr_Expr_Shallow,Tr_Expr_Post)
     {}
 
-    lemma TrPreservesRel()
+    lemma {:verify false} TrPreservesRel()
       ensures TransformerPreservesRel(Tr_Expr_Shallow,Tr_Expr_Rel)
     {
       var f := Tr_Expr_Shallow;
       var rel := Tr_Expr_Rel;
-      forall e, e' |
-        && Exprs.ConstructorsMatch(e, e')
-        && f.requires(e')
-        && All_Rel_Forall(rel, e.Children(), e'.Children())
-        ensures rel(e, f(e'))
-        {
-          assume rel(e, f(e')); // TODO
-        }
+      Tr_SameInterp_Expr_Lem(f);
     }
 
-    const Tr_Expr : BottomUpTransformer :=
+    const {:verify false} Tr_Expr : BottomUpTransformer :=
       ( TrMatchesPrePost();
         TrPreservesPre();
         TrPreservesRel();
@@ -562,7 +825,7 @@ module CompilerRewriter {
            Tr_Expr_Rel))
 
     // TODO: remove
-    function method Apply_Expr_direct(e: Exprs.T) : (e': Exprs.T)
+    function method {:verify false} Apply_Expr_direct(e: Exprs.T) : (e': Exprs.T)
       requires Deep.All_Expr(e, Exprs.WellFormed)
       ensures Deep.All_Expr(e', NotANegatedBinopExpr)
       ensures Deep.All_Expr(e', Exprs.WellFormed)
@@ -597,7 +860,7 @@ module CompilerRewriter {
       }
     }
 
-    function method Apply(p: Program) : (p': Program)
+    function method {:verify false} Apply(p: Program) : (p': Program)
       requires Deep.All_Program(p, Tr_Expr.f.requires)
       ensures Deep.All_Program(p', Tr_Expr_Post)
       ensures Tr_Expr_Rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
