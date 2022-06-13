@@ -19,7 +19,7 @@ class MyClass {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 trait MyTrait {
@@ -32,7 +32,7 @@ trait MyTrait {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 class MyTraitInstance extends MyTrait {

@@ -151,7 +151,8 @@ namespace Microsoft.Dafny.Compilers {
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
 
-      var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
+      var needsConstructor = cls is TopLevelDeclWithMembers decl
+                             && decl.Members.Any(m => !m.IsGhost && (m is Field && !m.IsStatic || m is Constructor));
       var constructorWriter = needsConstructor
         ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
         : null;
@@ -164,9 +165,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
-      List<Type> superClasses, IToken tok,
-      ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      TopLevelDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
+      var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
+      if (trait is TraitDecl tr && tr.Members.All(m => m.IsGhost)) {
+        methodWriter.WriteLine("pass");
+      }
+      return new ClassWriter(this, methodWriter, methodWriter);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -354,6 +358,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public override bool NeedsCustomReceiver(MemberDecl member) {
+      Contract.Requires(member != null);
+      return (!member.IsStatic && (member.EnclosingClass is NewtypeDecl ||
+                                  (member.EnclosingClass is TraitDecl && member is ConstantField { Rhs: { } })));
+    }
+
     private void DeclareField(string name, bool isStatic, bool isConst, Type type, IToken tok, string rhs,
         ConcreteSyntaxTree fieldWriter) {
       fieldWriter.Write($"self.{name}: {TypeName(type, fieldWriter, tok)}");
@@ -364,12 +374,23 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
-        bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
-      throw new NotImplementedException();
+      bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
+      if (isStatic) { throw new NotImplementedException(); }
+      methodWriter.WriteLine("@property");
+      var getterWriter = methodWriter.NewBlockPy(header: $"def {name}(self):");
+      methodWriter.WriteLine($"@{name}.setter");
+      setterWriter = methodWriter.NewBlockPy(header: $"def {name}(self, value):");
+      if (createBody) {
+        return getterWriter;
+      }
+      getterWriter.WriteLine($"return self._{name}");
+      setterWriter.WriteLine($"self._{name} = value");
+      setterWriter = null;
+      return null;
     }
 
-    private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
-        ConcreteSyntaxTree methodWriter) {
+    private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree methodWriter) {
+      if (!createBody) { return null; }
       methodWriter.WriteLine(isStatic ? $"@{DafnyRuntimeModule}.classproperty" : "@property");
       return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
     }
@@ -379,7 +400,12 @@ namespace Microsoft.Dafny.Compilers {
       if (m.IsStatic) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {IdName(m)}(");
       WriteFormals(m.Ins, m.IsStatic, wr);
-      return wr.NewBlockPy("):", close: BlockStyle.Newline);
+      var body = wr.NewBlockPy("):", close: BlockStyle.Newline);
+      if (createBody) {
+        return body;
+      }
+      body.WriteLine("pass");
+      return null;
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
@@ -402,14 +428,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
-        List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
-        ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
+      ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      if (!createBody) { return null; }
       if (isStatic || NeedsCustomReceiver(member)) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {name}(");
-      WriteFormals(formals, isStatic, wr);
+      WriteFormals(formals, isStatic && !NeedsCustomReceiver(member), wr);
       return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
-
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
       throw new NotImplementedException();
@@ -899,13 +925,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
-        List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
-        string additionalCustomParameter = null, bool internalAccess = false) {
-      if (internalAccess) {
-        return SimpleLvalue(w => {
-          w.Write($"self._{member.CompileName}");
-        });
-      }
+      List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
+      string additionalCustomParameter = null, bool internalAccess = false) {
       switch (member) {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {
@@ -916,7 +937,9 @@ namespace Microsoft.Dafny.Compilers {
           }
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
-            if (compiledName.Length > 0) { compiledName = "." + compiledName; }
+            if (compiledName.Length > 0) {
+              compiledName = $".{(sf is ConstantField && internalAccess ? "_" : "")}{compiledName}";
+            }
             return SuffixLvalue(obj, compiledName);
           }
         case Field: {
