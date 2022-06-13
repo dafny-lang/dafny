@@ -1736,10 +1736,11 @@ ForallStmt =
 ````
 
 The `forall` statement executes the body
-simultaneously for all quantified values in the specified range.
+simultaneously for all quantified values in the specified quantifier domain.
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
-
 In particular, a `forall` statement can be classified as one of the following:
 
 * _Assign_ - the `forall` statement is used for simultaneous assignment.
@@ -1823,7 +1824,7 @@ forall x :: P(x) ==> Q(x).
 ```
 
 The `forall` statement is also used extensively in the de-sugared forms of
-co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
+co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
 
 ## 19.22. Modify Statement {#sec-modify-statement}
 ````grammar

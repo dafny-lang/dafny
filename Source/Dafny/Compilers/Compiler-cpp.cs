@@ -89,6 +89,9 @@ namespace Microsoft.Dafny.Compilers {
       this.dtDeclsWr = headerFileWr.Fork();
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
+
+      var rt = wr.NewFile("DafnyRuntime.h");
+      ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
     }
 
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
