@@ -152,7 +152,7 @@ namespace Microsoft.Dafny.Compilers {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl
-                             && decl.Members.Any(m => !m.IsGhost && (m is Field && !m.IsStatic || m is Constructor));
+                             && decl.Members.Any(m => !m.IsGhost && ((m is Field && !m.IsStatic) || m is Constructor));
       var constructorWriter = needsConstructor
         ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
         : null;
