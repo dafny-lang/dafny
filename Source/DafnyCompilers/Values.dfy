@@ -9,7 +9,7 @@ module Values {
 
   type Context = map<string, Value>
 
-  datatype Value =
+  datatype Value = 
     | Bool(b: bool)
     | Char(c: char)
     | Int(i: int)
@@ -74,11 +74,56 @@ module Values {
         case Closure(ctx, vars_, body_) => ctx.Values
     }
 
+    // This duplicates a bit Types.WellFormed().
+    // More specifically, if we have ``value.HasType(t)``, then we can deduce from the type well-formedness
+    // that we also have ``value.WellFormed()``.
     predicate method WellFormed1() {
-      match this
+      match this {
+        case Bool(b) => true
+        case Char(c) => true
+        case Int(i) => true
+        case Real(r) => true
+        case BigOrdinal(o) => true
         case BitVector(width, val) =>
           0 <= value < Math.IntPow(2, width)
-        case _ => true
+        case Map(m) =>
+          && this.NoFunction()
+          && (forall x | x in m :: x.WellFormed1() && m[x].WellFormed1())
+        case Multiset(ms) =>
+          && this.NoFunction()
+          && (forall x | x in ms :: x.WellFormed1())
+        case Seq(sq) =>
+          && this.NoFunction()
+          && (forall x | x in sq :: x.WellFormed1())
+        case Set(st) =>
+          && this.NoFunction()
+          && (forall x | x in st :: x.WellFormed1())
+        case Closure(ctx, vars, body) =>
+          // TODO: is that enough?
+          && (forall x | x in ctx :: ctx[x].WellFormed1())
+      }
+    }
+
+    // This duplicates a bit Types.NoFunction()
+    predicate method NoFunction() {
+      match this {
+        case Bool(b) => true
+        case Char(c) => true
+        case Int(i) => true
+        case Real(r) => true
+        case BigOrdinal(o) => true
+        case BitVector(width, val) =>
+          0 <= value < Math.IntPow(2, width)
+        case Map(m) =>
+          forall x | x in m :: x.NoFunction() && m[x].NoFunction()
+        case Multiset(ms) =>
+          forall x | x in ms :: x.NoFunction()
+        case Seq(sq) =>
+          forall x | x in sq :: x.NoFunction()
+        case Set(st) =>
+          forall x | x in st :: x.NoFunction()
+        case Closure(ctx, vars, body) => false
+      }
     }
 
     predicate method All(P: Value -> bool) {

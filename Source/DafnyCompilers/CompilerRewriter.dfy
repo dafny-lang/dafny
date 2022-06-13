@@ -401,11 +401,123 @@ module CompilerRewriter {
     predicate {:verify false} Tr_Expr_Post(e: Exprs.T) {
       NotANegatedBinopExpr(e)
     }
-    
-    // Interpretation results are "similar".
-    // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
-    predicate {:verify false} SameResult<T(0)>(res: InterpResult<T>, res': InterpResult<T>) {
+
+    // Interpretation results are equivalent.
+    // We might want to be a bit more precise in the error case, especially in case of "out of fuel".
+    predicate {:verify false} EqInterpResult<T(0)>(same_values: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>) {
       match (res, res') {
+        case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
+          && same_values(v, v')
+          && ctx == ctx' // TODO: update this
+        case (Failure(_), Failure(_)) =>
+          true
+        case _ =>
+          false
+      }
+    }
+
+    // Values are equivalent.
+    // Two values are similar if:
+    // - they are not closures and are equal/have equivalent children values
+    // - they are closures and, when applied to equivalent inputs, they return equivalent outputs
+    //
+    // Rk.: we could write the predicate in a simpler manner by using `==` in case the values are not
+    // closures, but we prepare the terrain for a more general handling of collections.
+    // TODO: rename
+    predicate {:verify true} {:vcs_split_on_every_assert} EqValue(v: WV, v': WV)
+    {
+      match (v, v') {
+        case (Bool(b), Bool(b')) => b == b'
+        case (Char(c), Char(c')) => c == c'
+        case (Int(i), Int(i')) => i == i'
+        case (Real(r), Real(r')) => r == r'
+        case (BigOrdinal(o), BigOrdinal(o')) => o == o'
+        case (BitVector(width, value), BitVector(width', value')) =>
+          && width == width'
+          && value == value'
+        case (Map(m), Map(m')) =>
+          && (forall x :: x in m <==> x in m')
+          && (forall x | x in m :: EqValue(m[x], m'[x]))
+        case (Multiset(ms), Multiset(ms')) =>
+          && (forall x :: x in ms <==> x in ms')
+          && (forall x | x in ms :: ms[x] == ms'[x])
+        case (Seq(sq), Seq(sq')) =>
+          && |sq| == |sq'|
+          && (forall i | 0 <= i < |sq| :: EqValue(sq[i], sq'[i]))
+        case (Set(st), Set(st')) =>
+          forall x :: x in st <==> x in st'
+        case (Closure(ctx, vars, body), Closure(ctx', vars', body')) =>
+          && |vars| == |vars'| // no partial applications are allowed in Dafny
+          && (
+          forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
+            |argvs| == |argvs'| == |vars| && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
+            var call_ctx := BuildCallState(ctx, vars, argvs);
+            var call_ctx' := BuildCallState(ctx', vars', argvs');
+            // We could use `EqValueResult`, but we don't want to use mutually recursive functions for now
+            EqInterpResult(EqValue, InterpExpr(body, fuel, call_ctx), InterpExpr(body', fuel, call_ctx')))
+
+        // DISCUSS: Better way to write this?  Need exhaustivity checking
+        case (Bool(b), _) => false
+        case (Char(c), _) => false
+        case (Int(i), _) => false
+        case (Real(r), _) => false
+        case (BigOrdinal(o), _) => false
+        case (BitVector(width, value), _) => false
+        case (Map(m), _) => false
+        case (Multiset(ms), _) => false
+        case (Seq(sq), _) => false
+        case (Set(st), _) => false
+        case (Closure(ctx, vars, body), _) => false
+      }
+    }
+
+    // If values are equivalent and don't contain fucntions, they are necessarily equal
+    lemma {:verify false} EqValuesNoFunction_Lem(v: WV, v': WV)
+      requires EqValue(v,v')
+      requires v.NoFunction()
+      requires v'.NoFunction()
+      ensures v == v'
+    {
+      
+    }
+
+    predicate {:verify false} EqSeqs<T(0)>(same_values: (T,T) -> bool, vs: seq<T>, vs': seq<T>) {
+      && |vs| == |vs'|
+      && (forall i | 0 <= i < |vs| :: same_values(vs[i], vs'[i]))
+    }
+
+    predicate {:verify false} EqMaps<T(0,!new), U(0,!new)>(same_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
+      && (forall x :: x in vs <==> x in vs')
+      && (forall x | x in vs :: same_values(vs[x], vs'[x]))
+    }
+
+    predicate {:verify false} EqPairs<T(0), U(0)>(same_t: (T,T) -> bool, same_u: (U,U) -> bool, v: (T,U), v': (T,U)) {
+      && same_t(v.0, v'.0)
+      && same_u(v.1, v'.1)
+    }
+    
+    predicate {:verify false} EqSeqValue(vs: seq<WV>, vs': seq<WV>) {
+      EqSeqs(EqValue, vs, vs')
+    }
+
+    predicate {:verify false} EqMapValue(m: map<WV, WV>, m': map<WV,WV>) {
+      && (forall x :: x in m <==> x in m')
+      && (forall x | x in m :: EqValue(m[x], m'[x]))
+    }
+
+    predicate EqSeqPairValue(vs: seq<(WV,WV)>, vs': seq<(WV,WV)>) {
+      EqSeqs((v: (WV,WV),v': (WV,WV)) => EqValue(v.0, v'.0) && EqValue(v.1, v'.1), vs, vs')
+    }
+
+    predicate EqPairValue(v: (WV,WV), v': (WV,WV)) {
+      EqPairs(EqValue, EqValue, v, v')
+    }
+    
+    // Interpretation results are equivalent.
+    // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
+    predicate {:verify false} EqValueResult(res: InterpResult<WV>, res': InterpResult<WV>) {
+      EqInterpResult(EqValue, res, res')
+/*      match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
           && v == v'
           && ctx == ctx'
@@ -413,13 +525,17 @@ module CompilerRewriter {
           true
         case _ =>
           false
-      }
+      }*/
     }
 
-    predicate {:verify true} SamePureResult<T(0)>(res: PureInterpResult<T>, res': PureInterpResult<T>) {
+    predicate {:verify false} EqInterpResultSeqValue(res: InterpResult<seq<WV>>, res': InterpResult<seq<WV>>) {
+      EqInterpResult(EqSeqValue, res, res')
+    }
+    
+    predicate {:verify false} EqPureInterpResult<T(0)>(same_values: (T,T) -> bool, res: PureInterpResult<T>, res': PureInterpResult<T>) {
       match (res, res') {
         case (Success(v), Success(v')) =>
-          && v == v'
+          same_values(v, v')
         case (Failure(_), Failure(_)) =>
           true
         case _ =>
@@ -427,7 +543,15 @@ module CompilerRewriter {
       }
     }
 
-    predicate {:verify false} SameSeq1Result(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
+    predicate {:verify false} EqPureInterpResultValue(res: PureInterpResult<WV>, res': PureInterpResult<WV>) {
+      EqPureInterpResult(EqValue, res, res')
+    }
+
+    predicate {:verify false} EqPureInterpResultSeqValue(res: PureInterpResult<seq<WV>>, res': PureInterpResult<seq<WV>>) {
+      EqPureInterpResult(EqSeqValue, res, res')
+    }
+
+    predicate {:verify false} EqInterpResultSeq1Value(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(sv,ctx'))) =>
           && [v] == sv
@@ -443,7 +567,7 @@ module CompilerRewriter {
     lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
-      ensures SameSeq1Result(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+      ensures EqInterpResultSeq1Value(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
     {
       var res := InterpExpr(e, fuel, ctx);
       var sres := InterpExprs([e], fuel, ctx);
@@ -461,32 +585,33 @@ module CompilerRewriter {
     }
 
     // TODO: move
-    predicate {:verify false} SameInterp(e: Exprs.T, e': Exprs.T) {
+    // TODO: change the definition to quantify over equivalent contexts
+    predicate {:verify false} EqInterp(e: Exprs.T, e': Exprs.T) {
       SupportsInterp(e) ==>
       (&& SupportsInterp(e')
-       && forall fuel, ctx :: SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)))
+       && forall fuel, ctx :: EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)))
     }
 
     // TODO: move
     // Sometimes, quantifiers are not triggered
-    lemma {:verify false} SameInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State)
+    lemma {:verify false} EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State)
       requires SupportsInterp(e)
-      requires SameInterp(e, e')
+      requires EqInterp(e, e')
       ensures SupportsInterp(e')
-      ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+      ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
     {}
 
     // TODO: move - TODO: remove?
-    predicate {:verify false} Tr_SameInterp(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
-      forall e | f.requires(e) :: rel(e, f(e)) ==> SameInterp(e, f(e))
+    predicate {:verify false} Tr_EqInterp(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+      forall e | f.requires(e) :: rel(e, f(e)) ==> EqInterp(e, f(e))
     }
 
     // TODO: move
-    lemma {:verify false} All_Rel_Forall_SameInterp_SameResult_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State)
+    lemma {:verify false} All_Rel_Forall_EqInterp_EqInterpResult_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State)
       requires forall e | e in es :: SupportsInterp(e)
-      requires All_Rel_Forall(SameInterp, es, es')
+      requires All_Rel_Forall(EqInterp, es, es')
       ensures forall e | e in es' :: SupportsInterp(e)
-      ensures SameResult(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx))
+      ensures EqInterpResultSeqValue(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx))
     {
       if es == [] {}
       else {
@@ -503,79 +628,81 @@ module CompilerRewriter {
             //assert ctx1' == ctx1;
 
             // Evaluate the rest of the sequence
-            All_Rel_Forall_SameInterp_SameResult_Lem(es[1..], es'[1..], fuel, ctx1);
+            All_Rel_Forall_EqInterp_EqInterpResult_Lem(es[1..], es'[1..], fuel, ctx1);
           }
           case Failure(_) => {}
         }
       }
     }
 
+    // TODO: HERE
     lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>)
-      ensures SamePureResult(Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
-                             Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
+      ensures EqPureInterpResult(EqSeqPairValue,
+                                   Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
+                                   Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
     {
       if argvs == [] {
         
       }
       else {
         var argv := argvs[0];
-        assert SamePureResult(PairOfMapDisplaySeq(e, argv), PairOfMapDisplaySeq(e', argv));
+        assert EqPureInterpResult(EqPairValue, PairOfMapDisplaySeq(e, argv), PairOfMapDisplaySeq(e', argv));
         reveal Seq.MapResult();
         Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..]);
       }
     }
 
     // TODO: move
-    lemma {:verify false} InterpMapDisplay_SameArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>)
-      ensures SamePureResult(InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs)) {
+    lemma {:verify false} InterpMapDisplay_EqArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>)
+      ensures EqPureInterpResult(EqMapValue, InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs)) {
         Map_PairOfMapDisplaySeq_Lem(e, e', argvs);
     }
 
     // TODO: move
-    lemma {:verify true} Tr_SameInterp_Expr_Lem(f: Expr --> Expr)
-      requires forall e | f.requires(e) :: SameInterp(e, f(e))
-      //requires Tr_SameInterp(f,rel)
+    lemma {:verify false} Tr_EqInterp_Expr_Lem(f: Expr --> Expr)
+      requires forall e | f.requires(e) :: EqInterp(e, f(e))
+      //requires Tr_EqInterp(f,rel)
       //requires TransformerPreservesRel(f,rel)
-      ensures TransformerPreservesRel(f, SameInterp)
+      ensures TransformerPreservesRel(f, EqInterp)
     {
       forall e, e' |
         && Exprs.ConstructorsMatch(e, e')
         && f.requires(e')
-        && All_Rel_Forall(SameInterp, e.Children(), e'.Children())
+        && All_Rel_Forall(EqInterp, e.Children(), e'.Children())
         && SupportsInterp(e) // Constraining a bit
-        ensures SameInterp(e, f(e'))
+        ensures EqInterp(e, f(e'))
         {
-          forall exprs, exprs', fuel, ctx | (forall e | e in exprs :: SupportsInterp(e)) && All_Rel_Forall(SameInterp, exprs, exprs')
+          forall exprs, exprs', fuel, ctx | (forall e | e in exprs :: SupportsInterp(e)) && All_Rel_Forall(EqInterp, exprs, exprs')
             ensures forall e | e in exprs' :: SupportsInterp(e)
-            ensures SameResult(InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx)) {
-              All_Rel_Forall_SameInterp_SameResult_Lem(exprs, exprs', fuel, ctx);
+            ensures EqInterpResult(EqSeqValue, InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx)) {
+              All_Rel_Forall_EqInterp_EqInterpResult_Lem(exprs, exprs', fuel, ctx);
           }
 
           match e {
             case Var(_) => {
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
             case Literal(lit_) => {
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
             case Abs(vars, body) => {
               assume SupportsInterp(e'); // TODO
-              assume SameInterp(e, e'); // TODO
+              assume EqInterp(e, e'); // TODO
             }
             case Apply(Eager(op), exprs) => {
               assert SupportsInterp(e');
 
               var Apply(Eager(op'), exprs') := e';
               assert op' == op;
-              assert All_Rel_Forall(SameInterp, exprs, exprs');
+              assert All_Rel_Forall(EqInterp, exprs, exprs');
               forall fuel, ctx
-                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
               {
                 var res := InterpExpr(e, fuel, ctx);
                 var res' := InterpExpr(e', fuel, ctx);
 
                 // The arguments evaluate to similar results
-                assert SameResult(InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx));
+                assert EqInterpResult(EqSeqValue, InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx));
                 
                 // Check that the applications also evaluate to similar results
                 match InterpExprs(exprs, fuel, ctx) {
@@ -591,24 +718,24 @@ module CompilerRewriter {
                     
                     match op {
                       case UnaryOp(op: UnaryOp) => {
-                        assert SameResult(res, res');
+                        assert EqValueResult(res, res');
                       }
                       case BinaryOp(bop: BinaryOp) => {
-                        assert SameResult(res, res');
+                        assert EqValueResult(res, res');
                       }
                       case TernaryOp(top: TernaryOp) => {
-                        assert SameResult(res, res');
+                        assert EqValueResult(res, res');
                       }
                       case Builtin(Display(ty)) => {
                         assert res == LiftPureResult(ctx1, InterpDisplay(e, ty.kind, vs));
                         assert res' == LiftPureResult(ctx1, InterpDisplay(e', ty.kind, vs));
                         match ty.kind {
                           case Map(_) => {
-                            InterpMapDisplay_SameArgs_Lem(e, e', vs);
-                            assert SameResult(res, res');
+                            InterpMapDisplay_EqArgs_Lem(e, e', vs);
+                            assert EqValueResult(res, res');
                           }
                           case _ => {
-                            assert SameResult(res, res');
+                            assert EqValueResult(res, res');
                           }
                         }
                       }
@@ -617,21 +744,21 @@ module CompilerRewriter {
                         var argvs := vs[1..];
                         assert res == LiftPureResult(ctx1, InterpFunctionCall(e, fuel, fn, argvs));
                         assert res' == LiftPureResult(ctx1, InterpFunctionCall(e', fuel, fn, argvs));
-                        assert SameResult(res, res');
+                        assert EqValueResult(res, res');
                       }
                     }
                   }
                   case Failure(_) => {
-                    assert SameResult(res, res');
+                    assert EqValueResult(res, res');
                   }
                 }
               }
 
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
             case Apply(Lazy(op), exprs) => {
               forall fuel, ctx
-                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
               {
                 var res := InterpExpr(e, fuel, ctx);
                 var res' := InterpExpr(e', fuel, ctx);
@@ -643,30 +770,30 @@ module CompilerRewriter {
                 var op', e0', e1' := e'.aop.lOp, e'.args[0], e'.args[1];
                 assert op == op';
 
-                SameInterp_Lem(e0, e0', fuel, ctx);
+                EqInterp_Lem(e0, e0', fuel, ctx);
                 var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
                 var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx);
-                assert SameResult(res0, res0');
+                assert EqValueResult(res0, res0');
                 
                 match res0 {
                   case Success(Return(v0, ctx0)) => {
-                    SameInterp_Lem(e1, e1', fuel, ctx0);
-                    assert SameResult(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
-                    assert SameResult(res, res');
+                    EqInterp_Lem(e1, e1', fuel, ctx0);
+                    assert EqValueResult(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
+                    assert EqValueResult(res, res');
                   }
                   case Failure(_) => {
                     assert res.Failure?;
                     assert res0'.Failure?; // Fails without this
-                    assert SameResult(res, res');
+                    assert EqValueResult(res, res');
                   }
                 }
-                assume SameResult(res, res');
+                assume EqValueResult(res, res');
               }
               
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
             case Block(exprs) => {
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
             case If(cond, thn, els) => {
               var If(cond', thn', els') := e';
@@ -679,22 +806,22 @@ module CompilerRewriter {
               assert thn' == e'.Children()[1];
               assert els' == e'.Children()[2];
 
-              assert SameInterp(cond, cond');
-              assert SameInterp(thn, thn');
-              assert SameInterp(els, els');
+              assert EqInterp(cond, cond');
+              assert EqInterp(thn, thn');
+              assert EqInterp(els, els');
 
               assert SupportsInterp(e');
 
               forall fuel, ctx
-                ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
                   var res := InterpExpr(e, fuel, ctx);
                   var res' := InterpExpr(e', fuel, ctx);
 
                   var res1 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
                   var res1' := InterpExprWithType(cond', Type.Bool, fuel, ctx);
 
-                  SameInterp_Lem(cond, cond', fuel, ctx); // Below assert fails without this lemma
-                  assert SameResult(res1, res1');
+                  EqInterp_Lem(cond, cond', fuel, ctx); // Below assert fails without this lemma
+                  assert EqValueResult(res1, res1');
 
                   match res1 {
                     case Success(Return(condv, ctx1)) => {
@@ -704,25 +831,25 @@ module CompilerRewriter {
                       assert condv' == condv;
                       assert ctx1' == ctx1;
                       
-                      SameInterp_Lem(thn, thn', fuel, ctx1); // Proof fails without this lemma
-                      SameInterp_Lem(els, els', fuel, ctx1); // Proof fails without this lemma
+                      EqInterp_Lem(thn, thn', fuel, ctx1); // Proof fails without this lemma
+                      EqInterp_Lem(els, els', fuel, ctx1); // Proof fails without this lemma
                     }
                     case Failure(_) => {
                       assert InterpExprWithType(cond', Type.Bool, fuel, ctx).Failure?; // Proof fails without this
-                      assert SameResult(res, res');
+                      assert EqValueResult(res, res');
                     }
                   }
               }
-              assert SameInterp(e, e');
+              assert EqInterp(e, e');
             }
           }
-          assert SameInterp(e, e');
-          assert SameInterp(e, f(e'));
+          assert EqInterp(e, e');
+          assert EqInterp(e, f(e'));
         }
     }
     
     predicate {:verify false} Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
-      SameInterp(e, e')
+      EqInterp(e, e')
     }
 
     function method {:verify false} FlipNegatedBinop_Expr(op: BinaryOp, args: seq<Expr>) : (e':Exprs.T)
@@ -747,14 +874,14 @@ module CompilerRewriter {
         assert SupportsInterp(e');
         // Prove that for every fuel and context, the interpreter returns the same result
         forall fuel, ctx
-          ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+          ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
           // Start by proving that the flipped binary operation (not wrapped in the "not") returns exactly the
           // opposite result of the non-flipped binary operation.
           var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
 
           // Intermediate result: evaluating (the sequence of expressions) `[flipped]` is the same as evaluating (the expression) `flipped`.
           InterpExprs1_Lem(flipped, fuel, ctx);
-          assert SameSeq1Result(InterpExpr(flipped, fuel, ctx), InterpExprs([flipped], fuel, ctx));
+          assert EqInterpResultSeq1Value(InterpExpr(flipped, fuel, ctx), InterpExprs([flipped], fuel, ctx));
 
           match (InterpExpr(e, fuel, ctx), InterpExpr(flipped, fuel, ctx)) {
             case (Success(Return(v,ctx1)), Success(Return(v',ctx1'))) => {
@@ -776,7 +903,7 @@ module CompilerRewriter {
               assert false;
             }
           }
-          assert SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
+          assert EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
         }
       }
       else {
@@ -813,7 +940,7 @@ module CompilerRewriter {
     {
       var f := Tr_Expr_Shallow;
       var rel := Tr_Expr_Rel;
-      Tr_SameInterp_Expr_Lem(f);
+      Tr_EqInterp_Expr_Lem(f);
     }
 
     const {:verify false} Tr_Expr : BottomUpTransformer :=
