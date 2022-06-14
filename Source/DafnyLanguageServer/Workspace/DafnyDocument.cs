@@ -28,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool CanDoVerification,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    // TODO why is this nullable again?
     IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViewsView,
     IReadOnlyList<Counterexample> CounterExamplesView,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
