@@ -41,6 +41,19 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
+    public async Task OpeningOpaqueFunctionWorks() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task OpeningDocumentWithSyntaxErrorReportsDiagnosticsWithParserErrors() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int
@@ -804,11 +817,13 @@ method test() {
       Assert.AreEqual(0, resolutionDiagnostics.Length);
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+
+      // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
+      // Contains migrated verification error.
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
@@ -943,6 +958,22 @@ method Foo() {
       Assert.AreEqual(0, verificationTaskDiagnostics.Length);
       var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, verificationDiagnostics2.Length);
+    }
+
+    [TestMethod]
+    public async Task DiagnosticsAfterSavingWithVerifyOnChange() {
+      var source = @"
+method Foo() { 
+  assert true; 
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics1.Length);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
+      var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.IsTrue(diagnostics2.Any());
     }
   }
 }

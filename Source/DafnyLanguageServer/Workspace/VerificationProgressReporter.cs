@@ -59,6 +59,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
     List<VerificationTree> result = new List<VerificationTree>();
 
+    HashSet<Position> recordedPositions = new HashSet<Position>();
+
     void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree) {
       var position = verificationTree.Position;
       var previousTree = previousTrees.FirstOrDefault(
@@ -70,7 +72,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         verificationTree.StatusCurrent = CurrentStatus.Obsolete;
         verificationTree.Children = previousTree.Children;
       }
-      result.Add(verificationTree);
+      // Prevent duplicating trees, e.g. reveal lemmas that have the same position as the function. 
+      if (!recordedPositions.Contains(verificationTree.Position)) {
+        result.Add(verificationTree);
+        recordedPositions.Add(verificationTree.Position);
+      }
     }
 
     var documentFilePath = document.GetFilePath();
