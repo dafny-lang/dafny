@@ -364,8 +364,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      return (!member.IsStatic && (member.EnclosingClass is NewtypeDecl ||
-                                  (member.EnclosingClass is TraitDecl && member is ConstantField { Rhs: { } })));
+      return !member.IsStatic && (member.EnclosingClass is NewtypeDecl
+                                  || (member.EnclosingClass is TraitDecl && member is ConstantField { Rhs: { } }));
     }
 
     private void DeclareField(string name, bool isStatic, bool isConst, Type type, IToken tok, string rhs,
