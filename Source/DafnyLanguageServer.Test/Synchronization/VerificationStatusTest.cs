@@ -14,6 +14,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task ChangeRunSaveWithVerify() {
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+    });
+    var source = @"method Foo() { assert false; }
+method Bar() { assert false; }";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    ApplyChange(ref documentItem, new Range(0, 22, 0, 27), "true");
+    var methodHeader = new Position(0, 7);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    await Task.Delay(10000);
+    await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(0, preSaveDiagnostics.Length);
+    await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+    var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(1, lastDiagnostics.Length);
+  }
+
+  [TestMethod]
   public async Task MigratedDiagnosticsAfterManualRun() {
     var source = @"method Foo() { assert false; }";
     await SetUp(new Dictionary<string, string> {
@@ -22,7 +43,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var methodHeader = new Position(0, 7);
-    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await WaitUntilAllStatusAreCompleted(documentItem);
 
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
@@ -44,20 +65,20 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
     var methodHeader = new Position(0, 21);
-    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     var running1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);
 
-    client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     // Do a second cancel to check it doesn't crash.
-    client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
 
     var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
-    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     // Do a second run to check it doesn't crash.
-    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     var range = new Range(0, 21, 0, 43);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
