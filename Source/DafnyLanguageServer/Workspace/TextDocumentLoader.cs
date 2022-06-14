@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
+    public virtual async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
       if (loaded.ParseAndResolutionDiagnostics.Any(d =>
             d.Severity == DiagnosticSeverity.Error &&
             d.Source != MessageSource.Compiler.ToString() &&

@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -214,24 +213,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
-      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-      if (resolvedDocument.ImplementationViews == null) {
-        return withVerificationTasks;
-      }
+      try {
+        var withVerificationTasks =
+          await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+        if (resolvedDocument.ImplementationViews == null) {
+          return withVerificationTasks;
+        }
 
-      return withVerificationTasks with {
-        ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
-          kv => kv.Key,
-          kv =>
-            kv.Value with {
-              Diagnostics = resolvedDocument.ImplementationViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-            }
-        ),
-      };
+        return withVerificationTasks with {
+          ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
+            kv => kv.Key,
+            kv =>
+              kv.Value with {
+                Diagnostics = resolvedDocument.ImplementationViews.GetValueOrDefault(kv.Key)?.Diagnostics ??
+                              kv.Value.Diagnostics
+              }
+          ),
+        };
+      } catch (Exception e) {
+        resolvedDocument.Program.Reporter.Error(MessageSource.Verifier, resolvedDocument.Program.GetFirstTopLevelToken(),
+          $"Dafny encountered an error during 'translation'.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
+        return resolvedDocument with { CanDoVerification = false };
+      }
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {
