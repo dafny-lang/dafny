@@ -285,7 +285,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public Task<DafnyDocument> ResolvedDocument { get; }
       public Task<DafnyDocument> TranslatedDocument { get; }
       public DafnyDocument LastPublishedDocument => Observer.PreviouslyPublishedDocument;
-      public Task<DafnyDocument> LastDocument { get; private set; }
+      public Task<DafnyDocument> LastDocument => Observer.IdleChangesIncludingLast.Where(idle => idle).
+        Select(_ => Observer.PreviouslyPublishedDocument).
+        FirstAsync().ToTask();
 
       public DocumentEntry(int? version,
         DocumentTextBuffer textBuffer,
@@ -299,8 +301,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = version;
         TextBuffer = textBuffer;
         ResolvedDocument = resolvedDocument;
-        LastDocument = Observer.IdleChanges.Where(idle => idle).Select(_ => Observer.PreviouslyPublishedDocument)
-          .FirstAsync().ToTask();
       }
 
       public void CancelPendingUpdates() {
@@ -311,8 +311,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       public void Observe(IObservable<DafnyDocument> updates) {
         Observer.OnNext(updates);
-        LastDocument = Observer.IdleChanges.Where(idle => idle).Select(_ => Observer.PreviouslyPublishedDocument)
-          .FirstAsync().ToTask();
       }
     }
   }

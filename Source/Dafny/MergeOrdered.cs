@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
@@ -20,7 +21,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   private bool idle = true;
   private bool outerCompleted;
   private readonly Subject<T> result = new();
-  private readonly Subject<bool> idleStates = new();
+  private readonly ReplaySubject<bool> idleStates = new(1);
 
   public IObservable<bool> IdleChanges => idleStates.DistinctUntilChanged();
 
