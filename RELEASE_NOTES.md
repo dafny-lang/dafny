@@ -1,5 +1,6 @@
 # Upcoming
 
+- fix: The IDE will no longer permanently crash in the case of translation errors (in the verification pipeline) (https://github.com/dafny-lang/dafny/pull/2249)
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
 - feat: The Dafny CLI, Dafny as a library, and the C# runtime are now available on NuGet.  You can install the CLI with `dotnet tool install --global Dafny`. The library is available as `DafnyPipeline` and the runtime is available as `DafnyRuntime`.
 - feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual.
