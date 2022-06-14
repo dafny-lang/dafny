@@ -145,7 +145,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = databaseEntry.LastPublishedDocument;
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
       var resolvedDocumentTask = ApplyChangesAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
       var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
