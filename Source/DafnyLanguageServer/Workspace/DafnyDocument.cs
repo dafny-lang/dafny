@@ -24,6 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    bool CanDoVerification,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyDictionary<ImplementationId, ImplementationView>? ImplementationViews,
@@ -31,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
-    ProgramVerificationTasks? VerificationTasks = null,
+    IReadOnlyList<IImplementationTask>? VerificationTasks = null,
     bool LoadCanceled = false
   ) {
 
