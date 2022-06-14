@@ -23,7 +23,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   private readonly Subject<T> result = new();
   private readonly ReplaySubject<bool> idleStates = new(1);
 
-  public IObservable<bool> IdleChanges => idleStates.DistinctUntilChanged();
+  public IObservable<bool> IdleChangesIncludingLast => idleStates.DistinctUntilChanged();
 
   public void OnNext(IObservable<T> next) {
     lock (this) {
