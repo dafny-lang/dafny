@@ -93,13 +93,81 @@ module Interp {
     }
   }
 
-  predicate method WellFormedValue1(v: V.T)  {
+  // TODO: rewrite as a shallow predicate applied through ``v.All``?
+  predicate method WellFormedEqValue(v: V.T)
+  // This predicate gives the constrainst we need to be able to *define* our equivalence relation
+  // over values and actually *use* this relation to prove equivalence properties between expressions.
+  // 
+  // The difficult point is linked to closures: when we apply transformations to the code, we often
+  // apply them in a deep manner to the expressions (i.e., to all the subexpressions of an expression).
+  // The problem is that it can have an effect on the closure values generated through the execution
+  // by modifying their bodies, leading to discrepancies in the execution of the code (imagine the case
+  // where we use closures as keys inside of maps).
+  // The good news is that when those cases happen, we actually try to use an equality over values
+  // which don't have a decidable equality: we solve the problem by forcing some subvalues to have
+  // a decidable equality.
+  {
+    match v {
+      case Bool(b) => true
+      case Char(c) => true
+      case Int(i) => true
+      case Real(r) => true
+      case BigOrdinal(o) => true
+      case BitVector(width, val) => true
+      case Map(m) =>
+        && (forall x | x in m :: HasEqValue(x))
+        && (forall x | x in m :: WellFormedEqValue(x) && WellFormedEqValue(m[x]))
+      case Multiset(ms) =>
+        && HasEqValue(v)
+        && (forall x | x in ms :: WellFormedEqValue(x))
+      case Seq(sq) =>
+        && (forall x | x in sq :: WellFormedEqValue(x))
+      case Set(st) =>
+        && HasEqValue(v)
+        && (forall x | x in st :: WellFormedEqValue(x))
+      case Closure(ctx, vars, body) =>
+        // TODO: is that enough?
+        && (forall x | x in ctx.Values :: WellFormedEqValue(x))
+    }
+  }
+
+  predicate method HasEqValue(v: V.T)
+  // Return true if the value supports a decidale equality.
+  //
+  // Note that this is a bit subtle for collections: any empty collection supports a decidable
+  // equality, but non-empty collections support a decidable equality only if their elements
+  // support one.
+  {
+    match v {
+      case Bool(b) => true
+      case Char(c) => true
+      case Int(i) => true
+      case Real(r) => true
+      case BigOrdinal(o) => true
+      case BitVector(width, val) =>
+        0 <= val < Math.IntPow(2, width)
+      case Map(m) =>
+        forall x | x in m :: HasEqValue(x) && HasEqValue(m[x])
+      case Multiset(ms) =>
+        forall x | x in ms :: HasEqValue(x)
+      case Seq(sq) =>
+        forall x | x in sq :: HasEqValue(x)
+      case Set(st) =>
+        forall x | x in st :: HasEqValue(x)
+      case Closure(ctx, vars, body) => false
+    }
+  }
+
+  predicate method WellFormedValue1(v: V.T)
+  // The *shallow* well-formedness predicate for values manipulated by the interpreter.
+  {
     && v.Closure? ==> SupportsInterp(v.body)
     && v.WellFormed1()
   }
 
   predicate method WellFormedValue(v: V.T) {
-    v.All(WellFormedValue1)
+    && v.All(WellFormedValue1)
+    && WellFormedEqValue(v)
   }
 
   predicate method WellFormedContext(ctx: V.Context) {
@@ -147,7 +215,18 @@ module Interp {
     Success(Return(v, ctx))
   }
 
+  // The type of well-formed values manipulated by the interpreter
   type WV = v: V.T | WellFormedValue(v) witness V.Bool(false)
+
+  // The type of well-formed values with a decidable equality
+  type EqWV = v: V.T | WellFormedValue(v) && HasEqValue(v) witness V.Bool(false)
+
+  predicate InterpResultPred<A(0)>(p: (A,State) -> bool, r: InterpResult<A>) {
+    match r {
+      case Success(Return(x, ctx)) => p(x, ctx)
+      case Failure(_) => true
+    }
+  }
 
   function method InterpExpr(e: Expr, fuel: nat, ctx: State := State.Empty)
     : (r: InterpResult<WV>)
@@ -160,7 +239,9 @@ module Interp {
         var val :- TryGetLocal(ctx, v, UnboundVariable(v));
         Success(Return(val, ctx))
       case Abs(vars, body) =>
-        Success(Return(V.Closure(ctx.locals, vars, body), ctx))
+        var cv: V.T := V.Closure(ctx.locals, vars, body);
+        assert WellFormedValue(cv); // TODO: prove
+        Success(Return(cv, ctx))
       case Literal(lit) =>
         Success(Return(InterpLiteral(lit), ctx))
       case Apply(Lazy(op), args: seq<Expr>) =>
@@ -274,7 +355,9 @@ module Interp {
       Success(Return([v] + vs, ctx))
   }
 
-  function method InterpLiteral(a: AST.Exprs.Literal) : (v: WV) {
+  function method InterpLiteral(a: AST.Exprs.Literal) : (v: WV)
+    ensures HasEqValue(v)
+  {
     match a
       case LitBool(b: bool) => V.Bool(b)
       case LitInt(i: int) => V.Int(i)
@@ -283,6 +366,7 @@ module Interp {
       case LitString(s: string, verbatim: bool) =>
         var chars := seq(|s|, i requires 0 <= i < |s| => V.Char(s[i]));
         assert forall c | c in chars :: WellFormedValue(c);
+        assert forall c | c in chars :: HasEqValue(c);
         V.Seq(chars)
   }
 
@@ -470,6 +554,8 @@ module Interp {
   function method InterpBinarySets(expr: Expr, op: BinaryOps.Sets, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
   {
+    // Rk.: we enforce through `WellFormedEqValue` that sets contain values with a decidable
+    // equality.
     match op
       case SetEq() => :- Need(v0.Set? && v1.Set?, Invalid(expr));
         Success(V.Bool(v0.st == v1.st))
@@ -500,6 +586,8 @@ module Interp {
   function method InterpBinaryMultisets(expr: Expr, op: BinaryOps.Multisets, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
   {
+    // Rk.: we enforce through `WellFormedEqValue` that multisets contain values with a decidable
+    // equality.
     match op // DISCUSS
       case MultisetEq() => :- Need(v0.Multiset? && v1.Multiset?, Invalid(expr));
         Success(V.Bool(v0.ms == v1.ms))
@@ -532,47 +620,86 @@ module Interp {
   function method InterpBinarySequences(expr: Expr, op: BinaryOps.Sequences, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
   {
+    // Rk.: sequences don't necessarily contain values with a decidable equality, we
+    // thus dynamically check that we have what we need depending on the operation
+    // we want to perform.
     match op
-      case SeqEq() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+      case SeqEq() =>
+        :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.sq == v1.sq))
-      case SeqNeq() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+      case SeqNeq() =>
+        :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.sq != v1.sq))
-      case Prefix() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+      case Prefix() =>
+        :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.sq <= v1.sq))
-      case ProperPrefix() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+      case ProperPrefix() =>
+        :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.sq < v1.sq))
       case Concat() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
         Success(V.Seq(v0.sq + v1.sq))
-      case InSeq() => :- Need(v1.Seq?, Invalid(expr));
+      case InSeq() =>
+        :- Need(v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0 in v1.sq))
-      case NotInSeq() => :- Need(v1.Seq?, Invalid(expr));
+      case NotInSeq() =>
+        :- Need(v1.Seq?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0 !in v1.sq))
-      case SeqDrop() => :- NeedValidEndpoint(expr, v0, v1);
+      case SeqDrop() =>
+        :- NeedValidEndpoint(expr, v0, v1);
         Success(V.Seq(v0.sq[v1.i..]))
-      case SeqTake() => :- NeedValidEndpoint(expr, v0, v1);
+      case SeqTake() =>
+        :- NeedValidEndpoint(expr, v0, v1);
         Success(V.Seq(v0.sq[..v1.i]))
-      case SeqSelect() => :- NeedValidIndex(expr, v0, v1);
+      case SeqSelect() =>
+        :- NeedValidIndex(expr, v0, v1);
         Success(v0.sq[v1.i])
   }
 
   function method InterpBinaryMaps(expr: Expr, op: BinaryOps.Maps, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
   {
+    // Rk.: values in maps don't necessarily have a decidable equality. We thus perform
+    // dynamic checks when we need one and fail if it is not the case.
     match op
-      case MapEq() => :- Need(v0.Map? && v1.Map?, Invalid(expr));
+      case MapEq() =>
+        :- Need(v0.Map? && v1.Map?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.m == v1.m))
-      case MapNeq() => :- Need(v0.Map? && v1.Map?, Invalid(expr));
+      case MapNeq() =>
+        :- Need(v0.Map? && v1.Map?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0.m != v1.m))
-      case MapMerge() => :- Need(v0.Map? && v1.Map?, Invalid(expr));
+      case MapMerge() =>
+        :- Need(v0.Map? && v1.Map?, Invalid(expr));
         Success(V.Map(v0.m + v1.m))
-      case MapSubtraction() => :- Need(v0.Map? && v1.Set?, Invalid(expr));
+      case MapSubtraction() =>
+        :- Need(v0.Map? && v1.Set?, Invalid(expr));
         Success(V.Map(v0.m - v1.st))
-      case InMap() => :- Need(v1.Map?, Invalid(expr));
+      case InMap() =>
+        :- Need(v1.Map?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0 in v1.m))
-      case NotInMap() => :- Need(v1.Map?, Invalid(expr));
+      case NotInMap() =>
+        :- Need(v1.Map?, Invalid(expr));
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
         Success(V.Bool(v0 !in v1.m))
       case MapSelect() =>
         :- Need(v0.Map?, Invalid(expr));
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         :- Need(v1 in v0.m, Invalid(expr));
         Success(v0.m[v1])
   }
@@ -609,7 +736,8 @@ module Interp {
     : (r: PureInterpResult<WV>)
   {
     match op
-      case SeqUpdate() => :- NeedValidIndex(expr, v0, v1);
+      case SeqUpdate() =>
+        :- NeedValidIndex(expr, v0, v1);
         Success(V.Seq(v0.sq[v1.i := v2]))
       case SeqSubseq() =>
         :- NeedValidEndpoint(expr, v0, v2);
@@ -625,6 +753,7 @@ module Interp {
       case MultisetUpdate() =>
         :- Need(v0.Multiset?, Invalid(expr));
         :- Need(v2.Int? && v2.i >= 0, Invalid(expr));
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Multiset(v0.ms[v1 := v2.i]))
   }
 
@@ -632,7 +761,9 @@ module Interp {
     : (r: PureInterpResult<WV>)
   {
     match op
-      case MapUpdate() => :- Need(v0.Map?, Invalid(expr));
+      case MapUpdate() =>
+        :- Need(v0.Map?, Invalid(expr));
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
         Success(V.Map(v0.m[v1 := v2]))
   }
 
@@ -640,23 +771,33 @@ module Interp {
     : (r: PureInterpResult<WV>)
   {
     match kind
-      case Map(_) => var m :- InterpMapDisplay(e, argvs); Success(V.Map(m))
-      case Multiset() => Success(V.Multiset(multiset(argvs)))
-      case Seq() => Success(V.Seq(argvs))
-      case Set() => Success(V.Set(set s | s in argvs))
+      case Map(_) =>
+        var m :- InterpMapDisplay(e, argvs);
+        Success(V.Map(m))
+      case Multiset() =>
+        :- Need(forall x | x in argvs :: HasEqValue(x), Invalid(e)); // The elements must have a decidable equality
+        var v := V.Multiset(multiset(argvs));
+        assert WellFormedEqValue(v); // Doesn't work without this assert
+        Success(v)
+      case Seq() =>
+        Success(V.Seq(argvs))
+      case Set() =>
+        :- Need(forall x | x in argvs :: HasEqValue(x), Invalid(e)); // The elements must have a decidable equality
+        Success(V.Set(set s | s in argvs))
   }
 
   function method InterpMapDisplay(e: Expr, argvs: seq<WV>)
-    : PureInterpResult<map<WV, WV>>
+    : PureInterpResult<map<EqWV, WV>>
   {
     var pairs :- Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv));
     Success(MapOfPairs(pairs))
   }
 
   function method PairOfMapDisplaySeq(e: Expr, argv: WV)
-    : PureInterpResult<(WV, WV)>
+    : PureInterpResult<(EqWV, WV)>
   {
     :- Need(argv.Seq? && |argv.sq| == 2, Invalid(e));
+    :- Need(HasEqValue(argv.sq[0]), Invalid(e));
     Success((argv.sq[0], argv.sq[1]))
   }
 

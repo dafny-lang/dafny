@@ -79,6 +79,12 @@ module Values {
     // that we also have ``value.WellFormed()``.
     predicate method WellFormed1() {
       match this {
+        case BitVector(width, val) =>
+          0 <= value < Math.IntPow(2, width)
+        case _ => true
+      }
+
+/*      match this {
         case Bool(b) => true
         case Char(c) => true
         case Int(i) => true
@@ -101,29 +107,7 @@ module Values {
         case Closure(ctx, vars, body) =>
           // TODO: is that enough?
           && (forall x | x in ctx :: ctx[x].WellFormed1())
-      }
-    }
-
-    // This duplicates a bit Types.NoFunction()
-    predicate method NoFunction() {
-      match this {
-        case Bool(b) => true
-        case Char(c) => true
-        case Int(i) => true
-        case Real(r) => true
-        case BigOrdinal(o) => true
-        case BitVector(width, val) =>
-          0 <= value < Math.IntPow(2, width)
-        case Map(m) =>
-          forall x | x in m :: x.NoFunction() && m[x].NoFunction()
-        case Multiset(ms) =>
-          forall x | x in ms :: x.NoFunction()
-        case Seq(sq) =>
-          forall x | x in sq :: x.NoFunction()
-        case Set(st) =>
-          forall x | x in st :: x.NoFunction()
-        case Closure(ctx, vars, body) => false
-      }
+      }*/
     }
 
     predicate method All(P: Value -> bool) {

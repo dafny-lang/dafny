@@ -24,15 +24,15 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       type Path = seq<string>
 
-      datatype ClassType = ClassType(className: Path, typeArgs: seq<TypeRaw>)
+      datatype ClassType = ClassType(className: Path, typeArgs: seq<Type>)
 
       datatype CollectionKind =
         | Seq
         | Set
         | Multiset
-        | Map(keyType: TypeRaw)
+        | Map(keyType: Type)
 
-      datatype TypeRaw =
+      datatype Type =
         | Unit
         | Bool
         | Char
@@ -40,12 +40,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Real
         | BigOrdinal
         | BitVector(width: nat)
-        | Collection(finite: bool, kind: CollectionKind, eltType: TypeRaw)
-        | Function(args: seq<TypeRaw>, ret: TypeRaw) // TODO
+        | Collection(finite: bool, kind: CollectionKind, eltType: Type)
+        | Function(args: seq<Type>, ret: Type) // TODO
         | Class(classType: ClassType)
       {
-        // No function/class appear in the type 
-        predicate method NoFunction() {
+        // TODO: remove?
+        predicate method NoLeftFunction()
+        {
           match this {
             case Unit => true
             case Bool => true
@@ -54,21 +55,20 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Real => true
             case BigOrdinal => true
             case BitVector(width: nat) => true
-            case Collection(finite: bool, kind: CollectionKind, eltType: TypeRaw) =>
-              && eltType.NoFunction()
+            case Collection(finite: bool, kind: CollectionKind, eltType: Type) =>
+              && eltType.NoLeftFunction()
               && match kind {
-                case Map(kt) => kt.NoFunction() // TODO: redundant branch if I put it below??
+                case Map(kt) => kt.NoLeftFunction() // TODO: redundant branch if I put it below??
                 case Seq => true
                 case Set => true
                 case MultiSet => true
               }
-            case Function(args: seq<TypeRaw>, ret: TypeRaw) => false
+            case Function(args: seq<Type>, ret: Type) => false
             case Class(classType: ClassType) => false
           }
         }
 
-        // TODO: TranslateType doesn't fail after I added this condition to Type, I don't understand why.
-        // I see that TranslateType never returns Function or Class, but there is still a bit of magic...
+        // TODO: remove?
         predicate method WellFormed() {
           match this {
             case Unit => true
@@ -78,22 +78,21 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Real => true
             case BigOrdinal => true
             case BitVector(width: nat) => true
-            case Collection(finite: bool, kind: CollectionKind, eltType: TypeRaw) =>
+            case Collection(finite: bool, kind: CollectionKind, eltType: Type) =>
               && eltType.WellFormed()
               // This condition is overly restrictive: we will do the general case later.
-              // The more general condition would be that keys can't contain functions.
-              // Note that collections like sequences and maps have (or not) a decidable
-              // equality depending on whether their elements have a decidable equality or
-              // not. We might want to enforce that in the future (we would need to have
-              // more well-formedness conditions on the expressions).
-              && eltType.NoFunction()
+              // For instance, maps can contain keys which don't have a decidable equality,
+              // and sequences can contain elements which also don't have a decidable equality
+              // (in which case we don't have a decidable equality over the sequences, but it
+              // is fine).
+              && eltType.NoLeftFunction()
               && match kind {
-                case Map(kt) => kt.WellFormed() && kt.NoFunction() // TODO: redundant branch if I put it below??
+                case Map(kt) => kt.WellFormed() && kt.NoLeftFunction() // TODO: redundant branch if I move it below??
                 case Seq => true
-                case Set => eltType.NoFunction()
-                case MultiSet => eltType.NoFunction()
+                case Set => eltType.NoLeftFunction()
+                case MultiSet => eltType.NoLeftFunction()
               }
-            case Function(args: seq<TypeRaw>, ret: TypeRaw) =>
+            case Function(args: seq<Type>, ret: Type) =>
               && (forall i | 0 <= i < |args| :: args[i].WellFormed())
               && ret.WellFormed()
             case Class(classType: ClassType) =>
@@ -101,8 +100,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           }
         }
       }
-      
-      type Type(!new,00,==) = ty:TypeRaw | ty.WellFormed() witness Unit
 
       type T(!new,00,==) = Type
     }

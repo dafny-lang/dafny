@@ -303,26 +303,26 @@ module CompilerRewriter {
         }
       }
 
+      function method {:verify false} Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       // Given a bottom-up transformer tr, return a transformer which applies tr in a bottom-up
       // manner.
-      function method {:verify false} Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       {
         var tr': Transformer'<Expr,Expr> := Map_Expr_Transformer'(tr);
         Map_Expr_Transformer'_Lem(tr);
         tr'
       }
 
-      // Apply a transformer to a method, in a bottom-up manner.
       function method {:verify false} {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
         requires Deep.All_Method(m, tr.f.requires)
         ensures Deep.All_Method(m', tr.post)
         ensures tr.rel(m.methodBody, m'.methodBody)
+      // Apply a transformer to a method, in a bottom-up manner.
       {
         Shallow.Map_Method(m, Map_Expr_Transformer(tr))
       }
 
-      // Apply a transformer to a program, in a bottom-up manner.
       function method {:verify false} {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
+      // Apply a transformer to a program, in a bottom-up manner.
         requires Deep.All_Program(p, tr.f.requires)
         ensures Deep.All_Program(p', tr.post)
         ensures tr.rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
@@ -345,10 +345,10 @@ module CompilerRewriter {
     import opened Interp
     import opened Values
 
+    function method {:verify false} FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
     // Auxiliarly function (no postcondition): flip the negated binary operations
     // (of the form "not binop(...)") to the equivalent non-negated operations ("binop(...)").
     // Ex.: `neq` ~~> `eq`
-    function method {:verify false} FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
     {
       match op {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
@@ -402,13 +402,16 @@ module CompilerRewriter {
       NotANegatedBinopExpr(e)
     }
 
+    predicate {:verify false} GEqInterpResult<T(0)>(
+      eq_ctx: (State,State) -> bool, eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
     // Interpretation results are equivalent.
-    // We might want to be a bit more precise in the error case, especially in case of "out of fuel".
-    predicate {:verify false} EqInterpResult<T(0)>(same_values: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>) {
+    // "G" stands for "generic" (TODO: update)
+    // TODO: be a bit more precise in the error case, especially in case of "out of fuel".
+    {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
-          && same_values(v, v')
-          && ctx == ctx' // TODO: update this
+          && eq_ctx(ctx, ctx')
+          && eq_value(v, v')
         case (Failure(_), Failure(_)) =>
           true
         case _ =>
@@ -416,15 +419,38 @@ module CompilerRewriter {
       }
     }
 
-    // Values are equivalent.
-    // Two values are similar if:
+    predicate method {:verify false} EqState(
+      eq_value: (WV,WV) -> bool, ctx: State, ctx': State)
+    {
+      && ctx.locals.Keys == ctx'.locals.Keys
+      && (forall x | x in ctx.locals.Keys :: eq_value(ctx.locals[x], ctx'.locals[x])) 
+    }
+
+    function method {:verify false} Mk_EqState(eq_value: (WV,WV) -> bool): (State,State) -> bool
+    {
+      (ctx, ctx') => EqState(eq_value, ctx, ctx')
+    }
+
+    // TODO: move
+    function {:axiom} ValueTypeHeight(v: WV): nat
+
+    // Axiom: the children of a collection have a smaller type than the collection's type
+    lemma {:axiom} ValueTypeHeight_Children_Lem(v: WV)
+      requires v.Map? || v.Multiset? || v.Seq? || v.Set?
+      ensures forall x | x in v.Children() :: ValueTypeHeight(x) < ValueTypeHeight(v)
+      // Special case for the keys of a map
+      ensures v.Map? ==> (forall x | x in v.m :: ValueTypeHeight(x) < ValueTypeHeight(v))
+
+    // Equivalence between values.
+    // 
+    // Two values are equivalent if:
     // - they are not closures and are equal/have equivalent children values
     // - they are closures and, when applied to equivalent inputs, they return equivalent outputs
     //
     // Rk.: we could write the predicate in a simpler manner by using `==` in case the values are not
     // closures, but we prepare the terrain for a more general handling of collections.
-    // TODO: rename
     predicate {:verify true} {:vcs_split_on_every_assert} EqValue(v: WV, v': WV)
+      decreases ValueTypeHeight(v) + ValueTypeHeight(v')
     {
       match (v, v') {
         case (Bool(b), Bool(b')) => b == b'
@@ -436,25 +462,45 @@ module CompilerRewriter {
           && width == width'
           && value == value'
         case (Map(m), Map(m')) =>
-          && (forall x :: x in m <==> x in m')
+          ValueTypeHeight_Children_Lem(v); // For termination
+          ValueTypeHeight_Children_Lem(v'); // For termination
+          && m.Keys == m'.Keys
           && (forall x | x in m :: EqValue(m[x], m'[x]))
         case (Multiset(ms), Multiset(ms')) =>
+          ValueTypeHeight_Children_Lem(v); // For termination
+          ValueTypeHeight_Children_Lem(v'); // For termination
           && (forall x :: x in ms <==> x in ms')
           && (forall x | x in ms :: ms[x] == ms'[x])
         case (Seq(sq), Seq(sq')) =>
+          ValueTypeHeight_Children_Lem(v); // For termination
+          ValueTypeHeight_Children_Lem(v'); // For termination
           && |sq| == |sq'|
           && (forall i | 0 <= i < |sq| :: EqValue(sq[i], sq'[i]))
         case (Set(st), Set(st')) =>
-          forall x :: x in st <==> x in st'
-        case (Closure(ctx, vars, body), Closure(ctx', vars', body')) =>
-          && |vars| == |vars'| // no partial applications are allowed in Dafny
+          && st == st'
+        case (Closure(ctx, vars, body), Closure(ctx', vars', body')) => true
+/*          && |vars| == |vars'| // no partial applications are allowed in Dafny
           && (
           forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
-            |argvs| == |argvs'| == |vars| && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
+            && |argvs| == |argvs'| == |vars|
+            // We need the argument types to be smaller than the closure types, to prove termination.\
+            // In effect, the arguments types should be given by the closure's input types.
+            && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
+            && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
+            && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
             var call_ctx := BuildCallState(ctx, vars, argvs);
             var call_ctx' := BuildCallState(ctx', vars', argvs');
             // We could use `EqValueResult`, but we don't want to use mutually recursive functions for now
-            EqInterpResult(EqValue, InterpExpr(body, fuel, call_ctx), InterpExpr(body', fuel, call_ctx')))
+            var res := InterpExpr(body, fuel, call_ctx);
+            var res' := InterpExpr(body, fuel, call_ctx');
+            // We need to assume those assertions to prove termination: the value returned by a closure
+            // has a type which is smaller than the closure type (its type is given by the closure return
+            // type)
+            true
+//            assume InterpResultPred((x, _) => ValueTypeHeight(x) < ValueTypeHeight(v), res);
+//            assume InterpResultPred((x, _) => ValueTypeHeight(x) < ValueTypeHeight(v'), res');
+//            GEqInterpResult((_, _) => true, EqValue, res, res')
+              )*/
 
         // DISCUSS: Better way to write this?  Need exhaustivity checking
         case (Bool(b), _) => false
@@ -471,24 +517,31 @@ module CompilerRewriter {
       }
     }
 
+    predicate {:verify false} EqInterpResult<T(0)>(
+      eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
+    {
+      GEqInterpResult(Mk_EqState(EqValue), eq_value, res, res')
+    }
+
+
     // If values are equivalent and don't contain fucntions, they are necessarily equal
-    lemma {:verify false} EqValuesNoFunction_Lem(v: WV, v': WV)
+    lemma {:verify false} EqValuesHasEq_Lem(v: WV, v': WV)
       requires EqValue(v,v')
-      requires v.NoFunction()
-      requires v'.NoFunction()
+      requires HasEqValue(v)
+      requires HasEqValue(v')
       ensures v == v'
     {
       
     }
 
-    predicate {:verify false} EqSeqs<T(0)>(same_values: (T,T) -> bool, vs: seq<T>, vs': seq<T>) {
+    predicate {:verify false} EqSeqs<T(0)>(eq_values: (T,T) -> bool, vs: seq<T>, vs': seq<T>) {
       && |vs| == |vs'|
-      && (forall i | 0 <= i < |vs| :: same_values(vs[i], vs'[i]))
+      && (forall i | 0 <= i < |vs| :: eq_values(vs[i], vs'[i]))
     }
 
-    predicate {:verify false} EqMaps<T(0,!new), U(0,!new)>(same_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
+    predicate {:verify false} EqMaps<T(0,!new), U(0,!new)>(eq_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
       && (forall x :: x in vs <==> x in vs')
-      && (forall x | x in vs :: same_values(vs[x], vs'[x]))
+      && (forall x | x in vs :: eq_values(vs[x], vs'[x]))
     }
 
     predicate {:verify false} EqPairs<T(0), U(0)>(same_t: (T,T) -> bool, same_u: (U,U) -> bool, v: (T,U), v': (T,U)) {
@@ -532,10 +585,10 @@ module CompilerRewriter {
       EqInterpResult(EqSeqValue, res, res')
     }
     
-    predicate {:verify false} EqPureInterpResult<T(0)>(same_values: (T,T) -> bool, res: PureInterpResult<T>, res': PureInterpResult<T>) {
+    predicate {:verify false} EqPureInterpResult<T(0)>(eq_values: (T,T) -> bool, res: PureInterpResult<T>, res': PureInterpResult<T>) {
       match (res, res') {
         case (Success(v), Success(v')) =>
-          same_values(v, v')
+          eq_values(v, v')
         case (Failure(_), Failure(_)) =>
           true
         case _ =>
