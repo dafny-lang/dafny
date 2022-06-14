@@ -71,6 +71,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
       var reporter = new MockedReporter();
+      var testDocument = CreateTestDocument();
+      var dafnyDocument = GetMockedDafnyDocument(reporter, testDocument);
+      Task<DafnyDocument> documentTask = Task.FromResult(
+        dafnyDocument);
+      textDocumentLoader.Setup(t => t.PrepareVerificationTasksAsync(dafnyDocument, source.Token))
+        .ThrowsAsync(new ArgumentException());
+      var result = await documentDatabase.LoadVerificationTasksAsync(documentTask, source.Token);
+      Assert.AreEqual(1, reporter.Count(ErrorLevel.Error));
+      Assert.AreEqual(0, reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error));
+      Assert.IsTrue(reporter.Errors[0].Contains("Dafny encountered an error during 'translation'"));
+      Assert.IsFalse(result.CanDoVerification);
+    }
+
+    private static DafnyDocument GetMockedDafnyDocument(MockedReporter reporter, DocumentTextBuffer testDocument) {
       var moduleDefinition = new Mock<DefaultModuleDecl>();
       var moduleDecl = new Mock<LiteralModuleDecl>(moduleDefinition.Object, null);
       var program = new Mock<Microsoft.Dafny.Program>(
@@ -79,8 +93,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       intervalTree.Setup(t => t.Query(new Position(0, 0))).Returns<ILocalizableSymbol>(null);
       var symbolTable = new Mock<SymbolTable>(
         null, null, null, null, intervalTree.Object, null
-        );
-      var dafnyDocument = new DafnyDocument(CreateTestDocument(),
+      );
+      var dafnyDocument = new DafnyDocument(testDocument,
         new List<Diagnostic>(),
         true,
         null,
@@ -90,16 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         symbolTable.Object,
         null
       );
-      Task<DafnyDocument> documentTask = Task.FromResult(
-        dafnyDocument);
-      textDocumentLoader.Setup(t => t.PrepareVerificationTasksAsync(dafnyDocument, source.Token))
-        .ThrowsAsync(new ArgumentException());
-      var token = Token.NoToken;
-      var result = await documentDatabase.LoadVerificationTasksAsync(documentTask, source.Token);
-      Assert.AreEqual(1, reporter.Count(ErrorLevel.Error));
-      Assert.AreEqual(0, reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error));
-      Assert.IsTrue(reporter.Errors[0].Contains("Dafny encountered an error during 'translation'"));
-      Assert.IsFalse(result.CanDoVerification);
+      return dafnyDocument;
     }
   }
 }
