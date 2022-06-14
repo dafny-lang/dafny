@@ -30,17 +30,17 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private readonly ICompilationStatusNotificationPublisher publisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
-  private readonly IDiagnosticPublisher diagnosticPublisher;
+  private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DafnyDocument document,
     ICompilationStatusNotificationPublisher publisher,
-    IDiagnosticPublisher diagnosticPublisher
+    INotificationPublisher notificationPublisher
   ) {
     this.document = document;
     this.publisher = publisher;
     this.logger = logger;
-    this.diagnosticPublisher = diagnosticPublisher;
+    this.notificationPublisher = notificationPublisher;
   }
 
   /// <summary>
@@ -246,7 +246,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
+      notificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 

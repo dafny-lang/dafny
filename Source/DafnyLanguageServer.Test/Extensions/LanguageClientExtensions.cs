@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
   /// <summary>
@@ -19,6 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
     public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
       client.OpenDocument(documentItem);
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
+    }
+
+    public static void RunSymbolVerification(this ILanguageClient client, TextDocumentIdentifier textDocumentIdentifier, Position position) {
+      client.SendNotification(DafnyRequestNames.VerifySymbol,
+        new VerificationParams() { TextDocument = textDocumentIdentifier, Position = position });
+    }
+
+    public static void CancelSymbolVerification(this ILanguageClient client, TextDocumentIdentifier textDocumentIdentifier, Position position) {
+      client.SendNotification(DafnyRequestNames.CancelVerifySymbol,
+        new VerificationParams() { TextDocument = textDocumentIdentifier, Position = position });
     }
 
     public static void SaveDocument(this ILanguageClient client, TextDocumentItem documentItem) {

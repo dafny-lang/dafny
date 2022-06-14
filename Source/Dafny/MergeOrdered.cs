@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
 namespace Microsoft.Dafny;
@@ -19,6 +20,9 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   private bool idle = true;
   private bool outerCompleted;
   private readonly Subject<T> result = new();
+  private readonly Subject<bool> idleStates = new();
+
+  public IObservable<bool> IdleChanges => idleStates.DistinctUntilChanged();
 
   public void OnNext(IObservable<T> next) {
     lock (this) {
@@ -29,6 +33,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
         allUpdates.Enqueue(next);
       }
     }
+    idleStates.OnNext(idle);
   }
 
   private void InnerNext(T next) {
@@ -47,6 +52,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
         OnNext(next);
       }
     }
+    idleStates.OnNext(idle);
     CheckCompleted();
   }
 
@@ -64,6 +70,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
     if (outerCompleted && idle) {
       // ReSharper disable once InconsistentlySynchronizedField
       result.OnCompleted();
+      idleStates.OnCompleted();
     }
   }
 

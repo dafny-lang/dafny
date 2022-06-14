@@ -22,10 +22,10 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
     ISymbolResolver symbolResolver, IProgramVerifier verifier,
     ISymbolTableFactory symbolTableFactory,
     IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-    ICompilationStatusNotificationPublisher notificationPublisher,
-    IDiagnosticPublisher diagnosticPublisher,
+    ICompilationStatusNotificationPublisher statusPublisher,
+    INotificationPublisher notificationPublisher,
     VerifierOptions verifierOptions) : base(loggerFactory, parser, symbolResolver, verifier,
-    symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher,
+    symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher,
     verifierOptions) {
   }
 
@@ -33,7 +33,7 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
   protected override VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
     return new ListeningVerificationProgressReporter(
       loggerFactory.CreateLogger<ListeningVerificationProgressReporter>(),
-      document, notificationPublisher, diagnosticPublisher, this);
+      document, notificationPublisher, NotificationPublisher, this);
   }
 
   public void RecordImplementationsPriority(List<int> priorityListPerImplementation) {
@@ -48,10 +48,10 @@ public class ListeningVerificationProgressReporter : VerificationProgressReporte
     [NotNull] ILogger<VerificationProgressReporter> logger,
     [NotNull] DafnyDocument document,
     [NotNull] ICompilationStatusNotificationPublisher publisher,
-    [NotNull] IDiagnosticPublisher diagnosticPublisher,
+    [NotNull] INotificationPublisher notificationPublisher,
     ListeningTextDocumentLoader textDocumentLoader
     )
-    : base(logger, document, publisher, diagnosticPublisher) {
+    : base(logger, document, publisher, notificationPublisher) {
     TextDocumentLoader = textDocumentLoader;
   }
 
