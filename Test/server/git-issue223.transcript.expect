@@ -1,6 +1,6 @@
 # Reading from git-issue223.transcript
 
-Verifying Impl$$_module.__default.Abs ...
+Verifying Abs (implementation correctness) ...
   [1 proof obligation]  error
 c:\DEV\Dafny\abs.dfy(4,4): Error: A postcondition might not hold on this return path.
 c:\DEV\Dafny\abs.dfy(3,10): Related location: This is the postcondition that might not hold.
@@ -8,7 +8,7 @@ COUNTEREXAMPLE_START {"States":[{"Column":0,"Line":0,"Name":"<initial>","Variabl
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
-Verifying Impl$$_module.__default.Abs ...
+Verifying Abs (implementation correctness) ...
   [0 proof obligations]  error
 c:\DEV\Dafny\abs.dfy(4,4): Error: A postcondition might not hold on this return path.
 c:\DEV\Dafny\abs.dfy(3,10): Related location: This is the postcondition that might not hold.

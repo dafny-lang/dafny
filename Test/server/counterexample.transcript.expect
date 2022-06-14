@@ -1,6 +1,6 @@
 # Reading from counterexample.transcript
 
-Verifying Impl$$_module.__default.Abs ...
+Verifying Abs (implementation correctness) ...
   [1 proof obligation]  error
 c:\DEV\Dafny\abs.dfy(4,4): Error: A postcondition might not hold on this return path.
 c:\DEV\Dafny\abs.dfy(3,10): Related location: This is the postcondition that might not hold.
