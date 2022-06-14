@@ -28,10 +28,3 @@ four is 4
 Recursive(7) = 14
 NonCompilableFunction: 4 7
 Sums: 14 3
-
-Dafny program verifier did not attempt verification
-hello
-four is 4
-Recursive(7) = 14
-NonCompilableFunction: 4 7
-Sums: 14 3

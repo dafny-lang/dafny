@@ -1206,7 +1206,6 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.NeqCommon:
         case BinaryExpr.ResolvedOpcode.SeqNeq:
-        case BinaryExpr.ResolvedOpcode.SetNeq:
           opString = "!="; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
