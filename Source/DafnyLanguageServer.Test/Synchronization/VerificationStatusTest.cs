@@ -25,7 +25,6 @@ method Bar() { assert false; }";
     ApplyChange(ref documentItem, new Range(0, 22, 0, 27), "true");
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
-    await Task.Delay(10000);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(0, preSaveDiagnostics.Length);
