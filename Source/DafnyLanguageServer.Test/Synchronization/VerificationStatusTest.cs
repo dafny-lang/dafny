@@ -45,6 +45,9 @@ method Bar() { assert false; }";
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await WaitUntilAllStatusAreCompleted(documentItem);
 
+    var beforeChangeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, beforeChangeDiagnostics.Length);
+
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     var afterChangeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
