@@ -232,17 +232,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
       }
 
-      var observable = implementationTask.Run();
-      cancellationToken.Register(() => {
-        try {
-          implementationTask.Cancel();
-        } catch (InvalidOperationException e) {
-          if (!e.Message.Contains("no ongoing run")) {
-            throw;
+      try {
+        var observable = implementationTask.Run();
+        cancellationToken.Register(() => {
+          try {
+            implementationTask.Cancel();
+          } catch (InvalidOperationException e) {
+            if (!e.Message.Contains("no ongoing run")) {
+              throw;
+            }
           }
+        });
+        return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
+      } catch (InvalidOperationException e) {
+        if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
+          return Observable.Empty<DafnyDocument>();
         }
-      });
-      return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
+
+        throw;
+      }
     }
 
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,
