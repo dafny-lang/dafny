@@ -1,12 +1,12 @@
 # Reading from git-issue143.transcript
 
-Verifying Impl$$B.__default.Bar ...
+Verifying B.Bar (implementation correctness) ...
   [1 proof obligation]  error
 Cache.dfy(9,21): Error: assertion might not hold
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
-Verifying Impl$$B.__default.Bar ...
+Verifying B.Bar (implementation correctness) ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

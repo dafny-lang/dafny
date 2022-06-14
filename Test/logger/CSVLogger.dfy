@@ -5,9 +5,9 @@
 // The CHECK-NOT directives are a regression test: previously the BoogieXmlConvertor
 // wasn't populating the resource count test result property, and the CSV logger was
 // defaulting to 0 for that column.
-// CHECK-NOT: Impl\$\$_module.__default\.ExampleWithSplits\$\$.*,Passed,.*,0
-// CHECK: Impl\$\$_module.__default\.ExampleWithSplits\$\$1,Passed,.*,.*
-// CHECK-NOT: Impl\$\$_module.__default\.ExampleWithSplits\$\$.*,Passed,.*,0
+// CHECK-NOT: ExampleWithSplits.*,Passed,.*,0
+// CHECK: ExampleWithSplits.*,Passed,.*,.*
+// CHECK-NOT: ExampleWithSplits.*,Passed,.*,0
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0
