@@ -106,9 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);
         } else if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
-#pragma warning disable VSTHRD002
           initialViews.TryAdd(id, existingView with { Status = status });
-#pragma warning restore VSTHRD002
         } else {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);
