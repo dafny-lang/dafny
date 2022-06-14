@@ -102,12 +102,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       foreach (var task in verificationTasks) {
         var status = StatusFromBoogieStatus(task.CacheStatus);
         var id = GetImplementationId(task.Implementation);
-        if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
+        if (task.CacheStatus is Completed completed) {
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
+          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+        } else if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
 #pragma warning disable VSTHRD002
           initialViews.TryAdd(id, existingView with { Status = status });
 #pragma warning restore VSTHRD002
         } else {
-          // TODO add diagnostics in cache results are cached, and then also make sure not to jump into the then branch.
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);
         }
