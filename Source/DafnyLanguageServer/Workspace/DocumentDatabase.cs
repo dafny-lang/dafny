@@ -81,6 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var documentEntry = new DocumentEntry(
         document.Version,
+        document,
         resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
@@ -145,10 +146,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var previousDocumentTask = databaseEntry.LastPublishedDocument;
-      var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
+      var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
+      var resolvedDocumentTask = ApplyChangesAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
       var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
+        updatedText,
         resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
@@ -163,10 +166,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> ApplyChangesAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+
+      var oldDocument = documentEntry.LastPublishedDocument;
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics = oldDocument.ImplementationViewsView ?? new Dictionary<ImplementationId, ImplementationView>();
       var migratedImplementationViews = oldVerificationDiagnostics.ToDictionary(
         kv => kv.Key with {
@@ -278,12 +282,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private class DocumentEntry : IDocumentEntry {
       private readonly CancellationTokenSource cancellationSource;
       public int? Version { get; }
+      public DocumentTextBuffer TextBuffer { get; }
       public Task<DafnyDocument> ResolvedDocument { get; }
       public Task<DafnyDocument> TranslatedDocument { get; }
       public DafnyDocument LastPublishedDocument => Observer.PreviouslyPublishedDocument;
       public Task<DafnyDocument> LastDocument { get; }
 
       public DocumentEntry(int? version,
+        DocumentTextBuffer textBuffer,
         Task<DafnyDocument> resolvedDocument,
         Task<DafnyDocument> translatedDocument,
         CancellationTokenSource cancellationSource,
@@ -292,6 +298,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Observer = observer;
         TranslatedDocument = translatedDocument;
         Version = version;
+        TextBuffer = textBuffer;
         ResolvedDocument = resolvedDocument;
         LastDocument = observer.IdleChanges.Where(idle => idle).Select(_ => Observer.PreviouslyPublishedDocument).FirstAsync().ToTask();
       }
