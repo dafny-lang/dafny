@@ -18,19 +18,19 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     await SetUp(new Dictionary<string, string> {
       { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
     });
-    var source = @"method Foo() { assert false; }
+    var source = @"method Foo() { assert true; }
 method Bar() { assert false; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    ApplyChange(ref documentItem, new Range(0, 22, 0, 27), "true");
+    ApplyChange(ref documentItem, new Range(0, 22, 0, 26), "false");
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(0, preSaveDiagnostics.Length);
+    Assert.AreEqual(1, preSaveDiagnostics.Length);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
     var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(1, lastDiagnostics.Length);
+    Assert.AreEqual(2, lastDiagnostics.Length);
   }
 
   [TestMethod]
