@@ -16,14 +16,15 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   private readonly Queue<IObservable<T>> allUpdates = new();
-  private IDisposable innerSubscription;
+  private bool idle = true;
   private bool outerCompleted;
   private readonly Subject<T> result = new();
 
   public void OnNext(IObservable<T> next) {
     lock (this) {
-      if (innerSubscription == null) {
-        innerSubscription = next.Subscribe(InnerNext, InnerError, InnerCompleted);
+      if (idle) {
+        idle = false;
+        next.Subscribe(InnerNext, InnerError, InnerCompleted);
       } else {
         allUpdates.Enqueue(next);
       }
@@ -40,7 +41,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
 
   private void InnerCompleted() {
     lock (this) {
-      innerSubscription = null;
+      idle = true;
       if (allUpdates.Any()) {
         var next = allUpdates.Dequeue();
         OnNext(next);
@@ -60,7 +61,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   }
 
   private void CheckCompleted() {
-    if (outerCompleted && innerSubscription == null) {
+    if (outerCompleted && idle) {
       // ReSharper disable once InconsistentlySynchronizedField
       result.OnCompleted();
     }
