@@ -1,4 +1,4 @@
-// RUN: %dafny /printTooltips /compileTarget:cs "%s" > "%t"
+// RUN: %dafny_0 /printTooltips /compileTarget:cs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype V = x | 0 <= x < 200  // byte
