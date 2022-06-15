@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
@@ -90,8 +91,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       documents.Add(document.Uri, documentEntry);
 
       documentEntry.Observe(
-        resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
-        Concat(translatedDocument.ToObservableSkipCancelled()));
+        ToObservableSkipCancelledAndPublishExceptions(resolvedDocumentTask).Where(d => !d.LoadCanceled).
+        Concat(ToObservableSkipCancelledAndPublishExceptions(translatedDocument)));
 
       if (VerifyOnOpen) {
         Verify(documentEntry, cancellationSource.Token);
@@ -113,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void Verify(IDocumentEntry documentEntry, CancellationToken cancellationToken) {
       var withVerificationTasks = documentEntry.TranslatedDocument;
 
-      var updates = withVerificationTasks.ContinueWith(task => {
+      var updates = ToObservableSkipCancelledAndPublishExceptions(withVerificationTasks.ContinueWith(task => {
         if (task.IsCanceled) {
           return Observable.Empty<DafnyDocument>();
         }
@@ -124,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservableSkipCancelled().Merge();
+      }, TaskScheduler.Current)).Merge();
       documentEntry.Observe(updates);
     }
 
@@ -157,8 +158,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         databaseEntry.Observer
       );
       documents[documentUri] = entry;
-      entry.Observe(resolvedDocumentTask.ToObservableSkipCancelled()
-        .Concat(translatedDocument.ToObservableSkipCancelled()));
+      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(resolvedDocumentTask)
+        .Concat(ToObservableSkipCancelledAndPublishExceptions(translatedDocument)));
 
       if (VerifyOnChange) {
         Verify(entry, cancellationSource.Token);
@@ -277,6 +278,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
+
+    public IObservable<T> ToObservableSkipCancelledAndPublishExceptions<T>(Task<T> task) {
+      return Observable.Create<T>(observer => {
+        var _ = task.ContinueWith(t => {
+          if (t.Exception == null || t.IsCanceled) {
+            if (t.IsCompletedSuccessfully) {
+              observer?.OnNext(t.Result);
+            }
+            observer?.OnCompleted();
+          } else {
+            telemetryPublisher.PublishUnhandledException(t.Exception);
+          }
+        }, TaskScheduler.Current);
+        return Disposable.Create(() => observer = null);
+      });
+    }
 
     private class DocumentEntry : IDocumentEntry {
       private readonly CancellationTokenSource cancellationSource;
