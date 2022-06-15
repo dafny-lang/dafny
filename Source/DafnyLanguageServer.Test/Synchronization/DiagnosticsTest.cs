@@ -828,11 +828,8 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-
-      // The diagnostics of test2 has not been migrated since test2 no longer exists.
-      Assert.AreEqual(1, verificationTaskDiagnostics.Length);
+      var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
