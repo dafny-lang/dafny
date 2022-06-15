@@ -54,7 +54,12 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher, DocumentTextBuffer document) {
     PreviouslyPublishedDocument = new DafnyDocument(document,
-      Array.Empty<Diagnostic>(),
+      new [] { new Diagnostic {
+        // This diagnostic never gets sent to the client,
+        // instead it forces the first computed diagnostics for a document to always be sent.
+        // The message here describes the implicit client state before the first diagnostics have been sent.
+        Message = "Resolution diagnostics have not been computed yet."
+      }},
       false,
       new Dictionary<ImplementationId, ImplementationView>(),
       Array.Empty<Counterexample>(),

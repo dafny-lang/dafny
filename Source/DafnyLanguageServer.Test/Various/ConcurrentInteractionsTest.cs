@@ -188,7 +188,8 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
+        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
+        Assert.AreEqual(0, report.Length);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
