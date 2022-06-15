@@ -10692,7 +10692,7 @@ namespace Microsoft.Dafny {
     internal class FuelSetting {
 
       public enum FuelAmount { NONE, LOW, HIGH };
-      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new ();
+      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
 
       public static FuelSettingPair FuelAttrib(Function f, out bool found) {
         Contract.Requires(f != null);
