@@ -14,10 +14,10 @@ public class TextLogger {
   }
 
   public void LogResults(List<(Implementation, VerificationResult)> verificationResults) {
-    var orderedResults = verificationResults.OrderBy(vr => vr.Item1.DisplayName);
+    var orderedResults = verificationResults.OrderBy(vr => vr.Item1.VerboseName);
     foreach (var (implementation, result) in orderedResults) {
       tw.WriteLine("");
-      tw.WriteLine($"Results for {implementation.DisplayName}");
+      tw.WriteLine($"Results for {implementation.VerboseName}");
       tw.WriteLine($"  Overall outcome: {result.Outcome}");
       tw.WriteLine($"  Overall time: {result.End - result.Start}");
       tw.WriteLine($"  Overall resource count: {result.ResourceCount}");

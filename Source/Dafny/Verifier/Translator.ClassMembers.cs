@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
         Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name,
           new List<Boogie.TypeVariable>(), inParams, outParams,
           localVariables, stmts, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
 
         if (InsertChecksums) {
@@ -799,7 +799,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
         Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name, new List<Boogie.TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
 
         if (InsertChecksums) {
@@ -899,7 +899,7 @@ namespace Microsoft.Dafny {
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
-      AddDisplayName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
@@ -958,7 +958,7 @@ namespace Microsoft.Dafny {
 
         var impl = new Boogie.Implementation(f.tok, proc.Name, new List<Boogie.TypeVariable>(),
           Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -1481,7 +1481,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
-      AddDisplayName(proc, m.FullDafnyName, kind);
+      AddVerboseName(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);

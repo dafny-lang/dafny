@@ -1627,7 +1627,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
-      AddDisplayName(proc, iter.FullDafnyName, kind);
+      AddVerboseName(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
       codeContext = null;
@@ -1763,7 +1763,7 @@ namespace Microsoft.Dafny {
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
           new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny {
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
           new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4196,7 +4196,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
-      AddDisplayName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       if (InsertChecksums) {
@@ -4367,7 +4367,7 @@ namespace Microsoft.Dafny {
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
           InsertChecksum(f, impl);
@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       // TODO: is decl.Name the right thing below?
-      AddDisplayName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
+      AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       // TODO: Can a checksum be inserted here?
@@ -4522,7 +4522,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4580,7 +4580,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-      AddDisplayName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4604,7 +4604,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4653,7 +4653,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
-      AddDisplayName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4680,7 +4680,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(ctor.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
-        CopyDisplayName(impl, proc);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -7932,7 +7932,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static string MethodDisplayName(string fullName, MethodTranslationKind kind) {
+    static string MethodVerboseName(string fullName, MethodTranslationKind kind) {
       Contract.Requires(fullName != null);
       switch (kind) {
         case MethodTranslationKind.SpecWellformedness:
@@ -7951,13 +7951,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void AddDisplayName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
-      var name = MethodDisplayName(dafnyName, kind);
-      boogieDecl.AddAttribute("displayName", new object[] { name });
+    private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
+      var name = MethodVerboseName(dafnyName, kind);
+      boogieDecl.AddAttribute("verboseName", new object[] { name });
     }
 
-    private static void CopyDisplayName(Bpl.NamedDeclaration targetDecl, Bpl.NamedDeclaration sourceDecl) {
-      targetDecl.AddAttribute("displayName", new object[] { sourceDecl.DisplayName });
+    private static void CopyVerboseName(Bpl.NamedDeclaration targetDecl, Bpl.NamedDeclaration sourceDecl) {
+      targetDecl.AddAttribute("verboseName", new object[] { sourceDecl.VerboseName });
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
