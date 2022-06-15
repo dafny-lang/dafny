@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using IntervalTree;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -66,7 +68,9 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
       Array.Empty<Diagnostic>(),
 #pragma warning disable CS8625
       null,
-      null,
+      new SymbolTable(null, null, new Dictionary<object, ILocalizableSymbol>(),
+        new Dictionary<ISymbol, SymbolLocation>(),
+        new IntervalTree<Position, ILocalizableSymbol>(), false),
 #pragma warning restore CS8625
       null,
       true);
