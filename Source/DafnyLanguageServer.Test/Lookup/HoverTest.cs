@@ -266,7 +266,7 @@ class Sub extends Base {}".TrimStart();
       var source = @"
 datatype SomeType = SomeType {
   method AssertEqual(x: int, y: int) {
-    assert x == y;
+    var j:=x == y;
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
@@ -334,7 +334,7 @@ method f(i: int) {
     public async Task HoveringForallBoundVarReturnsBoundVarInferredType() {
       var source = @"
 method f(i: int) {
-  assert forall j :: j + i == i + j;
+  var x:=forall j :: j + i == i + j;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -354,7 +354,7 @@ method f(i: int) {
     public async Task HoveringExistsBoundVarReturnsBoundVarInferredType() {
       var source = @"
 method f(i: int) {
-  assert exists j :: j + i == i;
+  var x:=exists j :: j + i == i;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
