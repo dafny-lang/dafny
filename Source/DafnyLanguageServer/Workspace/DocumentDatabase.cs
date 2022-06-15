@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
-      var resolvedDocumentTask = ApplyChangesAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
+      var resolvedDocumentTask = GetResolvedDocument(updatedText, databaseEntry, documentChange, cancellationSource.Token);
       var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
@@ -165,21 +165,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> ApplyChangesAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> GetResolvedDocument(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
+      DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 
       var oldDocument = documentEntry.LastPublishedDocument;
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var oldVerificationDiagnostics = oldDocument.ImplementationIdToView ?? new Dictionary<ImplementationId, ImplementationView>();
-      var migratedImplementationViews = oldVerificationDiagnostics.ToDictionary(
-        kv => kv.Key with {
-          NamedVerificationTask =
-          relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
-        },
-        kv => kv.Value with {
-          Range = relocator.RelocateRange(kv.Value.Range, documentChange, CancellationToken.None),
-          Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
-        });
+      var oldVerificationDiagnostics = oldDocument.ImplementationIdToView;
+      var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
@@ -226,6 +219,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
+    }
+
+    private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+      IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics)
+    {
+      return oldVerificationDiagnostics.ToDictionary(
+        kv => kv.Key with {
+          NamedVerificationTask =
+          relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+        },
+        kv => kv.Value with {
+          Range = relocator.RelocateRange(kv.Value.Range, documentChange, CancellationToken.None),
+          Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
+        });
     }
 
     private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
