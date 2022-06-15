@@ -33,7 +33,7 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
   protected override VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
     return new ListeningVerificationProgressReporter(
       loggerFactory.CreateLogger<ListeningVerificationProgressReporter>(),
-      document, notificationPublisher, NotificationPublisher, this);
+      document, statusPublisher, NotificationPublisher, this);
   }
 
   public void RecordImplementationsPriority(List<int> priorityListPerImplementation) {
@@ -47,11 +47,11 @@ public class ListeningVerificationProgressReporter : VerificationProgressReporte
   public ListeningVerificationProgressReporter(
     [NotNull] ILogger<VerificationProgressReporter> logger,
     [NotNull] DafnyDocument document,
-    [NotNull] ICompilationStatusNotificationPublisher publisher,
+    [NotNull] ICompilationStatusNotificationPublisher statusPublisher,
     [NotNull] INotificationPublisher notificationPublisher,
     ListeningTextDocumentLoader textDocumentLoader
     )
-    : base(logger, document, publisher, notificationPublisher) {
+    : base(logger, document, statusPublisher, notificationPublisher) {
     TextDocumentLoader = textDocumentLoader;
   }
 

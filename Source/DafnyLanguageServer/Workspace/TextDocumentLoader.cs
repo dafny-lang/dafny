@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
-    protected readonly ICompilationStatusNotificationPublisher notificationPublisher;
+    protected readonly ICompilationStatusNotificationPublisher statusPublisher;
     protected readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
     protected readonly INotificationPublisher NotificationPublisher;
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
-      this.notificationPublisher = statusPublisher;
+      this.statusPublisher = statusPublisher;
       this.loggerFactory = loggerFactory;
       logger = loggerFactory.CreateLogger<TextDocumentLoader>();
       NotificationPublisher = notificationPublisher;
@@ -146,16 +146,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
-        notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
+        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {
-        notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
+        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
       } else {
-        notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
+      statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var implementationTasks = document.VerificationTasks!;
 
@@ -274,8 +274,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           document.Counterexamples!.Push(counterExample);
         }
 
-        var itDiagnostics = GetDiagnosticsFromResult(document, verificationResult);
-        var view = new ImplementationView(lspRange, status, itDiagnostics);
+        var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
+        var view = new ImplementationView(lspRange, status, diagnostics);
         document.ImplementationViews!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
@@ -337,7 +337,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
       return new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, notificationPublisher, NotificationPublisher);
+        document, statusPublisher, NotificationPublisher);
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
@@ -348,7 +348,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var compilationStatusAfterVerification = verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
+      statusPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
         cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
     }
 
