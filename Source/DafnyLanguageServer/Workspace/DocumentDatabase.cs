@@ -222,17 +222,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-      IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics)
-    {
-      return oldVerificationDiagnostics.ToDictionary(
-        kv => kv.Key with {
-          NamedVerificationTask =
-          relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
-        },
-        kv => kv.Value with {
-          Range = relocator.RelocateRange(kv.Value.Range, documentChange, CancellationToken.None),
-          Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
-        });
+      IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics) {
+      var result = new Dictionary<ImplementationId, ImplementationView>();
+      foreach (var entry in oldVerificationDiagnostics) {
+        var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
+        if (newRange != null) {
+          result.Add(entry.Key with {
+            NamedVerificationTask = relocator.RelocatePosition(entry.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+          }, entry.Value with {
+            Range = newRange,
+            Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
+          });
+        }
+      }
+      return result;
     }
 
     private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
