@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
-      var resolvedDocumentTask = GetResolvedDocument(updatedText, databaseEntry, documentChange, cancellationSource.Token);
+      var resolvedDocumentTask = GetResolvedDocumentAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
       var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> GetResolvedDocument(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
+    private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
       DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 
       var oldDocument = documentEntry.LastPublishedDocument;
