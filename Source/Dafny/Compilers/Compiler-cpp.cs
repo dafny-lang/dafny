@@ -85,6 +85,9 @@ namespace Microsoft.Dafny.Compilers {
       this.dtDeclsWr = headerFileWr.Fork();
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
+
+      var rt = wr.NewFile("DafnyRuntime.h");
+      ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
     }
 
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
@@ -236,7 +239,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool SupportsProperties { get => false; }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       throw NotSupported(String.Format("traits in class {0}", name), tok);
     }
 

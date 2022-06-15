@@ -134,7 +134,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr);
+    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr);
     protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
@@ -1318,7 +1319,7 @@ namespace Microsoft.Dafny.Compilers {
 
           } else if (d is TraitDecl trait) {
             // writing the trait
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
@@ -1402,31 +1403,36 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
+    protected void ReadRuntimeSystem(Program program, string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
       if (DafnyOptions.O.UseRuntimeLib) {
         return;
       }
-      var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      string path = System.IO.Path.Combine(codebase, filename);
-      WriteFromFile(path, wr.Append(new Verbatim()));
+
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+      var stream = assembly.GetManifestResourceStream(filename);
+      if (stream is null) {
+        ReportError(program.Reporter, program.DefaultModule.tok, $"Cannot find embedded resource: {filename}", wr);
+      } else {
+        var rd = new StreamReader(stream);
+        WriteFromStream(rd, wr.Append((new Verbatim())));
+      }
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
       var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
-      {
-        while (true) {
-          string s = rd.ReadLine();
-          if (s == null) {
-            return;
-          }
-          outputWriter.WriteLine(s);
+      WriteFromStream(rd, outputWriter);
+    }
+
+    protected void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
+      while (true) {
+        string s = rd.ReadLine();
+        if (s == null) {
+          return;
         }
+        outputWriter.WriteLine(s);
       }
     }
 
@@ -1676,18 +1682,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
-        return true;
-      } else if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
-        if (member is ConstantField cf && cf.Rhs != null) {
-          return true;
-        } else if (member is Function f && f.Body != null) {
-          return true;
-        } else if (member is Method m && m.Body != null) {
-          return true;
-        }
-      }
-      return false;
+      // One of the limitations in many target language encodings are restrictions to instance members. If an
+      // instance member can't be directly expressed in the target language, we make it a static member with an
+      // additional first argument specifying the `this`, giving it a `CustomReceiver`.
+      return !member.IsStatic
+             && (member.EnclosingClass is NewtypeDecl
+                 || (member.EnclosingClass is TraitDecl
+                     && member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } }));
     }
 
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {

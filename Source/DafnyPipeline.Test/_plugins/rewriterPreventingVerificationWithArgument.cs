@@ -7,18 +7,18 @@ public class TestConfiguration : PluginConfiguration {
     Argument = args[0];
   }
   public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
-    return new Rewriter[] { new ErrorRewriter(errorReporter, this) };
+    return new Rewriter[] { new RewriterPreventingVerificationWithArgument(errorReporter, this) };
   }
 }
 
-public class ErrorRewriter : Rewriter {
+public class RewriterPreventingVerificationWithArgument : Rewriter {
   private readonly TestConfiguration configuration;
 
-  public ErrorRewriter(ErrorReporter reporter, TestConfiguration configuration) : base(reporter) {
+  public RewriterPreventingVerificationWithArgument(ErrorReporter reporter, TestConfiguration configuration) : base(reporter) {
     this.configuration = configuration;
   }
 
   public override void PostResolve(ModuleDefinition moduleDefinition) {
-    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, "Impossible to continue " + configuration.Argument);
+    Reporter.Error(MessageSource.Resolver, moduleDefinition.tok, "Impossible to continue " + configuration.Argument);
   }
 }
