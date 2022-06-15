@@ -134,7 +134,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr);
+    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr);
     protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
@@ -1317,7 +1318,7 @@ namespace Microsoft.Dafny.Compilers {
 
           } else if (d is TraitDecl trait) {
             // writing the trait
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
@@ -1680,18 +1681,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
-        return true;
-      } else if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
-        if (member is ConstantField cf && cf.Rhs != null) {
-          return true;
-        } else if (member is Function f && f.Body != null) {
-          return true;
-        } else if (member is Method m && m.Body != null) {
-          return true;
-        }
-      }
-      return false;
+      // One of the limitations in many target language encodings are restrictions to instance members. If an
+      // instance member can't be directly expressed in the target language, we make it a static member with an
+      // additional first argument specifying the `this`, giving it a `CustomReceiver`.
+      return !member.IsStatic
+             && (member.EnclosingClass is NewtypeDecl
+                 || (member.EnclosingClass is TraitDecl
+                     && member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } }));
     }
 
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
