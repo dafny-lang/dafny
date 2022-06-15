@@ -1277,16 +1277,23 @@ program.
     }
 
     private void GenerateCompilerTargetSupportTable() {
+      // Header
       Console.Out.Write("| Feature |");
       var allCompilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
       foreach(var compiler in allCompilers) {
         Console.Out.Write($" {compiler.TargetId} |");
       }
       Console.Out.WriteLine();
-      Console.Out.WriteLine("----");
+      
+      // Horizontal rule ("|----|---|...")
+      Console.Out.Write("|-|");
+      foreach(var _ in allCompilers) {
+        Console.Out.Write($"-|");
+      }
+      Console.Out.WriteLine();
       
       foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
-        Console.Out.Write($" {FeatureDescriptionAttribute.GetDescription(feature)} |");
+        Console.Out.Write($"| {FeatureDescriptionAttribute.GetDescription(feature)} |");
         foreach(var compiler in allCompilers) {
           var supported = !compiler.UnsupportedFeatures.Contains(feature);
           var cell = supported ? " Yes " : " No ";

@@ -112,13 +112,18 @@ public class TestDafny {
       return true;
     }
     
-    var prefixIndex = line.IndexOf(FeatureNotSupportedException.MessagePrefix, StringComparison.Ordinal);
+    var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
     if (prefixIndex < 0) {
       return false;
     }
 
-    var featureDescription = line[(prefixIndex + FeatureNotSupportedException.MessagePrefix.Length)..];
+    var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
     var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
-    return compiler.UnsupportedFeatures.Contains(feature);
+
+    if (compiler.UnsupportedFeatures.Contains(feature)) {
+      return true;
+    }
+    
+    throw new Exception($"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 }

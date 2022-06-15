@@ -41,6 +41,10 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.Iterators
+    };
+
     public override void CleanSourceDirectory(string sourceDirectory) {
       try {
         Directory.Delete(sourceDirectory, true);
@@ -820,7 +824,8 @@ namespace Microsoft.Dafny.Compilers {
           var v = variance[i];
           var ta = typeArgs[i];
           if (ComplicatedTypeParameterForCompilation(v, ta)) {
-            Error(tok, "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
+            UnsupportedFeatureError(tok, Feature.TraitTypeParameters,
+              "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
               ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
           }
         }
@@ -4006,11 +4011,11 @@ namespace Microsoft.Dafny.Compilers {
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new FeatureNotSupportedException(iter.tok, Feature.Iterators);
+      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {

@@ -30,10 +30,50 @@ public enum Feature {
   [FeatureDescription("Unbounded integers")]
   UnboundedIntegers,
 
-  [FeatureDescription("Iterators")] Iterators,
+  [FeatureDescription("Real numbers")]
+  RealNumbers,
+
+  [FeatureDescription("Iterators")] 
+  Iterators,
+  
+  [FeatureDescription("Collections with trait element types")] 
+  CollectionsOfTraits,
+  
+  [FeatureDescription("User-defined types with traits as type parameters")] 
+  TraitTypeParameters,
+
+  [FeatureDescription("Package names with only underscores")] 
+  AllUnderscorePackageNames,
+  
+  [FeatureDescription("Co-inductive datatypes")] 
+  Codatatypes,
+  
+  [FeatureDescription("Multisets")] 
+  Multisets,
+  
+  [FeatureDescription("Runtime type descriptors")] 
+  RuntimeTypeDescriptors,
+  
+  [FeatureDescription("Multi-dimensional arrays")]
+  MultiDimensionalArrays,
+  
+  [FeatureDescription("Map comprehensions")]
+  MapComprehensions,
+  
+  [FeatureDescription("Traits")]
+  Traits,
+  
+  [FeatureDescription("Let-such-that expressions")]
+  LetSuchThatExpressions,
+  
+  [FeatureDescription("Non-native numeric newtypes")]
+  NonNativeNewtypes,
+  
+  [FeatureDescription("Method synthesis")]
+  Synthesis
 }
 
-public class FeatureNotSupportedException : Exception {
+public class UnsupportedFeatureException : Exception {
   
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
@@ -41,12 +81,12 @@ public class FeatureNotSupportedException : Exception {
   public readonly IToken Token;
   public readonly Feature Feature;
 
-  public FeatureNotSupportedException(IToken token, Feature feature)
+  public UnsupportedFeatureException(IToken token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature)) {
     
   }
   
-  public FeatureNotSupportedException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
     Token = token;
     Feature = feature;
   }
