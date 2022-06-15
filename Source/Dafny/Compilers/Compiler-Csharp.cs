@@ -1908,22 +1908,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall /*?*/, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
-      var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
+      var ctor = (Constructor)initCall?.Method;  // correctness of cast follows from precondition of "EmitNew"
       var arguments = new ConcreteSyntaxTree();
       wr.Format($"new {TypeName(type, wr, tok)}({arguments})");
       var sep = "";
       EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, arguments, ref sep);
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
-        // the arguments of any external constructor are placed here
-        for (int i = 0; i < ctor.Ins.Count; i++) {
-          Formal p = ctor.Ins[i];
-          if (!p.IsGhost) {
-            arguments.Write(sep);
-            TrExpr(initCall.Args[i], arguments, false, wStmts);
-            sep = ", ";
-          }
-        }
-      }
+      arguments.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
     }
 
     // if checkRange is false, msg is ignored

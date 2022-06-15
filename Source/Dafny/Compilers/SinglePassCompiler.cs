@@ -639,6 +639,19 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall /*?*/, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
+
+    // To support target language constructors without an additional initCall in {:extern} code, we ignore the initCall
+    // and call the constructor with all arguments.
+    protected string ConstructorArguments(CallStmt initCall, ConcreteSyntaxTree wStmts, Constructor ctor, string sep = "") {
+      var arguments = Enumerable.Empty<string>();
+      if (ctor != null && ctor.IsExtern(out _, out _)) {
+        // the arguments of any external constructor are placed here
+        arguments = ctor.Ins.Select((f, i) => (f, i))
+          .Where(tp => !tp.f.IsGhost)
+          .Select(tp => Expr(initCall.Args[tp.i], false, wStmts).ToString());
+      }
+      return (arguments.Any() ? sep : "") + arguments.Comma();
+    }
     protected abstract void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions,
       bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 

@@ -2348,17 +2348,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
         EmitTypeDescriptorsActuals(typeArguments, tok, wr, ref sep);
       }
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
-        // the arguments of any external constructor are placed here
-        for (int i = 0; i < ctor.Ins.Count; i++) {
-          Formal p = ctor.Ins[i];
-          if (!p.IsGhost) {
-            wr.Write(sep);
-            TrExpr(initCall.Args[i], wr, false, wStmts);
-            sep = ", ";
-          }
-        }
-      }
+      wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
       wr.Write(")");
     }
 
