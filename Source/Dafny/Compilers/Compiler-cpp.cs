@@ -197,8 +197,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => "_dafny";
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
-      if (isExtern || (superClasses != null && superClasses.Any(trait => !trait.IsObject))) {
-        throw NotSupported(String.Format("extern and/or traits in class {0}", name), tok);
+      if (isExtern) {
+        throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", name));
+      }
+      if (superClasses != null && superClasses.Any(trait => !trait.IsObject)) {
+        throw new UnsupportedFeatureException(tok, Feature.Traits, String.Format("traits in class {0}", name));
       }
 
       var classDeclWriter = modDeclWr;
@@ -1061,7 +1064,7 @@ namespace Microsoft.Dafny.Compilers {
             if (arrayClass.Dims == 1) {
               return string.Format("DafnyArray<{0}>::Null()", TypeName(elType, wr, tok));
             } else {
-              throw NotSupported("Multi-dimensional arrays");
+              throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
             }
           } else {
             return "nullptr";
@@ -1218,7 +1221,7 @@ namespace Microsoft.Dafny.Compilers {
         if (at.Dims == 1) {
           wr.Write("DafnyArray<{0}>::Null()", TypeName(elType, wr, null));
         } else {
-          throw NotSupported("Multi-dimensional arrays");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.MultiDimensionalArrays);
         }
       } else {
         wr.Write("nullptr");
@@ -1269,7 +1272,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw NotSupported("EmitYield");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
     }
 
     protected override void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr) {
@@ -1313,7 +1316,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetQuantifierName(string bvType) {
-      throw NotSupported("QuantifierName");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Quantifiers);
     }
 
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok,
@@ -1365,7 +1368,8 @@ namespace Microsoft.Dafny.Compilers {
       var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
       if (cl != null && cl.Name == "object") {
         //wr.Write("_dafny.NewObject()");
-        NotSupported("Tried to emit new generic object, which C++ doesn't do", tok);
+        throw new UnsupportedFeatureException(tok, Feature.NewObject,
+          "Tried to emit new generic object, which C++ doesn't do");
       } else {
         var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
         wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
@@ -1425,7 +1429,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is BaseTypes.BigDec) {
-        throw NotSupported("EmitLiteralExpr of BaseTypes.BigDec");
+        throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
@@ -1484,19 +1488,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
       bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      throw NotSupported("EmitRotate");
+      throw new UnsupportedFeatureException(e0.tok, Feature.BitvectorRotateFunctions);
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw NotSupported("EmitEmptyTupleList");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw NotSupported("EmitAddTupleToList");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
     }
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
-      throw NotSupported("EmitTupleSelect");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
     }
 
     protected override string IdProtect(string name) {
@@ -1592,7 +1596,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        throw NotSupported(string.Format("UserDefinedTypeName {0}", udt.Name));
+        throw new UnsupportedFeatureException(udt.tok, Feature.FunctionValues, string.Format("UserDefinedTypeName {0}", udt.Name));
         //return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
@@ -1675,18 +1679,18 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          throw NotSupported("taking an array's length");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.ArrayLength);
         case SpecialField.ID.Floor:
           compiledName = "int()";
           break;
         case SpecialField.ID.IsLimit:
-          throw NotSupported("IsLimit");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.IsSucc:
-          throw NotSupported("IsSucc");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.Offset:
-          throw NotSupported("Offset");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.IsNat:
-          throw NotSupported("IsNat");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.Keys:
           compiledName = "dafnyKeySet()";
           break;
@@ -1694,7 +1698,7 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "dafnyValues()";
           break;
         case SpecialField.ID.Items:
-          throw NotSupported("Items");
+          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.MapItems);
         case SpecialField.ID.Reads:
           compiledName = "_reads";
           break;
@@ -1731,9 +1735,9 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (dtor2.EnclosingCtors.Count > 1) {
-            NotSupported(
-              String.Format("Using the same destructor {0} with multiple constructors is ambiguous", member.Name),
-              dtor2.tok);
+            // TODO: Can't figure out how to trigger this one
+            throw new Exception(
+              String.Format("Using the same destructor {0} with multiple constructors is ambiguous", member.Name));
           }
 
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
@@ -2333,7 +2337,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(tok, Feature.TypeTests);
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements,
@@ -2352,7 +2356,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         if (ct.Arg.IsCharType) {
-          throw NotSupported("EmitCollectionDisplay/string", tok);
+          throw new UnsupportedFeatureException(tok, Feature.SequenceDisplaysOfCharacters);
         } else {
           wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
           for (var i = 0; i < elements.Count; i++) {
@@ -2416,11 +2420,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw NotSupported("EmitSingleValueGenerator", e.tok);
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.ExactBoundedPool);
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      throw NotSupported("EmitInvokeWithHaltHandling");
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.RunAllTests);
     }
 
 

@@ -33,6 +33,12 @@ public enum Feature {
   [FeatureDescription("Real numbers")]
   RealNumbers,
 
+  [FeatureDescription("Ordinals")]
+  Ordinals,
+  
+  [FeatureDescription("Function values")]
+  FunctionValues,
+  
   [FeatureDescription("Iterators")] 
   Iterators,
   
@@ -70,7 +76,40 @@ public enum Feature {
   NonNativeNewtypes,
   
   [FeatureDescription("Method synthesis")]
-  Synthesis
+  MethodSynthesis,
+  
+  [FeatureDescription("External classes")]
+  ExternalClasses,
+  
+  [FeatureDescription("Instantiating the 'object' type")]
+  NewObject,
+  
+  [FeatureDescription("forall loops that cannot be sequentialized")]
+  NonSequentializableForallLoops,
+  
+  [FeatureDescription("Taking an array's length")]
+  ArrayLength,
+  
+  [FeatureDescription("m.Items when m is a map")]
+  MapItems,
+  
+  [FeatureDescription("The /runAllTests option")]
+  RunAllTests,
+  
+  [FeatureDescription("Exact value constraints in comprehensions (x == C)")]
+  ExactBoundedPool,
+  
+  [FeatureDescription("Sequence displays of characters (as opposed to string literals)")]
+  SequenceDisplaysOfCharacters,
+  
+  [FeatureDescription("Type test expressions (x is T)")]
+  TypeTests,
+  
+  [FeatureDescription("Quantifiers")]
+  Quantifiers,
+  
+  [FeatureDescription("Bitvector RotateLeft/RotateRight functions")]
+  BitvectorRotateFunctions
 }
 
 public class UnsupportedFeatureException : Exception {
