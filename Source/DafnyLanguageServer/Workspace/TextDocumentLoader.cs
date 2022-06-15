@@ -275,14 +275,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
-        var view = new ImplementationView(lspRange, status, diagnostics);
+        var view = new ImplementationView(implementationRange, status, diagnostics);
         document.ImplementationIdToViewCollector!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
         }
       } else {
         document.ImplementationIdToViewCollector!.AddOrUpdate(id,
-          _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
+          _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
           (_, previousView) => previousView with { Status = status });
       }
 
