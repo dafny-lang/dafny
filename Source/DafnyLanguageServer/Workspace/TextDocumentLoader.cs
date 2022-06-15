@@ -267,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     DafnyDocument HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
       var id = GetImplementationId(implementationTask.Implementation);
       var status = StatusFromBoogieStatus(boogieStatus);
-      var lspRange = implementationTask.Implementation.tok.GetLspRange();
+      var implementationRange = implementationTask.Implementation.tok.GetLspRange();
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {
