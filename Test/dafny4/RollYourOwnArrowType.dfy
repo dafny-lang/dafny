@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny_0 /dprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ----- arrows with no read effects -------------------------------------

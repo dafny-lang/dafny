@@ -1,4 +1,4 @@
-// RUN: %dafny /xml:%t.xml %s"
+// RUN: %dafny_0 /xml:%t.xml "%s"
 // RUN: %OutputCheck --file-to-check "%t.xml" "%s"
 
 // CHECK: resourceCount=\".*\"

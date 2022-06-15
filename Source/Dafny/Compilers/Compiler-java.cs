@@ -2195,6 +2195,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private void EmitRuntimeJar(string targetDirectory) {
+      // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
+      var jarName = "DafnyRuntime.jar";
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+      var stream = assembly.GetManifestResourceStream(jarName);
+      if (stream is not null) {
+        var fullJarName = $"{targetDirectory}/{jarName}";
+        FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
+        stream.CopyTo(outStream);
+        outStream.Close();
+      }
+    }
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
       ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
@@ -2207,8 +2220,14 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
       }
+
+      var targetDirectory = Path.GetDirectoryName(targetFilename);
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        EmitRuntimeJar(targetDirectory);
+      }
+
       var files = new List<string>();
-      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
+      foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
@@ -2265,12 +2284,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected string GetClassPath(string targetFilename) {
-      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      // DafnyRuntime.jar has already been created using Maven. It is added to the java CLASSPATH below.
-      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime.jar");
+      var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      return "." + Path.PathSeparator + targetDirectory + Path.PathSeparator + Path.Combine(targetDirectory, "DafnyRuntime.jar");
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -3137,7 +3152,8 @@ namespace Microsoft.Dafny.Compilers {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
@@ -3152,9 +3168,9 @@ namespace Microsoft.Dafny.Compilers {
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " extends ";
-        foreach (var trait in superClasses) {
-          if (!trait.IsObject) {
-            w.Write($"{sep}{TypeName(trait, w, tok)}");
+        foreach (var tr in superClasses) {
+          if (!tr.IsObject) {
+            w.Write($"{sep}{TypeName(tr, w, tok)}");
             sep = ", ";
           }
         }

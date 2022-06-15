@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
-      ReadRuntimeSystem("DafnyRuntime.js", wr);
+      ReadRuntimeSystem(program, "DafnyRuntime.js", wr);
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
@@ -115,7 +115,8 @@ namespace Microsoft.Dafny.Compilers {
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
       var fieldWriter = w;  // not used for traits, but we need a value to give to the ClassWriter
       var methodWriter = w;
