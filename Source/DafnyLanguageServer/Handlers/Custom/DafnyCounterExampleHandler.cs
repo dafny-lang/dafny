@@ -60,11 +60,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if (!document.CounterExamplesView.Any()) {
+        if (!document.Counterexamples.Any()) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.CounterExamplesView)
+        var counterExamples = GetLanguageSpecificModels(document.Counterexamples)
           .SelectMany(GetCounterExamples)
           .WithCancellation(cancellationToken)
           .ToArray();

@@ -54,11 +54,11 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher, DocumentTextBuffer document) {
     PreviouslyPublishedDocument = new DafnyDocument(document,
-      ArraySegment<Diagnostic>.Empty,
+      Array.Empty<Diagnostic>(),
       false,
       new Dictionary<ImplementationId, ImplementationView>(),
-      ArraySegment<Counterexample>.Empty,
-      ArraySegment<Diagnostic>.Empty,
+      Array.Empty<Counterexample>(),
+      Array.Empty<Diagnostic>(),
 #pragma warning disable CS8625
       null,
       null,

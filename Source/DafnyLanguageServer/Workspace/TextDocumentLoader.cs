@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (task.CacheStatus is Completed completed) {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);
-        } else if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
+        } else if (loaded.ImplementationIdToView.TryGetValue(id, out var existingView)) {
           initialViews.TryAdd(id, existingView with { Status = status });
         } else {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
@@ -114,10 +114,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var result = loaded with {
-        Counterexamples = new ConcurrentStack<Counterexample>(),
-        ImplementationViews = initialViews,
+        CounterexamplesCollector = new ConcurrentStack<Counterexample>(),
+        ImplementationIdToViewCollector = initialViews,
         VerificationTasks = verificationTasks,
-        ImplementationViewsView = initialViews.ToImmutableDictionary(),
+        ImplementationIdToView = initialViews.ToImmutableDictionary(),
       };
       var progressReporter = CreateVerificationProgressReporter(result);
       if (VerifierOptions.GutterStatus) {
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().
         Where(d => implementationTasks.All(t => {
-          var taskStatus = d.ImplementationViewsView![GetImplementationId(t.Implementation)].Status;
+          var taskStatus = d.ImplementationIdToView[GetImplementationId(t.Implementation)].Status;
           return taskStatus != PublishedVerificationStatus.Stale;
         })).Replay();
       result.Connect();
@@ -259,7 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var result = statusUpdates.Select(boogieStatus => HandleStatusUpdate(document, implementationTask, boogieStatus));
 
       var initial = document with {
-        ImplementationViewsView = document.ImplementationViews!.ToImmutableDictionary(),
+        ImplementationIdToView = document.ImplementationIdToViewCollector!.ToImmutableDictionary(),
       };
       return Observable.Return(initial).Concat(result);
     }
@@ -271,24 +271,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {
-          document.Counterexamples!.Push(counterExample);
+          document.CounterexamplesCollector!.Push(counterExample);
         }
 
         var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
         var view = new ImplementationView(lspRange, status, diagnostics);
-        document.ImplementationViews!.AddOrUpdate(id, view, (_, _) => view);
+        document.ImplementationIdToViewCollector!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
         }
       } else {
-        document.ImplementationViews!.AddOrUpdate(id,
+        document.ImplementationIdToViewCollector!.AddOrUpdate(id,
           _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
           (_, previousView) => previousView with { Status = status });
       }
 
       return document with {
-        ImplementationViewsView = document.ImplementationViews.ToImmutableDictionary(),
-        CounterExamplesView = document.Counterexamples!.ToArray(),
+        ImplementationIdToView = document.ImplementationIdToViewCollector.ToImmutableDictionary(),
+        Counterexamples = document.CounterexamplesCollector!.ToArray(),
       };
     }
 
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
       var finalDocument = await documents.ToTask(cancellationToken);
-      var errorCount = finalDocument.ImplementationViewsView!.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+      var errorCount = finalDocument.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
       logger.LogDebug($"Finished verification with {errorCount} errors.");
       var verified = errorCount == 0;
       var compilationStatusAfterVerification = verified

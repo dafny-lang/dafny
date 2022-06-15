@@ -28,8 +28,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool CanDoVerification,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViewsView,
-    IReadOnlyList<Counterexample> CounterExamplesView,
+    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
+    IReadOnlyList<Counterexample> Counterexamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   ) {
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationViewsView.SelectMany(kv => kv.Value.Diagnostics));
+      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -71,8 +71,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public ConcurrentStack<Counterexample>? Counterexamples { get; set; }
-    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationViews { get; set; }
+    public ConcurrentStack<Counterexample>? CounterexamplesCollector { get; set; }
+    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationIdToViewCollector { get; set; }
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
