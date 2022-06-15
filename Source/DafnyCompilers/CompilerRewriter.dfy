@@ -419,7 +419,7 @@ module CompilerRewriter {
       }
     }
 
-    predicate method {:verify false} EqState(
+    predicate method {:verify false} GEqState(
       eq_value: (WV,WV) -> bool, ctx: State, ctx': State)
     {
       && ctx.locals.Keys == ctx'.locals.Keys
@@ -428,19 +428,24 @@ module CompilerRewriter {
 
     function method {:verify false} Mk_EqState(eq_value: (WV,WV) -> bool): (State,State) -> bool
     {
-      (ctx, ctx') => EqState(eq_value, ctx, ctx')
+      (ctx, ctx') => GEqState(eq_value, ctx, ctx')
     }
 
-    // TODO: move
-    function {:axiom} ValueTypeHeight(v: WV): nat
+    function method {:opaque} {:verify false} InterpCallFunctionBody(fn: WV, fuel: nat, argvs: seq<WV>)
+      : (r: PureInterpResult<WV>)
+      requires fn.Closure?
+      requires |fn.vars| == |argvs|
+    // Call a function body with some arguments.
+    // We introduce this auxiliary function to opacify its content (otherwise ``EqValue_Closure``
+    // takes too long to typecheck).
+    {
+        var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
+        var Return(val, ctx) :- InterpExpr(fn.body, fuel, ctx);
+        Success(val)
+    }
 
-    // Axiom: the children of a collection have a smaller type than the collection's type
-    lemma {:axiom} ValueTypeHeight_Children_Lem(v: WV)
-      requires v.Map? || v.Multiset? || v.Seq? || v.Set?
-      ensures forall x | x in v.Children() :: ValueTypeHeight(x) < ValueTypeHeight(v)
-      // Special case for the keys of a map
-      ensures v.Map? ==> (forall x | x in v.m :: ValueTypeHeight(x) < ValueTypeHeight(v))
-
+    predicate {:verify false} {:vcs_split_on_every_assert} EqValue(v: WV, v': WV)
+      decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 1
     // Equivalence between values.
     // 
     // Two values are equivalent if:
@@ -449,8 +454,17 @@ module CompilerRewriter {
     //
     // Rk.: we could write the predicate in a simpler manner by using `==` in case the values are not
     // closures, but we prepare the terrain for a more general handling of collections.
-    predicate {:verify true} {:vcs_split_on_every_assert} EqValue(v: WV, v': WV)
-      decreases ValueTypeHeight(v) + ValueTypeHeight(v')
+    //
+    // Rk.: for now, we assume the termination. This function terminates because the size of the
+    // type of the values decreases, the interesting case being the closures (see ``EqValue_Closure``).
+    // Whenever we find a closure `fn_ty = (ty_0, ..., ty_n) -> ret_ty`, we need to call ``EqValue``
+    // on valid inputs (with types `ty_i < fn_ty`) and on its output (with type `ret_ty < fn_ty`).
+    //
+    // Rk.: I initially wanted to make the definition opaque to prevent context saturation.
+    // However it made me run into the following issue:
+    // https://github.com/dafny-lang/dafny/issues/2260
+    // As ``EqValue`` appears a lot in foralls, using the `reveal` trick seemed too cumbersome
+    // to be a valid option.
     {
       match (v, v') {
         case (Bool(b), Bool(b')) => b == b'
@@ -478,29 +492,8 @@ module CompilerRewriter {
           && (forall i | 0 <= i < |sq| :: EqValue(sq[i], sq'[i]))
         case (Set(st), Set(st')) =>
           && st == st'
-        case (Closure(ctx, vars, body), Closure(ctx', vars', body')) => true
-/*          && |vars| == |vars'| // no partial applications are allowed in Dafny
-          && (
-          forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
-            && |argvs| == |argvs'| == |vars|
-            // We need the argument types to be smaller than the closure types, to prove termination.\
-            // In effect, the arguments types should be given by the closure's input types.
-            && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
-            && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
-            && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
-            var call_ctx := BuildCallState(ctx, vars, argvs);
-            var call_ctx' := BuildCallState(ctx', vars', argvs');
-            // We could use `EqValueResult`, but we don't want to use mutually recursive functions for now
-            var res := InterpExpr(body, fuel, call_ctx);
-            var res' := InterpExpr(body, fuel, call_ctx');
-            // We need to assume those assertions to prove termination: the value returned by a closure
-            // has a type which is smaller than the closure type (its type is given by the closure return
-            // type)
-            true
-//            assume InterpResultPred((x, _) => ValueTypeHeight(x) < ValueTypeHeight(v), res);
-//            assume InterpResultPred((x, _) => ValueTypeHeight(x) < ValueTypeHeight(v'), res');
-//            GEqInterpResult((_, _) => true, EqValue, res, res')
-              )*/
+        case (Closure(ctx, vars, body), Closure(ctx', vars', body')) =>
+          EqValue_Closure(v, v')
 
         // DISCUSS: Better way to write this?  Need exhaustivity checking
         case (Bool(b), _) => false
@@ -517,29 +510,126 @@ module CompilerRewriter {
       }
     }
 
+    predicate {:verify false} {:opaque} {:vcs_split_on_every_assert} EqValue_Closure(v: WV, v': WV)
+      requires v.Closure?
+      requires v'.Closure?
+      decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 0
+    // Equivalence between values: closure case.
+    //
+    // See ``EqValue``.
+    //
+    // Rk.: contrary to ``EqValue``, it seems ok to declare ``EqValue_Closure`` as opaque.
+    {
+      var Closure(ctx, vars, body) := v;
+      var Closure(ctx', vars', body') := v';
+      && |vars| == |vars'| // no partial applications are allowed in Dafny
+      && (
+      forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
+        && |argvs| == |argvs'| == |vars|
+        // We need the argument types to be smaller than the closure types, to prove termination.\
+        // In effect, the arguments types should be given by the closure's input types.
+        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
+        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
+        && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
+        var res := InterpCallFunctionBody(v, fuel, argvs);
+        var res' := InterpCallFunctionBody(v', fuel, argvs');
+        // We can't use naked functions in recursive setting: this forces us to write the expanded
+        // match rather than using an auxiliary function like `EqPureInterpResult`.
+        match (res, res') {
+          case (Success(ov), Success(ov')) =>
+            // We need to assume those assertions to prove termination: the value returned by a closure
+            // has a type which is smaller than the closure type (its type is given by the closure return
+            // type)
+            assume ValueTypeHeight(ov) < ValueTypeHeight(v);
+            assume ValueTypeHeight(ov') < ValueTypeHeight(v');
+            EqValue(ov, ov')
+          case (Failure(_), Failure(_)) =>
+            true
+          case _ =>
+            false
+        })
+    }
+
+    predicate {:verify false} EqState(ctx: State, ctx': State)
+    {
+      GEqState(EqValue, ctx, ctx')
+    }
+
     predicate {:verify false} EqInterpResult<T(0)>(
       eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
     {
       GEqInterpResult(Mk_EqState(EqValue), eq_value, res, res')
     }
 
-
-    // If values are equivalent and don't contain fucntions, they are necessarily equal
-    lemma {:verify false} EqValuesHasEq_Lem(v: WV, v': WV)
+    // If values are equivalent and don't contain functions, they are necessarily equal
+    lemma {:verify false} EqValueHasEq_Lem(v: WV, v': WV)
       requires EqValue(v,v')
       requires HasEqValue(v)
       requires HasEqValue(v')
       ensures v == v'
     {
-      
+      reveal EqValue_Closure();
     }
 
-    predicate {:verify false} EqSeqs<T(0)>(eq_values: (T,T) -> bool, vs: seq<T>, vs': seq<T>) {
+    lemma {:verify false} EqValueHasEq_Forall_Lem()
+      ensures forall v: WV, v': WV | EqValue(v,v') && HasEqValue(v) && HasEqValue(v') :: v == v'
+    {
+      forall v: WV, v': WV | EqValue(v,v') && HasEqValue(v) && HasEqValue(v') ensures v == v' {
+        EqValueHasEq_Lem(v, v');
+      }
+    }
+
+    lemma {:verify false} EqValue_Refl_Lem(v: WV)
+      ensures EqValue(v, v)
+    {
+      // TODO: the proof for the closure case is tricky, because we need to show that if
+      // we evaluate an expression starting in environments which are equivalent, then the
+      // results are equivalent...
+      assume EqValue(v, v);
+    }
+
+    lemma {:verify false} EqValue_Trans_Lem(v0: WV, v1: WV, v2: WV)
+      requires EqValue(v0, v1)
+      requires EqValue(v1, v2)
+      ensures EqValue(v0, v2)
+    {
+      // TODO:
+      assume EqValue(v0, v2);
+    }
+
+    lemma {:verify false} EqValue_Refl_Forall_Lem()
+      ensures forall v : WV :: EqValue(v, v)
+    {      
+      forall v : WV | true
+        ensures EqValue(v, v)
+      {
+        EqValue_Refl_Lem(v);
+        assert EqValue(v, v);
+      }
+    }
+
+    lemma {:verify false} EqState_Refl_Lem(ctx: State)
+      ensures EqState(ctx, ctx)
+    {
+      EqValue_Refl_Forall_Lem();
+    }
+
+    lemma {:verify false} EqState_Trans_Lem(ctx0: State, ctx1: State, ctx2: State)
+      requires EqState(ctx0, ctx1)
+      requires EqState(ctx1, ctx2)
+      ensures EqState(ctx0, ctx2)
+    {
+      forall x | x in ctx0.locals.Keys ensures EqValue(ctx0.locals[x], ctx2.locals[x]) {
+        EqValue_Trans_Lem(ctx0.locals[x], ctx1.locals[x], ctx2.locals[x]);
+      }
+    }
+
+    predicate {:verify false} EqSeq<T(0)>(eq_values: (T,T) -> bool, vs: seq<T>, vs': seq<T>) {
       && |vs| == |vs'|
       && (forall i | 0 <= i < |vs| :: eq_values(vs[i], vs'[i]))
     }
 
-    predicate {:verify false} EqMaps<T(0,!new), U(0,!new)>(eq_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
+    predicate {:verify false} EqMap<T(0,!new), U(0,!new)>(eq_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
       && (forall x :: x in vs <==> x in vs')
       && (forall x | x in vs :: eq_values(vs[x], vs'[x]))
     }
@@ -550,39 +640,38 @@ module CompilerRewriter {
     }
     
     predicate {:verify false} EqSeqValue(vs: seq<WV>, vs': seq<WV>) {
-      EqSeqs(EqValue, vs, vs')
+      EqSeq(EqValue, vs, vs')
     }
 
-    predicate {:verify false} EqMapValue(m: map<WV, WV>, m': map<WV,WV>) {
+    predicate {:verify true} EqMapValue(m: map<EqWV, WV>, m': map<EqWV,WV>) {
       && (forall x :: x in m <==> x in m')
       && (forall x | x in m :: EqValue(m[x], m'[x]))
     }
 
-    predicate EqSeqPairValue(vs: seq<(WV,WV)>, vs': seq<(WV,WV)>) {
-      EqSeqs((v: (WV,WV),v': (WV,WV)) => EqValue(v.0, v'.0) && EqValue(v.1, v'.1), vs, vs')
+    predicate {:verify false} EqSeqPairEqValueValue(vs: seq<(EqWV,WV)>, vs': seq<(EqWV,WV)>) {
+      EqSeq((v: (EqWV,WV),v': (EqWV,WV)) => EqValue(v.0, v'.0) && EqValue(v.1, v'.1), vs, vs')
     }
 
-    predicate EqPairValue(v: (WV,WV), v': (WV,WV)) {
-      EqPairs(EqValue, EqValue, v, v')
+    predicate {:verify false} EqEqValue(v: EqWV, v': EqWV) {
+      EqValue(v, v')
+    }
+
+    predicate {:verify false} EqPairEqValueValue(v: (EqWV,WV), v': (EqWV,WV)) {
+      EqPairs(EqEqValue, EqValue, v, v')
     }
     
     // Interpretation results are equivalent.
     // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
     predicate {:verify false} EqValueResult(res: InterpResult<WV>, res': InterpResult<WV>) {
       EqInterpResult(EqValue, res, res')
-/*      match (res, res') {
-        case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
-          && v == v'
-          && ctx == ctx'
-        case (Failure(_), Failure(_)) =>
-          true
-        case _ =>
-          false
-      }*/
     }
 
     predicate {:verify false} EqInterpResultSeqValue(res: InterpResult<seq<WV>>, res': InterpResult<seq<WV>>) {
       EqInterpResult(EqSeqValue, res, res')
+    }
+
+    predicate {:verify false} GEqInterpResultSeq(eq: Equivs, res: InterpResult<seq<WV>>, res': InterpResult<seq<WV>>) {
+      GEqInterpResult(eq.eq_state, (x, x') => EqSeq(eq.eq_value, x, x'), res, res')
     }
     
     predicate {:verify false} EqPureInterpResult<T(0)>(eq_values: (T,T) -> bool, res: PureInterpResult<T>, res': PureInterpResult<T>) {
@@ -616,12 +705,38 @@ module CompilerRewriter {
       }
     }
 
-    // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating the single expression.
+    // TODO: move up
+    datatype Equivs =
+      EQ(eq_value: (WV, WV) -> bool, eq_state: (State, State) -> bool)
+
+    // TODO: move
+    predicate {:verify false} GEqInterp(eq: Equivs, e: Exprs.T, e': Exprs.T) {
+      SupportsInterp(e) ==>
+      (&& SupportsInterp(e')
+       && forall fuel, ctx, ctx' | eq.eq_state(ctx, ctx') ::
+         GEqInterpResult(eq.eq_state, eq.eq_value,
+                         InterpExpr(e, fuel, ctx),
+                         InterpExpr(e', fuel, ctx')))
+    }
+
+    function {:verify false} Mk_EqInterp(eq: Equivs): (Expr, Expr) -> bool {
+      (e, e') => GEqInterp(eq, e, e')
+    }
+
+    // TODO: move
+    // TODO: change the definition to quantify over equivalent contexts
+    predicate {:verify false} EqInterp(e: Exprs.T, e': Exprs.T) {
+      GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
+    }
+
     lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
       ensures EqInterpResultSeq1Value(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+      // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating
+      // the single expression.
     {
+      reveal InterpExprs();
       var res := InterpExpr(e, fuel, ctx);
       var sres := InterpExprs([e], fuel, ctx);
 
@@ -631,6 +746,8 @@ module CompilerRewriter {
           var s' := s[1..];
           assert s' == [];
           assert InterpExprs(s', fuel, ctx1) == Success(Return([], ctx1));
+          EqState_Refl_Lem(ctx);
+          EqValue_Refl_Lem(v);
           assert [v] + [] == [v];
         }
         case Failure(_) => {}
@@ -638,20 +755,13 @@ module CompilerRewriter {
     }
 
     // TODO: move
-    // TODO: change the definition to quantify over equivalent contexts
-    predicate {:verify false} EqInterp(e: Exprs.T, e': Exprs.T) {
-      SupportsInterp(e) ==>
-      (&& SupportsInterp(e')
-       && forall fuel, ctx :: EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)))
-    }
-
-    // TODO: move
     // Sometimes, quantifiers are not triggered
-    lemma {:verify false} EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State)
+    lemma {:verify false} EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State, ctx': State)
       requires SupportsInterp(e)
       requires EqInterp(e, e')
+      requires EqState(ctx, ctx')
       ensures SupportsInterp(e')
-      ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+      ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     {}
 
     // TODO: move - TODO: remove?
@@ -659,59 +769,142 @@ module CompilerRewriter {
       forall e | f.requires(e) :: rel(e, f(e)) ==> EqInterp(e, f(e))
     }
 
-    // TODO: move
-    lemma {:verify false} All_Rel_Forall_EqInterp_EqInterpResult_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State)
-      requires forall e | e in es :: SupportsInterp(e)
-      requires All_Rel_Forall(EqInterp, es, es')
-      ensures forall e | e in es' :: SupportsInterp(e)
-      ensures EqInterpResultSeqValue(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx))
+/*    predicate {:verify true} {:opaque} {:vcs_split_on_every_assert} OEqValue(v: WV, v': WV)
+    // Opaque version of ``EqValue`` (having a hard time controling the context, especially
+    // when some bugs prevent me from doing so: https://github.com/dafny-lang/dafny/issues/2260).
+    // TODO: remove?
     {
-      if es == [] {}
+      EqValue(v, v')
+    }*/
+
+    lemma {:verify false} {:vcs_split_on_every_assert}
+      All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(
+      eq: Equivs, es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
+      requires forall e | e in es :: SupportsInterp(e)
+      requires All_Rel_Forall(Mk_EqInterp(eq), es, es')
+      requires eq.eq_state(ctx, ctx')
+      ensures forall e | e in es' :: SupportsInterp(e)
+      ensures GEqInterpResultSeq(eq, InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
+    // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
+    // sequences in the same context leads to equivalent results.
+    // This lemma is written generically over the equivalence relations over the states and
+    // values. We don't do this because it seems elegant: we do this as a desperate attempt
+    // to reduce the context size, while we are unable to use the `opaque` attribute on
+    // some definitions.
+    {
+      reveal InterpExprs();
+
+      var res := InterpExprs(es, fuel, ctx);
+      var res' := InterpExprs(es', fuel, ctx');
+      if es == [] {
+        assert res == Success(Return([], ctx));
+        assert res' == Success(Return([], ctx'));
+        assert eq.eq_state(ctx, ctx');
+      }
       else {
         // Evaluate the first expression in the sequence
-        match InterpExpr(es[0], fuel, ctx) {
+        var res1 := InterpExpr(es[0], fuel, ctx);
+        var res1' := InterpExpr(es'[0], fuel, ctx');
+        
+        match res1 {
           case Success(Return(v, ctx1)) => {
-            var res1: InterpResult<WV> := InterpExpr(es'[0], fuel, ctx);
-            assert res1.Success?;
-
-            // TODO: the following statement generates the error:
-            // "value does not satisfy the subset constraints of 'WV' (dafny)"
+            //assume false;
+            // TODO: the following statement generates an error.
+            // See: https://github.com/dafny-lang/dafny/issues/2258
             //var Success(Return(v', ctx1')) := res1;
-            //assert v' == v;
-            //assert ctx1' == ctx1;
+            var Return(v', ctx1') := res1'.value;
+            assert eq.eq_value(v, v');
+            assert eq.eq_state(ctx1, ctx1');
 
             // Evaluate the rest of the sequence
-            All_Rel_Forall_EqInterp_EqInterpResult_Lem(es[1..], es'[1..], fuel, ctx1);
+            var res2 := InterpExprs(es[1..], fuel, ctx1);
+            var res2' := InterpExprs(es'[1..], fuel, ctx1');
+
+            // Recursive call
+            All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(eq, es[1..], es'[1..], fuel, ctx1, ctx1');
+
+            match res2 {
+              case Success(Return(vs, ctx2)) => {
+                var Return(vs', ctx2') := res2'.value;
+                assert EqSeq(eq.eq_value, vs, vs');
+                assert eq.eq_state(ctx2, ctx2');
+                
+              }
+              case Failure(_) => {
+                assert res2'.Failure?;
+              }
+            }
           }
-          case Failure(_) => {}
+          case Failure(_) => {
+            assert res1'.Failure?;
+          }
         }
       }
     }
 
-    // TODO: HERE
-    lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>)
-      ensures EqPureInterpResult(EqSeqPairValue,
-                                   Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
-                                   Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
+    lemma {:verify false} {:vcs_split_on_every_assert}
+    All_Rel_Forall_EqInterp_EqInterpResult_Lem(
+      es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
+      requires forall e | e in es :: SupportsInterp(e)
+      requires All_Rel_Forall(EqInterp, es, es')
+      requires EqState(ctx, ctx')
+      ensures forall e | e in es' :: SupportsInterp(e)
+      ensures EqInterpResultSeqValue(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
+    // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
+    // sequences in the same context leads to equivalent results.
     {
-      if argvs == [] {
-        
-      }
+      All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
+    }
+
+    lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>)
+      ensures EqPureInterpResult(EqSeqPairEqValueValue,
+                                 Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
+                                 Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
+    {
+      if argvs == [] {}
       else {
         var argv := argvs[0];
-        assert EqPureInterpResult(EqPairValue, PairOfMapDisplaySeq(e, argv), PairOfMapDisplaySeq(e', argv));
+        var res0 := PairOfMapDisplaySeq(e, argv);
+        var res0' := PairOfMapDisplaySeq(e', argv);
+        EqValue_Refl_Forall_Lem();
+        assert EqPureInterpResult(EqPairEqValueValue, res0, res0');
         reveal Seq.MapResult();
         Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..]);
       }
     }
 
-    // TODO: move
+    lemma {:verify false} MapOfPairs_EqArgs_Lem(argvs: seq<(EqWV, WV)>, argvs': seq<(EqWV, WV)>)
+      requires EqSeqPairEqValueValue(argvs, argvs')
+      ensures EqMap(EqValue, MapOfPairs(argvs), MapOfPairs(argvs'))
+    {
+      if argvs == [] {}
+      else {
+        var lastidx := |argvs| - 1;
+        EqValueHasEq_Forall_Lem();   
+        MapOfPairs_EqArgs_Lem(argvs[..lastidx], argvs'[..lastidx]);
+      }
+    }
+
     lemma {:verify false} InterpMapDisplay_EqArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>)
       ensures EqPureInterpResult(EqMapValue, InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs)) {
-        Map_PairOfMapDisplaySeq_Lem(e, e', argvs);
+      var res0 := Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv));
+      var res0' := Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv));
+
+      Map_PairOfMapDisplaySeq_Lem(e, e', argvs);
+
+      match res0 {
+        case Success(pairs) => {
+          var pairs' := res0'.value;
+          MapOfPairs_EqArgs_Lem(pairs, pairs');
+        }
+        case Failure(_) => {
+
+        }
+      }
     }
 
     // TODO: move
+    // TODO: HERE
     lemma {:verify false} Tr_EqInterp_Expr_Lem(f: Expr --> Expr)
       requires forall e | f.requires(e) :: EqInterp(e, f(e))
       //requires Tr_EqInterp(f,rel)
@@ -728,7 +921,9 @@ module CompilerRewriter {
           forall exprs, exprs', fuel, ctx | (forall e | e in exprs :: SupportsInterp(e)) && All_Rel_Forall(EqInterp, exprs, exprs')
             ensures forall e | e in exprs' :: SupportsInterp(e)
             ensures EqInterpResult(EqSeqValue, InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx)) {
-              All_Rel_Forall_EqInterp_EqInterpResult_Lem(exprs, exprs', fuel, ctx);
+              // TODO: fix this
+              EqState_Refl_Lem(ctx);
+              All_Rel_Forall_EqInterp_EqInterpResult_Lem(exprs, exprs', fuel, ctx, ctx);
           }
 
           match e {
@@ -823,14 +1018,14 @@ module CompilerRewriter {
                 var op', e0', e1' := e'.aop.lOp, e'.args[0], e'.args[1];
                 assert op == op';
 
-                EqInterp_Lem(e0, e0', fuel, ctx);
+                EqInterp_Lem(e0, e0', fuel, ctx, ctx); // TODO: ctx, ctx'
                 var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
                 var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx);
                 assert EqValueResult(res0, res0');
                 
                 match res0 {
                   case Success(Return(v0, ctx0)) => {
-                    EqInterp_Lem(e1, e1', fuel, ctx0);
+                    EqInterp_Lem(e1, e1', fuel, ctx0, ctx0); // TODO: ctx0, ctx0'
                     assert EqValueResult(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
                     assert EqValueResult(res, res');
                   }
@@ -873,7 +1068,8 @@ module CompilerRewriter {
                   var res1 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
                   var res1' := InterpExprWithType(cond', Type.Bool, fuel, ctx);
 
-                  EqInterp_Lem(cond, cond', fuel, ctx); // Below assert fails without this lemma
+                  // TODO: ctx, ctx'
+                  EqInterp_Lem(cond, cond', fuel, ctx, ctx); // Below assert fails without this lemma
                   assert EqValueResult(res1, res1');
 
                   match res1 {
@@ -884,8 +1080,9 @@ module CompilerRewriter {
                       assert condv' == condv;
                       assert ctx1' == ctx1;
                       
-                      EqInterp_Lem(thn, thn', fuel, ctx1); // Proof fails without this lemma
-                      EqInterp_Lem(els, els', fuel, ctx1); // Proof fails without this lemma
+                      // TODO: ctx1, ctx1'
+                      EqInterp_Lem(thn, thn', fuel, ctx1, ctx1); // Proof fails without this lemma
+                      EqInterp_Lem(els, els', fuel, ctx1, ctx1); // Proof fails without this lemma
                     }
                     case Failure(_) => {
                       assert InterpExprWithType(cond', Type.Bool, fuel, ctx).Failure?; // Proof fails without this

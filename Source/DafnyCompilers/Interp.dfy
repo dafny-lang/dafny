@@ -221,6 +221,16 @@ module Interp {
   // The type of well-formed values with a decidable equality
   type EqWV = v: V.T | WellFormedValue(v) && HasEqValue(v) witness V.Bool(false)
 
+  // We need a value type height to prove that some functions terminate.
+  function {:axiom} ValueTypeHeight(v: WV): nat
+
+  // Axiom: the children of a collection have a smaller type than the collection's type
+  lemma {:axiom} ValueTypeHeight_Children_Lem(v: WV)
+    requires v.Map? || v.Multiset? || v.Seq? || v.Set?
+    ensures forall x | x in v.Children() :: ValueTypeHeight(x) < ValueTypeHeight(v)
+    // Special case for the keys of a map
+    ensures v.Map? ==> (forall x | x in v.m :: ValueTypeHeight(x) < ValueTypeHeight(v))
+
   predicate InterpResultPred<A(0)>(p: (A,State) -> bool, r: InterpResult<A>) {
     match r {
       case Success(Return(x, ctx)) => p(x, ctx)
@@ -228,7 +238,14 @@ module Interp {
     }
   }
 
-  function method InterpExpr(e: Expr, fuel: nat, ctx: State := State.Empty)
+  predicate PureInterpResultPred<A(0)>(p: A -> bool, r: PureInterpResult<A>) {
+    match r {
+      case Success(x) => p(x)
+      case Failure(_) => true
+    }
+  }
+
+  function method {:opaque} InterpExpr(e: Expr, fuel: nat, ctx: State := State.Empty)
     : (r: InterpResult<WV>)
     requires SupportsInterp(e)
     decreases fuel, e, 1
@@ -342,7 +359,8 @@ module Interp {
         case fail => fail
   }
 
-  function method InterpExprs(es: seq<Expr>, fuel: nat, ctx: State)
+  // TODO: make opaque?
+  function method {:opaque} InterpExprs(es: seq<Expr>, fuel: nat, ctx: State)
     : (r: InterpResult<seq<WV>>)
     requires forall e | e in es :: SupportsInterp(e)
     decreases fuel, es
@@ -801,7 +819,7 @@ module Interp {
     Success((argv.sq[0], argv.sq[1]))
   }
 
-  function method BuildCallState(captured: Ctx, vars: seq<string>, vals: seq<WV>)
+  function method {:opaque} BuildCallState(captured: Ctx, vars: seq<string>, vals: seq<WV>)
     : (ctx: State)
     requires |vars| == |vals|
   {

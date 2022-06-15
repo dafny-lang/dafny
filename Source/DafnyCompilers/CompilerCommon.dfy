@@ -58,10 +58,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Collection(finite: bool, kind: CollectionKind, eltType: Type) =>
               && eltType.NoLeftFunction()
               && match kind {
-                case Map(kt) => kt.NoLeftFunction() // TODO: redundant branch if I put it below??
                 case Seq => true
                 case Set => true
-                case MultiSet => true
+                case Multiset => true
+                case Map(kt) => kt.NoLeftFunction()
               }
             case Function(args: seq<Type>, ret: Type) => false
             case Class(classType: ClassType) => false
@@ -87,10 +87,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
               // is fine).
               && eltType.NoLeftFunction()
               && match kind {
-                case Map(kt) => kt.WellFormed() && kt.NoLeftFunction() // TODO: redundant branch if I move it below??
                 case Seq => true
                 case Set => eltType.NoLeftFunction()
-                case MultiSet => eltType.NoLeftFunction()
+                case Multiset => eltType.NoLeftFunction()
+                case Map(kt) => kt.WellFormed() && kt.NoLeftFunction()
               }
             case Function(args: seq<Type>, ret: Type) =>
               && (forall i | 0 <= i < |args| :: args[i].WellFormed())
