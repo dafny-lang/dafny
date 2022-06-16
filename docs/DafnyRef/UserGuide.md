@@ -950,7 +950,7 @@ implementation.
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
 An empty cell indicated that a feature is not supported,
-while a ✓ indicates that it is.
+while an X indicates that it is.
 
 Note that this information is currently based on code inspection
 and is not yet guaranteed to be updated as features and backends are modified,
@@ -960,7 +960,7 @@ but such a mechanism is in the works.
 |-|-|-|-|-|-|-|
 | [Unbounded integers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [Real numbers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [Ordinals](#) |  X  |  X  |  X  |  X  |  X  |  |
+| [Ordinals](#sec-ordinals) |  X  |  X  |  X  |  X  |  X  |  |
 | [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  |  |
 | [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |
@@ -1002,7 +1002,7 @@ but such a mechanism is in the works.
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528
+    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
     for details.
 
 [^feature-note-2]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as "Hello".
@@ -1013,7 +1013,7 @@ but such a mechanism is in the works.
     needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.
 
 [^feature-note-4]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
-  but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
+    but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
 
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}
 

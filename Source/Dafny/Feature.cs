@@ -93,7 +93,7 @@ public enum Feature {
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528
+    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
     for details.")]
   NonSequentializableForallStatements,
   
@@ -146,7 +146,7 @@ public enum Feature {
   
   [FeatureDescription("Sequence constructions with non-lambda initializers", "sec-sequence-displays",
     @"Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
-  but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.")]
+    but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.")]
   SequenceConstructionsWithNonLambdaInitializers,
   
   [FeatureDescription("Externally-implemented constructors", "sec-extern-decls")]
