@@ -1,4 +1,4 @@
-// RUN: %dafny /verificationLogger:trx;LogFileName="%t.trx" "%s"
+// RUN: %dafny_0 /verificationLogger:trx";"LogFileName="%t.trx" "%s"
 // RUN: %OutputCheck --file-to-check "%t.trx" "%s"
 
 // CHECK: \<UnitTestResult.* testName="ExampleWithSplits \(implementation correctness\) \(assertion batch 3\)" .*\>
