@@ -24,8 +24,7 @@ namespace IntegrationTests {
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string[] DefaultDafnyArguments = new[] {
-      "/countVerificationErrors:0",
-
+      // Try to verify 2 verification conditions at once
       "/vcsCores:2",
 
       // We do not want absolute or relative paths in error messages, just the basename of the file
@@ -42,6 +41,8 @@ namespace IntegrationTests {
       "/timeLimit:300"
     };
 
+    private static readonly string[] DefaultDafny0Arguments = DefaultDafnyArguments.Prepend("/countVerificationErrors:0").ToArray();
+
     private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
       LitTestConfiguration config, bool invokeDirectly) {
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
@@ -55,10 +56,9 @@ namespace IntegrationTests {
       var extraDafnyArguments =
         Environment.GetEnvironmentVariable("DAFNY_EXTRA_TEST_ARGUMENTS");
 
-      var dafnyArguments =
-        extraDafnyArguments is null ?
-          DefaultDafnyArguments :
-          DefaultDafnyArguments.Append(extraDafnyArguments);
+      IEnumerable<string> AddExtraArgs(IEnumerable<string> args, IEnumerable<string> local) {
+        return (extraDafnyArguments is null ? args : args.Append(extraDafnyArguments)).Concat(local);
+      }
 
       var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
@@ -75,9 +75,13 @@ namespace IntegrationTests {
           "%baredafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
+          "%dafny_0", (args, config) =>
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DefaultDafny0Arguments, args),
+              config, InvokeMainMethodsDirectly)
+        }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, dafnyArguments.Concat(args), config,
-              InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DefaultDafnyArguments, args),
+              config, InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
@@ -137,8 +141,12 @@ namespace IntegrationTests {
       if (dafnyReleaseDir != null) {
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
+        commands["%dafny_0"] = (args, config) =>
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"),
+            AddExtraArgs(DefaultDafny0Arguments, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), dafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"),
+            AddExtraArgs(DefaultDafnyArguments, args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");

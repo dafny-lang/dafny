@@ -15,6 +15,12 @@ on:
       release_notes:
         required: true
         type: string
+      tag_name:
+        required: true
+        type: string
+      release_nuget:
+        required: true
+        type: boolean
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
@@ -97,3 +103,10 @@ jobs:
           dafny/Package/dafny-${{ inputs.version }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: true
+
+    - name: Create NuGet package (for uploading)
+      if: ${{ inputs.release_nuget }}
+      run: dotnet pack --no-build dafny/Source/Dafny.sln
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

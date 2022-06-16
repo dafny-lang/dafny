@@ -959,5 +959,21 @@ method Foo() {
       var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, verificationDiagnostics2.Length);
     }
+
+    [TestMethod]
+    public async Task DiagnosticsAfterSavingWithVerifyOnChange() {
+      var source = @"
+method Foo() { 
+  assert true; 
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics1.Length);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
+      var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.IsTrue(diagnostics2.Any());
+    }
   }
 }

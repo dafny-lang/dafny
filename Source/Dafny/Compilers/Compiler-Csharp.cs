@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
         CsharpSynthesizer.EmitImports(wr);
       }
       EmitDafnySourceAttribute(program, wr);
-      ReadRuntimeSystem("DafnyRuntime.cs", wr);
+      ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
     }
 
     /// <summary>
@@ -317,7 +317,8 @@ namespace Microsoft.Dafny.Compilers {
       wTypeMethodBody.WriteLine($"return {typeDescriptorExpr};");
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var instanceMemberWriter = WriteTypeHeader("interface", name, typeParameters, superClasses, tok, wr);
 
       //writing the _Companion class

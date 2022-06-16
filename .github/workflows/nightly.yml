@@ -41,6 +41,7 @@ jobs:
       name: ${{ needs.determine-vars.outputs.name }}
       tag_name: nightly
       prerelease: true
+      release_nuget: false
       version: ${{ needs.determine-vars.outputs.name }}
       draft: false
       release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
