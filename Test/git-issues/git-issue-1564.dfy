@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 /functionSyntax:3 "%s" > "%t"
-// RUN: %dafny /compile:0 /functionSyntax:migration3to4 "%s" >> "%t"
-// RUN: %dafny /compile:0 /functionSyntax:4 "%s" >> "%t"
-// RUN: %dafny /compile:0 /functionSyntax:experimentalDefaultGhost "%s" >> "%t"
-// RUN: %dafny /compile:0 /functionSyntax:experimentalDefaultCompiled "%s" >> "%t"
-// RUN: %dafny /compile:0 /functionSyntax:experimentalPredicateAlwaysGhost "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:3 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:migration3to4 "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:4 "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:experimentalDefaultGhost "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:experimentalDefaultCompiled "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /functionSyntax:experimentalPredicateAlwaysGhost "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function F0(): int // error: 3to4

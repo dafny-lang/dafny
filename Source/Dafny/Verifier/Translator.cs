@@ -13,6 +13,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
+using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
@@ -10689,8 +10690,9 @@ namespace Microsoft.Dafny {
     }
 
     internal class FuelSetting {
+
       public enum FuelAmount { NONE, LOW, HIGH };
-      public static Stack<FuelContext> SavedContexts = new Stack<FuelContext>();
+      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
 
       public static FuelSettingPair FuelAttrib(Function f, out bool found) {
         Contract.Requires(f != null);
@@ -10919,7 +10921,7 @@ namespace Microsoft.Dafny {
       /// Extends the given fuel context with any new fuel settings found in attribs
       /// </summary>
       public static FuelContext ExpandFuelContext(Attributes attribs, IToken tok, FuelContext oldFuelContext, ErrorReporter reporter) {
-        Contract.Ensures(SavedContexts.Count == Contract.OldValue(SavedContexts.Count) + 1);
+        Contract.Ensures(GetSavedContexts().Count == Contract.OldValue(GetSavedContexts().Count) + 1);
         FuelContext newContext = new FuelContext();
         FindFuelAttributes(attribs, newContext);
         if (newContext.Count > 0) {
@@ -10945,14 +10947,22 @@ namespace Microsoft.Dafny {
         } else {
           newContext = oldFuelContext;
         }
-        SavedContexts.Push(oldFuelContext);
+        GetSavedContexts().Push(oldFuelContext);
 
         return newContext;
       }
 
+      private static Stack<FuelContext> GetSavedContexts() {
+        var result = SavedContexts.Value;
+        if (result == null) {
+          SavedContexts.Value = result = new();
+        }
+        return result;
+      }
+
       public static FuelContext PopFuelContext() {
-        Contract.Requires(SavedContexts.Count > 0);
-        return SavedContexts.Pop();
+        Contract.Requires(GetSavedContexts().Count > 0);
+        return GetSavedContexts().Pop();
       }
 
     }
