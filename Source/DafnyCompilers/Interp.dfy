@@ -166,6 +166,7 @@ module Interp {
   }
 
   predicate method WellFormedValue(v: V.T) {
+    // Rk.: ``Value.All`` goes inside the closure contexts
     && v.All(WellFormedValue1)
     && WellFormedEqValue(v)
   }
@@ -373,7 +374,7 @@ module Interp {
       Success(Return([v] + vs, ctx))
   }
 
-  function method InterpLiteral(a: AST.Exprs.Literal) : (v: WV)
+  function method {:opaque} InterpLiteral(a: AST.Exprs.Literal) : (v: WV)
     ensures HasEqValue(v)
   {
     match a
@@ -388,7 +389,7 @@ module Interp {
         V.Seq(chars)
   }
 
-  function method InterpLazy(e: Expr, fuel: nat, ctx: State)
+  function method {:opaque} InterpLazy(e: Expr, fuel: nat, ctx: State)
     : (r: InterpResult<WV>)
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     decreases fuel, e, 0
@@ -407,7 +408,7 @@ module Interp {
 
   // Alternate implementation of ``InterpLazy``: less efficient but more closely
   // matching intuition.
-  function method InterpLazy_Eagerly(e: Expr, fuel: nat, ctx: State)
+  function method {:opaque} InterpLazy_Eagerly(e: Expr, fuel: nat, ctx: State)
     : (r: InterpResult<WV>)
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     decreases fuel, e, 0
@@ -429,15 +430,21 @@ module Interp {
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     requires InterpLazy(e, fuel, ctx).Failure?
     ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
-  {}
+  {
+    reveal InterpLazy();
+    reveal InterpLazy_Eagerly();
+  }
 
   lemma InterpLazy_Eagerly_Sound(e: Expr, fuel: nat, ctx: State)
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     requires InterpLazy_Eagerly(e, fuel, ctx).Success?
     ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
-  {}
+  {
+    reveal InterpLazy();
+    reveal InterpLazy_Eagerly();
+  }
 
-  function method InterpUnaryOp(expr: Expr, op: AST.UnaryOp, v0: WV)
+  function method {:opaque} InterpUnaryOp(expr: Expr, op: AST.UnaryOp, v0: WV)
     : (r: PureInterpResult<WV>)
     requires !op.MemberSelect?
   {
@@ -456,7 +463,7 @@ module Interp {
         Success(V.Int(|v0.m|))
   }
 
-  function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: WV, v1: WV)
+  function method {:opaque} InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
     requires !bop.BV? && !bop.Datatypes?
   {
@@ -722,7 +729,7 @@ module Interp {
         Success(v0.m[v1])
   }
 
-  function method InterpTernaryOp(expr: Expr, top: AST.TernaryOp, v0: WV, v1: WV, v2: WV)
+  function method {:opaque} InterpTernaryOp(expr: Expr, top: AST.TernaryOp, v0: WV, v1: WV, v2: WV)
     : (r: PureInterpResult<WV>)
   {
     match top
@@ -785,7 +792,7 @@ module Interp {
         Success(V.Map(v0.m[v1 := v2]))
   }
 
-  function method InterpDisplay(e: Expr, kind: Types.CollectionKind, argvs: seq<WV>)
+  function method {:opaque} InterpDisplay(e: Expr, kind: Types.CollectionKind, argvs: seq<WV>)
     : (r: PureInterpResult<WV>)
   {
     match kind
@@ -826,7 +833,7 @@ module Interp {
     State.Empty.(locals := captured + MapOfPairs(Seq.Zip(vars, vals)))
   }
 
-  function method InterpFunctionCall(e: Expr, fuel: nat, fn: WV, argvs: seq<WV>)
+  function method {:opaque} InterpFunctionCall(e: Expr, fuel: nat, fn: WV, argvs: seq<WV>)
     : (r: PureInterpResult<WV>)
     decreases fuel, e, 0
   {
