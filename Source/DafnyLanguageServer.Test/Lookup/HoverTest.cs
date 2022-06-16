@@ -272,7 +272,7 @@ class Sub extends Base {}".TrimStart();
       var source = @"
 datatype SomeType = SomeType {
   method AssertEqual(x: int, y: int) {
-    assert x == y;
+    var j:=x == y;
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);

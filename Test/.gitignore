@@ -25,7 +25,7 @@
 **/*.exe
 
 # Python output
-**/*.py
+**/*-py
 
 node_modules/
 package-lock.json

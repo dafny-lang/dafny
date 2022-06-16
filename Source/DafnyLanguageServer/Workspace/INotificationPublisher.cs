@@ -6,12 +6,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Implementations of this interface are responsible to publish the diagnostics
   /// of a <see cref="DafnyDocument"/> to the LSP client.
   /// </summary>
-  public interface IDiagnosticPublisher {
+  public interface INotificationPublisher {
     /// <summary>
     /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
     /// </summary>
     /// <param name="document">The document whose diagnostics should be published.</param>
-    void PublishDiagnostics(DafnyDocument document);
+    void PublishNotifications(DafnyDocument previous, DafnyDocument document);
 
     /// <summary>
     /// Publishes the more precise real-time verification diagnostics to the connected LSP client

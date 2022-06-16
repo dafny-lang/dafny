@@ -42,7 +42,7 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
             serviceProvider.GetRequiredService<ISymbolTableFactory>(),
             serviceProvider.GetRequiredService<IGhostStateDiagnosticCollector>(),
             serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-            serviceProvider.GetRequiredService<IDiagnosticPublisher>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
             serviceProvider.GetRequiredService<IOptions<VerifierOptions>>().Value
           );
           return textDocumentLoader;

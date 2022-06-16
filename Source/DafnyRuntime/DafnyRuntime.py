@@ -77,7 +77,10 @@ class Set(set):
         return Set(set.union(self, other))
 
     def __or__(self, other):
-        return Set(set.union(self, other))
+        return self.union(other)
+
+    def __sub__(self, other):
+        return Set(super().__sub__(other))
 
 class Map(dict):
     @property
