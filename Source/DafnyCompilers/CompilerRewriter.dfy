@@ -205,6 +205,16 @@ module CompilerRewriter {
         ensures TransformerPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
       
+      predicate {:verify false} RelCanBeMapLifted(rel: (Expr, Expr) -> bool)
+      // In many situations, the binary relation between the input and the output is transitive
+      // and can be lifted through the map function.
+      {
+        (forall e, e' ::
+           (&& Exprs.ConstructorsMatch(e, e')
+            && All_Rel_Forall(rel, e.Children(), e'.Children()))
+            ==> rel(e, e'))
+      }
+
       // A bottom-up transformer, i.e.: a transformer we can recursively apply bottom-up to
       // an expression, and get the postcondition we expect on the resulting expression.
       type {:verify false} BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.post, tr.rel)
@@ -419,11 +429,19 @@ module CompilerRewriter {
       }
     }
 
+    predicate method {:verify false} GEqCtx(
+      eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context)
+      requires WellFormedContext(ctx)
+      requires WellFormedContext(ctx')
+    {
+      && ctx.Keys == ctx'.Keys
+      && (forall x | x in ctx.Keys :: eq_value(ctx[x], ctx'[x])) 
+    }
+
     predicate method {:verify false} GEqState(
       eq_value: (WV,WV) -> bool, ctx: State, ctx': State)
     {
-      && ctx.locals.Keys == ctx'.locals.Keys
-      && (forall x | x in ctx.locals.Keys :: eq_value(ctx.locals[x], ctx'.locals[x])) 
+      GEqCtx(eq_value, ctx.locals, ctx'.locals)
     }
 
     function method {:verify false} Mk_EqState(eq_value: (WV,WV) -> bool): (State,State) -> bool
@@ -518,7 +536,7 @@ module CompilerRewriter {
     //
     // See ``EqValue``.
     //
-    // Rk.: contrary to ``EqValue``, it seems ok to declare ``EqValue_Closure`` as opaque.
+    // Rk.: contraty to ``EqValue``, it seems ok to make ``EqValue_Closure`` opaque.
     {
       var Closure(ctx, vars, body) := v;
       var Closure(ctx', vars', body') := v';
@@ -553,6 +571,13 @@ module CompilerRewriter {
     predicate {:verify false} EqState(ctx: State, ctx': State)
     {
       GEqState(EqValue, ctx, ctx')
+    }
+
+    predicate {:verify false} EqCtx(ctx: Context, ctx': Context)
+      requires WellFormedContext(ctx)
+      requires WellFormedContext(ctx')
+    {
+      GEqCtx(EqValue, ctx, ctx')
     }
 
     predicate {:verify false} EqInterpResult<T(0)>(
@@ -643,7 +668,7 @@ module CompilerRewriter {
       EqSeq(EqValue, vs, vs')
     }
 
-    predicate {:verify true} EqMapValue(m: map<EqWV, WV>, m': map<EqWV,WV>) {
+    predicate {:verify false} EqMapValue(m: map<EqWV, WV>, m': map<EqWV,WV>) {
       && (forall x :: x in m <==> x in m')
       && (forall x | x in m :: EqValue(m[x], m'[x]))
     }
@@ -769,7 +794,7 @@ module CompilerRewriter {
       forall e | f.requires(e) :: rel(e, f(e)) ==> EqInterp(e, f(e))
     }
 
-/*    predicate {:verify true} {:opaque} {:vcs_split_on_every_assert} OEqValue(v: WV, v': WV)
+/*    predicate {:verify false} {:opaque} {:vcs_split_on_every_assert} OEqValue(v: WV, v': WV)
     // Opaque version of ``EqValue`` (having a hard time controling the context, especially
     // when some bugs prevent me from doing so: https://github.com/dafny-lang/dafny/issues/2260).
     // TODO: remove?
@@ -897,15 +922,140 @@ module CompilerRewriter {
           var pairs' := res0'.value;
           MapOfPairs_EqArgs_Lem(pairs, pairs');
         }
-        case Failure(_) => {
+        case Failure(_) => {}
+      }
+    }
 
+    predicate {:verify false} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    {
+      && EqState(ctx, ctx')
+      && Exprs.ConstructorsMatch(e, e')
+      && All_Rel_Forall(EqInterp, e.Children(), e'.Children())
+      && SupportsInterp(e)
+      && SupportsInterp(e')
+    }
+
+    predicate {:verify false} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+    {
+      EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+    }
+
+    // TODO: move
+    lemma {:verify false} {:vcs_split_on_every_assert} EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases fuel, e, 2
+    {
+      reveal InterpExpr();
+      match e {
+        case Var(_) => {
+          assert EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx');
+        }
+        case Literal(_) => {
+          assert EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx');
+        }
+        case Abs(_, _) => {
+          EqInterp_Expr_Abs_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+        }
+        case Apply(Lazy(_), _) => {
+          EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+        }
+        case Apply(Eager(_), _) => {
+          EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+        }
+        case If(_, _, _) => {
+          EqInterp_Expr_If_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+        }
+        case _ => {
+          // Unsupported branch
+          assert false;
         }
       }
     }
 
     // TODO: move
+    lemma {:verify false} {:vcs_split_on_every_assert}
+    EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.Abs?
+      requires e'.Abs?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases fuel, e, 1
+    {
+      var Abs(vars, body) := e;
+      var Abs(vars', body') := e';
+      assert vars == vars';
+      assert body == e.Children()[0];
+      assert body' == e'.Children()[0];
+      assert EqInterp(body, body');
+
+      var cv := Closure(ctx.locals, vars, body);
+      var cv' := Closure(ctx'.locals, vars', body');
+      assert InterpExpr(e, fuel, ctx) == Success(Return(cv, ctx)) by { reveal InterpExpr(); }
+      assert InterpExpr(e', fuel, ctx') == Success(Return(cv', ctx')) by {reveal InterpExpr(); }
+
+      forall fuel: nat, argvs: seq<WV>, argvs': seq<WV> |
+        && |argvs| == |argvs'| == |vars|
+        && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
+        ensures
+          var res := InterpCallFunctionBody(cv, fuel, argvs);
+          var res' := InterpCallFunctionBody(cv', fuel, argvs');
+          EqPureInterpResultValue(res, res') {
+        var res := InterpCallFunctionBody(cv, fuel, argvs);
+        var res' := InterpCallFunctionBody(cv', fuel, argvs');
+        assume EqPureInterpResultValue(res, res');
+      }
+
+      assert EqValue_Closure(cv, cv') by {
+        reveal EqValue_Closure();
+      }
+    }
+
+/*    lemma {:verify false} {:vcs_split_on_every_assert}
+    EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv: WV, cv': WV, argvs: seq<WV>, argvs': seq<WV>)
+      requires cv.Closure?
+      requires cv'.Closure?
+      requires EqState(cv.ctx, cv'.ctx)
+      requires EqInterp(cv.body, cv'.body)
+      decreases 0, Expr.Abs(cv.vars, cv.body), 0
+    {
+
+    }*/
+
+    lemma {:verify false} EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.Apply? && e.aop.Lazy?
+      requires e'.Apply? && e'.aop.Lazy?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases fuel, e, 1
+    {
+      assume false; // TODO: prove
+    }
+
+    lemma {:verify false} EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.Apply? && e.aop.Eager?
+      requires e'.Apply? && e'.aop.Eager?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases fuel, e, 1
+    {
+      assume false; // TODO: prove
+    }
+
+    lemma {:verify false} EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.If?
+      requires e'.If?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases fuel, e, 1
+    {
+      assume false; // TODO: prove
+    }
+
+    // TODO: remove
     // TODO: HERE
-    lemma {:verify false} Tr_EqInterp_Expr_Lem(f: Expr --> Expr)
+    lemma {:verify false} Tr_EqInterp_Expr_Lem_old(f: Expr --> Expr)
       requires forall e | f.requires(e) :: EqInterp(e, f(e))
       //requires Tr_EqInterp(f,rel)
       //requires TransformerPreservesRel(f,rel)
@@ -1190,7 +1340,7 @@ module CompilerRewriter {
     {
       var f := Tr_Expr_Shallow;
       var rel := Tr_Expr_Rel;
-      Tr_EqInterp_Expr_Lem(f);
+      Tr_EqInterp_Expr_Lem_old(f);
     }
 
     const {:verify false} Tr_Expr : BottomUpTransformer :=

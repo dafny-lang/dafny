@@ -83,31 +83,6 @@ module Values {
           0 <= value < Math.IntPow(2, width)
         case _ => true
       }
-
-/*      match this {
-        case Bool(b) => true
-        case Char(c) => true
-        case Int(i) => true
-        case Real(r) => true
-        case BigOrdinal(o) => true
-        case BitVector(width, val) =>
-          0 <= value < Math.IntPow(2, width)
-        case Map(m) =>
-          && this.NoFunction()
-          && (forall x | x in m :: x.WellFormed1() && m[x].WellFormed1())
-        case Multiset(ms) =>
-          && this.NoFunction()
-          && (forall x | x in ms :: x.WellFormed1())
-        case Seq(sq) =>
-          && this.NoFunction()
-          && (forall x | x in sq :: x.WellFormed1())
-        case Set(st) =>
-          && this.NoFunction()
-          && (forall x | x in st :: x.WellFormed1())
-        case Closure(ctx, vars, body) =>
-          // TODO: is that enough?
-          && (forall x | x in ctx :: ctx[x].WellFormed1())
-      }*/
     }
 
     predicate method All(P: Value -> bool) {
