@@ -1281,7 +1281,7 @@ program.
       Console.Out.Write("| Feature |");
       var allCompilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
       foreach(var compiler in allCompilers) {
-        Console.Out.Write($" {compiler.TargetId} |");
+        Console.Out.Write($" {compiler.TargetLanguage} |");
       }
       Console.Out.WriteLine();
       
@@ -1296,7 +1296,7 @@ program.
         Console.Out.Write($"| {FeatureDescriptionAttribute.GetDescription(feature)} |");
         foreach(var compiler in allCompilers) {
           var supported = !compiler.UnsupportedFeatures.Contains(feature);
-          var cell = supported ? " Yes " : " No ";
+          var cell = supported ? " ✓ " : "";
           Console.Out.Write($" {cell} |");
         }
         Console.Out.WriteLine();

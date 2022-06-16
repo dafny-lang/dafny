@@ -43,6 +43,26 @@ namespace Microsoft.Dafny.Compilers {
 
     private readonly List<string> Imports = new List<string> { "module_" };
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.Iterators,
+      Feature.StaticFields,
+      Feature.RuntimeTypeDescriptors,
+      Feature.TupleAutoInitialization,
+      Feature.ContinueStatements,
+      Feature.ForLoops,
+      Feature.AssignSuchThatWithNonFiniteBounds,
+      Feature.IntBoundedPool,
+      Feature.NonSequentializableForallStatements,
+      Feature.Codatatypes,
+      Feature.SequenceUpdateStatements,
+      Feature.SequenceConstructionsWithNonLambdaInitializers,
+      Feature.Multisets,
+      Feature.SubsetTypeTests,
+      Feature.SubtypeConstraintsInQuantifiers,
+      Feature.ExactBoundedPool,
+      Feature.MethodSynthesis
+    };
+    
     private const string DafnyRuntimeModule = "_dafny";
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
@@ -547,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
 
               case DatatypeDecl dt:
                 if (dt is TupleTypeDecl) {
-                  throw new NotImplementedException();
+                  throw new UnsupportedFeatureException(tok, Feature.TupleAutoInitialization);
                 }
                 var s = DtCtorDeclarationName(dt.GetGroundingCtor());
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);

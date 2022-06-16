@@ -42,7 +42,10 @@ namespace Microsoft.Dafny.Compilers {
     public override bool TextualTargetIsExecutable => false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.Iterators
+      Feature.Iterators,
+      Feature.SubsetTypeTests,
+      Feature.TraitTypeParameters,
+      Feature.MethodSynthesis
     };
 
     public override void CleanSourceDirectory(string sourceDirectory) {

@@ -945,6 +945,59 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
+### 24.9.8. Supported features by target language
+
+Some Dafny features are not supported by every target language.
+The table below shows which features are supported by each backend.
+An empty cell indicated that a feature is not supported,
+while a ✓ indicates that it is.
+
+Note that this information is currently based on code inspection
+and is not yet guaranteed to be updated as features and backends are modified,
+but such a mechanism is in the works.
+
+| Feature | C# | JavaScript | Go | Java | Python | C++ |
+|-|-|-|-|-|-|-|
+| Unbounded integers |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Real numbers |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Ordinals |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Function values |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Iterators |  ✓  |  ✓  |  ✓  |  |  |  |
+| Collections with trait element types |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| User-defined types with traits as type parameters |  ✓  |  ✓  |  ✓  |  |  ✓  |  ✓  |
+| Package names with only underscores |  ✓  |  ✓  |  |  ✓  |  ✓  |  ✓  |
+| Co-inductive datatypes |  ✓  |  ✓  |  ✓  |  ✓  |  |  |
+| Multisets |  ✓  |  ✓  |  ✓  |  ✓  |  |  |
+| Runtime type descriptors |  ✓  |  ✓  |  ✓  |  ✓  |  |  |
+| Multi-dimensional arrays |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Map comprehensions |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Traits |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Let-such-that expressions |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Non-native numeric newtypes |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Method synthesis |  ✓  |  |  |  |  |  |
+| External classes |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Instantiating the `object` type |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| `forall` loops that cannot be sequentialized |  ✓  |  ✓  |  ✓  |  ✓  |  |  |
+| Taking an array's length |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| `m.Items` when `m` is a map |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| The /runAllTests option |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Integer range constraints in comprehensions (e.g. `a <= x <= b`) |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Exact value constraints in comprehensions (`x == C`) |  ✓  |  ✓  |  ✓  |  ✓  |  |  |
+| Sequence displays of characters (as opposed to string literals) |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Type test expressions (`x is T`) |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Type test expressions on subset types |  |  |  |  |  |  |
+| Quantifiers |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| Bitvector RotateLeft/RotateRight functions |  ✓  |  ✓  |  ✓  |  ✓  |  ✓  |  |
+| `for` loops |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| `continue` statements |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Assign-such-that statements with potentially infinite bounds |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Sequence update statements |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Sequence constructions with non-lambda initializers |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Externally-implemented constructors |  ✓  |  |  |  ✓  |  ✓  |  ✓  |
+| Static fields |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Auto-initialization of tuples |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+| Subtype constraints in quantifiers |  ✓  |  ✓  |  ✓  |  ✓  |  |  ✓  |
+
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}
 
 There are many command-line options to the `dafny` tool.

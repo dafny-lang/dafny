@@ -33,6 +33,10 @@ namespace Microsoft.Dafny.Compilers {
     // True if the most recently visited AST has a method annotated with {:synthesize}:
     protected bool Synthesize = false;
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.SubsetTypeTests
+    };
+    
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);

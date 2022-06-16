@@ -53,10 +53,12 @@ namespace Microsoft.Dafny.Compilers {
       Feature.LetSuchThatExpressions,
       Feature.NonNativeNewtypes,
       Feature.TypeTests,
+      Feature.SubsetTypeTests,
       Feature.SequenceDisplaysOfCharacters,
       Feature.MapComprehensions,
       Feature.ExactBoundedPool,
-      Feature.RunAllTests
+      Feature.RunAllTests,
+      Feature.MethodSynthesis
     };
     
     public override string TargetLanguage => "C++";

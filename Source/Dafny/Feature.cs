@@ -96,16 +96,16 @@ public enum Feature {
   [FeatureDescription("The /runAllTests option")]
   RunAllTests,
   
-  [FeatureDescription("Integer range constraints in comprehensions (a <= x <= b)")]
+  [FeatureDescription("Integer range constraints in comprehensions (e.g. `a <= x <= b`)")]
   IntBoundedPool,
   
-  [FeatureDescription("Exact value constraints in comprehensions (x == C)")]
+  [FeatureDescription("Exact value constraints in comprehensions (`x == C`)")]
   ExactBoundedPool,
   
   [FeatureDescription("Sequence displays of characters (as opposed to string literals)")]
   SequenceDisplaysOfCharacters,
   
-  [FeatureDescription("Type test expressions (x is T)")]
+  [FeatureDescription("Type test expressions (`x is T`)")]
   TypeTests,
   
   [FeatureDescription("Type test expressions on subset types")]
