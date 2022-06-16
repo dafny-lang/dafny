@@ -32,7 +32,14 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: dafny
+        ref: ${{ inputs.sha }}
     - uses: actions/setup-python@v1
+    - name: Ensure tag exists
+      run: |
+        - git tag ${{ inputs.tag_name }} -f
+        - git push origin ${{ inputs.tag_name }} -f
+      with:
+        working-directory: dafny
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
       with:
@@ -77,12 +84,15 @@ jobs:
       run: |
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
-    - name: Create draft GitHub release
+
+    - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        name: Dafny ${{ inputs.version }}
-        body: release_notes
-        draft: inputs.draft
+        name: ${{ inputs.name }}
+        tag_name: ${{ inputs.tag_name }}
+        body: ${{ inputs.release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
         files: |
           dafny/Package/dafny-${{ inputs.version }}*
           dafny/docs/DafnyRef/DafnyRef.pdf

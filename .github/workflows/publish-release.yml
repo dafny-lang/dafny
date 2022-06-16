@@ -26,7 +26,10 @@ jobs:
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
+      name: Dafny ${{ needs.get-version.outputs.version }}
       sha: ${{ github.sha }}
+      tag_name: ${{ github.ref }}
+      prerelease: false
       version: ${{ needs.get-version.outputs.version }}
       draft: true
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
