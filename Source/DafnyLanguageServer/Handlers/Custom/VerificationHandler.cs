@@ -45,23 +45,11 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
     var failedTaskRuns = 0;
     foreach (var taskToRun in tasks) {
-      try {
-        var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-        documentEntry.Observe(verifiedDocuments);
-      } catch (InvalidOperationException e) {
-        if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
-          failedTaskRuns++;
-        } else {
-          throw;
-        }
-      }
+      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
+      documentEntry.Observe(verifiedDocuments);
     }
 
-    if (failedTaskRuns == tasks.Count) {
-      return false;
-    }
-
-    return true;
+    return failedTaskRuns != tasks.Count;
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
@@ -79,15 +67,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
-      try {
-        taskToRun.Cancel();
-      } catch (InvalidOperationException e) {
-        if (e.Message.Contains("no ongoing run")) {
-          return false;
-        }
-
-        throw;
-      }
+      taskToRun.Cancel();
     }
 
     return true;

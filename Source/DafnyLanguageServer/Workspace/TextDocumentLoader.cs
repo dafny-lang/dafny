@@ -235,31 +235,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask, CancellationToken cancellationToken) {
+    public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
+      CancellationToken cancellationToken) {
 
       if (VerifierOptions.GutterStatus) {
         dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
       }
 
-      try {
-        var observable = implementationTask.Run();
-        cancellationToken.Register(() => {
-          try {
-            implementationTask.Cancel();
-          } catch (InvalidOperationException e) {
-            if (!e.Message.Contains("no ongoing run")) {
-              throw;
-            }
-          }
-        });
-        return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
-      } catch (InvalidOperationException e) {
-        if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
-          return Observable.Empty<DafnyDocument>();
-        }
-
-        throw;
+      var statusUpdates = implementationTask.TryRun();
+      if (statusUpdates == null) {
+        return Observable.Empty<DafnyDocument>();
       }
+
+      cancellationToken.Register(implementationTask.Cancel);
+      return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, statusUpdates);
     }
 
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,
