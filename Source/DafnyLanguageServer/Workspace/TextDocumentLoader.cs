@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
           errorReporter.GetDiagnostics(textDocument.Uri), program,
-          wasResolved:true, loadCanceled: false);
+          wasResolved: true, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
