@@ -3,10 +3,12 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Declaration = Microsoft.Boogie.Declaration;
+using Formal = Microsoft.Boogie.Formal;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;
 using Parser = Microsoft.Boogie.Parser;
 using Program = Microsoft.Boogie.Program;
+using Type = Microsoft.Boogie.Type;
 
 namespace DafnyTestGeneration {
 
@@ -29,6 +31,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public IEnumerable<ProgramModification> GetModifications(IEnumerable<Program> programs) {
       var program = MergeBoogiePrograms(programs);
+      program = new FunctionToMethodCallRewriter().VisitProgram(program);
       program = new AddImplementationsForCalls().VisitProgram(program);
       var annotator = new AnnotationVisitor();
       program = annotator.VisitProgram(program);
@@ -91,6 +94,7 @@ namespace DafnyTestGeneration {
         }
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
+      program.Resolve(DafnyOptions.O);
       return program;
     }
 
@@ -123,6 +127,21 @@ namespace DafnyTestGeneration {
       return (Axiom)program.TopLevelDeclarations.ToList()[0];
     }
 
+    /// <summary>
+    /// Add a new local variable to the implementation currently processed
+    /// </summary>
+    private static LocalVariable GetNewLocalVariable(Implementation impl, Type type) {
+      const string baseName = "tmp#";
+      int id = 0;
+      while (impl.LocVars.Exists(v => v.Name == baseName + id)) {
+        id++;
+      }
+      var newLocalVar = new LocalVariable(new Token(),
+        new TypedIdent(new Token(), baseName + id, type));
+      impl.LocVars.Add(newLocalVar);
+      return newLocalVar;
+    }
+
 
     /// <summary>
     /// Create implementations for all "Call$$" procedures by making them
@@ -135,8 +154,7 @@ namespace DafnyTestGeneration {
       private Program? program;
 
       public override Procedure? VisitProcedure(Procedure? node) {
-        if (program == null || node == null ||
-            !node.Name.StartsWith("Call$$")) {
+        if (!node.Name.StartsWith("Call$$")) {
           return node;
         }
 
@@ -167,11 +185,11 @@ namespace DafnyTestGeneration {
         // you cannot directly reuse node.InParams and node.OutParams
         // because they might contain where clauses which have to be removed
         var inParams = node.InParams.ConvertAll(v =>
-          (Variable)new LocalVariable(new Token(),
-            new TypedIdent(new Token(), v.Name, v.TypedIdent.Type))).ToList();
+          (Variable)new Formal(new Token(),
+            new TypedIdent(new Token(), v.Name, v.TypedIdent.Type), true)).ToList();
         var outParams = node.OutParams.ConvertAll(v =>
-          (Variable)new LocalVariable(new Token(),
-            new TypedIdent(new Token(), v.Name, v.TypedIdent.Type))).ToList();
+          (Variable)new Formal(new Token(),
+            new TypedIdent(new Token(), v.Name, v.TypedIdent.Type), false)).ToList();
         // construct the new implementation:
         var callerImpl = new Implementation(new Token(), callerName,
           node.TypeParameters, inParams, outParams, vars,
@@ -185,6 +203,7 @@ namespace DafnyTestGeneration {
         implsToAdd = new();
         node = base.VisitProgram(node);
         node.AddTopLevelDeclarations(implsToAdd);
+        node.Resolve(DafnyOptions.O);
         return node;
       }
     }
@@ -234,6 +253,12 @@ namespace DafnyTestGeneration {
             GetCalleesRecursively(callee, recorded);
           }
         }
+      }
+
+      public override Program VisitProgram(Program node) {
+        node = base.VisitProgram(node);
+        node.Resolve(DafnyOptions.O);
+        return node;
       }
     }
 
@@ -290,6 +315,261 @@ namespace DafnyTestGeneration {
         VisitBlockList(node.Blocks);
         return node;
       }
+
+      public override Program VisitProgram(Program node) {
+        node = base.VisitProgram(node);
+        node.Resolve(DafnyOptions.O);
+        return node;
+      }
+    }
+
+    /// <summary>
+    /// Replaces all function calls with method calls, whenever possible
+    /// </summary>
+    private class FunctionToMethodCallRewriter : StandardVisitor {
+
+      private Implementation? currImpl;
+      private Program? currProgram;
+      private Block? currBlock;
+      private AssignCmd? currAssignCmd;
+
+      // This list is populated while traversing a block and then the respective
+      // commands are inserted in that block at specified positions
+      private List<(Cmd cmd, Cmd before)>? commandsToInsert;
+
+      /// <summary>
+      /// Attempt to convert a function call expression to a method call
+      /// statement, where the two are related via the function-by-method
+      /// construct. 
+      /// </summary>
+      /// <returns>The identifier for the temporary variable that
+      /// stores the result of the method call</returns>
+      private IdentifierExpr? TryConvertFunctionCall(NAryExpr call) {
+        var proc = currProgram.FindProcedure("Impl$$" + call.Fun.FunctionName);
+        if (proc == null) {
+          return null; // this function is not a function-by-method
+        }
+        // The corresponding method may have more than one return parameter.
+        // To find out the name of the return parameter that is associated
+        // with the function's return value, search for a postcondition that 
+        // equates the two:
+        var returnName = proc.Ensures
+          .Select(e => e.Condition)
+          .OfType<NAryExpr>()
+          .Where(c =>
+            (c.Fun as BinaryOperator)?.Op is
+            BinaryOperator.Opcode.Eq or
+            BinaryOperator.Opcode.Iff)
+          .Where(c => (c.Args[0] is IdentifierExpr) &&
+                      ((c.Args[1] as NAryExpr)!.Fun!.FunctionName ==
+                       call.Fun.FunctionName))
+          .Select(c => (c.Args[0] as IdentifierExpr)?.Name)
+          .Where(n => proc.OutParams.Exists(p => p.Name == n)).ToList();
+        if (returnName.Count != 1) {
+          return null;
+        }
+        var returnPosition = proc.OutParams
+          .FindIndex(i => i.Name == returnName.First());
+
+        // Create temporary local variables to store all the return values:
+        var outs = new List<IdentifierExpr>();
+        foreach (var param in proc.OutParams) {
+          var newVar = GetNewLocalVariable(currImpl, param.TypedIdent.Type);
+          outs.Add(new IdentifierExpr(new Token(), newVar.Name));
+        }
+
+        // Create a call command:
+        var newCmd = new CallCmd(
+          new Token(),
+          proc.Name,
+          call.Args.ToList(),
+          outs);
+        // The call will precede the assignment command being processed
+        commandsToInsert.Insert(0, (newCmd, currAssignCmd));
+        return outs[returnPosition];
+      }
+
+      public override Expr VisitNAryExpr(NAryExpr node) {
+        if (currAssignCmd == null) {
+          return base.VisitNAryExpr(node);
+        }
+        var args = node.Args.ToList();
+        // iterating in the reverse order because
+        // the call commands are added in the LIFO order
+        for (int i = args.Count - 1; i >= 0; i--) {
+          var arg = args[i];
+          if ((arg != null) && (arg is NAryExpr funcCall)) {
+            var id = TryConvertFunctionCall(funcCall);
+            if (id != null) {
+              int index = node.Args.IndexOf(arg);
+              node.Args.RemoveAt(index);
+              node.Args.Insert(index, id);
+            }
+          }
+        }
+        return base.VisitNAryExpr(node);
+      }
+
+      public override Cmd VisitAssignCmd(AssignCmd node) {
+        currAssignCmd = node;
+        var newRhss = new List<Expr>();
+        // iterating in the reverse order because
+        // the call commands are added in the LIFO order
+        for (int index = node.Rhss.Count - 1; index >= 0; index--) {
+          var rhs = node.Rhss[index];
+          if (rhs is NAryExpr funcCall) {
+            var id = TryConvertFunctionCall(funcCall);
+            if (id != null) {
+              newRhss.Insert(0, id);
+              continue;
+            }
+          }
+          newRhss.Insert(0, rhs);
+        }
+        node.Rhss = newRhss;
+        node = (AssignCmd)base.VisitAssignCmd(node);
+        currAssignCmd = null;
+        return node;
+      }
+
+      public override Block VisitBlock(Block node) {
+        currBlock = node;
+        commandsToInsert = new();
+        node = base.VisitBlock(node); // this populates commandsToInsert list
+        foreach (var toInsert in commandsToInsert) {
+          int index = currBlock.cmds.IndexOf(toInsert.before);
+          node.cmds.Insert(index, toInsert.cmd);
+        }
+        return node;
+      }
+
+      public override Implementation VisitImplementation(Implementation node) {
+        if (!node.Name.StartsWith("Impl$$") ||
+            currProgram.FindFunction(node.Name[6..]) == null) {
+          return node; // this implementation is potentially side-effecting
+        }
+        currImpl = node;
+        return base.VisitImplementation(node);
+      }
+
+      public override Program VisitProgram(Program node) {
+        node = new RemoveFunctionsFromShortCircuitRewriter().VisitProgram(node);
+        currProgram = node;
+        VisitDeclarationList(node.TopLevelDeclarations.ToList<Declaration>());
+        node.Resolve(DafnyOptions.O);
+        return node;
+      }
+
+    }
+
+    /// <summary>
+    /// Remove function calls from short-circuiting expressions so that
+    /// function appear in assign commands only when the preconditions are met.
+    /// This operation is only performed on non-side effecting implementations
+    /// </summary>
+    private class RemoveFunctionsFromShortCircuitRewriter : StandardVisitor {
+
+      private AssignCmd? currAssignCmd;
+      private Implementation? currImpl;
+      private Program? currProgram;
+      // maps the string representation of a function call to a local variable
+      // that stores the result
+      private Dictionary<string, LocalVariable> funcCallToResult;
+      // suffix added to all canCall functions:
+      private const string CanCallSuffix = "#canCall";
+      // new commands to insert in the currently traversed block
+      private List<(Cmd cmd, Cmd after)>? commandsToInsert;
+
+      /// <summary>
+      /// Replace a function call with a variable identifier that points to
+      /// the result of that function call
+      /// </summary>
+      public override Expr VisitNAryExpr(NAryExpr node) {
+        if (currAssignCmd == null ||
+            currProgram.FindFunction(
+              node.Fun.FunctionName + CanCallSuffix) == null) {
+          return base.VisitNAryExpr(node);
+        }
+        var functionCallToString = node.ToString();
+        if (!funcCallToResult.ContainsKey(functionCallToString)) {
+          funcCallToResult.Add(functionCallToString,
+            GetNewLocalVariable(currImpl, node.Type));
+        }
+
+        return new IdentifierExpr(new Token(),
+          funcCallToResult[functionCallToString]);
+      }
+
+      public override Cmd VisitAssignCmd(AssignCmd node) {
+        currAssignCmd = node;
+        node = (AssignCmd)base.VisitAssignCmd(node);
+        currAssignCmd = null;
+        return node;
+      }
+
+      /// <summary>
+      /// Whenever an assume statement states that a certain function can be
+      /// called with certain parameters without violating any preconditions,
+      /// call this function and store the result.
+      /// </summary>
+      public override Cmd VisitAssumeCmd(AssumeCmd node) {
+        if ((node.Expr is not NAryExpr expr) ||
+            (!expr.Fun.FunctionName.EndsWith(CanCallSuffix))) {
+          return node;
+        }
+
+        var func = currProgram.FindFunction(expr.Fun.FunctionName[..^8]);
+        if (func == null) {
+          return node;
+        }
+
+        // funcCallToResult[funcCallToString] stores the variables that the
+        // result of the function call will be assigned to:
+        var returnType = func.OutParams.First().TypedIdent.Type;
+        var funcCall = new NAryExpr(new Token(),
+          new FunctionCall(func), expr.Args);
+        var funcCallToString = funcCall.ToString();
+        if (!funcCallToResult.ContainsKey(funcCallToString)) {
+          funcCallToResult.Add(funcCallToString,
+            GetNewLocalVariable(currImpl, returnType));
+        }
+
+        // the command will be added to the block at VisitBlock call
+        var toBeAssigned = new SimpleAssignLhs(new Token(),
+          new IdentifierExpr(new Token(), funcCallToResult[funcCallToString]));
+        commandsToInsert.Add((new AssignCmd(new Token(),
+          new List<AssignLhs> { toBeAssigned },
+          new List<Expr> { funcCall }), node));
+        return node;
+      }
+
+      public override Block VisitBlock(Block node) {
+        commandsToInsert = new();
+        node = base.VisitBlock(node); // this populates commandsToInsert list
+        foreach (var toInsert in commandsToInsert) {
+          int index = node.cmds.IndexOf(toInsert.after);
+          node.cmds.Insert(index + 1, toInsert.cmd);
+        }
+        return node;
+      }
+
+      public override Implementation VisitImplementation(Implementation node) {
+        if (!node.Name.StartsWith("Impl$$") ||
+            currProgram.FindFunction(node.Name[6..]) == null) {
+          return node; // this implementation is potentially side-effecting
+        }
+        currImpl = node;
+        funcCallToResult = new();
+        return base.VisitImplementation(node);
+      }
+
+      public override Program VisitProgram(Program node) {
+        currProgram = node;
+        VisitDeclarationList(node.TopLevelDeclarations.ToList<Declaration>());
+        node.Resolve(DafnyOptions.O);
+        return node;
+      }
+
     }
   }
 }

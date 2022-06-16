@@ -24,7 +24,6 @@ namespace DafnyTestGeneration {
       if (success) {
         program = new Program(fileName, module, builtIns, reporter);
       }
-      new Resolver(program).ResolveProgram(program);
       return program;
     }
 
