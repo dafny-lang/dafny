@@ -1,4 +1,6 @@
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -7,10 +9,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisposable {
   private readonly MergeOrdered<DafnyDocument> mergeOrdered;
-  private readonly IDisposable subscription;
   private readonly DiagnosticsObserver observer;
+  private readonly IConnectableObservable<DafnyDocument> publishedDocuments;
 
-  public DafnyDocument PreviouslyPublishedDocument => observer.PreviouslyPublishedDocument;
+  public DafnyDocument LastPublishedDocument => observer.LastPublishedDocument;
 
   public RequestUpdatesOnUriObserver(
     ILogger logger,
@@ -21,13 +23,16 @@ class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisp
 
     mergeOrdered = new MergeOrdered<DafnyDocument>();
     observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, loader, document);
-    subscription = mergeOrdered.Subscribe(observer);
+    publishedDocuments = mergeOrdered.Do(observer).Multicast(new Subject<DafnyDocument>());
+    publishedDocuments.Connect();
   }
+
+  public IObservable<DafnyDocument> LastAndUpcomingPublishedDocuments => Observable.Return(LastPublishedDocument).Concat(publishedDocuments);
 
   public IObservable<bool> IdleChangesIncludingLast => mergeOrdered.IdleChangesIncludingLast;
 
   public void Dispose() {
-    subscription.Dispose();
+    mergeOrdered.Dispose();
   }
 
   public void OnCompleted() {
@@ -47,14 +52,14 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
-  public DafnyDocument PreviouslyPublishedDocument { get; private set; }
+  public DafnyDocument LastPublishedDocument { get; private set; }
 
   public DiagnosticsObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
     DocumentTextBuffer document) {
-    PreviouslyPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
+    LastPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
@@ -74,7 +79,7 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   }
 
   public void OnNext(DafnyDocument document) {
-    notificationPublisher.PublishNotifications(PreviouslyPublishedDocument, document);
-    PreviouslyPublishedDocument = document;
+    notificationPublisher.PublishNotifications(LastPublishedDocument, document);
+    LastPublishedDocument = document;
   }
 }

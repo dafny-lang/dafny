@@ -82,7 +82,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var documentEntry = new DocumentEntry(
         document.Version,
         document,
-        resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
         new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
@@ -151,7 +150,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
         updatedText,
-        resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
         databaseEntry.Observer
@@ -294,14 +292,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public DocumentTextBuffer TextBuffer { get; }
       public Task<DafnyDocument> ResolvedDocument { get; }
       public Task<DafnyDocument> TranslatedDocument { get; }
-      public DafnyDocument LastPublishedDocument => Observer.PreviouslyPublishedDocument;
+      public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
       public Task<DafnyDocument> LastDocument => Observer.IdleChangesIncludingLast.Where(idle => idle).
-        Select(_ => Observer.PreviouslyPublishedDocument).
+        Select(_ => Observer.LastPublishedDocument).
         FirstAsync().ToTask();
 
       public DocumentEntry(int? version,
         DocumentTextBuffer textBuffer,
-        Task<DafnyDocument> resolvedDocument,
         Task<DafnyDocument> translatedDocument,
         CancellationTokenSource cancellationSource,
         RequestUpdatesOnUriObserver observer) {
@@ -310,7 +307,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         TranslatedDocument = translatedDocument;
         Version = version;
         TextBuffer = textBuffer;
-        ResolvedDocument = resolvedDocument;
+
+        // Ensure ResolveDocument is only completed after LastPublishedDocument has been updated.
+        ResolvedDocument = Observer.LastAndUpcomingPublishedDocuments.Where(d => d.Version == version && d.WasResolved).FirstAsync().ToTask();
       }
 
       public void CancelPendingUpdates() {

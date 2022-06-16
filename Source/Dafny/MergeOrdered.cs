@@ -16,7 +16,7 @@ namespace Microsoft.Dafny;
 ///   Merge                : +-------A-------C----E----B-----------D-----F--|
 ///   MergeOrdered         : +-------A-----------------B--C--------D--E--F-----|
 /// </summary>
-public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
+public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>>, IDisposable {
   private readonly Queue<IObservable<T>> allUpdates = new();
   private bool idle = true;
   private bool outerCompleted;
@@ -78,5 +78,9 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>> {
   public IDisposable Subscribe(IObserver<T> observer) {
     // ReSharper disable once InconsistentlySynchronizedField
     return result.Subscribe(observer);
+  }
+
+  public void Dispose() {
+    result.Dispose();
   }
 }

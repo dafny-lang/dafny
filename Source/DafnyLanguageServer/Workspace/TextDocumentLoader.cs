@@ -89,6 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Message = "Resolution diagnostics have not been computed yet."
         }},
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
+        wasResolved: false,
         loadCanceled: true
       );
     }
@@ -152,7 +153,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter.GetDiagnostics(textDocument.Uri), program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
+          errorReporter.GetDiagnostics(textDocument.Uri), program,
+          wasResolved:true, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
@@ -169,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
-        ghostDiagnostics, program, symbolTable);
+        ghostDiagnostics, program, symbolTable, true);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -183,6 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocument,
       IReadOnlyList<Diagnostic> diagnostics,
       Dafny.Program program,
+      bool wasResolved,
       bool loadCanceled
     ) {
       return new DafnyDocument(
@@ -194,6 +198,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
+        wasResolved,
         null,
         loadCanceled
       );
