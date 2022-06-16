@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny_0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Syn = bv8

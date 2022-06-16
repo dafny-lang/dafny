@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass {
@@ -19,7 +20,7 @@ class MyClass {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 trait MyTrait {
@@ -32,7 +33,7 @@ trait MyTrait {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 class MyTraitInstance extends MyTrait {

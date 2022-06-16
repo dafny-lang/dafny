@@ -9,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   private IDictionary<string, string> configuration;
   protected DiagnosticsReceiver diagnosticsReceiver;
+  protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
@@ -39,7 +41,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
   }
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetLastDocumentAsync(documentItem);
     Diagnostic[] result;
@@ -65,8 +67,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public virtual async Task SetUp() {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
+    ghostnessReceiver = new();
     client = await InitializeClient(options => {
       options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+      options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
       options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
 
     }, serverOptions => {
@@ -101,16 +105,35 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
       }
     }
-    await GetLastDiagnostics(documentItem, cancellationToken);
-    var verificationDocumentItem = CreateTestDocument("method Foo() { assert true; }", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri);
     Assert.AreEqual(verificationDocumentItem.Uri, statusReport.Uri);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
+  }
+
+  public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
+    foreach (var entry in Documents.Documents.Values) {
+      try {
+        await entry.LastDocument;
+      } catch (TaskCanceledException) {
+
+      }
+    }
+    var verificationDocumentItem = CreateTestDocument(@"class X {does not parse", $"verification{fileIndex++}.dfy");
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
+    Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
+      "Unexpected diagnostics were received whereas none were expected:\n" +
+      string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
+        diagnostic.ToString())));
+    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+      TextDocument = verificationDocumentItem
+    });
+    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
+    Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
