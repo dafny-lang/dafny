@@ -2329,7 +2329,6 @@ namespace Microsoft.Dafny {
     }
 
     void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
-      Console.WriteLine(f.Name);
       Contract.Requires(f != null && f.ByMethodBody != null);
 
       var tok = f.ByMethodTok;

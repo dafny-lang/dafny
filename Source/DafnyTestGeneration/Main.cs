@@ -157,7 +157,6 @@ namespace DafnyTestGeneration {
       }
 
       private static void AddByMethod(Function func) {
-        Console.WriteLine(func.Name);
         if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
           return;
         }
