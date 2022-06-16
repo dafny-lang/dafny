@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
-        ghostDiagnostics, program, symbolTable, wasResolved: true);
+        ghostDiagnostics, program, symbolTable, WasResolved: true);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
