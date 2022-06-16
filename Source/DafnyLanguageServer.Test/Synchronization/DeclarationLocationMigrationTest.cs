@@ -108,6 +108,7 @@ class B {
 }";
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 0), (4, 1)),
@@ -163,6 +164,7 @@ class A {
       var change = "string reads thi";
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 19), (3, 22)),

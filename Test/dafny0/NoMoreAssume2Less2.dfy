@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests various ways of writing the equivalent of "assume false;" or "assert false;" inside a loop.
