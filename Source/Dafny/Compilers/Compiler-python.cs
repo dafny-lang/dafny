@@ -45,16 +45,16 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
-      Feature.StaticFields,
+      Feature.StaticConstants,
       Feature.RuntimeTypeDescriptors,
-      Feature.TupleAutoInitialization,
+      Feature.TupleInitialization,
       Feature.ContinueStatements,
       Feature.ForLoops,
       Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.IntBoundedPool,
       Feature.NonSequentializableForallStatements,
       Feature.Codatatypes,
-      Feature.SequenceUpdateStatements,
+      Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.Multisets,
       Feature.SubsetTypeTests,
@@ -402,7 +402,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
       bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
       if (isStatic) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.StaticFields);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.StaticConstants);
       }
       methodWriter.WriteLine("@property");
       var getterWriter = methodWriter.NewBlockPy(header: $"def {name}(self):");
@@ -567,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
 
               case DatatypeDecl dt:
                 if (dt is TupleTypeDecl) {
-                  throw new UnsupportedFeatureException(tok, Feature.TupleAutoInitialization);
+                  throw new UnsupportedFeatureException(tok, Feature.TupleInitialization);
                 }
                 var s = DtCtorDeclarationName(dt.GetGroundingCtor());
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
@@ -1044,7 +1044,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.SequenceUpdateStatements);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.SequenceUpdateExpressions);
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
@@ -1291,16 +1292,29 @@ program.
         Console.Out.Write($"-|");
       }
       Console.Out.WriteLine();
-      
+
+      var footnotes = new StringBuilder();
+      var footnoteSuffix = 1;
       foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
-        Console.Out.Write($"| {FeatureDescriptionAttribute.GetDescription(feature)} |");
+        var description = FeatureDescriptionAttribute.GetDescription(feature);
+        var footnoteLink = "";
+        if (description.Notes != null) {
+          footnoteLink = $"[^feature-note-{footnoteSuffix}]";
+          footnotes.AppendLine($"{footnoteLink}: {description.Notes}");
+          footnotes.AppendLine();
+          footnoteSuffix++;
+        }
+        Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
         foreach(var compiler in allCompilers) {
           var supported = !compiler.UnsupportedFeatures.Contains(feature);
-          var cell = supported ? " ✓ " : "";
+          var cell = supported ? " X " : "";
           Console.Out.Write($" {cell} |");
         }
         Console.Out.WriteLine();
       }
+
+      Console.Out.WriteLine();
+      Console.Out.WriteLine(footnotes);
     }
   }
 }

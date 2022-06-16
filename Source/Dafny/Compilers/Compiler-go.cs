@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.AllUnderscorePackageNames
+      Feature.AllUnderscoreExternalModuleNames
     };
 
     
@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.Compilers {
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
-          UnsupportedFeatureError(Bpl.Token.NoToken, Feature.AllUnderscorePackageNames, 
+          UnsupportedFeatureError(Bpl.Token.NoToken, Feature.AllUnderscoreExternalModuleNames, 
             "Cannot have a package name with only underscores: {0}", wr, pkgName);
           return wr;
         }
