@@ -682,10 +682,15 @@ namespace Microsoft.Dafny {
       TODO
 
     {:compile}
-      TODO
+      The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
+      If that argument is false, then that declaration will not be compiled at all.
+      
+      The difference with {:extern} is that {:extern} will still emit declaration code if necessary,
+      whereas {:compile false} will just ignore the declaration for compilation purposes.
 
     {:main}
-      TODO
+      When executing a program, Dafny will first look for a method annotated with {:main}, and otherwise
+      will look for `method Main()`, and execute the first method.
 
     {:axiom}
       Ordinarily, the compiler gives an error for every function or
