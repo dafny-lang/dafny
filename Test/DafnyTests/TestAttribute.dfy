@@ -1,10 +1,10 @@
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
+// RUN: %dafny_0 /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
 // RUN: dotnet test -v:q -noLogo %S >> %t || true
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
 // CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method MockField\).*
-// CHECK  .*Error: Stubbing fields is not recommended \(field value of object e inside method ParametrizedMock\).*
+// CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method ParametrizedMock\).*
 // CHECK: .*_module.__default.FailingTest_CheckForFailureForXunit.*
 // CHECK: .*_module.__default.FailingTestUsingMock.*
 // CHECK: .*_module.__default.FailingTestUsingExpectWithMessage.*

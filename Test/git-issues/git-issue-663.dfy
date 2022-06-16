@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 "%s" > "%t"
+// RUN: %dafny_0 /compile:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method StatementsInCompiledMethod() {

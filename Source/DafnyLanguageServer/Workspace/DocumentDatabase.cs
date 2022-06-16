@@ -83,10 +83,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var documentEntry = new DocumentEntry(
         document.Version,
         document,
-        resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
-        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, document)
+        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
       );
       documents.Add(document.Uri, documentEntry);
 
@@ -147,12 +146,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
-      var resolvedDocumentTask = ApplyChangesAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
+      var resolvedDocumentTask = GetResolvedDocumentAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
       var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
         updatedText,
-        resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
         databaseEntry.Observer
@@ -166,21 +164,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> ApplyChangesAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
+      DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 
       var oldDocument = documentEntry.LastPublishedDocument;
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var oldVerificationDiagnostics = oldDocument.ImplementationIdToView ?? new Dictionary<ImplementationId, ImplementationView>();
-      var migratedImplementationViews = oldVerificationDiagnostics.ToDictionary(
-        kv => kv.Key with {
-          NamedVerificationTask =
-          relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
-        },
-        kv => kv.Value with {
-          Range = relocator.RelocateRange(kv.Value.Range, documentChange, CancellationToken.None),
-          Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
-        });
+      var oldVerificationDiagnostics = oldDocument.ImplementationIdToView;
+      var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
@@ -227,6 +218,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
+    }
+
+    private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+      IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics) {
+      var result = new Dictionary<ImplementationId, ImplementationView>();
+      foreach (var entry in oldVerificationDiagnostics) {
+        var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
+        if (newRange != null) {
+          result.Add(entry.Key with {
+            NamedVerificationTask = relocator.RelocatePosition(entry.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+          }, entry.Value with {
+            Range = newRange,
+            Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
+          });
+        }
+      }
+      return result;
     }
 
     private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
@@ -301,14 +309,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public DocumentTextBuffer TextBuffer { get; }
       public Task<DafnyDocument> ResolvedDocument { get; }
       public Task<DafnyDocument> TranslatedDocument { get; }
-      public DafnyDocument LastPublishedDocument => Observer.PreviouslyPublishedDocument;
+      public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
       public Task<DafnyDocument> LastDocument => Observer.IdleChangesIncludingLast.Where(idle => idle).
-        Select(_ => Observer.PreviouslyPublishedDocument).
+        Select(_ => Observer.LastPublishedDocument).
         FirstAsync().ToTask();
 
       public DocumentEntry(int? version,
         DocumentTextBuffer textBuffer,
-        Task<DafnyDocument> resolvedDocument,
         Task<DafnyDocument> translatedDocument,
         CancellationTokenSource cancellationSource,
         RequestUpdatesOnUriObserver observer) {
@@ -317,7 +324,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         TranslatedDocument = translatedDocument;
         Version = version;
         TextBuffer = textBuffer;
-        ResolvedDocument = resolvedDocument;
+
+        // Ensure ResolveDocument is only completed after LastPublishedDocument has been updated.
+        ResolvedDocument = Observer.LastAndUpcomingPublishedDocuments.Where(d => d.Version == version && d.WasResolved).FirstAsync().ToTask();
       }
 
       public void CancelPendingUpdates() {
@@ -329,6 +338,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public void Observe(IObservable<DafnyDocument> updates) {
         Observer.OnNext(updates);
       }
+
+      public bool Idle => Observer.Idle;
     }
   }
 }

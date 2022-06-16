@@ -1,35 +1,39 @@
 using System;
-using System.Collections.Generic;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisposable {
   private readonly MergeOrdered<DafnyDocument> mergeOrdered;
-  private readonly IDisposable subscription;
   private readonly DiagnosticsObserver observer;
+  private readonly IConnectableObservable<DafnyDocument> publishedDocuments;
 
-  public DafnyDocument PreviouslyPublishedDocument => observer.PreviouslyPublishedDocument;
+  public DafnyDocument LastPublishedDocument => observer.LastPublishedDocument;
 
   public RequestUpdatesOnUriObserver(
     ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
+    ITextDocumentLoader loader,
     DocumentTextBuffer document) {
 
     mergeOrdered = new MergeOrdered<DafnyDocument>();
-    observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, document);
-    subscription = mergeOrdered.Subscribe(observer);
+    observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, loader, document);
+    publishedDocuments = mergeOrdered.Do(observer).Multicast(new Subject<DafnyDocument>());
+    publishedDocuments.Connect();
   }
 
+  public IObservable<DafnyDocument> LastAndUpcomingPublishedDocuments => Observable.Return(LastPublishedDocument).Concat(publishedDocuments);
+
   public IObservable<bool> IdleChangesIncludingLast => mergeOrdered.IdleChangesIncludingLast;
+  public bool Idle => mergeOrdered.Idle;
 
   public void Dispose() {
-    subscription.Dispose();
+    mergeOrdered.Dispose();
   }
 
   public void OnCompleted() {
@@ -49,27 +53,14 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
-  public DafnyDocument PreviouslyPublishedDocument { get; private set; }
+  public DafnyDocument LastPublishedDocument { get; private set; }
 
-  public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
-    INotificationPublisher notificationPublisher, DocumentTextBuffer document) {
-    PreviouslyPublishedDocument = new DafnyDocument(document,
-      new[] { new Diagnostic {
-        // This diagnostic never gets sent to the client,
-        // instead it forces the first computed diagnostics for a document to always be sent.
-        // The message here describes the implicit client state before the first diagnostics have been sent.
-        Message = "Resolution diagnostics have not been computed yet."
-      }},
-      false,
-      new Dictionary<ImplementationId, ImplementationView>(),
-      Array.Empty<Counterexample>(),
-      Array.Empty<Diagnostic>(),
-#pragma warning disable CS8625
-      null,
-      null,
-#pragma warning restore CS8625
-      null,
-      true);
+  public DiagnosticsObserver(ILogger logger,
+    ITelemetryPublisher telemetryPublisher,
+    INotificationPublisher notificationPublisher,
+    ITextDocumentLoader loader,
+    DocumentTextBuffer document) {
+    LastPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
@@ -89,7 +80,7 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   }
 
   public void OnNext(DafnyDocument document) {
-    notificationPublisher.PublishNotifications(PreviouslyPublishedDocument, document);
-    PreviouslyPublishedDocument = document;
+    notificationPublisher.PublishNotifications(LastPublishedDocument, document);
+    LastPublishedDocument = document;
   }
 }

@@ -51,7 +51,7 @@ class SlowVerifier : IProgramVerifier {
     public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public Implementation Implementation => original.Implementation;
 
-    public IObservable<IVerificationStatus> Run() {
+    public IObservable<IVerificationStatus> TryRun() {
       return source;
     }
 

@@ -828,11 +828,8 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-
-      // The diagnostics of test2 has not been migrated since test2 no longer exists.
-      Assert.AreEqual(1, verificationTaskDiagnostics.Length);
+      var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -914,14 +911,12 @@ method Foo() {
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
-      var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
-      Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);
-      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Verification diagnostics were removed since task no longer exists.
-      Assert.AreEqual(0, verificationTaskDiagnostics.Length);
-      var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(1, verificationDiagnostics2.Length);
+      Assert.AreEqual(1, translationDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]

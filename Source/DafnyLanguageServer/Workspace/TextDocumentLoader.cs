@@ -82,8 +82,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return CreateDocumentWithEmptySymbolTable(
         loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
-        errorReporter,
+        new[] { new Diagnostic {
+          // This diagnostic never gets sent to the client,
+          // instead it forces the first computed diagnostics for a document to always be sent.
+          // The message here describes the implicit client state before the first diagnostics have been sent.
+          Message = "Resolution diagnostics have not been computed yet."
+        }},
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
+        wasResolved: false,
         loadCanceled: true
       );
     }
@@ -147,7 +153,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
+          errorReporter.GetDiagnostics(textDocument.Uri), program,
+          wasResolved: true, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
@@ -164,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
-        ghostDiagnostics, program, symbolTable);
+        ghostDiagnostics, program, symbolTable, WasResolved: true);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -176,20 +184,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument CreateDocumentWithEmptySymbolTable(
       ILogger<SymbolTable> logger,
       DocumentTextBuffer textDocument,
-      DiagnosticErrorReporter errorReporter,
+      IReadOnlyList<Diagnostic> diagnostics,
       Dafny.Program program,
+      bool wasResolved,
       bool loadCanceled
     ) {
-      var parseAndResolutionDiagnostics = errorReporter.GetDiagnostics(textDocument.Uri);
       return new DafnyDocument(
         textDocument,
-        errorReporter.GetDiagnostics(textDocument.Uri),
+        diagnostics,
         false,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
+        wasResolved,
         null,
         loadCanceled
       );
@@ -226,31 +235,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask, CancellationToken cancellationToken) {
+    public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
+      CancellationToken cancellationToken) {
 
       if (VerifierOptions.GutterStatus) {
         dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
       }
 
-      try {
-        var observable = implementationTask.Run();
-        cancellationToken.Register(() => {
-          try {
-            implementationTask.Cancel();
-          } catch (InvalidOperationException e) {
-            if (!e.Message.Contains("no ongoing run")) {
-              throw;
-            }
-          }
-        });
-        return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
-      } catch (InvalidOperationException e) {
-        if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
-          return Observable.Empty<DafnyDocument>();
-        }
-
-        throw;
+      var statusUpdates = implementationTask.TryRun();
+      if (statusUpdates == null) {
+        return Observable.Empty<DafnyDocument>();
       }
+
+      cancellationToken.Register(implementationTask.Cancel);
+      return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, statusUpdates);
     }
 
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,

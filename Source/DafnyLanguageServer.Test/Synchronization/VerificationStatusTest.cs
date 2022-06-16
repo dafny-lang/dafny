@@ -14,6 +14,28 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task MigrateDeletedVerifiableSymbol() {
+    var source = @"method Foo() { assert false; }";
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var translatedStatusBefore = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(1, translatedStatusBefore.NamedVerifiables.Count);
+
+    // Delete the end of the Foo range
+    ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
+
+    var resolutionStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, resolutionStatusAfter.NamedVerifiables.Count);
+
+    var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(1, translatedStatusAfter.NamedVerifiables.Count);
+  }
+
+  [TestMethod]
   public async Task ChangeRunSaveWithVerify() {
     await SetUp(new Dictionary<string, string> {
       { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
@@ -81,12 +103,14 @@ method Bar() { assert false; }";
     var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
-    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
-    // Do a second run to check it doesn't crash.
-    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    Assert.IsTrue(successfulRun);
     var range = new Range(0, 21, 0, 43);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
+
+    var failedRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    Assert.IsFalse(failedRun);
   }
 
   [TestMethod]

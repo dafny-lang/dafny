@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
     }
 
-    public Range RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public Range? RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
     }
 
@@ -86,8 +86,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         });
       }
 
-      public Range MigrateRange(Range range) {
-        return new Range(MigratePosition(range.Start), MigratePosition(range.End));
+      public Range? MigrateRange(Range range) {
+        return contentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
+          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {

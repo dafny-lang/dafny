@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     }
 
-    public static Task RunSymbolVerification(this ILanguageClient client, TextDocumentIdentifier textDocumentIdentifier, Position position, CancellationToken cancellationToken) {
+    public static Task<bool> RunSymbolVerification(this ILanguageClient client, TextDocumentIdentifier textDocumentIdentifier, Position position, CancellationToken cancellationToken) {
       return client.SendRequest(
         new VerificationParams() { TextDocument = textDocumentIdentifier, Position = position },
         cancellationToken);
