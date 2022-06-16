@@ -26,6 +26,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
     }
 
+    public Range? RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
+    }
+
     public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
@@ -80,6 +84,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
           return MigratePosition(position, change);
         });
+      }
+
+      public Range? MigrateRange(Range range) {
+        return contentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
+          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
@@ -205,7 +214,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
       }
 
-      private Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
+      public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
         if (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!)) {
           // Do not migrate ranges that partially overlap with the change
           return null;

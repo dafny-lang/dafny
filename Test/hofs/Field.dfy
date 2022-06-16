@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // calling fields should not make a resolution error:
