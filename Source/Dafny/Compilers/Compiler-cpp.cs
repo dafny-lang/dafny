@@ -30,9 +30,33 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.UnboundedIntegers,
+      Feature.RealNumbers,
       Feature.CollectionsOfTraits,
       Feature.Codatatypes,
-      Feature.Multisets
+      Feature.Multisets,
+      Feature.ExternalClasses,
+      Feature.Traits,
+      Feature.Iterators,
+      Feature.NonNativeNewtypes,
+      Feature.RuntimeTypeDescriptors,
+      Feature.MultiDimensionalArrays,
+      Feature.CollectionsOfTraits,
+      Feature.Quantifiers,
+      Feature.NewObject,
+      Feature.BitvectorRotateFunctions,
+      Feature.NonSequentializableForallLoops,
+      Feature.FunctionValues,
+      Feature.ArrayLength,
+      Feature.Ordinals,
+      Feature.MapItems,
+      Feature.Codatatypes,
+      Feature.LetSuchThatExpressions,
+      Feature.NonNativeNewtypes,
+      Feature.TypeTests,
+      Feature.SequenceDisplaysOfCharacters,
+      Feature.MapComprehensions,
+      Feature.ExactBoundedPool,
+      Feature.RunAllTests
     };
     
     public override string TargetLanguage => "C++";
