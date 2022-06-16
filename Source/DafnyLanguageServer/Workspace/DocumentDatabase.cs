@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         resolvedDocumentTask,
         translatedDocument,
         cancellationSource,
-        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, document)
+        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
       );
       documents.Add(document.Uri, documentEntry);
 

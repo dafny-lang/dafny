@@ -82,7 +82,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return CreateDocumentWithEmptySymbolTable(
         loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
-        errorReporter,
+        new[] { new Diagnostic {
+          // This diagnostic never gets sent to the client,
+          // instead it forces the first computed diagnostics for a document to always be sent.
+          // The message here describes the implicit client state before the first diagnostics have been sent.
+          Message = "Resolution diagnostics have not been computed yet."
+        }},
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
         loadCanceled: true
       );
@@ -147,7 +152,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter.GetDiagnostics(textDocument.Uri), program, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
@@ -176,14 +181,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument CreateDocumentWithEmptySymbolTable(
       ILogger<SymbolTable> logger,
       DocumentTextBuffer textDocument,
-      DiagnosticErrorReporter errorReporter,
+      IReadOnlyList<Diagnostic> diagnostics,
       Dafny.Program program,
       bool loadCanceled
     ) {
-      var parseAndResolutionDiagnostics = errorReporter.GetDiagnostics(textDocument.Uri);
       return new DafnyDocument(
         textDocument,
-        errorReporter.GetDiagnostics(textDocument.Uri),
+        diagnostics,
         false,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),

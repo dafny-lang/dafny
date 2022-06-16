@@ -1,12 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using IntervalTree;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -21,10 +16,11 @@ class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisp
     ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
+    ITextDocumentLoader loader,
     DocumentTextBuffer document) {
 
     mergeOrdered = new MergeOrdered<DafnyDocument>();
-    observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, document);
+    observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, loader, document);
     subscription = mergeOrdered.Subscribe(observer);
   }
 
@@ -53,27 +49,12 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   private readonly INotificationPublisher notificationPublisher;
   public DafnyDocument PreviouslyPublishedDocument { get; private set; }
 
-  public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
-    INotificationPublisher notificationPublisher, DocumentTextBuffer document) {
-    PreviouslyPublishedDocument = new DafnyDocument(document,
-      new[] { new Diagnostic {
-        // This diagnostic never gets sent to the client,
-        // instead it forces the first computed diagnostics for a document to always be sent.
-        // The message here describes the implicit client state before the first diagnostics have been sent.
-        Message = "Resolution diagnostics have not been computed yet."
-      }},
-      false,
-      new Dictionary<ImplementationId, ImplementationView>(),
-      Array.Empty<Counterexample>(),
-      Array.Empty<Diagnostic>(),
-#pragma warning disable CS8625
-      null,
-      new SymbolTable(null, null, new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ISymbol, SymbolLocation>(),
-        new IntervalTree<Position, ILocalizableSymbol>(), false),
-#pragma warning restore CS8625
-      null,
-      true);
+  public DiagnosticsObserver(ILogger logger,
+    ITelemetryPublisher telemetryPublisher,
+    INotificationPublisher notificationPublisher,
+    ITextDocumentLoader loader,
+    DocumentTextBuffer document) {
+    PreviouslyPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
