@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AssignmentsFromNewAllocation {

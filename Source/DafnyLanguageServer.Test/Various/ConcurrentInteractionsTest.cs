@@ -115,7 +115,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
@@ -131,7 +131,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
 
     /// <summary>

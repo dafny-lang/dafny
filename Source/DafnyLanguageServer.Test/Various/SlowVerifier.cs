@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -40,25 +40,23 @@ class SlowVerifier : IProgramVerifier {
 
   class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly IImplementationTask original;
-    private readonly TaskCompletionSource<VerificationResult> source;
+    private readonly Subject<IVerificationStatus> source;
 
     public NeverVerifiesImplementationTask(IImplementationTask original) {
       this.original = original;
-      source = new TaskCompletionSource<VerificationResult>();
+      source = new();
     }
 
-    public IObservable<VerificationStatus> ObservableStatus => Observable.Never<VerificationStatus>();
-    public VerificationStatus CurrentStatus => VerificationStatus.Running;
+    public IVerificationStatus CacheStatus => new Stale();
     public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public Implementation Implementation => original.Implementation;
-    public Task<VerificationResult> ActualTask => source.Task;
 
-    public void Run() {
-
+    public IObservable<IVerificationStatus> TryRun() {
+      return source;
     }
 
     public void Cancel() {
-      source.SetCanceled();
+      source.OnError(new TaskCanceledException());
     }
   }
 }
