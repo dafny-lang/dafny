@@ -321,6 +321,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public void Observe(IObservable<DafnyDocument> updates) {
         Observer.OnNext(updates);
       }
+
+      public bool Idle => Observer.Idle;
     }
   }
 }

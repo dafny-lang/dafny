@@ -18,7 +18,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>>, IDisposable {
   private readonly Queue<IObservable<T>> allUpdates = new();
-  private bool idle = true;
+  public bool Idle { get; private set; } = true;
   private bool outerCompleted;
   private readonly Subject<T> result = new();
   private readonly ReplaySubject<bool> idleStates = new(1);
@@ -27,14 +27,14 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>>, IDispo
 
   public void OnNext(IObservable<T> next) {
     lock (this) {
-      if (idle) {
-        idle = false;
+      if (Idle) {
+        Idle = false;
         next.Subscribe(InnerNext, InnerError, InnerCompleted);
       } else {
         allUpdates.Enqueue(next);
       }
     }
-    idleStates.OnNext(idle);
+    idleStates.OnNext(Idle);
   }
 
   private void InnerNext(T next) {
@@ -47,13 +47,13 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>>, IDispo
 
   private void InnerCompleted() {
     lock (this) {
-      idle = true;
+      Idle = true;
       if (allUpdates.Any()) {
         var next = allUpdates.Dequeue();
         OnNext(next);
       }
     }
-    idleStates.OnNext(idle);
+    idleStates.OnNext(Idle);
     CheckCompleted();
   }
 
@@ -68,7 +68,7 @@ public class MergeOrdered<T> : IObservable<T>, IObserver<IObservable<T>>, IDispo
   }
 
   private void CheckCompleted() {
-    if (outerCompleted && idle) {
+    if (outerCompleted && Idle) {
       // ReSharper disable once InconsistentlySynchronizedField
       result.OnCompleted();
       idleStates.OnCompleted();

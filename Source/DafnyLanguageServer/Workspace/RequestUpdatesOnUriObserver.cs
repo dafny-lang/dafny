@@ -30,6 +30,7 @@ class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisp
   public IObservable<DafnyDocument> LastAndUpcomingPublishedDocuments => Observable.Return(LastPublishedDocument).Concat(publishedDocuments);
 
   public IObservable<bool> IdleChangesIncludingLast => mergeOrdered.IdleChangesIncludingLast;
+  public bool Idle => mergeOrdered.Idle;
 
   public void Dispose() {
     mergeOrdered.Dispose();
