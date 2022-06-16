@@ -114,7 +114,8 @@ module Interp {
       case Int(i) => true
       case Real(r) => true
       case BigOrdinal(o) => true
-      case BitVector(width, val) => true
+      case BitVector(width, val) =>
+        0 <= val < Math.IntPow(2, width)
       case Map(m) =>
         && (forall x | x in m :: HasEqValue(x))
         && (forall x | x in m :: WellFormedEqValue(x) && WellFormedEqValue(m[x]))
@@ -132,6 +133,7 @@ module Interp {
     }
   }
 
+  // TODO: rename to ValueHasEq
   predicate method HasEqValue(v: V.T)
   // Return true if the value supports a decidale equality.
   //
@@ -145,8 +147,7 @@ module Interp {
       case Int(i) => true
       case Real(r) => true
       case BigOrdinal(o) => true
-      case BitVector(width, val) =>
-        0 <= val < Math.IntPow(2, width)
+      case BitVector(width, val) => true
       case Map(m) =>
         forall x | x in m :: HasEqValue(x) && HasEqValue(m[x])
       case Multiset(ms) =>
@@ -478,10 +479,13 @@ module Interp {
     match bop
       case Numeric(op) => InterpBinaryNumeric(expr, op, v0, v1)
       case Logical(op) => InterpBinaryLogical(expr, op, v0, v1)
-      case Eq(op) => match op { // FIXME which types is this Eq applicable to (vs. the type-specific ones?)
-        case EqCommon() => Success(V.Bool(v0 == v1))
-        case NeqCommon() => Success(V.Bool(v0 != v1))
-      }
+      case Eq(op) =>
+        :- Need(HasEqValue(v0), Invalid(expr));
+        :- Need(HasEqValue(v1), Invalid(expr));
+        match op {
+          case EqCommon() => Success(V.Bool(v0 == v1))
+          case NeqCommon() => Success(V.Bool(v0 != v1))
+        }
       // case BV(op) =>
       case Char(op) => InterpBinaryChar(expr, op, v0, v1)
       case Sets(op) => InterpBinarySets(expr, op, v0, v1)
@@ -610,9 +614,13 @@ module Interp {
         Success(V.Set(v0.st * v1.st))
       case SetDifference() => :- Need(v0.Set? && v1.Set?, Invalid(expr));
         Success(V.Set(v0.st - v1.st))
-      case InSet() => :- Need(v1.Set?, Invalid(expr));
+      case InSet() =>
+        :- Need(HasEqValue(v0), Invalid(expr));
+        :- Need(v1.Set?, Invalid(expr));
         Success(V.Bool(v0 in v1.st))
-      case NotInSet() => :- Need(v1.Set?, Invalid(expr));
+      case NotInSet() =>
+        :- Need(HasEqValue(v0), Invalid(expr));
+        :- Need(v1.Set?, Invalid(expr));
         Success(V.Bool(v0 !in v1.st))
   }
 
@@ -642,11 +650,17 @@ module Interp {
         Success(V.Multiset(v0.ms * v1.ms))
       case MultisetDifference() => :- Need(v0.Multiset? && v1.Multiset?, Invalid(expr));
         Success(V.Multiset(v0.ms - v1.ms))
-      case InMultiset() => :- Need(v1.Multiset?, Invalid(expr));
+      case InMultiset() =>
+        :- Need(HasEqValue(v0), Invalid(expr));
+        :- Need(v1.Multiset?, Invalid(expr));
         Success(V.Bool(v0 in v1.ms))
-      case NotInMultiset() => :- Need(v1.Multiset?, Invalid(expr));
+      case NotInMultiset() =>
+        :- Need(HasEqValue(v0), Invalid(expr));
+        :- Need(v1.Multiset?, Invalid(expr));
         Success(V.Bool(v0 !in v1.ms))
-      case MultisetSelect() => :- Need(v0.Multiset?, Invalid(expr));
+      case MultisetSelect() =>
+        :- Need(HasEqValue(v1), Invalid(expr));
+        :- Need(v0.Multiset?, Invalid(expr));
         Success(V.Int(v0.ms[v1]))
   }
 

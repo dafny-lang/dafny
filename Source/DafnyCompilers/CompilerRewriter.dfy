@@ -499,12 +499,15 @@ module CompilerRewriter {
           ValueTypeHeight_Children_Lem(v); // For termination
           ValueTypeHeight_Children_Lem(v'); // For termination
           && m.Keys == m'.Keys
+          && |m| == |m'| // We *do* need this
           && (forall x | x in m :: EqValue(m[x], m'[x]))
         case (Multiset(ms), Multiset(ms')) =>
-          ValueTypeHeight_Children_Lem(v); // For termination
-          ValueTypeHeight_Children_Lem(v'); // For termination
-          && (forall x :: x in ms <==> x in ms')
-          && (forall x | x in ms :: ms[x] == ms'[x])
+          //ValueTypeHeight_Children_Lem(v); // For termination
+          //ValueTypeHeight_Children_Lem(v'); // For termination
+          ms == ms'
+//          && |ms| == |ms'| // We *do* need this
+//          && (forall x :: x in ms <==> x in ms')
+//          && (forall x | x in ms :: ms[x] == ms'[x])
         case (Seq(sq), Seq(sq')) =>
           ValueTypeHeight_Children_Lem(v); // For termination
           ValueTypeHeight_Children_Lem(v'); // For termination
@@ -609,19 +612,46 @@ module CompilerRewriter {
     lemma {:verify false} EqValue_Refl_Lem(v: WV)
       ensures EqValue(v, v)
     {
-      // TODO: the proof for the closure case is tricky, because we need to show that if
-      // we evaluate an expression starting in environments which are equivalent, then the
-      // results are equivalent...
-      assume EqValue(v, v);
+      assume EqValue(v, v); // TODO: prove
     }
+
+/*    lemma {:verify true} {:induction v, v'} EqValue_Sym_Lem(v: WV, v': WV)
+      requires EqValue(v, v')
+      ensures EqValue(v', v)
+    {
+      assume EqValue(v', v); // TODO: prove
+    }*/
 
     lemma {:verify false} EqValue_Trans_Lem(v0: WV, v1: WV, v2: WV)
       requires EqValue(v0, v1)
       requires EqValue(v1, v2)
       ensures EqValue(v0, v2)
     {
-      // TODO:
-      assume EqValue(v0, v2);
+      assume EqValue(v0, v2); // TODO: prove
+    }
+    
+    lemma {:verify false} {:induction v, v'} EqValue_HasEqValue_Lem(v: WV, v': WV)
+      requires EqValue(v, v')
+      ensures HasEqValue(v) == HasEqValue(v')
+    {}
+
+    lemma {:verify false} EqValue_HasEqValue_Forall_Lem()
+      ensures forall v: WV, v': WV | EqValue(v, v') :: HasEqValue(v) == HasEqValue(v')
+    {
+      forall v: WV, v': WV | EqValue(v, v') ensures HasEqValue(v) == HasEqValue(v') {
+        EqValue_HasEqValue_Lem(v, v');
+      }
+    }
+
+    lemma {:verify false} EqValue_HasEqValue_Eq_Lem(v: WV, v': WV)
+      requires EqValue(v, v')
+      ensures HasEqValue(v) == HasEqValue(v')
+      ensures HasEqValue(v) ==> v == v'
+    {
+      EqValue_HasEqValue_Lem(v, v');
+      if HasEqValue(v) || HasEqValue(v') {
+        EqValueHasEq_Lem(v, v');
+      }
     }
 
     lemma {:verify false} EqValue_Refl_Forall_Lem()
@@ -691,7 +721,7 @@ module CompilerRewriter {
     
     // Interpretation results are equivalent.
     // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
-    predicate {:verify false} EqValueResult(res: InterpResult<WV>, res': InterpResult<WV>) {
+    predicate {:verify false} EqInterpResultValue(res: InterpResult<WV>, res': InterpResult<WV>) {
       EqInterpResult(EqValue, res, res')
     }
 
@@ -792,7 +822,7 @@ module CompilerRewriter {
       requires EqInterp(e, e')
       requires EqState(ctx, ctx')
       ensures SupportsInterp(e')
-      ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+      ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     {}
 
     // TODO: move - TODO: remove?
@@ -946,7 +976,7 @@ module CompilerRewriter {
     predicate {:verify false} {:opaque} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
     {
-      EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+      EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     }
 
     // TODO: move
@@ -1184,7 +1214,7 @@ module CompilerRewriter {
       EqInterp_Lem(e0, e0', fuel, ctx, ctx');
       var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
       var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx');
-      assert EqValueResult(res0, res0');
+      assert EqInterpResultValue(res0, res0');
 
       match res0 {
         case Success(Return(v0, ctx0)) => {
@@ -1194,12 +1224,12 @@ module CompilerRewriter {
           // The proof fails if we don't introduce res1 and res1'
           var res1 := InterpExprWithType(e1, Type.Bool, fuel, ctx0);
           var res1' := InterpExprWithType(e1', Type.Bool, fuel, ctx0');
-          assert EqValueResult(res1, res1');
-          assert EqValueResult(res, res');
+          assert EqInterpResultValue(res1, res1');
+          assert EqInterpResultValue(res, res');
         }
         case Failure(_) => {
           assert res0'.Failure?;
-          assert EqValueResult(res, res');
+          assert EqInterpResultValue(res, res');
         }
       }
     }
@@ -1211,7 +1241,338 @@ module CompilerRewriter {
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
       decreases e, fuel, 1
     {
-      assume false; // TODO: prove
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+
+      reveal InterpExpr();
+      reveal SupportsInterp();
+
+      var res := InterpExpr(e, fuel, ctx);
+      var res' := InterpExpr(e', fuel, ctx');
+
+      var Apply(Eager(op), args) := e;
+      var Apply(Eager(op'), args') := e';
+
+      // The arguments evaluate to similar results
+      var res0 := InterpExprs(args, fuel, ctx);
+      var res0' := InterpExprs(args', fuel, ctx');
+      All_Rel_Forall_EqInterp_EqInterpResult_Lem(args, args', fuel, ctx, ctx');
+      assert EqInterpResult(EqSeqValue, res0, res0');
+
+      match (res0, res0') {
+        case (Success(res0), Success(res0')) => {
+          // TODO: Dafny crashes if we try to deconstruct the `Return`s in the match
+          var Return(argvs, ctx0) := res0;
+          var Return(argvs', ctx0') := res0';
+
+          match (op, op') {
+            case (UnaryOp(op), UnaryOp(op')) => {
+              assert op == op';
+              EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(e, e', op, argvs[0], argvs'[0]);
+              assert EqInterpResultValue(res, res');
+            }
+            case (BinaryOp(bop), BinaryOp(bop')) => {
+              assert bop == bop';
+              EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(e, e', bop, argvs[0], argvs[1], argvs'[0], argvs'[1]);
+              assert EqInterpResultValue(res, res');
+            }
+            case (TernaryOp(top), TernaryOp(top')) => {
+              assert top == top';
+              EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(e, e', top, argvs[0], argvs[1], argvs[2], argvs'[0], argvs'[1], argvs'[2]);
+              assert EqInterpResultValue(res, res');
+            }
+            case (Builtin(Display(ty)), Builtin(Display(ty'))) => {
+              assert ty == ty';
+              assume false; // TODO: prove
+            }
+            case (FunctionCall(), FunctionCall()) => {
+              assume false; // TODO: prove
+            }
+            case _ => {
+              // Impossible branch
+              assert false;
+            }
+          }
+        }
+        case (Failure(_), Failure(_)) => {
+          assert res.Failure?;
+          assert res'.Failure?;
+          assert EqInterpResultValue(res, res');
+        }
+        case _ => {
+          // Impossible branch
+          assert false;
+        }
+      }
+    }
+
+    lemma {:verify false}
+    EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, op: UnaryOp, v: WV, v': WV)
+      requires !op.MemberSelect?
+      requires EqValue(v, v')
+      ensures EqPureInterpResultValue(InterpUnaryOp(e, op, v), InterpUnaryOp(e', op, v')) {
+      reveal InterpUnaryOp();
+      
+      var res := InterpUnaryOp(e, op, v);
+      var res' := InterpUnaryOp(e', op, v');
+
+      // We make a case disjunction on the final result so as to get
+      // information from the fact that the calls to ``Need`` succeeded.
+      // The Failure case is trivial.
+      if res.Success? {
+        match op {
+          case BVNot => {
+            assert v.BitVector?;
+            assert v'.BitVector?;
+          }
+          case BoolNot => {
+            assert v.Bool?;
+            assert v'.Bool?;
+          }
+          case SeqLength => {
+            assert v.Seq?;
+            assert v'.Seq?;
+            assert |v.sq| == |v'.sq|;
+          }
+          case SetCard => {
+            assert v.Set?;
+            assert v'.Set?;
+            assert |v.st| == |v'.st|;
+          }
+          case MultisetCard => {
+            assert v.Multiset?;
+            assert v'.Multiset?;
+            assert |v.ms| == |v'.ms|;
+          }
+          case MapCard => {
+            assert v.Map?;
+            assert v'.Map?;
+            assert |v.m| == |v'.m|;
+          }
+          case _ => {
+            // Impossible branch
+            assert false;
+          }
+        }
+      }
+      else {
+        assert EqPureInterpResultValue(res, res');
+      }
+    }
+
+    // TODO: we could split this lemma, whose proof is big (though straightforward),
+    // but it is a bit annoying to do...
+    lemma {:verify false}
+    EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
+      requires !bop.BV? && !bop.Datatypes?
+      requires EqValue(v0, v0')
+      requires EqValue(v1, v1')
+      ensures EqPureInterpResultValue(InterpBinaryOp(e, bop, v0, v1), InterpBinaryOp(e', bop, v0', v1')) {
+      reveal InterpBinaryOp();
+      
+      var res := InterpBinaryOp(e, bop, v0, v1);
+      var res' := InterpBinaryOp(e', bop, v0', v1');
+
+      // Below: for the proofs about binary operations involving collections (Set, Map...),
+      // see the Set case, which gives the general strategy.
+      match bop {
+        case Numeric(op) => {
+          assert EqPureInterpResultValue(res, res');
+        }
+        case Logical(op) => {
+          assert EqPureInterpResultValue(res, res');
+        }
+        case Eq(op) => {
+          // The proof strategy is similar to the Set case.
+          EqValue_HasEqValue_Eq_Lem(v0, v0');
+          EqValue_HasEqValue_Eq_Lem(v1, v1');
+
+          // If the evaluation succeeded, it means the calls to ``Need``
+          // succeeded, from which we can derive information.
+          if res.Success? {
+            assert EqPureInterpResultValue(res, res');
+          }
+          else {
+            // trivial
+          }
+        }
+        case Char(op) => {
+          assert EqPureInterpResultValue(res, res');
+        }
+        case Sets(op) => {
+          // We make a case disjunction between the "trivial" operations,
+          // and the others. We treat the "difficult" operations first.
+          // In the case of sets, the trivial operations are those which
+          // take two sets as parameters (they are trivial, because if
+          // two set values are equivalent according to ``EqValue``, then
+          // they are actually equal for ``==`).
+          if op.InSet? || op.NotInSet? {
+            // The trick is that:
+            // - either v0 and v0' have a decidable equality, in which case
+            //   the evaluation succeeds, and we actually have that v0 == v0'.
+            // - or they don't, in which case the evaluation fails.
+            // Of course, we need to prove that v0 has a decidable equality
+            // iff v0' has one. The important results are given by the lemma below.
+            EqValue_HasEqValue_Eq_Lem(v0, v0');
+
+            if res.Success? {
+              assert res'.Success?;
+
+              // If the evaluation succeeded, it means the calls to ``Need``
+              // succeeded, from which we can derive information, in particular
+              // information about the equality between values, which allows us
+              // to prove the goal.
+              assert HasEqValue(v0);
+              assert HasEqValue(v0');
+              assert v0 == v0';
+
+              assert v1.Set?;
+              assert v1'.Set?;
+              assert v1 == v1';
+
+              assert EqPureInterpResultValue(res, res');
+            }
+            else {
+              // This is trivial
+            }
+          }
+          else {
+            // All the remaining operations are performed between sets.
+            // ``EqValue`` is true on sets iff they are equal, so
+            // this proof is trivial.
+
+            // We enumerate all the cases on purpose, so that this assertion fails
+            // if we add more cases, making debugging easier.
+            assert || op.SetEq? || op.SetNeq? || op.Subset? || op.Superset? || op.ProperSubset?
+                   || op.ProperSuperset? || op.Disjoint? || op.Union? || op.Intersection?
+                   || op.SetDifference?;
+            assert EqPureInterpResultValue(res, res');
+          }
+        }
+        case Multisets(op) => {
+          // Rk.: this proof is similar to the one for Sets
+          if op.InMultiset? || op.NotInMultiset? {
+            EqValue_HasEqValue_Eq_Lem(v0, v0');
+          }
+          else if op.MultisetSelect? {
+            // Rk.: this proof is similar to the one for Sets
+            EqValue_HasEqValue_Eq_Lem(v1, v1');
+          }
+          else {
+            // All the remaining operations are performed between multisets.
+            // ``EqValue`` is true on sets iff they are equal, so
+            // this proof is trivial.
+
+            // Same as for Sets: we enumerate all the cases on purpose
+            assert || op.MultisetEq? || op.MultisetNeq? || op.MultiSubset? || op.MultiSuperset?
+                   || op.ProperMultiSubset? || op.ProperMultiSuperset? || op.MultisetDisjoint?
+                   || op.MultisetUnion? || op.MultisetIntersection? || op.MultisetDifference?;
+
+            assert EqPureInterpResultValue(res, res');
+          }
+        }
+        case Sequences(op) => {
+          // Rk.: the proof strategy is given by the Sets case
+          EqValue_HasEqValue_Eq_Lem(v0, v0');
+          EqValue_HasEqValue_Eq_Lem(v1, v1');
+
+          if op.SeqDrop? || op.SeqTake? {
+            if res.Success? {
+              assert res'.Success?;
+
+              var len := |v0.sq|;
+              // Doesn't work without this assertion
+              assert forall i | 0 <= i < len :: EqValue(v0.sq[i], v0'.sq[i]);
+              assert EqPureInterpResultValue(res, res');
+            }
+            else {
+              // Trivial
+            }
+          }
+          else {
+            // Same as for Sets: we enumerate all the cases on purpose
+            assert || op.SeqEq? || op.SeqNeq? || op.Prefix? || op.ProperPrefix? || op.Concat?
+                   || op.InSeq? || op.NotInSeq? || op.SeqSelect?;
+
+            assert EqPureInterpResultValue(res, res');
+          }
+        }
+        case Maps(op) => {
+          // Rk.: the proof strategy is given by the Sets case
+          EqValue_HasEqValue_Eq_Lem(v0, v0');
+          EqValue_HasEqValue_Eq_Lem(v1, v1');
+
+          if op.MapEq? || op.MapNeq? || op.InMap? || op.NotInMap? || op.MapSelect? {
+            assert EqPureInterpResultValue(res, res');
+          }
+          else {
+            assert op.MapMerge? || op.MapSubtraction?;
+
+            // Z3 needs a bit of help to prove the equivalence between the maps
+
+            if res.Success? {
+              assert res'.Success?;
+
+              // The evaluation succeeds, and returns a map
+              var m1 := res.value.m;
+              var m1' := res'.value.m;
+
+              // Prove that: |m1| == |m1'|
+              assert m1.Keys == m1'.Keys;
+              assert |m1| == |m1.Keys|; // This is necessary
+              assert |m1'| == |m1'.Keys|; // This is necessary
+
+              assert EqPureInterpResultValue(res, res');
+            }
+            else {
+              // Trivial
+            }
+          }
+        }
+      }
+    }
+
+    // TODO: move - TODO: remove?
+    lemma {:verify false} MapSubstractSet_Card_Lem<T, U>(m: map<T, U>, m': map<T, U>, s: set<T>)
+      requires |m| == |m'|
+      requires m.Keys == m'.Keys
+      ensures |m - s| == |m' - s|
+    // It is not always obvious how one should reason about collections, even to prove
+    // trivial results, hence this lemma.
+    //
+    // Rk.: this lemma is mostly here for the reference.
+    {
+        var ms := m - s;
+        var ms' := m' - s;
+        
+        assert |ms| == |ms.Keys|; // We need this
+        assert |ms'| == |ms'.Keys|; // We need this
+    }
+
+
+    lemma {:verify false}
+    EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV)
+      requires EqValue(v0, v0')
+      requires EqValue(v1, v1')
+      requires EqValue(v2, v2')
+      ensures EqPureInterpResultValue(InterpTernaryOp(e, top, v0, v1, v2), InterpTernaryOp(e', top, v0', v1', v2')) {
+      reveal InterpTernaryOp();
+      
+      var res := InterpTernaryOp(e, top, v0, v1, v2);
+      var res' := InterpTernaryOp(e', top, v0', v1', v2');
+
+      match top {
+        case Sequences(op) => {}
+        case Multisets(op) => {
+          EqValue_HasEqValue_Eq_Lem(v1, v1');
+        }
+        case Maps(op) => {
+          EqValue_HasEqValue_Eq_Lem(v1, v1');
+        }
+      }
     }
 
     lemma {:verify false} EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
@@ -1265,7 +1626,7 @@ module CompilerRewriter {
               assert op' == op;
               assert All_Rel_Forall(EqInterp, exprs, exprs');
               forall fuel, ctx
-                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
               {
                 var res := InterpExpr(e, fuel, ctx);
                 var res' := InterpExpr(e', fuel, ctx);
@@ -1287,13 +1648,13 @@ module CompilerRewriter {
                     
                     match op {
                       case UnaryOp(op: UnaryOp) => {
-                        assert EqValueResult(res, res');
+                        assert EqInterpResultValue(res, res');
                       }
                       case BinaryOp(bop: BinaryOp) => {
-                        assert EqValueResult(res, res');
+                        assert EqInterpResultValue(res, res');
                       }
                       case TernaryOp(top: TernaryOp) => {
-                        assert EqValueResult(res, res');
+                        assert EqInterpResultValue(res, res');
                       }
                       case Builtin(Display(ty)) => {
                         assert res == LiftPureResult(ctx1, InterpDisplay(e, ty.kind, vs));
@@ -1301,10 +1662,10 @@ module CompilerRewriter {
                         match ty.kind {
                           case Map(_) => {
                             InterpMapDisplay_EqArgs_Lem(e, e', vs);
-                            assert EqValueResult(res, res');
+                            assert EqInterpResultValue(res, res');
                           }
                           case _ => {
-                            assert EqValueResult(res, res');
+                            assert EqInterpResultValue(res, res');
                           }
                         }
                       }
@@ -1313,12 +1674,12 @@ module CompilerRewriter {
                         var argvs := vs[1..];
                         assert res == LiftPureResult(ctx1, InterpFunctionCall(e, fuel, fn, argvs));
                         assert res' == LiftPureResult(ctx1, InterpFunctionCall(e', fuel, fn, argvs));
-                        assert EqValueResult(res, res');
+                        assert EqInterpResultValue(res, res');
                       }
                     }
                   }
                   case Failure(_) => {
-                    assert EqValueResult(res, res');
+                    assert EqInterpResultValue(res, res');
                   }
                 }
               }
@@ -1327,7 +1688,7 @@ module CompilerRewriter {
             }
             case Apply(Lazy(op), exprs) => {
               forall fuel, ctx
-                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
+                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
               {
                 var res := InterpExpr(e, fuel, ctx);
                 var res' := InterpExpr(e', fuel, ctx);
@@ -1342,21 +1703,21 @@ module CompilerRewriter {
                 EqInterp_Lem(e0, e0', fuel, ctx, ctx); // TODO: ctx, ctx'
                 var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
                 var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx);
-                assert EqValueResult(res0, res0');
+                assert EqInterpResultValue(res0, res0');
                 
                 match res0 {
                   case Success(Return(v0, ctx0)) => {
                     EqInterp_Lem(e1, e1', fuel, ctx0, ctx0); // TODO: ctx0, ctx0'
-                    assert EqValueResult(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
-                    assert EqValueResult(res, res');
+                    assert EqInterpResultValue(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
+                    assert EqInterpResultValue(res, res');
                   }
                   case Failure(_) => {
                     assert res.Failure?;
                     assert res0'.Failure?; // Fails without this
-                    assert EqValueResult(res, res');
+                    assert EqInterpResultValue(res, res');
                   }
                 }
-                assume EqValueResult(res, res');
+                assume EqInterpResultValue(res, res');
               }
               
               assert EqInterp(e, e');
@@ -1382,7 +1743,7 @@ module CompilerRewriter {
               assert SupportsInterp(e');
 
               forall fuel, ctx
-                ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
                   var res := InterpExpr(e, fuel, ctx);
                   var res' := InterpExpr(e', fuel, ctx);
 
@@ -1391,7 +1752,7 @@ module CompilerRewriter {
 
                   // TODO: ctx, ctx'
                   EqInterp_Lem(cond, cond', fuel, ctx, ctx); // Below assert fails without this lemma
-                  assert EqValueResult(res1, res1');
+                  assert EqInterpResultValue(res1, res1');
 
                   match res1 {
                     case Success(Return(condv, ctx1)) => {
@@ -1407,7 +1768,7 @@ module CompilerRewriter {
                     }
                     case Failure(_) => {
                       assert InterpExprWithType(cond', Type.Bool, fuel, ctx).Failure?; // Proof fails without this
-                      assert EqValueResult(res, res');
+                      assert EqInterpResultValue(res, res');
                     }
                   }
               }
@@ -1445,7 +1806,7 @@ module CompilerRewriter {
         assert SupportsInterp(e');
         // Prove that for every fuel and context, the interpreter returns the same result
         forall fuel, ctx
-          ensures EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+          ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
           // Start by proving that the flipped binary operation (not wrapped in the "not") returns exactly the
           // opposite result of the non-flipped binary operation.
           var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
@@ -1474,7 +1835,7 @@ module CompilerRewriter {
               assert false;
             }
           }
-          assert EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
+          assert EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
         }
       }
       else {
