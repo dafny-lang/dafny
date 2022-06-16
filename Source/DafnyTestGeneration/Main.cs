@@ -144,7 +144,7 @@ namespace DafnyTestGeneration {
       /// Turns each function-method into a function-by-method.
       /// Copies body of the function into the body of the corresponding method.
       /// </summary>
-      internal new void PreResolve(Program program) {
+      internal void PreResolve(Program program) {
         AddByMethod(program.DefaultModule);
       }
 

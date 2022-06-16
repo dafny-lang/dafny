@@ -154,13 +154,13 @@ namespace DafnyTestGeneration {
       private Program? program;
 
       public override Procedure? VisitProcedure(Procedure? node) {
-        if (!node.Name.StartsWith("Call$$")) {
+        if (node == null || !node.Name.StartsWith("Call$$")) {
           return node;
         }
 
         var callerName = node.Name;
         var calleName = $"Impl$${node.Name.Split("$").Last()}";
-        var calleeProc = program.FindProcedure(calleName);
+        var calleeProc = program?.FindProcedure(calleName);
         if (calleeProc == null) {
           return node; // Can happen if included modules are not verified
         }
@@ -345,7 +345,7 @@ namespace DafnyTestGeneration {
       /// <returns>The identifier for the temporary variable that
       /// stores the result of the method call</returns>
       private IdentifierExpr? TryConvertFunctionCall(NAryExpr call) {
-        var proc = currProgram.FindProcedure("Impl$$" + call.Fun.FunctionName);
+        var proc = currProgram?.FindProcedure("Impl$$" + call.Fun.FunctionName);
         if (proc == null) {
           return null; // this function is not a function-by-method
         }
@@ -374,7 +374,7 @@ namespace DafnyTestGeneration {
         // Create temporary local variables to store all the return values:
         var outs = new List<IdentifierExpr>();
         foreach (var param in proc.OutParams) {
-          var newVar = GetNewLocalVariable(currImpl, param.TypedIdent.Type);
+          var newVar = GetNewLocalVariable(currImpl!, param.TypedIdent.Type);
           outs.Add(new IdentifierExpr(new Token(), newVar.Name));
         }
 
@@ -385,7 +385,7 @@ namespace DafnyTestGeneration {
           call.Args.ToList(),
           outs);
         // The call will precede the assignment command being processed
-        commandsToInsert.Insert(0, (newCmd, currAssignCmd));
+        commandsToInsert?.Insert(0, (newCmd, currAssignCmd)!);
         return outs[returnPosition];
       }
 
@@ -445,7 +445,7 @@ namespace DafnyTestGeneration {
 
       public override Implementation VisitImplementation(Implementation node) {
         if (!node.Name.StartsWith("Impl$$") ||
-            currProgram.FindFunction(node.Name[6..]) == null) {
+            currProgram?.FindFunction(node.Name[6..]) == null) {
           return node; // this implementation is potentially side-effecting
         }
         currImpl = node;
@@ -474,7 +474,7 @@ namespace DafnyTestGeneration {
       private Program? currProgram;
       // maps the string representation of a function call to a local variable
       // that stores the result
-      private Dictionary<string, LocalVariable> funcCallToResult;
+      private Dictionary<string, LocalVariable>? funcCallToResult;
       // suffix added to all canCall functions:
       private const string CanCallSuffix = "#canCall";
       // new commands to insert in the currently traversed block
@@ -486,14 +486,14 @@ namespace DafnyTestGeneration {
       /// </summary>
       public override Expr VisitNAryExpr(NAryExpr node) {
         if (currAssignCmd == null ||
-            currProgram.FindFunction(
+            currProgram?.FindFunction(
               node.Fun.FunctionName + CanCallSuffix) == null) {
           return base.VisitNAryExpr(node);
         }
         var functionCallToString = node.ToString();
-        if (!funcCallToResult.ContainsKey(functionCallToString)) {
+        if (!funcCallToResult!.ContainsKey(functionCallToString)) {
           funcCallToResult.Add(functionCallToString,
-            GetNewLocalVariable(currImpl, node.Type));
+            GetNewLocalVariable(currImpl!, node.Type));
         }
 
         return new IdentifierExpr(new Token(),
@@ -518,7 +518,7 @@ namespace DafnyTestGeneration {
           return node;
         }
 
-        var func = currProgram.FindFunction(expr.Fun.FunctionName[..^8]);
+        var func = currProgram?.FindFunction(expr.Fun.FunctionName[..^8]);
         if (func == null) {
           return node;
         }
@@ -529,15 +529,15 @@ namespace DafnyTestGeneration {
         var funcCall = new NAryExpr(new Token(),
           new FunctionCall(func), expr.Args);
         var funcCallToString = funcCall.ToString();
-        if (!funcCallToResult.ContainsKey(funcCallToString)) {
+        if (!funcCallToResult!.ContainsKey(funcCallToString)) {
           funcCallToResult.Add(funcCallToString,
-            GetNewLocalVariable(currImpl, returnType));
+            GetNewLocalVariable(currImpl!, returnType));
         }
 
         // the command will be added to the block at VisitBlock call
         var toBeAssigned = new SimpleAssignLhs(new Token(),
           new IdentifierExpr(new Token(), funcCallToResult[funcCallToString]));
-        commandsToInsert.Add((new AssignCmd(new Token(),
+        commandsToInsert?.Add((new AssignCmd(new Token(),
           new List<AssignLhs> { toBeAssigned },
           new List<Expr> { funcCall }), node));
         return node;
@@ -555,7 +555,7 @@ namespace DafnyTestGeneration {
 
       public override Implementation VisitImplementation(Implementation node) {
         if (!node.Name.StartsWith("Impl$$") ||
-            currProgram.FindFunction(node.Name[6..]) == null) {
+            currProgram?.FindFunction(node.Name[6..]) == null) {
           return node; // this implementation is potentially side-effecting
         }
         currImpl = node;
