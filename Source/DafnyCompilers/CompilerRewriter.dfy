@@ -224,7 +224,7 @@ module CompilerRewriter {
                  IdentityTransformer)
 
       // Apply a transformer bottom-up on the children of an expression.
-      function method {:verify false} {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
+      function method {:verify false} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
         (e': Expr)
         decreases e, 0
         requires Deep.AllChildren_Expr(e, tr.f.requires)
@@ -287,7 +287,7 @@ module CompilerRewriter {
            tr.rel)
       }
 
-      lemma {:verify false} {:vcs_split_on_every_assert} Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
+      lemma {:verify false} Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
         ensures HasValidRel(Map_Expr_Transformer'(tr))
       {
         var tr' := Map_Expr_Transformer'(tr);
@@ -429,7 +429,8 @@ module CompilerRewriter {
       }
     }
 
-    predicate method {:verify false} GEqCtx(
+    // TODO: not sure it was worth making this opaque
+    predicate method {:verify false} {:opaque} GEqCtx(
       eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context)
       requires WellFormedContext(ctx)
       requires WellFormedContext(ctx')
@@ -462,7 +463,7 @@ module CompilerRewriter {
         Success(val)
     }
 
-    predicate {:verify false} {:vcs_split_on_every_assert} EqValue(v: WV, v': WV)
+    predicate {:verify false} EqValue(v: WV, v': WV)
       decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 1
     // Equivalence between values.
     // 
@@ -529,7 +530,7 @@ module CompilerRewriter {
       }
     }
 
-    predicate {:verify false} {:opaque} {:vcs_split_on_every_assert} EqValue_Closure(v: WV, v': WV)
+    predicate {:verify false} {:opaque} EqValue_Closure(v: WV, v': WV)
       requires v.Closure?
       requires v'.Closure?
       decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 0
@@ -637,6 +638,7 @@ module CompilerRewriter {
     lemma {:verify false} EqState_Refl_Lem(ctx: State)
       ensures EqState(ctx, ctx)
     {
+      reveal GEqCtx();
       EqValue_Refl_Forall_Lem();
     }
 
@@ -645,6 +647,7 @@ module CompilerRewriter {
       requires EqState(ctx1, ctx2)
       ensures EqState(ctx0, ctx2)
     {
+      reveal GEqCtx();
       forall x | x in ctx0.locals.Keys ensures EqValue(ctx0.locals[x], ctx2.locals[x]) {
         EqValue_Trans_Lem(ctx0.locals[x], ctx1.locals[x], ctx2.locals[x]);
       }
@@ -756,6 +759,7 @@ module CompilerRewriter {
       GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
     }
 
+    // TODO: update to take two states as inputs
     lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
@@ -804,7 +808,7 @@ module CompilerRewriter {
       EqValue(v, v')
     }*/
 
-    lemma {:verify false} {:vcs_split_on_every_assert}
+    lemma {:verify false}
       All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(
       eq: Equivs, es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
@@ -869,7 +873,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma {:verify false} {:vcs_split_on_every_assert}
+    lemma {:verify false}
     All_Rel_Forall_EqInterp_EqInterpResult_Lem(
       es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
@@ -928,7 +932,8 @@ module CompilerRewriter {
       }
     }
 
-    predicate {:verify false} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    // TODO: maybe not necessary to make this opaque
+    predicate {:verify false} {:opaque} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
     {
       && EqState(ctx, ctx')
       && Exprs.ConstructorsMatch(e, e')
@@ -937,31 +942,36 @@ module CompilerRewriter {
       && SupportsInterp(e')
     }
 
-    predicate {:verify false} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    // TODO: maybe not necessary to make this opaque
+    predicate {:verify false} {:opaque} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
     {
       EqValueResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     }
 
     // TODO: move
-    // TODO: this lemma, which does nothing else than calling sub-lemmas, takes 2.5 minutes to
-    // verify!!
-    lemma {:verify false} {:vcs_split_on_every_assert} EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma {:verify false} EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
       decreases e, fuel, 2
     {
-      reveal InterpExpr();
+      // Note that we don't need to reveal ``InterpExpr``: we just match on the first
+      // expression and call the appropriate auxiliary lemma.
+
+      // We need to retrieve some information from the pre:
+      // - `SupportsInterp(e)` is necessary to prove that we can't get in the last branch
+      //   of the match
+      // - `Exprs.ConstructorsMatch(e, e')` is necessary for the lemma preconditions
+      assert SupportsInterp(e) && Exprs.ConstructorsMatch(e, e') by {
+        reveal EqInterp_CanBeMapLifted_Pre();
+      }
+
       match e {
         case Var(_) => {
-          assert EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx') by {
-            reveal TryGetLocal();
-          }
+          EqInterp_Expr_Var_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
         }
         case Literal(_) => {
-          assert EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx') by {
-            reveal InterpLiteral();
-          }
+          EqInterp_Expr_Literal_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
         }
         case Abs(_, _) => {
           EqInterp_Expr_Abs_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
@@ -977,13 +987,46 @@ module CompilerRewriter {
         }
         case _ => {
           // Unsupported branch
+          reveal SupportsInterp(); // We need this to see that some variants are not supported
           assert false;
         }
       }
     }
 
+    lemma {:verify false}
+    EqInterp_Expr_Var_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.Var?
+      requires e'.Var?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases e, fuel, 1
+    // Verif time: ~= 17s
+    {
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+        
+      reveal InterpExpr();
+      reveal TryGetLocal();
+      reveal GEqCtx();
+    }
+
+    lemma {:verify false}
+    EqInterp_Expr_Literal_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+      requires e.Literal?
+      requires e'.Literal?
+      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
+      decreases e, fuel, 1
+    {
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+
+      reveal InterpExpr();
+      reveal InterpLiteral();
+    }
+
     // TODO: move
-    lemma {:verify false} {:vcs_split_on_every_assert}
+    lemma {:verify false}
     EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires e.Abs?
       requires e'.Abs?
@@ -991,6 +1034,9 @@ module CompilerRewriter {
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
       decreases e, fuel, 1
     {
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+
       var Abs(vars, body) := e;
       var Abs(vars', body') := e';
       assert vars == vars';
@@ -1018,7 +1064,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma {:verify false} {:vcs_split_on_every_assert}
+    lemma {:verify false}
     EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv: WV, cv': WV, fuel: nat, argvs: seq<WV>, argvs': seq<WV>)
       requires cv.Closure?
       requires cv'.Closure?
@@ -1045,7 +1091,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma {:verify false} {:vcs_split_on_every_assert}
+    lemma {:verify false}
     BuildCallState_EqState_Lem(ctx: Context, ctx': Context, vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
       requires WellFormedContext(ctx)
       requires WellFormedContext(ctx')
@@ -1063,6 +1109,7 @@ module CompilerRewriter {
       reveal BuildCallState();
       var ctx1 := BuildCallState(ctx, vars, argvs);
       var ctx1' := BuildCallState(ctx', vars, argvs');
+      reveal GEqCtx();
       assert ctx1.locals == ctx + m;
       assert ctx1'.locals == ctx' + m';
     }
@@ -1075,8 +1122,9 @@ module CompilerRewriter {
       ensures
         var m := MapOfPairs(pl);
         var m' := MapOfPairs(pl');
-        && EqCtx(m, m')
+        EqCtx(m, m')
     {
+      reveal GEqCtx();
       if pl == [] {}
       else {
         var lastidx := |pl| - 1;
@@ -1084,6 +1132,8 @@ module CompilerRewriter {
       }
     }
 
+    // TODO: I don't understand why I need to use vcs_split_on_every_assert on this one.
+    // For some strange reason it takes ~20s to verify with this, and timeouts without.
     lemma {:verify false} {:vcs_split_on_every_assert}
     MapOfPairs_SeqZip_EqCtx_Lem(vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
       requires |argvs| == |argvs'| == |vars|
@@ -1091,7 +1141,7 @@ module CompilerRewriter {
       ensures
         var m := MapOfPairs(Seq.Zip(vars, argvs));
         var m' := MapOfPairs(Seq.Zip(vars, argvs'));
-        && EqCtx(m, m')
+        EqCtx(m, m')
     {
       var pl := Seq.Zip(vars, argvs);
       var pl' := Seq.Zip(vars, argvs');
@@ -1100,6 +1150,7 @@ module CompilerRewriter {
       assert forall i | 0 <= i < |pl| :: pl[i].0 == pl'[i].0;
       assert forall i | 0 <= i < |pl| :: EqValue(pl[i].1, pl'[i].1);
 
+      reveal GEqCtx();
       MapOfPairs_EqCtx_Lem(pl, pl');
     }
 

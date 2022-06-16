@@ -59,7 +59,8 @@ module Interp {
     }
   }
 
-  predicate method SupportsInterp(e: Expr) {
+  // TODO: I'm not sure it was worth making this opaque.
+  predicate method {:opaque} SupportsInterp(e: Expr) {
     Predicates.Deep.All_Expr(e, SupportsInterp1)
   }
 
@@ -251,6 +252,7 @@ module Interp {
     requires SupportsInterp(e)
     decreases fuel, e, 1
   {
+    reveal SupportsInterp();
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     match e {
       case Var(v) =>
@@ -325,6 +327,7 @@ module Interp {
     decreases fuel, e, 2
     ensures r.Success? ==> r.value.ret.HasType(ty)
   {
+    reveal SupportsInterp();
     var Return(val, ctx) :- InterpExpr(e, fuel, ctx);
     :- Need(val.HasType(ty), TypeError(e, val, ty));
     Success(Return(val, ctx))
@@ -367,6 +370,7 @@ module Interp {
     decreases fuel, es
     ensures r.Success? ==> |r.value.ret| == |es|
   { // TODO generalize into a FoldResult function
+    reveal SupportsInterp();
     if es == [] then Success(Return([], ctx))
     else
       var Return(v, ctx) :- InterpExpr(es[0], fuel, ctx);
@@ -394,6 +398,7 @@ module Interp {
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     decreases fuel, e, 0
   {
+    reveal SupportsInterp();
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
     var Return(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, fuel, ctx);
@@ -413,6 +418,7 @@ module Interp {
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     decreases fuel, e, 0
   {
+    reveal SupportsInterp();
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
     var Return(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, fuel, ctx);
@@ -431,6 +437,7 @@ module Interp {
     requires InterpLazy(e, fuel, ctx).Failure?
     ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
   {
+    reveal SupportsInterp();
     reveal InterpLazy();
     reveal InterpLazy_Eagerly();
   }
@@ -440,6 +447,7 @@ module Interp {
     requires InterpLazy_Eagerly(e, fuel, ctx).Success?
     ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
   {
+    reveal SupportsInterp();
     reveal InterpLazy();
     reveal InterpLazy_Eagerly();
   }
@@ -839,6 +847,7 @@ module Interp {
   {
     :- Need(fuel > 0, OutOfFuel(fn));
     :- Need(fn.Closure?, Invalid(e));
+    reveal SupportsInterp();
     Predicates.Deep.AllImpliesChildren(fn.body, SupportsInterp1);
     :- Need(|fn.vars| == |argvs|, SignatureMismatch(fn.vars, argvs));
     var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
