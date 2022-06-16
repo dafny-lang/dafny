@@ -1154,7 +1154,6 @@ module CompilerRewriter {
       MapOfPairs_EqCtx_Lem(pl, pl');
     }
 
-    // TODO: HERE
     lemma {:verify false} EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires e.Apply? && e.aop.Lazy?
       requires e'.Apply? && e'.aop.Lazy?
@@ -1162,7 +1161,47 @@ module CompilerRewriter {
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
       decreases e, fuel, 1
     {
-      assume false; // TODO: prove
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+
+      reveal InterpExpr();
+      reveal InterpLazy();
+
+      reveal SupportsInterp();
+      
+      var res := InterpExpr(e, fuel, ctx);
+      var res' := InterpExpr(e', fuel, ctx');
+      
+      assert res == InterpLazy(e, fuel, ctx);
+      assert res' == InterpLazy(e', fuel, ctx');
+
+      // Both expressions should be booleans
+      var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
+      var op', e0', e1' := e'.aop.lOp, e'.args[0], e'.args[1];
+      assert op == op';
+
+      // Evaluate the first boolean
+      EqInterp_Lem(e0, e0', fuel, ctx, ctx');
+      var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
+      var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx');
+      assert EqValueResult(res0, res0');
+
+      match res0 {
+        case Success(Return(v0, ctx0)) => {
+          var Return(v0', ctx0') := res0'.value;
+
+          EqInterp_Lem(e1, e1', fuel, ctx0, ctx0');
+          // The proof fails if we don't introduce res1 and res1'
+          var res1 := InterpExprWithType(e1, Type.Bool, fuel, ctx0);
+          var res1' := InterpExprWithType(e1', Type.Bool, fuel, ctx0');
+          assert EqValueResult(res1, res1');
+          assert EqValueResult(res, res');
+        }
+        case Failure(_) => {
+          assert res0'.Failure?;
+          assert EqValueResult(res, res');
+        }
+      }
     }
 
     lemma {:verify false} EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
