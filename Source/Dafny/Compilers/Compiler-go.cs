@@ -30,7 +30,8 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.ExternalConstructors
     };
 
     
@@ -3293,7 +3294,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {

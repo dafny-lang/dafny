@@ -81,20 +81,23 @@ public enum Feature {
   [FeatureDescription("External classes")]
   ExternalClasses,
   
-  [FeatureDescription("Instantiating the 'object' type")]
+  [FeatureDescription("Instantiating the `object` type")]
   NewObject,
   
-  [FeatureDescription("forall loops that cannot be sequentialized")]
-  NonSequentializableForallLoops,
+  [FeatureDescription("`forall` loops that cannot be sequentialized")]
+  NonSequentializableForallStatements,
   
   [FeatureDescription("Taking an array's length")]
   ArrayLength,
   
-  [FeatureDescription("m.Items when m is a map")]
+  [FeatureDescription("`m.Items` when `m` is a map")]
   MapItems,
   
   [FeatureDescription("The /runAllTests option")]
   RunAllTests,
+  
+  [FeatureDescription("Integer range constraints in comprehensions (a <= x <= b)")]
+  IntBoundedPool,
   
   [FeatureDescription("Exact value constraints in comprehensions (x == C)")]
   ExactBoundedPool,
@@ -105,11 +108,41 @@ public enum Feature {
   [FeatureDescription("Type test expressions (x is T)")]
   TypeTests,
   
+  [FeatureDescription("Type test expressions on subset types")]
+  SubsetTypeTests,
+  
   [FeatureDescription("Quantifiers")]
   Quantifiers,
   
   [FeatureDescription("Bitvector RotateLeft/RotateRight functions")]
-  BitvectorRotateFunctions
+  BitvectorRotateFunctions,
+  
+  [FeatureDescription("`for` loops")]
+  ForLoops,
+
+  [FeatureDescription("`continue` statements")]
+  ContinueStatements,
+  
+  [FeatureDescription("Assign-such-that statements with potentially infinite bounds")]
+  AssignSuchThatWithNonFiniteBounds,
+  
+  [FeatureDescription("Sequence update statements")]
+  SequenceUpdateStatements,
+  
+  [FeatureDescription("Sequence constructions with non-lambda initializers")]
+  SequenceConstructionsWithNonLambdaInitializers,
+  
+  [FeatureDescription("Externally-implemented constructors")]
+  ExternalConstructors,
+  
+  [FeatureDescription("Static fields")]
+  StaticFields,
+  
+  [FeatureDescription("Auto-initialization of tuples")]
+  TupleAutoInitialization,
+  
+  [FeatureDescription("Subtype constraints in quantifiers")]
+  SubtypeConstraintsInQuantifiers
 }
 
 public class UnsupportedFeatureException : Exception {

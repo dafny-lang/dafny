@@ -31,6 +31,11 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string>(new List<string> { "number" });
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.MethodSynthesis,
+      Feature.ExternalConstructors
+    };
+    
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";
@@ -603,7 +608,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -619,7 +624,7 @@ namespace Microsoft.Dafny.Compilers {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
@@ -2312,7 +2317,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {

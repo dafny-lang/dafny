@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Quantifiers,
       Feature.NewObject,
       Feature.BitvectorRotateFunctions,
-      Feature.NonSequentializableForallLoops,
+      Feature.NonSequentializableForallStatements,
       Feature.FunctionValues,
       Feature.ArrayLength,
       Feature.Ordinals,
@@ -728,7 +728,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -744,7 +744,7 @@ namespace Microsoft.Dafny.Compilers {
         Compiler.DeclareField(ClassName, enclosingDecl.TypeArgs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
@@ -1320,8 +1320,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-
-      throw new NotImplementedException("for loops have not yet been implemented");
+      throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
@@ -1517,15 +1516,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallLoops);
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override string IdProtect(string name) {
@@ -2428,7 +2427,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       if (ct is MultiSetType) {
         // This should never occur since there is no syntax for multiset comprehensions yet
-        throw new Exception("EmitCollectionBuilder_Add/MultiSetType");
+        throw new cce.UnreachableException();
       }
       var wStmts = wr.Fork();
       wr.Write("{0}.set.emplace(", collName);

@@ -1170,7 +1170,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
 
       public ConcreteSyntaxTree /*?*/ ErrorWriter() => InstanceMemberWriter;
@@ -3045,7 +3045,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
     }
 
