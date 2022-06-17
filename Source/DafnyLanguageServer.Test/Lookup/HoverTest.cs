@@ -98,7 +98,7 @@ method CallDoIt() returns () {
     }
 
     [TestMethod]
-    public async Task AssHoveringFieldOfSystemTypeReturnsDefinition() {
+    public async Task HoveringFieldOfSystemTypeReturnsDefinition() {
       await AssertHover(@"
 method DoIt() {
   var x := new int[0];
