@@ -36,6 +36,18 @@ module Interp {
     Predicates.Deep.All_Expr(e, Pure1)
   }
 
+  predicate method EagerOpSupportsInterp(op: Exprs.EagerOp) {
+    match op {
+      case UnaryOp(uop) => !uop.MemberSelect?
+      case BinaryOp(bop) => !bop.BV? && !bop.Datatypes?
+      case TernaryOp(top: TernaryOp) => true
+      case Builtin(Display(_)) => true
+      case Builtin(Print()) => false
+      case FunctionCall() => true
+      case DataConstructor(name, typeArgs) => Debug.TODO(false)
+    }
+  }
+
   predicate method SupportsInterp1(e: Expr) {
     AST.Exprs.WellFormed(e) &&
     match e {
@@ -45,15 +57,7 @@ module Interp {
       case Apply(Lazy(op), args: seq<Expr>) =>
         true
       case Apply(Eager(op), args: seq<Expr>) =>
-        match op {
-          case UnaryOp(uop) => !uop.MemberSelect?
-          case BinaryOp(bop) => !bop.BV? && !bop.Datatypes?
-          case TernaryOp(top: TernaryOp) => true
-          case Builtin(Display(_)) => true
-          case Builtin(Print()) => false
-          case FunctionCall() => true
-          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => Debug.TODO(false)
-        }
+        EagerOpSupportsInterp(op)
       case Block(stmts: seq<Expr>) => Debug.TODO(false)
       case If(cond: Expr, thn: Expr, els: Expr) => true
     }

@@ -171,7 +171,7 @@ module CompilerRewriter {
       }
 
       // TODO: add comment
-      predicate {:verify false} TransformerPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+      predicate {:verify false} TransformerDeepPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e')
@@ -180,12 +180,16 @@ module CompilerRewriter {
             && All_Rel_Forall(rel, e.Children(), e'.Children()))
             ==> rel(e, f(e')))
       }
+
+      predicate {:verify false} TransformerShallowPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+        forall e | f.requires(e) :: rel(e, f(e))
+      }
       
       // Predicate for ``BottomUpTransformer``
       predicate {:verify false} IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool) {
         && TransformerMatchesPrePost(f, post)
         && MapChildrenPreservesPre(f, post)
-        && TransformerPreservesRel(f, rel)
+        && TransformerDeepPreservesRel(f, rel)
       }
 
       // Identity bottom-up transformer: we need it only because we need a witness when
@@ -202,7 +206,7 @@ module CompilerRewriter {
       { }
 
       lemma {:verify false} IdentityPreservesRel()
-        ensures TransformerPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
+        ensures TransformerDeepPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
       
       predicate {:verify false} RelCanBeMapLifted(rel: (Expr, Expr) -> bool)
@@ -213,6 +217,10 @@ module CompilerRewriter {
            (&& Exprs.ConstructorsMatch(e, e')
             && All_Rel_Forall(rel, e.Children(), e'.Children()))
             ==> rel(e, e'))
+      }
+
+      predicate {:verify false} RelIsTransitive<T(!new)>(rel: (T, T) -> bool) {
+        forall x0, x1, x2 | rel(x0, x1) && rel(x1, x2) :: rel(x0, x2)
       }
 
       // A bottom-up transformer, i.e.: a transformer we can recursively apply bottom-up to
@@ -651,6 +659,14 @@ module CompilerRewriter {
       ensures forall v:WV, v':WV | EqValue(v, v') ::
         && (HasEqValue(v) == HasEqValue(v'))
         && (HasEqValue(v) ==> v == v')
+    // This is one of the important lemmas for the proofs of equivalence.
+    // The reason is that the interpreter often checks that some values
+    // have a decidable equality (for instance, before inserting a value in
+    // a set). When doing equivalence proofs, for instance to prove that the
+    // same instruction evaluated in equivalent contexts generates equivalent
+    // results, we often want:
+    // - to know that the check succeeds in both cases, or fails in both cases
+    // - to know that if it succeeded, then the valuevs are equal
     {
       forall v:WV, v':WV | EqValue(v, v')
         ensures
@@ -763,7 +779,20 @@ module CompilerRewriter {
     predicate {:verify false} EqInterpResultSeq1Value(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(sv,ctx'))) =>
-          && [v] == sv
+          && |sv| == 1
+          && EqValue(v, sv[0])
+          && EqState(ctx, ctx')
+        case (Failure(_), Failure(_)) =>
+          true
+        case _ =>
+          false
+      }
+    }
+
+    predicate {:verify false} EqInterpResultSeq1Value_Strong(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
+      match (res, res') {
+        case (Success(Return(v,ctx)), Success(Return(sv,ctx'))) =>
+          && sv == [v]
           && ctx == ctx'
         case (Failure(err), Failure(err')) =>
           err == err'
@@ -797,40 +826,122 @@ module CompilerRewriter {
       GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
     }
 
-    // TODO: update to take two states as inputs
-    lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
+    lemma {:verify false} EqInterp_Refl_Lem(e: Exprs.T)
+      ensures EqInterp(e, e)
+    {
+      assume EqInterp(e, e); // TODO: prove
+    }
+
+    lemma {:verify false} EqInterp_Seq_Refl_Lem(es: seq<Exprs.T>)
+      ensures All_Rel_Forall(EqInterp, es, es)
+    {
+      forall i | 0 <= i < |es| ensures EqInterp(es[i], es[i]) {
+        EqInterp_Refl_Lem(es[i]);
+      }
+    }
+
+    lemma {:verify false} EqInterp_Trans_Lem(e0: Exprs.T, e1: Exprs.T, e2: Exprs.T)
+      requires EqInterp(e0, e1)
+      requires EqInterp(e1, e2)
+      ensures EqInterp(e0, e2)
+    {
+      if SupportsInterp(e0) {
+        forall fuel, ctx, ctx' | EqState(ctx, ctx')
+          ensures EqInterpResultValue(InterpExpr(e0, fuel, ctx), InterpExpr(e2, fuel, ctx')) {
+          EqState_Refl_Lem(ctx);
+          assert EqState(ctx, ctx);
+          var res0 := InterpExpr(e0, fuel, ctx);
+          var res1 := InterpExpr(e1, fuel, ctx);
+          var res2 := InterpExpr(e2, fuel, ctx');
+          assert EqInterpResultValue(res0, res1);
+          assert EqInterpResultValue(res1, res2);
+
+          if res0.Success? {
+            EqValue_Trans_Lem(res0.value.ret, res1.value.ret, res2.value.ret);
+            EqState_Trans_Lem(res0.value.ctx, res1.value.ctx, res2.value.ctx);
+          }
+          else {}
+        }
+      }
+      else {}
+    }
+
+    lemma {:verify false} EqInterp_IsTransitive_Lem()
+      ensures RelIsTransitive(EqInterp)
+    {
+      forall e0, e1, e2 | EqInterp(e0, e1) && EqInterp(e1, e2) ensures EqInterp(e0, e2) {
+        EqInterp_Trans_Lem(e0, e1, e2);
+      }
+    }
+
+    // TODO: remove
+    lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State, ctx': State)
       requires SupportsInterp(e)
+      requires EqState(ctx, ctx')
       ensures forall e' | e' in [e] :: SupportsInterp(e')
-      ensures EqInterpResultSeq1Value(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+      ensures EqInterpResultSeq1Value(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx'))
       // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating
       // the single expression.
     {
       reveal InterpExprs();
-      var res := InterpExpr(e, fuel, ctx);
-      var sres := InterpExprs([e], fuel, ctx);
+      var es := [e];
+      var es' := es[1..];
+      assert es' == [];
 
-      match InterpExpr(e, fuel, ctx) {
-        case Success(Return(v, ctx1)) => {
-          var s := [e];
-          var s' := s[1..];
-          assert s' == [];
-          assert InterpExprs(s', fuel, ctx1) == Success(Return([], ctx1));
-          EqState_Refl_Lem(ctx);
-          EqValue_Refl_Lem(v);
-          assert [v] + [] == [v];
-        }
-        case Failure(_) => {}
+      var e_res := InterpExpr(e, fuel, ctx);
+      var e_res' := InterpExpr(e, fuel, ctx');
+      var es_res := InterpExprs([e], fuel, ctx');
+
+      var res := InterpExpr(e, fuel, ctx);
+      var sres := InterpExprs([e], fuel, ctx');
+
+      EqInterp_Refl_Lem(e);
+      EqInterp_Lem(e, e, fuel, ctx, ctx');
+      if e_res.Success? {
+        var Return(v, ctx1) := e_res.value;
+        var Return(v', ctx1') := InterpExpr(e, fuel, ctx').value;
+        assert InterpExprs(es', fuel, ctx1') == Success(Return([], ctx1'));
+        assert es_res == Success(Return([v'] + [], ctx1'));
+      }
+      else {
+        // Trivial
+      }
+    }
+
+    lemma {:verify false} InterpExprs1_Strong_Lem(e: Expr, fuel: nat, ctx: State)
+      requires SupportsInterp(e)
+      ensures forall e' | e' in [e] :: SupportsInterp(e')
+      ensures EqInterpResultSeq1Value_Strong(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+      // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating
+      // the single expression.
+    {
+      reveal InterpExprs();
+      var es := [e];
+      var es' := es[1..];
+      assert es' == [];
+
+      var e_res := InterpExpr(e, fuel, ctx);
+      var es_res := InterpExprs([e], fuel, ctx);
+
+      if e_res.Success? {
+        var Return(v, ctx1) := e_res.value;
+        
+        assert InterpExprs(es', fuel, ctx1) == Success(Return([], ctx1));
+        assert es_res == Success(Return([v] + [], ctx1));
+      }
+      else {
+        // Trivial
       }
     }
 
     // TODO: move
-    // Sometimes, quantifiers are not triggered
     lemma {:verify false} EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State, ctx': State)
       requires SupportsInterp(e)
       requires EqInterp(e, e')
       requires EqState(ctx, ctx')
       ensures SupportsInterp(e')
       ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+    // We use this lemma because sometimes quantifiers are are not triggered.
     {}
 
     // TODO: move - TODO: remove?
@@ -838,16 +949,8 @@ module CompilerRewriter {
       forall e | f.requires(e) :: rel(e, f(e)) ==> EqInterp(e, f(e))
     }
 
-/*    predicate {:verify false} {:opaque} {:vcs_split_on_every_assert} OEqValue(v: WV, v': WV)
-    // Opaque version of ``EqValue`` (having a hard time controling the context, especially
-    // when some bugs prevent me from doing so: https://github.com/dafny-lang/dafny/issues/2260).
-    // TODO: remove?
-    {
-      EqValue(v, v')
-    }*/
-
     lemma {:verify false}
-      All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(
+      InterpExprs_GEqInterp_Lem(
       eq: Equivs, es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
       requires All_Rel_Forall(Mk_EqInterp(eq), es, es')
@@ -889,7 +992,7 @@ module CompilerRewriter {
             var res2' := InterpExprs(es'[1..], fuel, ctx1');
 
             // Recursive call
-            All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(eq, es[1..], es'[1..], fuel, ctx1, ctx1');
+            InterpExprs_GEqInterp_Lem(eq, es[1..], es'[1..], fuel, ctx1, ctx1');
 
             match res2 {
               case Success(Return(vs, ctx2)) => {
@@ -911,8 +1014,7 @@ module CompilerRewriter {
     }
 
     lemma {:verify false}
-    All_Rel_Forall_EqInterp_EqInterpResult_Lem(
-      es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
+    InterpExprs_EqInterp_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
       requires All_Rel_Forall(EqInterp, es, es')
       requires EqState(ctx, ctx')
@@ -921,7 +1023,7 @@ module CompilerRewriter {
     // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
     // sequences in the same context leads to equivalent results.
     {
-      All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
+      InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
     }
 
     lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
@@ -1005,6 +1107,7 @@ module CompilerRewriter {
     predicate {:verify false} {:opaque} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
     {
+      reveal EqInterp_CanBeMapLifted_Pre();
       EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     }
 
@@ -1285,7 +1388,7 @@ module CompilerRewriter {
       // The arguments evaluate to similar results
       var res0 := InterpExprs(args, fuel, ctx);
       var res0' := InterpExprs(args', fuel, ctx');
-      All_Rel_Forall_EqInterp_EqInterpResult_Lem(args, args', fuel, ctx, ctx');
+      InterpExprs_EqInterp_Lem(args, args', fuel, ctx, ctx');
       assert EqInterpResult(EqSeqValue, res0, res0');
 
       match (res0, res0') {
@@ -1736,212 +1839,78 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: remove
-    // TODO: HERE
-    lemma {:verify false} Tr_EqInterp_Expr_Lem_old(f: Expr --> Expr)
-      requires forall e | f.requires(e) :: EqInterp(e, f(e))
-      //requires Tr_EqInterp(f,rel)
-      //requires TransformerPreservesRel(f,rel)
-      ensures TransformerPreservesRel(f, EqInterp)
+    lemma {:verify false} EqInterp_CanBeMapLifted_Lem()
+      ensures RelCanBeMapLifted(EqInterp)
     {
-      forall e, e' |
-        && Exprs.ConstructorsMatch(e, e')
-        && f.requires(e')
-        && All_Rel_Forall(EqInterp, e.Children(), e'.Children())
-        && SupportsInterp(e) // Constraining a bit
-        ensures EqInterp(e, f(e'))
-        {
-          forall exprs, exprs', fuel, ctx | (forall e | e in exprs :: SupportsInterp(e)) && All_Rel_Forall(EqInterp, exprs, exprs')
-            ensures forall e | e in exprs' :: SupportsInterp(e)
-            ensures EqInterpResult(EqSeqValue, InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx)) {
-              // TODO: fix this
-              EqState_Refl_Lem(ctx);
-              All_Rel_Forall_EqInterp_EqInterpResult_Lem(exprs, exprs', fuel, ctx, ctx);
-          }
+      forall e, e'
+        ensures
+           (&& Exprs.ConstructorsMatch(e, e')
+            && All_Rel_Forall(EqInterp, e.Children(), e'.Children()))
+            ==> EqInterp(e, e')
+      {
+        if && Exprs.ConstructorsMatch(e, e')
+           && All_Rel_Forall(EqInterp, e.Children(), e'.Children()) {
+          if SupportsInterp(e) {
+            reveal SupportsInterp();
+            assert SupportsInterp(e');
 
-          match e {
-            case Var(_) => {
-              assert EqInterp(e, e');
-            }
-            case Literal(lit_) => {
-              assert EqInterp(e, e');
-            }
-            case Abs(vars, body) => {
-              assume SupportsInterp(e'); // TODO
-              assume EqInterp(e, e'); // TODO
-            }
-            case Apply(Eager(op), exprs) => {
-              assert SupportsInterp(e');
-
-              var Apply(Eager(op'), exprs') := e';
-              assert op' == op;
-              assert All_Rel_Forall(EqInterp, exprs, exprs');
-              forall fuel, ctx
-                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
-              {
-                var res := InterpExpr(e, fuel, ctx);
-                var res' := InterpExpr(e', fuel, ctx);
-
-                // The arguments evaluate to similar results
-                assert EqInterpResult(EqSeqValue, InterpExprs(exprs, fuel, ctx), InterpExprs(exprs', fuel, ctx));
-                
-                // Check that the applications also evaluate to similar results
-                match InterpExprs(exprs, fuel, ctx) {
-                  case Success(Return(vs:seq<WV>, ctx1)) => {
-
-                    // TODO: this doesn't work for some reason:
-                    // var Success(Return(vs':seq<WV>, ctx1')) := InterpExprs(exprs', fuel, ctx);
-                    assert InterpExprs(exprs', fuel, ctx).Success?;
-                    var vs' := InterpExprs(exprs', fuel, ctx).value.ret;
-                    var ctx1' := InterpExprs(exprs', fuel, ctx).value.ctx;
-                    assert vs' == vs;
-                    assert ctx1' == ctx1;
-                    
-                    match op {
-                      case UnaryOp(op: UnaryOp) => {
-                        assert EqInterpResultValue(res, res');
-                      }
-                      case BinaryOp(bop: BinaryOp) => {
-                        assert EqInterpResultValue(res, res');
-                      }
-                      case TernaryOp(top: TernaryOp) => {
-                        assert EqInterpResultValue(res, res');
-                      }
-                      case Builtin(Display(ty)) => {
-                        assert res == LiftPureResult(ctx1, InterpDisplay(e, ty.kind, vs));
-                        assert res' == LiftPureResult(ctx1, InterpDisplay(e', ty.kind, vs));
-                        match ty.kind {
-                          case Map(_) => {
-                            InterpMapDisplay_EqArgs_Lem(e, e', vs, vs); // TODO: fix vs, vs
-                            assert EqInterpResultValue(res, res');
-                          }
-                          case _ => {
-                            assert EqInterpResultValue(res, res');
-                          }
-                        }
-                      }
-                      case FunctionCall() => {
-                        var fn := vs[0];
-                        var argvs := vs[1..];
-                        assert res == LiftPureResult(ctx1, InterpFunctionCall(e, fuel, fn, argvs));
-                        assert res' == LiftPureResult(ctx1, InterpFunctionCall(e', fuel, fn, argvs));
-                        assert EqInterpResultValue(res, res');
-                      }
-                    }
-                  }
-                  case Failure(_) => {
-                    assert EqInterpResultValue(res, res');
-                  }
-                }
-              }
-
-              assert EqInterp(e, e');
-            }
-            case Apply(Lazy(op), exprs) => {
-              forall fuel, ctx
-                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx))
-              {
-                var res := InterpExpr(e, fuel, ctx);
-                var res' := InterpExpr(e', fuel, ctx);
-
-                assert res == InterpLazy(e, fuel, ctx);
-                assert res' == InterpLazy(e', fuel, ctx);
-
-                var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
-                var op', e0', e1' := e'.aop.lOp, e'.args[0], e'.args[1];
-                assert op == op';
-
-                EqInterp_Lem(e0, e0', fuel, ctx, ctx); // TODO: ctx, ctx'
-                var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
-                var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx);
-                assert EqInterpResultValue(res0, res0');
-                
-                match res0 {
-                  case Success(Return(v0, ctx0)) => {
-                    EqInterp_Lem(e1, e1', fuel, ctx0, ctx0); // TODO: ctx0, ctx0'
-                    assert EqInterpResultValue(InterpExprWithType(e1, Type.Bool, fuel, ctx0), InterpExprWithType(e1', Type.Bool, fuel, ctx0)); // Fails without this
-                    assert EqInterpResultValue(res, res');
-                  }
-                  case Failure(_) => {
-                    assert res.Failure?;
-                    assert res0'.Failure?; // Fails without this
-                    assert EqInterpResultValue(res, res');
-                  }
-                }
-                assume EqInterpResultValue(res, res');
-              }
-              
-              assert EqInterp(e, e');
-            }
-            case Block(exprs) => {
-              assert EqInterp(e, e');
-            }
-            case If(cond, thn, els) => {
-              var If(cond', thn', els') := e';
-
-              assert cond == e.Children()[0];
-              assert thn == e.Children()[1];
-              assert els == e.Children()[2];
-
-              assert cond' == e'.Children()[0];
-              assert thn' == e'.Children()[1];
-              assert els' == e'.Children()[2];
-
-              assert EqInterp(cond, cond');
-              assert EqInterp(thn, thn');
-              assert EqInterp(els, els');
-
-              assert SupportsInterp(e');
-
-              forall fuel, ctx
-                ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
-                  var res := InterpExpr(e, fuel, ctx);
-                  var res' := InterpExpr(e', fuel, ctx);
-
-                  var res1 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
-                  var res1' := InterpExprWithType(cond', Type.Bool, fuel, ctx);
-
-                  // TODO: ctx, ctx'
-                  EqInterp_Lem(cond, cond', fuel, ctx, ctx); // Below assert fails without this lemma
-                  assert EqInterpResultValue(res1, res1');
-
-                  match res1 {
-                    case Success(Return(condv, ctx1)) => {
-                      var condv' := res1'.value.ret;
-                      var ctx1' := res1'.value.ctx;
-
-                      assert condv' == condv;
-                      assert ctx1' == ctx1;
-                      
-                      // TODO: ctx1, ctx1'
-                      EqInterp_Lem(thn, thn', fuel, ctx1, ctx1); // Proof fails without this lemma
-                      EqInterp_Lem(els, els', fuel, ctx1, ctx1); // Proof fails without this lemma
-                    }
-                    case Failure(_) => {
-                      assert InterpExprWithType(cond', Type.Bool, fuel, ctx).Failure?; // Proof fails without this
-                      assert EqInterpResultValue(res, res');
-                    }
-                  }
-              }
-              assert EqInterp(e, e');
+            forall fuel, ctx, ctx' | EqState(ctx, ctx') ensures
+              EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx')) {
+              reveal EqInterp_CanBeMapLifted_Pre();
+              reveal EqInterp_CanBeMapLifted_Post();
+              EqInterp_Expr_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
             }
           }
-          assert EqInterp(e, e');
-          assert EqInterp(e, f(e'));
+          else {}
         }
+        else {}
+      }
     }
-    
+
     predicate {:verify false} Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
       EqInterp(e, e')
     }
 
     function method {:verify false} FlipNegatedBinop_Expr(op: BinaryOp, args: seq<Expr>) : (e':Exprs.T)
       requires IsNegatedBinop(op)
+      requires EagerOpSupportsInterp(Exprs.BinaryOp(op))
+      ensures (|args| == 2 && (forall i | 0 <= i < |args| :: SupportsInterp(args[i]))) ==> SupportsInterp(e')
     {
-      var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
+      reveal SupportsInterp();
+      var si := (|args| == 2 && (forall i | 0 <= i < |args| :: SupportsInterp(args[i])));
+
+      var bop' := Exprs.BinaryOp(FlipNegatedBinop(op));
+      var flipped := Exprs.Apply(Exprs.Eager(bop'), args);
+      
+      assert si ==> SupportsInterp(flipped);
+      
       var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped]);
+      
+      assert SupportsInterp(flipped) ==> SupportsInterp(e');
       e'
     }
+
+    lemma {:verify false} FlipNegatedBinop_Binop_Rel_Lem(
+      e: Expr, e': Expr, op: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
+      requires IsNegatedBinop(op)
+      requires EagerOpSupportsInterp(Exprs.BinaryOp(op))
+      requires EqValue(v0, v0')
+      requires EqValue(v1, v1')
+      ensures (
+        match (InterpBinaryOp(e, op, v0, v1), InterpBinaryOp(e', FlipNegatedBinop(op), v0', v1'))
+          case (Success(b), Success(b')) =>
+            && b.Bool?
+            && b'.Bool?
+            && b.b == ! b'.b
+          case (Failure(_), Failure(_)) =>
+            true
+          case _ =>
+            false)
+      {
+        reveal InterpBinaryOp();
+        EqValue_HasEqValue_Eq_Lem(v0, v0');
+        EqValue_HasEqValue_Eq_Lem(v1, v1');
+      }
 
     lemma {:verify false} FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
       requires IsNegatedBinop(op)
@@ -1951,42 +1920,64 @@ module CompilerRewriter {
         Tr_Expr_Rel(e, e')
       )
     {
-      var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
+      reveal InterpExpr();
+      reveal InterpFunctionCall();
+      reveal InterpBinaryOp();
+
+      var bop := Exprs.BinaryOp(op);
+      var bop' := Exprs.BinaryOp(FlipNegatedBinop(op));
+      var e := Exprs.Apply(Exprs.Eager(bop), args);
       var e' := FlipNegatedBinop_Expr(op, args);
+      reveal SupportsInterp(); // TODO: remove?
+
       if SupportsInterp(e) {
         assert SupportsInterp(e');
+
         // Prove that for every fuel and context, the interpreter returns the same result
-        forall fuel, ctx
-          ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
-          // Start by proving that the flipped binary operation (not wrapped in the "not") returns exactly the
-          // opposite result of the non-flipped binary operation.
-          var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
+        forall fuel, ctx, ctx' | EqState(ctx, ctx')
+          ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx')) {
+          var res := InterpExpr(e, fuel, ctx);
+          var res' := InterpExpr(e', fuel, ctx');
 
-          // Intermediate result: evaluating (the sequence of expressions) `[flipped]` is the same as evaluating (the expression) `flipped`.
-          InterpExprs1_Lem(flipped, fuel, ctx);
-          assert EqInterpResultSeq1Value(InterpExpr(flipped, fuel, ctx), InterpExprs([flipped], fuel, ctx));
+          var args_res := InterpExprs(args, fuel, ctx);
+          var args_res' := InterpExprs(args, fuel, ctx');
+          EqInterp_Seq_Refl_Lem(args);
+          InterpExprs_EqInterp_Lem(args, args, fuel, ctx, ctx');
+          assert EqInterpResultSeqValue(args_res, args_res');
 
-          match (InterpExpr(e, fuel, ctx), InterpExpr(flipped, fuel, ctx)) {
-            case (Success(Return(v,ctx1)), Success(Return(v',ctx1'))) => {
-              // Check that the results are the opposite of each other
-              assert v.Bool?;
-              assert v'.Bool?;
-              assert v.b == !v'.b;
-              assert ctx1 == ctx1';
+          var flipped := Exprs.Apply(Exprs.Eager(bop'), args);
+          InterpExprs1_Strong_Lem(flipped, fuel, ctx');
 
-              // Prove that if we add the "not", we get the expected result
-              assert InterpExpr(e', fuel, ctx) == LiftPureResult(ctx1', InterpUnaryOp(e', UnaryOps.BoolNot, v'));
-              assert InterpUnaryOp(e', UnaryOps.BoolNot, v') == Success(Bool(!v'.b));
-              assert InterpExpr(e, fuel, ctx) == InterpExpr(e', fuel, ctx);
+          if args_res.Success? {
+            assert args_res'.Success?;
+
+            var Return(vs, ctx1) := args_res.value;
+            var Return(vs', ctx1') := args_res'.value;
+
+            var res1 := InterpBinaryOp(e, op, vs[0], vs[1]);
+            var res1' := InterpBinaryOp(e', FlipNegatedBinop(op), vs'[0], vs'[1]);
+            FlipNegatedBinop_Binop_Rel_Lem(e, e', op, vs[0], vs[1], vs'[0], vs'[1]);
+
+            assert res1.Success? == res1'.Success?;
+            if res1.Success? {
+              var b := res1.value;
+              var b' := res1'.value;
+
+              assert b.Bool?;
+              assert b'.Bool?;
+              assert b.b == !b'.b;
+              
+              assert EqState(ctx1, ctx1');
+
+              reveal InterpUnaryOp();
             }
-            case (Failure(err), Failure(err')) => {
-              // We don't have the fact that `err == err'` (investigate why)
-            }
-            case _ => {
-              assert false;
+            else {
+              // Trivial
             }
           }
-          assert EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
+          else {
+            // Trivial
+          }
         }
       }
       else {
@@ -1998,6 +1989,7 @@ module CompilerRewriter {
       ensures Tr_Expr_Post(e')
       ensures Tr_Expr_Rel(e, e')
     {
+      EqInterp_Refl_Lem(e);
       match e {
         case Apply(Eager(BinaryOp(op)), args) =>
           if IsNegatedBinop(op) then
@@ -2018,12 +2010,22 @@ module CompilerRewriter {
       ensures MapChildrenPreservesPre(Tr_Expr_Shallow,Tr_Expr_Post)
     {}
 
+    lemma {:verify false} TransformationAndRel_Lift_Lem(f: Expr --> Expr, rel: (Expr, Expr) -> bool)
+      requires RelIsTransitive(rel)
+      requires RelCanBeMapLifted(rel)
+      requires TransformerShallowPreservesRel(f, rel)
+      ensures TransformerDeepPreservesRel(f, rel)
+    {}
+
     lemma {:verify false} TrPreservesRel()
-      ensures TransformerPreservesRel(Tr_Expr_Shallow,Tr_Expr_Rel)
+      ensures TransformerDeepPreservesRel(Tr_Expr_Shallow, Tr_Expr_Rel)
     {
       var f := Tr_Expr_Shallow;
       var rel := Tr_Expr_Rel;
-      Tr_EqInterp_Expr_Lem_old(f);
+
+      EqInterp_IsTransitive_Lem();
+      EqInterp_CanBeMapLifted_Lem();
+      TransformationAndRel_Lift_Lem(f, rel);
     }
 
     const {:verify false} Tr_Expr : BottomUpTransformer :=
@@ -2033,42 +2035,6 @@ module CompilerRewriter {
         TR(Tr_Expr_Shallow,
            Tr_Expr_Post,
            Tr_Expr_Rel))
-
-    // TODO: remove
-    function method {:verify false} Apply_Expr_direct(e: Exprs.T) : (e': Exprs.T)
-      requires Deep.All_Expr(e, Exprs.WellFormed)
-      ensures Deep.All_Expr(e', NotANegatedBinopExpr)
-      ensures Deep.All_Expr(e', Exprs.WellFormed)
-    {
-      Deep.AllImpliesChildren(e, Exprs.WellFormed);
-      match e {
-        case Var(_) => e
-        case Literal(lit_) => e
-        case Abs(vars, body) => Exprs.Abs(vars, Apply_Expr_direct(body))
-        case Apply(Eager(BinaryOp(bop)), exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          Transformer.Map_All_IsMap(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          if IsNegatedBinop(bop) then
-            var e'' := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(bop))), exprs');
-            var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [e'']);
-            e'
-          else
-            Expr.Apply(Exprs.Eager(Exprs.BinaryOp(bop)), exprs')
-        case Apply(aop, exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          Transformer.Map_All_IsMap(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          Expr.Apply(aop, exprs')
-
-        case Block(exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          Transformer.Map_All_IsMap(e requires e in exprs => Apply_Expr_direct(e), exprs);
-          Expr.Block(exprs')
-        case If(cond, thn, els) =>
-          Expr.If(Apply_Expr_direct(cond),
-                  Apply_Expr_direct(thn),
-                  Apply_Expr_direct(els))
-      }
-    }
 
     function method {:verify false} Apply(p: Program) : (p': Program)
       requires Deep.All_Program(p, Tr_Expr.f.requires)

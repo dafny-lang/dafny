@@ -987,6 +987,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     // Both implementations of Deep should work, but NonRec can be somewhat
     // simpler to work with.  If needed, use ``DeepImpl.Equiv.All_Expr`` to
     // switch between implementations.
-    module Deep refines DeepImpl.Rec {}
+    module Deep refines DeepImpl.NonRec {}
   }
 }
