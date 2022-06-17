@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// <param name="sourceWithHovers"></param>
     private async Task AssertHover(string sourceWithHovers) {
       await WithNoopSolver(async () => {
-        sourceWithHovers = sourceWithHovers.TrimStart(); // Might not be necessary
+        sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
         // Split the source from hovering tasks
         var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
         var source = hoverRegex.Replace(sourceWithHovers, "");
