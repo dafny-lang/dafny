@@ -1636,9 +1636,8 @@ module CompilerRewriter {
 
         // We have restrictions on the arguments on which we can apply the equivalence relation
         // captured by ``EqValue_Closure``. We do the assumption that, if one of the calls succeedeed,
-        // then the arguments are "not too big" and we can apply the equivalence. Note that this
-        // may not be true for instance if some of the arguments are ignored... The more general
-        // solution would be to introduce a notion of typing (see the comments for ``EqValue``).
+        // then the arguments are "not too big" and we can apply the equivalence. This would be true
+        // if the program was successfully type-checked.
         assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(f));
         assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(f'));
 
