@@ -30,6 +30,8 @@ namespace DafnyTestGeneration {
     // the DafnyModel that describes the inputs to this test method
     private DafnyModel dafnyModel;
 
+    private static readonly Dictionary<DafnyModelType, string> freshMethods = new();
+
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
@@ -39,6 +41,19 @@ namespace DafnyTestGeneration {
       argumentNames.RemoveAt(0);
       NOfTypeParams = typeNames.Count(typeName => typeName == "Ty");
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
+    }
+
+    public static void ClearFreshMethods() {
+      freshMethods.Clear();
+    }
+
+    public static string EmitFreshMethods() {
+      var result = "";
+      foreach (var typ in freshMethods.Keys) {
+        result +=
+          $"\nmethod {{:synthesize}} {freshMethods[typ]}() returns (o:{typ.ToString()}) ensures fresh(o)";
+      }
+      return result;
     }
 
     /// <summary>
@@ -153,6 +168,11 @@ namespace DafnyTestGeneration {
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType = variableType.GetNonNullable().InDafnyFormat();
           ObjectsToMock.Add(new(varId, dafnyType));
+          if (!freshMethods.ContainsKey(dafnyType)) {
+            freshMethods[dafnyType] = "getFresh" +
+                                      Regex.Replace(dafnyType.ToString(),
+                                        "[^a-zA-Z]", "");
+          }
           mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -191,6 +211,11 @@ namespace DafnyTestGeneration {
       // this should only be reached if the type is non-nullable
       var varId = $"v{ObjectsToMock.Count}";
       ObjectsToMock.Add(new(varId, type));
+      if (!freshMethods.ContainsKey(type)) {
+        freshMethods[type] = "getFresh" +
+                             Regex.Replace(type.ToString(),
+                               "[^a-zA-Z]", "");
+      }
       return varId;
     }
 
@@ -227,20 +252,15 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       // test method parameters and declaration:
-      var parameters = string.Join(", ", ObjectsToMock
-        .Select(kVPair => $"{kVPair.id}:{kVPair.type}"));
+      var mockedLines = ObjectsToMock
+        .Select(kVPair => $"var {kVPair.id} := {freshMethods[kVPair.type]}();");
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);
       }
 
-      var returnsDeclaration = string.Join(", ",
-        Enumerable.Range(0, returnParNames.Count).Select(i =>
-            $"{returnParNames[i]}:{DafnyInfo.GetReturnTypes(MethodName)[i]}"));
-      var modifiesClause = string.Join("",
-        ObjectsToMock.Select(i => $" modifies {i.id}"));
-      lines.Add($"method test{id}({parameters}) " +
-                $"returns ({returnsDeclaration}) {modifiesClause} {{");
+      lines.Add($"method {{:test}} test{id}() {{");
+      lines.AddRange(mockedLines);
 
       // assignments necessary to set up the test case:
       foreach (var assignment in Assignments) {
@@ -266,7 +286,7 @@ namespace DafnyTestGeneration {
 
       var returnValues = "";
       if (returnParNames.Count != 0) {
-        returnValues = string.Join(", ", returnParNames) + " := ";
+        returnValues = "var " + string.Join(", ", returnParNames) + " := ";
       }
 
       lines.Add(returnValues + methodCall);
