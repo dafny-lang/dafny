@@ -27,6 +27,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       );
     }
 
+    private async Task AssertHoverContains(TextDocumentItem documentItem, Position position, string expectedContent) {
+      var hover = await RequestHover(documentItem, position);
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.IsNotNull(markup);
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.IsTrue(markup.Value.Contains(expectedContent), "Could not find {1} in {0}", markup.Value, expectedContent);
+    }
+
     [TestMethod]
     public async Task HoveringMethodInvocationOfMethodDeclaredInSameDocumentReturnsSignature() {
       var source = @"
@@ -38,11 +47,7 @@ method CallDoIt() returns () {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (4, 14));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nmethod DoIt() returns (x: int)\n```", markup.Value);
+      await AssertHoverContains(documentItem, (4, 14), "```dafny\nmethod DoIt() returns (x: int)\n```");
     }
 
     [TestMethod]
@@ -58,7 +63,7 @@ method CallDoIt() returns () {
     }
 
     [TestMethod]
-    public async Task HoveringFieldOfSystemTypeReturnsDefinition() {
+    public async Task AssHoveringFieldOfSystemTypeReturnsDefinition() {
       var source = @"
 method DoIt() {
   var x := new int[0];
@@ -66,11 +71,7 @@ method DoIt() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (2, 14));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nconst array.Length: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (2, 14), "```dafny\nconst array.Length: int\n```");
     }
 
     [TestMethod]
@@ -85,11 +86,7 @@ method DoIt() returns (x: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (4, 13));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nfunction A.GetX(): int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (4, 13), "```dafny\nfunction A.GetX(): int\n```");
     }
 
     [TestMethod]
@@ -117,11 +114,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (5, 10));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+      await AssertHoverContains(documentItem, (5, 10), "```dafny\nx: string\n```");
     }
 
     [TestMethod]
@@ -137,11 +130,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (5, 15));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nvar Test.x: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (5, 15), "```dafny\nvar Test.x: int\n```");
     }
 
     [TestMethod]
@@ -160,11 +149,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (7, 12));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+      await AssertHoverContains(documentItem, (7, 12), "```dafny\nx: string\n```");
     }
 
     [TestMethod]
@@ -183,11 +168,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (8, 10));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+      await AssertHoverContains(documentItem, (8, 10), "```dafny\nx: string\n```");
     }
 
     [TestMethod]
@@ -206,11 +187,7 @@ class B {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (5, 9));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+      await AssertHoverContains(documentItem, (5, 9), "```dafny\nclass A\n```");
     }
 
     [TestMethod]
@@ -229,11 +206,7 @@ class B {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (8, 13));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+      await AssertHoverContains(documentItem, (8, 13), "```dafny\nclass A\n```");
     }
 
     [TestMethod]
@@ -246,11 +219,7 @@ class A {
 method DoIt(a: A) {}".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (4, 15));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+      await AssertHoverContains(documentItem, (4, 15), "```dafny\nclass A\n```");
     }
 
     [TestMethod]
@@ -260,11 +229,7 @@ trait Base {}
 class Sub extends Base {}".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 19));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ntrait Base\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 19), "```dafny\ntrait Base\n```");
     }
 
     [TestMethod]
@@ -277,11 +242,7 @@ datatype SomeType = SomeType {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var hover = await RequestHover(documentItem, (2, 11));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nx: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (2, 11), "```dafny\nx: int\n```");
     }
 
     [TestMethod]
@@ -299,11 +260,7 @@ method Main() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var hover = await RequestHover(documentItem, (8, 12));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```", markup.Value);
+      await AssertHoverContains(documentItem, (8, 12), "```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```");
     }
 
     [TestMethod]
@@ -314,11 +271,7 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (0, 9));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (0, 9), "```dafny\ni: int\n```");
     }
 
     [TestMethod]
@@ -329,11 +282,7 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 6));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 6), "```dafny\nr: int\n```");
     }
 
     [TestMethod]
@@ -344,16 +293,8 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 17));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 22));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 17), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (1, 22), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -364,16 +305,8 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 17));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 22));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 17), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (1, 22), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -385,16 +318,8 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (2, 16));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (2, 20));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (2, 16), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (2, 20), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -405,16 +330,8 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 16));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 31));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 16), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (1, 31), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -425,16 +342,8 @@ method f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 12));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 17));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 12), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (1, 17), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -445,16 +354,8 @@ predicate f(i: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 10));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 15));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 10), "```dafny\nj: int\n```");
+      await AssertHoverContains(documentItem, (1, 15), "```dafny\nj: int\n```");
     }
 
     [TestMethod]
@@ -470,16 +371,8 @@ predicate even(n: nat)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (5, 7));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nx: bool\n```", markup.Value);
-      hover = await RequestHover(documentItem, (5, 12));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nn: nat\n```", markup.Value);
+      await AssertHoverContains(documentItem, (5, 7), "```dafny\nx: bool\n```");
+      await AssertHoverContains(documentItem, (5, 12), "```dafny\nn: nat\n```");
     }
 
     [TestMethod]
@@ -491,16 +384,8 @@ function method test(n: nat): nat {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 7));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 12));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nn: nat\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 7), "```dafny\ni: int\n```");
+      await AssertHoverContains(documentItem, (1, 12), "```dafny\nn: nat\n```");
     }
 
     [TestMethod]
@@ -514,16 +399,8 @@ method returnBiggerThan(n: nat) returns (y: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 16));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ny: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 33));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 16), "```dafny\ny: int\n```");
+      await AssertHoverContains(documentItem, (1, 33), "```dafny\ni: int\n```");
     }
 
     [TestMethod]
@@ -536,16 +413,8 @@ function f(i: int): (r: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (0, 22));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 11));
-      Assert.IsNotNull(hover);
-      markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
+      await AssertHoverContains(documentItem, (0, 22), "```dafny\nr: int\n```");
+      await AssertHoverContains(documentItem, (1, 11), "```dafny\nr: int\n```");
     }
 
     [TestMethod]
@@ -560,11 +429,7 @@ function method f(i: int): Pos {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (4, 8));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nr: Pos\n```", markup.Value);
+      await AssertHoverContains(documentItem, (4, 8), "```dafny\nr: Pos\n```");
     }
 
     [TestMethod]
@@ -578,11 +443,7 @@ function ToRelativeIndependent(): (p: Position)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 41));
-      Assert.IsNotNull(hover);
-      var markup = hover.Contents.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ndatatype Position\n```", markup.Value);
+      await AssertHoverContains(documentItem, (1, 41), "```dafny\ndatatype Position\n```");
     }
   }
 }
