@@ -1011,7 +1011,7 @@ but such a mechanism is in the works.
 
 [^compiler-infinite-assign-such-that-note]: This refers to assign-such-that statements with multiple variables,
     and where at least one variable has potentially infinite bounds.
-    For example, the implementation of the statement `var x: nat, y: nat :| y != 0 && x / y == 10;`
+    For example, the implementation of the statement `var x: nat, y: nat :| 0 < x && 0 < y && x*x == y*y*y + 1;`
     needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.
 
 [^compiler-sequence-display-nolambda-note]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
