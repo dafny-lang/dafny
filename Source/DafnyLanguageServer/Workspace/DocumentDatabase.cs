@@ -270,7 +270,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
-    public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.ResolvedDocument!;
       }
@@ -297,6 +297,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             observer?.OnCompleted();
           } else {
             telemetryPublisher.PublishUnhandledException(t.Exception);
+            observer?.OnCompleted();
           }
         }, TaskScheduler.Current);
         return Disposable.Create(() => observer = null);

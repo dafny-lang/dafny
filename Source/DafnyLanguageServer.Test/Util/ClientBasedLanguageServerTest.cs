@@ -19,6 +19,7 @@ using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Server;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
@@ -74,11 +75,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
 
     }, serverOptions => {
-      serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
-      ));
+      ServerOptionsAction(serverOptions);
     });
+  }
+
+  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions)
+  {
+    return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+      serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+      serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+    ));
   }
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
@@ -159,7 +165,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Documents.GetDocumentAsync(documentItem))!.Diagnostics;
+    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
   }
 }
