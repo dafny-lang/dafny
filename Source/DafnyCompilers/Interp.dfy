@@ -822,7 +822,7 @@ module Interp {
         var m :- InterpMapDisplay(e, argvs);
         Success(V.Map(m))
       case Multiset() =>
-        :- Need(forall x | x in argvs :: HasEqValue(x), Invalid(e)); // The elements must have a decidable equality
+        :- Need(forall i | 0 <= i < |argvs| :: HasEqValue(argvs[i]), Invalid(e)); // The elements must have a decidable equality
         var v := V.Multiset(multiset(argvs));
         assert WellFormedEqValue(v); // Doesn't work without this assert
         Success(v)

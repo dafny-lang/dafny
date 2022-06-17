@@ -545,10 +545,10 @@ module CompilerRewriter {
     {
       var Closure(ctx, vars, body) := v;
       var Closure(ctx', vars', body') := v';
-      && |vars| == |vars'| // no partial applications are allowed in Dafny
+      && |vars| == |vars'|
       && (
       forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
-        && |argvs| == |argvs'| == |vars|
+        && |argvs| == |argvs'| == |vars| // no partial applications are allowed in Dafny
         // We need the argument types to be smaller than the closure types, to prove termination.\
         // In effect, the arguments types should be given by the closure's input types.
         && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
@@ -615,13 +615,6 @@ module CompilerRewriter {
       assume EqValue(v, v); // TODO: prove
     }
 
-/*    lemma {:verify true} {:induction v, v'} EqValue_Sym_Lem(v: WV, v': WV)
-      requires EqValue(v, v')
-      ensures EqValue(v', v)
-    {
-      assume EqValue(v', v); // TODO: prove
-    }*/
-
     lemma {:verify false} EqValue_Trans_Lem(v0: WV, v1: WV, v2: WV)
       requires EqValue(v0, v1)
       requires EqValue(v1, v2)
@@ -651,6 +644,19 @@ module CompilerRewriter {
       EqValue_HasEqValue_Lem(v, v');
       if HasEqValue(v) || HasEqValue(v') {
         EqValueHasEq_Lem(v, v');
+      }
+    }
+
+    lemma {:verify false} EqValue_HasEqValue_Eq_Forall_Lem()
+      ensures forall v:WV, v':WV | EqValue(v, v') ::
+        && (HasEqValue(v) == HasEqValue(v'))
+        && (HasEqValue(v) ==> v == v')
+    {
+      forall v:WV, v':WV | EqValue(v, v')
+        ensures
+        && (HasEqValue(v) == HasEqValue(v'))
+        && (HasEqValue(v) ==> v == v') {
+          EqValue_HasEqValue_Eq_Lem(v, v');
       }
     }
 
@@ -689,7 +695,8 @@ module CompilerRewriter {
     }
 
     predicate {:verify false} EqMap<T(0,!new), U(0,!new)>(eq_values: (U,U) -> bool, vs: map<T, U>, vs': map<T, U>) {
-      && (forall x :: x in vs <==> x in vs')
+      && vs.Keys == vs'.Keys
+      && |vs| == |vs'|
       && (forall x | x in vs :: eq_values(vs[x], vs'[x]))
     }
 
@@ -703,7 +710,8 @@ module CompilerRewriter {
     }
 
     predicate {:verify false} EqMapValue(m: map<EqWV, WV>, m': map<EqWV,WV>) {
-      && (forall x :: x in m <==> x in m')
+      && m.Keys == m'.Keys
+      && |m| == |m'|
       && (forall x | x in m :: EqValue(m[x], m'[x]))
     }
 
@@ -869,7 +877,6 @@ module CompilerRewriter {
         
         match res1 {
           case Success(Return(v, ctx1)) => {
-            //assume false;
             // TODO: the following statement generates an error.
             // See: https://github.com/dafny-lang/dafny/issues/2258
             //var Success(Return(v', ctx1')) := res1;
@@ -917,20 +924,33 @@ module CompilerRewriter {
       All_Rel_Forall_GEqInterp_GEqInterpResult_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
     }
 
-    lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>)
+    lemma {:verify false} Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
+      requires EqSeqValue(argvs, argvs')
       ensures EqPureInterpResult(EqSeqPairEqValueValue,
                                  Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
-                                 Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv)))
+                                 Seq.MapResult(argvs', argv => PairOfMapDisplaySeq(e', argv)))
     {
       if argvs == [] {}
       else {
         var argv := argvs[0];
+        var argv' := argvs'[0];
+        assert EqValue(argv, argv');
+        assert EqValue(argv, argv');
+
         var res0 := PairOfMapDisplaySeq(e, argv);
-        var res0' := PairOfMapDisplaySeq(e', argv);
-        EqValue_Refl_Forall_Lem();
-        assert EqPureInterpResult(EqPairEqValueValue, res0, res0');
-        reveal Seq.MapResult();
-        Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..]);
+        var res0' := PairOfMapDisplaySeq(e', argv');
+
+        EqValue_HasEqValue_Eq_Forall_Lem();
+        if res0.Success? {
+          assert res0'.Success?;
+          assert EqPureInterpResult(EqPairEqValueValue, res0, res0'); 
+
+          reveal Seq.MapResult();
+          Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..], argvs'[1..]);
+        }
+        else {
+          // Trivial
+        }
       }
     }
 
@@ -946,19 +966,28 @@ module CompilerRewriter {
       }
     }
 
-    lemma {:verify false} InterpMapDisplay_EqArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>)
-      ensures EqPureInterpResult(EqMapValue, InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs)) {
+    lemma {:verify false} InterpMapDisplay_EqArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
+      requires EqSeqValue(argvs, argvs')
+      ensures EqPureInterpResult(EqMapValue, InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs')) {
       var res0 := Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv));
-      var res0' := Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e', argv));
+      var res0' := Seq.MapResult(argvs', argv => PairOfMapDisplaySeq(e', argv));
 
-      Map_PairOfMapDisplaySeq_Lem(e, e', argvs);
+      Map_PairOfMapDisplaySeq_Lem(e, e', argvs, argvs');
+      EqValue_HasEqValue_Eq_Forall_Lem();
 
       match res0 {
         case Success(pairs) => {
           var pairs' := res0'.value;
+
           MapOfPairs_EqArgs_Lem(pairs, pairs');
+
+          var m := MapOfPairs(pairs);
+          var m' := MapOfPairs(pairs');
+          assert EqMapValue(m, m');
         }
-        case Failure(_) => {}
+        case Failure(_) => {
+          // Trivial
+        }
       }
     }
 
@@ -1283,10 +1312,12 @@ module CompilerRewriter {
             }
             case (Builtin(Display(ty)), Builtin(Display(ty'))) => {
               assert ty == ty';
-              assume false; // TODO: prove
+              EqInterp_Expr_Display_CanBeMapLifted_Lem(e, e', ty.kind, argvs, argvs');
+              assert EqInterpResultValue(res, res');
             }
             case (FunctionCall(), FunctionCall()) => {
-              assume false; // TODO: prove
+              EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(e, e', fuel, argvs[0], argvs'[0], argvs[1..], argvs'[1..]);
+              assert EqInterpResultValue(res, res');
             }
             case _ => {
               // Impossible branch
@@ -1575,6 +1606,85 @@ module CompilerRewriter {
       }
     }
 
+    lemma {:verify false}
+    EqInterp_Expr_Display_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>)
+      requires EqSeqValue(vs, vs')
+      ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs')) {
+      reveal InterpDisplay();
+      
+      var res := InterpDisplay(e, kind, vs);
+      var res' := InterpDisplay(e', kind, vs');
+
+      match kind {
+        case Map(_) => {
+          InterpMapDisplay_EqArgs_Lem(e, e', vs, vs');
+          assert EqPureInterpResultValue(res, res');
+        }
+        case Multiset => {
+          EqValue_HasEqValue_Eq_Forall_Lem();
+          if res.Success? {
+            assert res'.Success?;
+            assert (forall i | 0 <= i < |vs| :: HasEqValue(vs[i]));
+            assert (forall i | 0 <= i < |vs| :: HasEqValue(vs'[i]));
+            assert (forall i | 0 <= i < |vs| :: EqValue(vs[i], vs'[i]));
+            assert vs == vs';
+            assert EqPureInterpResultValue(res, res');
+          }
+          else {}
+        }
+        case Seq => {
+          assert EqPureInterpResultValue(res, res');
+        }
+        case Set => {
+          EqValue_HasEqValue_Eq_Forall_Lem();
+          assert EqPureInterpResultValue(res, res');
+        }
+      }
+    }
+
+    lemma {:verify false}
+    EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, fuel: nat, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>)
+      requires EqValue(f, f')
+      requires EqSeqValue(argvs, argvs')
+      ensures EqPureInterpResultValue(InterpFunctionCall(e, fuel, f, argvs), InterpFunctionCall(e', fuel, f', argvs')) {      
+      var res := InterpFunctionCall(e, fuel, f, argvs);
+      var res' := InterpFunctionCall(e', fuel, f', argvs');
+
+      if res.Success? || res'.Success? {
+        reveal InterpFunctionCall();
+        reveal InterpCallFunctionBody();
+        reveal EqValue_Closure();
+
+        var Closure(ctx, vars, body) := f;
+        var Closure(ctx', vars', body') := f';
+        assert |vars| == |vars'|;
+
+        // We have restrictions on the arguments on which we can apply the equivalence relation
+        // captured by ``EqValue_Closure``. We do the assumption that, if one of the calls succeedeed,
+        // then the arguments are "not too big" and we can apply the equivalence. Note that this
+        // may not be true for instance if some of the arguments are ignored... The more general
+        // solution would be to introduce a notion of typing (see the comments for ``EqValue``).
+        assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(f));
+        assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(f'));
+
+        var res0 := InterpCallFunctionBody(f, fuel - 1, argvs);
+        var res0' := InterpCallFunctionBody(f', fuel - 1, argvs');
+        // This comes from EqValue_Closure
+        assert EqPureInterpResultValue(res0, res0');
+
+        // By definition
+        assert res0 == res;
+        assert res0' == res';
+
+        assert EqPureInterpResultValue(res, res');
+      }
+      else {
+        assert res.Failure? && res'.Failure?;
+      }
+    }
+
     lemma {:verify false} EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires e.If?
       requires e'.If?
@@ -1582,7 +1692,48 @@ module CompilerRewriter {
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
       decreases e, fuel, 1
     {
-      assume false; // TODO: prove
+      reveal EqInterp_CanBeMapLifted_Pre();
+      reveal EqInterp_CanBeMapLifted_Post();
+
+      reveal InterpExpr();
+      reveal SupportsInterp();
+
+      var res := InterpExpr(e, fuel, ctx);
+      var res' := InterpExpr(e', fuel, ctx');
+
+      var If(cond, thn, els) := e;
+      var If(cond', thn', els') := e';
+      
+      assert cond == e.Children()[0];
+      assert thn == e.Children()[1];
+      assert els == e.Children()[2];
+
+      assert cond' == e'.Children()[0];
+      assert thn' == e'.Children()[1];
+      assert els' == e'.Children()[2];
+
+      assert EqInterp(cond, cond');
+      assert EqInterp(thn, thn');
+      assert EqInterp(els, els');
+
+      assert SupportsInterp(e');
+
+      var res0 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
+      var res0' := InterpExprWithType(cond', Type.Bool, fuel, ctx');
+
+      EqInterp_Lem(cond, cond', fuel, ctx, ctx');
+      assert EqInterpResultValue(res0, res0');
+
+      if res0.Success? {
+        var Return(condv, ctx0) := res0.value;
+        var Return(condv', ctx0') := res0'.value;
+
+        EqInterp_Lem(thn, thn', fuel, ctx0, ctx0'); // Proof fails without this
+        EqInterp_Lem(els, els', fuel, ctx0, ctx0'); // Proof fails without this
+      }
+      else {
+        // Trivial
+      }
     }
 
     // TODO: remove
@@ -1661,7 +1812,7 @@ module CompilerRewriter {
                         assert res' == LiftPureResult(ctx1, InterpDisplay(e', ty.kind, vs));
                         match ty.kind {
                           case Map(_) => {
-                            InterpMapDisplay_EqArgs_Lem(e, e', vs);
+                            InterpMapDisplay_EqArgs_Lem(e, e', vs, vs); // TODO: fix vs, vs
                             assert EqInterpResultValue(res, res');
                           }
                           case _ => {
