@@ -1739,6 +1739,29 @@ module CompilerRewriter {
 
   }
 
+  abstract module Pass {
+    // Abstract module describing a compiler pass.
+
+    import opened DafnyCompilerCommon.AST
+    import opened Equiv
+
+    // The precondition of the transformation
+    predicate Tr_Pre(p: Program)
+
+    // The postcondition of the transformation
+    predicate Tr_Post(p: Program)
+
+    // The transformation itself.
+    //
+    // For now, we enforce the use of ``EqInterp`` as the binary relation between
+    // the input and the output.
+    function method Apply(p: Program) : (p': Program)
+      requires Tr_Pre(p)
+      ensures Tr_Post(p)
+      ensures EqInterp(p.mainMethod.methodBody, p'.mainMethod.methodBody)
+  }
+
+  // TODO: I don't manage to make ``EliminateNegatedBinops`` refine ``Pass``
   module EliminateNegatedBinops {
     // This module implements a simple pass, by which we decompose the "negated" binops
     // into a negation of the "original" binop.
@@ -1752,10 +1775,10 @@ module CompilerRewriter {
     import DCC = DafnyCompilerCommon
     import Lib
     import Lib.Debug
-    import opened DCC.AST
     import opened Lib.Datatypes
     import opened Rewriter.BottomUp
 
+    import opened DafnyCompilerCommon.AST
     import opened DCC.Predicates
     import opened Transformer
     import opened Interp
@@ -1975,9 +1998,19 @@ module CompilerRewriter {
            Tr_Expr_Post,
            Tr_Expr_Rel))
 
+
+    predicate {:verify false} Tr_Pre(p: Program) {
+      Deep.All_Program(p, Tr_Expr.f.requires)
+    }
+
+    predicate {:verify false} Tr_Post(p: Program)
+    {
+      Deep.All_Program(p, Tr_Expr_Post)
+    }
+
     function method {:verify false} Apply(p: Program) : (p': Program)
-      requires Deep.All_Program(p, Tr_Expr.f.requires)
-      ensures Deep.All_Program(p', Tr_Expr_Post)
+      requires Tr_Pre(p)
+      ensures Tr_Post(p')
       ensures Tr_Expr_Rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
     {
       Map_Program(p, Tr_Expr)
