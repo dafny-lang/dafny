@@ -60,10 +60,6 @@ namespace DafnyTestGeneration {
                          $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});");
         program.AddTopLevelDeclaration(axiom);
       }
-      // Restricting character codes to those valid in Dafny
-      axiom = GetAxiom("axiom (forall c: char :: { char#ToInt(c) } " +
-                       "(char#ToInt(c) >= 33) && (char#ToInt(c) <= 126));");
-      program.AddTopLevelDeclaration(axiom);
     }
 
     /// <summary>
@@ -95,6 +91,7 @@ namespace DafnyTestGeneration {
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
       program.Resolve(DafnyOptions.O);
+      program.Typecheck(DafnyOptions.O);
       return program;
     }
 
@@ -154,7 +151,8 @@ namespace DafnyTestGeneration {
       private Program? program;
 
       public override Procedure? VisitProcedure(Procedure? node) {
-        if (node == null || !node.Name.StartsWith("Call$$")) {
+        if (node == null || !node.Name.StartsWith("Call$$") ||
+            node.Name.EndsWith("__ctor")) {
           return node;
         }
 
@@ -203,7 +201,9 @@ namespace DafnyTestGeneration {
         implsToAdd = new();
         node = base.VisitProgram(node);
         node.AddTopLevelDeclarations(implsToAdd);
+        node = Utils.DeepCloneProgram(node);
         node.Resolve(DafnyOptions.O);
+        node.Typecheck(DafnyOptions.O);
         return node;
       }
     }
@@ -257,7 +257,9 @@ namespace DafnyTestGeneration {
 
       public override Program VisitProgram(Program node) {
         node = base.VisitProgram(node);
+        node = Utils.DeepCloneProgram(node);
         node.Resolve(DafnyOptions.O);
+        node.Typecheck(DafnyOptions.O);
         return node;
       }
     }
@@ -284,7 +286,6 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-
         implName = node.Name;
         // print parameter types:
         var types = new List<string> { "\"Types\"" };
@@ -318,7 +319,9 @@ namespace DafnyTestGeneration {
 
       public override Program VisitProgram(Program node) {
         node = base.VisitProgram(node);
+        node = Utils.DeepCloneProgram(node);
         node.Resolve(DafnyOptions.O);
+        node.Typecheck(DafnyOptions.O);
         return node;
       }
     }
@@ -356,12 +359,9 @@ namespace DafnyTestGeneration {
         var returnName = proc.Ensures
           .Select(e => e.Condition)
           .OfType<NAryExpr>()
-          .Where(c =>
-            (c.Fun as BinaryOperator)?.Op is
-            BinaryOperator.Opcode.Eq or
-            BinaryOperator.Opcode.Iff)
-          .Where(c => (c.Args[0] is IdentifierExpr) &&
-                      ((c.Args[1] as NAryExpr)!.Fun!.FunctionName ==
+          .Where(c => (c.Args.Count == 2) &&
+                      (c.Args[0] is IdentifierExpr) &&
+                      ((c.Args[1] as NAryExpr)?.Fun?.FunctionName ==
                        call.Fun.FunctionName))
           .Select(c => (c.Args[0] as IdentifierExpr)?.Name)
           .Where(n => proc.OutParams.Exists(p => p.Name == n)).ToList();
@@ -382,7 +382,8 @@ namespace DafnyTestGeneration {
         var newCmd = new CallCmd(
           new Token(),
           proc.Name,
-          call.Args.ToList(),
+          call.Args.Where(e => (e.Type as CtorType)?.Decl?.Name is not "LayerType" &&
+                               (e.Type as TypeSynonymAnnotation)?.Decl?.Name is not "Heap").ToList(),
           outs);
         // The call will precede the assignment command being processed
         commandsToInsert?.Insert(0, (newCmd, currAssignCmd)!);
@@ -390,43 +391,16 @@ namespace DafnyTestGeneration {
       }
 
       public override Expr VisitNAryExpr(NAryExpr node) {
-        if (currAssignCmd == null) {
-          return base.VisitNAryExpr(node);
+        var newNode = base.VisitNAryExpr(node);
+        if ((currAssignCmd == null) || newNode is not NAryExpr funcCall) {
+          return newNode;
         }
-        var args = node.Args.ToList();
-        // iterating in the reverse order because
-        // the call commands are added in the LIFO order
-        for (int i = args.Count - 1; i >= 0; i--) {
-          var arg = args[i];
-          if ((arg != null) && (arg is NAryExpr funcCall)) {
-            var id = TryConvertFunctionCall(funcCall);
-            if (id != null) {
-              int index = node.Args.IndexOf(arg);
-              node.Args.RemoveAt(index);
-              node.Args.Insert(index, id);
-            }
-          }
-        }
-        return base.VisitNAryExpr(node);
+        var identifierExpr = TryConvertFunctionCall(funcCall);
+        return identifierExpr ?? newNode;
       }
 
       public override Cmd VisitAssignCmd(AssignCmd node) {
         currAssignCmd = node;
-        var newRhss = new List<Expr>();
-        // iterating in the reverse order because
-        // the call commands are added in the LIFO order
-        for (int index = node.Rhss.Count - 1; index >= 0; index--) {
-          var rhs = node.Rhss[index];
-          if (rhs is NAryExpr funcCall) {
-            var id = TryConvertFunctionCall(funcCall);
-            if (id != null) {
-              newRhss.Insert(0, id);
-              continue;
-            }
-          }
-          newRhss.Insert(0, rhs);
-        }
-        node.Rhss = newRhss;
         node = (AssignCmd)base.VisitAssignCmd(node);
         currAssignCmd = null;
         return node;
@@ -456,7 +430,9 @@ namespace DafnyTestGeneration {
         node = new RemoveFunctionsFromShortCircuitRewriter().VisitProgram(node);
         currProgram = node;
         VisitDeclarationList(node.TopLevelDeclarations.ToList<Declaration>());
+        node = Utils.DeepCloneProgram(node);
         node.Resolve(DafnyOptions.O);
+        node.Typecheck(DafnyOptions.O);
         return node;
       }
 
@@ -465,7 +441,11 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Remove function calls from short-circuiting expressions so that
     /// function appear in assign commands only when the preconditions are met.
-    /// This operation is only performed on non-side effecting implementations
+    /// This operation is only performed on non-side effecting implementations.
+    /// IMPORTANT: This should only be used in conjunction with
+    /// FunctionToMethodCallRewriter because there are corner cases in which
+    /// this pass will otherwise introduce a program that does not typecheck
+    /// (due to LayerType). 
     /// </summary>
     private class RemoveFunctionsFromShortCircuitRewriter : StandardVisitor {
 
@@ -490,7 +470,12 @@ namespace DafnyTestGeneration {
               node.Fun.FunctionName + CanCallSuffix) == null) {
           return base.VisitNAryExpr(node);
         }
-        var functionCallToString = node.ToString();
+
+        // LayerType arguments should be removed in preparation of this 
+        // function call being replaced with a method call
+        var funcCall = new NAryExpr(new Token(), node.Fun,
+          node.Args.Where(e => (e.Type as CtorType)?.Decl?.Name != "LayerType").ToList());
+        var functionCallToString = funcCall.ToString();
         if (!funcCallToResult!.ContainsKey(functionCallToString)) {
           funcCallToResult.Add(functionCallToString,
             GetNewLocalVariable(currImpl!, node.Type));
@@ -537,9 +522,13 @@ namespace DafnyTestGeneration {
         // the command will be added to the block at VisitBlock call
         var toBeAssigned = new SimpleAssignLhs(new Token(),
           new IdentifierExpr(new Token(), funcCallToResult[funcCallToString]));
-        commandsToInsert?.Add((new AssignCmd(new Token(),
+        var cmd = new AssignCmd(new Token(),
           new List<AssignLhs> { toBeAssigned },
-          new List<Expr> { funcCall }), node));
+          new List<Expr> { funcCall });
+        currAssignCmd = cmd;
+        funcCall.Args.Iter(e => VisitExpr(e));
+        currAssignCmd = null;
+        commandsToInsert?.Add((cmd, node));
         return node;
       }
 

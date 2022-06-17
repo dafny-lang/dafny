@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -20,25 +19,8 @@ namespace DafnyTestGeneration {
     private readonly Program program;
 
     public ProgramModification(Program program, string procedure) {
-      this.program = DeepCloneProgram(program);
+      this.program = Utils.DeepCloneProgram(program);
       this.procedure = procedure;
-    }
-
-    /// <summary>
-    /// Deep clone the program.
-    /// </summary>
-    private static Program DeepCloneProgram(Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
-      var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      var textRepresentation = output.ToString();
-      Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
-      return copy;
     }
 
     /// <summary>
