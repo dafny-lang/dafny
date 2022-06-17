@@ -42,20 +42,6 @@ module CompilerRewriter {
       && forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
     }
 
-    // TODO: remove?
-    function method {:verify false} {:opaque} MapWithPost_old<A, B>(f: A ~> B, ghost post: B -> bool, xs: seq<A>) : (ys: seq<B>)
-      reads f.reads
-      requires forall a | a in xs :: f.requires(a)
-      requires forall a | a in xs :: post(f(a))
-      ensures |ys| == |xs|
-      ensures forall i | 0 <= i < |xs| :: ys[i] == f(xs[i])
-      ensures forall y | y in ys :: post(y)
-      ensures Seq.All(post, ys)
-      //ensures Map_All_Rel(f, rel, xs, ys)
-    {
-      Seq.Map(f, xs)
-    }
-
     function method {:verify false} {:opaque} MapWithPost<A(!new), B>(
       f: A ~> B, ghost post: B -> bool, ghost rel: (A,B) -> bool, xs: seq<A>) : (ys: seq<B>)
       reads f.reads
@@ -67,7 +53,6 @@ module CompilerRewriter {
       ensures forall y | y in ys :: post(y)
       ensures Seq.All(post, ys)
       ensures forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
-      //ensures Map_All_Rel(f, rel, xs, ys)
     {
       Seq.Map(f, xs)
     }
@@ -140,6 +125,7 @@ module CompilerRewriter {
       import opened Transformer
       import Shallow
 
+      predicate {:verify false} MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool)
       // This predicate gives us the conditions for which, if we deeply apply `f` to all
       // the children of an expression, then the resulting expression satisfies the pre
       // of `f` (i.e., we can call `f` on it).
@@ -150,13 +136,14 @@ module CompilerRewriter {
       // - all the children of `e'` deeply satisfy the post of `f`
       // Then:
       // - `e'` satisfies the pre of `f`
-      predicate {:verify false} MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool) {
+      {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e)
             && Deep.AllChildren_Expr(e', post)) ==> f.requires(e'))
        }
 
+      predicate {:verify false} TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool)
       // This predicate gives us the conditions for which, if we deeply apply `f` to an
       // expression, the resulting expression satisfies the postcondition we give for `f`.
       // 
@@ -165,28 +152,32 @@ module CompilerRewriter {
       // - `e` satisfies the pre of `f`
       // Then:
       // - `f(e)` deeply satisfies the post of `f`
-      predicate {:verify false} TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool) {
+      {
         forall e: Expr | Deep.AllChildren_Expr(e, post) && f.requires(e) ::
           Deep.All_Expr(f(e), post)
       }
 
-      // TODO: add comment
-      predicate {:verify false} TransformerDeepPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
+      predicate {:verify false} TransformerShallowPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool)
+      // `f` relates its input and its output with `rel`.
+      {
+        forall e | f.requires(e) :: rel(e, f(e))
+      }
+
+      predicate {:verify false} TransformerDeepPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool)
+      // This predicate is quite general, but is to be used in the following setting:
+      // if we apply `f` on all the children of `e`, leading to an expression `e'`, then we
+      // can relate `e` and `f(e')` with `rel`.
+      {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e')
-            //&& |e'.Children()| == |e.Children()|
-            //&& forall i:nat | i < |e.Children()| :: rel(e.Children()[i], e'.Children()[i]))
             && All_Rel_Forall(rel, e.Children(), e'.Children()))
             ==> rel(e, f(e')))
       }
-
-      predicate {:verify false} TransformerShallowPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
-        forall e | f.requires(e) :: rel(e, f(e))
-      }
       
+      predicate {:verify false} IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool)
       // Predicate for ``BottomUpTransformer``
-      predicate {:verify false} IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool) {
+      {
         && TransformerMatchesPrePost(f, post)
         && MapChildrenPreservesPre(f, post)
         && TransformerDeepPreservesRel(f, rel)
@@ -231,7 +222,6 @@ module CompilerRewriter {
                  IdentityPreservesRel();
                  IdentityTransformer)
 
-      // Apply a transformer bottom-up on the children of an expression.
       function method {:verify false} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
         (e': Expr)
         decreases e, 0
@@ -239,6 +229,7 @@ module CompilerRewriter {
         ensures Deep.AllChildren_Expr(e', tr.post)
         ensures Exprs.ConstructorsMatch(e, e')
         ensures All_Rel_Forall(tr.rel, e.Children(), e'.Children())
+      // Apply a transformer bottom-up on the children of an expression.
       {
         // Not using datatype updates below to ensure that we get a warning if a
         // type gets new arguments
@@ -278,18 +269,11 @@ module CompilerRewriter {
         tr.f(MapChildren_Expr(e, tr))
       }
 
-      // Auxiliary function
-      // TODO: remove?
-      function method {:verify false} MapChildren_Expr_Transformer'(tr: BottomUpTransformer) :
-        (tr': Transformer'<Expr,Expr>) {
-        TR(e requires Deep.AllChildren_Expr(e, tr.f.requires) => MapChildren_Expr(e, tr),
-           e' => Deep.AllChildren_Expr(e', tr.post),
-           tr.rel)
-      }
-
+      function method {:verify false} Map_Expr_Transformer'(tr: BottomUpTransformer) :
+        (tr': Transformer'<Expr,Expr>)
       // We can write aggregated statements only in lemmas.
-      // This forces me to cut this definition into pieces...
-      function method {:verify false} Map_Expr_Transformer'(tr: BottomUpTransformer) : (tr': Transformer'<Expr,Expr>) {
+      // This forced me to cut this definition into pieces...
+      {
         TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
            e' => Deep.All_Expr(e', tr.post),
            tr.rel)
@@ -321,16 +305,18 @@ module CompilerRewriter {
         }
       }
 
-      function method {:verify false} Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
-      // Given a bottom-up transformer tr, return a transformer which applies tr in a bottom-up
-      // manner.
+      function method {:verify false} Map_Expr_Transformer(tr: BottomUpTransformer) :
+        (tr': ExprTransformer)
+      // Given a bottom-up transformer `tr`, return a transformer which applies `tr` in
+      // a bottom-up manner.
       {
         var tr': Transformer'<Expr,Expr> := Map_Expr_Transformer'(tr);
         Map_Expr_Transformer'_Lem(tr);
         tr'
       }
 
-      function method {:verify false} {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
+      function method {:verify false} {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) :
+        (m': Method)
         requires Deep.All_Method(m, tr.f.requires)
         ensures Deep.All_Method(m', tr.post)
         ensures tr.rel(m.methodBody, m'.methodBody)
@@ -339,18 +325,22 @@ module CompilerRewriter {
         Shallow.Map_Method(m, Map_Expr_Transformer(tr))
       }
 
-      function method {:verify false} {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
-      // Apply a transformer to a program, in a bottom-up manner.
+      function method {:verify false} {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) :
+        (p': Program)
         requires Deep.All_Program(p, tr.f.requires)
         ensures Deep.All_Program(p', tr.post)
         ensures tr.rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
+      // Apply a transformer to a program, in a bottom-up manner.
       {
         Shallow.Map_Program(p, Map_Expr_Transformer(tr))
       }
     }
   }
 
-  module EliminateNegatedBinops {
+  module Equiv {
+    // This module introduces the relations we use to describe values and expressions
+    // as equivalent, and which we use to state that our compilation passes are sound.
+
     import DCC = DafnyCompilerCommon
     import Lib
     import Lib.Debug
@@ -363,79 +353,9 @@ module CompilerRewriter {
     import opened Interp
     import opened Values
 
-    function method {:verify false} FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
-    // Auxiliarly function (no postcondition): flip the negated binary operations
-    // (of the form "not binop(...)") to the equivalent non-negated operations ("binop(...)").
-    // Ex.: `neq` ~~> `eq`
-    {
-      match op {
-        case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
-        case Sequences(SeqNeq) => BinaryOps.Sequences(BinaryOps.SeqEq)
-        case Sequences(NotInSeq) => BinaryOps.Sequences(BinaryOps.InSeq)
-        case Sets(SetNeq) => BinaryOps.Sets(BinaryOps.SetEq)
-        case Sets(NotInSet) => BinaryOps.Sets(BinaryOps.InSet)
-        case Multisets(MultisetNeq) => BinaryOps.Multisets(BinaryOps.MultisetEq)
-        case Multisets(NotInMultiset) => BinaryOps.Multisets(BinaryOps.InMultiset)
-        case Maps(MapNeq) => BinaryOps.Maps(BinaryOps.MapEq)
-        case Maps(NotInMap) => BinaryOps.Maps(BinaryOps.InMap)
-        case _ => op
-      }
-    }
-
-    function method {:verify false} FlipNegatedBinop(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
-      ensures !IsNegatedBinop(op')
-    {
-      FlipNegatedBinop'(op)
-    }
-
-    predicate method {:verify false} IsNegatedBinop(op: BinaryOps.BinaryOp) {
-      FlipNegatedBinop'(op) != op
-    }
-
-    predicate method {:verify false} IsNegatedBinopExpr(e: Exprs.T) {
-      match e {
-        case Apply(Eager(BinaryOp(op)), _) => IsNegatedBinop(op)
-        case _ => false
-      }
-    }
-
-    predicate {:verify false} NotANegatedBinopExpr(e: Exprs.T) {
-      !IsNegatedBinopExpr(e)
-    }
-
-    // function method Tr_Expr1(e: Exprs.T) : (e': Exprs.T)
-    //   ensures NotANegatedBinopExpr(e')
-    // {
-    //   match e {
-    //     case Binary(bop, e0, e1) =>
-    //       if IsNegatedBinop(bop) then
-    //         Expr.UnaryOp(UnaryOps.BoolNot, Expr.Binary(FlipNegatedBinop(bop), e0, e1))
-    //       else
-    //         Expr.Binary(bop, e0, e1)
-    //     case _ => e
-    //   }
-    // }
-
-    predicate {:verify false} Tr_Expr_Post(e: Exprs.T) {
-      NotANegatedBinopExpr(e)
-    }
-
-    predicate {:verify false} GEqInterpResult<T(0)>(
-      eq_ctx: (State,State) -> bool, eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
-    // Interpretation results are equivalent.
-    // "G" stands for "generic" (TODO: update)
-    // TODO: be a bit more precise in the error case, especially in case of "out of fuel".
-    {
-      match (res, res') {
-        case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
-          && eq_ctx(ctx, ctx')
-          && eq_value(v, v')
-        case (Failure(_), Failure(_)) =>
-          true
-        case _ =>
-          false
-      }
-    }
+    // TODO: use more
+    datatype Equivs =
+      EQ(eq_value: (WV, WV) -> bool, eq_state: (State, State) -> bool)
 
     // TODO: not sure it was worth making this opaque
     predicate method {:verify false} {:opaque} GEqCtx(
@@ -458,13 +378,31 @@ module CompilerRewriter {
       (ctx, ctx') => GEqState(eq_value, ctx, ctx')
     }
 
+    predicate {:verify false} GEqInterpResult<T(0)>(
+      eq_ctx: (State,State) -> bool, eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
+    // Interpretation results are equivalent.
+    // "G" stands for "generic".
+    // TODO: be a bit more precise in the error case, especially in case of "out of fuel".
+    {
+      match (res, res') {
+        case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
+          && eq_ctx(ctx, ctx')
+          && eq_value(v, v')
+        case (Failure(_), Failure(_)) =>
+          true
+        case _ =>
+          false
+      }
+    }
+
     function method {:opaque} {:verify false} InterpCallFunctionBody(fn: WV, fuel: nat, argvs: seq<WV>)
       : (r: PureInterpResult<WV>)
       requires fn.Closure?
       requires |fn.vars| == |argvs|
-    // Call a function body with some arguments.
-    // We introduce this auxiliary function to opacify its content (otherwise ``EqValue_Closure``
-    // takes too long to typecheck).
+    // Small utility, very similar to ``InterpFunctionCall``, which we use to factorize
+    // the definitions. The opaque attribute is maybe not necessary anymore, but as the
+    // proofs work with it, we might as well keep it (it is easier to remove an opaque
+    // attribute, than to add one and fix the proofs by adding the proper calls to ``reveal``).
     {
         var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
         var Return(val, ctx) :- InterpExpr(fn.body, fuel, ctx);
@@ -510,12 +448,7 @@ module CompilerRewriter {
           && |m| == |m'| // We *do* need this
           && (forall x | x in m :: EqValue(m[x], m'[x]))
         case (Multiset(ms), Multiset(ms')) =>
-          //ValueTypeHeight_Children_Lem(v); // For termination
-          //ValueTypeHeight_Children_Lem(v'); // For termination
           ms == ms'
-//          && |ms| == |ms'| // We *do* need this
-//          && (forall x :: x in ms <==> x in ms')
-//          && (forall x | x in ms :: ms[x] == ms'[x])
         case (Seq(sq), Seq(sq')) =>
           ValueTypeHeight_Children_Lem(v); // For termination
           ValueTypeHeight_Children_Lem(v'); // For termination
@@ -549,7 +482,7 @@ module CompilerRewriter {
     //
     // See ``EqValue``.
     //
-    // Rk.: contraty to ``EqValue``, it seems ok to make ``EqValue_Closure`` opaque.
+    // Rk.: contrary to ``EqValue``, it seems ok to make ``EqValue_Closure`` opaque.
     {
       var Closure(ctx, vars, body) := v;
       var Closure(ctx', vars', body') := v';
@@ -599,12 +532,12 @@ module CompilerRewriter {
       GEqInterpResult(Mk_EqState(EqValue), eq_value, res, res')
     }
 
-    // If values are equivalent and don't contain functions, they are necessarily equal
     lemma {:verify false} EqValueHasEq_Lem(v: WV, v': WV)
       requires EqValue(v,v')
       requires HasEqValue(v)
       requires HasEqValue(v')
       ensures v == v'
+    // If values are equivalent and have a decidable equality, they are necessarily equal.
     {
       reveal EqValue_Closure();
     }
@@ -743,9 +676,8 @@ module CompilerRewriter {
       EqPairs(EqEqValue, EqValue, v, v')
     }
     
-    // Interpretation results are equivalent.
-    // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
-    predicate {:verify false} EqInterpResultValue(res: InterpResult<WV>, res': InterpResult<WV>) {
+    predicate {:verify false} EqInterpResultValue(res: InterpResult<WV>, res': InterpResult<WV>)
+    {
       EqInterpResult(EqValue, res, res')
     }
 
@@ -801,12 +733,10 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: move up
-    datatype Equivs =
-      EQ(eq_value: (WV, WV) -> bool, eq_state: (State, State) -> bool)
-
-    // TODO: move
-    predicate {:verify false} GEqInterp(eq: Equivs, e: Exprs.T, e': Exprs.T) {
+    // TODO: make opaque?
+    predicate {:verify false} GEqInterp(eq: Equivs, e: Exprs.T, e': Exprs.T)
+    // This is the important, generic equivalence relation over expressions.
+    {
       SupportsInterp(e) ==>
       (&& SupportsInterp(e')
        && forall fuel, ctx, ctx' | eq.eq_state(ctx, ctx') ::
@@ -819,10 +749,10 @@ module CompilerRewriter {
       (e, e') => GEqInterp(eq, e, e')
     }
 
-    // TODO: move
-    // TODO: change the definition to quantify over equivalent contexts
     // TODO: make opaque?
-    predicate {:verify false} EqInterp(e: Exprs.T, e': Exprs.T) {
+    predicate {:verify false} EqInterp(e: Exprs.T, e': Exprs.T)
+    // The important equivalence relation over expressions.
+    {
       GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
     }
 
@@ -874,40 +804,6 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: remove
-    lemma {:verify false} InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State, ctx': State)
-      requires SupportsInterp(e)
-      requires EqState(ctx, ctx')
-      ensures forall e' | e' in [e] :: SupportsInterp(e')
-      ensures EqInterpResultSeq1Value(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx'))
-      // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating
-      // the single expression.
-    {
-      reveal InterpExprs();
-      var es := [e];
-      var es' := es[1..];
-      assert es' == [];
-
-      var e_res := InterpExpr(e, fuel, ctx);
-      var e_res' := InterpExpr(e, fuel, ctx');
-      var es_res := InterpExprs([e], fuel, ctx');
-
-      var res := InterpExpr(e, fuel, ctx);
-      var sres := InterpExprs([e], fuel, ctx');
-
-      EqInterp_Refl_Lem(e);
-      EqInterp_Lem(e, e, fuel, ctx, ctx');
-      if e_res.Success? {
-        var Return(v, ctx1) := e_res.value;
-        var Return(v', ctx1') := InterpExpr(e, fuel, ctx').value;
-        assert InterpExprs(es', fuel, ctx1') == Success(Return([], ctx1'));
-        assert es_res == Success(Return([v'] + [], ctx1'));
-      }
-      else {
-        // Trivial
-      }
-    }
-
     lemma {:verify false} InterpExprs1_Strong_Lem(e: Expr, fuel: nat, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
@@ -934,7 +830,6 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: move
     lemma {:verify false} EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State, ctx': State)
       requires SupportsInterp(e)
       requires EqInterp(e, e')
@@ -943,11 +838,6 @@ module CompilerRewriter {
       ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     // We use this lemma because sometimes quantifiers are are not triggered.
     {}
-
-    // TODO: move - TODO: remove?
-    predicate {:verify false} Tr_EqInterp(f: Expr --> Expr, rel: (Expr, Expr) -> bool) {
-      forall e | f.requires(e) :: rel(e, f(e)) ==> EqInterp(e, f(e))
-    }
 
     lemma {:verify false}
       InterpExprs_GEqInterp_Lem(
@@ -958,11 +848,11 @@ module CompilerRewriter {
       ensures forall e | e in es' :: SupportsInterp(e)
       ensures GEqInterpResultSeq(eq, InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
     // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
-    // sequences in the same context leads to equivalent results.
+    // sequences in equivalent contexts leads to equivalent results.
     // This lemma is written generically over the equivalence relations over the states and
     // values. We don't do this because it seems elegant: we do this as a desperate attempt
     // to reduce the context size, while we are unable to use the `opaque` attribute on
-    // some definitions.
+    // some definitions (``EqValue`` in particular).
     {
       reveal InterpExprs();
 
@@ -1021,7 +911,7 @@ module CompilerRewriter {
       ensures forall e | e in es' :: SupportsInterp(e)
       ensures EqInterpResultSeqValue(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
     // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
-    // sequences in the same context leads to equivalent results.
+    // sequences in equivalent contexts leads to equivalent results.
     {
       InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
     }
@@ -1111,11 +1001,10 @@ module CompilerRewriter {
       EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
     }
 
-    // TODO: move
     lemma {:verify false} EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 2
+      decreases e, fuel, 1
     {
       // Note that we don't need to reveal ``InterpExpr``: we just match on the first
       // expression and call the appropriate auxiliary lemma.
@@ -1161,8 +1050,7 @@ module CompilerRewriter {
       requires e'.Var?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
-    // Verif time: ~= 17s
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1178,7 +1066,7 @@ module CompilerRewriter {
       requires e'.Literal?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1187,14 +1075,13 @@ module CompilerRewriter {
       reveal InterpLiteral();
     }
 
-    // TODO: move
     lemma {:verify false}
     EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
       requires e.Abs?
       requires e'.Abs?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1294,7 +1181,7 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: I don't understand why I need to use vcs_split_on_every_assert on this one.
+    // I don't understand why I need to use vcs_split_on_every_assert on this one.
     // For some strange reason it takes ~20s to verify with this, and timeouts without.
     lemma {:verify false} {:vcs_split_on_every_assert}
     MapOfPairs_SeqZip_EqCtx_Lem(vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
@@ -1321,7 +1208,7 @@ module CompilerRewriter {
       requires e'.Apply? && e'.aop.Lazy?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1371,7 +1258,7 @@ module CompilerRewriter {
       requires e'.Apply? && e'.aop.Eager?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1393,7 +1280,8 @@ module CompilerRewriter {
 
       match (res0, res0') {
         case (Success(res0), Success(res0')) => {
-          // TODO: Dafny crashes if we try to deconstruct the `Return`s in the match
+          // Dafny crashes if we try to deconstruct the `Return`s in the match.
+          // See: https://github.com/dafny-lang/dafny/issues/2258
           var Return(argvs, ctx0) := res0;
           var Return(argvs', ctx0') := res0';
 
@@ -1668,24 +1556,6 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: move - TODO: remove?
-    lemma {:verify false} MapSubstractSet_Card_Lem<T, U>(m: map<T, U>, m': map<T, U>, s: set<T>)
-      requires |m| == |m'|
-      requires m.Keys == m'.Keys
-      ensures |m - s| == |m' - s|
-    // It is not always obvious how one should reason about collections, even to prove
-    // trivial results, hence this lemma.
-    //
-    // Rk.: this lemma is mostly here for the reference.
-    {
-        var ms := m - s;
-        var ms' := m' - s;
-        
-        assert |ms| == |ms.Keys|; // We need this
-        assert |ms'| == |ms'.Keys|; // We need this
-    }
-
-
     lemma {:verify false}
     EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV)
@@ -1793,7 +1663,7 @@ module CompilerRewriter {
       requires e'.If?
       requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
       ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+      decreases e, fuel, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1865,6 +1735,75 @@ module CompilerRewriter {
         }
         else {}
       }
+    }
+
+  }
+
+  module EliminateNegatedBinops {
+    // This module implements a simple pass, by which we decompose the "negated" binops
+    // into a negation of the "original" binop.
+    //
+    // Ex.:
+    // ====
+    // ```
+    // x !in set    ~~>   !(x in set)
+    // ```
+    
+    import DCC = DafnyCompilerCommon
+    import Lib
+    import Lib.Debug
+    import opened DCC.AST
+    import opened Lib.Datatypes
+    import opened Rewriter.BottomUp
+
+    import opened DCC.Predicates
+    import opened Transformer
+    import opened Interp
+    import opened Values
+    import opened Equiv
+
+    function method {:verify false} FlipNegatedBinop_Aux(op: BinaryOps.BinaryOp) :
+      (op': BinaryOps.BinaryOp)
+    // Auxiliary function (no postcondition)
+    {
+      match op {
+        case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
+        case Sequences(SeqNeq) => BinaryOps.Sequences(BinaryOps.SeqEq)
+        case Sequences(NotInSeq) => BinaryOps.Sequences(BinaryOps.InSeq)
+        case Sets(SetNeq) => BinaryOps.Sets(BinaryOps.SetEq)
+        case Sets(NotInSet) => BinaryOps.Sets(BinaryOps.InSet)
+        case Multisets(MultisetNeq) => BinaryOps.Multisets(BinaryOps.MultisetEq)
+        case Multisets(NotInMultiset) => BinaryOps.Multisets(BinaryOps.InMultiset)
+        case Maps(MapNeq) => BinaryOps.Maps(BinaryOps.MapEq)
+        case Maps(NotInMap) => BinaryOps.Maps(BinaryOps.InMap)
+        case _ => op
+      }
+    }
+
+    function method {:verify false} FlipNegatedBinop(op: BinaryOps.BinaryOp) :
+      (op': BinaryOps.BinaryOp)
+      ensures !IsNegatedBinop(op')
+    {
+      FlipNegatedBinop_Aux(op)
+    }
+
+    predicate method {:verify false} IsNegatedBinop(op: BinaryOps.BinaryOp) {
+      FlipNegatedBinop_Aux(op) != op
+    }
+
+    predicate method {:verify false} IsNegatedBinopExpr(e: Exprs.T) {
+      match e {
+        case Apply(Eager(BinaryOp(op)), _) => IsNegatedBinop(op)
+        case _ => false
+      }
+    }
+
+    predicate {:verify false} NotANegatedBinopExpr(e: Exprs.T) {
+      !IsNegatedBinopExpr(e)
+    }
+
+    predicate {:verify false} Tr_Expr_Post(e: Exprs.T) {
+      NotANegatedBinopExpr(e)
     }
 
     predicate {:verify false} Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
