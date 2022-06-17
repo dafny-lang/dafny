@@ -8,10 +8,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.CodeAnalysis.Diagnostics;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -52,15 +50,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, started.Uri);
-      Assert.AreEqual(documentItem.Version, started.Version);
-      Assert.AreEqual(CompilationStatus.ParsingFailed, started.Status);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
-      client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
-      var queueRemainder = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(CompilationStatus.ParsingFailed, queueRemainder.Status);
+      var otherDoc = CreateTestDocument(source, "Test2.dfy");
+      client.OpenDocument(otherDoc);
+      await AssertProgress(otherDoc, CompilationStatus.ResolutionStarted);
+      await AssertProgress(otherDoc, CompilationStatus.ParsingFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -74,15 +71,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, started.Uri);
-      Assert.AreEqual(documentItem.Version, started.Version);
-      Assert.AreEqual(CompilationStatus.ResolutionFailed, started.Status);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionFailed);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
-      client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
-      var queueRemainder = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(CompilationStatus.ResolutionFailed, queueRemainder.Status);
+      var otherDoc = CreateTestDocument(source, "Test2.dfy");
+      client.OpenDocument(otherDoc);
+      await AssertProgress(otherDoc, CompilationStatus.ResolutionStarted);
+      await AssertProgress(otherDoc, CompilationStatus.ResolutionFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -99,6 +95,7 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
@@ -126,6 +123,7 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
@@ -137,6 +135,7 @@ method Abs(x: int) returns (y: int)
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
@@ -151,6 +150,7 @@ method Abs(x: int) returns (y: int)
       });
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
       await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
@@ -178,15 +178,10 @@ method Abs(x: int) returns (y: int)
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
 
-      var compilation1 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem1.Uri, compilation1.Uri);
-      Assert.AreEqual(documentItem1.Version, compilation1.Version);
-      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation1.Status);
-
-      var compilation2 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem2.Uri, compilation2.Uri);
-      Assert.AreEqual(documentItem2.Version, compilation2.Version);
-      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation2.Status);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.CompilationSucceeded);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -238,16 +233,10 @@ method Abs(x: int) returns (y: int)
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
-
-      var compilation1 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem1.Uri, compilation1.Uri);
-      Assert.AreEqual(documentItem1.Version, compilation1.Version);
-      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation1.Status);
-
-      var compilation2 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem2.Uri, compilation2.Uri);
-      Assert.AreEqual(documentItem2.Version, compilation2.Version);
-      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation2.Status);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.CompilationSucceeded);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -261,10 +250,8 @@ method Abs(x: int) returns (y: int)
     }";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, compilation.Uri);
-      Assert.AreEqual(documentItem.Version, compilation.Version);
-      Assert.AreEqual(CompilationStatus.ParsingFailed, compilation.Status);
+      await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
     }
   }
 }
