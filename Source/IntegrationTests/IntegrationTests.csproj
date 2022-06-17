@@ -40,9 +40,6 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Update="..\..\Test\DafnyTestGeneration\DafnyTestGeneration.csproj">
-          <Link>TestFiles\LitTests\LitTest\DafnyTestGeneration\DafnyTestGeneration.csproj</Link>
-        </Content>
     </ItemGroup>
     
 </Project>
