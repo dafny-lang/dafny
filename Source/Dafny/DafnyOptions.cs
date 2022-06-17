@@ -690,7 +690,7 @@ namespace Microsoft.Dafny {
 
     {:main}
       When executing a program, Dafny will first look for a method annotated with {:main}, and otherwise
-      will look for `method Main()`, and execute the first method.
+      will look for `method Main()`, and then execute the first of these two methods found.
 
     {:axiom}
       Ordinarily, the compiler gives an error for every function or
