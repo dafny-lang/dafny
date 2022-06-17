@@ -27,27 +27,27 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private const int MaxLastTouchedMethodPriority = 10;
   private const int MaxLastTouchedMethods = 5;
 
-  private readonly ICompilationStatusNotificationPublisher publisher;
+  private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
-  private readonly IDiagnosticPublisher diagnosticPublisher;
+  private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DafnyDocument document,
-    ICompilationStatusNotificationPublisher publisher,
-    IDiagnosticPublisher diagnosticPublisher
+    ICompilationStatusNotificationPublisher statusPublisher,
+    INotificationPublisher notificationPublisher
   ) {
     this.document = document;
-    this.publisher = publisher;
+    this.statusPublisher = statusPublisher;
     this.logger = logger;
-    this.diagnosticPublisher = diagnosticPublisher;
+    this.notificationPublisher = notificationPublisher;
   }
 
   /// <summary>
   /// Sends a more precise verification status message to the client's status bar
   /// </summary>
   public void ReportProgress(string message) {
-    publisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
+    statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
   }
 
   /// <summary>
@@ -209,10 +209,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         continue;
       }
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
-                           implementation.Name;
+                           implementation.VerboseName;
       var newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
-        implementation.Name,
+        implementation.VerboseName,
         targetMethodNode.Filename,
         targetMethodNode.Range
       ).WithImplementation(implementation);
@@ -246,7 +246,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
+      notificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 
@@ -491,7 +491,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
         node => {
           var nodeImpl = node?.GetImplementation();
-          return nodeImpl?.Name == implementation.Name;
+          return nodeImpl?.Name == implementation.VerboseName;
         }, null);
     } else {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(

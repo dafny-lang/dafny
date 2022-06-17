@@ -13,6 +13,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
+using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
@@ -1627,6 +1628,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      AddVerboseName(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
       codeContext = null;
@@ -1762,6 +1764,7 @@ namespace Microsoft.Dafny {
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
           new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -1836,6 +1839,7 @@ namespace Microsoft.Dafny {
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
           new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
           localVariables, stmts, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4193,6 +4197,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       if (InsertChecksums) {
@@ -4363,6 +4368,7 @@ namespace Microsoft.Dafny {
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
           InsertChecksum(f, impl);
@@ -4413,9 +4419,12 @@ namespace Microsoft.Dafny {
         (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
         etran.Tick()
       };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
+      var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      // TODO: is decl.Name the right thing below?
+      AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       // TODO: Can a checksum be inserted here?
@@ -4514,6 +4523,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4567,9 +4577,11 @@ namespace Microsoft.Dafny {
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
+      var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4593,6 +4605,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(decl.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -4641,6 +4654,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4667,6 +4681,7 @@ namespace Microsoft.Dafny {
         var impl = new Bpl.Implementation(ctor.tok, proc.Name,
           new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
           locals, implBody, kv);
+        CopyVerboseName(impl, proc);
         sink.AddTopLevelDeclaration(impl);
       }
 
@@ -7918,6 +7933,34 @@ namespace Microsoft.Dafny {
       }
     }
 
+    static string MethodVerboseName(string fullName, MethodTranslationKind kind) {
+      Contract.Requires(fullName != null);
+      switch (kind) {
+        case MethodTranslationKind.SpecWellformedness:
+          return fullName + " (well-formedness)";
+        case MethodTranslationKind.Call:
+          return fullName + " (call)";
+        case MethodTranslationKind.CoCall:
+          return fullName + " (co-call)";
+        case MethodTranslationKind.Implementation:
+          return fullName + " (implementation correctness)";
+        case MethodTranslationKind.OverrideCheck:
+          return fullName + " (override check)";
+        default:
+          Contract.Assert(false);  // unexpected kind
+          throw new cce.UnreachableException();
+      }
+    }
+
+    private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
+      var name = MethodVerboseName(dafnyName, kind);
+      boogieDecl.AddAttribute("verboseName", new object[] { name });
+    }
+
+    private static void CopyVerboseName(Bpl.NamedDeclaration targetDecl, Bpl.NamedDeclaration sourceDecl) {
+      targetDecl.AddAttribute("verboseName", new object[] { sourceDecl.VerboseName });
+    }
+
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
       Contract.Requires(tok != null);
       Contract.Requires(methodName != null);
@@ -10689,8 +10732,9 @@ namespace Microsoft.Dafny {
     }
 
     internal class FuelSetting {
+
       public enum FuelAmount { NONE, LOW, HIGH };
-      public static Stack<FuelContext> SavedContexts = new Stack<FuelContext>();
+      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
 
       public static FuelSettingPair FuelAttrib(Function f, out bool found) {
         Contract.Requires(f != null);
@@ -10919,7 +10963,7 @@ namespace Microsoft.Dafny {
       /// Extends the given fuel context with any new fuel settings found in attribs
       /// </summary>
       public static FuelContext ExpandFuelContext(Attributes attribs, IToken tok, FuelContext oldFuelContext, ErrorReporter reporter) {
-        Contract.Ensures(SavedContexts.Count == Contract.OldValue(SavedContexts.Count) + 1);
+        Contract.Ensures(GetSavedContexts().Count == Contract.OldValue(GetSavedContexts().Count) + 1);
         FuelContext newContext = new FuelContext();
         FindFuelAttributes(attribs, newContext);
         if (newContext.Count > 0) {
@@ -10945,14 +10989,22 @@ namespace Microsoft.Dafny {
         } else {
           newContext = oldFuelContext;
         }
-        SavedContexts.Push(oldFuelContext);
+        GetSavedContexts().Push(oldFuelContext);
 
         return newContext;
       }
 
+      private static Stack<FuelContext> GetSavedContexts() {
+        var result = SavedContexts.Value;
+        if (result == null) {
+          SavedContexts.Value = result = new();
+        }
+        return result;
+      }
+
       public static FuelContext PopFuelContext() {
-        Contract.Requires(SavedContexts.Count > 0);
-        return SavedContexts.Pop();
+        Contract.Requires(GetSavedContexts().Count > 0);
+        return GetSavedContexts().Pop();
       }
 
     }

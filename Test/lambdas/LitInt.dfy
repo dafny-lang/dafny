@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 const N: nat
