@@ -30,7 +30,9 @@ namespace DafnyTestGeneration {
     // the DafnyModel that describes the inputs to this test method
     private readonly DafnyModel dafnyModel;
 
-    private static readonly Dictionary<DafnyModelType, string> FreshMethods = new();
+    // Set of all types for which a {:synthesize} - annotated method is needed
+    // These methods are used to get fresh instances of the corresponding types
+    private static readonly HashSet<DafnyModelType> TypesToSynthesize = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -43,18 +45,27 @@ namespace DafnyTestGeneration {
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
 
-    public static void ClearFreshMethods() {
-      FreshMethods.Clear();
+    public static void ClearTypesToSynthesize() {
+      TypesToSynthesize.Clear();
+    }
+
+    /// <summary>
+    /// Returns the name given to a {:synthesize} - annotated method that
+    /// returns a value of certain type
+    /// </summary>
+    private static string GetSynthesizeMethodName(DafnyModelType typ) {
+      return "getFresh" + Regex.Replace(typ.ToString(), "[^a-zA-Z]", "");
     }
 
     /// <summary>
     /// Returns a string that contains all the {:synthesize} annotated methods
     /// necessary to compile the tests
     /// </summary>
-    public static string EmitFreshMethods() {
+    public static string EmitSynthesizeMethods() {
       var result = "";
-      foreach (var typ in FreshMethods.Keys) {
-        result += $"\nmethod {{:synthesize}} {FreshMethods[typ]}() " +
+      foreach (var typ in TypesToSynthesize) {
+        var methodName = GetSynthesizeMethodName(typ);
+        result += $"\nmethod {{:synthesize}} {methodName}() " +
                   $"returns (o:{typ}) ensures fresh(o)";
       }
       return result;
@@ -172,11 +183,7 @@ namespace DafnyTestGeneration {
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType = variableType.GetNonNullable().InDafnyFormat();
           ObjectsToMock.Add(new(varId, dafnyType));
-          if (!FreshMethods.ContainsKey(dafnyType)) {
-            FreshMethods[dafnyType] = "getFresh" +
-                                      Regex.Replace(dafnyType.ToString(),
-                                        "[^a-zA-Z]", "");
-          }
+          TypesToSynthesize.Add(dafnyType);
           mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -215,11 +222,7 @@ namespace DafnyTestGeneration {
       // this should only be reached if the type is non-nullable
       var varId = $"v{ObjectsToMock.Count}";
       ObjectsToMock.Add(new(varId, type));
-      if (!FreshMethods.ContainsKey(type)) {
-        FreshMethods[type] = "getFresh" +
-                             Regex.Replace(type.ToString(),
-                               "[^a-zA-Z]", "");
-      }
+      TypesToSynthesize.Add(type);
       return varId;
     }
 
@@ -257,7 +260,8 @@ namespace DafnyTestGeneration {
 
       // test method parameters and declaration:
       var mockedLines = ObjectsToMock
-        .Select(kVPair => $"var {kVPair.id} := {FreshMethods[kVPair.type]}();");
+        .Select(kVPair => $"var {kVPair.id} := " +
+                          $"{GetSynthesizeMethodName(kVPair.type)}();");
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);

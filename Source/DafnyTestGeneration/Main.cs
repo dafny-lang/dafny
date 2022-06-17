@@ -106,7 +106,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      TestMethod.ClearFreshMethods();
+      TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
@@ -129,7 +129,7 @@ namespace DafnyTestGeneration {
         yield return method.ToString();
       }
 
-      yield return TestMethod.EmitFreshMethods();
+      yield return TestMethod.EmitSynthesizeMethods();
 
       yield return "}";
     }
