@@ -1443,28 +1443,11 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
       }
-      if (runAfterCompile) {
-        Contract.Assert(callToMain != null); // this is part of the contract of CompileTargetProgram
-        // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'python'
-        // will run the program.
-        return true;
-      } else {
-        // compile now
-        return SendToNewPythonProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames,
-          outputWriter);
-      }
+      return true;
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-        string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-
-      return SendToNewPythonProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
-        outputWriter);
-    }
-
-    bool SendToNewPythonProcess(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-        string targetFilename, ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter) {
+      string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
       var psi = new ProcessStartInfo("python3", targetFilename) {
@@ -1477,9 +1460,9 @@ namespace Microsoft.Dafny.Compilers {
 
       try {
         using var pythonProcess = Process.Start(psi);
-        pythonProcess.StandardInput.Close();
-        pythonProcess.WaitForExit();
-        return pythonProcess.ExitCode == 0;
+        pythonProcess?.StandardInput.Close();
+        pythonProcess?.WaitForExit();
+        return pythonProcess?.ExitCode == 0;
       } catch (Exception e) {
         outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
         return false;
