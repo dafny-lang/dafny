@@ -467,7 +467,9 @@ namespace DafnyTestGeneration {
       public override Expr VisitNAryExpr(NAryExpr node) {
         if (currAssignCmd == null ||
             currProgram?.FindFunction(
-              node.Fun.FunctionName + CanCallSuffix) == null) {
+              node.Fun.FunctionName + CanCallSuffix) == null ||
+            currProgram?.FindImplementation(
+              "Impl$$" + node.Fun.FunctionName) == null) {
           return base.VisitNAryExpr(node);
         }
 
@@ -499,11 +501,14 @@ namespace DafnyTestGeneration {
       /// </summary>
       public override Cmd VisitAssumeCmd(AssumeCmd node) {
         if ((node.Expr is not NAryExpr expr) ||
-            (!expr.Fun.FunctionName.EndsWith(CanCallSuffix))) {
+            (!expr.Fun.FunctionName.EndsWith(CanCallSuffix)) ||
+            currProgram?.FindImplementation(
+              "Impl$$" + expr.Fun.FunctionName[..^CanCallSuffix.Length]) == null) {
           return node;
         }
 
-        var func = currProgram?.FindFunction(expr.Fun.FunctionName[..^8]);
+        var func = currProgram?.FindFunction(
+          expr.Fun.FunctionName[..^CanCallSuffix.Length]);
         if (func == null) {
           return node;
         }
