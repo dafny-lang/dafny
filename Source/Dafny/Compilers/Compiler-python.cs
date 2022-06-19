@@ -457,6 +457,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
+      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+        wr.WriteLine("_this = self");
+      }
       wr = wr.NewBlockPy($"while True:").NewBlockPy($"with {DafnyRuntimeModule}.label():");
       var body = wr.Fork();
       wr.WriteLine("break");
@@ -560,6 +563,7 @@ namespace Microsoft.Dafny.Compilers {
                 return $"{s}.default({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
 
               case TypeParameter:
+              case ClassDecl:
                 return "None";
             }
             break;
@@ -891,7 +895,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
-      wr.Write("self");
+      var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
+      wr.Write(isTailRecursive ? "_this" : "self");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
