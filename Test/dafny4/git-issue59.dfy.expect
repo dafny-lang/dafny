@@ -1,5 +1,5 @@
 
-Verifying Impl$$_module.__default.foo ...
+Verifying foo (implementation correctness) ...
   [1 proof obligation]  error
 git-issue59.dfy(7,17): Error: value does not satisfy the subset constraints of 'byte'
 

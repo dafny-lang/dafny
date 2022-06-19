@@ -209,10 +209,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         continue;
       }
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
-                           implementation.Name;
+                           implementation.VerboseName;
       var newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
-        implementation.Name,
+        implementation.VerboseName,
         targetMethodNode.Filename,
         targetMethodNode.Range
       ).WithImplementation(implementation);
@@ -491,7 +491,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
         node => {
           var nodeImpl = node?.GetImplementation();
-          return nodeImpl?.Name == implementation.Name;
+          return nodeImpl?.Name == implementation.VerboseName;
         }, null);
     } else {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(

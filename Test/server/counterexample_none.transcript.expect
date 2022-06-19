@@ -1,6 +1,6 @@
 # Reading from counterexample_none.transcript
 
-Verifying Impl$$_module.__default.AbsCorrect ...
+Verifying AbsCorrect (implementation correctness) ...
   [1 proof obligation]  verified
 COUNTEREXAMPLE_START {"States":[]} COUNTEREXAMPLE_END
 Verification completed successfully!

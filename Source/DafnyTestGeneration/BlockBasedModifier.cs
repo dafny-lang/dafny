@@ -9,7 +9,7 @@ namespace DafnyTestGeneration {
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
 
-    private string? implName; // name of the implementation currently traversed
+    private Implementation? impl; // the implementation currently traversed
     private Program? program; // the original program
     private List<ProgramModification> modifications = new();
 
@@ -20,7 +20,7 @@ namespace DafnyTestGeneration {
     }
 
     public override Block VisitBlock(Block node) {
-      if (program == null || implName == null) {
+      if (program == null || impl == null) {
         return node;
       }
       base.VisitBlock(node);
@@ -29,7 +29,7 @@ namespace DafnyTestGeneration {
       }
       node.cmds.Add(GetCmd("assert false;"));
       var record = new BlockBasedModification(program,
-        ProcedureName ?? implName,
+        ImplementationToTarget?.VerboseName ?? impl.VerboseName,
         node.UniqueId, ExtractCapturedStates(node));
       modifications.Add(record);
       node.cmds.RemoveAt(node.cmds.Count - 1);
@@ -37,8 +37,8 @@ namespace DafnyTestGeneration {
     }
 
     public override Implementation VisitImplementation(Implementation node) {
-      implName = node.Name;
-      if (ProcedureIsToBeTested(node.Name)) {
+      impl = node;
+      if (ImplementationIsToBeTested(node)) {
         VisitBlockList(node.Blocks);
       }
       return node;

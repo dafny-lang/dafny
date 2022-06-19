@@ -1,7 +1,7 @@
 // RUN: %dafny_0 /verificationLogger:trx";"LogFileName="%t.trx" "%s"
 // RUN: %OutputCheck --file-to-check "%t.trx" "%s"
 
-// CHECK: \<UnitTestResult.* testName="Impl\$\$_module\.__default\.ExampleWithSplits\$\$5" .*\>
+// CHECK: \<UnitTestResult.* testName="ExampleWithSplits \(implementation correctness\) \(assertion batch 3\)" .*\>
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0
