@@ -316,6 +316,60 @@ module Test {
         Regex.IsMatch(m.ArgValues[0], "\\[[0-9]+\\]")));
     }
 
+    [TestMethod]
+    public async Task FunctionMethod() {
+      var source = @"
+module Math {
+  function method Max(a:int, b:int):int {
+    if (a > b) then a else b
+  }
+  function method Min(a:int, b:int):int {
+    -Max(-a, -b)
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
+      DafnyOptions.O.TestGenOptions.TargetMethod = "Math.Min";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.AreEqual(2, methods.Count);
+      Assert.IsTrue(methods.All(m => m.MethodName == "Math.Min"));
+      Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Math.Min")));
+      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
+      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 0));
+      Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
+      Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[1]) <= int.Parse(m.ArgValues[0])));
+    }
+
+    [TestMethod]
+    public async Task FunctionMethodShortCircuit() {
+      var source = @"
+module ShortCircuit {
+  function method Or(a:bool):bool {
+    a || OnlyFalse(a)
+  }
+  function method OnlyFalse(a:bool):bool
+    requires !a
+  {
+    false
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
+      DafnyOptions.O.TestGenOptions.TargetMethod = "ShortCircuit.Or";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.AreEqual(2, methods.Count);
+      Assert.IsTrue(methods.All(m => m.MethodName == "ShortCircuit.Or"));
+      Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
+      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
+      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 0));
+      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
+      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "false"));
+    }
+
     /// <summary>
     /// If this fails, consider amending ProgramModifier.MergeBoogiePrograms
     /// </summary>
