@@ -2195,6 +2195,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private void EmitRuntimeJar(string targetDirectory) {
+      // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
+      var jarName = "DafnyRuntime.jar";
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+      var stream = assembly.GetManifestResourceStream(jarName);
+      if (stream is not null) {
+        var fullJarName = $"{targetDirectory}/{jarName}";
+        FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
+        stream.CopyTo(outStream);
+        outStream.Close();
+      }
+    }
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
       ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
@@ -2207,8 +2220,14 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
       }
+
+      var targetDirectory = Path.GetDirectoryName(targetFilename);
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        EmitRuntimeJar(targetDirectory);
+      }
+
       var files = new List<string>();
-      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
+      foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
@@ -2265,12 +2284,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected string GetClassPath(string targetFilename) {
-      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      // DafnyRuntime.jar has already been created using Maven. It is added to the java CLASSPATH below.
-      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime.jar");
+      var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      return "." + Path.PathSeparator + targetDirectory + Path.PathSeparator + Path.Combine(targetDirectory, "DafnyRuntime.jar");
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -2348,17 +2363,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
         EmitTypeDescriptorsActuals(typeArguments, tok, wr, ref sep);
       }
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
-        // the arguments of any external constructor are placed here
-        for (int i = 0; i < ctor.Ins.Count; i++) {
-          Formal p = ctor.Ins[i];
-          if (!p.IsGhost) {
-            wr.Write(sep);
-            TrExpr(initCall.Args[i], wr, false, wStmts);
-            sep = ", ";
-          }
-        }
-      }
+      wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
       wr.Write(")");
     }
 
@@ -3147,7 +3152,8 @@ namespace Microsoft.Dafny.Compilers {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
@@ -3162,9 +3168,9 @@ namespace Microsoft.Dafny.Compilers {
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " extends ";
-        foreach (var trait in superClasses) {
-          if (!trait.IsObject) {
-            w.Write($"{sep}{TypeName(trait, w, tok)}");
+        foreach (var tr in superClasses) {
+          if (!tr.IsObject) {
+            w.Write($"{sep}{TypeName(tr, w, tok)}");
             sep = ", ";
           }
         }
@@ -3559,8 +3565,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
-        Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ref ConcreteSyntaxTree wStmts) {
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);
       }
@@ -3976,7 +3983,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
