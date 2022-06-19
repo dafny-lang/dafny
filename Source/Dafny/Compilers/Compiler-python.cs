@@ -48,6 +48,10 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
+      return $"default_{tp.CompileName}";
+    }
     protected override string StmtTerminator { get => ""; }
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
@@ -158,14 +162,14 @@ namespace Microsoft.Dafny.Compilers {
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl
                              && decl.Members.Any(m => !m.IsGhost && ((m is Field && !m.IsStatic) || m is Constructor));
-      var constructorWriter = needsConstructor
-        ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
-        : null;
-      if (cls is ClassDecl d) {
-        if (!needsConstructor && d.Members.All(m => m.IsGhost)) {
-          methodWriter.WriteLine("pass");
-        }
+      ConcreteSyntaxTree constructorWriter = null;
+      if (needsConstructor) {
+        var block = methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline);
+        constructorWriter = block.Fork();
+        block.WriteLine("pass");
       }
+      methodWriter.NewBlockPy("def __str__(self) -> str:")
+        .WriteLine($"return \"{fullPrintName}\"");
       return new ClassWriter(this, constructorWriter, methodWriter);
     }
 
@@ -196,9 +200,14 @@ namespace Microsoft.Dafny.Compilers {
       if (dt.HasFinitePossibleValues) {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");
         var w = btw.NewBlockPy(
-          $"def AllSingletonConstructors(instance):");
+          $"def AllSingletonConstructors(cls):");
         w.WriteLine($"return [{dt.Ctors.Select(ctor => $"{DtCtorDeclarationName(ctor, false)}()").Comma()}]");
       }
+
+      btw.WriteLine($"@classmethod");
+      var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
+      var arguments = dt.GetGroundingCtor().Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+      wDefault.WriteLine($"return {DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})");
 
       // Ensures the string representation from the constructor is chosen
       btw.NewBlockPy("def __repr__(self) -> str:")
@@ -548,7 +557,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
                 var s = DtCtorDeclarationName(dt.GetGroundingCtor());
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-                return $"{s}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
+                return $"{s}.default({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
 
               case TypeParameter:
                 return "None";

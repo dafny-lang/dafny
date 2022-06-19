@@ -487,10 +487,10 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // static Default(defaultValues...) {  // where defaultValues are the parameters to the grounding constructor
-      //   retur Dt.create_GroundingCtor(defaultValues...);
+      //   return Dt.create_GroundingCtor(defaultValues...);
       // }
       wr.Write("static Default(");
-      wr.Write(Util.Comma(UsedTypeParameters(dt), FormatDefaultTypeParameterValue));
+      wr.Write(UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue));
       {
         var wDefault = wr.NewBlock(")");
         wDefault.Write("return ");
