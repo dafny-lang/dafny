@@ -1761,14 +1761,21 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
+        AddImplementationWithVerboseName(iter.tok, proc, inParams, new List<Variable>(),
           localVariables, stmts, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
       }
 
       Reset();
+    }
+
+    private Implementation AddImplementationWithVerboseName(IToken tok, Procedure proc, List<Variable> inParams,
+      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
+      Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
+        new List<Bpl.TypeVariable>(), inParams, outParams,
+        localVariables, stmts, kv);
+      CopyVerboseName(impl, proc);
+      sink.AddTopLevelDeclaration(impl);
+      return impl;
     }
 
     bool EmitImplementation(Attributes attributes) {
@@ -1836,11 +1843,8 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
-          localVariables, stmts, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(iter.tok, proc, inParams,
+          new List<Variable>(), localVariables, stmts, kv);
       }
 
       yieldCountVariable = null;
@@ -4363,13 +4367,10 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        var impl = new Bpl.Implementation(f.tok, proc.Name,
-          new List<Bpl.TypeVariable>(),
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
           InsertChecksum(f, impl);
         }
@@ -4519,11 +4520,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-        var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(decl.tok, proc, implInParams, new List<Variable>(), locals, implBody, kv);
       }
 
       // TODO: Should a checksum be inserted here?
@@ -4601,11 +4598,9 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var implBody = builder.Collect(decl.tok);
-        var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+
+        AddImplementationWithVerboseName(decl.tok, proc, implInParams,
+          new List<Variable>(), locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == decl.EnclosingModule);
@@ -4677,11 +4672,8 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        var impl = new Bpl.Implementation(ctor.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(ctor.tok, proc, implInParams,
+          new List<Variable>(), locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
