@@ -67,7 +67,6 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        z3 -version
         dafny -version
     - name: Check
       run: dafny /compileVerbose:0 /compile:0 a.dfy
