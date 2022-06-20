@@ -43,6 +43,9 @@ jobs:
         repository: boogie-org/boogie
         path: dafny/boogie
         ref: v${{ steps.regex-match.outputs.group1 }}
+    - name: Build Boogie
+      working-directory: dafny/boogie
+      run: dotnet build Source/Boogie.sln
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
