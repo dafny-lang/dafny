@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,12 +7,12 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class DafnyConsolePrinter : ConsolePrinter {
-  private readonly Dictionary<string, List<string>> fsCache = new();
+public class DafnyConsolePrinter : ConsolePrinter {
+  private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
+  public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
-    List<string> lines;
-    if (!fsCache.ContainsKey(filename)) {
+    List<string> lines = fsCache.GetOrAdd(filename, key => {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
@@ -19,10 +20,8 @@ class DafnyConsolePrinter : ConsolePrinter {
       } catch (Exception) {
         lines = new List<string>();
       }
-      fsCache.Add(filename, lines);
-    } else {
-      lines = fsCache[filename];
-    }
+      return lines;
+    });
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];
     }
@@ -56,5 +55,9 @@ class DafnyConsolePrinter : ConsolePrinter {
       var nt = (Dafny.NestedToken)tok;
       ReportBplError(nt.Inner, "Related location", false, tw);
     }
+  }
+
+  public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+    VerificationResults.Add((implementation, result));
   }
 }

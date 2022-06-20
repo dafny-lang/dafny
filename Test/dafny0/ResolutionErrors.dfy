@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Misc {
@@ -3624,7 +3624,7 @@ module FrameTypes {
     g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
     l: bool -> multiset<object>, m: bool -> map<object, object>)
     reads f // error: wrong argument type for reads
-    reads g
+    reads g // error: a function must be to a collection of references
     reads h
     reads i
     reads j

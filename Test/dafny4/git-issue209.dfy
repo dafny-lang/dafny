@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /rprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function F(l: seq<bool>, x: bool, js: seq<int>): bool {

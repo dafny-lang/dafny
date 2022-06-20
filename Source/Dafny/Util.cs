@@ -3,17 +3,41 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
-
 
 namespace Microsoft.Dafny {
   public static class Util {
+
+    public static IObservable<T> ToObservableSkipCancelled<T>(this Task<T> task) {
+      return Observable.Create<T>(observer => {
+        task.ContinueWith(t => {
+          if (t.Exception == null || t.IsCanceled) {
+            if (t.IsCompletedSuccessfully) {
+              observer?.OnNext(t.Result);
+            }
+            observer?.OnCompleted();
+          } else {
+            observer?.OnError(t.Exception);
+          }
+        });
+        return Disposable.Create(() => observer = null);
+      });
+    }
+
+    public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
+      return Select(task, f).Unwrap();
+    }
+
+    public static Task<U> Select<T, U>(this Task<T> task, Func<T, U> f) {
+      return task.ContinueWith(completedTask => f(completedTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
 
     public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
@@ -93,6 +117,10 @@ namespace Microsoft.Dafny {
 
     public static List<A> Singleton<A>(A x) {
       return new List<A> { x };
+    }
+
+    public static List<A> List<A>(params A[] xs) {
+      return xs.ToList();
     }
 
     public static List<A> Cons<A>(A x, List<A> xs) {
@@ -316,9 +344,9 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.EnclosingModuleDefinition.CompileName);
+        Console.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
         foreach (var callee in vertex.Successors) {
-          Console.Write("{0} ", callee.N.CompileName);
+          Console.Write("{0} ", callee.N.SanitizedName);
         }
         Console.Write("\n");
       }
@@ -1105,7 +1133,7 @@ namespace Microsoft.Dafny {
         return true;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        if (e is UnaryOpExpr unaryOpExpr && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+        if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
           return true;
         }
         if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {

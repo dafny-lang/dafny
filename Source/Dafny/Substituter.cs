@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         List<Expression> newElements = SubstituteExprList(e.Elements);
-        if (newElements != e.Elements) {
+        if (newElements != e.Elements || !Resolver.SubstType(e.Type, typeMap).Equals(e.Type)) {
           if (expr is SetDisplayExpr) {
             newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
           } else if (expr is MultiSetDisplayExpr) {
@@ -103,17 +103,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         var sse = (SeqUpdateExpr)expr;
-        if (sse.ResolvedUpdateExpr != null) {
-          return Substitute(sse.ResolvedUpdateExpr);
-        } else {
-          Expression seq = Substitute(sse.Seq);
-          Expression index = Substitute(sse.Index);
-          Expression val = Substitute(sse.Value);
-          if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
-            newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
-          }
+        Expression seq = Substitute(sse.Seq);
+        Expression index = Substitute(sse.Index);
+        Expression val = Substitute(sse.Value);
+        if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
+          newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
         }
-
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr mse = (MultiSelectExpr)expr;
         Expression array = Substitute(mse.Array);
@@ -291,9 +286,9 @@ namespace Microsoft.Dafny {
             var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
             newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
           } else if (expr is ForallExpr forallExpr) {
-            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, forallExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is ExistsExpr existsExpr) {
-            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, existsExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is LambdaExpr) {
             var l = (LambdaExpr)expr;
             newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
@@ -465,6 +460,8 @@ namespace Microsoft.Dafny {
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         return bound;  // nothing to substitute
       } else if (bound is ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool) {
+        return bound;  // nothing to substitute
+      } else if (bound is ComprehensionExpr.OlderBoundedPool) {
         return bound;  // nothing to substitute
       } else {
         Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool

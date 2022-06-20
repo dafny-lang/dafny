@@ -932,7 +932,7 @@ statements must be exhaustive: the guards must cover all cases).
 
 TODO: Describe the ... refinement
 
-## 19.12. While Statement
+## 19.12. While Statement {#sec-while-statement}
 ````grammar
 WhileStmt =
   "while"
@@ -1007,7 +1007,7 @@ loop execution is terminated.
 
 TODO: Describe ... refinement
 
-## 19.13. For Loops
+## 19.13. For Loops {#sec-for-loops}
 ````grammar
 ForLoopStmt =
   "for" IdentTypeOptional ":="
@@ -1636,7 +1636,10 @@ indicates to the compiler
 that it should produce target code
 that is correspondingly annotated to mark the method
 as a unit test (e.g., an XUnit test) in the target language.
-Within that method one might use `expect` statements (as well as `print` statements)
+Alternatively, the `/runAllTests` option will produce a main method
+that invokes all methods with the `{:test}` attribute, and hence does not
+depend on any testing framework in the target language.
+Within such methods one might use `expect` statements (as well as `print` statements)
 to insert checks that the target program is behaving as expected.
 
 C) Compiler tests
@@ -1667,7 +1670,7 @@ Describe where refinement is described.
 If the proposition is `...` then (TODO: what does this mean?).
 -->
 
-## 19.19. Print Statement
+## 19.19. Print Statement {#sec-print-statement}
 ````grammar
 PrintStmt =
     "print"
@@ -1733,10 +1736,11 @@ ForallStmt =
 ````
 
 The `forall` statement executes the body
-simultaneously for all quantified values in the specified range.
+simultaneously for all quantified values in the specified quantifier domain.
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
-
 In particular, a `forall` statement can be classified as one of the following:
 
 * _Assign_ - the `forall` statement is used for simultaneous assignment.
@@ -1820,7 +1824,7 @@ forall x :: P(x) ==> Q(x).
 ```
 
 The `forall` statement is also used extensively in the de-sugared forms of
-co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
+co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
 
 ## 19.22. Modify Statement {#sec-modify-statement}
 ````grammar

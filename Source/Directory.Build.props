@@ -5,9 +5,4 @@
     <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
-  <!-- Boogie dependency -->
-  <ItemGroup>
-    <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
-  </ItemGroup>
-
 </Project>

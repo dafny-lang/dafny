@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------- duplicate types within a module
@@ -346,7 +346,7 @@ module AA refines Library {
 }
 
 module B refines AA {
-  datatype T = ... MakeT(int)  // illegal
+  datatype T ...  // illegal
 }
 
 // ---------------------- some modules from above without errors
