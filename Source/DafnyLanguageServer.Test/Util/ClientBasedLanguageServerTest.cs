@@ -79,8 +79,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions)
-  {
+  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
     return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
       serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
       serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
