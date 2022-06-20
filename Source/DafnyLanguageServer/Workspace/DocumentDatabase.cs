@@ -294,12 +294,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (t.IsCompletedSuccessfully) {
             observer?.OnNext(t.Result);
           } else if (t.Exception != null) {
-            observer?.OnNext(entry.LastPublishedDocument with {
-              ParseAndResolutionDiagnostics = entry.LastPublishedDocument.ParseAndResolutionDiagnostics.Concat(new Diagnostic[] {
+            var lastPublishedDocument = entry.LastPublishedDocument;
+            var previousDiagnostics = lastPublishedDocument.LoadCanceled
+              ? new Diagnostic[] { }
+              : lastPublishedDocument.ParseAndResolutionDiagnostics;
+            observer?.OnNext(lastPublishedDocument with {
+              LoadCanceled = false,
+              ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
                 new() {
                   Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
                   Severity = DiagnosticSeverity.Error,
-                  Range = entry.LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
+                  Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
                   Source = "Crash"
                 }
               }).ToList()

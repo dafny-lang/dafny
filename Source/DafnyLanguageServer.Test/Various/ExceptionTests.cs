@@ -34,11 +34,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     loader.CrashOnLoad = true;
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
-    // Unloaded documents currently don't get their notifications published, so we can't do this.
-    // Instead we wait a second.
-    // var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    // Assert.AreEqual(1, crashDiagnostics.Length);
-    await Task.Delay(1000);
+    var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, crashDiagnostics.Length);
+    Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     loader.CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
