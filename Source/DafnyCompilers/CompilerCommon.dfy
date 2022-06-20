@@ -914,6 +914,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           }
         }
 
+        // TODO: this is duplicated in the rec and non-rec modules
         function IsTrue(e:Expr): bool { true }
         
         lemma All_Expr_true(e: Expr)
@@ -950,6 +951,23 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
           forall e' | e' in e.Children() :: All_Expr(e', P)
+        }
+
+        // TODO: this is duplicated in the rec and non-rec modules
+        function IsTrue(e:Expr): bool { true }
+        
+        lemma All_Expr_true(e: Expr)
+          ensures All_Expr(e, IsTrue)
+          decreases e, 1
+        {
+          AllChildren_Expr_true(e);
+        }
+
+        lemma AllChildren_Expr_true(e: Expr)
+          ensures AllChildren_Expr(e, IsTrue)
+          decreases e, 0
+        {
+          forall e' | e' in e.Children() { All_Expr_true(e'); }
         }
 
         lemma AllImpliesChildren ... {}

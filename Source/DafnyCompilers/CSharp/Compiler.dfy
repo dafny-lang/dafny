@@ -2,6 +2,7 @@ include "../CSharpDafnyASTModel.dfy"
 include "../CSharpInterop.dfy"
 include "../CSharpDafnyInterop.dfy"
 include "../CompilerCommon.dfy"
+include "../CompilerRewriter.dfy"
 include "../Library.dfy"
 include "../StrTree.dfy"
 
@@ -10,15 +11,19 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   import opened CSharpDafnyInterop
   import opened Microsoft.Dafny
   import StrTree
-  import DafnyCompilerCommon.Simplifier
+  import DafnyCompilerCommon.Predicates
   import DafnyCompilerCommon.Translator
+  import CompilerRewriter.Rewriter
+  import CompilerRewriter.EliminateNegatedBinops
+  import opened Predicates.Deep
 
   module Compiler {
     import opened StrTree_ = StrTree
     import opened CSharpDafnyInterop
     import opened DafnyCompilerCommon.AST
     import DafnyCompilerCommon.Predicates
-    import DafnyCompilerCommon.Simplifier
+    import CompilerRewriter.Rewriter
+    import CompilerRewriter.EliminateNegatedBinops
     import opened Predicates.Deep
 
     function method CompileType(t: Type): StrTree {
@@ -98,7 +103,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileBinaryExpr(op: BinaryOp, c0: StrTree, c1: StrTree) : StrTree
-      requires !Simplifier.IsNegatedBinop(op)
+      requires !EliminateNegatedBinops.IsNegatedBinop(op)
     {
       var fmt := str requires countFormat(str) == 2 =>
         Format(str, [c0, c1]); // Cute use of function precondition
@@ -178,18 +183,18 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompilePrint(e: Expr) : StrTree
       decreases e, 1
-      requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      requires All_Expr(e, EliminateNegatedBinops.NotANegatedBinopExpr)
       requires All_Expr(e, Exprs.WellFormed)
     {
       StrTree_.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileExpr(e: Expr) : StrTree
-      requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Expr(e, EliminateNegatedBinops.NotANegatedBinopExpr)
       requires Deep.All_Expr(e, Exprs.WellFormed)
       decreases e, 0
     {
-      Predicates.Deep.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
+      Predicates.Deep.AllImpliesChildren(e, EliminateNegatedBinops.NotANegatedBinopExpr);
       Predicates.Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
         case Var(_) =>
@@ -233,7 +238,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileMethod(m: Method) : StrTree
-      requires Deep.All_Method(m, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Method(m, EliminateNegatedBinops.NotANegatedBinopExpr)
       requires Deep.All_Method(m, Exprs.WellFormed)
     {
       match m {
@@ -242,7 +247,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileProgram(p: Program) : StrTree
-      requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Program(p, EliminateNegatedBinops.NotANegatedBinopExpr)
       requires Deep.All_Program(p, Exprs.WellFormed)
     {
       match p {
@@ -251,7 +256,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     method AlwaysCompileProgram(p: Program) returns (st: StrTree)
-      requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Program(p, EliminateNegatedBinops.NotANegatedBinopExpr)
     {
       // TODO: this property is tedious to propagate so isn't complete yet
       if Deep.All_Program(p, Exprs.WellFormed) {
@@ -277,7 +282,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
-  class {:extern} DafnyCSharpCompiler {
+  class {:extern} DafnyCSharpCompiler {    
     constructor() {
     }
 
@@ -286,7 +291,19 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var st := new CSharpDafnyInterop.SyntaxTreeAdapter(wr);
       match Translator.TranslateProgram(dafnyProgram) {
         case Success(translated) =>
-          var lowered := Simplifier.EliminateNegatedBinops(translated);
+          var lowered := EliminateNegatedBinops.Apply(translated);
+
+          // Because of the imprecise encoding of functions, we need to call a weakening
+          // lemma. We could also use ``EliminateNegatedBinops.Tr_Expr_Post`` everywhere,
+          // but it seems cleaner to state that we need ``NotANegatedBinopExpr`` in the
+          // preconditions, as it is more precise and ``Tr_Expr_Post`` might be expanded
+          // in the future.
+          AllChildren_Expr_weaken(
+            lowered.mainMethod.methodBody,
+            EliminateNegatedBinops.Tr_Expr_Post,
+            EliminateNegatedBinops.NotANegatedBinopExpr);
+          assert Deep.All_Program(lowered, EliminateNegatedBinops.NotANegatedBinopExpr);
+
           var compiled := Compiler.AlwaysCompileProgram(lowered);
           WriteAST(st, compiled);
         case Failure(err) => // FIXME return an error
