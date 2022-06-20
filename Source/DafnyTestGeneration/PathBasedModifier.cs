@@ -10,7 +10,7 @@ namespace DafnyTestGeneration {
   public class PathBasedModifier : ProgramModifier {
 
     // prefix given to variables indicating whether or not a block was visited
-    private const string BlockVarNamePrefix = "$$visited$$_";
+    private const string blockVarNamePrefix = "$$visited$$_";
     private List<Path> paths = new();
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
@@ -61,7 +61,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     private static void InitBlockVars(Implementation node) {
       foreach (var block in node.Blocks) {
-        var var = BlockVarNamePrefix + block.UniqueId;
+        var var = blockVarNamePrefix + block.UniqueId;
         // variable declaration:
         node.LocVars.Add(new LocalVariable(new Token(),
           new TypedIdent(new Token(), var, Type.Bool)));
@@ -124,7 +124,7 @@ namespace DafnyTestGeneration {
           return;
         }
 
-        var vars = path.ConvertAll(x => BlockVarNamePrefix + x);
+        var vars = path.ConvertAll(x => blockVarNamePrefix + x);
         var varsCond = string.Join("||", vars.ConvertAll(x => $"!{x}"));
         // The only purpose of varsIn is to make a call to GetCmd possible
         var varsIn = string.Join(", ", vars.ConvertAll(x => $"{x}:bool"));
