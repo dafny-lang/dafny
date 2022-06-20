@@ -12,6 +12,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
+    public uint Timeout = 100;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -51,6 +52,13 @@ namespace Microsoft.Dafny {
           var depth = 0;
           if (ps.GetIntArgument(ref depth)) {
             TestInlineDepth = (uint)depth;
+          }
+          return true;
+        
+        case "generateTestTimeout":
+          var timeout = 0;
+          if (ps.GetIntArgument(ref timeout)) {
+            Timeout = (uint)timeout;
           }
           return true;
       }

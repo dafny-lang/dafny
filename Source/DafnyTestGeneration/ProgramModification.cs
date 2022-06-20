@@ -22,6 +22,18 @@ namespace DafnyTestGeneration {
       this.program = Utils.DeepCloneProgram(program);
       this.procedure = procedure;
     }
+    
+    public static string GetStringRepresentation(Program program) {
+      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
+      var oldPrintFile = DafnyOptions.O.PrintFile;
+      DafnyOptions.O.PrintInstrumented = true;
+      DafnyOptions.O.PrintFile = "-";
+      var output = new StringWriter();
+      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
+      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      DafnyOptions.O.PrintFile = oldPrintFile;
+      return output.ToString();
+    }
 
     /// <summary>
     /// Setup CommandLineArguments to prepare verification. This is necessary
@@ -69,9 +81,10 @@ namespace DafnyTestGeneration {
       engine.CoalesceBlocks(program);
       engine.Inline(program);
       var writer = new StringWriter();
-      await engine.InferAndVerify(writer, program,
+      await Task.WhenAny(engine.InferAndVerify(writer, program,
         new PipelineStatistics(), null,
-        _ => { }, uniqueId);
+        _ => { }, uniqueId), 
+        Task.Delay(TimeSpan.FromSeconds(oldOptions.TestGenOptions.Timeout)));
       var log = writer.ToString();
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):

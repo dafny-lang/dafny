@@ -20,9 +20,11 @@ namespace DafnyServer.CounterexampleGeneration {
   /// methods are: GetDafnyType, CanonicalName, and GetExpansion
   /// </summary>
   public class DafnyModel {
-
+    
     public readonly Model Model;
     public readonly List<DafnyModelState> States = new();
+    public static readonly UserDefinedType UndefinedType = 
+      new(new Token(), "?", null);
     private readonly Model.Func fSetSelect, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
@@ -38,15 +40,15 @@ namespace DafnyServer.CounterexampleGeneration {
     private readonly Dictionary<Type, HashSet<int>> reservedNumerals = new();
     // set of all characters values that appear in the model
     private readonly HashSet<char> reservedChars = new();
-    private bool isTrueReserved = false; // True if "true" appears anywhere in the model
+    private bool isTrueReserved; // True if "true" appears anywhere in the model
     // maps an element representing a primitive value to the string representation of that value
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
     // ensures that a given bitvectorType is created only once for a given base
     private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
 
     // the model will begin assigning characters starting from this utf value
-    private static readonly int firstCharacterUtfValue = 65; // 'A'
-    private static readonly Regex bvTypeRegex = new Regex("^bv[0-9]+Type$");
+    private const int FirstCharacterUtfValue = 65; // 'A'
+    private static readonly Regex BvTypeRegex = new Regex("^bv[0-9]+Type$");
 
 
     public DafnyModel(Model model) {
@@ -137,7 +139,11 @@ namespace DafnyServer.CounterexampleGeneration {
         } else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
-            datatypeValues.Add(elt, tpl);
+            if (!datatypeValues.ContainsKey(elt)) {
+              datatypeValues.Add(elt, tpl);
+            }
+            // TODO: disambiguation is required
+            datatypeValues[elt] = tpl;
           }
         }
       }
@@ -248,7 +254,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// instance of Model.BitVector, which is a BitVector value)
     /// </summary>
     private static bool IsBitVectorObject(Model.Element element, DafnyModel model) =>
-      bvTypeRegex.IsMatch(GetTrueName(model.fType.OptEval(element)) ?? "");
+      BvTypeRegex.IsMatch(GetTrueName(model.fType.OptEval(element)) ?? "");
 
     /// <summary>
     /// Return True iff the given element has primitive type in Dafny or is null
@@ -311,16 +317,16 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     /// <summary> Get the Dafny type of an element </summary>
-    internal DafnyModelType GetDafnyType(Model.Element element) {
+    internal Type GetDafnyType(Model.Element element) {
       switch (element.Kind) {
         case Model.ElementKind.Boolean:
-          return new DafnyModelType("bool");
+          return Type.Bool;
         case Model.ElementKind.Integer:
-          return new DafnyModelType("int");
+          return Type.Int;
         case Model.ElementKind.Real:
-          return new DafnyModelType("real");
+          return Type.Real;
         case Model.ElementKind.BitVector:
-          return new DafnyModelType("bv" + ((Model.BitVector)element).Size);
+          return new BitvectorType(((Model.BitVector)element).Size);
         case Model.ElementKind.Uninterpreted:
           return GetDafnyType(element as Model.Uninterpreted);
         case Model.ElementKind.DataValue:
@@ -328,9 +334,9 @@ namespace DafnyServer.CounterexampleGeneration {
             return GetDafnyType(
               ((Model.DatatypeValue)element).Arguments.First());
           }
-          return new DafnyModelType("?"); // This shouldn't be reachable.
+          return UndefinedType; // This shouldn't be reachable.
         default:
-          return new DafnyModelType("?");
+          return UndefinedType;
       }
     }
 
@@ -348,16 +354,19 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     /// <summary> Get the Dafny type of an Uninterpreted element </summary>
-    private DafnyModelType GetDafnyType(Model.Uninterpreted element) {
+    private Type GetDafnyType(Model.Uninterpreted element) {
       var boogieType = GetBoogieType(element);
       List<Model.Element> isOfType;
-      List<DafnyModelType> typeArgs = new();
+      List<Type> typeArgs = new();
       switch (boogieType) {
         case "intType":
+          return Type.Int;
         case "realType":
+          return Type.Real;
         case "charType":
+          return Type.Char;
         case "boolType":
-          return new DafnyModelType(boogieType.Substring(0, boogieType.Length - 4));
+          return Type.Bool;
         case "SeqType":
           isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
@@ -379,17 +388,14 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           seqOperation = fSeqBuild.AppWithResult(element);
           if (seqOperation != null) {
-            typeArgs.Add(GetDafnyType(Unbox(seqOperation.Args[1])));
-            return new DafnyModelType("seq", typeArgs);
+            return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1])));
           }
           seqOperation = fSeqCreate.AppWithResult(element);
           seqOperation ??= fSeqEmpty.AppWithResult(element);
           if (seqOperation != null) {
-            typeArgs.Add(ReconstructType(seqOperation.Args.First()));
-            return new DafnyModelType("seq", typeArgs);
+            return new SeqType(ReconstructType(seqOperation.Args.First()));
           }
-          typeArgs.Add(new("?"));
-          return new DafnyModelType("seq", typeArgs);
+          return new SeqType(UndefinedType);
         case "SetType":
           isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
@@ -410,22 +416,19 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           setOperation = fSetUnionOne.AppWithResult(element);
           if (setOperation != null) {
-            typeArgs.Add(GetDafnyType(Unbox(setOperation.Args[1])));
-            return new DafnyModelType("set", typeArgs);
+            return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1])));
           }
           setOperation = fSetEmpty.AppWithResult(element);
           if (setOperation != null) {
-            typeArgs.Add(ReconstructType(setOperation.Args.First()));
-            return new DafnyModelType("set", typeArgs);
+            return new SetType(true, ReconstructType(setOperation.Args.First()));
           }
-          typeArgs.Add(new("?"));
-          return new DafnyModelType("set", typeArgs);
+          return new SetType(true, UndefinedType);
         case "DatatypeTypeType":
           isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
             return ReconstructType(isOfType[0]);
           }
-          return new DafnyModelType("?");
+          return UndefinedType;
         case "MapType":
           isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
@@ -437,13 +440,13 @@ namespace DafnyServer.CounterexampleGeneration {
           if (mapOperation != null) {
             return GetDafnyType(mapOperation.Args.First());
           }
-          return new DafnyModelType("map", new List<DafnyModelType> { new("?"), new("?") });
+          return new Microsoft.Dafny.MapType(true, UndefinedType, UndefinedType);
         case "refType":
           return ReconstructType(fDtype.OptEval(element));
         case null:
-          return new DafnyModelType("?");
-        case var bv when bvTypeRegex.IsMatch(bv):
-          return new DafnyModelType(bv.Substring(0, bv.Length - 4));
+          return UndefinedType;
+        case var bv when BvTypeRegex.IsMatch(bv):
+          return new BitvectorType(int.Parse(bv[2..^4]));
         case "BoxType":
           var unboxedTypes = fIsBox.AppsWithArg(0, element)
             .Where(tuple => ((Model.Boolean)tuple.Result).Value)
@@ -451,56 +454,80 @@ namespace DafnyServer.CounterexampleGeneration {
           if (unboxedTypes.Count == 1) {
             return ReconstructType(unboxedTypes[0]);
           }
-          return new DafnyModelType("?");
+          return UndefinedType;
+        case "HandleTypeType":
+          isOfType = GetIsResults(element);
+          if (isOfType.Count > 0) {
+            return ReconstructType(isOfType[0]);
+          }
+          return UndefinedType;
         default:
-          return new DafnyModelType("?");
+          return UndefinedType;
       }
     }
 
     /// <summary>
     /// Reconstruct Dafny type from an element that represents a type in Z3
     /// </summary>
-    private DafnyModelType ReconstructType(Model.Element typeElement) {
+    private Type ReconstructType(Model.Element typeElement) {
       if (typeElement == null) {
-        return new DafnyModelType("?");
+        return UndefinedType;
       }
       var fullName = GetTrueName(typeElement);
       if (fullName != null && fullName.Length > 7 && fullName.Substring(0, 7).Equals("Tclass.")) {
-        return new DafnyModelType(fullName.Substring(7));
+        return new UserDefinedType(new Token(), fullName.Substring(7), null);
       }
-      if (fullName is "TInt" or "TReal" or "TChar" or "TBool") {
-        return new DafnyModelType(fullName.Substring(1).ToLower());
+      switch (fullName) {
+        case "TInt":
+          return Type.Int;
+        case "TBool":
+          return Type.Bool;
+        case "TReal":
+          return Type.Real;
+        case "TChar":
+          return Type.Char;
       }
       if (fBv.AppWithResult(typeElement) != null) {
-        return new DafnyModelType("bv" + ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+        return new BitvectorType(((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
       }
       if (fullName != null) { // this means this is a type variable
-        return new DafnyModelType(fullName);
+        return new UserDefinedType(new Token(), fullName, null);
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {
-        return new DafnyModelType("?");
+        return UndefinedType;
       }
       var tagName = GetTrueName(tagElement);
       if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
                               tagName != "TagBitVector" &&
                               tagName != "TagMap")) {
-        return new DafnyModelType("?");
+        return UndefinedType;
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
         AppWithResult(typeElement)?.
-        Args.ToList();
-      tagName = tagName switch {
-        "TagSeq" => "seq",
-        "TagMap" => "map",
-        "TagSet" => "set",
-        _ => tagName.Substring(9)
-      };
+        Args.Select(ReconstructType).ToList();
       if (typeArgs == null) {
-        return new DafnyModelType(tagName);
+        return new UserDefinedType(new Token(), tagName.Substring(9), null);
       }
-      return new DafnyModelType(tagName, typeArgs.ConvertAll(ReconstructType));
+
+      switch (tagName) {
+        case "TagSeq":
+          return new SeqType(typeArgs.First());
+        case "TagMap":
+          return new Microsoft.Dafny.MapType(true, typeArgs[0], typeArgs[1]);
+        case "TagSet":
+          return new SetType(true, typeArgs.First());
+        default: // TODO: differentiate between different functions
+          tagName = tagName.Substring(9);
+          if (tagName.StartsWith("_System.___hFunc") || 
+              tagName.StartsWith("_System.___hTotalFunc") ||
+              tagName.StartsWith("_System.___hPartialFunc")) {
+            return new ArrowType(new Token(), typeArgs.SkipLast(1).ToList(), 
+              typeArgs.Last());
+          }
+          return new UserDefinedType(new Token(), tagName, typeArgs);
+      }
     }
 
     /// <summary>
@@ -586,7 +613,7 @@ namespace DafnyServer.CounterexampleGeneration {
       if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
         return reservedValue;
       }
-      int i = firstCharacterUtfValue;
+      int i = FirstCharacterUtfValue;
       while (reservedChars.Contains(Convert.ToChar(i))) {
         i++;
       }
@@ -648,7 +675,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
         // Elt is a datatype value
-        var destructors = GetDestructorFunctions(var.Element, var.Type.Name).OrderBy(f => f.Name).ToList();
+        var destructors = GetDestructorFunctions(var.Element, (var.Type as UserDefinedType)?.Name ?? "").OrderBy(f => f.Name).ToList();
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {

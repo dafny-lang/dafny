@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using MapType = Microsoft.Dafny.MapType;
 
 namespace DafnyServer.CounterexampleGeneration {
 
@@ -42,13 +44,17 @@ namespace DafnyServer.CounterexampleGeneration {
         }
         return new DuplicateVariable(state, state.GetVar(element), name, parent);
       }
-      if (state.Model.GetDafnyType(element).Name == "seq") {
-        return new SeqVariable(state, element, name, parent);
+
+      switch (state.Model.GetDafnyType(element)) {
+        case SeqType _:
+          return new SeqVariable(state, element, name, parent);
+        case MapType _:
+          return new MapVariable(state, element, name, parent);
+        case ArrowType _:
+          return new FunctionVariable(state, element, name, parent);
+        default:
+          return new DafnyModelVariable(state, element, name, parent);
       }
-      if (state.Model.GetDafnyType(element).Name == "map") {
-        return new MapVariable(state, element, name, parent);
-      }
-      return new DafnyModelVariable(state, element, name, parent);
     }
   }
 
@@ -60,7 +66,7 @@ namespace DafnyServer.CounterexampleGeneration {
   public class DafnyModelVariable {
 
     public readonly string Name; // name given to the variable at creation
-    public readonly DafnyModelType Type; // Dafny type of the variable
+    public readonly Microsoft.Dafny.Type Type; // Dafny type of the variable
     public readonly Model.Element Element;
     private readonly DafnyModelState state; // the associated captured state
     // A child is a field or a value at a given index of an array, etc.
@@ -91,6 +97,10 @@ namespace DafnyServer.CounterexampleGeneration {
       return state.Model.GetExpansion(state, this);
     }
 
+    public string CanonicalName() {
+      return state.Model.CanonicalName(Element);
+    }
+    
     public virtual string Value {
       get {
         var result = state.Model.CanonicalName(Element);
@@ -109,7 +119,7 @@ namespace DafnyServer.CounterexampleGeneration {
           }
         }
         string childValues;
-        if (Type.Name == "set") {
+        if (Type is SetType) {
           childValues = string.Join(", ",
             childList.ConvertAll(tpl => tpl.Item2 + " := " + tpl.Item1));
           return result + "{" + childValues + "}";
@@ -263,6 +273,30 @@ namespace DafnyServer.CounterexampleGeneration {
         return;
       }
       Mappings[from] = to;
+    }
+  }
+  
+  /// <summary>
+  /// A variable that represents a function. 
+  /// </summary>
+  public class FunctionVariable : DafnyModelVariable {
+
+    public readonly List<List<DafnyModelVariable>> Applications = new();
+
+    internal FunctionVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) : base(state, element, name, parent) { }
+
+    public override string Value {
+      get {
+        if (Applications.Count == 0) {
+          return "()";
+        }
+        return "";
+        //TODO
+      }
+    }
+
+    public void AddApplication(List<DafnyModelVariable> app) {
+      Applications.Add(app);
     }
   }
 }

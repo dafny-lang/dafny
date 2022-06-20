@@ -20,7 +20,8 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      var modifications = GetModifications(program).ToList();
+      var dafnyInfo = new DafnyInfo(program);
+      var modifications = GetModifications(program, dafnyInfo).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -53,15 +54,15 @@ namespace DafnyTestGeneration {
         yield return "Cannot parse program";
         yield break;
       }
-
       await foreach (var line in GetDeadCodeStatistics(program)) {
         yield return line;
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Program program, DafnyInfo dafnyInfo) {
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter()).PreResolve(program);
+      program.Reporter = new ErrorReporterSink();
       new Resolver(program).ResolveProgram(program);
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
@@ -76,7 +77,7 @@ namespace DafnyTestGeneration {
         DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
           : new BlockBasedModifier();
-      return programModifier.GetModifications(boogiePrograms);
+      return programModifier.GetModifications(boogiePrograms, dafnyInfo);
     }
 
     /// <summary>
@@ -87,7 +88,7 @@ namespace DafnyTestGeneration {
       Program program, DafnyInfo? dafnyInfo = null) {
 
       dafnyInfo ??= new DafnyInfo(program);
-      var modifications = GetModifications(program).ToList();
+      var modifications = GetModifications(program, dafnyInfo).ToList();
 
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();

@@ -8,25 +8,43 @@ namespace DafnyTestGeneration {
   public class DafnyInfo {
 
     // method -> list of return types
-    private readonly Dictionary<string, List<string>> returnTypes;
+    private readonly Dictionary<string, List<Type>> returnTypes;
+    private readonly Dictionary<string, List<Type>> parameterTypes;
     private readonly HashSet<string> isStatic; // static methods
+    private readonly HashSet<string> isNotGhost; // ghost methods
+    private readonly Dictionary<string, int> nOfTypeParams;
     // import required to access the code contained in the program
     public readonly HashSet<string> ToImport;
 
     public DafnyInfo(Program program) {
-      returnTypes = new Dictionary<string, List<string>>();
+      returnTypes = new Dictionary<string, List<Type>>();
+      parameterTypes = new Dictionary<string, List<Type>>();
       isStatic = new HashSet<string>();
+      isNotGhost = new HashSet<string>();
       ToImport = new HashSet<string>();
+      nOfTypeParams = new Dictionary<string, int>();
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
     }
 
-    public IList<string> GetReturnTypes(string method) {
+    public IList<Type> GetReturnTypes(string method) {
       return returnTypes[method];
+    }
+
+    public int GetNOfTypeParams(string method) {
+      return nOfTypeParams[method];
+    }
+    
+    public IList<Type> GetParameterTypes(string method) {
+      return parameterTypes[method];
     }
 
     public bool IsStatic(string method) {
       return isStatic.Contains(method);
+    }
+    
+    public bool IsGhost(string method) {
+      return !isNotGhost.Contains(method);
     }
 
     /// <summary>
@@ -73,7 +91,9 @@ namespace DafnyTestGeneration {
 
       private void Visit(IndDatatypeDecl d) {
         path.Add(d.Name);
+        insideAClass = true;
         d.Members.ForEach(Visit);
+        insideAClass = false;
         path.RemoveAt(path.Count - 1);
       }
 
@@ -106,8 +126,14 @@ namespace DafnyTestGeneration {
         if (m.HasStaticKeyword || !insideAClass) {
           info.isStatic.Add(methodName);
         }
-        var returnTypes = m.Outs.Select(arg => arg.Type.ToString()).ToList();
+        if (!m.IsLemmaLike && !m.IsGhost) {
+          info.isNotGhost.Add(methodName);
+        }
+        var returnTypes = m.Outs.Select(arg => arg.Type).ToList();
+        var parameterTypes = m.Ins.Select(arg => arg.Type).ToList();
+        info.parameterTypes[methodName] = parameterTypes;
         info.returnTypes[methodName] = returnTypes;
+        info.nOfTypeParams[methodName] = m.TypeArgs.Count;
       }
 
       private new void Visit(Function f) {
@@ -118,8 +144,14 @@ namespace DafnyTestGeneration {
         if (f.HasStaticKeyword || !insideAClass) {
           info.isStatic.Add(methodName);
         }
-        var returnTypes = new List<string> { f.ResultType.ToString() };
+        if (!f.IsGhost) {
+          info.isNotGhost.Add(methodName);
+        }
+        var returnTypes = new List<Type> { f.ResultType };
+        var parameterTypes = f.Formals.Select(f => f.Type).ToList();
+        info.parameterTypes[methodName] = parameterTypes;
         info.returnTypes[methodName] = returnTypes;
+        info.nOfTypeParams[methodName] = f.TypeArgs.Count;
       }
     }
   }

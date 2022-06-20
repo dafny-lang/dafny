@@ -90,7 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + variable.Type.InDafnyFormat(),
+            variable => variable.ShortName + ":" + 
+                        DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
             variable => variable.Value
           )
         );

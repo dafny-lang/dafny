@@ -847,8 +847,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,bool>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int,bool>"], new Regex("\\(.*3 := false.*"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int, bool>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int, bool>"], new Regex("\\(.*3 := false.*"));
     }
 
     [TestMethod]
@@ -865,15 +865,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(4, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,int>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int,int>"], new Regex("\\(.*3 := -1.*"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int, int>"], new Regex("\\(.*3 := -1.*"));
       Assert.AreEqual(3, counterExamples[3].Variables.Count);
-      Assert.IsTrue(counterExamples[3].Variables.ContainsKey("m:map<int,int>"));
+      Assert.IsTrue(counterExamples[3].Variables.ContainsKey("m:map<int, int>"));
       Assert.IsTrue(counterExamples[3].Variables.ContainsKey("value:int"));
       Assert.IsTrue(counterExamples[3].Variables.ContainsKey("b:bool"));
       Assert.AreEqual("true", counterExamples[3].Variables["b:bool"]);
       StringAssert.Matches(counterExamples[3].Variables["value:int"], new Regex("[1-9][0-9]*"));
-      StringAssert.Matches(counterExamples[3].Variables["m:map<int,int>"], new Regex("\\(.*3 := [1-9].*"));
+      StringAssert.Matches(counterExamples[3].Variables["m:map<int, int>"], new Regex("\\(.*3 := [1-9].*"));
     }
 
     [TestMethod]
@@ -891,13 +891,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(3, counterExamples.Length);
       Assert.AreEqual(4, counterExamples[2].Variables.Count);
-      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m:map<int,int>"));
-      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m':map<int,int>"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m:map<int, int>"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m':map<int, int>"));
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("val:int"));
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("key:int"));
       var key = counterExamples[2].Variables["key:int"];
       var val = counterExamples[2].Variables["val:int"];
-      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
+      StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
 
     [TestMethod]
@@ -914,15 +914,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(4, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,int>"));
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m':map<int,int>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m':map<int, int>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("val:int"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("key:int"));
       var key = counterExamples[1].Variables["key:int"];
       var val = counterExamples[1].Variables["val:int"];
       var mapRegex = new Regex("\\(.*" + key + " := " + val + ".*");
-      Assert.IsTrue(mapRegex.IsMatch(counterExamples[1].Variables["m':map<int,int>"]) ||
-                    mapRegex.IsMatch(counterExamples[1].Variables["m:map<int,int>"]));
+      Assert.IsTrue(mapRegex.IsMatch(counterExamples[1].Variables["m':map<int, int>"]) ||
+                    mapRegex.IsMatch(counterExamples[1].Variables["m:map<int, int>"]));
 
     }
 
@@ -938,9 +938,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("keys:set<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.*25 := .*"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("\\(.*25 := .*"));
       StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
 
@@ -956,9 +956,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("values:set<char>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("\\(.* := 'c'.*"));
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
 
@@ -976,8 +976,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("m:map<bv2,bv3>"));
-      StringAssert.Matches(counterExamples[0].Variables["m:map<bv2,bv3>"], new Regex("\\(.*[0-9]+ := [0-9]+.*"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("m:map<bv2, bv3>"));
+      StringAssert.Matches(counterExamples[0].Variables["m:map<bv2, bv3>"], new Regex("\\(.*[0-9]+ := [0-9]+.*"));
     }
 
     [TestMethod]
@@ -1000,64 +1000,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss?"));
       Assert.AreEqual("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss?"]);
-    }
-
-    [TestMethod]
-    public void DafnyModelTypeMultipleArguments() {
-      var type = DafnyModelType.FromString("seq<int, char>");
-      Assert.AreEqual("seq", type.Name);
-      Assert.AreEqual(2, type.TypeArgs.Count);
-      Assert.AreEqual("int", type.TypeArgs[0].Name);
-      Assert.AreEqual("char", type.TypeArgs[1].Name);
-      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, type.TypeArgs[1].TypeArgs.Count);
-    }
-
-
-    [TestMethod]
-    public void DafnyModelTypeNestedArguments() {
-      var type = DafnyModelType.FromString("seq<map<char, int>>");
-      Assert.AreEqual("seq", type.Name);
-      Assert.AreEqual(1, type.TypeArgs.Count);
-      Assert.AreEqual("map", type.TypeArgs[0].Name);
-      Assert.AreEqual(2, type.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual("char", type.TypeArgs[0].TypeArgs[0].Name);
-      Assert.AreEqual("int", type.TypeArgs[0].TypeArgs[1].Name);
-      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs[1].TypeArgs.Count);
-    }
-
-    [TestMethod]
-    public void DafnyModelTypeComplexCase() {
-      var type = DafnyModelType.FromString("Custom<Value<set<map<bv6, real>>>, map<char, int>, array<bool>>");
-      Assert.AreEqual("Custom", type.Name);
-      Assert.AreEqual(3, type.TypeArgs.Count);
-      var arg = type.TypeArgs[0];
-      Assert.AreEqual("Value", arg.Name);
-      Assert.AreEqual(1, arg.TypeArgs.Count);
-      arg = arg.TypeArgs[0];
-      Assert.AreEqual("set", arg.Name);
-      Assert.AreEqual(1, arg.TypeArgs.Count);
-      arg = arg.TypeArgs[0];
-      Assert.AreEqual("map", arg.Name);
-      Assert.AreEqual(2, arg.TypeArgs.Count);
-      Assert.AreEqual("bv6", arg.TypeArgs[0].Name);
-      Assert.AreEqual("real", arg.TypeArgs[1].Name);
-      Assert.AreEqual(0, arg.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, arg.TypeArgs[1].TypeArgs.Count);
-      arg = type.TypeArgs[1];
-      Assert.AreEqual("map", arg.Name);
-      Assert.AreEqual(2, arg.TypeArgs.Count);
-      Assert.AreEqual("char", arg.TypeArgs[0].Name);
-      Assert.AreEqual("int", arg.TypeArgs[1].Name);
-      Assert.AreEqual(0, arg.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, arg.TypeArgs[1].TypeArgs.Count);
-      arg = type.TypeArgs[2];
-      Assert.AreEqual("array", arg.Name);
-      Assert.AreEqual(1, arg.TypeArgs.Count);
-      arg = arg.TypeArgs[0];
-      Assert.AreEqual("bool", arg.Name);
-      Assert.AreEqual(0, arg.TypeArgs.Count);
     }
   }
 }

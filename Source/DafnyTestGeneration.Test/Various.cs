@@ -377,13 +377,13 @@ module ShortCircuit {
     public async Task MultipleModules() {
       var source = @"
 module A {
-  method m(i:int) { assert i != 0; }
+  function method m(i:int):int requires i == 0 { i }
 }
 module B {
-  method m(c:char) { assert c != '0'; }
+  function method m(c:char):char requires c == '0' { c }
 }
 module C {
-  method m(r:real) { assert r != 0.0; }
+  function method m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
       var program = Utils.Parse(source);
