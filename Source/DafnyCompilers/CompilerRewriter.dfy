@@ -550,18 +550,188 @@ module CompilerRewriter {
       }
     }
 
+    // TODO: move
+    lemma {:verify true} EqInterp_Expr_EqState_Lem(e: Exprs.T, fuel: nat, ctx: State, ctx': State)
+      requires SupportsInterp(e)
+      ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e, fuel, ctx'))
+    {
+      assume false; // TODO: prove
+    }
+
     lemma {:verify false} EqValue_Refl_Lem(v: WV)
       ensures EqValue(v, v)
+      decreases v, 1
     {
-      assume EqValue(v, v); // TODO: prove
+      match v {
+        case Bool(_) => {}
+        case Char(_) => {}
+        case Int(_) => {}
+        case Real(_) => {}
+        case BigOrdinal(_) => {}
+        case BitVector(_, _) => {}
+        case Map(m) => {
+          ValueTypeHeight_Children_Lem(v); // For termination
+          forall x | x in m ensures EqValue(m[x], m[x]) {
+            EqValue_Refl_Lem(m[x]);
+          }
+        }
+        case Multiset(ms) => {}
+        case Seq(sq) => {
+          ValueTypeHeight_Children_Lem(v); // For termination
+          forall i | 0 <= i < |sq| ensures EqValue(sq[i], sq[i]) {
+            EqValue_Refl_Lem(sq[i]);
+          }
+        }
+        case Set(st) => {}
+        case Closure(ctx, vars, body) => {
+          EqValue_Closure_Refl_Lem(v);
+        }
+      }
+    }
+
+    // TODO: prove
+    lemma {:verify true} EqValue_Closure_Refl_Lem(v: WV)
+      requires v.Closure?
+      ensures EqValue_Closure(v, v)
+      decreases v, 0
+    {
+      reveal EqValue_Closure();
+
+      var Closure(ctx, vars, body) := v;
+
+      forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
+        && |argvs| == |argvs'| == |vars|
+        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
+        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v))
+        && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
+        ensures
+          var res := InterpCallFunctionBody(v, fuel, argvs);
+          var res' := InterpCallFunctionBody(v, fuel, argvs');
+          EqPureInterpResultValue(res, res')
+      {
+          var res := InterpCallFunctionBody(v, fuel, argvs);
+          var res' := InterpCallFunctionBody(v, fuel, argvs');
+
+          assert EqCtx(ctx, ctx) by {
+            // It would be difficult to call a lemma like ``EqState_Refl_Lem`` here, because
+            // of termination issues. However, we have that the values in the closure context
+            // are smaller than the closure value itself, which allows us to recursively call
+            // ``EqValue``.
+            forall x | x in ctx ensures EqValue(ctx[x], ctx[x]) {
+              EqValue_Refl_Lem(ctx[x]);
+            }
+            reveal GEqCtx();
+          }
+
+/*          var ctx1 := BuildCallState(cv.ctx, cv.vars, argvs);
+          var ctx1' := BuildCallState(cv'.ctx, cv'.vars, argvs');
+          BuildCallState_EqState_Lem(cv.ctx, cv'.ctx, cv.vars, argvs, argvs');
+          assert EqState(ctx1, ctx1');*/
+
+          reveal InterpCallFunctionBody();
+          assume EqPureInterpResultValue(res, res'); // TODO: prove
+      }
+    }
+
+    lemma {:verify false} EqState_Refl_Lem(ctx: State)
+      ensures EqState(ctx, ctx)
+    {
+      reveal GEqCtx();
+      EqValue_Refl_Forall_Lem();
     }
 
     lemma {:verify false} EqValue_Trans_Lem(v0: WV, v1: WV, v2: WV)
       requires EqValue(v0, v1)
       requires EqValue(v1, v2)
       ensures EqValue(v0, v2)
+      decreases ValueTypeHeight(v0), 1
     {
-      assume EqValue(v0, v2); // TODO: prove
+      match v0 {
+        case Bool(_) => {}
+        case Char(_) => {}
+        case Int(_) => {}
+        case Real(_) => {}
+        case BigOrdinal(_) => {}
+        case BitVector(_, _) => {}
+        case Map(m0) => {
+          ValueTypeHeight_Children_Lem(v0); // For termination
+          forall x | x in m0 ensures EqValue(v0.m[x], v2.m[x]) {
+            EqValue_Trans_Lem(v0.m[x], v1.m[x], v2.m[x]);
+          }
+        }
+        case Multiset(ms) => {}
+        case Seq(sq) => {
+          ValueTypeHeight_Children_Lem(v0); // For termination
+          forall i | 0 <= i < |sq| ensures EqValue(v0.sq[i], v2.sq[i]) {
+            EqValue_Trans_Lem(v0.sq[i], v1.sq[i], v2.sq[i]);
+          }
+        }
+        case Set(st) => {}
+        case Closure(ctx, vars, body) => {
+          EqValue_Closure_Trans_Lem(v0, v1, v2);
+        }
+      }
+    }
+
+    lemma {:verify false} EqValue_Closure_Trans_Lem(v0: WV, v1: WV, v2: WV)
+      requires v0.Closure?
+      requires v1.Closure?
+      requires v2.Closure?
+      requires EqValue_Closure(v0, v1)
+      requires EqValue_Closure(v1, v2)
+      ensures EqValue_Closure(v0, v2)
+      decreases ValueTypeHeight(v0), 0
+    {
+      reveal EqValue_Closure();
+
+      var Closure(ctx0, vars0, body0) := v0;
+      var Closure(ctx1, vars1, body1) := v1;
+      var Closure(ctx2, vars2, body2) := v2;
+
+      forall fuel:nat, argvs0: seq<WV>, argvs2: seq<WV> |
+        && |argvs0| == |argvs2| == |vars0|
+        && (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs0[i]) < ValueTypeHeight(v0))
+        && (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs2[i]) < ValueTypeHeight(v2))
+        && (forall i | 0 <= i < |vars0| :: EqValue(argvs0[i], argvs2[i]))
+        ensures
+          var res0 := InterpCallFunctionBody(v0, fuel, argvs0);
+          var res2 := InterpCallFunctionBody(v2, fuel, argvs2);
+          EqPureInterpResultValue(res0, res2)
+      {
+          var res0 := InterpCallFunctionBody(v0, fuel, argvs0);
+          var res2 := InterpCallFunctionBody(v2, fuel, argvs2);
+
+          // Termination issue: we need to assume that the arguments' types have the
+          // proper height. In practice, if the program is properly type checked, we
+          // have:
+          // - `TypeOf(v0) == TypeOf(v1) == TypeOf(v2)`
+          // - `forall i, TypeOf(argvs0[i]) == TypeOf(argvs2[i])1
+          // so the assumption is trivially true.
+          assume (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs0[i]) < ValueTypeHeight(v1));
+
+          forall i | 0 <= i < |vars0| ensures EqValue(argvs0[i], argvs0[i]) {
+            EqValue_Refl_Lem(argvs0[i]);
+          }
+
+          var res1 := InterpCallFunctionBody(v1, fuel, argvs0);
+          if res0.Success? {
+            var ov0 := res0.value;
+            var ov1 := res1.value;
+            var ov2 := res2.value;
+
+            // Termination - same as above: if the program is well-typed, this is
+            // trivially true.
+            assume ValueTypeHeight(ov0) < ValueTypeHeight(v0);
+
+            EqValue_Trans_Lem(ov0, ov1, ov2);
+            
+            assert EqPureInterpResultValue(res0, res2);
+          }
+          else {
+            assert res1.Failure?;
+            assert res2.Failure?;
+          }
+      }
     }
     
     lemma {:verify false} {:induction v, v'} EqValue_HasEqValue_Lem(v: WV, v': WV)
@@ -618,13 +788,6 @@ module CompilerRewriter {
         EqValue_Refl_Lem(v);
         assert EqValue(v, v);
       }
-    }
-
-    lemma {:verify false} EqState_Refl_Lem(ctx: State)
-      ensures EqState(ctx, ctx)
-    {
-      reveal GEqCtx();
-      EqValue_Refl_Forall_Lem();
     }
 
     lemma {:verify false} EqState_Trans_Lem(ctx0: State, ctx1: State, ctx2: State)
@@ -756,10 +919,19 @@ module CompilerRewriter {
       GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
     }
 
-    lemma {:verify false} EqInterp_Refl_Lem(e: Exprs.T)
+    lemma {:verify true} EqInterp_Refl_Lem(e: Exprs.T)
       ensures EqInterp(e, e)
     {
-      assume EqInterp(e, e); // TODO: prove
+      if SupportsInterp(e) {
+        forall fuel, ctx, ctx' | EqState(ctx, ctx')
+          ensures
+            EqInterpResultValue(
+                         InterpExpr(e, fuel, ctx),
+                         InterpExpr(e, fuel, ctx'))
+        {
+          EqInterp_Expr_EqState_Lem(e, fuel, ctx, ctx'); 
+        }
+      }
     }
 
     lemma {:verify false} EqInterp_Seq_Refl_Lem(es: seq<Exprs.T>)
