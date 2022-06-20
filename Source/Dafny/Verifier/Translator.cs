@@ -7942,7 +7942,7 @@ namespace Microsoft.Dafny {
         case MethodTranslationKind.CoCall:
           return fullName + " (co-call)";
         case MethodTranslationKind.Implementation:
-          return fullName + " (implementation correctness)";
+          return fullName + " (correctness)";
         case MethodTranslationKind.OverrideCheck:
           return fullName + " (override check)";
         default:
