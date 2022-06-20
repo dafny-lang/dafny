@@ -53,7 +53,7 @@ jobs:
     - name: Set Z3 permissions and path
       run: |
         mkdir bin
-        mv $${{matrix.z3}}/bin/z3 bin/z3
+        mv ${{matrix.z3}}/bin/z3 bin/z3
         chmod +x bin/z3
         echo "${PWD}/bin" >> $GITHUB_PATH
     - name: Download NuGet package
