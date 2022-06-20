@@ -66,8 +66,7 @@ jobs:
         echo "42" > expect.txt
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
-      run: |
-        dafny -version
+      run: dafny -version
     - name: Check
       run: dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check - non Windows
