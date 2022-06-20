@@ -22,19 +22,15 @@ jobs:
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-16.04'
-          chmod: true
           z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'ubuntu-18.04'
           osn: 'ubuntu\-16.04'
-          chmod: true
           z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'macos-latest'
           osn: 'osx-.*'
-          chmod: true
           z3: z3-4.8.5-x64-osx-10.14.2
         - os:  'windows-2019'
           osn: 'win'
-          chmod: false
           z3: z3-4.8.5-x64-win
 
     steps:
@@ -54,11 +50,12 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} Binaries/z3 -Recurse
-    - name: Set Z3 Permissions
-      if: ${{matrix.chmod}}
+    - name: Set Z3 permissions and path
       run: |
-        chmod +x Binaries/z3/bin/z3
+        mkdir bin
+        mv ${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
+        echo "${PWD}/bin" >> $GITHUB_PATH
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
     ## Create a simple smoke test program
