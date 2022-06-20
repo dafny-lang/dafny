@@ -1,5 +1,7 @@
 # Upcoming
 
+# 3.7.0
+
 - feat: The Dafny CLI, Dafny as a library, and the C# runtime are now available on NuGet. You can install the CLI with `dotnet tool install --global Dafny`. The library is available as `DafnyPipeline` and the runtime is available as `DafnyRuntime`. (https://github.com/dafny-lang/dafny/pull/2051)
 - feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified. (https://github.com/dafny-lang/dafny/pull/2142)
@@ -10,6 +12,7 @@
 - fix: No more display of previous obsolete verification diagnostics if newer are available (https://github.com/dafny-lang/dafny/pull/2142)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
 - fix: Various improvements to language server robustness (https://github.com/dafny-lang/dafny/pull/2254)
+
 
 # 3.6.0
 
@@ -38,6 +41,7 @@
 - feat: The new `older` modifier on arguments to predicates indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. For more information, see the reference manual section on `older`. (https://github.com/dafny-lang/dafny/pull/1936)
 - fix: Fix `(!new)` checks (https://github.com/dafny-lang/dafny/issues/1419)
 - fix: multiset keyword no longer crashes the parser (https://github.com/dafny-lang/dafny/pull/2079)
+
 
 # 3.5.0
 
