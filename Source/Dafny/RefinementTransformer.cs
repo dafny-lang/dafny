@@ -562,7 +562,7 @@ namespace Microsoft.Dafny {
           body = moreBody;
           bodyOrigin = Predicate.BodyOriginKind.DelayedDefinition;
         } else {
-          body = new BinaryExpr(Format.Generated(f.tok), BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
+          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
           bodyOrigin = Predicate.BodyOriginKind.Extension;
         }
       } else {

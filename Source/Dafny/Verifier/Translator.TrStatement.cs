@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
           var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
           dafnySingletonY.Type = ys.Type;  // resolve here
-          var rhs = new BinaryExpr(Format.Generated(s.Tok), BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
+          var rhs = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
           var cmd = Bpl.Cmd.SimpleAssign(s.Tok, (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr,

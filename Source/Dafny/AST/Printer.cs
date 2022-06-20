@@ -1866,6 +1866,7 @@ namespace Microsoft.Dafny {
     public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen) {
       Contract.Requires(expr != null);
       if (expr is ITEExpr) {
+        Indent(indent);
         while (true) {
           var ite = (ITEExpr)expr;
           wr.Write("if ");
@@ -2498,37 +2499,31 @@ namespace Microsoft.Dafny {
         string op = BinaryExpr.OpcodeString(e.Op);
         if (parensNeeded) { wr.Write("("); }
         var sem = !parensNeeded && isFollowedBySemicolon;
-        if (e.format.StartToken.leadingTrivia != null) {
-          wr.Write(e.format.StartToken.leadingTrivia);
-        }
         if (0 <= indent && e.Op == BinaryExpr.Opcode.And) {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
+          wr.WriteLine(" {0}", op);
           Indent(indent);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, indent, keyword);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Imp) {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
+          wr.WriteLine(" {0}", op);
           int ind = indent + IndentAmount;
           Indent(ind);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind, keyword);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Exp) {
           PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
+          wr.WriteLine(" {0}", op);
           int ind = indent + IndentAmount;
           Indent(ind);
           PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind, keyword);
         } else if (e.Op == BinaryExpr.Opcode.Exp) {
           PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, -1, keyword);
-          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
+          wr.Write(" {0} ", op);
           PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1, keyword);
         } else {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, -1, keyword);
-          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
+          wr.Write(" {0} ", op);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1, keyword);
-        }
-        if (e.format.EndToken.trailingTrivia != null) {
-          wr.Write(e.format.EndToken.trailingTrivia);
         }
         if (parensNeeded) { wr.Write(")"); }
 

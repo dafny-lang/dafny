@@ -275,7 +275,7 @@ namespace Microsoft.Dafny.Triggers {
     private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
       var expr = expressions[0].Term;
       for (int i = 1; i < expressions.Count; i++) {
-        expr = new BinaryExpr(Format.Generated(tok), op, expr, expressions[i].Term);
+        expr = new BinaryExpr(tok, op, expr, expressions[i].Term);
       }
       return expr;
     }
