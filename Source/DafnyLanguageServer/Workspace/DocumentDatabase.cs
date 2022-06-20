@@ -12,6 +12,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -296,8 +297,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             observer?.OnNext(entry.LastPublishedDocument with {
               ParseAndResolutionDiagnostics = entry.LastPublishedDocument.ParseAndResolutionDiagnostics.Concat(new Diagnostic[] {
                 new() {
-                  Message = $"Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{t.Exception}",
+                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
                   Severity = DiagnosticSeverity.Error,
+                  Range = entry.LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
                   Source = "Crash"
                 }
               }).ToList()
