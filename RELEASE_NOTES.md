@@ -10,6 +10,7 @@
 - fix: Correctly specify the type of the receiver parameter when translating tail-recursive member functions to C# (https://github.com/dafny-lang/dafny/pull/2205)
 - fix: Added support for type parameters and function methods in automatically generated tests (https://github.com/dafny-lang/dafny/pull/2227)
 - fix: Methods produced by the test generation code can now be compiled directly to C# XUnit tests (https://github.com/dafny-lang/dafny/pull/2269)
+- fix: Fix Dafny to Boogie translation of FunctionHandles (https://github.com/dafny-lang/dafny/pull/2266)
 
 # 3.6.0
 
