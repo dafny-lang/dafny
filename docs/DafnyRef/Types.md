@@ -390,7 +390,7 @@ These produce assertion errors:
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-## 7.4. Ordinal type
+## 7.4. Ordinal type {#sec-ordinals}
 ````grammar
 OrdinalType_ = "ORDINAL"
 ````
@@ -801,7 +801,7 @@ For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
 numbers (called _indices_) to `T` values.
 
-### 10.3.1. Sequence Displays
+### 10.3.1. Sequence Displays {#sec-sequence-displays}
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
@@ -2572,7 +2572,7 @@ object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
-## 14.1. Type `object`
+## 14.1. Type `object` {#sec-object-type}
 ````grammar
 ObjectType_ = "object" | "object?"
 ````
@@ -2877,7 +2877,7 @@ conversion:
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
-## 15.2. Multi-dimensional arrays
+## 15.2. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
 
 An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
