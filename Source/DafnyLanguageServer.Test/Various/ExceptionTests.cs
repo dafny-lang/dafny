@@ -28,14 +28,36 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   }
 
   [TestMethod]
-  public async Task LoadCrashRecover() {
+  public async Task LoadCrashOnOpenRecovery() {
     var source = @"method Foo() { assert true; }";
 
     loader.CrashOnLoad = true;
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
+    // Unloaded documents currently don't get their notifications published, so we can't do this.
+    // Instead we wait a second.
+    // var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    // Assert.AreEqual(1, crashDiagnostics.Length);
+    await Task.Delay(1000);
+    loader.CrashOnLoad = false;
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(0, recoveredDiagnostics.Length);
+  }
+
+  [TestMethod]
+  public async Task LoadCrashOnChangeRecover() {
+    var source = @"method Foo() { assert true; }";
+
+    var documentItem = CreateTestDocument(source);
+    client.OpenDocument(documentItem);
+    var openDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(0, openDiagnostics.Length);
+    loader.CrashOnLoad = true;
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, crashDiagnostics.Length);
+    Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     loader.CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
