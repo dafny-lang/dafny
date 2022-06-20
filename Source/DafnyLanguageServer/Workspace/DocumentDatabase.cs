@@ -90,8 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       documents.Add(document.Uri, documentEntry);
 
       documentEntry.Observe(
-        ToObservableSkipCancelledAndPublishExceptions(resolvedDocumentTask).Where(d => !d.LoadCanceled).
-        Concat(ToObservableSkipCancelledAndPublishExceptions(translatedDocument)));
+        ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
+        Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
 
       if (VerifyOnOpen) {
         Verify(documentEntry, cancellationSource.Token);
@@ -113,8 +113,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void Verify(IDocumentEntry documentEntry, CancellationToken cancellationToken) {
       var withVerificationTasks = documentEntry.TranslatedDocument;
 
-      var updates = ToObservableSkipCancelledAndPublishExceptions(withVerificationTasks.ContinueWith(task => {
-        if (task.IsCanceled) {
+      var updates = withVerificationTasks.ContinueWith(task => {
+        if (task.IsCanceled || task.IsFaulted) {
           return Observable.Empty<DafnyDocument>();
         }
 
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current)).Merge();
+      }, TaskScheduler.Current).ToObservable().Merge();
       documentEntry.Observe(updates);
     }
 
@@ -156,8 +156,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         databaseEntry.Observer
       );
       documents[documentUri] = entry;
-      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(resolvedDocumentTask)
-        .Concat(ToObservableSkipCancelledAndPublishExceptions(translatedDocument)));
+      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
+        .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
 
       if (VerifyOnChange) {
         Verify(entry, cancellationSource.Token);
@@ -287,18 +287,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    public IObservable<T> ToObservableSkipCancelledAndPublishExceptions<T>(Task<T> task) {
-      return Observable.Create<T>(observer => {
+    public IObservable<DafnyDocument> ToObservableSkipCancelledAndPublishExceptions(IDocumentEntry entry, Task<DafnyDocument> task) {
+      return Observable.Create<DafnyDocument>(observer => {
         var _ = task.ContinueWith(t => {
-          if (t.Exception == null || t.IsCanceled) {
-            if (t.IsCompletedSuccessfully) {
-              observer?.OnNext(t.Result);
-            }
-            observer?.OnCompleted();
-          } else {
+          if (t.IsCompletedSuccessfully) {
+            observer?.OnNext(t.Result);
+          } else if (t.Exception != null) {
+            observer?.OnNext(entry.LastPublishedDocument with {
+              ParseAndResolutionDiagnostics = entry.LastPublishedDocument.ParseAndResolutionDiagnostics.Concat(new Diagnostic[] {
+                new() {
+                  Message = $"Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{t.Exception}",
+                  Severity = DiagnosticSeverity.Error,
+                  Source = "Crash"
+                }
+              }).ToList()
+            });
             telemetryPublisher.PublishUnhandledException(t.Exception);
-            observer?.OnCompleted();
           }
+          observer?.OnCompleted();
         }, TaskScheduler.Current);
         return Disposable.Create(() => observer = null);
       });

@@ -29,16 +29,17 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
   [TestMethod]
   public async Task LoadCrashRecover() {
-    var source = @"method Foo() { assert false; }";
+    var source = @"method Foo() { assert true; }";
 
     loader.CrashOnLoad = true;
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
-    await Task.Delay(1000);
+    var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, crashDiagnostics.Length);
     loader.CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(1, diagnostics2.Length);
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(0, recoveredDiagnostics.Length);
   }
 
   [TestMethod]
@@ -48,12 +49,16 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     loader.CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(0, diagnostics1.Length);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(0, resolutionDiagnostics.Length);
+    var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, translationCrashDiagnostics.Length);
+    Assert.IsTrue(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
     loader.CrashOnPrepareVerification = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(1, diagnostics2.Length);
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(1, recoveredDiagnostics.Length);
+    Assert.IsTrue(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
   }
 
   class CrashingLoader : ITextDocumentLoader {
