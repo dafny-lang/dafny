@@ -50,12 +50,17 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-    - name: Set Z3 permissions and path
+    - name: Set Z3 permissions
       run: |
         mkdir bin
-        mv $${{matrix.z3}}/bin/z3 bin/z3
-        chmod +x bin/z3
-        echo "${PWD}/bin" >> $GITHUB_PATH
+        mv ${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
+    - name: Set Path
+      if: runner.os != 'Windows'
+      run: echo "${PWD}/bin" >> $GITHUB_PATH
+    - name: Set Path - Windows
+      if: runner.os == 'Windows'
+      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
     ## Create a simple smoke test program
@@ -71,21 +76,8 @@ jobs:
         dafny -version
     - name: Check
       run: dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - non Windows
-      if: runner.os != 'Windows'
-      run: |
-        dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - Windows
-      if: runner.os == 'Windows'
-      run: dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check bad
       run: dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
-    - name: Check bad - non Windows
-      if: runner.os != 'Windows'
-      run: dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
-    - name: Check bad - Windows
-      if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
