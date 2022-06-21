@@ -74,7 +74,8 @@ jobs:
       run: |
         z3 -version
         dafny -version
-    - id: dafny
+    - name: Fatch latest release version string
+      id: dafny
       uses: pozetroninc/github-action-get-latest-release@v0.5.0
       with:
         repository: dafny-lang/dafny
