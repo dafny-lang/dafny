@@ -361,6 +361,9 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /useRuntimeLib
       Refer to pre-built DafnyRuntime.dll in compiled assembly rather
       than including DafnyRuntime.cs verbatim.
+  /library:<file>
+      The contents of this file and any files it includes will be included in any generated code,
+      nor will they be verified, but their modules can be imported by other files.
   
   ----------------------------------------------------------------------------
   
