@@ -1998,32 +1998,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintInitialTrivia(Format exprFormat, int indent = 0, string prefix = null) {
-      if (exprFormat.StartToken.leadingTrivia != null) {
-        wr.Write(exprFormat.StartToken.leadingTrivia);
-      } else {
-        if (indent != 0) {
-          Indent(indent);
-        }
-        if (prefix != null) {
-          wr.Write(prefix);
-        }
-      }
-    }
-
-    private void PrintFinalTrivia(Format exprFormat, int indent = 0, string prefix = null) {
-      if (exprFormat.EndToken.trailingTrivia != null) {
-        wr.Write(exprFormat.EndToken.trailingTrivia);
-      } else {
-        if (indent != 0) {
-          Indent(indent);
-        }
-        if (prefix != null) {
-          wr.Write(prefix);
-        }
-      }
-    }
-
     public void PrintMatchCaseArgument(MatchCase mc) {
       Contract.Assert(mc.Arguments != null);
       if (mc.Arguments.Count != 0) {
