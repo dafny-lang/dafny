@@ -19,6 +19,7 @@ namespace DafnyTestGeneration {
     // maps a variable that is mocked to its unique id
     private readonly Dictionary<DafnyModelVariable, string> mockedVarId = new();
     public readonly List<(string parentId, string fieldName, string childId)> Assignments = new();
+    public readonly List<(string id, Type type, string value)> DatatypeCreation = new();
     private readonly int id = nextId++;
     public readonly DafnyInfo DafnyInfo;
     // name of the method for which the counterexample is generated
@@ -31,16 +32,14 @@ namespace DafnyTestGeneration {
     private readonly Type defaultType = Type.Int;
     // the DafnyModel that describes the inputs to this test method
     private readonly DafnyModel dafnyModel;
-    private readonly Dictionary<string, string> functions;
     // Set of all types for which a {:synthesize} - annotated method is needed
     // These methods are used to get fresh instances of the corresponding types
     private static readonly HashSet<string> TypesToSynthesize = new();
     // is set to true wheneve the tool ecnounters something it does not support
-    private bool encouteredUnsupportedType = false; 
+    private bool encounteredUnsupportedType = false; 
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
-      functions = new();
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
       dafnyModel = DafnyModel.ExtractModel(log);
@@ -128,14 +127,11 @@ namespace DafnyTestGeneration {
 
     private string GetFunctionOfType(ArrowType type) {
       type = (ArrowType) DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
-      var name = $"test{id}function{functions.Count}";
-      var definition = 
-        $"function method {name} " + // name
+      var lambda = 
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
-        $":{type.TypeArgs.Last()}" + // return type
-        $"{{ {GetDefaultValue(type.TypeArgs.Last())} }}"; // body
-      functions.Add(name, definition);
-      return name;
+        $"=>" + // return type
+        $"{GetDefaultValue(type.TypeArgs.Last())}"; // body
+      return lambda;
     }
 
     /// <summary>
@@ -149,12 +145,6 @@ namespace DafnyTestGeneration {
 
       if (variable is DuplicateVariable duplicateVariable) {
         return ExtractVariable(duplicateVariable.Original);
-      }
-
-      if (variable is FunctionVariable) {
-        var varId = GetFunctionOfType((ArrowType)variable.Type);
-        mockedVarId.Add(variable, varId);
-        return varId;
       }
 
       List<string> elements = new();
@@ -200,20 +190,18 @@ namespace DafnyTestGeneration {
             mappingStrings.Add($"{ExtractVariable(mapping.Key)} := {ExtractVariable(mapping.Value)}");
           }
           return $"map[{string.Join(", ", mappingStrings)}]";
-        case UserDefinedType undefined when undefined.Name == DafnyModel.UndefinedType.Name:
-          return "null";
-        case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
-          encouteredUnsupportedType = true;
-          break; // arrays not supported
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
+          var tupleName = "d" + DatatypeCreation.Count;
+          DatatypeCreation.Add((tupleName, tupleType, "(" + 
+            string.Join(",", variable.children.Values
+            .Select(v => ExtractVariable(v.First()))) +")"));
+          return tupleName;
+        case DafnyModelTypeUtils.DatatypeType dataType:
           // TODO: what about the order of fields?
-          return "(" + string.Join(",", variable.children.Values
-            .Select(v => ExtractVariable(v.First()))) +")";
-        case UserDefinedType dataType when (variable.CanonicalName() is not "" or "null"):
           // TODO: What about type variables?
-          dataType = (UserDefinedType) DafnyModelTypeUtils
+          dataType = (DafnyModelTypeUtils.DatatypeType) DafnyModelTypeUtils
             .GetInDafnyFormat(DafnyModelTypeUtils
-              .ReplaceTypeVariables(variableType, defaultType));
+              .ReplaceTypeVariables(dataType, defaultType));
           List<string> fields = new();
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -221,10 +209,28 @@ namespace DafnyTestGeneration {
             }
             fields.Add(filedName + ":=" + ExtractVariable(variable.children[filedName].First()));
           }
-          if (fields.Count == 0) {
-            return dataType.Name + "." + variable.CanonicalName();
+
+          string value;
+          if (variable.CanonicalName() == "") {
+            encounteredUnsupportedType = true;
+            value = dataType.Name + ".UNKNOWN";
+          } else if (fields.Count == 0) {
+            value = dataType.Name + "." + variable.CanonicalName();
+          } else {
+            value = dataType.Name + "." + variable.CanonicalName() + "(" +
+                   string.Join(",", fields) + ")";
           }
-          return dataType.Name + "." + variable.CanonicalName() + "(" + string.Join(",", fields) + ")";
+          var name = "d" + DatatypeCreation.Count;
+          DatatypeCreation.Add((name, dataType, value));
+          return name;
+        case ArrowType arrowType:
+          return GetFunctionOfType(arrowType);
+        case UserDefinedType undefined when undefined.Name == DafnyModel.UndefinedType.Name:
+          encounteredUnsupportedType = true;
+          return "null";
+        case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
+          encounteredUnsupportedType = true;
+          break; // arrays not supported
         default:
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType =
@@ -241,7 +247,7 @@ namespace DafnyTestGeneration {
           }
           return varId;
       }
-      encouteredUnsupportedType = true;
+      encounteredUnsupportedType = true;
       return "null";
     }
 
@@ -252,6 +258,9 @@ namespace DafnyTestGeneration {
     /// an element (e.g. T@U!val!25).
     /// </summary>
     private string GetDefaultValue(Type type) {
+      type = DafnyModelTypeUtils.ReplaceType(type,
+        t => DafnyInfo.DatatypeNames.Contains(t.Name),
+        t => new DafnyModelTypeUtils.DatatypeType(t));
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       switch (type) {
         case IntType:
@@ -270,13 +279,18 @@ namespace DafnyTestGeneration {
           return "{}";
         case MapType:
           return "map[]";
+        case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
+          var tupleName = "d" + DatatypeCreation.Count;
+          DatatypeCreation.Add((tupleName, tupleType, "(" + 
+            string.Join(",", tupleType.TypeArgs.Select(GetDefaultValue)) + ")"));
+          return tupleName;
+        case DafnyModelTypeUtils.DatatypeType datatypeType:
+          encounteredUnsupportedType = true;
+          return datatypeType.Name + ".UNKNOWN"; // TODO
         case ArrowType arrowType:
           return GetFunctionOfType(arrowType);
         case UserDefinedType userDefinedType when userDefinedType.Name.EndsWith("?"):
           return "null";
-        case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
-          return "(" + string.Join(",", tupleType.TypeArgs.Select(GetDefaultValue)) + ")";
-        // TODO: Add datatype support
       }
       // this should only be reached if the type is non-nullable
       var varId = $"v{ObjectsToMock.Count}";
@@ -315,17 +329,18 @@ namespace DafnyTestGeneration {
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
 
-      if (encouteredUnsupportedType) {
+      if (encounteredUnsupportedType) {
         return new List<string>();
       }
       
       List<string> lines = new();
-      lines.AddRange(functions.Values);
 
       // test method parameters and declaration:
       var mockedLines = ObjectsToMock
         .Select(kVPair => $"var {kVPair.id} := " +
                           $"{GetSynthesizeMethodName(kVPair.type.ToString())}();");
+      var datatypeCreation =
+        DatatypeCreation.Select(d => $"var {d.id} : {d.type} := {d.value};");
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);
@@ -333,6 +348,7 @@ namespace DafnyTestGeneration {
 
       lines.Add($"method {{:test}} test{id}() {{");
       lines.AddRange(mockedLines);
+      lines.AddRange(datatypeCreation);
 
       // assignments necessary to set up the test case:
       foreach (var assignment in Assignments) {

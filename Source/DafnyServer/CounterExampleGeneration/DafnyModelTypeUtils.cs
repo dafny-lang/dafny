@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
@@ -13,6 +14,10 @@ namespace DafnyServer.CounterexampleGeneration {
     private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
+    public class DatatypeType : UserDefinedType {
+      public DatatypeType(UserDefinedType type) : base(new Token(), type.Name, type.TypeArgs) { }
+    }
+
     public static Type GetInDafnyFormat(Type type) {
       if ((type is not UserDefinedType userType) || (type is ArrowType)) {
         return TransformType(type, GetInDafnyFormat);
@@ -23,28 +28,41 @@ namespace DafnyServer.CounterexampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
-      return new UserDefinedType(new Token(), newName,
+      var newType = new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
+      if (type is DatatypeType) {
+        return new DatatypeType(newType);
+      }
+      return newType;
     }
 
     public static Type GetNonNullable(Type type) {
       if (type is not UserDefinedType userType) {
         return type;
       }
-      return new UserDefinedType(new Token(), userType.Name.TrimEnd('?'),
-        userType.TypeArgs);
+
+      var newType = new UserDefinedType(new Token(), 
+        userType.Name.TrimEnd('?'), userType.TypeArgs);
+      if (type is DatatypeType) {
+        return new DatatypeType(newType);
+      }
+      return newType;
     }
 
     public static Type ReplaceTypeVariables(Type type, Type with) {
+      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
+    }
+    
+    public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
+      Func<UserDefinedType, Type> replacement) {
       if ((type is not UserDefinedType userType) || (type is ArrowType)) {
-        return TransformType(type, t => ReplaceTypeVariables(t, with));
+        return TransformType(type, t => ReplaceType(t, condition, replacement));
       }
-      if (userType.Name.Contains('$')) {
-        return with;
-      }
-      return new UserDefinedType(new Token(), userType.Name,
-        type.TypeArgs.ConvertAll(t => 
-          TransformType(t, t => ReplaceTypeVariables(t, with))));
+      var newType = condition(userType) ? replacement(userType) : type;
+      // TODO: What if ReplaceTypeVariable is used to replace type with something that has type variables?
+      newType.TypeArgs = type.TypeArgs.ConvertAll(t => 
+          TransformType(t, t => ReplaceType(t, condition, replacement)));
+      return newType;
     }
 
     private static Type TransformType(Type type, Func<Type, Type> transform) {

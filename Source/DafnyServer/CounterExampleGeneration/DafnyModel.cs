@@ -48,7 +48,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
     // the model will begin assigning characters starting from this utf value
     private const int FirstCharacterUtfValue = 65; // 'A'
-    private static readonly Regex BvTypeRegex = new Regex("^bv[0-9]+Type$");
+    private static readonly Regex BvTypeRegex = new("^bv[0-9]+Type$");
 
 
     public DafnyModel(Model model) {
@@ -426,9 +426,10 @@ namespace DafnyServer.CounterexampleGeneration {
         case "DatatypeTypeType":
           isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
-            return ReconstructType(isOfType[0]);
+            return new DafnyModelTypeUtils.DatatypeType(
+              (UserDefinedType) ReconstructType(isOfType[0]));
           }
-          return UndefinedType;
+          return new DafnyModelTypeUtils.DatatypeType(UndefinedType);
         case "MapType":
           isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
@@ -506,7 +507,10 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
         AppWithResult(typeElement)?.
-        Args.Select(ReconstructType).ToList();
+        Args.Select(e => 
+          GetBoogieType(e) == "DatatypeTypeType" ? 
+          new DafnyModelTypeUtils.DatatypeType((UserDefinedType) ReconstructType(e)) : 
+          ReconstructType(e)).ToList();
       if (typeArgs == null) {
         return new UserDefinedType(new Token(), tagName.Substring(9), null);
       }

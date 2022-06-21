@@ -23,6 +23,7 @@ namespace DafnyTestGeneration {
       this.procedure = procedure;
     }
     
+    //TODO: remove this
     public static string GetStringRepresentation(Program program) {
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       var oldPrintFile = DafnyOptions.O.PrintFile;
@@ -51,8 +52,7 @@ namespace DafnyTestGeneration {
       options.ModelViewFile = "-";
       options.ProverOptions = new List<string>() {
         "O:model_compress=false",
-        "O:model_evaluator.completion=true",
-        "O:model.completion=true"
+        "O:model_evaluator.completion=true"
       };
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;

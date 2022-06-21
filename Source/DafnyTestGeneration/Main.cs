@@ -126,8 +126,13 @@ namespace DafnyTestGeneration {
 
       yield return $"include {EscapeDafnyStringLiteral(sourceFile)}";
       yield return $"module {rawName}UnitTests {{";
-      foreach (var module in dafnyInfo.ToImport) {
-        yield return $"import {module}";
+      foreach (var module in dafnyInfo.ToImportAs.Keys) {
+        // TODO: disambiguate between modules amongst generated tests
+        if (module.Split(".").Last() == dafnyInfo.ToImportAs[module]) {
+          yield return $"import {module}";
+        } else {
+          yield return $"import {dafnyInfo.ToImportAs[module]} = {module}";
+        }
       }
 
       await foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {

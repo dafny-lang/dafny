@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Dafny;
+using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
 
@@ -14,14 +15,16 @@ namespace DafnyTestGeneration {
     private readonly HashSet<string> isNotGhost; // ghost methods
     private readonly Dictionary<string, int> nOfTypeParams;
     // import required to access the code contained in the program
-    public readonly HashSet<string> ToImport;
+    public readonly Dictionary<string, string> ToImportAs;
+    public readonly HashSet<string> DatatypeNames;
 
     public DafnyInfo(Program program) {
       returnTypes = new Dictionary<string, List<Type>>();
       parameterTypes = new Dictionary<string, List<Type>>();
       isStatic = new HashSet<string>();
       isNotGhost = new HashSet<string>();
-      ToImport = new HashSet<string>();
+      ToImportAs = new Dictionary<string, string>();
+      DatatypeNames = new HashSet<string>();
       nOfTypeParams = new Dictionary<string, int>();
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
@@ -79,18 +82,27 @@ namespace DafnyTestGeneration {
       }
 
       private void Visit(LiteralModuleDecl d) {
+        if (d.ModuleDef.IsAbstract) {
+          return;
+        }
         if (d.Name.Equals("_module")) {
           d.ModuleDef.TopLevelDecls.ForEach(Visit);
           return;
         }
         path.Add(d.Name);
-        info.ToImport.Add(string.Join(".", path));
+        if (info.ToImportAs.ContainsValue(d.Name)) {
+          var id = info.ToImportAs.Values.Count(v => v.StartsWith(d.Name));
+          info.ToImportAs[string.Join(".", path)] = d.Name + id;
+        } else {
+          info.ToImportAs[string.Join(".", path)] = d.Name;
+        }
         d.ModuleDef.TopLevelDecls.ForEach(Visit);
         path.RemoveAt(path.Count - 1);
       }
 
       private void Visit(IndDatatypeDecl d) {
         path.Add(d.Name);
+        info.DatatypeNames.Add(string.Join(".", path));
         insideAClass = true;
         d.Members.ForEach(Visit);
         insideAClass = false;
