@@ -1594,7 +1594,7 @@ namespace Dafny {
       const ulong exptMask = 0x7FF0000000000000;
       const ulong mantMask = 0x000FFFFFFFFFFFFF;
       const int mantBits = 52;
-      ulong bits = BitConverter.DoubleToUInt64Bits(n);
+      ulong bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
 
       // Generic conversion
       bool isNeg = (bits & signMask) != 0;
