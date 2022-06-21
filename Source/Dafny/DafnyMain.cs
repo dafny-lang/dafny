@@ -220,15 +220,14 @@ namespace Microsoft.Dafny {
           }
 
           var include = stack.Pop();
-          if (!includesFound.Add(include) && !excludeFiles.Contains(include.CanonicalPath)) {
+          if (!includesFound.Add(include) || excludeFiles.Contains(include.CanonicalPath)) {
             continue;
           }
 
           DafnyFile file;
           try {
             file = new DafnyFile(include.IncludedFilename);
-          }
-          catch (IllegalDafnyFile) {
+          } catch (IllegalDafnyFile) {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }
 
