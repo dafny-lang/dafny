@@ -1256,8 +1256,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
 /library:<file>
-    The contents of this file and any files it includes will be included in any generated code,
-    nor will they be verified, but their modules can be imported by other files.
+    The contents of this file and any files it includes can be imported by other files.
+    However, these contents are skipped during code generation and verification.
+    This option is useful in a diamond dependency situation, 
+    to prevent code from the bottom dependency from being generated more than once.
 
 ----------------------------------------------------------------------------
 
