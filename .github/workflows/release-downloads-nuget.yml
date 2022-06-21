@@ -79,7 +79,7 @@ jobs:
       uses: pozetroninc/github-action-get-latest-release@v0.5.0
       with:
         repository: dafny-lang/dafny
-    - name: Verify Dafny Version
+    - name: Verify Dafny version
       run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -E "Dafny "${version:1}".[0-9]{5}"
       shell: bash
     - name: Check
