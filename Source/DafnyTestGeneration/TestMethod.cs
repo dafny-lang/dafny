@@ -19,7 +19,7 @@ namespace DafnyTestGeneration {
     // maps a variable that is mocked to its unique id
     private readonly Dictionary<DafnyModelVariable, string> mockedVarId = new();
     public readonly List<(string parentId, string fieldName, string childId)> Assignments = new();
-    public readonly List<(string id, Type type, string value)> DatatypeCreation = new();
+    public readonly List<(string id, UserDefinedType type, string value)> DatatypeCreation = new();
     private readonly int id = nextId++;
     public readonly DafnyInfo DafnyInfo;
     // name of the method for which the counterexample is generated
@@ -192,7 +192,8 @@ namespace DafnyTestGeneration {
           return $"map[{string.Join(", ", mappingStrings)}]";
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
           var tupleName = "d" + DatatypeCreation.Count;
-          DatatypeCreation.Add((tupleName, tupleType, "(" + 
+          // TODO: specify type
+          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
             string.Join(",", variable.children.Values
             .Select(v => ExtractVariable(v.First()))) +")"));
           return tupleName;
@@ -280,8 +281,9 @@ namespace DafnyTestGeneration {
         case MapType:
           return "map[]";
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
+          // TODO: specify type
           var tupleName = "d" + DatatypeCreation.Count;
-          DatatypeCreation.Add((tupleName, tupleType, "(" + 
+          DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
             string.Join(",", tupleType.TypeArgs.Select(GetDefaultValue)) + ")"));
           return tupleName;
         case DafnyModelTypeUtils.DatatypeType datatypeType:
@@ -339,8 +341,16 @@ namespace DafnyTestGeneration {
       var mockedLines = ObjectsToMock
         .Select(kVPair => $"var {kVPair.id} := " +
                           $"{GetSynthesizeMethodName(kVPair.type.ToString())}();");
-      var datatypeCreation =
-        DatatypeCreation.Select(d => $"var {d.id} : {d.type} := {d.value};");
+      // TODO: specify type
+      List<string> datatypeCreation = new();
+      foreach (var line in DatatypeCreation) {
+        if (line.type.Name == "?") {
+          datatypeCreation.Add($"var {line.id} := {line.value};");
+        } else {
+          datatypeCreation.Add($"var {line.id} : {line.type} := {line.value};");
+        }
+      }
+
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);
