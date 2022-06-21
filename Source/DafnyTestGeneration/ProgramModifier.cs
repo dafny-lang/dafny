@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -43,7 +44,23 @@ namespace DafnyTestGeneration {
       callGraphVisitor.VisitProgram(program);
       toModify = callGraphVisitor.GetCallees(ImplementationToTarget?.Name);
       AddAxioms(program);
+      if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
+        File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl, 
+          GetStringRepresentation(program));
+      }
       return GetModifications(program);
+    }
+
+    private static string GetStringRepresentation(Program program) {
+      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
+      var oldPrintFile = DafnyOptions.O.PrintFile;
+      DafnyOptions.O.PrintInstrumented = true;
+      DafnyOptions.O.PrintFile = "-";
+      var output = new StringWriter();
+      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
+      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      DafnyOptions.O.PrintFile = oldPrintFile;
+      return output.ToString();
     }
 
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);

@@ -22,19 +22,6 @@ namespace DafnyTestGeneration {
       this.program = Utils.DeepCloneProgram(program);
       this.procedure = procedure;
     }
-    
-    //TODO: remove this
-    public static string GetStringRepresentation(Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
-      var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
-      return output.ToString();
-    }
 
     /// <summary>
     /// Setup CommandLineArguments to prepare verification. This is necessary
