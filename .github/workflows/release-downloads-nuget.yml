@@ -74,6 +74,13 @@ jobs:
       run: |
         z3 -version
         dafny -version
+    - id: dafny
+      uses: pozetroninc/github-action-get-latest-release@v0.5.0
+      with:
+        repository: dafny-lang/dafny
+    - name: Verify Dafny Version
+      run: dafny -version | grep -E "Dafny "${${{ steps.dafny.outputs.release }}:1}".[0-9]{5}"
+      shell: bash
     - name: Check
       run: dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check bad
