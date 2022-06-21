@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
     public string FilePath { get; private set; }
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
-    public bool IsPrecompiled { get; private set; }
+    public bool IsPrecompiled { get; set; }
     public string SourceFileName { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -208,6 +208,7 @@ namespace Microsoft.Dafny {
           }
         }
       } while (newlyIncluded);
+      // TODO maybe this should be depth first to ensure library files never get compiled also when they're included by regular files.
 
 
       if (DafnyOptions.O.PrintIncludesMode != DafnyOptions.IncludesModes.None) {

@@ -109,6 +109,7 @@ namespace Microsoft.Dafny {
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+    public HashSet<string> LibraryFiles { get; } = new();
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -179,6 +180,12 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+        case "library":
+          if (ps.ConfirmArgumentCount(1)) {
+            LibraryFiles.Add(args[ps.i]);
+          }
+
+          return true;
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
@@ -1248,6 +1255,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /useRuntimeLib
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
+/library:<file>
+    The contents of this file and any files it includes will be included in any generated code,
+    nor will they be verified, but their modules can be imported by other files.
 
 ----------------------------------------------------------------------------
 
