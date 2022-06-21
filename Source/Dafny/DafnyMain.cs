@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
     public string FilePath { get; private set; }
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
-    public bool isPrecompiled { get; private set; }
+    public bool IsPrecompiled { get; private set; }
     public string SourceFileName { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -59,10 +59,10 @@ namespace Microsoft.Dafny {
       }
 
       if (extension == ".dfy" || extension == ".dfyi") {
-        isPrecompiled = false;
+        IsPrecompiled = false;
         SourceFileName = filePath;
       } else if (extension == ".dll") {
-        isPrecompiled = true;
+        IsPrecompiled = true;
         var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.isPrecompiled, !dafnyFile.isPrecompiled);
+        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
       DependencyMap dmap = new DependencyMap();
       foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, null, fileName));
+        includes.Add(new Include(null, null, fileName, true));
       }
       dmap.AddIncludes(includes);
       bool newlyIncluded;
@@ -200,9 +200,9 @@ namespace Microsoft.Dafny {
         foreach (Include include in newFilesToInclude) {
           DafnyFile file;
           try { file = new DafnyFile(include.includedFilename); } catch (IllegalDafnyFile) {
-            return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
+            return ($"Include of file \"{include.includedFilename}\" failed.");
           }
-          string ret = ParseFile(file, include, module, builtIns, errs, false);
+          string ret = ParseFile(file, include, module, builtIns, errs, false, include.CompileIncludedCode);
           if (ret != null) {
             return ret;
           }

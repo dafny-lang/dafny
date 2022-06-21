@@ -90,14 +90,16 @@ namespace Microsoft.Dafny {
     public readonly string includerFilename;
     public readonly string includedFilename;
     public readonly string canonicalPath;
+    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename) {
+    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
       this.includerFilename = includer;
       this.includedFilename = theFilename;
       this.canonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
+      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
