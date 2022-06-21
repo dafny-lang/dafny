@@ -69,12 +69,8 @@ jobs:
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
         echo "42" > expect.txt
-    - name: Print Path
-      run: echo $env:PATH
     ## Check that dafny and z3 run and that a simple program verifies or fails
-    - name: Dafny Version
-      run: dafny -version
-    - name: Z3 Version
+    - name: Versions
       run: |
         z3 -version
         dafny -version
