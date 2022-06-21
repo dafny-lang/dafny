@@ -76,10 +76,13 @@ jobs:
         dafny -version
     - name: Fatch latest release version string
       id: dafny
+      continue-on-error: true
       uses: pozetroninc/github-action-get-latest-release@v0.5.0
       with:
-        repository: dafny-lang/dafny
+        repository: ${{ github.repository }}
+        excludes: prerelease, draft
     - name: Verify Dafny version
+      if: ${{ steps.dafny.outputs.release }} != ""
       run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -E "Dafny "${version:1}".[0-9]{5}"
       shell: bash
     - name: Check
