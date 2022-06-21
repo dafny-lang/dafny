@@ -75,7 +75,9 @@ jobs:
     - name: Dafny Version
       run: dafny -version
     - name: Z3 Version
-      run: z3 -version
+      run: |
+        z3 -version
+        dafny -version
     - name: Check
       run: dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check bad
