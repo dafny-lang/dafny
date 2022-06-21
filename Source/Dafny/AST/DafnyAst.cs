@@ -13,13 +13,88 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Diagnostics;
 using System.Threading;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
+
+  public interface IToken : Microsoft.Boogie.IToken {
+    int kind { get; set; }
+    string filename { get; set; }
+    int pos { get; set; }
+    int col { get; set; }
+    int line { get; set; }
+    string val { get; set; }
+    bool IsValid { get; }
+    string leadingTrivia { get; set; }
+    string trailingTrivia { get; set; }
+  }
+
+  public record Token : IToken {
+    private int _kind;
+    private string _filename;
+    private int _pos;
+    private int _col;
+    private int _line;
+    private string _val;
+    private string _leadingTrivia;
+    private string _trailingTrivia;
+    public Token next;
+    public static readonly IToken NoToken = (IToken)new Token();
+
+    public Token() => this._val = "anything so that it is nonnull";
+
+    public Token(int linenum, int colnum) {
+      this._line = linenum;
+      this._col = colnum;
+      this._val = "anything so that it is nonnull";
+    }
+
+    public int kind {
+      get => this._kind;
+      set => this._kind = value;
+    }
+
+    public string filename {
+      get => this._filename;
+      set => this._filename = value;
+    }
+
+    public int pos {
+      get => this._pos;
+      set => this._pos = value;
+    }
+
+    public int col {
+      get => this._col;
+      set => this._col = value;
+    }
+
+    public int line {
+      get => this._line;
+      set => this._line = value;
+    }
+
+    public string val {
+      get => this._val;
+      set => this._val = value;
+    }
+
+    public string leadingTrivia {
+      get => this._leadingTrivia;
+      set => this._leadingTrivia = value;
+    }
+
+    public string trailingTrivia {
+      get => this._trailingTrivia;
+      set => this._trailingTrivia = value;
+    }
+
+    public bool IsValid => this._filename != null;
+  }
+
 
   public class Program {
     [ContractInvariantMethod]
