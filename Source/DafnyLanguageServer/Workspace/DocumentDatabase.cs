@@ -6,11 +6,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -89,8 +91,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       documents.Add(document.Uri, documentEntry);
 
       documentEntry.Observe(
-        resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
-        Concat(translatedDocument.ToObservableSkipCancelled()));
+        ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
+        Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
 
       if (VerifyOnOpen) {
         Verify(documentEntry, cancellationSource.Token);
@@ -113,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var withVerificationTasks = documentEntry.TranslatedDocument;
 
       var updates = withVerificationTasks.ContinueWith(task => {
-        if (task.IsCanceled) {
+        if (task.IsCanceled || task.IsFaulted) {
           return Observable.Empty<DafnyDocument>();
         }
 
@@ -123,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservableSkipCancelled().Merge();
+      }, TaskScheduler.Current).ToObservable().Merge();
       documentEntry.Observe(updates);
     }
 
@@ -155,8 +157,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         databaseEntry.Observer
       );
       documents[documentUri] = entry;
-      entry.Observe(resolvedDocumentTask.ToObservableSkipCancelled()
-        .Concat(translatedDocument.ToObservableSkipCancelled()));
+      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
+        .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
 
       if (VerifyOnChange) {
         Verify(entry, cancellationSource.Token);
@@ -269,7 +271,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
-    public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.ResolvedDocument!;
       }
@@ -285,6 +287,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
+
+    public IObservable<DafnyDocument> ToObservableSkipCancelledAndPublishExceptions(IDocumentEntry entry, Task<DafnyDocument> task) {
+      return Observable.Create<DafnyDocument>(observer => {
+        var _ = task.ContinueWith(t => {
+          if (t.IsCompletedSuccessfully) {
+            observer?.OnNext(t.Result);
+          } else if (t.Exception != null) {
+            var lastPublishedDocument = entry.LastPublishedDocument;
+            var previousDiagnostics = lastPublishedDocument.LoadCanceled
+              ? new Diagnostic[] { }
+              : lastPublishedDocument.ParseAndResolutionDiagnostics;
+            observer?.OnNext(lastPublishedDocument with {
+              LoadCanceled = false,
+              ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
+                new() {
+                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
+                  Severity = DiagnosticSeverity.Error,
+                  Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
+                  Source = "Crash"
+                }
+              }).ToList()
+            });
+            telemetryPublisher.PublishUnhandledException(t.Exception);
+          }
+          observer?.OnCompleted();
+        }, TaskScheduler.Current);
+        return Disposable.Create(() => observer = null);
+      });
+    }
 
     private class DocumentEntry : IDocumentEntry {
       private readonly CancellationTokenSource cancellationSource;
