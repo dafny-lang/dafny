@@ -1311,6 +1311,10 @@ namespace Microsoft.Dafny.Compilers {
             foreach (var ctor in dt.Ctors) {
               CheckForCapitalizationConflicts(ctor.Destructors);
             }
+
+            if (!DeclaredDatatypes.Add(dt.CompileName)) {
+              continue;
+            }
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
@@ -1373,6 +1377,8 @@ namespace Microsoft.Dafny.Compilers {
       }
       EmitFooter(program, wrx);
     }
+
+    public ISet<string> DeclaredDatatypes { get; } = new HashSet<string>();
 
     protected class NullClassWriter : IClassWriter {
       private readonly ConcreteSyntaxTree abyss = new ConcreteSyntaxTree();
