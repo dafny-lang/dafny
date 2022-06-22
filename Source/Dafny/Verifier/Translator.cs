@@ -7916,7 +7916,7 @@ namespace Microsoft.Dafny {
 
     static string MethodName(ICodeContext m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
-      return $"{kindSanitizedPrefix[kind]}{NameSeparator}{m.FullSanitizedName})";
+      return $"{kindSanitizedPrefix[kind]}{NameSeparator}{m.FullSanitizedName}";
     }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
