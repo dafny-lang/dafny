@@ -437,8 +437,9 @@ predicate method pm() { true }
 /** Rich comment
   * @param k The input
   *          that is ignored
+  * @param l The second input that is ignored
   * @returns 1 no matter what*/
-function g(k: int): int { 1 }
+function g(k: int, l: int): int { 1 }
 
 // No comment for pt
 twostate predicate pt() { true }
@@ -512,8 +513,8 @@ method test(d: D, t: T, e: Even) {
 //          ^[// No comment for pl]
   var x4 := pt();
 //          ^[// No comment for pt]
-  var xg := g(0);
-//          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Params** | **k** - The input<br>         that is ignored |]
+  var xg := g(0, 1);
+//          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Params** | **k** - The input<br>         that is ignored |\n| | **l** - The second input that is ignored |\n| **Returns** | 1 no matter what |]
   C.m(); // TODO
  //  ^[// Unformatted comment] // Does not work yet.
   var c: C := new C();
@@ -523,7 +524,7 @@ method test(d: D, t: T, e: Even) {
   var xx := c.X;
 //            ^[The expected number of x]
   var xf := f();
-//          ^[Rich comment]
+//          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Returns** | 1 no matter what<br> |]
   lem();
 //^[A useful lemma]
   greatestLemma();

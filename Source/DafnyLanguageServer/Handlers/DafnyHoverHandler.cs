@@ -321,7 +321,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
           documentation += $"**{name}** - {description} |";
         }
-        var returnsDoc = new Regex(@"@return\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
+        var returnsDoc = new Regex(@"@returns?\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
         if (returnsDoc.Match(content) is { Success: true } matched) {
           var description = EscapeNewlines(matched.Groups["Description"].Value);
           if (tableRows == 0) {
