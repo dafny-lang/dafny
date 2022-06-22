@@ -1,7 +1,7 @@
-// RUN: %dafny /compile:0 /useRuntimeLib /spillTargetCode:3 /out:%S/Input/producer %S/Input/producer/timesTwo.dfy
+// RUN: %dafny /compile:0 /useRuntimeLib /spillTargetCode:3 /out:%S/Input/producer/timesTwo %S/Input/producer/timesTwo.dfy
 // RUN: dotnet build %S/Input/producer
 
-// RUN: %dafny /compile:0 /useRuntimeLib /out:%S/consumer /library %S/Input/producer/timesTwo.dfy /spillTargetCode:3 %s
+// RUN: %dafny /compile:0 /useRuntimeLib /out:%S/consumer/usesTimesTwo /library %S/Input/producer/timesTwo.dfy /spillTargetCode:3 %s
 // RUN: dotnet run --project %S/consumer > "%t"
 // RUN: %diff "%s.expect" "%t"
 
