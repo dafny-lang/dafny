@@ -20,7 +20,6 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Plugins;
-using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper {

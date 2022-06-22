@@ -7,7 +7,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.Dafny;
 using Type = Microsoft.Dafny.Type;
-using Microsoft.Boogie;
 using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 

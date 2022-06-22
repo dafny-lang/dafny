@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
-using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Printer {
@@ -167,7 +166,7 @@ namespace Microsoft.Dafny {
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
-      if (DafnyOptions.O.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
+      if (DafnyOptions.O.ShowEnv != Microsoft.Boogie.ExecutionEngineOptions.ShowEnvironment.Never) {
         wr.WriteLine("// " + DafnyOptions.O.Version);
         wr.WriteLine("// " + DafnyOptions.O.Environment);
       }
@@ -216,7 +215,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -500,7 +499,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -915,7 +914,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
+    private bool PrintModeSkipGeneral(IToken tok, string fileBeingPrinted) {
       return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
              && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
@@ -2089,7 +2088,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          PrintWithTrivia(e.format.tok, ((BigInteger)e.Value).ToString());
+          PrintWithTrivia(e.tok, ((BigInteger)e.Value).ToString());
         }
 
       } else if (expr is ThisExpr) {
@@ -2803,7 +2802,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintWithTrivia(Bpl.IToken tok, string op, int indent = 0, string prefixDefault = "", string suffixDefault = "") {
+    private void PrintWithTrivia(IToken tok, string op, int indent = 0, string prefixDefault = "", string suffixDefault = "") {
       if (tok.leadingTrivia != null) {
         wr.Write(tok.leadingTrivia);
       } else {
@@ -2906,7 +2905,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel) {
+    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, IToken/*?*/ atLabel) {
       Contract.Requires(bindings != null);
       var i = 0;
       if (name != null && name.EndsWith("#")) {

@@ -4,6 +4,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class VariableSymbol : Symbol, ILocalizableSymbol {
     public IVariable Declaration { get; }
     public object Node => Declaration;
+    public IToken Token => Declaration.Tok;
 
     public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
       Declaration = variable;

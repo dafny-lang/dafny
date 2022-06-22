@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;

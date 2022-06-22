@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Token = Microsoft.Dafny.Token;
 using Declaration = Microsoft.Boogie.Declaration;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;

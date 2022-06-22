@@ -1,5 +1,4 @@
-﻿using Microsoft.Boogie;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -22,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="token">The token to get the range of.</param>
     /// <param name="other">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken token, IToken? other = null) {
+    public static Range GetLspRange(this Boogie.IToken token, Boogie.IToken? other = null) {
       other ??= token;
       return new Range(
         GetLspPosition(token),
@@ -36,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="token">The token to get the position of.</param>
     /// <param name="end">Whether to take the ending position of the token instead.</param>
     /// <returns>The LSP position of the token.</returns>
-    public static Position GetLspPosition(this IToken token, bool end = false) {
+    public static Position GetLspPosition(this Boogie.IToken token, bool end = false) {
       return ToLspPosition(token.line, token.col + (end ? token.val.Length : 0));
     }
 

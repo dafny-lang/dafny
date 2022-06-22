@@ -98,10 +98,10 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // actually, we don't care
           var ss = TrSplitExpr(p.E, yeEtran, true, out splitHappened);
           foreach (var split in ss) {
-            if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
+            if (RefinementToken.IsInherited(split.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
-              var yieldToken = new NestedToken(s.Tok, split.E.tok);
+              var yieldToken = new NestedToken(s.Tok, split.Tok);
               var desc = new PODesc.YieldEnsures();
               builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
@@ -559,7 +559,7 @@ namespace Microsoft.Dafny {
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
-              var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
+              var tok = enclosingToken == null ? split.Tok : new NestedToken(enclosingToken, split.Tok);
               var desc = new PODesc.AssertStatement(errorMessage);
               (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
@@ -1031,7 +1031,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, new PODesc.ForallPostcondition()));
+              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
             }
           }
         }
@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1812,7 +1812,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(CondApplyBox(param.tok, param, Resolver.SubstType(formal.Type, tySubst), formal.Type));
+        ins.Add(CondApplyBox(BoogieWrapper.ToDafnyToken(param.tok), param, Resolver.SubstType(formal.Type, tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has

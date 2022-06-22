@@ -4,6 +4,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FieldSymbol : MemberSymbol, ILocalizableSymbol {
     public Field Declaration { get; }
     public object Node => Declaration;
+    public IToken Token => Declaration.tok;
 
     public FieldSymbol(ISymbol? scope, Field field) : base(scope, field) {
       Declaration = field;

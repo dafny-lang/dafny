@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
     public void AddLabelCmd(string label) { builder.AddLabelCmd(label); }
     public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }
 
-    public StmtList Collect(IToken tok) {
+    public StmtList Collect(Boogie.IToken tok) {
       return builder.Collect(tok);
     }
   }

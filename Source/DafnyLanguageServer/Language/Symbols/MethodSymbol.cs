@@ -9,6 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public Method Declaration { get; }
     public object Node => Declaration;
+    public IToken Token => Declaration.tok;
 
     /// <summary>
     /// Gets the method parameters.

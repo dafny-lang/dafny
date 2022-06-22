@@ -11,7 +11,6 @@ using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
-using Bpl = Microsoft.Boogie;
 
 namespace ExtensionMethods {
   using Microsoft.Dafny;
@@ -458,13 +457,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine($"{DafnyRuntimeModule}._tail_call()");
     }
 
-    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       return TypeName(type, wr, tok, boxed: false, member);
     }
-    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
+    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
       return TypeName(type, wr, tok, boxed, false, member);
     }
-    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1120,7 +1119,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, Bpl.IToken tok, Type resultType,
+      Expression e0, Expression e1, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,

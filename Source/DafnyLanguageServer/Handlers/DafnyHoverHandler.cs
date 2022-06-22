@@ -271,7 +271,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
+      if (symbol is MethodSymbol method) {
+
+      } else if (symbol is FunctionSymbol function) {
+
+      } else if (symbol is FieldSymbol field) {
+
+      } else if (symbol is ClassSymbol classSymbol) {
+
+      } else if (symbol is Symbol)
+        return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
     }
   }
 }

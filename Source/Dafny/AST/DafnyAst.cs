@@ -15,19 +15,22 @@ using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public interface IToken : Microsoft.Boogie.IToken {
+    // Inherited for now.
+    /*
     int kind { get; set; }
     string filename { get; set; }
     int pos { get; set; }
     int col { get; set; }
     int line { get; set; }
     string val { get; set; }
-    bool IsValid { get; }
+    bool IsValid { get; }*/
     string leadingTrivia { get; set; }
     string trailingTrivia { get; set; }
   }
@@ -11472,7 +11475,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns a resolved binary expression
     /// </summary>
-    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
       : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
       ResolvedOp = rop;
       switch (rop) {

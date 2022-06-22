@@ -17,13 +17,13 @@ namespace Microsoft.Dafny {
       return CaptureState(stmt.EndTok, true, null);
     }
 
-    public static void AddCaptureState(this BoogieStmtListBuilder builder, Bpl.IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
+    public static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
       if (DafnyOptions.O.ModelViewFile != null || DafnyOptions.O.TestGenOptions.WarnDeadCode) {
         builder.Add(CaptureState(tok, isEndToken, additionalInfo));
       }
     }
 
-    private static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
+    private static Bpl.Cmd CaptureState(IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       var col = tok.col + (isEndToken ? tok.val.Length : 0);

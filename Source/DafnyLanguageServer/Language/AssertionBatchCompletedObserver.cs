@@ -40,7 +40,7 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
     logger.LogInformation(s);
   }
 
-  public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
+  public void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
     logger.LogError(message);
   }
 

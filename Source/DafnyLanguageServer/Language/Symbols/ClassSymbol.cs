@@ -5,5 +5,7 @@
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
       return visitor.Visit(this);
     }
+
+    public override IToken Token => Declaration.tok;
   }
 }

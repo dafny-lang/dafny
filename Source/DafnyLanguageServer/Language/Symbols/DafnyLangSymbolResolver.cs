@@ -280,7 +280,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(bodyExpression);
       }
 
-      public override void VisitUnknown(object node, Boogie.IToken token) {
+      public override void VisitUnknown(object node, IToken token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
