@@ -428,7 +428,7 @@ module CompilerRewriter {
     // Rk.: I initially wanted to make the definition opaque to prevent context saturation, because
     // in most situations we don't need to know the content of EqValue.
     // However it made me run into the following issue:
-    // https://github.com/dafny-lang/dafny/issues/2260
+    // BUG(https://github.com/dafny-lang/dafny/issues/2260)
     // As ``EqValue`` appears a lot in foralls, using the `reveal` trick seemed too cumbersome
     // to be a valid option.
     {
@@ -553,7 +553,10 @@ module CompilerRewriter {
     // TODO: move
     lemma {:verify false} EqInterp_Expr_EqState_Lem(e: Exprs.T, fuel: nat, ctx: State, ctx': State)
       requires SupportsInterp(e)
+      requires EqState(ctx, ctx')
       ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e, fuel, ctx'))
+    // The proof should be similar to ``EqInterp_Expr_CanBeMapLifted_Lem`` (and actually
+    // simpler), but I'm not sure how to efficiently factorize the two.
     {
       assume false; // TODO: prove
     }
@@ -589,7 +592,29 @@ module CompilerRewriter {
       }
     }
 
-    // TODO: prove
+    lemma {:verify false}
+    BuildCallState_EqState_Lem(ctx: Context, ctx': Context, vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
+      requires WellFormedContext(ctx)
+      requires WellFormedContext(ctx')
+      requires |argvs| == |argvs'| == |vars|
+      requires (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
+      requires EqCtx(ctx, ctx')
+      ensures
+        var ctx1 := BuildCallState(ctx, vars, argvs);
+        var ctx1' := BuildCallState(ctx', vars, argvs');
+        EqState(ctx1, ctx1')
+    {
+      MapOfPairs_SeqZip_EqCtx_Lem(vars, argvs, argvs');
+      var m := MapOfPairs(Seq.Zip(vars, argvs));
+      var m' := MapOfPairs(Seq.Zip(vars, argvs'));
+      reveal BuildCallState();
+      var ctx1 := BuildCallState(ctx, vars, argvs);
+      var ctx1' := BuildCallState(ctx', vars, argvs');
+      reveal GEqCtx();
+      assert ctx1.locals == ctx + m;
+      assert ctx1'.locals == ctx' + m';
+    }
+
     lemma {:verify false} EqValue_Closure_Refl_Lem(v: WV)
       requires v.Closure?
       ensures EqValue_Closure(v, v)
@@ -623,13 +648,14 @@ module CompilerRewriter {
             reveal GEqCtx();
           }
 
-/*          var ctx1 := BuildCallState(cv.ctx, cv.vars, argvs);
-          var ctx1' := BuildCallState(cv'.ctx, cv'.vars, argvs');
-          BuildCallState_EqState_Lem(cv.ctx, cv'.ctx, cv.vars, argvs, argvs');
-          assert EqState(ctx1, ctx1');*/
+          var ctx1 := BuildCallState(ctx, vars, argvs);
+          var ctx1' := BuildCallState(ctx, vars, argvs');
+          BuildCallState_EqState_Lem(ctx, ctx, vars, argvs, argvs');
+          assert EqState(ctx1, ctx1');
 
           reveal InterpCallFunctionBody();
-          assume EqPureInterpResultValue(res, res'); // TODO: prove
+          EqInterp_Expr_EqState_Lem(body, fuel, ctx1, ctx1');
+          assert EqPureInterpResultValue(res, res');
       }
     }
 
@@ -1313,29 +1339,6 @@ module CompilerRewriter {
     }
 
     lemma {:verify false}
-    BuildCallState_EqState_Lem(ctx: Context, ctx': Context, vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
-      requires WellFormedContext(ctx)
-      requires WellFormedContext(ctx')
-      requires |argvs| == |argvs'| == |vars|
-      requires (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
-      requires EqCtx(ctx, ctx')
-      ensures
-        var ctx1 := BuildCallState(ctx, vars, argvs);
-        var ctx1' := BuildCallState(ctx', vars, argvs');
-        EqState(ctx1, ctx1')
-    {
-      MapOfPairs_SeqZip_EqCtx_Lem(vars, argvs, argvs');
-      var m := MapOfPairs(Seq.Zip(vars, argvs));
-      var m' := MapOfPairs(Seq.Zip(vars, argvs'));
-      reveal BuildCallState();
-      var ctx1 := BuildCallState(ctx, vars, argvs);
-      var ctx1' := BuildCallState(ctx', vars, argvs');
-      reveal GEqCtx();
-      assert ctx1.locals == ctx + m;
-      assert ctx1'.locals == ctx' + m';
-    }
-
-    lemma {:verify false}
     MapOfPairs_EqCtx_Lem(pl: seq<(string, WV)>, pl': seq<(string, WV)>)
       requires |pl| == |pl'|
       requires (forall i | 0 <= i < |pl| :: pl[i].0 == pl'[i].0)
@@ -1500,6 +1503,7 @@ module CompilerRewriter {
       }
     }
 
+    // TODO: e and e' should be the same actually
     lemma {:verify false}
     EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, op: UnaryOp, v: WV, v': WV)
@@ -1557,6 +1561,7 @@ module CompilerRewriter {
 
     // TODO: we could split this lemma, whose proof is big (though straightforward),
     // but it is a bit annoying to do...
+    // TODO: e and e' should be the same actually
     lemma {:verify false}
     EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
@@ -1601,7 +1606,7 @@ module CompilerRewriter {
           // In the case of sets, the trivial operations are those which
           // take two sets as parameters (they are trivial, because if
           // two set values are equivalent according to ``EqValue``, then
-          // they are actually equal for ``==`).
+          // they are actually equal for ``==``).
           if op.InSet? || op.NotInSet? {
             // The trick is that:
             // - either v0 and v0' have a decidable equality, in which case
@@ -1728,6 +1733,7 @@ module CompilerRewriter {
       }
     }
 
+    // TODO: e and e' should be the same actually
     lemma {:verify false}
     EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV)

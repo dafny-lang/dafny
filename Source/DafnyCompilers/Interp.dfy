@@ -223,6 +223,7 @@ module Interp {
   }
 
   // The type of well-formed values manipulated by the interpreter
+  // TODO: rename to ``Value``
   type WV = v: V.T | WellFormedValue(v) witness V.Bool(false)
 
   // The type of well-formed values with a decidable equality
