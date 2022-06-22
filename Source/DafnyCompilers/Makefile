@@ -21,7 +21,7 @@ dfy_models := $(AutoExtern)/CSharpModel.dfy CSharpDafnyModel.dfy CSharpDafnyASTM
 dfy_interop := CSharpInterop.dfy CSharpDafnyInterop.dfy CSharpDafnyASTInterop.dfy
 cs_interop := $(dfy_interop:.dfy=.cs)
 
-# Auto-generate a model of DafnyAST.sc
+# Auto-generate a model of DafnyAST.cs
 $(ASTModel): $(DafnyPipeline).csproj $(DafnyAST).cs $(ASTModel).template $(AutoExtern)/Program.cs
 	dotnet run --project $(AutoExtern)/AutoExtern.csproj -- \
 		$(DafnyPipeline).csproj $(DafnyAST).cs "Microsoft.Dafny" "$(ASTModel).template" \
