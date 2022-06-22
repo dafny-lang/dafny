@@ -15,22 +15,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public static class Util {
 
-    public static IObservable<T> ToObservableSkipCancelled<T>(this Task<T> task) {
-      return Observable.Create<T>(observer => {
-        task.ContinueWith(t => {
-          if (t.Exception == null || t.IsCanceled) {
-            if (t.IsCompletedSuccessfully) {
-              observer?.OnNext(t.Result);
-            }
-            observer?.OnCompleted();
-          } else {
-            observer?.OnError(t.Exception);
-          }
-        });
-        return Disposable.Create(() => observer = null);
-      });
-    }
-
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
       return Select(task, f).Unwrap();
     }

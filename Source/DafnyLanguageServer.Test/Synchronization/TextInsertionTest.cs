@@ -25,7 +25,7 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant2(): int {
@@ -57,7 +57,7 @@ function GetConstant2(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
@@ -93,7 +93,7 @@ function GetConstant2(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
@@ -124,7 +124,7 @@ function GetConstant(): int {
         new Range((0, 12), (0, 12)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetAnotherConstant(): int {
@@ -151,7 +151,7 @@ function Some";
         new Range((0, 12), (0, 12)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetIt(): string {
@@ -192,7 +192,7 @@ function SomeConstant(): int {
           Text = "}"
         }
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 class Test {

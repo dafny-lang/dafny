@@ -23,7 +23,7 @@
 
    * `Source/DafnyDriver/DafnyDriver.csproj`
 
-   * `Source/DafnyLanguageServer/DafnyLanguageServer.csproj`
+   * `Source/Dafny/DafnyPipeline.csproj`
 
    Put the public version number in place of the "Upcoming" header in
    `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
