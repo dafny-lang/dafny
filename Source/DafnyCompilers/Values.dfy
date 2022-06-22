@@ -74,7 +74,7 @@ module Values {
         case Closure(ctx, vars_, body_) => ctx.Values
     }
 
-    // This duplicates a bit Types.WellFormed().
+    // This duplicates a bit ``Types.WellFormed()``.
     // More specifically, if we have ``value.HasType(t)``, then we can deduce from the type well-formedness
     // that we also have ``value.WellFormed()``.
     predicate method WellFormed1() {

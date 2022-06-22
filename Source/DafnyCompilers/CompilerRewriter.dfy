@@ -353,7 +353,12 @@ module CompilerRewriter {
     import opened Interp
     import opened Values
 
-    // TODO: use more
+    // We introduce ``Equivs`` because in some situations we want to make ``EqValue``
+    // and ``EqState`` opaque, and we can't (at least ``EqValue`` - see the comments for
+    // this definition).
+    // TODO: We should use ``Equivs`` in a more systematic manner, or remove it. If we
+    // want to use it more, it would be good to turn some of the functions below to member
+    // methods.
     datatype Equivs =
       EQ(eq_value: (WV, WV) -> bool, eq_state: (State, State) -> bool)
 

@@ -131,7 +131,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
         NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference |
         MultisetSelect // Separate node in DafnyAST.cs
-      datatype Maps = // TODO: MapSubtraction -> MapSubstraction? (with an "s"?)
+      datatype Maps =
         MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction |
         MapSelect // Separate node in DafnyAST.cs
       datatype Datatypes =
@@ -850,6 +850,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         import opened AST
         import Shallow
 
+        //
+        // Functions
+        //
+
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool
           decreases e.Depth(), 0
 
@@ -864,6 +868,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         function method All_Program(p: Program, P: Expr -> bool) : bool {
           Shallow.All_Program(p, e => All_Expr(e, P))
         }
+
+        //
+        // Lemmas
+        //
 
         // This lemma allows callers to force one level of unfolding of All_Expr
         lemma AllImpliesChildren(e: Expr, p: Expr -> bool)
@@ -881,6 +889,12 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           requires forall e' :: P(e') ==> Q(e')
           decreases e, 1
           ensures All_Expr(e, Q)
+
+        //
+        // Miscelleanous
+        //
+
+        function IsTrue(e:Expr): bool { true }
       }
 
       module Rec refines Base { // DISCUSS
@@ -913,9 +927,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
               All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
           }
         }
-
-        // TODO: this is duplicated in the rec and non-rec modules
-        function IsTrue(e:Expr): bool { true }
         
         lemma All_Expr_true(e: Expr)
           ensures All_Expr(e, IsTrue)
@@ -953,9 +964,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           forall e' | e' in e.Children() :: All_Expr(e', P)
         }
 
-        // TODO: this is duplicated in the rec and non-rec modules
-        function IsTrue(e:Expr): bool { true }
-        
         lemma All_Expr_true(e: Expr)
           ensures All_Expr(e, IsTrue)
           decreases e, 1

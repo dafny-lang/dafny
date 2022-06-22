@@ -484,7 +484,7 @@ module Interp {
     match bop
       case Numeric(op) => InterpBinaryNumeric(expr, op, v0, v1)
       case Logical(op) => InterpBinaryLogical(expr, op, v0, v1)
-      case Eq(op) =>
+      case Eq(op) => // FIXME which types is this Eq applicable to (vs. the type-specific ones?)
         :- Need(HasEqValue(v0), Invalid(expr));
         :- Need(HasEqValue(v1), Invalid(expr));
         match op {
@@ -672,41 +672,43 @@ module Interp {
   function method InterpBinarySequences(expr: Expr, op: BinaryOps.Sequences, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
   {
-    // Rk.: sequences don't necessarily contain values with a decidable equality, we
+    // Rk.: sequences don't necessarily contain values with decidable equality, we
     // thus dynamically check that we have what we need depending on the operation
     // we want to perform.
+    // TODO: the dynamic checks for decidable equality may make the interpreter quite
+    // slow. We might want to deduce this from a type check instead.
     match op
       case SeqEq() =>
         :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.sq == v1.sq))
       case SeqNeq() =>
         :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.sq != v1.sq))
       case Prefix() =>
         :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.sq <= v1.sq))
       case ProperPrefix() =>
         :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.sq < v1.sq))
       case Concat() => :- Need(v0.Seq? && v1.Seq?, Invalid(expr));
         Success(V.Seq(v0.sq + v1.sq))
       case InSeq() =>
         :- Need(v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0 in v1.sq))
       case NotInSeq() =>
         :- Need(v1.Seq?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0 !in v1.sq))
       case SeqDrop() =>
         :- NeedValidEndpoint(expr, v0, v1);
@@ -727,13 +729,13 @@ module Interp {
     match op
       case MapEq() =>
         :- Need(v0.Map? && v1.Map?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.m == v1.m))
       case MapNeq() =>
         :- Need(v0.Map? && v1.Map?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0.m != v1.m))
       case MapMerge() =>
         :- Need(v0.Map? && v1.Map?, Invalid(expr));
@@ -743,15 +745,15 @@ module Interp {
         Success(V.Map(v0.m - v1.st))
       case InMap() =>
         :- Need(v1.Map?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0 in v1.m))
       case NotInMap() =>
         :- Need(v1.Map?, Invalid(expr));
-        :- Need(HasEqValue(v0), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v0), Invalid(expr)); // We need decidable equality
         Success(V.Bool(v0 !in v1.m))
       case MapSelect() =>
         :- Need(v0.Map?, Invalid(expr));
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         :- Need(v1 in v0.m, Invalid(expr));
         Success(v0.m[v1])
   }
@@ -805,7 +807,7 @@ module Interp {
       case MultisetUpdate() =>
         :- Need(v0.Multiset?, Invalid(expr));
         :- Need(v2.Int? && v2.i >= 0, Invalid(expr));
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Multiset(v0.ms[v1 := v2.i]))
   }
 
@@ -815,7 +817,7 @@ module Interp {
     match op
       case MapUpdate() =>
         :- Need(v0.Map?, Invalid(expr));
-        :- Need(HasEqValue(v1), Invalid(expr)); // We need a decidable equality
+        :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
         Success(V.Map(v0.m[v1 := v2]))
   }
 
