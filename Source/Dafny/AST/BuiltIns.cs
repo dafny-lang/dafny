@@ -13,6 +13,8 @@ public class BuiltIns {
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
   public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
   readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new Dictionary<List<bool>, TupleTypeDecl>(new Dafny.IEnumerableComparer<bool>());
+  public int MaxNonGhostTupleSizeUsed { get; private set; }
+  public IToken MaxNonGhostTupleSizeToken { get; private set; }
   public readonly ISet<int> Bitwidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
@@ -115,7 +117,7 @@ public class BuiltIns {
       var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
-        (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
+            (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
@@ -230,11 +232,15 @@ public class BuiltIns {
     Contract.Requires(argumentGhostness == null || argumentGhostness.Count == dims);
     Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
 
-    TupleTypeDecl tt;
-    argumentGhostness = argumentGhostness ?? new bool[dims].Select(_ => false).ToList();
-    if (!tupleTypeDecls.TryGetValue(argumentGhostness, out tt)) {
+    argumentGhostness ??= new bool[dims].Select(_ => false).ToList();
+    if (!tupleTypeDecls.TryGetValue(argumentGhostness, out var tt)) {
       Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
       tt = new TupleTypeDecl(argumentGhostness, SystemModule, DontCompile());
+      if (tt.NonGhostDims > MaxNonGhostTupleSizeUsed) {
+        MaxNonGhostTupleSizeToken = tok;
+        MaxNonGhostTupleSizeUsed = tt.NonGhostDims;
+      }
+
       tupleTypeDecls.Add(argumentGhostness, tt);
       SystemModule.TopLevelDecls.Add(tt);
     }
