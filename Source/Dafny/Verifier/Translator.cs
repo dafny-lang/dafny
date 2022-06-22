@@ -1773,7 +1773,7 @@ namespace Microsoft.Dafny {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
-      CopyVerboseName(impl, proc);
+      AddVerboseName(impl, proc.VerboseName);
       sink.AddTopLevelDeclaration(impl);
       return impl;
     }
@@ -7905,51 +7905,41 @@ namespace Microsoft.Dafny {
     /// </summary>
     enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
 
+    private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
+        {MethodTranslationKind.Call, "Call"},
+        {MethodTranslationKind.CoCall, "CoCall"},
+        {MethodTranslationKind.Implementation, "Impl"},
+        {MethodTranslationKind.OverrideCheck, "OverrideCheck"},
+      };
+
     static string MethodName(ICodeContext m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
-      switch (kind) {
-        case MethodTranslationKind.SpecWellformedness:
-          return "CheckWellformed" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.Call:
-          return "Call" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.CoCall:
-          return "CoCall" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.Implementation:
-          return "Impl" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.OverrideCheck:
-          return "OverrideCheck" + NameSeparator + m.FullSanitizedName;
-        default:
-          Contract.Assert(false);  // unexpected kind
-          throw new cce.UnreachableException();
-      }
+      return $"{kindSanitizedPrefix[kind]}{NameSeparator}{m.FullSanitizedName})";
     }
+
+    private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "well-formedness"},
+        {MethodTranslationKind.Call, "call"},
+        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.Implementation, "correctness"},
+        {MethodTranslationKind.OverrideCheck, "override check"},
+      };
 
     static string MethodVerboseName(string fullName, MethodTranslationKind kind) {
       Contract.Requires(fullName != null);
-      switch (kind) {
-        case MethodTranslationKind.SpecWellformedness:
-          return fullName + " (well-formedness)";
-        case MethodTranslationKind.Call:
-          return fullName + " (call)";
-        case MethodTranslationKind.CoCall:
-          return fullName + " (co-call)";
-        case MethodTranslationKind.Implementation:
-          return fullName + " (correctness)";
-        case MethodTranslationKind.OverrideCheck:
-          return fullName + " (override check)";
-        default:
-          Contract.Assert(false);  // unexpected kind
-          throw new cce.UnreachableException();
-      }
+      return $"{fullName} ({kindDescription[kind]})";
     }
 
     private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
-      var name = MethodVerboseName(dafnyName, kind);
-      boogieDecl.AddAttribute("verboseName", new object[] { name });
+      var verboseName = MethodVerboseName(dafnyName, kind);
+      AddVerboseName(boogieDecl, verboseName);
     }
 
-    private static void CopyVerboseName(Bpl.NamedDeclaration targetDecl, Bpl.NamedDeclaration sourceDecl) {
-      targetDecl.AddAttribute("verboseName", new object[] { sourceDecl.VerboseName });
+    private static void AddVerboseName(Bpl.NamedDeclaration targetDecl, string verboseName) {
+      targetDecl.AddAttribute("verboseName", new object[] { verboseName });
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
