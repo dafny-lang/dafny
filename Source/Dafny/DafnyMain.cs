@@ -211,9 +211,11 @@ namespace Microsoft.Dafny {
         var stack = new Stack<Include>();
 
         while (true) {
-          for (; includeIndex < allIncludes.Count; includeIndex++) {
-            stack.Push(allIncludes[includeIndex]);
+          var addedItems = allIncludes.Skip(includeIndex);
+          foreach (var addedItem in addedItems.Reverse()) {
+            stack.Push(addedItem);
           }
+          includeIndex = allIncludes.Count;
 
           if (stack.Count == 0) {
             break;
