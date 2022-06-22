@@ -12,5 +12,5 @@ module ConsumingModule {
   import A = GloballyUniqueProducer.ExportingModule
   import B = GloballyUniqueProducer.ExportingModule
 
-  const myConstant := A.exportedVariable + A.exportedVariable
+  const myConstant := A.exportedVariable + B.exportedVariable
 }
