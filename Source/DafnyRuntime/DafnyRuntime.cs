@@ -1569,10 +1569,6 @@ namespace Dafny {
         throw new ArgumentException(
           "Can't convert +/- infinity to a rational.");
       }
-      if (Double.IsSubnormal(n)) {
-        throw new ArgumentException(
-          "Can't convert a subnormal value to a rational (yet).");
-      }
 
       // Double-specific values
       const int exptBias = 1023;
@@ -1580,12 +1576,18 @@ namespace Dafny {
       const ulong exptMask = 0x7FF0000000000000;
       const ulong mantMask = 0x000FFFFFFFFFFFFF;
       const int mantBits = 52;
-      ulong bits = BitConverter.DoubleToUInt64Bits(n);
+      ulong bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
 
       // Generic conversion
       bool isNeg = (bits & signMask) != 0;
       int expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
       var mant = (bits & mantMask);
+
+      if (expt == -exptBias && mant != 0) {
+        throw new ArgumentException(
+          "Can't convert a subnormal value to a rational (yet).");
+      }
+
       var one = BigInteger.One;
       var negFactor = isNeg ? BigInteger.Negate(one) : one;
       var two = new BigInteger(2);
