@@ -860,6 +860,8 @@ namespace Dafny {
   public interface ISequence<out T> : IEnumerable<T> {
     long LongCount { get; }
     int Count { get; }
+    [Obsolete("Use CloneAsArray() instead of Elements (both perform a copy).")]
+    T[] Elements { get; }
     T[] CloneAsArray();
     IEnumerable<T> UniqueElements { get; }
     T Select(ulong index);
@@ -971,6 +973,8 @@ namespace Dafny {
     // "covariant type T occurs in invariant position" error. There do not appear to be interfaces for ImmutableArray<T>
     // that resolve this.
     internal abstract ImmutableArray<T> ImmutableElements { get; }
+
+    public T[] Elements { get { return CloneAsArray(); } }
 
     public T[] CloneAsArray() {
       return ImmutableElements.ToArray();
