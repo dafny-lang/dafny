@@ -45,6 +45,7 @@ struct DeclModifierData {
   public IToken GhostToken;
   public bool IsStatic;
   public IToken StaticToken;
+  public IToken FirstToken;
 }
 
 // Check that token has not been set, then set it.
@@ -54,6 +55,14 @@ public void CheckAndSetToken(ref IToken token)
       SemErr(t, "Duplicate declaration modifier: " + t.val);
     }
     token = t;
+}
+
+// Check that token has not been set, then set it, but just ignores if it was set already
+public void CheckAndSetTokenOnce(ref IToken token)
+{
+    if (token == null) {
+      token = t;
+    }
 }
 
 /// <summary>
@@ -978,9 +987,9 @@ Dafny
 
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
-= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
-  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
-  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
+= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "protected"
     (. errors.Deprecated(t,
          "the 'protected' modifier is no longer supported; " +
@@ -1033,7 +1042,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 /*------------------------------------------------------------------------*/
 ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 =  "module"
-   (. Attributes attrs = null;
+   (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
+     Attributes attrs = null;
      IToken/*!*/ id, iderr;
      var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
@@ -1206,7 +1216,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      DeclModifierData dmod;
   .)
   SYNC
-  "class"
+  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
   { Attribute<ref attrs> }
   ClassName<out id>
   [ GenericParameters<typeArgs, true> ]
@@ -1225,6 +1235,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
+     c.FirstDeclarationToken = dmodClass.FirstToken;
   .)
   .
 
@@ -1313,7 +1324,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   SYNC
   ( "datatype"
   | "codatatype"     (. co = true; .)
-  )
+  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   DatatypeName<out id>
   [ GenericParameters<typeArgs, true> ]
@@ -1334,6 +1345,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
+     dt.FirstDeclarationToken = dmod.FirstToken;
   .)
   .
 
@@ -1378,13 +1390,14 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
      }
   .)
   SYNC
-  "var"                                             (. if (isValueType) {
+  "var"                                             (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                                       if (isValueType) {
                                                          SemErr(t, "mutable fields are not allowed in value types");
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
-  { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
+  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.FirstDeclarationToken = dmod.FirstToken; mm.Add(f); .)
+  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.FirstDeclarationToken = dmod.FirstToken; mm.Add(f); .)
   }
   OldSemi
   .
@@ -1402,7 +1415,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
-  "const"
+  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis ]
@@ -1414,6 +1427,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 if (e != null) {
                                                   c.BodyEndTok = t; // Until we have proper ranges
                                                 }
+                                                c.FirstDeclarationToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
   OldSemi
@@ -1433,7 +1447,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
-  "newtype"
+  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out id>
   (
@@ -1466,7 +1480,9 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true); .)
+       td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
+       td.FirstDeclarationToken = dmod.FirstToken;        
+    .)
   )
   .
 
@@ -1487,7 +1503,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
-  "type"
+  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   SynonymTypeName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
@@ -1529,6 +1545,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.BodyEndTok = t;
+     td.FirstDeclarationToken = dmod.FirstToken;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
@@ -1795,23 +1812,28 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
+                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "lemma";
+                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "greatest" "lemma"
+  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+      "lemma"
     | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "least"
+  | ( "least" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "two-state lemma";
+  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+    "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (. if (allowConstructor) {
+  | "constructor"                   (.  CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
                                          SemErr(t, "constructors are allowed only in classes");
@@ -1873,6 +1895,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
+     m.FirstDeclarationToken = dmod.FirstToken;
  .)
   .
 
@@ -2285,9 +2308,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
    */
 
   /* ----- function ----- */
-  [ "twostate"   (. isTwoState = true; .)
+  [ "twostate"   (. isTwoState = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   ]
-  ( "function"   (. headToken = t; .)
+  ( "function"   (. headToken = t; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
     { Attribute<ref attrs> }
@@ -2309,7 +2332,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     )
 
   /* ----- predicate ----- */
-  | "predicate"  (. headToken = t; isPredicate = true; .)
+  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
     { Attribute<ref attrs> }
@@ -2326,7 +2349,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- least predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    ( "least"
+    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
@@ -2345,7 +2368,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- greatest predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    ( "greatest" "predicate"
+    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+      "predicate"     
     | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
@@ -2531,6 +2555,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
+     f.FirstDeclarationToken = dmod.FirstToken;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate

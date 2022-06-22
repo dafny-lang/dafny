@@ -56,18 +56,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var relatedInformation = new List<DiagnosticRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryInformation.Tok, auxiliaryInformation.Msg));
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(VerifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
           }
         }
       }
 
-      var uri = GetDocumentUriOrDefault(error.Tok);
+      var uri = GetDocumentUriOrDefault(Translator.ToDafnyToken(error.Tok));
       var diagnostic = new Diagnostic {
         Severity = DiagnosticSeverity.Error,
         Message = error.Msg,

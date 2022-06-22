@@ -3469,6 +3469,7 @@ namespace Microsoft.Dafny {
     public IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken FirstDeclarationToken = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -4041,6 +4042,7 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken FirstDeclarationToken = Token.NoToken;
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {

@@ -290,7 +290,7 @@ public class Scanner {
   int posTrailingStart = -1;     // Position where a trailing trivia starts
   int posTrailingEndLeadingStart = -1; // Position where a leading trivia starts
   bool parsingTrivia = false;    // set to true when we are parsing trivia
-  bool triviaTrailing = true;
+  bool triviaTrailing = false;   // The first trivia is always leading
       
   private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
@@ -463,7 +463,7 @@ public class Scanner {
       posTrailingStart = pos;
       posTrailingEndLeadingStart = pos;
       parsingTrivia = true;
-      triviaTrailing = true;
+      triviaTrailing = pos != 0;
     }
     while (ch == ' ' ||
 -->scan1

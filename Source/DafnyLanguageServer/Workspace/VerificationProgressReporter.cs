@@ -426,15 +426,15 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
-            null;
+            null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();

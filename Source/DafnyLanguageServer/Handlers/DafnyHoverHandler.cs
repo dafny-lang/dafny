@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private const int RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+
+    private const string DocTableStart = @"
+|  |  |
+| --- | --- |";
 
     public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
       this.logger = logger;
@@ -271,16 +276,64 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      if (symbol is MethodSymbol method) {
+      var tok = symbol.Token;
+      var richComment = ExtractRichComment(tok.leadingTrivia);
 
-      } else if (symbol is FunctionSymbol function) {
+      return (richComment + $"\n```dafny\n{symbol.GetDetailText(cancellationToken)}\n```").TrimStart();
+    }
 
-      } else if (symbol is FieldSymbol field) {
+    private static string EscapeNewlines(string content) {
+      var newlines = new Regex(@"\r?\n");
+      return newlines.Replace(content, "<br>");
+    }
 
-      } else if (symbol is ClassSymbol classSymbol) {
+    private static string ExtractRichComment(string? leadingTrivia) {
+      if (leadingTrivia == null || leadingTrivia.Trim() == "") {
+        return "";
+      }
+      var slashStarDoc = new Regex(@"\/\*\*(?:(?:(?!\*\/)[\s\S])*)\*\/");
+      var matches = slashStarDoc.Matches(leadingTrivia);
+      if (matches.Count > 0) {
+        var documentation = "";
+        // Everything before the first '@'
+        var commentingRanges = new Regex(@"\/\*\* ?|\r?\n\s*\*(?!/) ?|\r?\n?\s*\*/$");
+        var content = commentingRanges.Replace(matches.Last().Value,
+          match => match.Value.Contains("\n") ? "\n" : "");
 
-      } else if (symbol is Symbol)
-        return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
+        var initialText = new Regex(@"^(?:(?!\r?\n\s*@)[\s\S])*").Match(content).Value.Trim();
+        documentation += initialText;
+
+        var paramsRanges = new Regex(@"@param\s+(?<Name>\w+)\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
+
+        matches = paramsRanges.Matches(content);
+        var tableRows = 0;
+        for (var i = 0; i < matches.Count; i++) {
+          var match = matches[i];
+          var name = match.Groups["Name"].Value;
+          var description = EscapeNewlines(match.Groups["Description"].Value);
+          if (i == 0) {
+            if (tableRows++ == 0) {
+              documentation += DocTableStart;
+            }
+            documentation += "\n| **Params** | ";
+          } else {
+            documentation += "\n| | ";
+          }
+          documentation += $"**{name}** - {description} |";
+        }
+        var returnsDoc = new Regex(@"@return\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
+        if (returnsDoc.Match(content) is { Success: true } matched) {
+          var description = EscapeNewlines(matched.Groups["Description"].Value);
+          if (tableRows == 0) {
+            documentation += DocTableStart;
+          }
+          documentation += $"\n| **Returns** | {description} |";
+        }
+
+        return documentation;
+      }
+
+      return "```dafny\n" + leadingTrivia.Trim() + "\n```";
     }
   }
 }

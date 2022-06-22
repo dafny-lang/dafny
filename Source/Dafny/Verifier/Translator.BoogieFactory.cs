@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.BaseTypes;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -19,12 +20,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
+    internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BigNum n, BitvectorType bitvectorType) {
       Contract.Requires(tok != null);
       Contract.Requires(bitvectorType != null);
       return BplBvLiteralExpr(tok, n, bitvectorType.Width);
     }
-    internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, int width) {
+    internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BigNum n, int width) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= width);
       if (width == 0) {
@@ -35,7 +36,7 @@ namespace Microsoft.Dafny {
         // This can only happen if some error is reported elsewhere. Nevertheless, we do need to
         // generate a Boogie expression and Boogie would crash if we pass a negative number to
         // Bpl.LiteralExpr for a bitvector.
-        var zero = new Bpl.LiteralExpr(tok, BaseTypes.BigNum.ZERO, width);
+        var zero = new Bpl.LiteralExpr(tok, BigNum.ZERO, width);
         var absN = new Bpl.LiteralExpr(tok, -n, width);
         var etran = new ExpressionTranslator(this, predef, tok);
         return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
@@ -866,6 +867,26 @@ namespace Microsoft.Dafny {
     static Bpl.Expr BplFormalVar(string name, Bpl.Type ty, bool incoming, List<Bpl.Variable> fvars) {
       fvars.Add(BplFormalVar(name, ty, incoming, out var e));
       return e;
+    }
+
+    public static IToken ToDafnyToken(Bpl.IToken exprTok) {
+      if (exprTok == null) {
+        return null;
+      } else if (exprTok is IToken t) {
+        return t;
+      } else {
+        return new Token {
+          col = exprTok.col,
+          filename = exprTok.filename,
+          kind = exprTok.kind,
+          leadingTrivia = "",
+          line = exprTok.line,
+          next = null,
+          pos = exprTok.pos,
+          trailingTrivia = "",
+          val = exprTok.val
+        };
+      }
     }
   }
 }

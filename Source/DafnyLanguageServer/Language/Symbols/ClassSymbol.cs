@@ -6,6 +6,6 @@
       return visitor.Visit(this);
     }
 
-    public override IToken Token => Declaration.tok;
+    public override IToken Token => Declaration.FirstDeclarationToken;
   }
 }
