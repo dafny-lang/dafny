@@ -1753,7 +1753,7 @@ namespace @_System {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1794,7 +1794,7 @@ namespace @_System {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1901,7 +1901,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1973,7 +1973,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._3));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2056,7 +2056,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._3));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._4));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2150,7 +2150,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._3));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._4));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._5));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2255,7 +2255,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._4));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._5));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._6));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2371,7 +2371,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._5));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._6));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._7));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2498,7 +2498,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._6));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._7));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._8));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2636,7 +2636,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._7));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._8));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._9));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2785,7 +2785,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._8));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._9));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._10));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2945,7 +2945,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._9));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._10));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._11));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3116,7 +3116,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._10));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._11));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._12));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3298,7 +3298,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._11));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._12));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._13));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3491,7 +3491,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._12));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._13));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._14));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3695,7 +3695,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._13));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._14));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._15));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3910,7 +3910,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._14));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._15));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._16));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -4136,7 +4136,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._15));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._16));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._17));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -4373,7 +4373,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._16));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._17));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._18));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -4621,7 +4621,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._17));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._18));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._19));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
