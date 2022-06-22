@@ -320,7 +320,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // Only exists to make sure method is overriden
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
+    protected override void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var className = TransformToClassName(baseName);

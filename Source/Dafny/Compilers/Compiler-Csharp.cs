@@ -121,13 +121,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
     }
 
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+    protected override void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
-      EmitFuncExtensions(builtIns, wr);
+      EmitFuncExtensions(program, builtIns, wr);
     }
 
     // Generates casts for functions of those arities present in the program, like:
@@ -139,8 +139,9 @@ namespace Microsoft.Dafny.Compilers {
     //     ...
     //   }
     // They aren't in any namespace to make them universally accessible.
-    private static void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions");
+    private void EmitFuncExtensions(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      var aNonDefaultNonLibraryModule = program.CompileModules.TakeLast(2).First().CompileName;
+      var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions" + IdProtect(aNonDefaultNonLibraryModule));
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
 

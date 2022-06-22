@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
-    protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
+    protected virtual void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
 
     public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
@@ -1246,7 +1246,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
-      EmitBuiltInDecls(program.BuiltIns, wrx);
+      EmitBuiltInDecls(program, program.BuiltIns, wrx);
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
       program.CompileModules = temp;
