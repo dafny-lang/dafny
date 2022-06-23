@@ -221,6 +221,8 @@ module CompilerRewriter {
                  IdentityPreservesRel();
                  IdentityTransformer)
 
+      predicate TODO() { false }
+
       function method MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
         (e': Expr)
         decreases e, 0
@@ -249,6 +251,7 @@ module CompilerRewriter {
             assert Exprs.ConstructorsMatch(e, e');
             e'
           case Bind(vars, vals, body) =>
+            assume TODO();
             var vals' := Seq.Map(e requires e in vals => Map_Expr(e, tr), vals);
             Transformer.Map_All_IsMap(e requires e in vals => Map_Expr(e, tr), vals);
             var e' := Expr.Bind(vars, vals', Map_Expr(body, tr));
@@ -298,6 +301,8 @@ module CompilerRewriter {
               case Apply(applyOp, args) =>
                 assert tr.rel(e, tr'.f(e));
               case Block(stmts) =>
+                assert tr.rel(e, tr'.f(e));
+              case Bind(vars, vals, body) =>
                 assert tr.rel(e, tr'.f(e));
               case If(cond, thn, els) => {
                 assert tr.rel(e, tr'.f(e));
@@ -1123,7 +1128,7 @@ module CompilerRewriter {
       InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', env, ctx, ctx');
     }
 
-    lemma Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
+    lemma Map_PairOfMapDisplaySeq_Lem(e: Interp.Expr, e': Interp.Expr, argvs: seq<WV>, argvs': seq<WV>)
       requires EqSeqValue(argvs, argvs')
       ensures EqPureInterpResult(EqSeqPairEqValueValue,
                                  Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv)),
@@ -1165,7 +1170,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma InterpMapDisplay_EqArgs_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
+    lemma InterpMapDisplay_EqArgs_Lem(e: Interp.Expr, e': Interp.Expr, argvs: seq<WV>, argvs': seq<WV>)
       requires EqSeqValue(argvs, argvs')
       ensures EqPureInterpResult(EqMapValue, InterpMapDisplay(e, argvs), InterpMapDisplay(e', argvs')) {
       var res0 := Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv));
@@ -1191,6 +1196,7 @@ module CompilerRewriter {
     }
 
     // TODO: maybe not necessary to make this opaque
+    // FIXME(CPC): Change to Interp.Expr and remove SupportsInterp below
     predicate {:opaque} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
     {
       && EqState(ctx, ctx')
@@ -1220,7 +1226,7 @@ module CompilerRewriter {
       // - `SupportsInterp(e)` is necessary to prove that we can't get in the last branch
       //   of the match
       // - `Exprs.ConstructorsMatch(e, e')` is necessary for the lemma preconditions
-      assert SupportsInterp(e) && Exprs.ConstructorsMatch(e, e') by {
+      assert SupportsInterp(e) && SupportsInterp(e') && Exprs.ConstructorsMatch(e, e') by {
         reveal EqInterp_CanBeMapLifted_Pre();
       }
 
@@ -1243,6 +1249,9 @@ module CompilerRewriter {
         case If(_, _, _) => {
           EqInterp_Expr_If_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
+        case Bind(_, _, _) => {
+          assume TODO();
+        }
         case _ => {
           // Unsupported branch
           reveal SupportsInterp(); // We need this to see that some variants are not supported
@@ -1251,7 +1260,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Expr_Var_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    lemma EqInterp_Expr_Var_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.Var?
       requires e'.Var?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -1264,9 +1273,12 @@ module CompilerRewriter {
       reveal InterpExpr();
       reveal TryGetVariable();
       reveal GEqCtx();
+
+      assume TODO();
     }
 
-    lemma EqInterp_Expr_Literal_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    // FIXME(CPC): Can this lemma and the following ones use Interp.Expr?
+    lemma EqInterp_Expr_Literal_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.Literal?
       requires e'.Literal?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -1280,7 +1292,7 @@ module CompilerRewriter {
       reveal InterpLiteral();
     }
 
-    lemma EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    lemma EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.Abs?
       requires e'.Abs?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -1382,7 +1394,7 @@ module CompilerRewriter {
       MapOfPairs_EqCtx_Lem(pl, pl');
     }
 
-    lemma EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    lemma EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.Apply? && e.aop.Lazy?
       requires e'.Apply? && e'.aop.Lazy?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -1432,7 +1444,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    lemma EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.Apply? && e.aop.Eager?
       requires e'.Apply? && e'.aop.Eager?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -1509,7 +1521,8 @@ module CompilerRewriter {
 
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, op: UnaryOp, v: WV, v': WV)
+      e: Interp.Expr, e': Interp.Expr, op: UnaryOp, v: WV, v': WV
+    )
       requires !op.MemberSelect?
       requires EqValue(v, v')
       ensures EqPureInterpResultValue(InterpUnaryOp(e, op, v), InterpUnaryOp(e', op, v')) {
@@ -1566,7 +1579,8 @@ module CompilerRewriter {
     // but it is a bit annoying to do...
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
+      e: Interp.Expr, e': Interp.Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
+    )
       requires !bop.BV? && !bop.Datatypes?
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
@@ -1737,7 +1751,8 @@ module CompilerRewriter {
 
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV)
+      e: Interp.Expr, e': Interp.Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV
+    )
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
       requires EqValue(v2, v2')
@@ -1759,7 +1774,8 @@ module CompilerRewriter {
     }
 
     lemma EqInterp_Expr_Display_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>)
+      e: Interp.Expr, e': Interp.Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>
+    )
       requires EqSeqValue(vs, vs')
       ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs')) {
       reveal InterpDisplay();
@@ -1795,7 +1811,8 @@ module CompilerRewriter {
     }
 
     lemma EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, env: Environment, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>)
+      e: Interp.Expr, e': Interp.Expr, env: Environment, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>
+    )
       requires EqValue(f, f')
       requires EqSeqValue(argvs, argvs')
       ensures EqPureInterpResultValue(InterpFunctionCall(e, env, f, argvs), InterpFunctionCall(e', env, f', argvs')) {
@@ -1803,6 +1820,8 @@ module CompilerRewriter {
       var res' := InterpFunctionCall(e', env, f', argvs');
 
       if res.Success? || res'.Success? {
+        assume TODO();
+
         reveal InterpFunctionCall();
         reveal InterpCallFunctionBody();
         reveal EqValue_Closure();
@@ -1834,7 +1853,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+    lemma EqInterp_Expr_If_CanBeMapLifted_Lem(e: Interp.Expr, e': Interp.Expr, env: Environment, ctx: State, ctx': State)
       requires e.If?
       requires e'.If?
       requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
@@ -2033,7 +2052,8 @@ module CompilerRewriter {
     }
 
     lemma FlipNegatedBinop_Binop_Rel_Lem(
-      e: Expr, e': Expr, op: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
+      e: Interp.Expr, e': Interp.Expr, op: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
+    )
       requires IsNegatedBinop(op)
       requires EagerOpSupportsInterp(Exprs.BinaryOp(op))
       requires EqValue(v0, v0')
@@ -2048,11 +2068,12 @@ module CompilerRewriter {
             true
           case _ =>
             false)
-      {
-        reveal InterpBinaryOp();
-        EqValue_HasEqValue_Eq_Lem(v0, v0');
-        EqValue_HasEqValue_Eq_Lem(v1, v1');
-      }
+    {
+      assume TODO();
+      reveal InterpBinaryOp();
+      EqValue_HasEqValue_Eq_Lem(v0, v0');
+      EqValue_HasEqValue_Eq_Lem(v1, v1');
+    }
 
     lemma FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
       requires IsNegatedBinop(op)
