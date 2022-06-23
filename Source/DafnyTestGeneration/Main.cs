@@ -2,9 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration {
@@ -19,9 +17,8 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
-
-      var dafnyInfo = new DafnyInfo(program);
-      var modifications = GetModifications(program, dafnyInfo).ToList();
+      
+      var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -59,11 +56,8 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Program program, DafnyInfo dafnyInfo) {
-      // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter()).PreResolve(program);
-      program.Reporter = new ErrorReporterSink();
-      new Resolver(program).ResolveProgram(program);
+    private static IEnumerable<ProgramModification> GetModifications(Program program) {
+      var dafnyInfo = new DafnyInfo(program);
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
@@ -84,11 +78,10 @@ namespace DafnyTestGeneration {
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(
-      Program program, DafnyInfo? dafnyInfo = null) {
-
-      dafnyInfo ??= new DafnyInfo(program);
-      var modifications = GetModifications(program, dafnyInfo).ToList();
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
+      
+      var dafnyInfo = new DafnyInfo(program);
+      var modifications = GetModifications(program).ToList();
 
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();
@@ -135,44 +128,13 @@ namespace DafnyTestGeneration {
         }
       }
 
-      await foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
+      await foreach (var method in GetTestMethodsForProgram(program)) {
         yield return method.ToString();
       }
 
       yield return TestMethod.EmitSynthesizeMethods();
 
       yield return "}";
-    }
-
-    private class AddByMethodRewriter : IRewriter {
-
-      protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
-
-      /// <summary>
-      /// Turns each function-method into a function-by-method.
-      /// Copies body of the function into the body of the corresponding method.
-      /// </summary>
-      internal void PreResolve(Program program) {
-        AddByMethod(program.DefaultModule);
-      }
-
-      private static void AddByMethod(TopLevelDecl d) {
-        if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
-        } else if (d is TopLevelDeclWithMembers withMembers) {
-          withMembers.Members.OfType<Function>().Iter(AddByMethod);
-        }
-      }
-
-      private static void AddByMethod(Function func) {
-        if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
-          return;
-        }
-        var returnStatement = new ReturnStmt(new Token(), new Token(),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new Token(), new Token(),
-          new List<Statement> { returnStatement });
-      }
     }
   }
 }

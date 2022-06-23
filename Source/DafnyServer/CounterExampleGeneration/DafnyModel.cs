@@ -184,8 +184,10 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <summary> Registered all char values specified by the model </summary>
     private void RegisterReservedChars() {
       foreach (var app in fCharToInt.Apps) {
-        int UTFCode = int.Parse(((Model.Integer)app.Result).Numeral);
-        reservedChars.Add(Convert.ToChar(UTFCode));
+        if (int.TryParse(((Model.Integer)app.Result).Numeral,
+              out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
+          reservedChars.Add(Convert.ToChar(UTFCode));
+        }
       }
     }
 
@@ -193,8 +195,8 @@ namespace DafnyServer.CounterexampleGeneration {
     private void RegisterReservedInts() {
       reservedNumerals[Type.Int] = new();
       foreach (var app in fU2Int.Apps) {
-        if (app.Result is Model.Integer integer) {
-          reservedNumerals[Type.Int].Add(integer.AsInt());
+        if (app.Result is Model.Integer integer && int.TryParse(integer.Numeral, out int value)) {
+          reservedNumerals[Type.Int].Add(value);
         }
       }
     }
@@ -237,7 +239,10 @@ namespace DafnyServer.CounterexampleGeneration {
         }
 
         foreach (var app in func.Apps) {
-          reservedNumerals[type].Add((app.Result as Model.BitVector).AsInt());
+          if (int.TryParse((app.Result as Model.BitVector).Numeral,
+                out var value)) {
+            reservedNumerals[type].Add(value);
+          }
         }
       }
     }
@@ -259,6 +264,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <summary>
     /// Return True iff the given element has primitive type in Dafny or is null
     /// </summary>
+    /// TODO: Does this need to be edited to account for newtypes?
     public static bool IsPrimitive(Model.Element element, DafnyModelState state) =>
       (element.Kind != Model.ElementKind.Uninterpreted
        || element == state.Model.fNull.GetConstant()
@@ -550,7 +556,7 @@ namespace DafnyServer.CounterexampleGeneration {
         return elt.ToString();
       }
       if (elt is Model.BitVector vector) {
-        return vector.AsInt().ToString();
+        return vector.Numeral;
       }
       if (IsBitVectorObject(elt, this)) {
         var typeName = GetTrueName(fType.OptEval(elt));
@@ -564,7 +570,7 @@ namespace DafnyServer.CounterexampleGeneration {
           return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
         }
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
-          return Model.GetFunc(funcName).OptEval(elt).AsInt().ToString();
+          return (Model.GetFunc(funcName).OptEval(elt) as Model.Number)?.Numeral;
         }
         return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
       }
@@ -581,10 +587,11 @@ namespace DafnyServer.CounterexampleGeneration {
         return fnTuple.Func.Name.Split(".").Last();
       }
       if (fType.OptEval(elt) == fChar.GetConstant()) {
-        int utfCode;
         if (fCharToInt.OptEval(elt) != null) {
-          utfCode = ((Model.Integer)fCharToInt.OptEval(elt)).AsInt();
-          return "'" + char.ConvertFromUtf32(utfCode) + "'";
+          if (int.TryParse(((Model.Integer) fCharToInt.OptEval(elt)).Numeral,
+                out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
+            return "'" + Convert.ToChar(UTFCode) + "'";
+          }
         }
         return GetUnreservedCharValue(elt);
       }
@@ -720,6 +727,7 @@ namespace DafnyServer.CounterexampleGeneration {
           var e = DafnyModelVariableFactory.Get(state, Unbox(tpl.Result),
             "[" + tpl.Args[1] + "]", var);
           result.Add(e);
+          // TODO: Safer int parsing?
           (var as SeqVariable)?.AddAtIndex(e, (tpl.Args[1] as Model.Integer)?.AsInt());
         }
         return result;

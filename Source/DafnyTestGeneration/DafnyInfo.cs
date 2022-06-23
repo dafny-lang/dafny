@@ -17,6 +17,8 @@ namespace DafnyTestGeneration {
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
     public readonly HashSet<string> DatatypeNames;
+    // TODO: what if it takes type arguments?
+    public readonly Dictionary<string, Type> SubsetTypeToSuperset;
 
     public DafnyInfo(Program program) {
       returnTypes = new Dictionary<string, List<Type>>();
@@ -26,6 +28,7 @@ namespace DafnyTestGeneration {
       ToImportAs = new Dictionary<string, string>();
       DatatypeNames = new HashSet<string>();
       nOfTypeParams = new Dictionary<string, int>();
+      SubsetTypeToSuperset = new Dictionary<string, Type>();
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
     }
@@ -58,13 +61,11 @@ namespace DafnyTestGeneration {
       private readonly DafnyInfo info;
 
       // path to a method in the tree of modules and classes:
-      private readonly List<string> path;
       private bool insideAClass; // method is inside a class (not static)
 
       internal DafnyInfoExtractor(DafnyInfo info) {
         this.info = info;
         insideAClass = false;
-        path = new List<string>();
       }
 
       internal void Visit(Program p) {
@@ -78,35 +79,48 @@ namespace DafnyTestGeneration {
           Visit(classDecl);
         } else if (d is IndDatatypeDecl datatypeDecl) {
           Visit(datatypeDecl);
+        } else if (d is NewtypeDecl newTypeDecl) {
+          Visit(newTypeDecl);
+        } else if (d is TypeSynonymDeclBase typeSynonymDecl) {
+          Visit(typeSynonymDecl);
         }
       }
+      
+      private new void Visit(NewtypeDecl newType) {
+        var name = newType.FullDafnyName;
+        var type = newType.BaseType;
+        while (type is InferredTypeProxy inferred) {
+          type = inferred.T;
+        }
+        info.SubsetTypeToSuperset[name] = type;
+      }
 
+      private void Visit(TypeSynonymDeclBase newType) {
+        var name = newType.FullDafnyName;
+        var type = newType.Rhs;
+        while (type is InferredTypeProxy inferred) {
+          type = inferred.T;
+        }
+        info.SubsetTypeToSuperset[name] = type;
+      }
       private void Visit(LiteralModuleDecl d) {
         if (d.ModuleDef.IsAbstract) {
           return;
         }
-        if (d.Name.Equals("_module")) {
-          d.ModuleDef.TopLevelDecls.ForEach(Visit);
-          return;
-        }
-        path.Add(d.Name);
         if (info.ToImportAs.ContainsValue(d.Name)) {
           var id = info.ToImportAs.Values.Count(v => v.StartsWith(d.Name));
-          info.ToImportAs[string.Join(".", path)] = d.Name + id;
-        } else {
-          info.ToImportAs[string.Join(".", path)] = d.Name;
+          info.ToImportAs[d.FullDafnyName] = d.Name + id;
+        } else if (d.FullDafnyName != "") {
+          info.ToImportAs[d.FullDafnyName] = d.Name;
         }
         d.ModuleDef.TopLevelDecls.ForEach(Visit);
-        path.RemoveAt(path.Count - 1);
       }
 
       private void Visit(IndDatatypeDecl d) {
-        path.Add(d.Name);
-        info.DatatypeNames.Add(string.Join(".", path));
+        info.DatatypeNames.Add(d.FullDafnyName);
         insideAClass = true;
         d.Members.ForEach(Visit);
         insideAClass = false;
-        path.RemoveAt(path.Count - 1);
       }
 
       private void Visit(ClassDecl d) {
@@ -116,9 +130,7 @@ namespace DafnyTestGeneration {
           return;
         }
         insideAClass = true;
-        path.Add(d.Name);
         d.Members.ForEach(Visit);
-        path.RemoveAt(path.Count - 1);
         insideAClass = false;
       }
 
@@ -127,14 +139,11 @@ namespace DafnyTestGeneration {
           Visit(method);
         } else if (d is Function function) {
           Visit(function);
-        }
+        } 
       }
 
       private new void Visit(Method m) {
-        var methodName = m.Name;
-        if (path.Count != 0) {
-          methodName = $"{string.Join(".", path)}.{methodName}";
-        }
+        var methodName = m.FullDafnyName;
         if (m.HasStaticKeyword || !insideAClass) {
           info.isStatic.Add(methodName);
         }
@@ -149,21 +158,18 @@ namespace DafnyTestGeneration {
       }
 
       private new void Visit(Function f) {
-        var methodName = f.Name;
-        if (path.Count != 0) {
-          methodName = $"{string.Join(".", path)}.{methodName}";
-        }
+        var functionName = f.FullDafnyName;
         if (f.HasStaticKeyword || !insideAClass) {
-          info.isStatic.Add(methodName);
+          info.isStatic.Add(functionName);
         }
         if (!f.IsGhost) {
-          info.isNotGhost.Add(methodName);
+          info.isNotGhost.Add(functionName);
         }
         var returnTypes = new List<Type> { f.ResultType };
         var parameterTypes = f.Formals.Select(f => f.Type).ToList();
-        info.parameterTypes[methodName] = parameterTypes;
-        info.returnTypes[methodName] = returnTypes;
-        info.nOfTypeParams[methodName] = f.TypeArgs.Count;
+        info.parameterTypes[functionName] = parameterTypes;
+        info.returnTypes[functionName] = returnTypes;
+        info.nOfTypeParams[functionName] = f.TypeArgs.Count;
       }
     }
   }

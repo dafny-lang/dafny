@@ -148,8 +148,8 @@ namespace DafnyTestGeneration {
       }
 
       List<string> elements = new();
-      var variableType =
-        DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType);
+      var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
+        DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
       if (variableType.ToString() == defaultType.ToString() && 
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
@@ -201,8 +201,7 @@ namespace DafnyTestGeneration {
           // TODO: what about the order of fields?
           // TODO: What about type variables?
           dataType = (DafnyModelTypeUtils.DatatypeType) DafnyModelTypeUtils
-            .GetInDafnyFormat(DafnyModelTypeUtils
-              .ReplaceTypeVariables(dataType, defaultType));
+              .ReplaceTypeVariables(dataType, defaultType);
           List<string> fields = new();
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -234,9 +233,7 @@ namespace DafnyTestGeneration {
           break; // arrays not supported
         default:
           var varId = $"v{ObjectsToMock.Count}";
-          var dafnyType =
-            DafnyModelTypeUtils.GetInDafnyFormat(
-              DafnyModelTypeUtils.GetNonNullable(variableType));
+          var dafnyType = DafnyModelTypeUtils.GetNonNullable(variableType);
           ObjectsToMock.Add(new(varId, dafnyType));
           TypesToSynthesize.Add(dafnyType.ToString());
           mockedVarId[variable] = varId;
@@ -286,6 +283,8 @@ namespace DafnyTestGeneration {
           DatatypeCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
             string.Join(",", tupleType.TypeArgs.Select(GetDefaultValue)) + ")"));
           return tupleName;
+        case UserDefinedType synonym when DafnyInfo.SubsetTypeToSuperset.ContainsKey(synonym.Name):
+          return GetDefaultValue(DafnyInfo.SubsetTypeToSuperset[synonym.Name]);
         case DafnyModelTypeUtils.DatatypeType datatypeType:
           encounteredUnsupportedType = true;
           return datatypeType.Name + ".UNKNOWN"; // TODO

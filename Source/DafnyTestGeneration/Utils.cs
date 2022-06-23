@@ -5,6 +5,7 @@ using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
+using Function = Microsoft.Dafny.Function;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
 
@@ -26,6 +27,13 @@ namespace DafnyTestGeneration {
       if (success) {
         program = new Program(fileName, module, builtIns, reporter);
       }
+      if (program == null) {
+        return null;
+      }
+      // Substitute function methods with function-by-methods
+      new AddByMethodRewriter(new ConsoleErrorReporter()).PreResolve(program);
+      program.Reporter = new ErrorReporterSink();
+      new Resolver(program).ResolveProgram(program);
       return program;
     }
 
@@ -45,6 +53,37 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
       return copy;
+    }
+    
+    private class AddByMethodRewriter : IRewriter {
+
+      protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
+
+      /// <summary>
+      /// Turns each function-method into a function-by-method.
+      /// Copies body of the function into the body of the corresponding method.
+      /// </summary>
+      internal void PreResolve(Program program) {
+        AddByMethod(program.DefaultModule);
+      }
+
+      private static void AddByMethod(TopLevelDecl d) {
+        if (d is LiteralModuleDecl moduleDecl) {
+          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+        } else if (d is TopLevelDeclWithMembers withMembers) {
+          withMembers.Members.OfType<Function>().Iter(AddByMethod);
+        }
+      }
+
+      private static void AddByMethod(Function func) {
+        if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
+          return;
+        }
+        var returnStatement = new ReturnStmt(new Token(), new Token(),
+          new List<AssignmentRhs> { new ExprRhs(func.Body) });
+        func.ByMethodBody = new BlockStmt(new Token(), new Token(),
+          new List<Statement> { returnStatement });
+      }
     }
   }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Microsoft.Boogie;
 
@@ -48,7 +47,8 @@ namespace DafnyTestGeneration {
 
     public override Program VisitProgram(Program node) {
       program = node;
-      return base.VisitProgram(node);
+      node.Implementations.Iter(i => VisitImplementation(i));
+      return node;
     }
 
     /// <summary>

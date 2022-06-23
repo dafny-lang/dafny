@@ -80,6 +80,11 @@ namespace DafnyTestGeneration {
         axiom = GetAxiom($"axiom (forall<T> y: Seq T :: " +
                          $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});");
         program.AddTopLevelDeclaration(axiom);
+        //TODO: have a parameter that turns this off?
+        axiom = GetAxiom($"axiom (forall x: int :: " +
+                         $"x <= {int.MaxValue} && " +
+                         $"x >= {int.MinValue});");
+        program.AddTopLevelDeclaration(axiom);
       }
     }
 

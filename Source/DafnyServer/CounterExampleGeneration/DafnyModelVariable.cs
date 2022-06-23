@@ -214,7 +214,11 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     public int? GetLength() {
-      return (seqLength?.Element as Model.Integer)?.AsInt();
+      if (int.TryParse((seqLength?.Element as Model.Integer)?.Numeral,
+            out var value)) {
+        return value;
+      }
+      return null;
     }
 
     public DafnyModelVariable this[int index] => seqElements.GetValueOrDefault(index, null);
