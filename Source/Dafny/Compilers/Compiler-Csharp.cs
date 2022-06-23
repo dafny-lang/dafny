@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.Compilers {
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var aNonDefaultNonLibraryModule = program.CompileModules.TakeLast(2).First().CompileName;
-      var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions" + IdProtect(aNonDefaultNonLibraryModule));
+      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
 
