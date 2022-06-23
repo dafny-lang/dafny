@@ -128,7 +128,7 @@ module CompilerRewriter {
       // This predicate gives us the conditions for which, if we deeply apply `f` to all
       // the children of an expression, then the resulting expression satisfies the pre
       // of `f` (i.e., we can call `f` on it).
-      // 
+      //
       // Given `e`, `e'`, if:
       // - `e` and `e'` have the same constructor
       // - `e` satisfies the pre of `f`
@@ -136,16 +136,17 @@ module CompilerRewriter {
       // Then:
       // - `e'` satisfies the pre of `f`
       {
-        (forall e, e' ::
-           (&& Exprs.ConstructorsMatch(e, e')
-            && f.requires(e)
-            && Deep.AllChildren_Expr(e', post)) ==> f.requires(e'))
-       }
+        forall e, e' ::
+           && Exprs.ConstructorsMatch(e, e')
+           && f.requires(e)
+           && Deep.AllChildren_Expr(e', post)
+           ==> f.requires(e')
+      }
 
       predicate TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool)
       // This predicate gives us the conditions for which, if we deeply apply `f` to an
       // expression, the resulting expression satisfies the postcondition we give for `f`.
-      // 
+      //
       // Given `e`, if:
       // - all the children of `e` deeply satisfy the post of `f`
       // - `e` satisfies the pre of `f`
@@ -167,13 +168,13 @@ module CompilerRewriter {
       // if we apply `f` on all the children of `e`, leading to an expression `e'`, then we
       // can relate `e` and `f(e')` with `rel`.
       {
-        (forall e, e' ::
-           (&& Exprs.ConstructorsMatch(e, e')
-            && f.requires(e')
-            && All_Rel_Forall(rel, e.Children(), e'.Children()))
-            ==> rel(e, f(e')))
+        forall e, e' ::
+           && Exprs.ConstructorsMatch(e, e')
+           && f.requires(e')
+           && All_Rel_Forall(rel, e.Children(), e'.Children())
+           ==> rel(e, f(e'))
       }
-      
+
       predicate IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool)
       // Predicate for ``BottomUpTransformer``
       {
@@ -198,15 +199,15 @@ module CompilerRewriter {
       lemma IdentityPreservesRel()
         ensures TransformerDeepPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
-      
+
       predicate RelCanBeMapLifted(rel: (Expr, Expr) -> bool)
       // In many situations, the binary relation between the input and the output is transitive
       // and can be lifted through the map function.
       {
-        (forall e, e' ::
-           (&& Exprs.ConstructorsMatch(e, e')
-            && All_Rel_Forall(rel, e.Children(), e'.Children()))
-            ==> rel(e, e'))
+        forall e, e' ::
+           && Exprs.ConstructorsMatch(e, e')
+           && All_Rel_Forall(rel, e.Children(), e'.Children())
+           ==> rel(e, e')
       }
 
       predicate RelIsTransitive<T(!new)>(rel: (T, T) -> bool) {
@@ -289,9 +290,9 @@ module CompilerRewriter {
       {
         var tr' := Map_Expr_Transformer'(tr);
         forall e:Expr
-          ensures tr'.f.requires(e) ==> tr.rel(e, tr'.f(e)) {
-          if !(tr'.f.requires(e)) {}
-          else {
+          ensures tr'.f.requires(e) ==> tr.rel(e, tr'.f(e))
+        {
+          if tr'.f.requires(e) {
             var e2 := tr'.f(e);
             match e {
               case Var(_) => {}
@@ -376,7 +377,8 @@ module CompilerRewriter {
 
     // TODO: not sure it was worth making this opaque
     predicate {:opaque} GEqCtx(
-      eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context)
+      eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context
+    )
       requires WellFormedContext(ctx)
       requires WellFormedContext(ctx')
     {
@@ -429,7 +431,7 @@ module CompilerRewriter {
     predicate EqValue(v: WV, v': WV)
       decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 1
     // Equivalence between values.
-    // 
+    //
     // Two values are equivalent if:
     // - they are not closures and are equal/have equivalent children values
     // - they are closures and, when applied to equivalent inputs, they return equivalent outputs
@@ -528,7 +530,8 @@ module CompilerRewriter {
             true
           case _ =>
             false
-        })
+        }
+      )
     }
 
     predicate EqState(ctx: State, ctx': State)
@@ -766,7 +769,7 @@ module CompilerRewriter {
             assume ValueTypeHeight(ov0) < ValueTypeHeight(v0);
 
             EqValue_Trans_Lem(ov0, ov1, ov2);
-            
+
             assert EqPureInterpResultValue(res0, res2);
           }
           else {
@@ -775,7 +778,7 @@ module CompilerRewriter {
           }
       }
     }
-    
+
     lemma {:induction v, v'} EqValue_HasEqValue_Lem(v: WV, v': WV)
       requires EqValue(v, v')
       ensures HasEqValue(v) == HasEqValue(v')
@@ -823,7 +826,7 @@ module CompilerRewriter {
 
     lemma EqValue_Refl_Forall_Lem()
       ensures forall v : WV :: EqValue(v, v)
-    {      
+    {
       forall v : WV | true
         ensures EqValue(v, v)
       {
@@ -858,7 +861,7 @@ module CompilerRewriter {
       && same_t(v.0, v'.0)
       && same_u(v.1, v'.1)
     }
-    
+
     predicate EqSeqValue(vs: seq<WV>, vs': seq<WV>) {
       EqSeq(EqValue, vs, vs')
     }
@@ -880,7 +883,7 @@ module CompilerRewriter {
     predicate EqPairEqValueValue(v: (EqWV,WV), v': (EqWV,WV)) {
       EqPairs(EqEqValue, EqValue, v, v')
     }
-    
+
     predicate EqInterpResultValue(res: InterpResult<WV>, res': InterpResult<WV>)
     {
       EqInterpResult(EqValue, res, res')
@@ -893,7 +896,7 @@ module CompilerRewriter {
     predicate GEqInterpResultSeq(eq: Equivs, res: InterpResult<seq<WV>>, res': InterpResult<seq<WV>>) {
       GEqInterpResult(eq.eq_state, (x, x') => EqSeq(eq.eq_value, x, x'), res, res')
     }
-    
+
     predicate EqPureInterpResult<T(0)>(eq_values: (T,T) -> bool, res: PureInterpResult<T>, res': PureInterpResult<T>) {
       match (res, res') {
         case (Success(v), Success(v')) =>
@@ -991,7 +994,8 @@ module CompilerRewriter {
     {
       if SupportsInterp(e0) {
         forall env, ctx, ctx' | EqState(ctx, ctx')
-          ensures EqInterpResultValue(InterpExpr(e0, env, ctx), InterpExpr(e2, env, ctx')) {
+          ensures EqInterpResultValue(InterpExpr(e0, env, ctx), InterpExpr(e2, env, ctx'))
+        {
           EqState_Refl_Lem(ctx);
           assert EqState(ctx, ctx);
           var res0 := InterpExpr(e0, env, ctx);
@@ -1035,7 +1039,7 @@ module CompilerRewriter {
 
       if e_res.Success? {
         var Return(v, ctx1) := e_res.value;
-        
+
         assert InterpExprs(es', env, ctx1) == Success(Return([], ctx1));
         assert es_res == Success(Return([v] + [], ctx1));
       }
@@ -1080,7 +1084,7 @@ module CompilerRewriter {
         // Evaluate the first expression in the sequence
         var res1 := InterpExpr(es[0], env, ctx);
         var res1' := InterpExpr(es'[0], env, ctx');
-        
+
         match res1 {
           case Success(Return(v, ctx1)) => {
             // TODO: the following statement generates an error.
@@ -1102,7 +1106,7 @@ module CompilerRewriter {
                 var Return(vs', ctx2') := res2'.value;
                 assert EqSeq(eq.eq_value, vs, vs');
                 assert eq.eq_state(ctx2, ctx2');
-                
+
               }
               case Failure(_) => {
                 assert res2'.Failure?;
@@ -1147,7 +1151,7 @@ module CompilerRewriter {
         EqValue_HasEqValue_Eq_Forall_Lem();
         if res0.Success? {
           assert res0'.Success?;
-          assert EqPureInterpResult(EqPairEqValueValue, res0, res0'); 
+          assert EqPureInterpResult(EqPairEqValueValue, res0, res0');
 
           reveal Seq.MapResult();
           Map_PairOfMapDisplaySeq_Lem(e, e', argvs[1..], argvs'[1..]);
@@ -1165,7 +1169,7 @@ module CompilerRewriter {
       if argvs == [] {}
       else {
         var lastidx := |argvs| - 1;
-        EqValueHasEq_Forall_Lem();   
+        EqValueHasEq_Forall_Lem();
         MapOfPairs_EqArgs_Lem(argvs[..lastidx], argvs'[..lastidx]);
       }
     }
@@ -1408,10 +1412,10 @@ module CompilerRewriter {
       reveal InterpLazy();
 
       reveal SupportsInterp();
-      
+
       var res := InterpExpr(e, env, ctx);
       var res' := InterpExpr(e', env, ctx');
-      
+
       assert res == InterpLazy(e, env, ctx);
       assert res' == InterpLazy(e', env, ctx');
 
@@ -1525,9 +1529,10 @@ module CompilerRewriter {
     )
       requires !op.MemberSelect?
       requires EqValue(v, v')
-      ensures EqPureInterpResultValue(InterpUnaryOp(e, op, v), InterpUnaryOp(e', op, v')) {
+      ensures EqPureInterpResultValue(InterpUnaryOp(e, op, v), InterpUnaryOp(e', op, v'))
+    {
       reveal InterpUnaryOp();
-      
+
       var res := InterpUnaryOp(e, op, v);
       var res' := InterpUnaryOp(e', op, v');
 
@@ -1584,9 +1589,10 @@ module CompilerRewriter {
       requires !bop.BV? && !bop.Datatypes?
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
-      ensures EqPureInterpResultValue(InterpBinaryOp(e, bop, v0, v1), InterpBinaryOp(e', bop, v0', v1')) {
+      ensures EqPureInterpResultValue(InterpBinaryOp(e, bop, v0, v1), InterpBinaryOp(e', bop, v0', v1'))
+    {
       reveal InterpBinaryOp();
-      
+
       var res := InterpBinaryOp(e, bop, v0, v1);
       var res' := InterpBinaryOp(e', bop, v0', v1');
 
@@ -1756,9 +1762,10 @@ module CompilerRewriter {
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
       requires EqValue(v2, v2')
-      ensures EqPureInterpResultValue(InterpTernaryOp(e, top, v0, v1, v2), InterpTernaryOp(e', top, v0', v1', v2')) {
+      ensures EqPureInterpResultValue(InterpTernaryOp(e, top, v0, v1, v2), InterpTernaryOp(e', top, v0', v1', v2'))
+    {
       reveal InterpTernaryOp();
-      
+
       var res := InterpTernaryOp(e, top, v0, v1, v2);
       var res' := InterpTernaryOp(e', top, v0', v1', v2');
 
@@ -1777,9 +1784,10 @@ module CompilerRewriter {
       e: Interp.Expr, e': Interp.Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>
     )
       requires EqSeqValue(vs, vs')
-      ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs')) {
+      ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs'))
+    {
       reveal InterpDisplay();
-      
+
       var res := InterpDisplay(e, kind, vs);
       var res' := InterpDisplay(e', kind, vs');
 
@@ -1815,7 +1823,9 @@ module CompilerRewriter {
     )
       requires EqValue(f, f')
       requires EqSeqValue(argvs, argvs')
-      ensures EqPureInterpResultValue(InterpFunctionCall(e, env, f, argvs), InterpFunctionCall(e', env, f', argvs')) {
+      ensures EqPureInterpResultValue(InterpFunctionCall(e, env, f, argvs),
+                                      InterpFunctionCall(e', env, f', argvs'))
+    {
       var res := InterpFunctionCall(e, env, f, argvs);
       var res' := InterpFunctionCall(e', env, f', argvs');
 
@@ -1871,7 +1881,7 @@ module CompilerRewriter {
 
       var If(cond, thn, els) := e;
       var If(cond', thn', els') := e';
-      
+
       assert cond == e.Children()[0];
       assert thn == e.Children()[1];
       assert els == e.Children()[2];
@@ -2042,11 +2052,11 @@ module CompilerRewriter {
 
       var bop' := Exprs.BinaryOp(FlipNegatedBinop(op));
       var flipped := Exprs.Apply(Exprs.Eager(bop'), args);
-      
+
       assert si ==> SupportsInterp(flipped);
-      
+
       var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped]);
-      
+
       assert SupportsInterp(flipped) ==> SupportsInterp(e');
       e'
     }
@@ -2129,7 +2139,7 @@ module CompilerRewriter {
               assert b.Bool?;
               assert b'.Bool?;
               assert b.b == !b'.b;
-              
+
               assert EqState(ctx1, ctx1');
 
               reveal InterpUnaryOp();
