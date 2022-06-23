@@ -634,15 +634,11 @@ namespace DafnyTestGeneration {
 
       public override Procedure VisitProcedure(Procedure node) {
         List<Ensures> newEnsures = new();
-        List<Requires> newRequires = new();
+        // TODO: perhaps make free all requires not on the method being tested?
         foreach (var e in node.Ensures) {
           newEnsures.Add(new Ensures(new Token(), true, e.Condition, e.Comment, e.Attributes));
         }
-        foreach (var r in node.Requires) {
-          newRequires.Add(new Requires(new Token(), true, r.Condition, r.Comment, r.Attributes));
-        }
         node.Ensures = newEnsures;
-        node.Requires = newRequires;
         return base.VisitProcedure(node);
       }
       
