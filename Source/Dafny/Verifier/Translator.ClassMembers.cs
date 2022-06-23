@@ -715,10 +715,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Implementation impl = new Implementation(m.tok, proc.Name,
-          new List<TypeVariable>(), inParams, outParams,
-          localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc,
+           inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -798,8 +796,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Implementation impl = new Implementation(m.tok, proc.Name, new List<TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -894,9 +892,11 @@ namespace Microsoft.Dafny {
       };
       var ens = new List<Ensures>();
 
-      var proc = new Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<TypeVariable>(),
+      var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var proc = new Procedure(f.tok, name, new List<TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var implOutParams = Bpl.Formal.StripWhereClauses(outParams);
@@ -953,9 +953,9 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        var impl = new Implementation(f.tok, proc.Name, new List<TypeVariable>(),
-          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
+          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+          implOutParams, localVariables, stmts, kv);
       }
 
       if (InsertChecksums) {
@@ -1477,6 +1477,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Procedure(m.tok, name, new List<TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      AddVerboseName(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);
