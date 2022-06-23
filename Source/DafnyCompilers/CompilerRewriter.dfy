@@ -20,44 +20,14 @@ module CompilerRewriter {
       ensures Seq.All(IsMap(f), Seq.Map(f, xs))
     {}
 
-    lemma Map_All_PC<A, B>(f: A --> B, P: B -> bool, xs: seq<A>)
-      requires forall a | a in xs :: f.requires(a)
-      requires forall a | a in xs :: P(f(a))
-      ensures Seq.All(P, Seq.Map(f, xs))
-    {}
-
-    predicate Map_All_Rel<A(!new), B>(f: A --> B, rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
-      requires |xs| == |ys|
-      requires forall a | a in xs :: f.requires(a)
-      requires forall a | a in xs :: rel(a, f(a))
-    {
-      if xs == [] then true
-      else
-        rel(xs[0], ys[0]) && Map_All_Rel(f, rel, xs[1..], ys[1..])
-    }
-
+    // FIXME(CPC): Move
     predicate All_Rel_Forall<A, B>(rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
     {
       && |xs| == |ys|
       && forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
     }
 
-    function method {:opaque} MapWithPost<A(!new), B>(
-      f: A ~> B, ghost post: B -> bool, ghost rel: (A,B) -> bool, xs: seq<A>) : (ys: seq<B>)
-      reads f.reads
-      requires forall a | a in xs :: f.requires(a)
-      requires forall a | a in xs :: post(f(a))
-      requires forall a | a in xs :: rel(a, f(a))
-      ensures |ys| == |xs|
-      ensures forall i | 0 <= i < |xs| :: ys[i] == f(xs[i])
-      ensures forall y | y in ys :: post(y)
-      ensures Seq.All(post, ys)
-      ensures forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
-    {
-      Seq.Map(f, xs)
-    }
-
-    datatype Transformer_<!A(!new), !B> =
+    datatype Transformer_<!A(!new), !B> = // FIXME(CPC): Remove rel
       TR(f: A --> B, ghost post: B -> bool, ghost rel: (A,B) -> bool)
     {
       predicate HasValidPost() {
@@ -200,6 +170,7 @@ module CompilerRewriter {
         ensures TransformerDeepPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
 
+      // FIXME(CPC): Move to equivs (use a datatype to make this a member function)
       predicate RelCanBeMapLifted(rel: (Expr, Expr) -> bool)
       // In many situations, the binary relation between the input and the output is transitive
       // and can be lifted through the map function.
