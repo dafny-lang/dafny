@@ -260,7 +260,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Apply(aop: ApplyOp, args: seq<Expr>)
         | Block(stmts: seq<Expr>)
         | Bind(vars: seq<string>, vals: seq<Expr>, body: Expr)
-        | If(cond: Expr, thn: Expr, els: Expr)
+        | If(cond: Expr, thn: Expr, els: Expr) // DISCUSS: Lazy op node?
       {
         function method Depth() : nat {
           1 + match this {
