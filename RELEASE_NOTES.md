@@ -1,5 +1,8 @@
 # Upcoming
 
+- feat: Hovering a symbol in the IDE shows its associated comment or formatted javadoc (https://github.com/dafny-lang/dafny/pull/1801)
+- feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
+
 # 3.7.1
 
 - fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
