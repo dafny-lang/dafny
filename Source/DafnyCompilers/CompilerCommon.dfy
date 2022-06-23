@@ -722,28 +722,33 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       :- Need(!se.SelectOne ==> ty.kind.Seq?,
               Invalid("`SeqSelect` on a map or multiset must have a single index."));
       assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.E0), ASTHeight(se.E1))) < ASTHeight(se);
-      var (op, args) :=
-        match ty.kind { // FIXME AST gen should produce `Expression?` not `Expression`
-          case Seq() =>
-            if se.SelectOne then
-              assert se.E1 != null;
-              (DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqSelect)), [se.Seq, se.E0])
-            else if se.E1 == null then
-              (DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqDrop)), [se.Seq, se.E0])
-            else if se.E0 == null then
-              (DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqTake)), [se.Seq, se.E1])
-            else
-              (DE.TernaryOp(DE.TernaryOps.Sequences(DE.TernaryOps.SeqSubseq)), [se.Seq, se.E0, se.E1])
-          case Map(_) =>
-            assert se.SelectOne && se.E1 == null;
-            (DE.BinaryOp(DE.BinaryOps.Maps(DE.BinaryOps.MapSelect)), [se.Seq, se.E0])
-          case Multiset() =>
-            assert se.SelectOne && se.E1 == null;
-            (DE.BinaryOp(DE.BinaryOps.Multisets(DE.BinaryOps.MultisetSelect)), [se.Seq, se.E0])
-        };
-      assert forall e' | e' in args :: e' in {se.Seq, se.E0, se.E1};
-      var args :- Seq.MapResult(args, e requires e in args reads * => TranslateExpression(e));
-      Success(DE.Apply(DE.Eager(op), args))
+      var recv :- TranslateExpression(se.Seq);
+      var eager := (op, args) => Success(DE.Apply(DE.Eager(op), args));
+      match ty.kind { // FIXME AST gen should produce `Expression?` not `Expression`
+        case Seq() =>
+          if se.SelectOne then
+            assert se.E1 == null;
+            var e0 :- TranslateExpression(se.E0);
+            eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqSelect)), [recv, e0])
+          else if se.E1 == null then
+            var e0 :- TranslateExpression(se.E0);
+            eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqDrop)), [recv, e0])
+          else if se.E0 == null then
+            var e1 :- TranslateExpression(se.E1);
+            eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqTake)), [recv, e1])
+          else
+            var e0 :- TranslateExpression(se.E0);
+            var e1 :- TranslateExpression(se.E1);
+            eager(DE.TernaryOp(DE.TernaryOps.Sequences(DE.TernaryOps.SeqSubseq)), [recv, e0, e1])
+        case Map(_) =>
+          assert se.SelectOne && se.E1 == null;
+          var e0 :- TranslateExpression(se.E0);
+          eager(DE.BinaryOp(DE.BinaryOps.Maps(DE.BinaryOps.MapSelect)), [recv, e0])
+        case Multiset() =>
+          assert se.SelectOne && se.E1 == null;
+          var e0 :- TranslateExpression(se.E0);
+          eager(DE.BinaryOp(DE.BinaryOps.Multisets(DE.BinaryOps.MultisetSelect)), [recv, e0])
+      }
     }
 
     function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
