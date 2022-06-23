@@ -32,19 +32,19 @@ namespace Microsoft.Dafny {
       //         $Is(d, T(G)) ==> Dt.Ctor0?(G,d) || Dt.Ctor1?(G,d) || ...);
       {
         var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
-        Expr d;
+        Bpl.Expr d;
         var dVar = BplBoundVar("d", predef.DatatypeType, out d);
         var d_is = MkIs(d, ClassTyCon(dt, tyexprs));
-        Expr cases_body = Expr.False;
-        Trigger tr = null;
+        Bpl.Expr cases_body = Bpl.Expr.False;
+        Bpl.Trigger tr = null;
         foreach (DatatypeCtor ctor in dt.Ctors) {
           var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
           cases_body = BplOr(cases_body, disj);
-          tr = new Trigger(ctor.tok, true, new List<Expr> { disj, d_is }, tr);
+          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, d_is }, tr);
         }
-        var body = Expr.Imp(d_is, cases_body);
+        var body = Bpl.Expr.Imp(d_is, cases_body);
         var ax = BplForall(Snoc(tyvars, dVar), tr, body);
-        var axiom = new Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
+        var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
         sink.AddTopLevelDeclaration(axiom);
       }
 
@@ -84,25 +84,25 @@ namespace Microsoft.Dafny {
       var dtEqualName = DtEqualName(dt);
 
       var args = new List<Variable>();
-      args.Add(new Bpl.Formal(dt.tok, new TypedIdent(dt.tok, TypedIdent.NoName, predef.DatatypeType), false));
-      args.Add(new Bpl.Formal(dt.tok, new TypedIdent(dt.tok, TypedIdent.NoName, predef.DatatypeType), false));
+      args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
+      args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
       var ctorEqualResult =
-        new Bpl.Formal(dt.tok, new TypedIdent(dt.tok, TypedIdent.NoName, Bpl.Type.Bool), false);
+        new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult,
         "Datatype extensional equality declaration"));
 
-      Expr a;
+      Bpl.Expr a;
       var aVar = BplBoundVar("a", predef.DatatypeType, out a);
-      Expr b;
+      Bpl.Expr b;
       var bVar = BplBoundVar("b", predef.DatatypeType, out b);
 
       var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
 
       foreach (var ctor in dt.Ctors) {
-        Trigger trigger;
-        Expr ante;
+        Bpl.Trigger trigger;
+        Bpl.Expr ante;
         if (dt.Ctors.Count == 1) {
-          ante = Expr.True;
+          ante = Bpl.Expr.True;
           trigger = BplTrigger(dtEqual);
         } else {
           var ctorQ = GetReadonlyField(ctor.QueryField);
@@ -111,11 +111,11 @@ namespace Microsoft.Dafny {
           ante = BplAnd(ctorQa, ctorQb);
           trigger = dt.Ctors.Count == 1
             ? BplTrigger(dtEqual)
-            : new Trigger(ctor.tok, true, new List<Expr> { dtEqual, ctorQa },
-              new Trigger(ctor.tok, true, new List<Expr> { dtEqual, ctorQb }));
+            : new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQa },
+              new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
         }
 
-        Expr eqs = Expr.True;
+        Bpl.Expr eqs = Bpl.Expr.True;
         for (var i = 0; i < ctor.Formals.Count; i++) {
           var arg = ctor.Formals[i];
           var dtor = GetReadonlyField(ctor.Destructors[i]);
@@ -125,8 +125,8 @@ namespace Microsoft.Dafny {
           eqs = BplAnd(eqs, eq);
         }
 
-        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Expr.Imp(ante, Expr.Iff(dtEqual, eqs)));
-        AddOtherDefinition(constructorFunctions[ctor], new Axiom(dt.tok, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
+        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
+        AddOtherDefinition(constructorFunctions[ctor], new Bpl.Axiom(dt.tok, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
       }
     }
 
@@ -142,63 +142,64 @@ namespace Microsoft.Dafny {
         var bVar = BplBoundVar("b", predef.DatatypeType, out var b);
 
         var lhs = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
-        var rhs = Expr.Eq(a, b);
+        var rhs = Bpl.Expr.Eq(a, b);
 
-        var ax = BplForall(new List<Variable> { aVar, bVar }, BplTrigger(lhs), Expr.Iff(lhs, rhs));
-        sink.AddTopLevelDeclaration(new Axiom(dt.tok, ax, $"Datatype extensionality axiom: {dt.FullName}"));
+        var ax = BplForall(new List<Variable> { aVar, bVar }, BplTrigger(lhs), Bpl.Expr.Iff(lhs, rhs));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, $"Datatype extensionality axiom: {dt.FullName}"));
       }
     }
 
     private void AddCoDatatypeDeclAxioms(CoDatatypeDecl codecl) {
-      Func<Expr, Expr> MinusOne = k => {
+      Func<Bpl.Expr, Bpl.Expr> MinusOne = k => {
         if (k == null) {
           return null;
         } else if (k.Type.IsInt) {
-          return Expr.Sub(k, Expr.Literal(1));
+          return Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
         } else {
           return FunctionCall(k.tok, "ORD#Minus", k.Type, k,
-            FunctionCall(k.tok, "ORD#FromNat", k.Type, Expr.Literal(1)));
+            FunctionCall(k.tok, "ORD#FromNat", k.Type, Bpl.Expr.Literal(1)));
         }
       };
 
-      Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Variable>, List<Expr>, List<Expr>, Variable, Expr, Expr, Expr, Expr, Expr, Expr, Expr, Expr>> CoAxHelper =
+      Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>,
+        Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper =
         (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
               new TypeParameter(tp.tok, tp.Name + "#" + s, tp.PositionalIndex, tp.Parent));
           List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
-          List<Expr> lexprs;
+          List<Bpl.Expr> lexprs;
           var lvars = MkTyParamBinders(typaramsL, out lexprs);
-          List<Expr> rexprs;
+          List<Bpl.Expr> rexprs;
           var rvars = MkTyParamBinders(typaramsR, out rexprs);
           Func<List<TypeParameter>, List<Type>> Types = l => Map(l, tp => (Type)new UserDefinedType(tp));
           var tyargs = Tuple.Create(Types(typaramsL), Types(typaramsR));
 
           var vars = Concat(lvars, rvars);
 
-          Expr k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit;
-          Variable kVar;
+          Bpl.Expr k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit;
+          Bpl.Variable kVar;
           if (typeOfK != null) {
             kVar = BplBoundVar("k", typeOfK, out k);
             vars.Add(kVar);
             if (typeOfK.IsInt) {
-              kIsValid = Expr.Le(Expr.Literal(0), k);
-              kIsNonZero = Expr.Neq(Expr.Literal(0), k);
-              kHasSuccessor = Expr.Lt(Expr.Literal(0), k);
-              kIsLimit = Expr.False;
+              kIsValid = Bpl.Expr.Le(Bpl.Expr.Literal(0), k);
+              kIsNonZero = Bpl.Expr.Neq(Bpl.Expr.Literal(0), k);
+              kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+              kIsLimit = Bpl.Expr.False;
             } else {
-              kIsValid = Expr.True;
-              kIsNonZero = Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Expr.Literal(0)));
-              kHasSuccessor = Expr.Lt(Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
+              kIsValid = Bpl.Expr.True;
+              kIsNonZero = Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(0)));
+              kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
               kIsLimit = FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k);
             }
           } else {
             kVar = null;
             k = null;
-            kIsValid = Expr.True;
-            kIsNonZero = Expr.True;
-            kHasSuccessor = Expr.True;
-            kIsLimit = Expr.True;
+            kIsValid = Bpl.Expr.True;
+            kIsNonZero = Bpl.Expr.True;
+            kHasSuccessor = Bpl.Expr.True;
+            kIsLimit = Bpl.Expr.True;
           }
 
           var ly = BplBoundVar("ly", predef.LayerType, vars);
@@ -250,11 +251,11 @@ namespace Microsoft.Dafny {
                   BplImp(kHasSuccessor,
                     BplOr(CoPrefixEquality(codecl.tok, codecl, tyargs.Item1, tyargs.Item2, MinusOne(k), ly, d0, d1))),
                   k == null
-                    ? Expr.True
+                    ? Bpl.Expr.True
                     : BplImp(BplAnd(kIsNonZero, kIsLimit),
                       CoEqualCall(codecl, tyargs.Item1, tyargs.Item2, null, ly, d0, d1)))));
             var ax = BplForall(vars, BplTrigger(eqDt), body);
-            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok, ax, "Layered co-equality axiom"));
+            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Bpl.Axiom(codecl.tok, ax, "Layered co-equality axiom"));
           });
 
         // axiom (forall G0,...,Gn : Ty, k: int, ly : Layer, d0, d1: DatatypeType ::
@@ -268,7 +269,7 @@ namespace Microsoft.Dafny {
             var eqDtL = CoEqualCall(codecl, lexprs, rexprs, k, ly, d0, d1);
             var body = BplImp(kIsNonZero, BplIff(eqDtSL, eqDtL));
             var ax = BplForall(vars, BplTrigger(eqDtSL), body);
-            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok, ax, "Unbump layer co-equality axiom"));
+            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Bpl.Axiom(codecl.tok, ax, "Unbump layer co-equality axiom"));
           });
       };
 
@@ -277,7 +278,7 @@ namespace Microsoft.Dafny {
       // axiom (forall d0, d1: DatatypeType, k: int :: { $Equal(d0, d1) } :: Equal(d0, d1) <==> d0 == d1);
       CoAxHelper(null, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
         var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
-        var equal = Expr.Eq(d0, d1);
+        var equal = Bpl.Expr.Eq(d0, d1);
         AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
           BplForall(vars, BplTrigger(Eq), BplIff(Eq, equal)),
           "Equality for codatatypes"));
@@ -320,15 +321,15 @@ namespace Microsoft.Dafny {
           var m = BplBoundVar("m", k.Type, vars);
           var PEqK = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var PEqM = CoEqualCall(codecl, lexprs, rexprs, m, LayerSucc(ly), d0, d1);
-          Expr kLtM;
+          Bpl.Expr kLtM;
           if (k.Type.IsInt) {
-            kLtM = Expr.Lt(k, m);
+            kLtM = Bpl.Expr.Lt(k, m);
           } else {
             kLtM = FunctionCall(codecl.tok, "ORD#Less", Bpl.Type.Bool, k, m);
           }
           AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
             BplForall(vars,
-              new Trigger(codecl.tok, true, new List<Expr> { PEqK, PEqM }),
+              new Bpl.Trigger(codecl.tok, true, new List<Bpl.Expr> { PEqK, PEqM }),
               BplImp(BplAnd(BplAnd(kIsValid, kLtM), PEqM), PEqK)),
             "Prefix equality consequence"));
         });
@@ -339,7 +340,7 @@ namespace Microsoft.Dafny {
       // axiom (forall d0, d1: DatatypeType, k: int :: d0 == d1 && 0 <= k ==> $PrefixEqual#_module.Stream(k, d0, d1));
       CoAxHelper(theTypeOfK,
         (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
-          var equal = Expr.Eq(d0, d1);
+          var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var trigger = BplTrigger(PEq);
           AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
@@ -352,8 +353,8 @@ namespace Microsoft.Dafny {
       //   function $IsA#Dt(G: Ty,d: DatatypeType): bool {
       //     Dt.Ctor0?(G, d) || Dt.Ctor1?(G, d) || ...
       //   }
-      var cases_dBv = new Bpl.Formal(dt.tok, new TypedIdent(dt.tok, TypedIdent.NoName, predef.DatatypeType), true);
-      var cases_resType = new Bpl.Formal(dt.tok, new TypedIdent(dt.tok, TypedIdent.NoName, Bpl.Type.Bool), false);
+      var cases_dBv = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true);
+      var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullSanitizedName,
         new List<Variable> { cases_dBv },
         cases_resType,
@@ -365,31 +366,31 @@ namespace Microsoft.Dafny {
 
       sink.AddTopLevelDeclaration(cases_fn);
       // and here comes the actual axiom:
-      Expr d;
+      Bpl.Expr d;
       var dVar = BplBoundVar("d", predef.DatatypeType, out d);
       var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
-      Expr cases_body = Expr.False;
+      Bpl.Expr cases_body = Bpl.Expr.False;
       foreach (DatatypeCtor ctor in dt.Ctors) {
         var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
         cases_body = BplOr(cases_body, disj);
       }
 
       var ax = BplForall(new List<Variable> { dVar }, BplTrigger(lhs), BplImp(lhs, cases_body));
-      sink.AddTopLevelDeclaration(new Axiom(dt.tok, ax, "Depth-one case-split axiom"));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
     }
 
     private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
       // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
 
-      List<Variable> argTypes = new List<Variable>();
+      List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
       foreach (Formal arg in ctor.Formals) {
-        Variable a = new Bpl.Formal(arg.tok, new TypedIdent(arg.tok, TypedIdent.NoName, TrType(arg.Type)),
+        Bpl.Variable a = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)),
           true);
         argTypes.Add(a);
       }
 
-      Variable resType = new Bpl.Formal(ctor.tok,
-        new TypedIdent(ctor.tok, TypedIdent.NoName, predef.DatatypeType), false);
+      Bpl.Variable resType = new Bpl.Formal(ctor.tok,
+        new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
       Bpl.Function fn;
       if (dt is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
         fn = predef.Tuple2Constructor;
@@ -406,10 +407,10 @@ namespace Microsoft.Dafny {
       {
         // Add:  const unique ##dt.ctor: DtCtorId;
         var definitionAxioms = new List<Axiom>();
-        Constant constructorId = new Constant(ctor.tok,
-          new TypedIdent(ctor.tok, "#" + ctor.FullName, predef.DtCtorId), true,
+        Bpl.Constant constructorId = new Bpl.Constant(ctor.tok,
+          new Bpl.TypedIdent(ctor.tok, "#" + ctor.FullName, predef.DtCtorId), true,
           definitionAxioms: definitionAxioms);
-        Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
+        Bpl.Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
         var constructorIdentifierAxiom = CreateConstructorIdentifierAxiom(ctor, constructorIdReference);
         AddOtherDefinition(fn, constructorIdentifierAxiom);
         definitionAxioms.Add(constructorIdentifierAxiom);
@@ -425,11 +426,11 @@ namespace Microsoft.Dafny {
           var thVar = BplBoundVar("d", predef.DatatypeType, out var th);
           var queryPredicate = FunctionCall(ctor.tok, queryField.Name, Bpl.Type.Bool, th);
           var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
-          var rhs = Expr.Eq(ctorId, constructorIdReference);
-          var body = Expr.Iff(queryPredicate, rhs);
+          var rhs = Bpl.Expr.Eq(ctorId, constructorIdReference);
+          var body = Bpl.Expr.Iff(queryPredicate, rhs);
           var tr = BplTrigger(queryPredicate);
           var ax = BplForall(thVar, tr, body);
-          sink.AddTopLevelDeclaration(new Axiom(ctor.tok, ax, "Questionmark and identifier"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
         }
 
         // check well-formedness of any default-value expressions
@@ -440,17 +441,17 @@ namespace Microsoft.Dafny {
       {
         // Add:  axiom (forall d: DatatypeType :: dt.ctor?(d) ==> (exists params :: d == #dt.ctor(params));
         CreateBoundVariables(ctor.Formals, out var bvs, out var args);
-        Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+        Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         var dBv = BplBoundVar("d", predef.DatatypeType, out var dId);
-        Expr q = Expr.Eq(dId, rhs);
+        Bpl.Expr q = Bpl.Expr.Eq(dId, rhs);
         if (bvs.Count != 0) {
           q = new Bpl.ExistsExpr(ctor.tok, bvs, null /*always in a Skolemization context*/, q);
         }
 
-        Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+        Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
         var trigger = BplTrigger(dtq);
         q = BplForall(dBv, trigger, BplImp(dtq, q));
-        sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
       }
 
       AddConstructorAxioms(dt, ctor, fn);
@@ -458,18 +459,18 @@ namespace Microsoft.Dafny {
       if (dt is IndDatatypeDecl) {
         // Add Lit axiom:
         // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
-        List<Variable> bvs;
-        List<Expr> args;
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
         CreateBoundVariables(ctor.Formals, out bvs, out args);
-        var litargs = new List<Expr>();
-        foreach (Expr arg in args) {
+        var litargs = new List<Bpl.Expr>();
+        foreach (Bpl.Expr arg in args) {
           litargs.Add(Lit(arg));
         }
 
-        Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
-        Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
-        Expr q = BplForall(bvs, BplTrigger(lhs), Expr.Eq(lhs, rhs));
-        var constructorLiteralAxiom = new Axiom(ctor.tok, q, "Constructor literal");
+        Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
+        Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
+        Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
+        var constructorLiteralAxiom = new Bpl.Axiom(ctor.tok, q, "Constructor literal");
         AddOtherDefinition(fn, constructorLiteralAxiom);
       }
 
@@ -490,13 +491,13 @@ namespace Microsoft.Dafny {
         }
 
         // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
-        List<Variable> bvs;
-        List<Expr> args;
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
         CreateBoundVariables(ctor.Formals, out bvs, out args);
         var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
-        var q = BplForall(bvs, BplTrigger(inner), Expr.Eq(outer, args[i]));
-        AddOtherDefinition(fn, (new Axiom(ctor.tok, q, "Constructor injectivity")));
+        var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
+        AddOtherDefinition(fn, (new Bpl.Axiom(ctor.tok, q, "Constructor injectivity")));
 
         if (dt is IndDatatypeDecl) {
           var argType = arg.Type.NormalizeExpand();
@@ -504,37 +505,37 @@ namespace Microsoft.Dafny {
             // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
             // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Expr lhs = FunctionCall(ctor.tok, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
+            Bpl.Expr lhs = FunctionCall(ctor.tok, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
               null, args[i]);
             /* CHECK
               Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
                 argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
               */
-            Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+            Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
             var trigger = BplTrigger(ct);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Lt(lhs, rhs));
-            AddOtherDefinition(fn, new Axiom(ctor.tok, q, "Inductive rank"));
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
+            AddOtherDefinition(fn, new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
           } else if (argType is SeqType) {
             // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
             // that is:
             // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
             {
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              Variable iVar = new BoundVariable(arg.tok, new TypedIdent(arg.tok, "i", Bpl.Type.Int));
+              Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
               bvs.Add(iVar);
               Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-              Expr ante = Expr.And(
-                Expr.Le(Expr.Literal(0), ie),
-                Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
+              Bpl.Expr ante = Bpl.Expr.And(
+                Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
+                Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
               var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie);
-              Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
                 FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, seqIndex));
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Expr> { seqIndex, ct }),
-                Expr.Imp(ante, Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Inductive seq element rank"));
+              q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }),
+                Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq element rank"));
             }
 
             // axiom (forall params {#dt.ctor(params)} :: SeqRank(arg) < DtRank(#dt.ctor(params)));
@@ -544,40 +545,40 @@ namespace Microsoft.Dafny {
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = BplTrigger(ct);
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Lt(lhs, rhs));
-              AddOtherDefinition(fn, new Axiom(ctor.tok, q, "Inductive seq rank"));
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
+              AddOtherDefinition(fn, new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
             }
           } else if (argType is SetType) {
             // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)}  :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             // that is:
             // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Variable dVar = new BoundVariable(arg.tok, new TypedIdent(arg.tok, "d", predef.DatatypeType));
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Expr inSet = Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+            Bpl.Expr inSet = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-            var trigger = new Trigger(ctor.tok, true, new List<Expr> { inSet, ct });
-            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Imp(inSet, Expr.Lt(lhs, rhs)));
-            sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Inductive set element rank"));
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inSet, ct });
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inSet, Bpl.Expr.Lt(lhs, rhs)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set element rank"));
           } else if (argType is MultiSetType) {
             // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)} :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             // that is:
             // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Variable dVar = new BoundVariable(arg.tok, new TypedIdent(arg.tok, "d", predef.DatatypeType));
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var inMultiset = Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            Expr ante = Expr.Gt(inMultiset, Expr.Literal(0));
-            Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+            var inMultiset = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr ante = Bpl.Expr.Gt(inMultiset, Bpl.Expr.Literal(0));
+            Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-            var trigger = new Trigger(ctor.tok, true, new List<Expr> { inMultiset, ct });
-            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Imp(ante, Expr.Lt(lhs, rhs)));
-            sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Inductive multiset element rank"));
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
           } else if (argType is MapType) {
             var finite = ((MapType)argType).Finite;
             {
@@ -585,43 +586,43 @@ namespace Microsoft.Dafny {
               //   { Map#Domain(arg)[$Box(d)], #dt.ctor(params) }
               //   Map#Domain(arg)[$Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              var dVar = new BoundVariable(arg.tok, new TypedIdent(arg.tok, "d", predef.DatatypeType));
+              var dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
               bvs.Add(dVar);
               var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
                 args[i]);
-              var inDomain = Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
               var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              var trigger = new Trigger(ctor.tok, true, new List<Expr> { inDomain, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Imp(inDomain, Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Inductive map key rank"));
+              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map key rank"));
             }
             {
               // axiom(forall params, bx: Box ::
               //   { Map#Elements(arg)[bx], #dt.ctor(params) }
               //   Map#Domain(arg)[bx] ==> DtRank($Unbox(Map#Elements(arg)[bx]): DatatypeType) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              var bxVar = new BoundVariable(arg.tok, new TypedIdent(arg.tok, "bx", predef.BoxType));
+              var bxVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "bx", predef.BoxType));
               bvs.Add(bxVar);
               var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
                 args[i]);
-              var inDomain = Expr.SelectTok(arg.tok, domain, ie);
+              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
               var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
               var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
                 args[i]);
-              var elmt = Expr.SelectTok(arg.tok, element, ie);
+              var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
               var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, elmt);
               var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, unboxElmt);
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              var trigger = new Trigger(ctor.tok, true, new List<Expr> { inDomain, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Expr.Imp(inDomain, Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Axiom(ctor.tok, q, "Inductive map value rank"));
+              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map value rank"));
             }
           }
         }
@@ -652,7 +653,7 @@ namespace Microsoft.Dafny {
       List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty) {
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
 
-      Expr conj = Expr.True;
+      Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
         if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
@@ -664,7 +665,7 @@ namespace Microsoft.Dafny {
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
         var c_alloc = MkIsAlloc(c_params, c_ty, h);
         bvs.Add(hVar);
-        var constructorIsAllocAxiom = new Axiom(ctor.tok,
+        var constructorIsAllocAxiom = new Bpl.Axiom(ctor.tok,
           BplForall(bvs, BplTrigger(c_alloc),
             BplImp(isGoodHeap, BplIff(c_alloc, conj))),
           "Constructor $IsAlloc");
@@ -689,10 +690,10 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
         var dtor = GetReadonlyField(ctor.Destructors[i]);
-        Expr dId;
+        Bpl.Expr dId;
         var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
-        Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+        Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
         var c_alloc = MkIsAlloc(dId, c_ty, h);
         var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
         var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
@@ -700,8 +701,8 @@ namespace Microsoft.Dafny {
         // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
         var freeTypeVars = new HashSet<TypeParameter>();
         ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
-        var tyvarsG = new List<Variable>();
-        var tyvarsGprime = new List<Variable>();
+        var tyvarsG = new List<Bpl.Variable>();
+        var tyvarsGprime = new List<Bpl.Variable>();
         Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
         for (int j = 0; j < dt.TypeArgs.Count; j++) {
           var tv = tyvars[j];
@@ -712,7 +713,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        var bvs = new List<Variable>();
+        var bvs = new List<Bpl.Variable>();
         bvs.Add(dBv);
         bvs.AddRange(tyvarsG);
         bvs.Add(hVar);
@@ -720,7 +721,7 @@ namespace Microsoft.Dafny {
           c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
         }
 
-        var destructorAxiom = new Axiom(ctor.tok,
+        var destructorAxiom = new Bpl.Axiom(ctor.tok,
           BplForall(bvs, BplTrigger(d_alloc),
             BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
           "Destructor $IsAlloc");
@@ -735,14 +736,14 @@ namespace Microsoft.Dafny {
           $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
       */
     private void AddsIsConstructorAxiom(DatatypeCtor ctor, Bpl.Function ctorFunction, List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty) {
-      Expr conj = Expr.True;
+      Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
         conj = BplAnd(conj, MkIs(args[i], arg.Type));
       }
 
       var isCall = MkIs(c_params, c_ty);
-      var constructorIsAxiom = new Axiom(ctor.tok,
+      var constructorIsAxiom = new Bpl.Axiom(ctor.tok,
         BplForall(bvs, BplTrigger(isCall), BplIff(isCall, conj)),
         "Constructor $Is");
       AddOtherDefinition(ctorFunction, constructorIsAxiom);
@@ -750,14 +751,14 @@ namespace Microsoft.Dafny {
 
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {
       // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);
-      List<Variable> bvs;
-      List<Expr> args;
+      List<Bpl.Variable> bvs;
+      List<Bpl.Expr> args;
       CreateBoundVariables(ctor.Formals, out bvs, out args);
       var constructor_call = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
       var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructor_call);
-      Expr q = Expr.Eq(lhs, c);
+      Bpl.Expr q = Bpl.Expr.Eq(lhs, c);
       var trigger = BplTrigger(constructor_call);
-      var axiom = new Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier");
+      var axiom = new Bpl.Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier");
       return axiom;
     }
   }
