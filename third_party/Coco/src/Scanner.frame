@@ -139,10 +139,12 @@ public class Buffer {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
     char[] buf = new char[end - beg];
-    int oldPos = Pos;
-    Pos = beg;
-    while (Pos < end) buf[len++] = (char) Read();
-    Pos = oldPos;
+    if(end != beg) {
+      int oldPos = Pos;
+      Pos = beg;
+      while (Pos < end) buf[len++] = (char) Read();
+      Pos = oldPos;
+    }
     return new String(buf, 0, len);
   }
 
@@ -463,7 +465,7 @@ public class Scanner {
       posTrailingStart = pos;
       posTrailingEndLeadingStart = pos;
       parsingTrivia = true;
-      triviaTrailing = pos != 0;
+      triviaTrailing = pos > 0;
     }
     while (ch == ' ' ||
 -->scan1
