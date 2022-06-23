@@ -124,7 +124,7 @@ internal class AST : PrettyPrintable {
     this.model = model;
   }
 
-  public static AST FromFile(string projectPath, string filePath, string cSharpRootNS) {
+  public static IEnumerable<AST> FromFile(string projectPath, IEnumerable<string> sourceFiles, string cSharpRootNS) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
@@ -141,10 +141,12 @@ internal class AST : PrettyPrintable {
     }
 
     var compilation = project.GetCompilationAsync().Result!;
-    var fullPath = Path.GetFullPath(filePath);
-    var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
-    var model = compilation.GetSemanticModel(syntax);
-    return new AST(syntax, new SemanticModel(cSharpRootNS, model));
+    return sourceFiles.Select(filePath => {
+      var fullPath = Path.GetFullPath(filePath);
+      var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
+      var model = compilation.GetSemanticModel(syntax);
+      return new AST(syntax, new SemanticModel(cSharpRootNS, model));
+    });
   }
 
   private CompilationUnitSyntax Root => syntax.GetCompilationUnitRoot();
@@ -400,9 +402,13 @@ public static class Program {
 
   public static string GenerateDafnyCode(string projectPath, IList<string> sourceFiles, string cSharpRootNS) {
     var wr = new StringWriter();
-    foreach (var filePath in sourceFiles) {
-      var ast = AST.FromFile(projectPath, filePath, cSharpRootNS);
+    var asts = AST.FromFile(projectPath, sourceFiles, cSharpRootNS).ToList();
+    var last = asts.Last();
+    foreach (var ast in asts) {
       ast.Pp(wr, "");
+      if (ast != last) {
+        wr.WriteLine();
+      }
     }
     return wr.ToString();
   }
