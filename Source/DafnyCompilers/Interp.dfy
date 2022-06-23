@@ -423,7 +423,7 @@ module Interp {
 
   // Alternate implementation of ``InterpLazy``: less efficient but more closely
   // matching intuition.
-  function method {:opaque} InterpLazy_Eagerly(e: Expr, env: Environment, ctx: State)
+  function {:opaque} InterpLazy_Eagerly(e: Expr, env: Environment, ctx: State)
     : InterpResult<Value>
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
     decreases env.fuel, e, 0
