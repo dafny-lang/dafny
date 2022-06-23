@@ -17,11 +17,11 @@ namespace DafnyTestGeneration {
   /// </summary>
   public abstract class ProgramModifier : ReadOnlyVisitor {
 
-    // name of the procedure to modify.
-    // If null, all procedure will be modified.
-    // If not null, other procedures can be inlined.
-    protected string? ProcedureName;
-    // set of implementations to be modified. This can include inlined impls
+    // The implementation to test.
+    // If null, all implementations will be tested.
+    // If not null, other implementations can be inlined.
+    protected Implementation? ImplementationToTarget;
+    // Boogie names of implementations to be tested or inlined
     private HashSet<string> toModify = new();
 
     /// <summary>
@@ -32,19 +32,19 @@ namespace DafnyTestGeneration {
       program = new AddImplementationsForCalls().VisitProgram(program);
       var annotator = new AnnotationVisitor();
       program = annotator.VisitProgram(program);
-      ProcedureName = annotator.ProcedureName;
+      ImplementationToTarget = annotator.ImplementationToTarget;
       var callGraphVisitor = new CallGraphVisitor();
       callGraphVisitor.VisitProgram(program);
-      toModify = callGraphVisitor.GetCallees(ProcedureName);
+      toModify = callGraphVisitor.GetCallees(ImplementationToTarget?.Name);
       AddAxioms(program);
       return GetModifications(program);
     }
 
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
-    protected bool ProcedureIsToBeTested(string procName) =>
-      (ProcedureName == null || toModify.Contains(procName)) &&
-      procName.StartsWith("Impl$$") && !procName.EndsWith("__ctor");
+    protected bool ImplementationIsToBeTested(Implementation impl) =>
+      (ImplementationToTarget == null || toModify.Contains(impl.Name)) &&
+      impl.Name.StartsWith("Impl$$") && !impl.Name.EndsWith("__ctor");
 
     /// <summary>
     /// Add axioms necessary for counterexample generation to work efficiently
@@ -246,7 +246,7 @@ namespace DafnyTestGeneration {
     private class AnnotationVisitor : StandardVisitor {
 
       private string? implName;
-      public string? ProcedureName;
+      public Implementation? ImplementationToTarget;
 
       public override Block VisitBlock(Block node) {
         if (node.cmds.Count == 0) {
@@ -268,7 +268,7 @@ namespace DafnyTestGeneration {
         node.Blocks[0].cmds.Insert(0, GetAssumeCmd(types));
 
         // record parameter values:
-        var values = new List<string> { "\"Impl\"", $"\"{implName}\"" };
+        var values = new List<string> { "\"Impl\"", $"\"{node.VerboseName.Split(" ")[0]}\"" };
         values.AddRange(node.InParams.Select(var => var.Name));
 
         var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
@@ -277,10 +277,10 @@ namespace DafnyTestGeneration {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumeCmd(values));
         } else if (implName.StartsWith("Impl$$")
-                   && Utils.GetDafnyMethodName(implName).Equals(toTest)) {
+                   && node.VerboseName.StartsWith(toTest)) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumeCmd(values));
-          ProcedureName = implName;
+          ImplementationToTarget = node;
         } else if (depth != 0) {
           // This method is inlined
           var attribute = GetQKeyValue($":inline {depth}");
