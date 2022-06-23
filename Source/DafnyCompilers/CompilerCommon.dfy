@@ -400,7 +400,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
     }
 
-    type WfExpr = e: DE.Expr | P.All_Expr(e, DE.WellFormed)
+    type Expr = e: DE.Expr | P.All_Expr(e, DE.WellFormed)
       witness DE.Block([])
 
     type TranslationResult<+A> =
@@ -538,7 +538,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
 
     function method TranslateIdentifierExpr(ie: C.IdentifierExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
     {
       Success(DE.Var(TypeConv.AsString(ie.Name)))
@@ -552,7 +552,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateUnary(u: C.UnaryExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       decreases ASTHeight(u), 0
       reads *
     {
@@ -567,7 +567,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateBinary(b: C.BinaryExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       decreases ASTHeight(b), 0
       reads *
     {
@@ -582,7 +582,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateLiteral(l: C.LiteralExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
     {
       if l.Value is Boolean then
@@ -606,7 +606,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateApplyExpr(ae: C.ApplyExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(ae), 0
     {
@@ -619,7 +619,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateMemberSelect(obj: C.Expression, fullName: System.String)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(obj), 3
     {
@@ -632,7 +632,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateMemberSelectExpr(me: C.MemberSelectExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(me), 0
     {
@@ -641,7 +641,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateFunctionCallExpr(fce: C.FunctionCallExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(fce), 0
     {
@@ -654,7 +654,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateDatatypeValue(dtv: C.DatatypeValue)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(dtv), 0
     {
@@ -669,7 +669,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateDisplayExpr(de: C.DisplayExpression)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(de), 0
     {
@@ -682,7 +682,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
@@ -696,7 +696,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(mde), 1
     {
@@ -747,7 +747,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(se), 0
     {
@@ -766,7 +766,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateLambdaExpr(le: C.LambdaExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(le), 0
     {
@@ -778,7 +778,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateLetExpr(le: C.LetExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(le), 0
     {
@@ -797,7 +797,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateConcreteSyntaxExpression(ce: C.ConcreteSyntaxExpression)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(ce), 0
     {
@@ -806,7 +806,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateITEExpr(ie: C.ITEExpr)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(ie), 0
     {
@@ -821,7 +821,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateExpression(c: C.Expression)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(c), 2
     {
@@ -861,7 +861,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslatePrintStmt(p: C.PrintStmt)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(p), 0
     {
@@ -870,7 +870,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateBlockStmt(b: C.BlockStmt)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(b), 0
     {
@@ -881,7 +881,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateIfStmt(i: C.IfStmt)
-      : (e: TranslationResult<WfExpr>)
+      : (e: TranslationResult<Expr>)
       reads *
       decreases ASTHeight(i), 0
     {
@@ -896,7 +896,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateStatement(s: C.Statement)
-      : TranslationResult<WfExpr>
+      : TranslationResult<Expr>
       reads *
       decreases ASTHeight(s), 1
     {
