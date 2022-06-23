@@ -13,12 +13,6 @@
       "commands": [
         "dotnet-format"
       ]
-    },
-    "dafny": {
-      "version": "3.7.0.40620",
-      "commands": [
-        "dafny"
-      ]
     }
   }
 }
