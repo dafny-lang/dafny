@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Printer {
@@ -166,7 +167,7 @@ namespace Microsoft.Dafny {
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
-      if (DafnyOptions.O.ShowEnv != Microsoft.Boogie.ExecutionEngineOptions.ShowEnvironment.Never) {
+      if (DafnyOptions.O.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
         wr.WriteLine("// " + DafnyOptions.O.Version);
         wr.WriteLine("// " + DafnyOptions.O.Environment);
       }
@@ -879,9 +880,11 @@ namespace Microsoft.Dafny {
       PrintDecreasesSpec(f.Decreases, ind);
       wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
-        PrintWithTrivia(f.BodyStartTok, "{", indent: indent, suffixDefault: Environment.NewLine);
+        Indent(indent);
+        wr.WriteLine("{");
         PrintExtendedExpr(f.Body, ind, true, false);
-        PrintWithTrivia(f.BodyEndTok, "}", indent: indent);
+        Indent(indent);
+        wr.Write("}");
         if (f.ByMethodBody != null) {
           wr.Write(" by method ");
           if (DafnyOptions.O.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
@@ -914,7 +917,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    private bool PrintModeSkipGeneral(IToken tok, string fileBeingPrinted) {
+    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
       return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
              && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
@@ -1256,7 +1259,7 @@ namespace Microsoft.Dafny {
         wr.Write("}");
 
       } else if (stmt is BlockStmt) {
-        PrintWithTrivia(stmt.Tok, "{");
+        wr.WriteLine("{");
         int ind = indent + IndentAmount;
         foreach (Statement s in ((BlockStmt)stmt).Body) {
           Indent(ind);
@@ -1264,7 +1267,8 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
         }
         Indent(indent);
-        PrintWithTrivia(stmt.EndTok, "}");
+        wr.Write("}");
+
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         PrintIfStatement(indent, s, false);
@@ -1883,6 +1887,7 @@ namespace Microsoft.Dafny {
             return;
           }
         }
+
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
@@ -2088,7 +2093,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          PrintWithTrivia(e.tok, ((BigInteger)e.Value).ToString());
+          wr.Write((BigInteger)e.Value);
         }
 
       } else if (expr is ThisExpr) {
@@ -2802,24 +2807,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintWithTrivia(IToken tok, string op, int indent = 0, string prefixDefault = "", string suffixDefault = "") {
-      if (tok.leadingTrivia != null) {
-        wr.Write(tok.leadingTrivia);
-      } else {
-        if (indent > 0) {
-          Indent(indent);
-        }
-        wr.Write(prefixDefault);
-      }
-
-      wr.WriteLine("{0}", op);
-      if (tok.trailingTrivia != null) {
-        wr.Write(tok.trailingTrivia);
-      } else {
-        wr.Write(suffixDefault);
-      }
-    }
-
     bool ParensMayMatter(Expression expr) {
       Contract.Requires(expr != null);
       int parenPairs = 0;
@@ -2905,7 +2892,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, IToken/*?*/ atLabel) {
+    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel) {
       Contract.Requires(bindings != null);
       var i = 0;
       if (name != null && name.EndsWith("#")) {
