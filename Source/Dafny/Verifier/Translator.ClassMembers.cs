@@ -714,10 +714,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name,
-          new List<Boogie.TypeVariable>(), inParams, outParams,
-          localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc,
+           inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -797,8 +795,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name, new List<Boogie.TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -893,9 +891,11 @@ namespace Microsoft.Dafny {
       };
       var ens = new List<Boogie.Ensures>();
 
-      var proc = new Boogie.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Boogie.TypeVariable>(),
+      var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
@@ -952,9 +952,9 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        var impl = new Boogie.Implementation(f.tok, proc.Name, new List<Boogie.TypeVariable>(),
-          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
+          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+          implOutParams, localVariables, stmts, kv);
       }
 
       if (InsertChecksums) {
@@ -1476,6 +1476,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      AddVerboseName(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);
