@@ -7,9 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Input\producer\TimesTwo.csproj" />
+        <ProjectReference Include="..\Inputs\producer\TimesTwo.csproj" />
         <Reference Include="DafnyRuntime">
             <HintPath>..\..\..\..\Binaries\DafnyRuntime.dll</HintPath>
+            <HintPath>..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
         </Reference>
     </ItemGroup>
 
