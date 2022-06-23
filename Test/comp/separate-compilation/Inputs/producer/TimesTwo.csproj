@@ -7,10 +7,8 @@
 
     <ItemGroup>
         <Reference Include="DafnyRuntime">
-            <HintPath>..\..\..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
-            <HintPath>..\..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
-            <HintPath>..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
             <HintPath>..\..\..\..\..\Binaries\DafnyRuntime.dll</HintPath>
+            <HintPath>..\..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
         </Reference>
     </ItemGroup>
 
