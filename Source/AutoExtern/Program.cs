@@ -402,7 +402,7 @@ public static class Program {
 
   public static string GenerateDafnyCode(string projectPath, IList<string> sourceFiles, string cSharpRootNS) {
     var wr = new StringWriter();
-    var asts = AST.FromFile(projectPath, sourceFiles, cSharpRootNS).ToList();
+    var asts = AST.FromFiles(projectPath, sourceFiles, cSharpRootNS).ToList();
     var last = asts.Last();
     foreach (var ast in asts) {
       ast.Pp(wr, "");
