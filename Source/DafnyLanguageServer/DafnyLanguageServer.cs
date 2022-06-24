@@ -12,8 +12,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
+using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
@@ -28,6 +32,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
         IConfiguration configuration, Action killLanguageServer) {
+
       return options
         .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)
@@ -44,6 +49,20 @@ namespace Microsoft.Dafny.LanguageServer {
       LoadPlugins(logger, server);
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
+
+      string solverPath;
+      try {
+        var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
+        proverOptions.Parse(DafnyOptions.O.ProverOptions);
+        solverPath = proverOptions.ExecutablePath();
+      } catch (Exception e) {
+        solverPath = $"Error while determining solver path: {e}";
+      }
+      server.SendTelemetryEvent(new TelemetryEventParams() {
+        ExtensionData = new Dictionary<string, object>() {
+          { "solverPath", solverPath },
+        }
+      });
 
       return Task.CompletedTask;
     }
