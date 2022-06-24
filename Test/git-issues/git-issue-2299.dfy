@@ -120,4 +120,16 @@ class Twostate {
     var c := new Twostate;
     assert All@L(c);
   }
+
+  method FreeHeapAtVariables()
+    modifies this
+  {
+    z := z + 1;
+    label L:
+    z := z - 1;
+    ghost var x;
+    // regression: the following line once led to malformed Boogie
+    x := var u :| u == Increase@L(); !u;
+    assert x;
+  }
 }
