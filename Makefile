@@ -1,5 +1,4 @@
-unsafeDIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-DIR="${unsafeDIR//\\//}"
+DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
@@ -31,10 +30,10 @@ z3-ubuntu:
 
 clean:
 	echo '${DIR}'
-	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
-	(cd ${DIR} ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
-	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
-	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
-	make -C ${DIR}/docs/DafnyRef clean
-	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
+	(cd '${DIR}'; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
+	(cd '${DIR}' ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
+	make -C '${DIR}/Source/Dafny' -f Makefile.Linux clean
+	(cd '${DIR}/Source/DafnyRuntime/DafnyRuntimeJava'; ./gradlew clean)
+	make -C '${DIR}/docs/DafnyRef' clean
+	(cd '${DIR}'; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
 	echo Source/*/bin Source/*/obj
