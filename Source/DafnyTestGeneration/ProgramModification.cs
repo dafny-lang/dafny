@@ -41,9 +41,6 @@ namespace DafnyTestGeneration {
         "O:model_compress=false",
         "O:model_evaluator.completion=true"
       };
-      // for a reason that is not clear, this is currently necessary
-      // for the program to produce valid tests
-      options.Prune = false; 
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
