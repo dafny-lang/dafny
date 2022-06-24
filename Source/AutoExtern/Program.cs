@@ -124,7 +124,7 @@ internal class AST : PrettyPrintable {
     this.model = model;
   }
 
-  public static IEnumerable<AST> FromFile(string projectPath, IEnumerable<string> sourceFiles, string cSharpRootNS) {
+  public static IEnumerable<AST> FromFiles(string projectPath, IEnumerable<string> sourceFiles, string cSharpRootNS) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
