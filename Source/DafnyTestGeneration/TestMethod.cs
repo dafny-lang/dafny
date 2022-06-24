@@ -334,12 +334,12 @@ namespace DafnyTestGeneration {
 
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
-
-      if ((errorMessages.Count != 0) && (DafnyOptions.O.TestGenOptions.Verbose)) {
-        return errorMessages;
-      }
       
       List<string> lines = new();
+
+      if ((errorMessages.Count != 0)) {
+        return DafnyOptions.O.TestGenOptions.Verbose ? errorMessages : lines;
+      }
 
       // test method parameters and declaration:
       var mockedLines = ObjectsToMock
@@ -403,6 +403,9 @@ namespace DafnyTestGeneration {
 
     public override int GetHashCode() {
       var lines = TestMethodLines();
+      if (lines.Count == 0) {
+        return "".GetHashCode();
+      }
       lines.RemoveAt(0);
       var hashCode = string.Join("", lines).GetHashCode();
       return hashCode;
