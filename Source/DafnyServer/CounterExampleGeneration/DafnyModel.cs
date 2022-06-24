@@ -687,6 +687,13 @@ namespace DafnyServer.CounterexampleGeneration {
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
         // Elt is a datatype value
         var destructors = GetDestructorFunctions(var.Element, (var.Type as UserDefinedType)?.Name ?? "").OrderBy(f => f.Name).ToList();
+        if (destructors.Count > fnTuple.Args.Length) {
+          // Try to filter out predicate functions
+          // (that follow a format very similar to that of destructor names)
+          destructors = destructors.Where(destructor =>
+              fnTuple.Args.Any(arg => destructor.OptEval(var.Element) == arg))
+            .ToList();
+        }
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {

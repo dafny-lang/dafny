@@ -204,11 +204,15 @@ namespace DafnyTestGeneration {
           dataType = (DafnyModelTypeUtils.DatatypeType) DafnyModelTypeUtils
               .ReplaceTypeVariables(dataType, defaultType);
           List<string> fields = new();
-          foreach (var filedName in variable.children.Keys) {
+          foreach (var filedName in variable.children.Keys.ToList().OrderBy(key => key)) {
             if (variable.children[filedName].Count != 1) {
-              continue;
+              continue; // TODO: Evaluate if this condition is necessary
             }
-            fields.Add(filedName + ":=" + ExtractVariable(variable.children[filedName].First()));
+            if (filedName.StartsWith("[")) {
+              fields.Add(ExtractVariable(variable.children[filedName].First()));
+            } else {
+              fields.Add(filedName + ":=" + ExtractVariable(variable.children[filedName].First()));
+            }
           }
 
           string value;
