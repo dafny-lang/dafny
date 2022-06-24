@@ -25,9 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    private const string DocTableStart = @"
-|  |  |
-| --- | --- |";
+    private const string DocTableStart = "\n|  |  |\n| --- | --- |";
 
     public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
       this.logger = logger;
