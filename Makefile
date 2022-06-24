@@ -1,4 +1,5 @@
-DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+unsafeDIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+DIR="${unsafeDIR//\\//}"
 
 default: exe
 
