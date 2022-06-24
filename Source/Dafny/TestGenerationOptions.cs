@@ -13,6 +13,7 @@ namespace Microsoft.Dafny {
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
     public uint Timeout = 100;
+    public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
@@ -68,6 +69,10 @@ namespace Microsoft.Dafny {
             PrintBpl = args[ps.i];
           }
           return true;
+        
+        case "generateTestVerbose":
+          Verbose = true;
+          return true;
       }
 
       return false;
@@ -95,7 +100,9 @@ namespace Microsoft.Dafny {
 /generateTestTimeout:<n>
     Timeout generation of a test for a particular block/path after n seconds
 /generateTestPrintBpl:<fileName>
-    Print the Boogie code after all transformations to a specified file";
+    Print the Boogie code after all transformations to a specified file
+/generateTestVerbose
+    Print various info as comments for debugging";
 
   }
 }

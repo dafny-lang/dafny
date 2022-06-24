@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -84,17 +85,27 @@ namespace DafnyTestGeneration {
       var modifications = GetModifications(program).ToList();
 
       // Generate tests based on counterexamples produced from modifications
-      var testMethods = new ConcurrentBag<TestMethod>();
+      var testMethodToUniqueId = new ConcurrentDictionary<TestMethod, string>();
       for (var i = modifications.Count - 1; i >= 0; i--) {
         var log = await modifications[i].GetCounterExampleLog();
         if (log == null) {
           continue;
         }
+
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.WriteLine(
+            $"// Extracting the test for {modifications[i].uniqueId} from the counterexample...");
+        }
+
         var testMethod = new TestMethod(dafnyInfo, log);
-        if (testMethods.Contains(testMethod)) {
+        if (testMethodToUniqueId.ContainsKey(testMethod)) {
+          if (DafnyOptions.O.TestGenOptions.Verbose) {
+            Console.WriteLine(
+              $"// Test for {modifications[i].uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
+          }
           continue;
         }
-        testMethods.Add(testMethod);
+        testMethodToUniqueId[testMethod] = modifications[i].uniqueId;
         yield return testMethod;
       }
     }

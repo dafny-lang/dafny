@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -36,7 +37,7 @@ namespace DafnyTestGeneration {
     // These methods are used to get fresh instances of the corresponding types
     private static readonly HashSet<string> TypesToSynthesize = new();
     // is set to true wheneve the tool ecnounters something it does not support
-    private bool encounteredUnsupportedType = false; 
+    private List<string> errorMessages = new(); 
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -212,7 +213,7 @@ namespace DafnyTestGeneration {
 
           string value;
           if (variable.CanonicalName() == "") {
-            encounteredUnsupportedType = true;
+            errorMessages.Add($"// Failed to determine datatype constructor (type {dataType} element {variable.Element})");
             value = dataType.Name + ".UNKNOWN";
           } else if (fields.Count == 0) {
             value = dataType.Name + "." + variable.CanonicalName();
@@ -226,10 +227,10 @@ namespace DafnyTestGeneration {
         case ArrowType arrowType:
           return GetFunctionOfType(arrowType);
         case UserDefinedType undefined when undefined.Name == DafnyModel.UndefinedType.Name:
-          encounteredUnsupportedType = true;
+          errorMessages.Add($"// Failed to determine a variable type (element {variable.Element})");
           return "null";
         case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
-          encounteredUnsupportedType = true;
+          errorMessages.Add($"// Arrays are not yet supported (type {arrType} element {variable.Element})");
           break; // arrays not supported
         default:
           var varId = $"v{ObjectsToMock.Count}";
@@ -245,7 +246,7 @@ namespace DafnyTestGeneration {
           }
           return varId;
       }
-      encounteredUnsupportedType = true;
+      errorMessages.Add($"// Variable has unknown type {variableType} (element {variable.Element})");
       return "null";
     }
 
@@ -286,7 +287,7 @@ namespace DafnyTestGeneration {
         case UserDefinedType synonym when DafnyInfo.SubsetTypeToSuperset.ContainsKey(synonym.Name):
           return GetDefaultValue(DafnyInfo.SubsetTypeToSuperset[synonym.Name]);
         case DafnyModelTypeUtils.DatatypeType datatypeType:
-          encounteredUnsupportedType = true;
+          errorMessages.Add($"// The program cannot determine default constructors for datatype (type {datatypeType})");
           return datatypeType.Name + ".UNKNOWN"; // TODO
         case ArrowType arrowType:
           return GetFunctionOfType(arrowType);
@@ -330,8 +331,8 @@ namespace DafnyTestGeneration {
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
 
-      if (encounteredUnsupportedType) {
-        return new List<string>();
+      if ((errorMessages.Count != 0) && (DafnyOptions.O.TestGenOptions.Verbose)) {
+        return errorMessages;
       }
       
       List<string> lines = new();

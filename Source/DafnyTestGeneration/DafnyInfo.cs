@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Dafny;
@@ -92,6 +93,14 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
+
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
+                                $"assigned a default value of type {type}, " +
+                                $"which may or may not match the associated " +
+                                $"condition");
+        }
+
         info.SubsetTypeToSuperset[name] = type;
       }
 
@@ -100,6 +109,12 @@ namespace DafnyTestGeneration {
         var type = newType.Rhs;
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
+        }
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
+                                $"assigned a default value of type {type}, " +
+                                $"which may or may not match the associated " +
+                                $"condition");
         }
         info.SubsetTypeToSuperset[name] = type;
       }

@@ -17,10 +17,12 @@ namespace DafnyTestGeneration {
 
     private readonly string procedure; // procedure to be tested
     private readonly Program program;
+    public readonly string uniqueId;
 
-    public ProgramModification(Program program, string procedure) {
+    public ProgramModification(Program program, string procedure, string uniqueId) {
       this.program = Utils.DeepCloneProgram(program);
       this.procedure = procedure;
+      this.uniqueId = uniqueId;
     }
 
     /// <summary>
@@ -80,6 +82,10 @@ namespace DafnyTestGeneration {
         if (line.StartsWith("Block |")) {
           return log;
         }
+      }
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine(
+          $"// No test can be generated for {this.uniqueId} because the verifier timed out or gave no counterexample (cam happen if the block has dead code).");
       }
       return null;
     }

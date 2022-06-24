@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
+using Microsoft.Dafny;
+using Program = Microsoft.Boogie.Program;
 
 namespace DafnyTestGeneration {
   public class BlockBasedModification : ProgramModification {
@@ -13,7 +15,8 @@ namespace DafnyTestGeneration {
     private readonly ISet<string> capturedStates;
 
     public BlockBasedModification(Program program, string procedure,
-      int blockId, ISet<string> capturedStates) : base(program, procedure) {
+      int blockId, ISet<string> capturedStates) : base(program, procedure, 
+      $"{procedure.Split(" ")[0]}(block#{blockId})") {
       this.blockId = blockId;
       this.capturedStates = capturedStates;
     }
@@ -38,6 +41,10 @@ namespace DafnyTestGeneration {
         var newId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
         if (covered.Contains(newId)) {
           continue;
+        }
+        if ((DafnyOptions.O.TestGenOptions.Verbose) && (newId != blockId)) {
+          Console.WriteLine(
+            $"// Will skip generating test for block {newId} because test for {uniqueId} must cover it");
         }
         newBlocksCovered = true;
         covered.Add(newId);

@@ -19,8 +19,9 @@ namespace DafnyTestGeneration {
       p = VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        result.Add(new ProgramModification(p,
-          ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName));
+        var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
+        result.Add(new ProgramModification(p,name, 
+          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})" ));
         path.NoAssertPath();
       }
       return result;
@@ -108,7 +109,7 @@ namespace DafnyTestGeneration {
     private class Path {
 
       public readonly Implementation Impl;
-      private readonly List<int> path; // indices of blocks along the path
+      public readonly List<int> path; // indices of blocks along the path
       private readonly Block returnBlock; // block where the path ends
 
       internal Path(Implementation impl, IEnumerable<int> path, Block returnBlock) {
