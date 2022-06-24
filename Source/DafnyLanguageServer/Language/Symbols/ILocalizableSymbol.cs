@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     AstNode Node { get; }
 
+    // A token associated to a symbol that contains the documentation of that token
     IToken Token { get; }
 
     /// <summary>
