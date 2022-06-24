@@ -1,5 +1,6 @@
-include "CompilerCommon.dfy"
 include "Library.dfy"
+include "AST.dfy"
+include "Predicates.dfy"
 include "Values.dfy"
 
 module Interp {
@@ -283,7 +284,7 @@ module Interp {
             case FunctionCall() =>
               InterpFunctionCall(e, env, argvs[0], argvs[1..])
           })
-      case Bind(vars, exprs, body) =>
+      case Bind(vars, exprs: seq<Expr>, body: Expr) =>
         var Return(vals, ctx) :- InterpExprs(exprs, env, ctx);
         InterpBind(e, env, ctx, vars, vals, body)
       case If(cond, thn, els) =>

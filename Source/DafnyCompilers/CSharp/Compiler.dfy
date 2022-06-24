@@ -1,7 +1,7 @@
 include "../CSharpDafnyASTModel.dfy"
 include "../CSharpInterop.dfy"
 include "../CSharpDafnyInterop.dfy"
-include "../CompilerCommon.dfy"
+include "../Translator.dfy"
 include "../CompilerRewriter.dfy"
 include "../Library.dfy"
 include "../StrTree.dfy"

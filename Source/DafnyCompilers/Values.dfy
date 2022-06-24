@@ -1,4 +1,4 @@
-include "CompilerCommon.dfy"
+include "AST.dfy"
 include "Library.dfy"
 
 module Values {

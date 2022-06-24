@@ -1,5 +1,6 @@
 include "../Interp.dfy"
-include "../CompilerCommon.dfy"
+include "../AST.dfy"
+include "../Translator.dfy"
 include "../Printer.dfy"
 include "../Library.dfy"
 include "../CSharpInterop.dfy"

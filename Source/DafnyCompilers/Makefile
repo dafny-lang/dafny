@@ -28,7 +28,7 @@ $(ASTModel): $(DafnyPipeline).csproj $(DafnyAST).cs $(ASTModel).template $(AutoE
 		"" "$@"
 
 # Translate the compiler from Dafny to C#
-CSharp/Compiler.cs: CSharp/Compiler.dfy CompilerCommon.dfy $(dfy_models) $(dfy_interop) $(DafnyRuntime)
+CSharp/Compiler.cs: CSharp/Compiler.dfy $(dfy_models) $(dfy_interop) $(DafnyRuntime)
 	$(dafny2cs) $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
 	rm "$@.bak" # https://stackoverflow.com/questions/4247068/
@@ -46,7 +46,7 @@ run: $(CompilerDLL) $(DafnyRuntime)
 
 # Compile the REPL
 # DISCUSS: Dependency tracking in Dafny
-REPL/Repl.cs: REPL/Repl.dfy CompilerCommon.dfy $(ASTModel) $(dfy_models) $(dfy_interop) $(DafnyRuntime)
+REPL/Repl.cs: REPL/Repl.dfy $(ASTModel) $(dfy_models) $(dfy_interop) $(DafnyRuntime)
 	$(dafny2cs) $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
 	rm "$@.bak"

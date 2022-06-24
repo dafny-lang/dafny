@@ -1,14 +1,10 @@
 include "CSharpDafnyASTModel.dfy"
-include "CSharpInterop.dfy"
-include "CSharpDafnyInterop.dfy"
-include "CSharpDafnyASTInterop.dfy"
 include "Library.dfy"
-include "StrTree.dfy"
 
 module DafnyCompilerCommon.AST {
     import Lib.Math
     import Lib.Seq
-    import opened Microsoft
+    import Microsoft.Boogie
     import C = CSharpDafnyASTModel
 
     module Types {

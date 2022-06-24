@@ -3,8 +3,8 @@ include "CSharpInterop.dfy"
 include "CSharpDafnyInterop.dfy"
 include "CSharpDafnyASTInterop.dfy"
 include "Library.dfy"
-include "StrTree.dfy"
 include "AST.dfy"
+include "Predicates.dfy"
 
 module DafnyCompilerCommon.Translator {
     import opened Lib
