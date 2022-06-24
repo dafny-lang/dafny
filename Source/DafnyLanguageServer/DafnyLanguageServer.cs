@@ -12,12 +12,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Boogie.SMTLib;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Window;
-using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
