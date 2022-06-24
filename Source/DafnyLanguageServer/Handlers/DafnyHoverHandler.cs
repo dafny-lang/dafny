@@ -287,53 +287,81 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return newlines.Replace(content, "<br>");
     }
 
+    private static string? FormatJavaDoc(string content) {
+      var detectJavadoc = new Regex(@"(\r?\n|^)\s*(@param|@return)");
+      if (!detectJavadoc.Match(content).Success) {
+        return null;
+      }
+      var documentation = "";
+
+      var initialText = new Regex(@"^(?:(?!\r?\n\s*@)[\s\S])*").Match(content).Value.Trim();
+      documentation += initialText;
+
+      var paramsRanges = new Regex(@"@param\s+(?<Name>\w+)\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
+
+      var matches = paramsRanges.Matches(content);
+      var tableRows = 0;
+      for (var i = 0; i < matches.Count; i++) {
+        var match = matches[i];
+        var name = match.Groups["Name"].Value;
+        var description = EscapeNewlines(match.Groups["Description"].Value);
+        if (i == 0) {
+          if (tableRows++ == 0) {
+            documentation += DocTableStart;
+          }
+          documentation += "\n| **Params** | ";
+        } else {
+          documentation += "\n| | ";
+        }
+        documentation += $"**{name}** - {description} |";
+      }
+      var returnsDoc = new Regex(@"@returns?\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
+      if (returnsDoc.Match(content) is { Success: true } matched) {
+        var description = EscapeNewlines(matched.Groups["Description"].Value);
+        if (tableRows == 0) {
+          documentation += DocTableStart;
+        }
+        documentation += $"\n| **Returns** | {description} |";
+      }
+
+      return documentation;
+    }
+
+    // Supports /** */ and ///
+    private static string? ExtractTripleComment(string content) {
+      var slashStarDoc = new Regex(@"\/\*\*(?:(?:(?!\*\/)[\s\S])*)\*\/");
+      var matches = slashStarDoc.Matches(content);
+      if (matches.Count > 0) {
+        // Removes all the surrounding stars
+        var commentingRanges = new Regex(@"\/\*\* ?|\r?\n\s*\*(?!/) ?|\r?\n?\s*\*/$");
+        return commentingRanges.Replace(matches.Last().Value,
+          match => match.Value.Contains("\n") ? "\n" : "");
+      }
+
+      var tripleSlashDoc = new Regex(@"(?:(?:^|\r?\n)[\t ]*\/\/\/.*)+");
+      matches = tripleSlashDoc.Matches(content);
+      if (matches.Count > 0) {
+        // Remove the triple slashes
+        var commentingRanges = new Regex(@"(?:^|\r?\n)[\t ]*\/\/\/ ?");
+        return commentingRanges.Replace(matches.Last().Value,
+          match => match.Value.Contains("\n") ? "\n" : "");
+      }
+
+      return null;
+    }
+
     private static string ExtractRichComment(string? leadingTrivia) {
       if (leadingTrivia == null || leadingTrivia.Trim() == "") {
         return "";
       }
-      var slashStarDoc = new Regex(@"\/\*\*(?:(?:(?!\*\/)[\s\S])*)\*\/");
-      var matches = slashStarDoc.Matches(leadingTrivia);
-      if (matches.Count > 0) {
-        var documentation = "";
-        // Everything before the first '@'
-        var commentingRanges = new Regex(@"\/\*\* ?|\r?\n\s*\*(?!/) ?|\r?\n?\s*\*/$");
-        var content = commentingRanges.Replace(matches.Last().Value,
-          match => match.Value.Contains("\n") ? "\n" : "");
 
-        var initialText = new Regex(@"^(?:(?!\r?\n\s*@)[\s\S])*").Match(content).Value.Trim();
-        documentation += initialText;
-
-        var paramsRanges = new Regex(@"@param\s+(?<Name>\w+)\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
-
-        matches = paramsRanges.Matches(content);
-        var tableRows = 0;
-        for (var i = 0; i < matches.Count; i++) {
-          var match = matches[i];
-          var name = match.Groups["Name"].Value;
-          var description = EscapeNewlines(match.Groups["Description"].Value);
-          if (i == 0) {
-            if (tableRows++ == 0) {
-              documentation += DocTableStart;
-            }
-            documentation += "\n| **Params** | ";
-          } else {
-            documentation += "\n| | ";
-          }
-          documentation += $"**{name}** - {description} |";
-        }
-        var returnsDoc = new Regex(@"@returns?\s+(?<Description>(?:(?!\n\s*@)[\s\S])*)");
-        if (returnsDoc.Match(content) is { Success: true } matched) {
-          var description = EscapeNewlines(matched.Groups["Description"].Value);
-          if (tableRows == 0) {
-            documentation += DocTableStart;
-          }
-          documentation += $"\n| **Returns** | {description} |";
-        }
-
-        return documentation;
+      var content = ExtractTripleComment(leadingTrivia);
+      if (content == null) {
+        return "```dafny\n" + leadingTrivia.Trim() + "\n```";
       }
 
-      return "```dafny\n" + leadingTrivia.Trim() + "\n```";
+      var formatted = FormatJavaDoc(content);
+      return formatted ?? content;
     }
   }
 }

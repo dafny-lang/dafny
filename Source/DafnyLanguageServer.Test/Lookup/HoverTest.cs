@@ -447,7 +447,8 @@ twostate predicate pt() { true }
 // No comment for pl
 least predicate pl() { true }
 
-// No comment for pg
+/// A comment for pg
+/// That spans two lines
 greatest predicate pg() { true }
 
 /** Returns an integer without guarantee
@@ -508,7 +509,7 @@ method test(d: D, t: T, e: Even) {
   var x1 := pm();
 //          ^[// No comment for pm]
   var x2 := pg();
-//          ^[// No comment for pg]
+//          ^[A comment for pg\nThat spans two lines]
   var x3 := pl();
 //          ^[// No comment for pl]
   var x4 := pt();
