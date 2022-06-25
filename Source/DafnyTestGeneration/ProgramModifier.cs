@@ -4,11 +4,13 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Declaration = Microsoft.Boogie.Declaration;
+using ExistsExpr = Microsoft.Boogie.ExistsExpr;
 using Formal = Microsoft.Boogie.Formal;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;
 using Parser = Microsoft.Boogie.Parser;
 using Program = Microsoft.Boogie.Program;
+using QuantifierExpr = Microsoft.Boogie.QuantifierExpr;
 using Type = Microsoft.Boogie.Type;
 
 namespace DafnyTestGeneration {
@@ -424,6 +426,10 @@ namespace DafnyTestGeneration {
         var identifierExpr = TryConvertFunctionCall(funcCall);
         return identifierExpr ?? newNode;
       }
+      
+      public override QuantifierExpr VisitQuantifierExpr(QuantifierExpr node) {
+        return node;
+      }
 
       public override Cmd VisitAssignCmd(AssignCmd node) {
         currAssignCmd = node;
@@ -528,6 +534,10 @@ namespace DafnyTestGeneration {
           funcCallToResult[functionCallToString]);
       }
 
+      public override QuantifierExpr VisitQuantifierExpr(QuantifierExpr node) {
+        return node;
+      }
+      
       public override Cmd VisitAssignCmd(AssignCmd node) {
         currAssignCmd = node;
         node = (AssignCmd)base.VisitAssignCmd(node);
