@@ -6011,6 +6011,13 @@ namespace Microsoft.Dafny {
               description != "object");
             builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
           }
+          // check that the 'unchanged' argument reads only what the context is allowed to read
+          if (options.DoReadsChecks) {
+            CheckFrameSubset(fe.E.tok,
+              new List<FrameExpression>() { fe },
+              null, new Dictionary<IVariable, Expression>(), etran, options.AssertSink(this, builder),
+              new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), options.AssertKv);
+          }
         }
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
