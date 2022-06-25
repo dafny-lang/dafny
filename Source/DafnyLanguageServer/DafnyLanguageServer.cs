@@ -47,21 +47,30 @@ namespace Microsoft.Dafny.LanguageServer {
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
+      PublishSolverPath(server);
+
+      return Task.CompletedTask;
+    }
+
+    private static void PublishSolverPath(ILanguageServer server)
+    {
       string solverPath;
       try {
         var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
         proverOptions.Parse(DafnyOptions.O.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
-      server.SendTelemetryEvent(new TelemetryEventParams() {
-        ExtensionData = new Dictionary<string, object>() {
+
+      server.SendTelemetryEvent(new TelemetryEventParams()
+      {
+        ExtensionData = new Dictionary<string, object>()
+        {
           { "solverPath", solverPath },
         }
       });
-
-      return Task.CompletedTask;
     }
 
     /// <summary>
