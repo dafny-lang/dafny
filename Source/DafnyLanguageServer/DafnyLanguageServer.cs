@@ -52,8 +52,8 @@ namespace Microsoft.Dafny.LanguageServer {
       return Task.CompletedTask;
     }
 
-    private static void PublishSolverPath(ILanguageServer server)
-    {
+    private static void PublishSolverPath(ILanguageServer server) {
+      var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
       string solverPath;
       try {
         var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
@@ -64,13 +64,7 @@ namespace Microsoft.Dafny.LanguageServer {
         solverPath = $"Error while determining solver path: {e}";
       }
 
-      server.SendTelemetryEvent(new TelemetryEventParams()
-      {
-        ExtensionData = new Dictionary<string, object>()
-        {
-          { "solverPath", solverPath },
-        }
-      });
+      telemetryPublisher.PublishSolverPath(solverPath);
     }
 
     /// <summary>
