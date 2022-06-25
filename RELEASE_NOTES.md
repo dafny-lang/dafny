@@ -1,6 +1,6 @@
 # Upcoming
 
-- fix: Check that arguments of 'unchanged' satisfy enclosing reads clause.
+- fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
 
 # 3.7.1
 
