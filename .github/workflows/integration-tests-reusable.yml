@@ -96,7 +96,7 @@ jobs:
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
-        XUNIT_SHARD_COUNT: 5
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
