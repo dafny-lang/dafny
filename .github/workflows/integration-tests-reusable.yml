@@ -100,10 +100,13 @@ jobs:
     - if: runner.os != 'Windows'
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
-    - name: Run single test
+    - name: Build single test
       if: runner.os == 'Windows'
       run: |
         ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
+    - name: Run single exe
+      if: runner.os == 'Windows'
+      run: |
         ${{ github.workspace }}/dafny/Test/c++/while
     - name: Run integration tests
       if: runner.os == 'Windows'
