@@ -89,6 +89,19 @@ jobs:
         java -version
         g++ --version
         python3 --version
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-gcc
+    - name: Versions (again)
+      run: |
+        dotnet --list-sdks
+        go version
+        node --version
+        java -version
+        g++ --version
+        python3 --version
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
