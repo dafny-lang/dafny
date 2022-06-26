@@ -102,7 +102,7 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run single test
       if: runner.os == 'Windows'
-      run: ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:3 /spillTargetCode:2 /compileTarget:cpp TestFiles/LitTests/LitTest/c++/while.dfy
+      run: ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:3 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}dafny/Test/c++/while.dfy
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
