@@ -81,6 +81,14 @@ jobs:
       with:
         path: dafny
         submodules: true
+    - name: Versions
+      run: |
+        dotnet --list-sdks
+        go version
+        node --version
+        java -version
+        g++ --version
+        python3 --version
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
