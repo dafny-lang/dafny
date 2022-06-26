@@ -107,7 +107,7 @@ jobs:
     - name: Run single exe
       if: runner.os == 'Windows'
       run: |
-        g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
+        g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
         ${{ github.workspace }}/dafny/Test/c++/while.exe
     - name: Run integration tests
       if: runner.os == 'Windows'
