@@ -23,7 +23,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-latest\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"windows-latest\"]"
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -31,11 +31,11 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-18.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-latest\": \"win\"}"
+          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"windows-latest\": \"win\"}"
       - name: Populate shard list
         id: populate-shard-list
         run: |
-          echo "::set-output name=shard-list::[" $(seq -s , 1 ${{ inputs.num_shards }}) "]"
+          echo "::set-output name=shard-list::[" $(seq -s , 1 ${{ 1 }}) "]"
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
