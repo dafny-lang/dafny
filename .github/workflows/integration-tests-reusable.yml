@@ -103,8 +103,8 @@ jobs:
     - name: Run single test
       if: runner.os == 'Windows'
       run: |
-      ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:4 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
-      ${{ github.workspace }}/dafny/Test/c++/while
+        ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:4 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
+        ${{ github.workspace }}/dafny/Test/c++/while
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
