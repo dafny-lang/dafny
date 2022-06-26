@@ -104,18 +104,18 @@ jobs:
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
-        XUNIT_SHARD_COUNT: 5
+        XUNIT_SHARD_COUNT: 1
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~c++
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
-        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
+        XUNIT_SHARD_COUNT: 1
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~c++
     - uses: actions/upload-artifact@v2
       if: always()
       with:
