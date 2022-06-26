@@ -103,7 +103,7 @@ jobs:
         java -version
         g++ --version
         which g++
-        which C:\msys64\mingw64\bin\g++.exe
+        ls /c/Program Files/PowerShell/7:/d/a/_temp/setup-msys2
         python3 --version
     - name: Versions (again...)
       shell: msys2 {0}
