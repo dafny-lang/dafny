@@ -23,7 +23,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"windows-latest\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"windows-2019\"]"
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -31,7 +31,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"windows-latest\": \"win\"}"
+          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"windows-2019\": \"win\"}"
       - name: Populate shard list
         id: populate-shard-list
         run: |
