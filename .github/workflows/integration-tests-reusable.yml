@@ -132,12 +132,12 @@ jobs:
     - name: Build single test
       if: runner.os == 'Windows'
       run: |
-        D:a/dafny/dafny\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp D:a/dafny/dafny/dafny/Test/c++/while.dfy
+        ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
     - name: Run single exe
       if: runner.os == 'Windows'
       run: |
         ls
-        g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I D:a/dafny/dafny/dafny/Binaries -o D:a/dafny/dafny/dafny/Test/c++/while.exe D:a/dafny/dafny/dafny/Test/c++/while.cpp
+        g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
