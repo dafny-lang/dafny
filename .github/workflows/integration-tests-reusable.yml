@@ -105,6 +105,8 @@ jobs:
         which g++
         ls C:\msys64\mingw64
         python3 --version
+    - name: Pacman Version
+      run: pacman.exe --version
     - name: Versions (again...)
       shell: msys2 {0}
       run: |
