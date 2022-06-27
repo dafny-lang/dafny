@@ -113,9 +113,9 @@ jobs:
     - name: Pacman Version
       run: |
         pacman.exe --version
-        pacman.exe -Syu
+        pacman.exe --noconfirm -Syu
     - name: g++ update
-      run: pacman.exe -S --needed base-devel mingw-w64-x86_64-toolchain
+      run: pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
     - name: Versions (again...)
       shell: msys2 {0}
       run: |
