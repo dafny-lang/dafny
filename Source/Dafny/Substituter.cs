@@ -12,17 +12,17 @@ namespace Microsoft.Dafny {
     protected readonly Expression receiverReplacement;
     protected readonly Dictionary<IVariable, Expression> substMap;
     protected readonly Dictionary<TypeParameter, Type> typeMap;
-    protected readonly Label oldLabel;
+    protected readonly Label oldHeapLabel;
 
     public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldLabel = null) {
+    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);
       this.receiverReplacement = receiverReplacement;
       this.substMap = substMap;
       this.typeMap = typeMap;
-      this.oldLabel = oldLabel;
+      this.oldHeapLabel = oldHeapLabel;
     }
     public virtual Expression Substitute(Expression expr) {
       Contract.Requires(expr != null);
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
         fseNew.Member = mse.Member;
         fseNew.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
         fseNew.TypeApplication_JustMember = mse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
-        fseNew.AtLabel = mse.AtLabel ?? oldLabel;
+        fseNew.AtLabel = mse.AtLabel ?? oldHeapLabel;
         newExpr = fseNew;
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr sse = (SeqSelectExpr)expr;
@@ -128,7 +128,7 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel ?? oldLabel);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel ?? oldHeapLabel);
           newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
           newFce.CoCall = e.CoCall;  // also copy the co-call status
           newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
@@ -163,7 +163,7 @@ namespace Microsoft.Dafny {
         // BoogieWrapper before calling Substitute.
         Expression se = Substitute(e.E);
         if (se != e.E) {
-          newExpr = new OldExpr(expr.tok, se, e.At) { AtLabel = e.AtLabel ?? oldLabel };
+          newExpr = new OldExpr(expr.tok, se, e.At) { AtLabel = e.AtLabel ?? oldHeapLabel };
         }
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny {
           fr.Add(fefe);
         }
         if (anythingChanged) {
-          newExpr = new UnchangedExpr(e.tok, fr, e.At) { AtLabel = e.AtLabel ?? oldLabel };
+          newExpr = new UnchangedExpr(e.tok, fr, e.At) { AtLabel = e.AtLabel ?? oldHeapLabel };
         }
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
         if (se != e.E) {
           if (e is FreshExpr) {
             var ee = (FreshExpr)e;
-            newExpr = new FreshExpr(expr.tok, se, ee.At) { AtLabel = ee.AtLabel ?? oldLabel };
+            newExpr = new FreshExpr(expr.tok, se, ee.At) { AtLabel = ee.AtLabel ?? oldHeapLabel };
           } else if (e is UnaryOpExpr) {
             var ee = (UnaryOpExpr)e;
             newExpr = new UnaryOpExpr(expr.tok, ee.Op, se);
