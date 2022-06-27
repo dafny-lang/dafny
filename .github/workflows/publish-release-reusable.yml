@@ -6,8 +6,8 @@ on:
       name:
         required: true
         type: string
-      prerelease:
-        required: true
+      prerelease_name:
+        required: false
         type: boolean
       sha:
         required: true
@@ -34,6 +34,8 @@ env:
 jobs:
 
   publish-release:
+    env:
+      full_name: ${{ inputs.prerelease_name && (format('{0}-{1}', inputs.version, inputs.prerelease_name)) || inputs.version }}
     runs-on: macos-latest
     steps:
     - name: Checkout Dafny
@@ -80,7 +82,7 @@ jobs:
     # First we build the ZIPs (which do not include the refman)
     - name: Package release files
       run: |
-        python dafny/Scripts/package.py ${{ inputs.version }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+        python dafny/Scripts/package.py ${{ full_name }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
     # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
     # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
     # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
@@ -99,18 +101,18 @@ jobs:
         tag_name: ${{ inputs.tag_name }}
         body: ${{ inputs.release_notes }}
         draft: ${{ inputs.draft }}
-        prerelease: ${{ inputs.prerelease }}
+        prerelease: ${{ inputs.prerelease_name != 0 }}
         files: |
-          dafny/Package/dafny-${{ inputs.version }}*
+          dafny/Package/dafny-${{ full_name }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: true
 
     - name: Create release NuGet package (for uploading)
-      if: ${{ inputs.release_nuget }}
+      if: ${{ !inputs.prerelease_name }}
       run: dotnet pack --no-build dafny/Source/Dafny.sln
     - name: Create prerelease NuGet package (for uploading)
-      if: ${{ !inputs.release_nuget }}
-      run: dotnet pack --version-suffix ${{ inputs.version }} --no-build dafny/Source/Dafny.sln
+      if: ${{ inputs.prerelease_name }}
+      run: dotnet pack --version-suffix ${{ inputs.prerelease_name }} --no-build dafny/Source/Dafny.sln
 #    - name: Upload package to NuGet
 #      if: ${{ inputs.release_nuget }}
 #      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

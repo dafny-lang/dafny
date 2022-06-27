@@ -18,6 +18,14 @@ jobs:
 #      all_platforms: true
 #      num_shards: 5
 
+  get-version:
+    runs-on: ubuntu-22.04
+    steps:
+      - id: get-version
+        uses: battila7/get-version-action@v2
+    outputs:
+      version: ${{ steps.get-version.outputs.version-without-v }}
+
   determine-vars:
     runs-on: ubuntu-22.04
     steps:
@@ -48,8 +56,8 @@ jobs:
       sha: refs/heads/master
       name: ${{ github.sha }}
       tag_name: nightly
-      prerelease: true
+      prerelease_name: ${{ needs.determine-vars.outputs.name }}
       release_nuget: false
-      version: ${{ needs.determine-vars.outputs.name }}
+      version: ${{ needs.get-version.outputs.version }}
       draft: false
       release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
