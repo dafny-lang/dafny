@@ -59,8 +59,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
         proverOptions.Parse(DafnyOptions.O.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
-      }
-      catch (Exception e) {
+      } catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
 
