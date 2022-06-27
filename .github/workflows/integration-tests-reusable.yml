@@ -105,6 +105,9 @@ jobs:
         which g++
         ls C:\msys64\mingw64
         python3 --version
+    - name: Set up shell
+      run: echo ::add-path::C:\msys64\usr\bin\
+      shell: pwsh
     - name: Pacman Version
       run: pacman.exe --version
     - name: Versions (again...)
