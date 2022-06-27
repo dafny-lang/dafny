@@ -108,7 +108,6 @@ jobs:
     - name: g++ update
       run: | 
         $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$origPath"
-        pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
         mkdir ${{ github.workspace }}/bin
         New-Item -Path ${{ github.workspace }}/bin/g++.exe -ItemType SymbolicLink -Value C:\msys64\mingw64\bin\g++.exe
         New-Item -Path ${{ github.workspace }}/lib -ItemType SymbolicLink -Value C:\msys64\mingw64\lib
