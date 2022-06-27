@@ -106,10 +106,16 @@ jobs:
         ls C:\msys64\usr\bin\
         python3 --version
     - name: Set up shell
-      run: $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$origPath"
+      run: |
+        echo C:\msys64\usr\bin\ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo C:\msys64\mingw64\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append  
       shell: pwsh
     - name: Pacman Version
-      run: pacman.exe --version
+      run: |
+        pacman.exe --version
+        pacman.exe -Syu
+    - name: g++ update
+      run: pacman.exe -S --needed base-devel mingw-w64-x86_64-toolchain
     - name: Versions (again...)
       shell: msys2 {0}
       run: |
