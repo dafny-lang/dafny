@@ -37,12 +37,12 @@ jobs:
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
     with:
-      sha: ${{ refs/heads/master }}
+      sha: refs/heads/master
 
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
-      sha: ${{ refs/heads/master }}
+      sha: refs/heads/master
       name: ${{ needs.determine-vars.outputs.name }}
       tag_name: nightly
       prerelease: true
