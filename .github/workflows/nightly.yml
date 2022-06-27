@@ -21,6 +21,12 @@ jobs:
   determine-vars:
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v2
+        with:
+          path: dafny
+          ref: ${{ inputs.sha }}
+
       - name: Get short sha
         id: short-sha
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
