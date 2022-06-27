@@ -34,11 +34,6 @@ jobs:
       date: ${{ steps.date.outputs.date }}
       name: nightly-${{ steps.date.outputs.date }}-${{ steps.short-sha.outputs.sha_short }}
 
-  check-deep-tests:
-    uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      sha: ${{ github.sha }}
-
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
