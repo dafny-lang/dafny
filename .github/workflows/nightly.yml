@@ -50,8 +50,8 @@ jobs:
 
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
-    needs: [determine-vars]
-#    needs: [deep-integration-tests, determine-vars]
+    needs: [get-version, determine-vars]
+#    needs: [deep-integration-tests, get-version, determine-vars]
     with:
       sha: refs/heads/master
       name: ${{ github.sha }}

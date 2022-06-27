@@ -8,7 +8,7 @@ on:
         type: string
       prerelease_name:
         required: false
-        type: boolean
+        type: string
       sha:
         required: true
         type: string
