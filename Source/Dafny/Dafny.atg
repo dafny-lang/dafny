@@ -947,7 +947,7 @@ Dafny
                                                string basePath = Path.GetDirectoryName(parsedFile);
                                                includedFile = Path.Combine(basePath, includedFile);
                                              }
-                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile));
+                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, theCompileThisFile));
                                            }
                                         .)
   }
