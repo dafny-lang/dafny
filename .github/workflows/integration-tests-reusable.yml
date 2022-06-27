@@ -100,27 +100,21 @@ jobs:
         which g++
         ls C:\msys64\usr\bin\
         python3 --version
-    - name: Set up shell
-      run: |
-        echo $env:GITHUB_PATH | Out-File -FilePath orig -Encoding utf8
-        echo C:\msys64\usr\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo C:\msys64\mingw64\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      shell: pwsh
     - name: Pacman Version
       run: |
+        $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$origPath"
         pacman.exe --version
         pacman.exe --noconfirm -Syu
     - name: g++ update
       run: | 
+        $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$origPath"
         pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
-        echo orig | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
-        echo C:\msys64\mingw64\bin\g++ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo $env:GITHUB_PATH
     - name: Versions (again...)
       run: |
         g++ --version
         which g++
         ls C:\msys64\usr\bin\
+        echo $env:GITHUB_PATH
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
