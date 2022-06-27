@@ -40,7 +40,7 @@ jobs:
       run: |
         - git tag ${{ inputs.tag_name }} -f
         - git push origin ${{ inputs.tag_name }} -f
-      with:
+      env:
         working-directory: dafny
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
