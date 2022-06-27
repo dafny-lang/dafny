@@ -12,11 +12,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  deep-integration-tests:
-    uses: ./.github/workflows/integration-tests-reusable.yml
-    with:
-      all_platforms: true
-      num_shards: 5
+#  deep-integration-tests:
+#    uses: ./.github/workflows/integration-tests-reusable.yml
+#    with:
+#      all_platforms: true
+#      num_shards: 5
 
   determine-vars:
     runs-on: ubuntu-22.04
@@ -36,6 +36,8 @@ jobs:
 
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
+    needs: [determine-vars]
+#    needs: [deep-integration-tests, determine-vars]
     with:
       sha: refs/heads/master
       name: ${{ github.sha }}
