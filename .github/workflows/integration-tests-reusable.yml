@@ -90,11 +90,6 @@ jobs:
         g++ --version
         which g++
         python3 --version
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: base-devel mingw-w64-x86_64-toolchain
     - name: Versions (again)
       run: |
         dotnet --list-sdks
@@ -135,20 +130,18 @@ jobs:
     - name: Build single test
       if: runner.os == 'Windows'
       run: |
-        ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
+        D:a/dafny/dafny\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp D:a/dafny/dafny/dafny/Test/c++/while.dfy
     - name: Run single exe
       if: runner.os == 'Windows'
-      shell: msys2 {0}
       run: |
         ls
-        g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
-        ${{ github.workspace }}/dafny/Test/c++/while.exe
+        g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I D:a/dafny/dafny/dafny/Binaries -o D:a/dafny/dafny/dafny/Test/c++/while.exe D:a/dafny/dafny/dafny/Test/c++/while.cpp
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 1
-        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
+        DAFNY_RELEASE: D:a/dafny/dafny\unzippedRelease\dafny
       run: |
         dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~c++
     - name: Run integration tests
