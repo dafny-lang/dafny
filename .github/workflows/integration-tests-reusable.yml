@@ -103,7 +103,7 @@ jobs:
         java -version
         g++ --version
         which g++
-        ls C:\msys64\mingw64\bin
+        ls C:\msys64\mingw64
         python3 --version
     - name: Versions (again...)
       shell: msys2 {0}
