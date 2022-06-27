@@ -107,11 +107,11 @@ jobs:
       shell: pwsh
     - name: Pacman Version
       run: |
-        C:\msys64\usr\bin\pacman.exe --version
-        C:\msys64\usr\bin\pacman.exe --noconfirm -Syu
+        pacman.exe --version
+        pacman.exe --noconfirm -Syu
     - name: g++ update
       run: | 
-        C:\msys64\usr\bin\pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
+        pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
         $env:GITHUB_PATH = $origPath
     - name: Versions (again...)
       run: |
