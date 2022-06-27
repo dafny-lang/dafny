@@ -115,6 +115,7 @@ jobs:
         pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
         echo orig | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
         echo C:\msys64\mingw64\bin\g++ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo $env:GITHUB_PATH
     - name: Versions (again...)
       run: |
         g++ --version
