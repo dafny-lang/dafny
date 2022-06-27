@@ -112,6 +112,7 @@ jobs:
         mkdir ${{ github.workspace }}/bin
         New-Item -Path ${{ github.workspace }}/bin/g++.exe -ItemType SymbolicLink -Value C:\msys64\mingw64\bin\g++.exe
         New-Item -Path ${{ github.workspace }}/lib -ItemType SymbolicLink -Value C:\msys64\mingw64\lib
+        New-Item -Path ${{ github.workspace }}/include -ItemType SymbolicLink -Value C:\msys64\mingw64\include
         echo ${{ github.workspace }}\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Versions (again...)
       run: |
