@@ -35,7 +35,7 @@ namespace DafnyTestGeneration {
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
       dafnyModel = DafnyModel.ExtractModel(log);
-      MethodName = Utils.GetDafnyMethodName(argumentNames.First());
+      MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
       NOfTypeParams = typeNames.Count(typeName => typeName == "Ty");
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
