@@ -117,11 +117,10 @@ jobs:
     - name: g++ update
       run: pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
     - name: Versions (again...)
-      shell: msys2 {0}
       run: |
         g++ --version
         which g++
-        which /mingw64/bin/g++
+        ls C:\msys64\usr\bin\
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
