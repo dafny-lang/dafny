@@ -132,6 +132,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: msys2 {0}
       run: |
+        ls
         g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
         ${{ github.workspace }}/dafny/Test/c++/while.exe
     - name: Run integration tests
