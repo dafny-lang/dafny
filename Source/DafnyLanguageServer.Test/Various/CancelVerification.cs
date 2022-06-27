@@ -51,7 +51,7 @@ method test() {
         }}
       });
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(!document.Diagnostics.Any());
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -65,7 +65,7 @@ method test() {
         }}
       });
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      document = await Documents.GetDocumentAsync(documentItem.Uri);
+      document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(document.Diagnostics.Any());
     }

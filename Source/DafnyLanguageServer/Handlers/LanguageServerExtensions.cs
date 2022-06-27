@@ -1,4 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.Handlers.Custom;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -20,7 +21,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         .WithHandler<DafnyCompletionHandler>()
         .WithHandler<DafnySignatureHelpHandler>()
         .WithHandler<DafnyCounterExampleHandler>()
-        .WithHandler<DafnyCodeActionHandler>();
+        .WithHandler<DafnyCodeActionHandler>()
+        .WithHandler<VerificationHandler>();
     }
   }
 }

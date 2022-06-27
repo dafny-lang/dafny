@@ -87,23 +87,25 @@ namespace Microsoft.Dafny {
 
   public class Include : IComparable {
     public readonly IToken tok;
-    public readonly string includerFilename;
-    public readonly string includedFilename;
-    public readonly string canonicalPath;
+    public string IncluderFilename { get; }
+    public string IncludedFilename { get; }
+    public string CanonicalPath { get; }
+    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename) {
+    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
-      this.includerFilename = includer;
-      this.includedFilename = theFilename;
-      this.canonicalPath = DafnyFile.Canonicalize(theFilename);
+      this.IncluderFilename = includer;
+      this.IncludedFilename = theFilename;
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
+      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.canonicalPath.CompareTo(i.canonicalPath);
+        return this.CanonicalPath.CompareTo(i.CanonicalPath);
       } else {
         throw new NotImplementedException();
       }
@@ -339,7 +341,7 @@ namespace Microsoft.Dafny {
       if (!tupleTypeDecls.TryGetValue(argumentGhostness, out tt)) {
         Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
         // tuple#2 is already defined in DafnyRuntime.cs
-        var attributes = dims == 2 && !argumentGhostness.Contains(true) ? DontCompile() : null;
+        var attributes = argumentGhostness.Count(x => !x) == 2 ? DontCompile() : null;
         tt = new TupleTypeDecl(argumentGhostness, SystemModule, attributes);
         tupleTypeDecls.Add(argumentGhostness, tt);
         SystemModule.TopLevelDecls.Add(tt);
@@ -4728,84 +4730,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TupleTypeDecl : IndDatatypeDecl {
-    public readonly List<bool> ArgumentGhostness;
-
-    public int Dims => ArgumentGhostness.Count;
-
-    public int NonGhostDims => ArgumentGhostness.Count(x => !x);
-
-    /// <summary>
-    /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
-    /// </summary>
-    public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
-      : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
-      Contract.Requires(0 <= argumentGhostness.Count);
-      Contract.Requires(systemModule != null);
-
-      // Resolve the type parameters here
-      Contract.Assert(TypeArgs.Count == Dims);
-      for (var i = 0; i < Dims; i++) {
-        var tp = TypeArgs[i];
-        tp.Parent = this;
-        tp.PositionalIndex = i;
-      }
-    }
-
-    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(argumentGhostness), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
-      Contract.Requires(systemModule != null);
-      Contract.Requires(typeArgs != null);
-      ArgumentGhostness = argumentGhostness;
-      foreach (var ctor in Ctors) {
-        ctor.EnclosingDatatype = this;  // resolve here
-        GroundingCtor = ctor;
-        TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
-        for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByGroundingCtor[i] = !argumentGhostness[i];
-        }
-      }
-      this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
-    }
-    private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
-      Contract.Requires(0 <= dims);
-      var ts = new List<TypeParameter>();
-      for (int i = 0; i < dims; i++) {
-        var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Covariant_Strict);
-        tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-        ts.Add(tp);
-      }
-      return ts;
-    }
-    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
-      Contract.Requires(typeArgs != null);
-      var formals = new List<Formal>();
-      var nonGhostArgs = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        string compileName;
-        if (argumentGhostness[i]) {
-          // This name is irrelevant, since it won't be used in compilation. Give it a strange name
-          // that would alert us of any bug that nevertheless tries to access this name.
-          compileName = "this * ghost * arg * should * never * be * compiled * " + i.ToString();
-        } else {
-          compileName = nonGhostArgs.ToString();
-          nonGhostArgs++;
-        }
-        var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null, nameForCompilation: compileName);
-        formals.Add(f);
-      }
-      string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
-      var ctor = new DatatypeCtor(Token.NoToken, ctorName, formals, null);
-      return new List<DatatypeCtor>() { ctor };
-    }
-
-    public override string SanitizedName =>
-      sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-    public override string CompileName =>
-      compileName ??= SanitizedName;
-  }
-
   public class CoDatatypeDecl : DatatypeDecl {
     public override string WhatKind { get { return "codatatype"; } }
     [FilledInDuringResolution] public CoDatatypeDecl SscRepr;
@@ -6125,6 +6049,63 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+    }
+  }
+
+  /// <summary>
+  /// A QuantifiedVar is a bound variable used in a quantifier such as "forall x :: ...",
+  /// a comprehension such as "set x | 0 <= x < 10", etc.
+  /// In addition to its type, which may be inferred, it can have an optional domain collection expression
+  /// (x <- C) and an optional range boolean expressions (x | E).
+  /// </summary>
+  [DebuggerDisplay("Quantified<{name}>")]
+  public class QuantifiedVar : BoundVar {
+    public readonly Expression Domain;
+    public readonly Expression Range;
+
+    public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
+      : base(tok, name, type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+      Domain = domain;
+      Range = range;
+    }
+
+    /// <summary>
+    /// Map a list of quantified variables to an eqivalent list of bound variables plus a single range expression.
+    /// The transformation looks like this in general:
+    ///
+    /// x1 <- C1 | E1, ..., xN <- CN | EN
+    ///
+    /// becomes:
+    ///
+    /// x1, ... xN | x1 in C1 && E1 && ... && xN in CN && EN
+    ///
+    /// Note the result will be null rather than "true" if there are no such domains or ranges.
+    /// Some quantification contexts (such as comprehensions) will replace this with "true".
+    /// </summary>
+    public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
+      bvars = new List<BoundVar>();
+      range = null;
+
+      foreach (var qvar in qvars) {
+        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
+        bvars.Add(bvar);
+
+        if (qvar.Domain != null) {
+          // Attach a token wrapper so we can produce a better error message if the domain is not a collection
+          var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
+          var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
+          range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+        }
+
+        if (qvar.Range != null) {
+          // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
+          var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
+          range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+        }
+      }
     }
   }
 
@@ -9046,6 +9027,54 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
+  public class QuantifiedVariableDomainToken : TokenWrapper {
+    public QuantifiedVariableDomainToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
+  public class QuantifiedVariableRangeToken : TokenWrapper {
+    public QuantifiedVariableRangeToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+
+  class QuantifiedVariableDomainCloner : Cloner {
+    public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
+    private QuantifiedVariableDomainCloner() { }
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableDomainToken(tok);
+    }
+  }
+
+  class QuantifiedVariableRangeCloner : Cloner {
+    public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
+    private QuantifiedVariableRangeCloner() { }
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableRangeToken(tok);
+    }
+  }
+
   // ------------------------------------------------------------------------------------------------------
   [DebuggerDisplay("{Printer.ExprToString(this)}")]
   public abstract class Expression {
@@ -11452,11 +11481,19 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// A ComprehensionExpr has the form:
-  ///   BINDER x Attributes | Range(x) :: Term(x)
-  /// When BINDER is "forall" or "exists", the range may be "null" (which stands for the logical value "true").
-  /// For other BINDERs (currently, "set"), the range is non-null.
-  /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
-  /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
+  ///   BINDER { x [: Type] [<- Domain] [Attributes] [| Range] } [:: Term(x)]
+  /// Where BINDER is currently "forall", "exists", "iset"/"set", or "imap"/"map".
+  ///
+  /// Quantifications used to only support a single range, but now each
+  /// quantified variable can have a range attached.
+  /// The overall Range is now filled in by the parser by extracting any implicit
+  /// "x in Domain" constraints and per-variable Range constraints into a single conjunct.
+  ///
+  /// The Term is optional if the expression only has one quantified variable,
+  /// but required otherwise.
+  /// 
+  /// LambdaExpr also inherits from this base class but isn't really a comprehension,
+  /// and should be considered implementation inheritance.
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";

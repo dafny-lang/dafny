@@ -16,11 +16,20 @@
    "3.0.0.30203"). The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
-   x.y.z.40112). Edit the internal version number in
-   `Source/version.cs`, replace the "Upcoming" header in `RELEASE_NOTES.md`
-   with the the public version number, and add a new "Upcoming" header above it.
-   Push and cut a PR, get it approved,
-   and squash and merge those changes to the `master` branch.
+   x.y.z.40112). Edit the internal version number in the following
+   places:
+
+   * `Source/version.cs`
+
+   * `Source/DafnyDriver/DafnyDriver.csproj`
+
+   * `Source/Dafny/DafnyPipeline.csproj`
+
+   Put the public version number in place of the "Upcoming" header in
+   `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
+
+   Push and cut a PR, get it approved, and squash and merge those
+   changes to the `master` branch.
 
 3. Kick off the deep test suite by navigating to
    https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml,
@@ -55,19 +64,22 @@
    on multiple platforms. Again you can watch for this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-8. If preparing a pre-release, stop here, as
+8. Manually trigger the "Test NuGet Tool Installation" workflow on the
+   `master` branch (following the same process as for step 3).
+
+9. If preparing a pre-release, stop here, as
    the following steps declare the release as the latest version, which
    is not the intention.
 
-9. If something goes wrong, delete the tag and release in GitHub, fix the
+10. If something goes wrong, delete the tag and release in GitHub, fix the
    problem and try again.
 
-10. Update the Homebrew formula for Dafny (see below).
+11. Update the Homebrew formula for Dafny (see below).
    Note that it is fine to leave this for the next day,
    and other members of the community may update the formula
    in the meantime anyway.
 
-11. Announce the new release to the world.
+12. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
