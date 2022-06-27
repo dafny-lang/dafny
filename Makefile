@@ -17,6 +17,7 @@ refman:
 
 refman-release:
 	make -C ${DIR}/docs/DafnyRef release
+
 z3-mac:
 	wget https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
 	unzip z3-4.8.5-x64-osx-10.14.2.zip
