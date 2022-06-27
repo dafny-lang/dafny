@@ -128,6 +128,7 @@ jobs:
         ${{ github.workspace }}\unzippedRelease\dafny\dafny /vcsCores:2 /useBaseNameForFileName /compileVerbose:1 /errorTrace:2 /timeLimit:300 /compile:1 /spillTargetCode:2 /compileTarget:cpp ${{ github.workspace }}/dafny/Test/c++/while.dfy
     - name: Run single exe
       if: runner.os == 'Windows'
+      shell: msys2 {0}
       run: |
         g++ -g -v -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-unused-label -std=c++17 -I ${{ github.workspace }}/dafny/Binaries -o ${{ github.workspace }}/dafny/Test/c++/while.exe ${{ github.workspace }}/dafny/Test/c++/while.cpp
         ${{ github.workspace }}/dafny/Test/c++/while.exe
