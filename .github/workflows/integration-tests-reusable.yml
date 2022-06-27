@@ -102,7 +102,7 @@ jobs:
         python3 --version
     - name: Set up shell
       run: |
-        echo $env:GITHUB_PATH | Out-File -FilePath $env:ORIG_PATH -Encoding utf8
+        echo $env:GITHUB_PATH | Out-File -FilePath orig -Encoding utf8
         echo C:\msys64\usr\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         echo C:\msys64\mingw64\bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       shell: pwsh
@@ -113,7 +113,7 @@ jobs:
     - name: g++ update
       run: | 
         pacman.exe --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain
-        echo $env:ORIG_PATH | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        echo orig | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
         echo C:\msys64\mingw64\bin\g++ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Versions (again...)
       run: |
