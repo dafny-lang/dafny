@@ -27,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     public Task SetUp() => SetUp(null);
 
     public async Task SetUp(IDictionary<string, string> configuration) {
+      DafnyOptions.Install(DafnyOptions.Create());
       this.configuration = configuration;
       notificationReceiver = new();
       client = await InitializeClient(options => {
