@@ -44,8 +44,8 @@ jobs:
     - uses: actions/setup-python@v1
     - name: Ensure tag exists
       run: |
-        - git tag ${{ inputs.tag_name }} -f
-        - git push origin ${{ inputs.tag_name }} -f
+        git tag ${{ inputs.tag_name }} -f
+        git push origin ${{ inputs.tag_name }} -f
       env:
         working-directory: dafny
     - name: Setup dotnet
