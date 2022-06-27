@@ -3,6 +3,12 @@ name: Publish Draft Release
 on:
   workflow_call:
     inputs:
+      name:
+        required: true
+        type: string
+      prerelease:
+        required: true
+        type: boolean
       sha:
         required: true
         type: string
