@@ -102,8 +102,10 @@ jobs:
         python3 --version
     - name: Set up shell
       run: |
+        echo $env:GITHUB_PATH | Out-File -FilePath $env:ORIG_PATH -Encoding utf8
         $origPath = $env:GITHUB_PATH
         $env:GITHUB_PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$origPath"
+        echo "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:ORIG_PATH" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
       shell: pwsh
     - name: Pacman Version
       run: |
