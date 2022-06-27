@@ -109,7 +109,7 @@ jobs:
       shell: msys2 {0}
       run: |
         which g++
-        which mingw64/bin/g++
+        which /mingw64/bin/g++
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
