@@ -245,6 +245,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var statusUpdates = implementationTask.TryRun();
       if (statusUpdates == null) {
+        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, completedCache.Result);
+        }
         return Observable.Empty<DafnyDocument>();
       }
 
