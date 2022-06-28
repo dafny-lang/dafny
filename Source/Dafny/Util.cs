@@ -444,12 +444,12 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.includerFilename == null ? "roots" : include.includerFilename;
+      string key = include.IncluderFilename ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.canonicalPath);
+        existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
+        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
       }
     }
 
