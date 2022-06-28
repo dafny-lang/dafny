@@ -25,7 +25,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
   // Add '//Next<n>:' to edit a line multiple times
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-  public async Task EnsureVerificationGutterStatusIsWorking() {
+  public async Task EnsureCachingDoesNotMakeSquigglyLinesToRemain() {
     await SetUp(new Dictionary<string, string>() {
       { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", "1" }
     });
@@ -34,5 +34,18 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  |  |  I  $  | :  assert true;
  .  S  S  |  I  $  | :  //Next: 
  .  S  S  |  I  $  | :}");
+  }
+
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  public async Task EnsureCachingDoesNotHideErrors() {
+    await SetUp(new Dictionary<string, string>() {
+      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", "1" }
+    });
+    await VerifyTrace(@"
+ .  S [S][ ][I][S][S][ ]:method test() {
+ .  S [O][O][o][Q][O][O]:  assert true;
+ .  S [=][=][-][~][=][=]:  assert false;
+ .  S [S][ ][I][S][S][ ]:  //Next: 
+ .  S [S][ ][I][S][S][ ]:}");
   }
 }
