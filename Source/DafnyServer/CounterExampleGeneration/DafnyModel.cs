@@ -291,9 +291,9 @@ namespace DafnyServer.CounterexampleGeneration {
         if (funcTuple.Func.Arity != 0) {
           continue;
         }
-        if (name == null) {
-          name = funcTuple.Func.Name;
-        } else {
+        if ((name == null) || (name.Contains("$"))) { // 2nd case is type param
+          name = funcTuple.Func.Name; 
+        } else if (!funcTuple.Func.Name.Contains("$")) {
           return null;
         }
       }
@@ -686,7 +686,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
         // Elt is a datatype value
-        var destructors = GetDestructorFunctions(var.Element, (var.Type as UserDefinedType)?.Name ?? "").OrderBy(f => f.Name).ToList();
+        var destructors = GetDestructorFunctions(var.Element).OrderBy(f => f.Name).ToList();
         if (destructors.Count > fnTuple.Args.Length) {
           // Try to filter out predicate functions
           // (that follow a format very similar to that of destructor names)
@@ -817,12 +817,15 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Return all functions that map the datatype object to a particular
     /// destructor value.
     /// </summary>
-    private static List<Model.Func> GetDestructorFunctions(Model.Element datatype, string type) {
+    private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
+      var types = GetIsResults(datatypeElement).Select(isResult =>
+        new DafnyModelTypeUtils.DatatypeType(
+          (UserDefinedType)ReconstructType(isResult)).ToString());
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
-      foreach (var app in datatype.References) {
-        if (app.Func.Arity != 1 || app.Args[0] != datatype ||
-            !app.Func.Name.StartsWith(type + ".") ||
+      foreach (var app in datatypeElement.References) {
+        if (app.Func.Arity != 1 || app.Args[0] != datatypeElement ||
+            !types.Any(type => app.Func.Name.StartsWith(type + ".")) ||
             builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
           continue;
         }

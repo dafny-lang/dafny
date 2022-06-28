@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Dafny;
 using Type = Microsoft.Dafny.Type;
 
@@ -30,6 +31,8 @@ namespace DafnyTestGeneration {
       DatatypeNames = new HashSet<string>();
       nOfTypeParams = new Dictionary<string, int>();
       SubsetTypeToSuperset = new Dictionary<string, Type>();
+      SubsetTypeToSuperset["_System.string"] = new SeqType(new CharType());
+      SubsetTypeToSuperset["_System.nat"] = Type.Int;
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
     }
@@ -93,7 +96,7 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
-
+        type = DafnyModelTypeUtils.UseFullName(type);
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
                                 $"assigned a default value of type {type}, " +
@@ -110,6 +113,7 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
+        type = DafnyModelTypeUtils.UseFullName(type);
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
                                 $"assigned a default value of type {type}, " +
@@ -165,8 +169,10 @@ namespace DafnyTestGeneration {
         if (!m.IsLemmaLike && !m.IsGhost) {
           info.isNotGhost.Add(methodName);
         }
-        var returnTypes = m.Outs.Select(arg => arg.Type).ToList();
-        var parameterTypes = m.Ins.Select(arg => arg.Type).ToList();
+        var returnTypes = m.Outs.Select(arg => 
+          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();
+        var parameterTypes = m.Ins.Select(arg => 
+          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();
         info.parameterTypes[methodName] = parameterTypes;
         info.returnTypes[methodName] = returnTypes;
         info.nOfTypeParams[methodName] = m.TypeArgs.Count;
@@ -180,8 +186,9 @@ namespace DafnyTestGeneration {
         if (!f.IsGhost) {
           info.isNotGhost.Add(functionName);
         }
-        var returnTypes = new List<Type> { f.ResultType };
-        var parameterTypes = f.Formals.Select(f => f.Type).ToList();
+        var returnTypes = new List<Type> { DafnyModelTypeUtils.UseFullName(f.ResultType) };
+        var parameterTypes = f.Formals.Select(f => 
+          DafnyModelTypeUtils.UseFullName(f.Type)).ToList();
         info.parameterTypes[functionName] = parameterTypes;
         info.returnTypes[functionName] = returnTypes;
         info.nOfTypeParams[functionName] = f.TypeArgs.Count;

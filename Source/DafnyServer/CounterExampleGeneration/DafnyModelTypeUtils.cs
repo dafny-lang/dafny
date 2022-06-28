@@ -53,6 +53,11 @@ namespace DafnyServer.CounterexampleGeneration {
       return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
     }
     
+    public static Type UseFullName(Type type) {
+      return ReplaceType(type, _ => true, type => 
+        new UserDefinedType(new Token(), type?.ResolvedClass.FullName, type.TypeArgs));
+    }
+    
     public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
       Func<UserDefinedType, Type> replacement) {
       if ((type is not UserDefinedType userType) || (type is ArrowType)) {

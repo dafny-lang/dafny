@@ -102,11 +102,26 @@ namespace DafnyTestGeneration {
           continue;
         }
         if (!printOutput[i].StartsWith("T@")) {
+          string baseValue;
           if (Regex.IsMatch(printOutput[i], "^[0-9]+bv[0-9]+$")) {
             var baseIndex = printOutput[i].IndexOf('b');
-            result.Add($"({printOutput[i][..baseIndex]} as {printOutput[i][baseIndex..]})");
+            baseValue = $"({printOutput[i][..baseIndex]} as {printOutput[i][baseIndex..]})";
           } else {
-            result.Add(printOutput[i]);
+            baseValue = printOutput[i];
+          }
+
+          var type = DafnyModelTypeUtils.ReplaceTypeVariables(
+            DafnyInfo.GetParameterTypes(MethodName)[parameterIndex],
+            defaultType);
+          if (type is IntType or RealType or BoolType or BitvectorType) {
+            result.Add(baseValue);
+          } else {
+            var typeString = type.ToString();
+            // TODO: find a more elegant solution
+            if (typeString.StartsWith("_System.")) {
+              typeString = typeString[8..];
+            }
+            result.Add($"({baseValue} as {typeString})");
           }
           continue;
         }
@@ -199,8 +214,6 @@ namespace DafnyTestGeneration {
             .Select(v => ExtractVariable(v.First()))) +")"));
           return tupleName;
         case DafnyModelTypeUtils.DatatypeType dataType:
-          // TODO: what about the order of fields?
-          // TODO: What about type variables?
           dataType = (DafnyModelTypeUtils.DatatypeType) DafnyModelTypeUtils
               .ReplaceTypeVariables(dataType, defaultType);
           List<string> fields = new();
@@ -215,15 +228,14 @@ namespace DafnyTestGeneration {
             }
           }
 
-          string value;
+          var value = dataType.ToString();
           if (variable.CanonicalName() == "") {
             errorMessages.Add($"// Failed to determine datatype constructor (type {dataType} element {variable.Element})");
-            value = dataType.Name + ".UNKNOWN";
           } else if (fields.Count == 0) {
-            value = dataType.Name + "." + variable.CanonicalName();
+            value += "." + variable.CanonicalName();
           } else {
-            value = dataType.Name + "." + variable.CanonicalName() + "(" +
-                   string.Join(",", fields) + ")";
+            value += "." + variable.CanonicalName() + "(" +
+                     string.Join(",", fields) + ")";
           }
           var name = "d" + DatatypeCreation.Count;
           DatatypeCreation.Add((name, dataType, value));
@@ -337,8 +349,11 @@ namespace DafnyTestGeneration {
       
       List<string> lines = new();
 
-      if ((errorMessages.Count != 0)) {
-        return DafnyOptions.O.TestGenOptions.Verbose ? errorMessages : lines;
+      if (errorMessages.Count != 0) {
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          lines.AddRange(errorMessages);
+        }
+        return lines;
       }
 
       // test method parameters and declaration:

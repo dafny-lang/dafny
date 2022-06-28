@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Declaration = Microsoft.Boogie.Declaration;
-using ExistsExpr = Microsoft.Boogie.ExistsExpr;
 using Formal = Microsoft.Boogie.Formal;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;
@@ -35,10 +35,25 @@ namespace DafnyTestGeneration {
     /// </summary>
     public IEnumerable<ProgramModification> GetModifications(IEnumerable<Program> programs, DafnyInfo dafnyInfo) {
       this.dafnyInfo = dafnyInfo;
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Merging boogie files...");
+      }
       var program = MergeBoogiePrograms(programs);
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Converting function calls to method calls...");
+      }
       program = new FunctionToMethodCallRewriter(this).VisitProgram(program);
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Adding Impl$$ methods to support inlining...");
+      }
       program = new AddImplementationsForCalls().VisitProgram(program);
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Removing assertions...");
+      }
       program = new RemoveChecks().VisitProgram(program);
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Annotating blocks...");
+      }
       var annotator = new AnnotationVisitor();
       program = annotator.VisitProgram(program);
       ImplementationToTarget = annotator.ImplementationToTarget;
@@ -49,6 +64,9 @@ namespace DafnyTestGeneration {
       if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl, 
           GetStringRepresentation(program));
+      }
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Generating modifications...");
       }
       return GetModifications(program);
     }
