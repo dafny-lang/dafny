@@ -26,7 +26,7 @@ jobs:
           osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
-    # Java is installed by default, but we need to select 1.8
+    # Java is installed by default, but we need to select 18
 
     steps:
     - name: OS
