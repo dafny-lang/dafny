@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ReadsRequiresReads {
@@ -138,5 +138,131 @@ module ReadsOnFunctions {
   {
     var g := f.requires;
     assert g.reads(10) == f.reads(10);
+  }
+}
+
+module FuncCollectionRegressions {
+  class C {
+    var x: int
+    var y: int
+  }
+
+  function F(st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>): int
+    reads st
+    reads ss
+    reads sq
+    reads ms
+
+  method CallF0(c: C, st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>)
+    requires c !in st && c !in ss && c !in sq && c !in ms
+    modifies c
+  {
+    var a := F(st, ss, sq, ms);
+    c.x := c.y + 3;
+    var b := F(st, ss, sq, ms);
+    assert a == b;
+  }
+
+  method CallF1(c: C, st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>)
+    requires c !in ss && c !in sq && c !in ms
+    modifies c
+  {
+    var a := F(st, ss, sq, ms);
+    c.x := c.y + 3;
+    var b := F(st, ss, sq, ms);
+    assert a == b; // error: F may have changed
+  }
+
+  method CallF2(c: C, st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>)
+    requires c !in st && c !in sq && c !in ms
+    modifies c
+  {
+    var a := F(st, ss, sq, ms);
+    c.x := c.y + 3;
+    var b := F(st, ss, sq, ms);
+    assert a == b; // error: F may have changed
+  }
+
+  method CallF3(c: C, st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>)
+    requires c !in st && c !in ss && c !in ms
+    modifies c
+  {
+    var a := F(st, ss, sq, ms);
+    c.x := c.y + 3;
+    var b := F(st, ss, sq, ms);
+    assert a == b; // error: F may have changed
+  }
+
+  method CallF4(c: C, st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>)
+    requires c !in st && c !in ss && c !in sq
+    modifies c
+  {
+    var a := F(st, ss, sq, ms);
+    c.x := c.y + 3;
+    var b := F(st, ss, sq, ms);
+    assert a == b; // error: F may have changed
+  }
+
+  function A0(): set<C>
+  function A1(): iset<C>
+  function A2(): seq<C>
+  function A3(): multiset<C>
+
+  function G(): int
+    reads A0
+    reads A1
+    // regression: the following line once caused malformed Boogie
+    reads A2
+    // regression: the following line once caused malformed Boogie
+    reads A3
+
+  method P0(c: C)
+    requires c !in A0() && c !in A1() && c !in A2() && c !in A3()
+    modifies c
+  {
+    var a := G();
+    c.x := c.y + 3;
+    var b := G();
+    assert a == b;
+  }
+
+  method P1(c: C)
+    requires c !in A1() && c !in A2() && c !in A3()
+    modifies c
+  {
+    var a := G();
+    c.x := c.y + 3;
+    var b := G();
+    assert a == b; // error: G may have changed
+  }
+
+  method P2(c: C)
+    requires c !in A0() && c !in A2() && c !in A3()
+    modifies c
+  {
+    var a := G();
+    c.x := c.y + 3;
+    var b := G();
+    assert a == b; // error: G may have changed
+  }
+
+  method P3(c: C)
+    requires c !in A0() && c !in A1() && c !in A3()
+    modifies c
+  {
+    var a := G();
+    c.x := c.y + 3;
+    var b := G();
+    assert a == b; // error: G may have changed
+  }
+
+  method P4(c: C)
+    requires c !in A0() && c !in A1() && c !in A2()
+    modifies c
+  {
+    var a := G();
+    c.x := c.y + 3;
+    var b := G();
+    assert a == b; // error: G may have changed
   }
 }

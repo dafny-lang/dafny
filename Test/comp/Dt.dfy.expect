@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -18,7 +18,7 @@ false
 42 q hello
 1701
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -37,7 +37,7 @@ false
 42 q hello
 1701
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -56,7 +56,7 @@ false
 42 q hello
 1701
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))

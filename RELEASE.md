@@ -2,8 +2,8 @@
 
 ## Making a new Github release
 
-0. Write release notes about changes since the last release in
-   `RELEASE_NOTES.md`.
+0. Check that there are no open issues with the `release-blocker` label:
+   https://github.com/dafny-lang/dafny/issues?q=is%3Aopen+is%3Aissue+label%3Arelease-blocker
 
 1. In an up-to-date repository, with the `master` branch checked out and
    up-to-date (e.g., after `git pull upstream`), checkout a new branch
@@ -16,50 +16,70 @@
    "3.0.0.30203"). The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
-   x.y.z.40112). Edit the internal version number in
-   `Source/version.cs`. Push and merge that change to the `master`
-   branch.
+   x.y.z.40112). Edit the internal version number in the following
+   places:
 
-3. Run `Scripts/package.py $VER` (on a Linux or macOS system).
-   Warnings about missing fonts can be ignored. Note: This step requires
-   that you have installed pandoc, see:
+   * `Source/version.cs`
 
-   <https://github.com/dafny-lang/dafny/wiki/INSTALL#building-the-reference-manual>
+   * `Source/DafnyDriver/DafnyDriver.csproj`
 
-4. Run `Scripts/publish-release.sh $VER` to create the GitHub release
-   and upload files to it. You will need to have a GitHub Personal
-   Authorization token stored in `~/github.token`. Also, this step
-   requires the `jq` utility, which you can install with `brew install
-   jq` on macOS (see <https://stedolan.github.io/jq/download/>). Note:
-   Each upload of this step can take a couple of minutes, so be patient.
+   * `Source/Dafny/DafnyPipeline.csproj`
 
-5. On the GitHub releases page, edit the new release to add in the
-   release notes. Also check the box to create a new discussion based on
-   the release.
+   Put the public version number in place of the "Upcoming" header in
+   `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
 
-6. Push the "Publish" button. If preparing a pre-release, stop here, as
+   Push and cut a PR, get it approved, and squash and merge those
+   changes to the `master` branch.
+
+3. Kick off the deep test suite by navigating to
+   https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml,
+   clicking the "Run workflow" dropdown, ensuring `master` is selected,
+   and clicking the "Run workflow" button. The automation for releasing
+   below will check for a run of this workflow on the exact commit
+   to release.
+
+4. Create a fresh clone of the repo locally, making sure the latest commit
+   is the squashed commit you just merged and tested, and push the tag for this release.
+
+   ```
+   git clone git@github.com:dafny-lang/dafny.git dafny-for-tagging
+   cd dafny-for-tagging
+   git tag v<$VER>
+   git push v<$VER>
+   ```
+
+5. A GitHub action will automatically run in reaction to the tag being pushed,
+   which will build the artifacts and reference manual and then create a draft
+   GitHub release. You can find and watch the progress of this workflow at
+   https://github.com/dafny-lang/dafny/actions.
+
+6. Once the action completes, you should find the draft release at
+   https://github.com/dafny-lang/dafny/releases. Edit the release body
+   to add in the release notes from `RELEASE_NOTES.md`. 
+   Also check the box to create a new discussion based on
+   the release, if this is not a pre-release.
+
+7. Push the "Publish" button. This will trigger yet another workflow
+   that will download the published artifacts and run a smoke test
+   on multiple platforms. Again you can watch for this workflow at
+   https://github.com/dafny-lang/dafny/actions.
+
+8. Manually trigger the "Test NuGet Tool Installation" workflow on the
+   `master` branch (following the same process as for step 3).
+
+9. If preparing a pre-release, stop here, as
    the following steps declare the release as the latest version, which
    is not the intention.
 
-7. Edit `.github/workflows/release-downloads.yml` to set the for the
-   `ver` variable to the value of `$VER`. Then commit this file along
-   with any of those modified by the previous scripts, which may include
-
-        .github/workflows/release-downloads,yml
-        docs/DafnyRef/DafnyRef.pdf
-        docs/DafnyRef/Options.txt
-
-   Push the commit with `git push` and create a PR. The creation of a PR
-   will cause the CI tests to be run, which includes downloading the
-   most recent release (this one, once it is published) and running some
-   quick tests.
-
-8. If something goes wrong, delete the release in GitHub, fix the
+10. If something goes wrong, delete the tag and release in GitHub, fix the
    problem and try again.
 
-9. Update the Homebrew formula for Dafny (see below).
+11. Update the Homebrew formula for Dafny (see below).
+   Note that it is fine to leave this for the next day,
+   and other members of the community may update the formula
+   in the meantime anyway.
 
-10. Announce the new release to the world.
+12. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
@@ -135,3 +155,31 @@ with git commands and concepts is helpful.
 9. If everything works you can, at your leisure do
 
         git branch -d <the branch name>
+
+## Updating and releasing a new version of VSCode plugin
+
+1. Build ide-vscode locally from https://github.com/dafny-lang/ide-vscode .
+
+2. Prepare the repository:
+
+       git checkout master
+       git pull origin
+       git checkout -b <some new branch name>
+
+3. Add the new Dafny version number to the `dafny.preferredVersion` list in the `package.json` file.
+
+4. Update the value of the constant `LatestVersion` in the file `src/constants.ts` to the new version number.
+
+5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
+
+6. Select a new version number `$VER` for the plugin (e.g. "2.4.0") and change the value of the constant `version` in the file `package.json`
+   to `$VER` and commit the changes.
+
+7. Then tag and push the changes:
+
+       git tag v<$VER>
+       git push v<$VER>
+
+8. Create a pull request and, once merged, a GitHub action will automatically run in reaction to the tag being pushed to master, which will create a new release in the VSCode marketplace.
+
+9. Announce the release to the world.

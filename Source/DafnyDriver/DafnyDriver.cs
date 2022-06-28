@@ -124,13 +124,13 @@ namespace Microsoft.Dafny {
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
       } else if (options.Files.Count == 0) {
-        options.Printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
+        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified.");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
         string errMsg = options.XmlSink.Open();
         if (errMsg != null) {
-          options.Printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
+          options.Printer.ErrorWriteLine(Console.Error, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files) {
+      foreach (string file in options.Files.Concat(options.LibraryFiles)) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -152,6 +152,9 @@ namespace Microsoft.Dafny {
         bool isDafnyFile = false;
         try {
           var df = new DafnyFile(file);
+          if (options.LibraryFiles.Contains(file)) {
+            df.IsPrecompiled = true;
+          }
           if (!filesSeen.Add(df.CanonicalPath)) {
             continue; // silently ignore duplicate
           }
@@ -202,7 +205,7 @@ namespace Microsoft.Dafny {
       ReadOnlyCollection<string> otherFileNames,
       ErrorReporter reporter, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
-      var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
+      var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
       if (DafnyOptions.O.TestGenOptions.WarnDeadCode) {
@@ -304,7 +307,7 @@ namespace Microsoft.Dafny {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
 
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
 
         if (DafnyOptions.O.PrintFile != null) {
 
@@ -558,8 +561,8 @@ namespace Microsoft.Dafny {
       }
 
       // Compile the Dafny program into a string that contains the target program
-      var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
-      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.reporter, otherFileNames);
+      var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
+      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
       var compiler = DafnyOptions.O.Compiler;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -575,14 +578,14 @@ namespace Microsoft.Dafny {
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
-        output.Render(targetProgramTextWriter, 0, writerOptions, files);
+        output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
           var file = files.Dequeue();
           var otherFileWriter = new StringWriter();
           writerOptions.HasNewLine = false;
-          file.Tree.Render(otherFileWriter, 0, writerOptions, files);
+          file.Tree.Render(otherFileWriter, 0, writerOptions, files, compiler.TargetIndentSize);
           otherFiles.Add(file.Filename, otherFileWriter.ToString());
         }
       }
@@ -594,7 +597,7 @@ namespace Microsoft.Dafny {
         callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main
       }
       Contract.Assert(hasMain == (callToMain != null));
-      bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;
+      bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
       compiler.OnPostCompile();
 

@@ -293,11 +293,11 @@ reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "const" | "constructor" | "copredicate" |
+    "const" | "constructor" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "export" | "extends" |
     "false" | "forall" | "fresh" | "function" | "ghost" |
-    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" |
@@ -512,8 +512,8 @@ A `CIdentType` is used for a `const` declaration. The Type is optional because i
 the initializer.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" } IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
+    { "ghost" | "new" | "nameonly" | "older" } IdentType
     [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
@@ -523,6 +523,11 @@ If `allowGhostKeyword` is false, then `ghost` is not allowed.
 If `allowNewKeyword` is false, then `new` is not allowed.
 If `allowNameOnlyKeyword` is false, then `nameonly` is not allowed.
 If `allowDefault` is false, then `:= Expression` is not allowed.
+
+`older` is a context-sensitive keyword. It is recognized as a keyword only by `GIdentType` and
+only when `allowOlderKeyword` is true. If `allowOlderKeyword` is false, then a use of `older`
+is parsed by the `IdentType` production in `GIdentType`.
+
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
@@ -556,7 +561,67 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### 2.6.5. Numeric Literals
+### 2.6.5. Quantifier Domains {#sec-quantifier-domains}
+
+Several Dafny constructs bind one or more variables to a range of possible values.
+For example, the quantifier `forall x: nat | x <= 5 :: x * x <= 25` has the meaning
+"for all integers x between 0 and 5, the square of x is at most 25".
+Similarly, the set comprehension `set x: nat | x <= 5 :: f(x)` can be read as
+"the set containing the result of applying f to x, for each integer x between 0 and 5".
+The common syntax that specifies the bound variables and what values they take on
+is known as the *quantifier domain*; in the previous examples this is `x: nat | x <= 5`, 
+which binds the variable `x` to the values `0`, `1`, `2`, `3`, `4`, and `5`.
+
+Here are some more examples.
+
+- `x: byte` (where `type byte = x | 0 <= x < 256`)
+- `x: nat | x <= 5`
+- `x <- integerSet`
+- `x: nat <- integerSet`
+- `x: nat <- integerSet | x % 2 == 0`
+- `x: nat, y: nat | x < 2 && y < 2`
+- `x: nat | x < 2, y: nat | y < x`
+- `i | 0 <= i < |s|, y <- s[i] | i < y`
+
+A quantifier domain declares one or more *quantified variables*, separated by commas.
+Each variable declaration can be nothing more than a variable name, but it 
+may also include any of three optional elements:
+
+1. The optional syntax `: T` declares the type of the quantified variable.
+   If not provided, it will be inferred from context.
+
+2. The optional syntax `<- C` attaches a collection expression `C` as a *quantified variable domain*.
+   Here a collection is any value of a type that supports the `in` operator, namely sets, multisets, maps, and sequences.
+   The domain restricts the bindings to the elements of the collection: `x <- C` implies `x in C`.
+   The example above can also be expressed as `var c := [0, 1, 2, 3, 4, 5]; forall x <- c :: x * x <= 25`.
+
+3. The optional syntax `| E` attaches a boolean expression `E` as a *quantified variable range*,
+   which restricts the bindings to values that satisfy this expression.
+   In the example above `x <= 5` is the range attached to the `x` variable declaration.
+
+Note that a variable's domain expression may reference any variable declared before it,
+and a variable's range expression may reference the attached variable (and usually does) and any variable declared before it.
+For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the expression `s[i]` is well-formed
+because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
+
+Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
+the `/functionSyntax:4` option needs to be provided to enable this feature (See [Section 24.10.5](#sec-controlling-language)).
+
+The general production for quantifier domains is:
+
+````grammar
+QuantifierDomain(allowLemma, allowLambda) =
+    QuantifierVarDecl(allowLemma, allowLambda) 
+    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+
+QuantifierVarDecl(allowLemma, allowLambda) =
+    IdentTypeOptional
+    [ <- Expression(allowLemma, allowLambda) ]
+    { Attribute }
+    [ | Expression(allowLemma, allowLambda) ]
+````
+
+### 2.6.6. Numeric Literals
 ````grammar
 Nat = ( digits | hexdigits )
 ````
@@ -566,4 +631,3 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-
