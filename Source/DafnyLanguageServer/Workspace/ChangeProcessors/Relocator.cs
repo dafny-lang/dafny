@@ -26,6 +26,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
     }
 
+    public Range? RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
+    }
+
     public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
@@ -35,11 +39,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
+      int lines,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
-        .MigrateVerificationTree(originalVerificationTree.Children);
+      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
+      var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
+        Range = DocumentVerificationTree.LinesToRange(lines),
         StatusCurrent = CurrentStatus.Obsolete
       };
     }
@@ -78,6 +84,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
           return MigratePosition(position, change);
         });
+      }
+
+      public Range? MigrateRange(Range range) {
+        return contentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
+          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
@@ -203,7 +214,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
       }
 
-      private Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
+      public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
         if (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!)) {
           // Do not migrate ranges that partially overlap with the change
           return null;
@@ -298,10 +309,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return null;
       }
 
-      public IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
+      public IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
       }
-      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
+      private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
           yield break;
         }
@@ -313,7 +324,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
           var newNodeDiagnostic = verificationTree with {
             Range = newRange,
-            Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
+            Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
             StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,

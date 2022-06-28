@@ -98,6 +98,11 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
    :");
   }
 
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresDefaultArgumentsShowsError() {
+    await VerifyTrace(@"
+ .  S [~][=]:datatype D = T(i: nat := -2)");
+  }
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
@@ -106,5 +111,29 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  |  |  | :ghost const a := [1, 2];
     |  |  | :
  .  S [~][=]:ghost const b := a[-1];");
+  }
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresAddingNewlinesMigratesPositions() {
+    await VerifyTrace(@"
+ .  S [S][ ][I][S][S][ ][I][S][S][ ]:method f(x: int) {
+ .  S [S][ ][I][S][S][ ][I][S][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [=][=][I][S][S][ ][I][S][S][ ]:  assert x == 2; }
+            [-][~][=][=][I][S][S][ ]:
+                        [-][~][=][=]:");
+  }
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresWorkWithInformationsAsWell() {
+    await VerifyTrace(@"
+ .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
+ .  S [S][ ][I][S][S][ ]:ensures
+ .  S [=][=][-][~][=][=]:  x > 3 { y := x;
+ .  S [S][ ][I][S][S][ ]:  //Next1:\n
+ .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
+ .  S [S][ ][-][~][=][=]:    y := y + 1;
+ .  S [S][ ][I][S][S][ ]:  }
+ .  S [S][ ][I][S][S][ ]:}
+            [I][S][S][ ]:");
   }
 }

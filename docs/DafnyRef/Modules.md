@@ -422,73 +422,89 @@ its value is known and the assertion can be proved.
 The following table shows which parts of a declaration are exported by an
 export set that `provides` or `reveals` the declaration.
 
- declaration    | what is exported with `provides`  | what is exported with `reveals`
---------------------|----------------|-----------------------------------------------
-`const x: X := E`   | `const x: X`   | `const x: X := E`
---------------------|----------------|-------------------
-`var x: X`          | `var x: X`     | not allowed
------------------------|-----------------------|----------------------
-`function F(x: X): Y`  | `function F(x: X): Y` | `function F(x: X): Y`
-`  specification...`   | `  specification...`  | `  specification...`
-`{`                    |                       | `{`
-`  Body`               |                       | `  Body`
-`}`                    |                       | `}`
------------------------|-----------------------|-------------------------------
-`method M(x: X) returns (y: Y)` | `method M(x: X) returns (y: Y)` | not allowed
-`  specification...`            | `  specification...`            |
-`{`                             |                                 |
-`  Body;`                       |                                 |
-`}`                             |                                 |
-----------------------|----------------|-------------------
-`type Opaque`         | `type Opaque`  | `type Opaque`
-`{`                   |                |
-`  // members...`     |                |
-`}`                   |                |
-----------------------|----------------|-------------------
-`type Synonym = T`    | `type Synonym` | `type Synonym = T`
----------------------|--------------|----------------------
-`type S = x: X | P witness E`    | `type S` | `type S = x: X | P witness E`
----------------------------------|----------|---------------------------------
-`newtype N = x: X | P witness E` | `type N` | `newtype N = x: X | P witness E`
-`{`                              |          |
-`  // members...`                |          |
-`}`                              |          |
--------------------------------|--------|-------------------------------
-`datatype D = Ctor0(x0: X0) | Ctor1(x1: X1) | ...` | `type D` | `datatype D = Ctor0(x0: X0) | Ctor1(x1: X1) | ...`
-`{`                                                |          |
-`  // members...`                                  |          |
-`}`                                                |          |
--------------------------|---------|-------------------------------
-`class Cl extends T0, ...` | `type Cl` | `class Cl extends T0, ...`
-`{`                        |           | `{`
-`  constructor ()`         |           | `  constructor ()`
-`    specification...`     |           | `    specification...`
-`  {`                      |           | 
-`    Body;`                |           | 
-`  }`                      |           | 
-`  // other members...`    |           | 
-`}`                        |           | `}`
--------------------------|---------|-------------------------------
-`trait Tr extends T0, ...` | `type Tr` | `trait Tr extends T0, ...`
-`{`                        |           |
-`  // members...`          |           |
-`}`                        |           |
-------------------------------------|-------------|------------------------------------
-`iterator Iter(x: X) yields (y: Y)` | `type Iter` | `iterator Iter(x: X) yields (y: Y)`
-`  specification...`                |             | `  specification...`
-`{`                                 |             |
-`  Body;`                           |             |
-`}`                                 |             |
------------------------|--------------|----------------------
-`module SubModule ...`   | `module SubModule ...`   | not allowed
-`{`                      | `{`                      |
-`  export SubModule ...` | `  export SubModule ...` |
-`  export A ...`         |                          |
-`  // declarations...`   | `  // declarations...`   |
-`}`                      | `}`                      |
------------------------|------------------------|------------
-``import L = M`S``     | ``import L = M`S``     | not allowed
------------------------|------------------------|------------
+```
+ declaration         | what is exported    | what is exported
+                     | with provides       | with reveals
+---------------------|---------------------|---------------------
+ const x: X := E     | const x: X          | const x: X := E
+---------------------|---------------------|---------------------
+ var x: X            | var x: X            | not allowed
+---------------------|---------------------|---------------------
+ function F(x: X): Y | function F(x: X): Y | function F(x: X): Y
+   specification...  |   specification...  |   specification...
+ {                   |                     | {
+   Body              |                     |   Body
+ }                   |                     | }
+---------------------|---------------------|---------------------
+ method M(x: X)      | method M(x: X)      | not allowed
+   returns (y: Y)    |   returns (y: Y)    |
+   specification...  |   specification...  |
+ {                   |                     |
+   Body;             |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ type Opaque         | type Opaque         | type Opaque
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ type Synonym = T    | type Synonym        | type Synonym = T
+---------------------|---------------------|---------------------
+ type S = x: X       | type S              | type S = x: X
+   | P witness E     |                     |   | P witness E
+---------------------|---------------------|---------------------
+ newtype N = x: X    | type N              | newtype N = x: X
+   | P witness E     |                     |   | P witness E
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+```
+```
+---------------------|---------------------|---------------------
+ datatype D =        | type D              | datatype D =
+     Ctor0(x0: X0)   |                     |    Ctor0(x0: X0)
+   | Ctor1(x1: X1)   |                     |  | Ctor1(x1: X1)
+   | ...             |                     |  | ...
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ class Cl            | type Cl             | class Cl
+   extends T0, ...   |                     |   extends T0, ...
+ {                   |                     | {
+   constructor ()    |                     |   constructor ()
+     spec...         |                     |     spec...
+   {                 |                     |
+     Body;           |                     |
+   }                 |                     |
+   // members...     |                     |
+ }                   |                     | }
+---------------------|---------------------|---------------------
+ trait Tr            | type Tr             | trait Tr
+   extends T0, ...   |                     |   extends T0, ...
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ iterator Iter(x: X) | type Iter           | iterator Iter(x: X)
+   yields (y: Y)     |                     |   yields (y: Y)
+   specification...  |                     |   specification...
+ {                   |                     |
+   Body;             |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ module SubModule    | module SubModule    | not allowed
+   ...               |   ...               |
+ {                   | {                   |
+   export SubModule  |   export SubModule  |
+     ...             |     ...             |
+   export A ...      |                     |
+   // decls...       |   // decls...       |
+ }                   | }                   |
+---------------------|---------------------|---------------------
+ import L = MS       | import L = MS       | not allowed
+---------------------|---------------------|---------------------
+ ```
 
 Variations of functions (e.g., `predicate`, `twostate function`) are
 handled like `function` above, and variations of methods (e.g.,

@@ -19,8 +19,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxTestExecutionTimeMs = 240_000;
     private const int MaxRequestExecutionTimeMs = 180_000;
 
-    private IDictionary<string, string> configuration;
-
     // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
     // Since these tests are slow, we do not use the timeout here.
     private CancellationTokenSource cancellationSource;
@@ -34,16 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
-    }
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      await SetUp();
-    }
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -127,7 +115,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
@@ -143,7 +131,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
 
     /// <summary>

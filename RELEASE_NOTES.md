@@ -1,9 +1,26 @@
 # Upcoming
 
-- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
-- fix: No more display of previous obsolete verification diagnostics if newer are available. (https://github.com/dafny-lang/dafny/pull/2142)
+- fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
+- fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
+
+# 3.7.1
+
+- fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
+
+
+# 3.7.0
+
+- feat: The Dafny CLI, Dafny as a library, and the C# runtime are now available on NuGet. You can install the CLI with `dotnet tool install --global Dafny`. The library is available as `DafnyPipeline` and the runtime is available as `DafnyRuntime`. (https://github.com/dafny-lang/dafny/pull/2051)
+- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
+- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified. (https://github.com/dafny-lang/dafny/pull/2142)
+- feat: Added "Resolving..." message for IDE extensions (https://github.com/dafny-lang/dafny/pull/2234)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
+- fix: Correctly specify the type of the receiver parameter when translating tail-recursive member functions to C# (https://github.com/dafny-lang/dafny/pull/2205)
+- fix: Added support for type parameters in automatically generated tests (https://github.com/dafny-lang/dafny/pull/2227)
+- fix: No more display of previous obsolete verification diagnostics if newer are available (https://github.com/dafny-lang/dafny/pull/2142)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
+- fix: Various improvements to language server robustness (https://github.com/dafny-lang/dafny/pull/2254)
+
 
 # 3.6.0
 
@@ -32,6 +49,7 @@
 - feat: The new `older` modifier on arguments to predicates indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. For more information, see the reference manual section on `older`. (https://github.com/dafny-lang/dafny/pull/1936)
 - fix: Fix `(!new)` checks (https://github.com/dafny-lang/dafny/issues/1419)
 - fix: multiset keyword no longer crashes the parser (https://github.com/dafny-lang/dafny/pull/2079)
+
 
 # 3.5.0
 

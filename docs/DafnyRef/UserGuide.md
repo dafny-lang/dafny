@@ -395,6 +395,8 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   <br><br>`assert forall i | 0 < i <= m :: P(i);` |  `assert forall i | 0 < i < m :: P(i);`<br>`assert forall i | i == m :: P(i);`<br>`assert forall i | 0 < i <= m :: P(i);`<br><br>
   <br><br>`assert forall i | i == m :: P(m);` |  `assert P(m);`<br>`assert forall i | i == m :: P(i);`
   `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br><br><br>&nbsp;&nbsp;`  var x := m(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  assert forall x :: B(k, x) ==> P(x);`<br>&nbsp;&nbsp;`  var x := m(k);`<br>&nbsp;&nbsp;`  assert P(x);`
+  `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br><br><br><br><br>&nbsp;&nbsp;`  var x: m_mod(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  modify this, i; // Temporarily`<br>&nbsp;&nbsp;`  var x := T;     // Temporarily`<br>&nbsp;&nbsp;`  assume B(k, x);`<br>&nbsp;&nbsp;`//  var x := m_mod(k);`<br>&nbsp;&nbsp;`  assert P(x);`
+  <br>`modify x, y;`<br>`assert P(x, y, z);` | `assert x != z && y != z;`<br>`modify x, y;`<br>`assert P(x, y, z);`
 
 ### 24.8.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
@@ -739,7 +741,7 @@ There are many great options that control various aspects of verifying dafny pro
 - Control of output: [`/dprint`](#sec-controlling-output), [`/rprint`](#sec-controlling-output), `/stats`, [`/compileVerbose`](#sec-controlling-compilation)
 - Whether to print warnings: `/proverWarnings`
 - Control of time: `/timeLimit`
-- Control of resources: `/rLimit` and `{:rlimit}`
+- Control of resources: `/rLimit` and [`{:rlimit}`](#sec-rlimit)
 - Control of the prover used: `/prover`
 - Control of how many times to _unroll_ functions: [`{:fuel}`](#sec-fuel)
 
@@ -805,9 +807,101 @@ If no legal candidate entry point is identified, `dafny` will still produce exec
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
-### 24.9.2. extern declarations
+### 24.9.2. `extern` declarations {#sec-extern-decls}
 
-TO BE WRITTEN
+A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
+indicate that it refers to an external definition that is already
+present in the language that the Dafny code will be compiled to (or will
+be present by the time the final target-language program is compiled or
+run).
+
+Because the [`{:extern}`](#sec-extern) attribute controls interaction with code written
+in one of many languages, it has some language-specific behavior,
+documented in the following sections. However, some aspects are
+target-language independent and documented here.
+
+The attribute can also take several forms, each defining a different
+relationship between a Dafny name and a target language name. In the
+form [`{:extern}`](#sec-extern), the name of the external definition is
+assumed to be the name of the Dafny declaration after some
+target-specific name mangling. However, because naming conventions (and
+the set of allowed identifiers) vary between languages, Dafny allows
+additional forms for the `{:extern}` attribute.
+
+The form `{:extern <s1>}` instructs Dafny to compile references to most
+declarations using the name `s1` instead of the Dafny name. For [opaque
+types](#sec-opaque-types), however, `s1` is sometimes used as a hint as
+to how to declare that type when compiling. This hint is interpreted
+differently by each compiler.
+
+Finally, the form `{:extern <s1>, <s2>}` instructs Dafny to use `s2` as
+the direct name of the declaration. Dafny will typically use a
+combination of `s1` and `s2`, such as `s1.s2`, to reference the
+declaration. It may also be the case that one of the arguments is simply
+ignored, depending on the target language.
+
+The recommended style is to prefer `{:extern}` when possible, and use
+similar names across languages. This is usually feasible because
+existing external code is expected to have the same interface as the
+code that Dafny would generate for a declaration of that form. Because
+many Dafny types compile down to custom types defined in the Dafny
+runtime library, it's typically necessary to write wrappers by hand that
+encapsulate existing external code using a compatible interface, and
+those wrappers can have names chosen for compatibility. For example,
+retrieving the list of command line arguments when compiling to C\#
+requires a wrapper such as the following:
+
+``` cs
+using icharseq = Dafny.ISequence<char>;
+using charseq = Dafny.Sequence<char>;
+
+namespace Externs_Compile {
+  public partial class __default {
+    public static Dafny.ISequence<icharseq> GetCommandLineArgs() {
+      var dafnyArgs = Environment
+                      .GetCommandLineArgs()
+                      .Select(charseq.FromString);
+      return Dafny.Sequence<icharseq>.FromArray(dafnyArgs.ToArray());
+    }
+}
+```
+
+Note that Dafny does not check the arguments to `{:extern}`, so it is
+the user's responsibility to ensure that the provided names result in
+code that is well-formed in the target language.
+
+Most declarations, including those for modules, classes, traits, member
+variables, constructors, methods, function methods, and opaque types,
+can be marked with `{:extern}`.
+
+Marking a module with `{:extern}` indicates that the declarations
+contained within can be found within the given module, namespace, or
+similar construct within the target language. Some members of the Dafny
+module may contain definitions, in which case code for those definitions
+will be generated. Whether this results in valid target code may depend
+on some target language support for something resembling "partial"
+modules, where different subsets of the contents are defined in
+different places.
+
+The story for a classes is similar. Code for the class will be generated
+if any of its members are not `{:extern}`. Depending on the target
+language, making either all or none of the members `{:extern}` may be
+the only options that result in valid target code. Traits with
+`{:extern}` can refer to existing traits or interfaces in the target
+language, or can refer to the interfaces of existing classes.
+
+Member variables marked with `{:extern}` refer to fields or properties
+in existing target-language code. Constructors, methods, and function
+methods refer to the equivalent concepts in the target language. They
+can have contracts, which are then assumed to hold for the existing
+target-language code. They can also have bodies, but the bodies will not
+be compiled in the presence of the `{:extern}` attribute. Bodies can
+still be used for reasoning, however, so may be valuable in some cases,
+especially for function methods.
+
+Types marked with `{:extern}` must be opaque. The name argument, if any,
+usually refers to the type name in the target language, but some
+compilers treat it differently.
 
 ### 24.9.3. C\#
 
@@ -852,6 +946,76 @@ implementation.
   (https://github.com/dafny-lang/dafny/blob/master/Test/c++/functions.dfy).
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
+
+### 24.9.8. Supported features by target language
+
+Some Dafny features are not supported by every target language.
+The table below shows which features are supported by each backend.
+An empty cell indicated that a feature is not supported,
+while an X indicates that it is.
+
+Note that this information is currently based on code inspection
+and is not yet guaranteed to be updated as features and backends are modified,
+but such a mechanism is in the works.
+
+| Feature | C# | JavaScript | Go | Java | Python | C++ |
+|-|-|-|-|-|-|-|
+| [Unbounded integers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [Real numbers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [Ordinals](#sec-ordinals) |  X  |  X  |  X  |  X  |  X  |  |
+| [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  |  |
+| [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [User-defined types with traits as type parameters](#sec-trait-types) |  X  |  X  |  X  |  |  X  |  X  |
+| [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |
+| [Co-inductive datatypes](#sec-co-inductive-datatypes) |  X  |  X  |  X  |  X  |  |  |
+| [Multisets](#sec-multisets) |  X  |  X  |  X  |  X  |  |  |
+| [Runtime type descriptors](#) |  X  |  X  |  X  |  X  |  |  |
+| [Multi-dimensional arrays](#sec-multi-dimensional-arrays) |  X  |  X  |  X  |  X  |  X  |  |
+| [Map comprehensions](#sec-map-comprehension-expression) |  X  |  X  |  X  |  X  |  X  |  |
+| [Traits](#sec-trait-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [Let-such-that expressions](#sec-let-expression) |  X  |  X  |  X  |  X  |  X  |  |
+| [Non-native numeric newtypes](#sec-newtypes) |  X  |  X  |  X  |  X  |  X  |  |
+| [Method synthesis](#sec-synthesize-attr) |  X  |  |  |  |  |  |
+| [External classes](#sec-extern-decls) |  X  |  X  |  X  |  X  |  X  |  |
+| [Instantiating the `object` type](#sec-object-type) |  X  |  X  |  X  |  X  |  X  |  |
+| [`forall` statements that cannot be sequentialized](#sec-forall-statement)[^compiler-feature-forall-note] |  X  |  X  |  X  |  X  |  |  |
+| [Taking an array's length](#sec-array-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [`m.Items` when `m` is a map](#sec-maps) |  X  |  X  |  X  |  X  |  X  |  |
+| [The /runAllTests option](#sec-test-attribute) |  X  |  X  |  X  |  X  |  X  |  |
+| [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  X  |
+| [Exact value constraints in quantifiers (`x == C`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  |
+| [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |
+| [Type test expressions (`x is T`)](#sec-as-expression) |  X  |  X  |  X  |  X  |  X  |  |
+| [Type test expressions on subset types](#sec-as-expression) |  |  |  |  |  |  |
+| [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |
+| [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |
+| [`for` loops](#sec-for-loops) |  X  |  X  |  X  |  X  |  |  X  |
+| [`continue` statements](#sec-break-continue) |  X  |  X  |  X  |  X  |  |  X  |
+| [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^compiler-infinite-assign-such-that-note] |  X  |  X  |  X  |  X  |  |  X  |
+| [Sequence update expressions](#sec-other-sequence-expressions) |  X  |  X  |  X  |  X  |  |  X  |
+| [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^compiler-sequence-display-nolambda-note] |  X  |  X  |  X  |  X  |  |  X  |
+| [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |
+| [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
+| [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
+| [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
+
+[^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
+    with the statement's body directly inside. The alternative, default compilation strategy
+    is to calculate the quantified variable bindings separately as a collection of tuples,
+    and then execute the statement's body for each tuple.
+    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
+    for details.
+
+[^compiler-sequence-display-of-characters-note]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as "Hello".
+
+[^compiler-infinite-assign-such-that-note]: This refers to assign-such-that statements with multiple variables,
+    and where at least one variable has potentially infinite bounds.
+    For example, the implementation of the statement `var x: nat, y: nat :| 0 < x && 0 < y && x*x == y*y*y + 1;`
+    needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.
+
+[^compiler-sequence-display-nolambda-note]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
+    but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
 
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}
 
@@ -1024,6 +1188,19 @@ older versions of Dafny.
   * `experimentalPredicateAlwaysGhost` - compiled functions are written
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
+
+* `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
+    The syntax for quantification domains is changing from Dafny version 3 to version 4,
+    more specifically where quantifier ranges (`| <Range>`) are allowed.
+    This switch gives early access to the new syntax.
+
+    * `3` (default) - Ranges are only allowed after all quantified variables are declared.
+        (e.g. `set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y`)
+    * `4` - Ranges are allowed after each quantified variable declaration.
+        (e.g. `set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y`)
+
+    Note that quantifier variable domains (`<- <Domain>`) are available
+    in both syntax versions.
 
 * `-disableScopes` - treat all export sets as `export reveal *` to never
     hide function bodies or type definitions during translation.
@@ -1264,7 +1441,7 @@ and what information it produces about the verification process.
     associativity of `*`.
 
 * `-autoTriggers:<n>` - control automatic generation of `{:trigger}`
-  annotations. See Section [#sec-trigger]. The value of `<n>` can be one
+  annotations. See [triggers](#sec-trigger). The value of `<n>` can be one
   of the following.
 
   * `0` - do not generate `{:trigger}` annotations for user-level
@@ -1274,7 +1451,7 @@ and what information it produces about the verification process.
     quantifier. Existing annotations are preserved.
 
 * `-rewriteFocalPredicates:<n>` - control rewriting of predicates in the
-  body of prefix lemmas. See Section [#sec-nicer-proofs-of-extremes].
+  body of prefix lemmas. See [the section about nicer extreme proofs](#sec-nicer-proofs-of-extremes).
   The value of `<n>` can be one of the following.
 
   * `0` - don't rewrite predicates in the body of prefix lemmas.

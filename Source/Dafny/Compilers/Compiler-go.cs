@@ -68,11 +68,12 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
+
+      var rt = wr.NewFile("dafny/dafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var rt = wr.NewFile("dafny/dafny.go");
-      ReadRuntimeSystem("DafnyRuntime.go", rt);
     }
 
     const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";
@@ -309,7 +310,8 @@ namespace Microsoft.Dafny.Compilers {
       return cw;
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       //
       // type Trait interface {
       //   AbstractMethod0(param0 type0, ...) returnType0
@@ -2778,8 +2780,9 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
-        Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ref ConcreteSyntaxTree wStmts) {
       Contract.Assert(boundVars.Count == boundTypes.Count);
       wr.Write("(func (");
       for (int i = 0; i < boundVars.Count; i++) {
@@ -2822,8 +2825,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wStmts = w.Fork();
       w.Write("return ");
       wrBody = w.Fork();
       w.WriteLine();
@@ -3309,8 +3313,9 @@ namespace Microsoft.Dafny.Compilers {
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = idGenerator.FreshId("coer");
-        // wStmts == null is fine as there should not be anything writen to it
-        CreateIIFE(bvName, fat, tok, tat, tok, wr, null, out var ans, out wr);
+        // Nothing interesting should be written to wStmts
+        var blackHole = new ConcreteSyntaxTree();
+        CreateIIFE(bvName, fat, tok, tat, tok, wr, ref blackHole, out var ans, out wr);
 
         wr.Write("func (");
         var sep = "";

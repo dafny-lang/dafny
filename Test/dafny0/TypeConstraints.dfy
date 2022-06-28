@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {

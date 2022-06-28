@@ -43,6 +43,8 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
   [TestMethod]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
+    //Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.
+    //That way, it can rebuild the trace for every file independently.
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       result.Add(VerifyTrace(@"
  .  |  |  |  I  |  | :predicate F(i: int) {
@@ -58,8 +60,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       await result[i];
     }
-
-    //await Task.WhenAll(result.ToArray());
   }
 
 }
