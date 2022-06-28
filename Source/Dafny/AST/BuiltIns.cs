@@ -50,8 +50,6 @@ public class BuiltIns {
     // Arrow types of other dimensions may be added during parsing as the parser detects the need for these.  For the 0-arity
     // arrow type, the resolver adds a Valid() predicate for iterators, whose corresponding arrow type is conveniently created here.
     CreateArrowTypeDecl(0);
-    // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
-    // by the parser as the parser detects the need for these.
   }
 
   private Attributes DontCompile() {

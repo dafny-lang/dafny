@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        Reporter!.Error(MessageSource.Compiler, builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.");
+        Error(builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.", null);
       }
 
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
