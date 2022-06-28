@@ -36,66 +36,34 @@ namespace Microsoft.Dafny {
   }
 
   public record Token : IToken {
-    private int _kind;
-    private string _filename;
-    private int _pos;
-    private int _col;
-    private int _line;
-    private string _val;
-    private string _leadingTrivia;
-    private string _trailingTrivia;
     public Token next;
     public static readonly IToken NoToken = (IToken)new Token();
 
-    public Token() => this._val = "anything so that it is nonnull";
+    public Token() => this.val = "anything so that it is nonnull";
 
     public Token(int linenum, int colnum) {
-      this._line = linenum;
-      this._col = colnum;
-      this._val = "anything so that it is nonnull";
+      this.line = linenum;
+      this.col = colnum;
+      this.val = "anything so that it is nonnull";
     }
 
-    public int kind {
-      get => this._kind;
-      set => this._kind = value;
-    }
+    public int kind { get; set; }
 
-    public string filename {
-      get => this._filename;
-      set => this._filename = value;
-    }
+    public string filename { get; set; }
 
-    public int pos {
-      get => this._pos;
-      set => this._pos = value;
-    }
+    public int pos { get; set; }
 
-    public int col {
-      get => this._col;
-      set => this._col = value;
-    }
+    public int col { get; set; }
 
-    public int line {
-      get => this._line;
-      set => this._line = value;
-    }
+    public int line { get; set; }
 
-    public string val {
-      get => this._val;
-      set => this._val = value;
-    }
+    public string val { get; set; }
 
-    public string leadingTrivia {
-      get => this._leadingTrivia;
-      set => this._leadingTrivia = value;
-    }
+    public string leadingTrivia { get; set; }
 
-    public string trailingTrivia {
-      get => this._trailingTrivia;
-      set => this._trailingTrivia = value;
-    }
+    public string trailingTrivia { get; set; }
 
-    public bool IsValid => this._filename != null;
+    public bool IsValid => this.filename != null;
   }
 
 
