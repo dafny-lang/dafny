@@ -979,42 +979,42 @@ but such a mechanism is in the works.
 | [Method synthesis](#sec-synthesize-attr) |  X  |  |  |  |  |  |
 | [External classes](#sec-extern-decls) |  X  |  X  |  X  |  X  |  X  |  |
 | [Instantiating the `object` type](#sec-object-type) |  X  |  X  |  X  |  X  |  X  |  |
-| [`forall` statements that cannot be sequentialized](#sec-forall-statement)[^feature-note-1] |  X  |  X  |  X  |  X  |  |  |
+| [`forall` statements that cannot be sequentialized](#sec-forall-statement)[^compiler-feature-forall-note] |  X  |  X  |  X  |  X  |  |  |
 | [Taking an array's length](#sec-array-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [`m.Items` when `m` is a map](#sec-maps) |  X  |  X  |  X  |  X  |  X  |  |
 | [The /runAllTests option](#sec-test-attribute) |  X  |  X  |  X  |  X  |  X  |  |
 | [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  X  |
 | [Exact value constraints in quantifiers (`x == C`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  |
-| [Sequence displays of characters](#sec-sequence-displays)[^feature-note-2] |  X  |  X  |  X  |  X  |  X  |  |
+| [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |
 | [Type test expressions (`x is T`)](#sec-as-expression) |  X  |  X  |  X  |  X  |  X  |  |
 | [Type test expressions on subset types](#sec-as-expression) |  |  |  |  |  |  |
 | [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |
 | [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [`for` loops](#sec-for-loops) |  X  |  X  |  X  |  X  |  |  X  |
 | [`continue` statements](#sec-break-continue) |  X  |  X  |  X  |  X  |  |  X  |
-| [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^feature-note-3] |  X  |  X  |  X  |  X  |  |  X  |
+| [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^compiler-infinite-assign-such-that-note] |  X  |  X  |  X  |  X  |  |  X  |
 | [Sequence update expressions](#sec-other-sequence-expressions) |  X  |  X  |  X  |  X  |  |  X  |
-| [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^feature-note-4] |  X  |  X  |  X  |  X  |  |  X  |
+| [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^compiler-sequence-display-nolambda-note] |  X  |  X  |  X  |  X  |  |  X  |
 | [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |
 | [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
 
-[^feature-note-1]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
+[^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
     Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
     for details.
 
-[^feature-note-2]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as "Hello".
+[^compiler-sequence-display-of-characters-note]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `"Hello"`.
 
-[^feature-note-3]: This refers to assign-such-that statements with multiple variables,
+[^compiler-infinite-assign-such-that-note]: This refers to assign-such-that statements with multiple variables,
     and where at least one variable has potentially infinite bounds.
-    For example, the implementation of the statement `var x: nat, y: nat :| y != 0 && x / y == 10;`
+    For example, the implementation of the statement `var x: nat, y: nat :| 0 < x && 0 < y && x*x == y*y*y + 1;`
     needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.
 
-[^feature-note-4]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
+[^compiler-sequence-display-nolambda-note]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
     but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
 
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}

@@ -7,13 +7,15 @@ namespace Microsoft.Dafny;
 public class FeatureDescriptionAttribute : Attribute {
   public readonly string Description;
   public readonly string ReferenceManualSection;
-  public readonly string Notes;
+  public readonly string FootnoteIdentifier;
+  public readonly string Footnote;
 
 
-  public FeatureDescriptionAttribute(string description, string refmanSec, string notes = null) {
+  public FeatureDescriptionAttribute(string description, string refmanSec, string footnoteIdentifier = null, string footnote = null) {
     Description = description;
     ReferenceManualSection = refmanSec;
-    Notes = notes;
+    FootnoteIdentifier = footnoteIdentifier;
+    Footnote = footnote;
   }
 
   public static FeatureDescriptionAttribute GetDescription(Feature feature) {
@@ -89,7 +91,7 @@ public enum Feature {
   NewObject,
   
   [FeatureDescription("`forall` statements that cannot be sequentialized", "sec-forall-statement",
-    @"'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
+    "compiler-feature-forall-note", @"'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
@@ -113,7 +115,7 @@ public enum Feature {
   ExactBoundedPool,
   
   [FeatureDescription("Sequence displays of characters", "sec-sequence-displays",
-    "This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as \"Hello\".")]
+    "compiler-sequence-display-of-characters-note", "This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `\"Hello\"`.")]
   SequenceDisplaysOfCharacters,
   
   [FeatureDescription("Type test expressions (`x is T`)", "sec-as-expression")]
@@ -135,7 +137,7 @@ public enum Feature {
   ContinueStatements,
   
   [FeatureDescription("Assign-such-that statements with potentially infinite bounds", "sec-update-and-call-statement",
-    @"This refers to assign-such-that statements with multiple variables,
+    "compiler-infinite-assign-such-that-note", @"This refers to assign-such-that statements with multiple variables,
     and where at least one variable has potentially infinite bounds.
     For example, the implementation of the statement `var x: nat, y: nat :| y != 0 && x / y == 10;`
     needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.")]
@@ -145,7 +147,7 @@ public enum Feature {
   SequenceUpdateExpressions,
   
   [FeatureDescription("Sequence constructions with non-lambda initializers", "sec-sequence-displays",
-    @"Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
+    "compiler-sequence-display-nolambda-note", @"Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
     but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.")]
   SequenceConstructionsWithNonLambdaInitializers,
   

@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files) {
+      foreach (string file in options.Files.Concat(options.LibraryFiles)) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -152,6 +152,9 @@ namespace Microsoft.Dafny {
         bool isDafnyFile = false;
         try {
           var df = new DafnyFile(file);
+          if (options.LibraryFiles.Contains(file)) {
+            df.IsPrecompiled = true;
+          }
           if (!filesSeen.Add(df.CanonicalPath)) {
             continue; // silently ignore duplicate
           }
@@ -202,7 +205,7 @@ namespace Microsoft.Dafny {
       ReadOnlyCollection<string> otherFileNames,
       ErrorReporter reporter, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
-      var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
+      var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
       if (DafnyOptions.O.TestGenOptions.WarnDeadCode) {
