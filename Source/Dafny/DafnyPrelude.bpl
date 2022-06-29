@@ -1315,6 +1315,16 @@ axiom (forall<U, V> m: Map U V, m': Map U V::
   { Map#Equal(m, m') }
     Map#Equal(m, m') ==> m == m');
 
+// extensionality 2
+axiom (forall a: [Box]bool, b: [Box]Box, t0: Ty, t1: Ty :: 
+  { Map#Glue(a, b, TMap(t0, t1)) } 
+    (forall a2: [Box]bool, b2: [Box]Box, t2: Ty, t3: Ty ::
+    Map#Glue(a, b, TMap(t0, t1)) == Map#Glue(a2, b2, TMap(t2, t3))
+     <==> (forall u: Box :: a[u] == a2[u])
+       && (forall u: Box :: b[u] == b2[u])
+       && t0 == t2
+       && t1 == t3));
+
 function Map#Disjoint<U, V>(Map U V, Map U V): bool;
 axiom (forall<U, V> m: Map U V, m': Map U V ::
   { Map#Disjoint(m, m') }

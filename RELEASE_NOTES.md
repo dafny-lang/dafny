@@ -1,6 +1,7 @@
 # Upcoming
 
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
+- fix: Tautologies involving map comprehensions can now be proven (https://github.com/dafny-lang/dafny/pull/2317)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
 
 # 3.7.1
