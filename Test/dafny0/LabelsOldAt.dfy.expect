@@ -15,19 +15,19 @@ LabelsOldAt.dfy(195,25): Error: object might not be allocated in the old-state o
 LabelsOldAt.dfy(197,31): Error: object might not be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(207,31): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(236,14): Error: receiver might not be allocated in the state in which its fields are accessed
-LabelsOldAt.dfy(242,29): Error: object might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(244,29): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(260,15): Error: object might be null
-LabelsOldAt.dfy(261,15): Error: some set element might be null
-LabelsOldAt.dfy(262,15): Error: some sequence element might be null
-LabelsOldAt.dfy(266,15): Error: object might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(267,15): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(268,15): Error: some sequence element might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(271,15): Error: object might be null
-LabelsOldAt.dfy(271,15): Error: object might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(274,15): Error: some set element might be null
-LabelsOldAt.dfy(274,15): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(277,15): Error: some sequence element might be null
-LabelsOldAt.dfy(277,15): Error: some sequence element might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(244,29): Error: object might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(246,29): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(266,15): Error: object might be null
+LabelsOldAt.dfy(267,15): Error: some set element might be null
+LabelsOldAt.dfy(268,15): Error: some sequence element might be null
+LabelsOldAt.dfy(274,15): Error: object might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(275,15): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(276,15): Error: some sequence element might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(281,15): Error: object might be null
+LabelsOldAt.dfy(281,15): Error: object might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(286,15): Error: some set element might be null
+LabelsOldAt.dfy(286,15): Error: some set element might not be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(291,15): Error: some sequence element might be null
+LabelsOldAt.dfy(291,15): Error: some sequence element might not be allocated in the old-state of the 'unchanged' predicate
 
 Dafny program verifier finished with 3 verified, 31 errors
