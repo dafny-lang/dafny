@@ -2,7 +2,7 @@
 
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
-- fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (issue https://github.com/dafny-lang/dafny/issues/2307)
+- fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
 
 # 3.7.1
 
