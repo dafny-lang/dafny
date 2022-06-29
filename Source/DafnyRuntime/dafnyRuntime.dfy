@@ -1,5 +1,5 @@
 method HasTuples() {
-  var has0 := (0);
+  var has0 := ();
   var has1 := (1);
   var has2 := (1,2);
   var has3 := (1,2,3);
