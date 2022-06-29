@@ -354,14 +354,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="split">The split that was verified</param>
   /// <param name="result">The verification results for that split and per assert</param>
   public void ReportAssertionBatchResult(AssertionBatchResult batchResult) {
-    ReportAssertionBatchResult(batchResult.Split.Implementation, batchResult.Result);
-  }
-
-  public void ReportAssertionBatchResult(Implementation implementation, VCResult result) {
     if (document.LoadCanceled) {
       return;
     }
     lock (LockProcessing) {
+      var implementation = batchResult.Implementation;
+      var result = batchResult.Result;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
       if (targetMethodNode == null) {

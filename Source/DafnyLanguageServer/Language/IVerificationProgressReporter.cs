@@ -20,6 +20,5 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
     void ReportAssertionBatchResult(AssertionBatchResult batchResult);
-    void ReportAssertionBatchResult(Implementation implementation, VCResult batchResult);
   }
 }
