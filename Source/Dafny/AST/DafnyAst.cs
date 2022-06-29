@@ -10550,7 +10550,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression E0;
     public readonly Expression E1;
-    public readonly IToken CloseParens;
+    public readonly IToken CloseParen;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -10558,7 +10558,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(!SelectOne || E1 == null);
     }
 
-    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParens)
+    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(seq != null);
@@ -10568,9 +10568,9 @@ namespace Microsoft.Dafny {
       Seq = seq;
       E0 = e0;
       E1 = e1;
-      CloseParens = closeParens;
-      if (closeParens != null) {
-        FormatTokens = new[] { closeParens };
+      CloseParen = closeParen;
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
       }
     }
 
