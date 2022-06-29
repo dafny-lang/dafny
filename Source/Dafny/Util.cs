@@ -15,22 +15,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public static class Util {
 
-    public static IObservable<T> ToObservableSkipCancelled<T>(this Task<T> task) {
-      return Observable.Create<T>(observer => {
-        task.ContinueWith(t => {
-          if (t.Exception == null || t.IsCanceled) {
-            if (t.IsCompletedSuccessfully) {
-              observer?.OnNext(t.Result);
-            }
-            observer?.OnCompleted();
-          } else {
-            observer?.OnError(t.Exception);
-          }
-        });
-        return Disposable.Create(() => observer = null);
-      });
-    }
-
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
       return Select(task, f).Unwrap();
     }
@@ -460,12 +444,12 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.includerFilename == null ? "roots" : include.includerFilename;
+      string key = include.IncluderFilename ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.canonicalPath);
+        existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
+        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
       }
     }
 
