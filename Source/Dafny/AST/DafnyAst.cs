@@ -1798,7 +1798,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       type = type.NormalizeExpandKeepConstraints();
       List<Type> tower;
-      if (type is UserDefinedType {ResolvedClass: SubsetTypeDecl sst}) {
+      if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
         var parent = sst.RhsWithArgument(type.TypeArgs);
         tower = GetTowerOfSubsetTypes(parent);
       } else {
