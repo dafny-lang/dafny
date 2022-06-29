@@ -9158,6 +9158,8 @@ namespace Microsoft.Dafny {
 
     private RangeToken rangeToken;
 
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
     protected IToken[] FormatTokens = null;
 
     /// Creates a token on the entire range of the expression.
