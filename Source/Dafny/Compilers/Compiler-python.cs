@@ -975,9 +975,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         case Field: {
             return SimpleLvalue(w => {
-              if (NeedsCustomReceiver(member)) {
-                throw new NotImplementedException();
-              }
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.tok, member)); } else { obj(w); }
               w.Write($".{IdName(member)}");
             });
