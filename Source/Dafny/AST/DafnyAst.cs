@@ -1798,9 +1798,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       type = type.NormalizeExpandKeepConstraints();
       List<Type> tower;
-      if (type is UserDefinedType udt && udt.ResolvedClass is SubsetTypeDecl) {
-        var sst = (SubsetTypeDecl)udt.ResolvedClass;
-        var parent = sst.RhsWithArgument(udt.TypeArgs);
+      if (type is UserDefinedType {ResolvedClass: SubsetTypeDecl sst}) {
+        var parent = sst.RhsWithArgument(type.TypeArgs);
         tower = GetTowerOfSubsetTypes(parent);
       } else {
         tower = new List<Type>();
@@ -2060,10 +2059,10 @@ namespace Microsoft.Dafny {
 
       var joinNeedsNonNullConstraint = false;
       Type j;
-      if ((a as UserDefinedType)?.ResolvedClass is NonNullTypeDecl aClass) {
+      if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
         joinNeedsNonNullConstraint = true;
         j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
-      } else if ((b as UserDefinedType)?.ResolvedClass is NonNullTypeDecl bClass) {
+      } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
         joinNeedsNonNullConstraint = true;
         j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
       } else {
@@ -2141,11 +2140,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
-      if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
-        return a.Equals(b) ? a : null;
-      } else if (a.IsNumericBased()) {
-        return a.Equals(b) ? a : null;
-      } else if (a.IsBitVectorType) {
+      if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
