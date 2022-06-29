@@ -12,11 +12,13 @@ method Main() {
   var c := (a, b);
   var d := (c.1, c.0);
   var e := ();
+  var f := (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 20);
   print a, "\n";
   print b, "\n";
   print c, "\n";
   print d, "\n";
   print e, "\n";
+  print f, "\n";
 
   print b.head, " ", b.tail, "\n";
 

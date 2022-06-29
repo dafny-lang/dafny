@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="DafnyRuntime.cs">
+    <Compile Update="CoreDafnyRuntime.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
     <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
