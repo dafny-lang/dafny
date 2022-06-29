@@ -109,6 +109,7 @@ namespace Microsoft.Dafny {
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+    public HashSet<string> LibraryFiles { get; } = new();
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -179,6 +180,12 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+        case "library":
+          if (ps.ConfirmArgumentCount(1)) {
+            LibraryFiles.Add(args[ps.i]);
+          }
+
+          return true;
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
@@ -682,10 +689,15 @@ namespace Microsoft.Dafny {
       TODO
 
     {:compile}
-      TODO
+      The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
+      If that argument is false, then that declaration will not be compiled at all.
+      
+      The difference with {:extern} is that {:extern} will still emit declaration code if necessary,
+      whereas {:compile false} will just ignore the declaration for compilation purposes.
 
     {:main}
-      TODO
+      When executing a program, Dafny will first look for a method annotated with {:main}, and otherwise
+      will look for `method Main()`, and then execute the first of these two methods found.
 
     {:axiom}
       Ordinarily, the compiler gives an error for every function or
@@ -1248,6 +1260,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /useRuntimeLib
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
+/library:<file>
+    The contents of this file and any files it includes can be referenced from other files as if they were included. 
+    However, these contents are skipped during code generation and verification.
+    This option is useful in a diamond dependency situation, 
+    to prevent code from the bottom dependency from being generated more than once.
 
 ----------------------------------------------------------------------------
 

@@ -133,23 +133,25 @@ namespace Microsoft.Dafny {
 
   public class Include : IComparable {
     public readonly IToken tok;
-    public readonly string includerFilename;
-    public readonly string includedFilename;
-    public readonly string canonicalPath;
+    public string IncluderFilename { get; }
+    public string IncludedFilename { get; }
+    public string CanonicalPath { get; }
+    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename) {
+    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
-      this.includerFilename = includer;
-      this.includedFilename = theFilename;
-      this.canonicalPath = DafnyFile.Canonicalize(theFilename);
+      this.IncluderFilename = includer;
+      this.IncludedFilename = theFilename;
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
+      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.canonicalPath.CompareTo(i.canonicalPath);
+        return this.CanonicalPath.CompareTo(i.CanonicalPath);
       } else {
         throw new NotImplementedException();
       }
