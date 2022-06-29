@@ -32,7 +32,6 @@ jobs:
       - name: Checkout Dafny
         uses: actions/checkout@v2
         with:
-          path: dafny
           ref: ${{ inputs.sha }}
 
       - name: Get short sha
