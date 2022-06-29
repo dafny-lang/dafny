@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, DafnyFile.FileNames(files).ToHashSet(), new Errors(reporter));
+        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
