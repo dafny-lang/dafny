@@ -4453,7 +4453,9 @@ namespace Microsoft.Dafny.Compilers {
             }
 
             var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-            EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(), expr.Type).EmitRead(wr);
+            var x = EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+              expr.Type);
+            x.EmitRead(wr);
           }
 
           wr.Write(postStr);

@@ -66,14 +66,13 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
       wr.NewBlockPy("try:")
-        .WriteLine("module_.default__.Main()");
+        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = ((ClassWriter)cw).MethodWriter;
-      return wr.WriteLine("def Main():");
+      return ((ClassWriter)cw).MethodWriter.NewBlockPy("def Main():");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
@@ -976,6 +975,9 @@ namespace Microsoft.Dafny.Compilers {
           }
         case Field: {
             return SimpleLvalue(w => {
+              if (NeedsCustomReceiver(member)) {
+                throw new NotImplementedException();
+              }
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.tok, member)); } else { obj(w); }
               w.Write($".{IdName(member)}");
             });
