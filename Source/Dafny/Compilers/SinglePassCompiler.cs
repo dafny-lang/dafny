@@ -2801,7 +2801,8 @@ namespace Microsoft.Dafny.Compilers {
       }
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is AssumeStmt) {
-          compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
+          // CPC disable for now
+          // compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
         } else if (stmt is AssignSuchThatStmt) {
           var s = (AssignSuchThatStmt)stmt;
           if (s.AssumeToken != null) {
