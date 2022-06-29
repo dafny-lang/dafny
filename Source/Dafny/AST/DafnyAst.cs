@@ -2090,6 +2090,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
 
+      a = a.NormalizeExpandKeepConstraints();
+      b = b.NormalizeExpandKeepConstraints();
+      if (a is IntVarietiesSupertype) {
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+      } else if (b is IntVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+      } else if (a is RealVarietiesSupertype) {
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
+      } else if (b is RealVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
+      }
+
       var towerA = GetTowerOfSubsetTypes(a);
       var towerB = GetTowerOfSubsetTypes(b);
       if (towerB.Count < towerA.Count) {
@@ -2129,16 +2141,8 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
-      if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
-      } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
-      } else if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
+      if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
-      } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
-      } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         return a.Equals(b) ? a : null;
       } else if (a.IsBitVectorType) {
