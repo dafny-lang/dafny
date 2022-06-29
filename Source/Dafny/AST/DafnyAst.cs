@@ -1798,8 +1798,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       type = type.NormalizeExpandKeepConstraints();
       List<Type> tower;
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
+      if (type is UserDefinedType udt && udt.ResolvedClass is SubsetTypeDecl) {
         var sst = (SubsetTypeDecl)udt.ResolvedClass;
         var parent = sst.RhsWithArgument(udt.TypeArgs);
         tower = GetTowerOfSubsetTypes(parent);
@@ -2061,14 +2060,12 @@ namespace Microsoft.Dafny {
 
       var joinNeedsNonNullConstraint = false;
       Type j;
-      if (a is UserDefinedType && ((UserDefinedType)a).ResolvedClass is NonNullTypeDecl) {
+      if ((a as UserDefinedType)?.ResolvedClass is NonNullTypeDecl aClass) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)a).ResolvedClass;
-        j = MeetX(nnt.RhsWithArgument(a.TypeArgs), b, builtIns);
-      } else if (b is UserDefinedType && ((UserDefinedType)b).ResolvedClass is NonNullTypeDecl) {
+        j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
+      } else if ((b as UserDefinedType)?.ResolvedClass is NonNullTypeDecl bClass) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)b).ResolvedClass;
-        j = MeetX(a, nnt.RhsWithArgument(b.TypeArgs), builtIns);
+        j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
       } else {
         j = MeetX(a, b, builtIns);
       }
