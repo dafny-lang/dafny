@@ -11960,7 +11960,7 @@ namespace Microsoft.Dafny {
       }
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
-        this.Body = x.Body.ConvertAll((new Cloner()).CloneStmt);
+        this.Body = x.Body;
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
