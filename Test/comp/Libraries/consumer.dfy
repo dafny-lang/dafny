@@ -12,5 +12,9 @@ module ConsumingModule {
   import A = GloballyUniqueProducer.ExportingModule
   import B = GloballyUniqueProducer.ExportingModule
 
+<<<<<<< HEAD
   const myConstant := A.exportedVariable + A.exportedVariable
+=======
+  const myConstant := A.exportedVariable + B.exportedVariable
+>>>>>>> moveTuplesToRuntime
 }

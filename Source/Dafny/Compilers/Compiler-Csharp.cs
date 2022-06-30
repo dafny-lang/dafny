@@ -84,6 +84,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
+      wr.WriteLine("using System.Collections;");
       Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
@@ -123,7 +124,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
       if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        Reporter!.Error(MessageSource.Compiler, builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.");
+        Error(builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.", null);
       }
 
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);

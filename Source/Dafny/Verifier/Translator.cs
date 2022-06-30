@@ -1628,6 +1628,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      AddVerboseName(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
       codeContext = null;
@@ -1760,13 +1761,21 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
+        AddImplementationWithVerboseName(iter.tok, proc, inParams, new List<Variable>(),
           localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
       }
 
       Reset();
+    }
+
+    private Implementation AddImplementationWithVerboseName(IToken tok, Procedure proc, List<Variable> inParams,
+      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
+      Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
+        new List<Bpl.TypeVariable>(), inParams, outParams,
+        localVariables, stmts, kv);
+      AddVerboseName(impl, proc.VerboseName);
+      sink.AddTopLevelDeclaration(impl);
+      return impl;
     }
 
     bool EmitImplementation(Attributes attributes) {
@@ -1834,10 +1843,8 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-        Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
-          localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(iter.tok, proc, inParams,
+          new List<Variable>(), localVariables, stmts, kv);
       }
 
       yieldCountVariable = null;
@@ -4194,6 +4201,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       if (InsertChecksums) {
@@ -4359,12 +4367,10 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        var impl = new Bpl.Implementation(f.tok, proc.Name,
-          new List<Bpl.TypeVariable>(),
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
-        sink.AddTopLevelDeclaration(impl);
         if (InsertChecksums) {
           InsertChecksum(f, impl);
         }
@@ -4414,9 +4420,11 @@ namespace Microsoft.Dafny {
         (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
         etran.Tick()
       };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
+      var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       // TODO: Can a checksum be inserted here?
@@ -4512,10 +4520,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-        var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(decl.tok, proc, implInParams, new List<Variable>(), locals, implBody, kv);
       }
 
       // TODO: Should a checksum be inserted here?
@@ -4568,9 +4573,11 @@ namespace Microsoft.Dafny {
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
+      var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4591,10 +4598,9 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var implBody = builder.Collect(decl.tok);
-        var impl = new Bpl.Implementation(decl.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        sink.AddTopLevelDeclaration(impl);
+
+        AddImplementationWithVerboseName(decl.tok, proc, implInParams,
+          new List<Variable>(), locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == decl.EnclosingModule);
@@ -4642,6 +4648,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -4665,10 +4672,8 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        var impl = new Bpl.Implementation(ctor.tok, proc.Name,
-          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
-          locals, implBody, kv);
-        sink.AddTopLevelDeclaration(impl);
+        AddImplementationWithVerboseName(ctor.tok, proc, implInParams,
+          new List<Variable>(), locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
@@ -6005,6 +6010,13 @@ namespace Microsoft.Dafny {
             var desc = new PODesc.IsAllocated(description, "in the old-state of the 'unchanged' predicate",
               description != "object");
             builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
+          }
+          // check that the 'unchanged' argument reads only what the context is allowed to read
+          if (options.DoReadsChecks) {
+            CheckFrameSubset(fe.E.tok,
+              new List<FrameExpression>() { fe },
+              null, new Dictionary<IVariable, Expression>(), etran, options.AssertSink(this, builder),
+              new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), options.AssertKv);
           }
         }
       } else if (expr is UnaryExpr) {
@@ -7900,23 +7912,41 @@ namespace Microsoft.Dafny {
     /// </summary>
     enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
 
+    private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
+        {MethodTranslationKind.Call, "Call"},
+        {MethodTranslationKind.CoCall, "CoCall"},
+        {MethodTranslationKind.Implementation, "Impl"},
+        {MethodTranslationKind.OverrideCheck, "OverrideCheck"},
+      };
+
     static string MethodName(ICodeContext m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
-      switch (kind) {
-        case MethodTranslationKind.SpecWellformedness:
-          return "CheckWellformed" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.Call:
-          return "Call" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.CoCall:
-          return "CoCall" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.Implementation:
-          return "Impl" + NameSeparator + m.FullSanitizedName;
-        case MethodTranslationKind.OverrideCheck:
-          return "OverrideCheck" + NameSeparator + m.FullSanitizedName;
-        default:
-          Contract.Assert(false);  // unexpected kind
-          throw new cce.UnreachableException();
-      }
+      return $"{kindSanitizedPrefix[kind]}{NameSeparator}{m.FullSanitizedName}";
+    }
+
+    private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "well-formedness"},
+        {MethodTranslationKind.Call, "call"},
+        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.Implementation, "correctness"},
+        {MethodTranslationKind.OverrideCheck, "override check"},
+      };
+
+    static string MethodVerboseName(string fullName, MethodTranslationKind kind) {
+      Contract.Requires(fullName != null);
+      return $"{fullName} ({kindDescription[kind]})";
+    }
+
+    private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
+      var verboseName = MethodVerboseName(dafnyName, kind);
+      AddVerboseName(boogieDecl, verboseName);
+    }
+
+    private static void AddVerboseName(Bpl.NamedDeclaration targetDecl, string verboseName) {
+      targetDecl.AddAttribute("verboseName", new object[] { verboseName });
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
@@ -11645,7 +11675,7 @@ namespace Microsoft.Dafny {
         var pp = (PrefixPredicate)f;
         body = PrefixSubstitution(pp, body);
       }
-      body = Substitute(body, fexp.Receiver, substMap, fexp.GetTypeArgumentSubstitutions());
+      body = Substitute(body, fexp.Receiver, substMap, fexp.GetTypeArgumentSubstitutions(), fexp.AtLabel);
       return body;
     }
 
@@ -11792,11 +11822,12 @@ namespace Microsoft.Dafny {
       return Substitute(expr, null, substMap);
     }
 
-    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type>/*?*/ typeMap = null) {
+    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap,
+      Dictionary<TypeParameter, Type> typeMap = null, Label oldLabel = null) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>());
+      var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>(), oldLabel);
       return s.Substitute(expr);
     }
 
