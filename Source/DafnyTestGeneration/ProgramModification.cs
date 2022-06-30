@@ -85,7 +85,7 @@ namespace DafnyTestGeneration {
       }
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
-          $"// No test can be generated for {this.uniqueId} because the verifier timed out or gave no counterexample (cam happen if the block has dead code).");
+          $"// No test can be generated for {this.uniqueId} because the verifier timed out or gave no counterexample (can happen if the block has dead code).");
       }
       return null;
     }

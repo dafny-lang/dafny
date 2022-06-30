@@ -314,7 +314,7 @@ public class CsharpSynthesizer {
       public MultiMatcher(int argumentCount, Func<object[], bool> predicate) {
         this.predicate = predicate;
         this.argumentCount = argumentCount;
-        collectedArguments = new();
+        collectedArguments = new List<object>();
       }
 
       public bool Match(object argument) {
