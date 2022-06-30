@@ -714,11 +714,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name,
-          new List<Boogie.TypeVariable>(), inParams, outParams,
-          localVariables, stmts, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc,
+           inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -798,9 +795,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name, new List<Boogie.TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -955,11 +951,10 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-
-        var impl = new Boogie.Implementation(f.tok, proc.Name, new List<Boogie.TypeVariable>(),
-          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
-        CopyVerboseName(impl, proc);
-        sink.AddTopLevelDeclaration(impl);
+        
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
+          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+          implOutParams, localVariables, stmts, kv);
       }
 
       if (InsertChecksums) {
