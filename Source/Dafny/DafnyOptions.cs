@@ -1311,15 +1311,13 @@ program.
       Console.Out.WriteLine();
 
       var footnotes = new StringBuilder();
-      var footnoteSuffix = 1;
       foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
         var description = FeatureDescriptionAttribute.GetDescription(feature);
         var footnoteLink = "";
-        if (description.Notes != null) {
-          footnoteLink = $"[^feature-note-{footnoteSuffix}]";
-          footnotes.AppendLine($"{footnoteLink}: {description.Notes}");
+        if (description.FootnoteIdentifier != null) {
+          footnoteLink = $"[^{description.FootnoteIdentifier}]";
+          footnotes.AppendLine($"{description.FootnoteIdentifier}: {description.Footnote}");
           footnotes.AppendLine();
-          footnoteSuffix++;
         }
         Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
         foreach(var compiler in allCompilers) {

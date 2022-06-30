@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
@@ -12,6 +13,7 @@ public class FeatureDescriptionAttribute : Attribute {
 
 
   public FeatureDescriptionAttribute(string description, string refmanSec, string footnoteIdentifier = null, string footnote = null) {
+    Contract.Requires((footnoteIdentifier == null) == (footnote == null));
     Description = description;
     ReferenceManualSection = refmanSec;
     FootnoteIdentifier = footnoteIdentifier;
