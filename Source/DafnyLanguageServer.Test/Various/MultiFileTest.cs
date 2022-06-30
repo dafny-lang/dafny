@@ -31,7 +31,7 @@ method Test() {
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(!document.Diagnostics.Any());
     }
