@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.Compilers {
       ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
     }
 
-    protected override void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
     }
 
     const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";

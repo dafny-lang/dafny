@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
     }
 
-    protected override void EmitBuiltInDecls(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
         Error(builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.", null);
       }
@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
-      EmitFuncExtensions(program, builtIns, wr);
+      EmitFuncExtensions(builtIns, wr);
     }
 
     // Generates casts for functions of those arities present in the program, like:
@@ -144,8 +144,7 @@ namespace Microsoft.Dafny.Compilers {
     //     ...
     //   }
     // They aren't in any namespace to make them universally accessible.
-    private void EmitFuncExtensions(Program program, BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var aNonDefaultNonLibraryModule = program.CompileModules.TakeLast(2).First().CompileName;
+    private void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
