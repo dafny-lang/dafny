@@ -819,8 +819,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
       var types = GetIsResults(datatypeElement).Select(isResult =>
-        new DafnyModelTypeUtils.DatatypeType(
-          (UserDefinedType)ReconstructType(isResult)).ToString());
+        new DafnyModelTypeUtils.DatatypeType(ReconstructType(isResult) as UserDefinedType ?? UndefinedType).Name);
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
       foreach (var app in datatypeElement.References) {
