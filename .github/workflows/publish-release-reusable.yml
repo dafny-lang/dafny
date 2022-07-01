@@ -113,6 +113,6 @@ jobs:
     - name: Create prerelease NuGet package (for uploading)
       if: ${{ inputs.prerelease }}
       run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
-#    - name: Upload package to NuGet
-#      if: ${{ inputs.release_nuget }}
-#      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
