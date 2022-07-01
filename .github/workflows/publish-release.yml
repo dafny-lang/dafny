@@ -15,14 +15,6 @@ jobs:
     with:
       sha: ${{ github.sha }}
 
-  get-version:
-    runs-on: ubuntu-22.04
-    steps:
-      - id: get-version
-        uses: battila7/get-version-action@v2
-    outputs:
-      version: ${{ steps.get-version.outputs.version-without-v }}
-
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
@@ -30,7 +22,6 @@ jobs:
       sha: ${{ github.sha }}
       tag_name: ${{ github.ref }}
       prerelease: false
-      version: ${{ needs.get-version.outputs.version }}
       draft: true
       release_nuget: true
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
