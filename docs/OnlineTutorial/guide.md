@@ -2,11 +2,6 @@
 
 # Getting Started with Dafny: A Guide
 
-Be sure to follow along with the code examples by clicking the "load
-in editor" link in the
-corner. See what the tool says, try to fix programs on your own, and
-experiment!
-
 ## Introduction
 
 Dafny is a language that is designed to make it easy to
