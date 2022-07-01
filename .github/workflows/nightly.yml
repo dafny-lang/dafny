@@ -44,10 +44,10 @@ jobs:
     needs: [determine-vars]
 #    needs: [deep-integration-tests, get-version, determine-vars]
     with:
+      name: ${{ needs.determine-vars.outputs.name }}
       sha: ${{ github.sha }}
-      name: ${{ github.sha }}
       tag_name: nightly
-      prerelease_name: ${{ needs.determine-vars.outputs.name }}
       release_nuget: false
       draft: false
       release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
+      prerelease: true
