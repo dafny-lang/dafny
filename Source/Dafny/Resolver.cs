@@ -1766,7 +1766,7 @@ namespace Microsoft.Dafny {
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       foreach (var top in declarations) {
-        if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
+        if (top is ModuleDecl md && md.Opened) {
           ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
         }
       }
@@ -1790,7 +1790,6 @@ namespace Microsoft.Dafny {
     }
 
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
-      bool useImports = true;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
       if (importedSigs.Contains(s)) {
@@ -1799,81 +1798,69 @@ namespace Microsoft.Dafny {
 
       importedSigs.Add(s);
 
-      if (useImports) {
-        // classes:
-        foreach (var kv in s.TopLevels) {
-          if (!kv.Value.CanBeExported()) {
-            continue;
-          }
+      // classes:
+      foreach (var kv in s.TopLevels) {
+        if (!kv.Value.CanBeExported()) {
+          continue;
+        }
 
-          if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
-            TopLevelDecl d;
-            if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-              // ignore the import if the existing declaration belongs to the current module
-              if (d.EnclosingModuleDefinition != moduleDef) {
-                bool ok = false;
-                // keep just one if they normalize to the same entity
-                if (d == kv.Value) {
-                  ok = true;
-                } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
-                  var dd = ResolveAlias(d);
-                  var dk = ResolveAlias(kv.Value);
-                  ok = dd == dk;
-                } else {
-                  // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
-                  // if both are type synonyms for "int".
-                  var scope = Type.GetScope();
-                  if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
-                    var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-                    var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
-                    ok = dType.Equals(vType, true);
-                  }
-                }
-                if (!ok) {
-                  sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-                }
+        if (sig.TopLevels.TryGetValue(kv.Key, out var d)) {
+          // ignore the import if the existing declaration belongs to the current module
+          if (d.EnclosingModuleDefinition != moduleDef) {
+            bool ok = false;
+            // keep just one if they normalize to the same entity
+            if (d == kv.Value) {
+              ok = true;
+            } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
+              var dd = ResolveAlias(d);
+              var dk = ResolveAlias(kv.Value);
+              ok = dd == dk;
+            } else {
+              // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
+              // if both are type synonyms for "int".
+              var scope = Type.GetScope();
+              if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+                var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+                var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+                ok = dType.Equals(vType, true);
               }
-            } else {
-              sig.TopLevels.Add(kv.Key, kv.Value);
+            }
+            if (!ok) {
+              sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
             }
           }
+        } else {
+          sig.TopLevels.Add(kv.Key, kv.Value);
         }
+      }
 
-        if (useImports) {
-          // constructors:
-          foreach (var kv in s.Ctors) {
-            Tuple<DatatypeCtor, bool> pair;
-            if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
-              // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
-              // they are not duplicates.
-              if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
-                // mark it as a duplicate
-                sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
-              }
-            } else {
-              // add new
-              sig.Ctors.Add(kv.Key, kv.Value);
-            }
+      // constructors:
+      foreach (var kv in s.Ctors) {
+        if (sig.Ctors.TryGetValue(kv.Key, out var pair)) {
+          // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
+          // they are not duplicates.
+          if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
+            // mark it as a duplicate
+            sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
           }
+        } else {
+          // add new
+          sig.Ctors.Add(kv.Key, kv.Value);
+        }
+      }
+
+      // static members:
+      foreach (var kv in s.StaticMembers) {
+        if (!kv.Value.CanBeExported()) {
+          continue;
         }
 
-        if (useImports) {
-          // static members:
-          foreach (var kv in s.StaticMembers) {
-            if (!kv.Value.CanBeExported()) {
-              continue;
-            }
-
-            MemberDecl md;
-            if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
-              sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
-            } else {
-              // add new
-              sig.StaticMembers.Add(kv.Key, kv.Value);
-            }
-          }
+        if (sig.StaticMembers.TryGetValue(kv.Key, out var md)) {
+          sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+        } else {
+          // add new
+          sig.StaticMembers.Add(kv.Key, kv.Value);
         }
-
       }
     }
 
@@ -16267,8 +16254,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
 
       if (!moduleInfo.IsAbstract) {
-        var md = decl as ModuleDecl;
-        if (md != null && md.Signature.IsAbstract) {
+        if (decl is ModuleDecl md && md.Signature.IsAbstract) {
           reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
         }
       }
