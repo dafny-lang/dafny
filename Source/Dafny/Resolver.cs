@@ -6838,7 +6838,11 @@ namespace Microsoft.Dafny {
           }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is UnaryOpExpr uop) {
-            uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            // The CheckTypeInference_Visitor has already visited uop.E, but uop.E's may be undetermined. If that happened,
+            // then an error has already been reported.
+            if (CheckTypeIsDetermined(uop.E.tok, uop.E.Type, "expression")) {
+              uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            }
           } else if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
             e.ResolvedOp = ResolveOp(e.Op, e.E0.Type, e.E1.Type);

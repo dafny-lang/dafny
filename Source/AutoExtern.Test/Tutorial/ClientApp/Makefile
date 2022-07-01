@@ -2,7 +2,8 @@ AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj --
 Dafny ?= dotnet run --project ../../../DafnyDriver/DafnyDriver.csproj --
 
 LibraryProjectFile := ../Library/Library.csproj
-LibrarySourceFile := ../Library/Library.cs
+LibrarySourceFile1 := ../Library/Library1.cs
+LibrarySourceFile2 := ../Library/Library2.cs
 LibraryRootNamespace := Library
 
 LibraryTemplateFile := LibraryModel.dfy.template
@@ -16,14 +17,15 @@ ExpectFile := $(AppDafnyFile).expect
 
 default: dotnet-run
 
-$(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplateFile)
+$(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile1) $(LibrarySourceFile2) $(LibraryTemplateFile)
 	$(AutoExtern) \
 		$(LibraryProjectFile) \
-		$(LibrarySourceFile) \
 		$(LibraryRootNamespace) \
 		$(LibraryTemplateFile) \
 		$(CSharpModelFile) \
-		$(LibraryModelFile)
+		$(LibraryModelFile) \
+		$(LibrarySourceFile1) \
+		$(LibrarySourceFile2)
 
 $(AppDafnyCSharpFile): $(AppDafnyFile)
 	$(Dafny) -compile:0 -noVerify -spillTargetCode:3 "$<"
