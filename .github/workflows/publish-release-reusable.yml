@@ -35,7 +35,7 @@ jobs:
 
   publish-release:
     env:
-      full_name: ${{ inputs.prerelease_name && format('0.0.0-{0}', inputs.prerelease_name) || inputs.version }}
+      full_name: ${{ inputs.prerelease_name || inputs.version }}
     runs-on: macos-latest
     steps:
     - name: Checkout Dafny

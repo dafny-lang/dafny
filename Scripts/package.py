@@ -274,7 +274,7 @@ def check_version_cs(args):
         hy = args.version
     if hy != v1:
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1) and not args.trial:
+    if (v2 != v3 or hy != v1):
         return False
     fp.close()
     flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
@@ -292,13 +292,14 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if not DAFNY_RELEASE_REGEX.match(args.version):
-        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-        return
-    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+    if not args.trial:
+        if not DAFNY_RELEASE_REGEX.match(args.version):
+            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+            return
+        if not check_version_cs(args):
+            return
 
-    if not check_version_cs(args):
-        return
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
     flush("* Finding and downloading Z3 releases")
