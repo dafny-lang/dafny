@@ -132,7 +132,7 @@ module _System {
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use:
 */

@@ -123,6 +123,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
+        Error(builtIns.MaxNonGhostTupleSizeToken, "C# back-end does not support tuples with more than 20 arguments.", null);
+      }
+
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
       if (Synthesize) {
@@ -2879,6 +2883,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
+        case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
@@ -2902,8 +2907,6 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
-        case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "Contains"; reverseArguments = true; break;
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,

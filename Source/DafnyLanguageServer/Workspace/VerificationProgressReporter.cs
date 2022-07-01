@@ -358,9 +358,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       return;
     }
     lock (LockProcessing) {
-      var split = batchResult.Split;
+      var implementation = batchResult.Implementation;
       var result = batchResult.Result;
-      var implementation = split.Implementation;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
       if (targetMethodNode == null) {
