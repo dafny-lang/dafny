@@ -102,7 +102,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
 
+
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+
+      var progressReporter = CreateVerificationProgressReporter(loaded);
+      if (VerifierOptions.GutterStatus) {
+        progressReporter.RecomputeVerificationTree();
+        progressReporter.ReportRealtimeDiagnostics(false, loaded);
+        progressReporter.ReportImplementationsBeforeVerification(
+          verificationTasks.Select(t => t.Implementation).ToArray());
+      }
+
       var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
 
       foreach (var task in verificationTasks) {
@@ -119,23 +129,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      var orderedVerificationTasks = verificationTasks
+        .OrderByDescending(verificationTask => verificationTask.Implementation.Priority).ToImmutableList();
       var result = loaded with {
         CounterexamplesCollector = new ConcurrentStack<Counterexample>(),
         ImplementationIdToViewCollector = initialViews,
-        VerificationTasks = verificationTasks,
+        VerificationTasks = orderedVerificationTasks,
         ImplementationIdToView = initialViews.ToImmutableDictionary(),
       };
-      var progressReporter = CreateVerificationProgressReporter(result);
-      if (VerifierOptions.GutterStatus) {
-        progressReporter.RecomputeVerificationTree();
-        progressReporter.ReportRealtimeDiagnostics(false, result);
-        progressReporter.ReportImplementationsBeforeVerification(
-          verificationTasks.Select(t => t.Implementation).ToArray());
-      }
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
+
       var subscription = verifier.BatchCompletions.Where(c =>
         implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
+
+      var subscription2 = verifier.StartedImplementations.Where(s =>
+        implementations.Contains(s)).Subscribe(progressReporter.ReportStartVerifyImplementation);
+      cancellationToken.Register(() => subscription2.Dispose());
+
       result.GutterProgressReporter = progressReporter;
       return result;
     }
@@ -238,10 +249,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
-
-      if (VerifierOptions.GutterStatus) {
-        dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
-      }
 
       var statusUpdates = implementationTask.TryRun();
       if (statusUpdates == null) {
