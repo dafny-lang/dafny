@@ -44,8 +44,8 @@ jobs:
     needs: [determine-vars]
 #    needs: [deep-integration-tests, get-version, determine-vars]
     with:
-      sha: refs/heads/master
-      name: f756c8d6 # ${{ github.sha }}
+      sha: ${{ github.sha }}
+      name: ${{ github.sha }}
       tag_name: nightly
       prerelease_name: ${{ needs.determine-vars.outputs.name }}
       release_nuget: false
