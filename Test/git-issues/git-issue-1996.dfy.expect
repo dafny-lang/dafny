@@ -1,0 +1,9 @@
+git-issue-1996.dfy(59,17): Error: The name M ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+git-issue-1996.dfy(68,17): Error: The name M ambiguously refers to a type in one of the modules N, O (try qualifying the type name with the module name)
+git-issue-1996.dfy(89,16): Error: member 'M' does not exist in datatype 'M'
+git-issue-1996.dfy(95,16): Error: member 'SomethingElse' does not exist in datatype 'M'
+git-issue-1996.dfy(105,16): Error: member 'M' does not exist in datatype 'M'
+git-issue-1996.dfy(111,16): Error: member 'SomethingElse' does not exist in datatype 'M'
+git-issue-1996.dfy(188,17): Error: expected type
+git-issue-1996.dfy(242,13): Error: the name 'Ctor' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'X.Ctor')
+8 resolution/type errors detected in git-issue-1996.dfy

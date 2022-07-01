@@ -1765,10 +1765,17 @@ namespace Microsoft.Dafny {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
+      var topLevelDeclReplacements = new List<TopLevelDecl>();
       foreach (var top in declarations) {
         if (top is ModuleDecl md && md.Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
+          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures, out var topLevelDeclReplacement);
+          if (topLevelDeclReplacement != null) {
+            topLevelDeclReplacements.Add(topLevelDeclReplacement);
+          }
         }
+      }
+      foreach (var topLevelDeclReplacement in topLevelDeclReplacements) {
+        sig.TopLevels[topLevelDeclReplacement.Name] = topLevelDeclReplacement;
       }
 
       if (resolver != null) {
@@ -1791,10 +1798,16 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Further populate "sig" with the accessible symbols from "im".
+    ///
+    /// Symbols declared locally in "moduleDef" take priority over any opened-import symbols, with one
+    /// exception:  for an "import opened M" where "M" contains a top-level symbol "M", unambiguously map the
+    /// name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping
+    /// to the caller, and let the caller remap the symbol after all opened imports have been processed.
     /// </summary>
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
-      bool useCompileSignatures) {
+      bool useCompileSignatures, out TopLevelDecl topLevelDeclReplacement) {
 
+      topLevelDeclReplacement = null;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
       if (importedSigs.Contains(s)) {
@@ -1812,7 +1825,14 @@ namespace Microsoft.Dafny {
         if (!sig.TopLevels.TryGetValue(kv.Key, out var d)) {
           sig.TopLevels.Add(kv.Key, kv.Value);
         } else if (d.EnclosingModuleDefinition == moduleDef) {
-          // declarations in the importing module take priority over opened-import declarations
+          if (kv.Value.EnclosingModuleDefinition.DafnyName != kv.Key) {
+            // declarations in the importing module take priority over opened-import declarations
+          } else {
+            // As an exception to the rule, for an "import opened M" that contains a top-level symbol "M", unambiguously map the
+            // name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping to
+            // the caller, and let the caller remap the symbol after all opened imports have been processed.
+            topLevelDeclReplacement = kv.Value;
+          }
         } else {
           bool unambiguous = false;
           // keep just one if they normalize to the same entity
