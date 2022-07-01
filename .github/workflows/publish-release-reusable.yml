@@ -81,12 +81,12 @@ jobs:
         sudo gem install rouge
     # First we build the ZIPs (which do not include the refman)
     - name: Package release files (release)
+      if: ${{ !inputs.prerelease_name }}
       run: |
-        if: ${{ !inputs.prerelease_name }}
         python dafny/Scripts/package.py ${{ env.full_name }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
     - name: Package release files (prerelease)
+      if: ${{ inputs.prerelease_name }}
       run: |
-        if: ${{ inputs.prerelease_name }}
         python dafny/Scripts/package.py ${{ env.full_name }} --trial --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
     # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
     # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
