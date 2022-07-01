@@ -1789,7 +1789,12 @@ namespace Microsoft.Dafny {
       return dd;
     }
 
-    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
+    /// <summary>
+    /// Further populate "sig" with the accessible symbols from "im".
+    /// </summary>
+    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
+      bool useCompileSignatures) {
+
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
       if (importedSigs.Contains(s)) {
@@ -1798,39 +1803,38 @@ namespace Microsoft.Dafny {
 
       importedSigs.Add(s);
 
-      // classes:
+      // top-level declarations:
       foreach (var kv in s.TopLevels) {
         if (!kv.Value.CanBeExported()) {
           continue;
         }
 
-        if (sig.TopLevels.TryGetValue(kv.Key, out var d)) {
-          // ignore the import if the existing declaration belongs to the current module
-          if (d.EnclosingModuleDefinition != moduleDef) {
-            bool ok = false;
-            // keep just one if they normalize to the same entity
-            if (d == kv.Value) {
-              ok = true;
-            } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
-              var dd = ResolveAlias(d);
-              var dk = ResolveAlias(kv.Value);
-              ok = dd == dk;
-            } else {
-              // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
-              // if both are type synonyms for "int".
-              var scope = Type.GetScope();
-              if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
-                var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-                var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
-                ok = dType.Equals(vType, true);
-              }
-            }
-            if (!ok) {
-              sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+        if (!sig.TopLevels.TryGetValue(kv.Key, out var d)) {
+          sig.TopLevels.Add(kv.Key, kv.Value);
+        } else if (d.EnclosingModuleDefinition == moduleDef) {
+          // declarations in the importing module take priority over opened-import declarations
+        } else {
+          bool unambiguous = false;
+          // keep just one if they normalize to the same entity
+          if (d == kv.Value) {
+            unambiguous = true;
+          } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
+            var dd = ResolveAlias(d);
+            var dk = ResolveAlias(kv.Value);
+            unambiguous = dd == dk;
+          } else {
+            // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
+            // if both are type synonyms for "int".
+            var scope = Type.GetScope();
+            if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+              var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+              var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+              unambiguous = dType.Equals(vType, true);
             }
           }
-        } else {
-          sig.TopLevels.Add(kv.Key, kv.Value);
+          if (!unambiguous) {
+            sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+          }
         }
       }
 
