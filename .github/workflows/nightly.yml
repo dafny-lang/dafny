@@ -41,7 +41,7 @@ jobs:
 
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
-    needs: [get-version, determine-vars]
+    needs: [determine-vars]
 #    needs: [deep-integration-tests, get-version, determine-vars]
     with:
       sha: refs/heads/master
