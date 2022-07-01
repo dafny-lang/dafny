@@ -61,6 +61,9 @@ namespace Microsoft.Dafny {
         if (e.Obj.Type.IsRefType && !(e.Member is ConstantField)) {
           usesHeap = true;
         }
+        if (e.AtLabel != null) {
+          freeHeapAtVariables.Add(e.AtLabel);
+        }
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
         if (e.Seq.Type.IsArrayType) {
@@ -74,9 +77,12 @@ namespace Microsoft.Dafny {
       } else if (expr is MultiSelectExpr) {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
-        Function f = ((FunctionCallExpr)expr).Function;
-        if (Translator.AlwaysUseHeap || f == null || f.ReadsHeap) {
+        var e = (FunctionCallExpr)expr;
+        if (Translator.AlwaysUseHeap || e.Function == null || e.Function.ReadsHeap) {
           usesHeap = true;
+        }
+        if (e.AtLabel != null) {
+          freeHeapAtVariables.Add(e.AtLabel);
         }
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
