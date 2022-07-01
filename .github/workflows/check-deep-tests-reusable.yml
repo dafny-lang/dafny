@@ -22,6 +22,6 @@ jobs:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
           console.log(script({github, context, core,
-                              workflow_id: 'nightly.yml',
+                              workflow_id: 'deep-tests.yml',
                               ...('${{ inputs.sha }}' ? {sha: '${{ inputs.sha }}'} : {}),
                               ...('${{ inputs.branch }}' ? {branch: '${{ inputs.branch }}'} : {})}))
