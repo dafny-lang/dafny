@@ -291,9 +291,9 @@ namespace DafnyServer.CounterexampleGeneration {
         if (funcTuple.Func.Arity != 0) {
           continue;
         }
-        if (name == null) {
-          name = funcTuple.Func.Name;
-        } else {
+        if ((name == null) || (name.Contains("$"))) { // 2nd case is type param
+          name = funcTuple.Func.Name.Split("@").First(); 
+        } else if (!funcTuple.Func.Name.Contains("$")) {
           return null;
         }
       }
@@ -481,8 +481,8 @@ namespace DafnyServer.CounterexampleGeneration {
         return UndefinedType;
       }
       var fullName = GetTrueName(typeElement);
-      if (fullName != null && fullName.Length > 7 && fullName.Substring(0, 7).Equals("Tclass.")) {
-        return new UserDefinedType(new Token(), fullName.Substring(7), null);
+      if (fullName != null && fullName.Length > 7 && fullName[..7].Equals("Tclass.")) {
+        return new UserDefinedType(new Token(), fullName[7..], null);
       }
       switch (fullName) {
         case "TInt":
@@ -497,19 +497,21 @@ namespace DafnyServer.CounterexampleGeneration {
       if (fBv.AppWithResult(typeElement) != null) {
         return new BitvectorType(((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
       }
+
+      Type fallBackType = UndefinedType; // to be returned in the event all else fails
       if (fullName != null) { // this means this is a type variable
-        return new UserDefinedType(new Token(), fullName, null);
+        fallBackType = new UserDefinedType(new Token(), fullName, null);
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {
-        return UndefinedType;
+        return fallBackType;
       }
       var tagName = GetTrueName(tagElement);
       if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
                               tagName != "TagBitVector" &&
                               tagName != "TagMap")) {
-        return UndefinedType;
+        return fallBackType;
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
         AppWithResult(typeElement)?.
