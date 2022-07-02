@@ -248,6 +248,8 @@ namespace DafnyTestGeneration {
         case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
           errorMessages.Add($"// Arrays are not yet supported (type {arrType} element {variable.Element})");
           break; // arrays not supported
+        case UserDefinedType typeOfNull when variable.CanonicalName() == "null":
+          return "null";
         default:
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType = DafnyModelTypeUtils.GetNonNullable(variableType);

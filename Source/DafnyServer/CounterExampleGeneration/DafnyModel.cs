@@ -449,7 +449,16 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           return new Microsoft.Dafny.MapType(true, UndefinedType, UndefinedType);
         case "refType":
-          return ReconstructType(fDtype.OptEval(element));
+          var typeElement = fDtype.OptEval(element);
+          if (typeElement != null) {
+            return ReconstructType(typeElement);
+          }
+          // if typeElement == null, this object has a null value
+          isOfType = GetIsResults(element);
+          if (isOfType.Count > 0) {
+            return ReconstructType(isOfType[0]);
+          }
+          return UndefinedType;
         case null:
           return UndefinedType;
         case var bv when BvTypeRegex.IsMatch(bv):
