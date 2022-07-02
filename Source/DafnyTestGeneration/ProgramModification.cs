@@ -23,7 +23,6 @@ namespace DafnyTestGeneration {
     public ProgramModification(Program program, string procedure, string uniqueId) {
       id++;
       this.program = Utils.DeepCloneProgram(program);
-      File.WriteAllText($"/Users/fedchina/Desktop/libraries/debug{id}.bpl", Utils.GetStringRepresentation(program));
       this.procedure = procedure;
       this.uniqueId = uniqueId;
     }

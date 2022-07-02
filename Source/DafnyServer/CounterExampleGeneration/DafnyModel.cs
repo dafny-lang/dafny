@@ -292,7 +292,8 @@ namespace DafnyServer.CounterexampleGeneration {
           continue;
         }
         if ((name == null) || (name.Contains("$"))) { // 2nd case is type param
-          name = funcTuple.Func.Name.Split("@").First(); 
+          // TODO: Might have to prune last "@" to work with proper deep cloning
+          name = funcTuple.Func.Name; 
         } else if (!funcTuple.Func.Name.Contains("$")) {
           return null;
         }
