@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Declaration = Microsoft.Boogie.Declaration;
 using Formal = Microsoft.Boogie.Formal;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;
 using Parser = Microsoft.Boogie.Parser;
 using Program = Microsoft.Boogie.Program;
@@ -63,24 +65,12 @@ namespace DafnyTestGeneration {
       AddAxioms(program);
       if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl, 
-          GetStringRepresentation(program));
+          Utils.GetStringRepresentation(program));
       }
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine("// Generating modifications...");
       }
       return GetModifications(program);
-    }
-
-    private static string GetStringRepresentation(Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
-      var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
-      return output.ToString();
     }
 
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
@@ -100,11 +90,7 @@ namespace DafnyTestGeneration {
         axiom = GetAxiom($"axiom (forall<T> y: Seq T :: " +
                          $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});");
         program.AddTopLevelDeclaration(axiom);
-        //TODO: have a parameter that turns this off?
-        axiom = GetAxiom($"axiom (forall x: int :: " +
-                         $"x <= {int.MaxValue} && " +
-                         $"x >= {int.MinValue});");
-        program.AddTopLevelDeclaration(axiom);
+        // TODO: Define the axiom as a resolved AST
       }
     }
 
@@ -116,6 +102,8 @@ namespace DafnyTestGeneration {
       // Merge all programs into one first:
       var program = new Program();
       foreach (var p in programs) {
+        p.Resolve(DafnyOptions.O);
+        p.Typecheck(DafnyOptions.O);
         program.AddTopLevelDeclarations(p.TopLevelDeclarations);
       }
       // Remove duplicates afterwards:
@@ -141,29 +129,18 @@ namespace DafnyTestGeneration {
       program.Typecheck(DafnyOptions.O);
       return program;
     }
-
-    /// <summary>
-    /// Get a parsed boogie command
-    /// </summary>
-    /// <param name="source">the body of the procedure with the command</param>
-    /// <param name="args">the arguments to this procedure</param>
-    /// <param name="returns">the return values of this procedure</param>
-    /// <returns></returns>
-    protected static Cmd GetCmd(string source, string args = "",
-      string returns = "") {
-      Parser.Parse($"procedure a({args}) returns ({returns}) {{ {source} }}",
-        "", out var program);
-      return program.Implementations.ToList()[0].Blocks[0].cmds[0];
-    }
-
-    private static AssumeCmd GetAssumeCmd(List<string> toPrint) {
-      return (AssumeCmd)GetCmd($"assume {{:print " +
-                                $"{string.Join(", \" | \", ", toPrint)}}} true;");
-    }
-
-    private static QKeyValue GetQKeyValue(string source) {
-      Parser.Parse($"procedure {{{source}}} a() {{}}", "", out var program);
-      return program.Implementations.ToList()[0].Attributes;
+    
+    private static AssumeCmd GetAssumePrintCmd(List<object> data) {
+      // first insert separators between the things being printed
+      var toPrint = new List<object>();
+      data.Iter(obj => toPrint.AddRange(new List<object> {obj, " | "}));
+      if (toPrint.Count() != 0) {
+        toPrint.RemoveAt(toPrint.Count() - 1);
+      }
+      // now create the assume command
+      var annotation = new QKeyValue(new Token(), "print", toPrint, null);
+      return new AssumeCmd(new Token(), 
+        new LiteralExpr(new Token(), true), annotation);
     }
 
     private static Axiom GetAxiom(string source) {
@@ -174,8 +151,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Add a new local variable to the implementation currently processed
     /// </summary>
-    private static LocalVariable GetNewLocalVariable(Implementation impl, Type type) {
-      const string baseName = "tmp#";
+    protected static LocalVariable GetNewLocalVariable(Implementation impl, Type type, string baseName = "tmp#") {
       int id = 0;
       while (impl.LocVars.Exists(v => v.Name == baseName + id)) {
         id++;
@@ -205,21 +181,22 @@ namespace DafnyTestGeneration {
 
         var callerName = node.Name;
         var calleName = $"Impl$${node.Name.Split("$").Last()}";
-        Procedure? calleeProc = program?.Procedures
+        var calleeProc = program?.Procedures
           .Where(f => f.Name == calleName)
           .FirstOrDefault((Procedure) null);
         if (calleeProc == null) {
           return node; // Can happen if included modules are not verified
         }
 
-        // consruct the call to the "Impl$$" implementation:
-        Cmd cmd = new CallCmd(new Token(), calleName,
+        // construct the call to the "Impl$$" implementation:
+        var cmd = new CallCmd(new Token(), calleName,
           node.InParams
             .ConvertAll(v => (Expr)new IdentifierExpr(new Token(), v))
             .ToList(),
           calleeProc.OutParams
             .ConvertAll(v => new IdentifierExpr(new Token(), v))
             .ToList());
+        cmd.Proc = calleeProc;
         // create a block for this call:
         var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
           new ReturnCmd(new Token()));
@@ -241,6 +218,7 @@ namespace DafnyTestGeneration {
         var callerImpl = new Implementation(new Token(), callerName,
           node.TypeParameters, inParams, outParams, vars,
           new List<Block> { block });
+        callerImpl.Proc = node;
         implsToAdd.Add(callerImpl);
         return node;
       }
@@ -318,44 +296,47 @@ namespace DafnyTestGeneration {
     /// </summary>
     private class AnnotationVisitor : StandardVisitor {
 
-      private string? implName;
+      private Implementation? implementation;
       public Implementation? ImplementationToTarget;
 
       public override Block VisitBlock(Block node) {
         if (node.cmds.Count == 0) {
           return base.VisitBlock(node); // ignore blocks with zero commands
         }
-        var data = new List<string>
-          {"\"Block\"", $"\"{implName}\"", $"\"{node.UniqueId}\""};
-        node.cmds.Add(GetAssumeCmd(data));
+        var data = new List<object>
+          {"Block", implementation.Name, node.UniqueId.ToString()};
+        node.cmds.Add(GetAssumePrintCmd(data));
         return base.VisitBlock(node);
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        implName = node.Name;
+        implementation = node;
         // print parameter types:
-        var types = new List<string> { "\"Types\"" };
-        types.AddRange(node.InParams.Select(var =>
-          $"\"{var.TypedIdent.Type}\""));
-        node.Blocks[0].cmds.Insert(0, GetAssumeCmd(types));
+        var data = new List<object> { "Types" };
+        data.AddRange(node.InParams.Select(var =>
+          var.TypedIdent.Type.ToString()));
+        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
 
         // record parameter values:
-        var values = new List<string> { "\"Impl\"", $"\"{node.VerboseName.Split(" ")[0]}\"" };
-        values.AddRange(node.InParams.Select(var => var.Name));
+        data = new List<object> { "Impl", node.VerboseName.Split(" ")[0]};
+        data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
         var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
         var depth = DafnyOptions.O.TestGenOptions.TestInlineDepth;
         if (toTest == null) {
           // All methods are tested/modified
-          node.Blocks[0].cmds.Insert(0, GetAssumeCmd(values));
-        } else if (implName.StartsWith("Impl$$")
+          node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        } else if (node.Name.StartsWith("Impl$$")
                    && node.VerboseName.StartsWith(toTest)) {
           // This method is tested/modified
-          node.Blocks[0].cmds.Insert(0, GetAssumeCmd(values));
+          node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
           ImplementationToTarget = node;
         } else if (depth != 0) {
           // This method is inlined
-          var attribute = GetQKeyValue($":inline {depth}");
+          var depthExpression =
+            new LiteralExpr(new Token(), BigNum.FromUInt(depth));
+          var attribute = new QKeyValue(new Token(), "inline", 
+            new List<object>(){depthExpression}, null);
           attribute.Next = node.Attributes;
           node.Attributes = attribute;
         }
@@ -421,7 +402,8 @@ namespace DafnyTestGeneration {
         var outs = new List<IdentifierExpr>();
         foreach (var param in proc.OutParams) {
           var newVar = GetNewLocalVariable(currImpl!, param.TypedIdent.Type);
-          outs.Add(new IdentifierExpr(new Token(), newVar.Name));
+          var identifierExpr = new IdentifierExpr(new Token(), newVar);
+          outs.Add(identifierExpr);
         }
 
         // Create a call command:

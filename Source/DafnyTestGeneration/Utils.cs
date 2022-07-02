@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
@@ -53,6 +52,18 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
       return copy;
+    }
+    
+    public static string GetStringRepresentation(Microsoft.Boogie.Program program) {
+      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
+      var oldPrintFile = DafnyOptions.O.PrintFile;
+      DafnyOptions.O.PrintInstrumented = true;
+      DafnyOptions.O.PrintFile = "-";
+      var output = new StringWriter();
+      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
+      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      DafnyOptions.O.PrintFile = oldPrintFile;
+      return output.ToString();
     }
     
     private class AddByMethodRewriter : IRewriter {

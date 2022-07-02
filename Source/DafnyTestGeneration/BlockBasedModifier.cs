@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
       if (node.cmds.Count == 0) { // ignore blocks with zero commands
         return node;
       }
-      node.cmds.Add(GetCmd("assert false;"));
+      node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
       var record = new BlockBasedModification(program,
           ImplementationToTarget?.VerboseName ?? implementation.VerboseName,
           node.UniqueId, ExtractCapturedStates(node));

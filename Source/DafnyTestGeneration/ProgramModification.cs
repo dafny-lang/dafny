@@ -18,9 +18,12 @@ namespace DafnyTestGeneration {
     private readonly string procedure; // procedure to be tested
     private readonly Program program;
     public readonly string uniqueId;
+    private static int id;
 
     public ProgramModification(Program program, string procedure, string uniqueId) {
+      id++;
       this.program = Utils.DeepCloneProgram(program);
+      File.WriteAllText($"/Users/fedchina/Desktop/libraries/debug{id}.bpl", Utils.GetStringRepresentation(program));
       this.procedure = procedure;
       this.uniqueId = uniqueId;
     }
@@ -39,6 +42,7 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
+      options.Prune = true;
       options.ProverOptions = new List<string>() {
         "O:model_compress=false",
         "O:model_evaluator.completion=true"
