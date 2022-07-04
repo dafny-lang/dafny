@@ -6,9 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -78,8 +76,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         ToList();
     }
 
-
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
-    public IObservable<Implementation> StartedImplementations => BatchObserver.StartedImplementations;
   }
 }

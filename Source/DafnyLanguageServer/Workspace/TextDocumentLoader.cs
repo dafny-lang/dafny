@@ -7,7 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -142,10 +141,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
 
-      var subscription2 = verifier.StartedImplementations.Where(s =>
-        implementations.Contains(s)).Subscribe(progressReporter.ReportStartVerifyImplementation);
-      cancellationToken.Register(() => subscription2.Dispose());
-
       result.GutterProgressReporter = progressReporter;
       return result;
     }
@@ -279,6 +274,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var id = GetImplementationId(implementationTask.Implementation);
       var status = StatusFromBoogieStatus(boogieStatus);
       var implementationRange = implementationTask.Implementation.tok.GetLspRange();
+      if (boogieStatus is Running) {
+        if (VerifierOptions.GutterStatus) {
+          document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
+        }
+      }
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {

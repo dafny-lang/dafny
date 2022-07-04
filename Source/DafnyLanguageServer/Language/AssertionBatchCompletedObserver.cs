@@ -13,7 +13,6 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
   private readonly ILogger logger;
   private readonly bool reportVerificationDiagnostics;
   private readonly Subject<AssertionBatchResult> completedBatches = new();
-  private readonly Subject<Implementation> startedImplementations = new();
 
   public AssertionBatchCompletedObserver(
     ILogger logger,
@@ -24,7 +23,6 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
   }
 
   public IObservable<AssertionBatchResult> CompletedBatches => completedBatches;
-  public IObservable<Implementation> StartedImplementations => startedImplementations;
 
   public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
   }
@@ -51,9 +49,6 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
   }
 
   public void ReportStartVerifyImplementation(Implementation implementation) {
-    if (reportVerificationDiagnostics) {
-      startedImplementations.OnNext(implementation);
-    }
   }
 
   public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {

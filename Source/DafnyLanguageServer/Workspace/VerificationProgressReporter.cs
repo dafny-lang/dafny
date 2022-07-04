@@ -251,7 +251,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   /// <param name="implementation">The implementation which is going to be verified next</param>
-  public void ReportStartVerifyImplementation(Implementation implementation) {
+  public void ReportVerifyImplementationRunning(Implementation implementation) {
     if (document.LoadCanceled) {
       return;
     }
