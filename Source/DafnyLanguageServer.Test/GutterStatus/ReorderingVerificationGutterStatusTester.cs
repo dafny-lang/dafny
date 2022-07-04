@@ -149,12 +149,14 @@ method m5() { assert true; } //Remove4:
     client.OpenDocument(documentItem);
 
     var initialOrder = await GetFlattenedPositionOrder(CancellationToken);
-    Assert.IsTrue(positions.First().SequenceEqual(initialOrder), string.Join(", ", initialOrder));
+    Assert.IsTrue(positions.First().SequenceEqual(initialOrder),
+      $"Expected {string.Join(", ", positions.First())} but got {string.Join(", ", initialOrder)}");
     foreach (var (change, expectedPositions) in changes.Zip(positions.Skip(1))) {
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
       if (expectedPositions != null) {
         var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
-        Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange), string.Join(", ", orderAfterChange));
+        Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
+          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}");
       }
     }
   }
