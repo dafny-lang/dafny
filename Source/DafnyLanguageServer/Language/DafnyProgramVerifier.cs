@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -64,13 +65,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var result = translated.SelectMany(t => {
+      var tasks = translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      }).ToList();
-      return result;
+      });
+      return tasks.
+        OrderBy(t => t.Implementation.Priority).
+        CreateOrderedEnumerable(
+          t => document.LastTouchedMethodPositions.IndexOf(t.Implementation.tok.GetLspPosition()),
+          null, true).
+        ToList();
     }
+
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
     public IObservable<Implementation> StartedImplementations => BatchObserver.StartedImplementations;

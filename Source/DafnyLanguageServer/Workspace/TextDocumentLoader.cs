@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -102,10 +103,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
 
+      var progressReporter = CreateVerificationProgressReporter(loaded);
+      progressReporter.UpdateLastTouchedMethodPositions();
 
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
-
-      var progressReporter = CreateVerificationProgressReporter(loaded);
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, loaded);
@@ -129,12 +130,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      var orderedVerificationTasks = verificationTasks
-        .OrderByDescending(verificationTask => verificationTask.Implementation.Priority).ToImmutableList();
       var result = loaded with {
         CounterexamplesCollector = new ConcurrentStack<Counterexample>(),
         ImplementationIdToViewCollector = initialViews,
-        VerificationTasks = orderedVerificationTasks,
+        VerificationTasks = verificationTasks,
         ImplementationIdToView = initialViews.ToImmutableDictionary(),
       };
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
