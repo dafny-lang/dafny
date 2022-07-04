@@ -134,7 +134,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
       var subscription = verifier.BatchCompletions.Where(c =>
-        implementations.Contains(c.Split.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+        implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
       result.GutterProgressReporter = progressReporter;
       return result;
@@ -245,6 +245,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var statusUpdates = implementationTask.TryRun();
       if (statusUpdates == null) {
+        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+          foreach (var result in completedCache.Result.VCResults) {
+            dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(new AssertionBatchResult(implementationTask.Implementation, result));
+          }
+          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, completedCache.Result);
+        }
         return Observable.Empty<DafnyDocument>();
       }
 
