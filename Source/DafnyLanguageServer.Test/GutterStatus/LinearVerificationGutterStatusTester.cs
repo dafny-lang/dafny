@@ -211,7 +211,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
       var optionalNewLine = firstChangeMatch.Groups["newline"].Success ? "\n" : "";
       // For now, simple: Remove the line
-      changes.Add(new (
+      changes.Add(new(
         new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), optionalNewLine));
       code = code.Substring(0, startRemove) + optionalNewLine + code.Substring(endRemove);
       matches = matcher.Matches(code);

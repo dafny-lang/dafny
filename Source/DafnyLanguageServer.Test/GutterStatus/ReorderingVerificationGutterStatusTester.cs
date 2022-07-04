@@ -159,8 +159,7 @@ method m5() { assert true; } //Remove4:
     }
   }
 
-  private async Task<List<Position>> GetFlattenedPositionOrder(CancellationToken cancellationToken)
-  {
+  private async Task<List<Position>> GetFlattenedPositionOrder(CancellationToken cancellationToken) {
     return (await GetRunningOrder(cancellationToken).ToListAsync(cancellationToken)).
       SelectMany(r => r).
       Select(r => r.Start).ToList();

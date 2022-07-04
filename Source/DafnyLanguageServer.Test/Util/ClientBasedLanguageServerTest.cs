@@ -44,7 +44,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
   }
 
-  public async IAsyncEnumerable<List<Range>> GetRunningOrder([EnumeratorCancellation]CancellationToken cancellationToken) {
+  public async IAsyncEnumerable<List<Range>> GetRunningOrder([EnumeratorCancellation] CancellationToken cancellationToken) {
     var alreadyReported = new HashSet<Range>();
     FileVerificationStatus foundStatus;
     do {
@@ -88,8 +88,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  protected virtual void InitialiseClientHandler(LanguageClientOptions options)
-  {
+  protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
     options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
     options.AddHandler(DafnyRequestNames.GhostDiagnostics,
       NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
