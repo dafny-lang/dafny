@@ -83,25 +83,25 @@ method m5() {
     var m1Position = new Position(0, 7);
     var m2Position = new Position(1, 7);
     var m3Position = new Position(2, 7);
-    var m4Position = new Position(3, 7);
-    var m5Position = new Position(6, 7);
+    var m4Position = new Position(5, 7);
+    var m5Position = new Position(8, 7);
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() { assert true; }
 method m2() { assert true; }
-method m3() { assert true; } //Remove3:
-method m4() {
+method m3() {
   assert true;//Next1:  assert  true;
 } 
-method m5() {
+method m4() {
   assert true;//Next2:  assert  true;
 }
+method m5() { assert true; } //Remove3:
 ",
         new List<IList<Position>>() {
           new List<Position>() { m1Position, m2Position, m3Position, m4Position, m5Position },
-          new List<Position>() { m4Position, m1Position, m2Position, m3Position, m5Position },
-          new List<Position>() { m5Position, m4Position, m1Position, m2Position, m3Position },
-          new List<Position>() { },
+          new List<Position>() { m3Position, m1Position, m2Position, m4Position, m5Position },
+          new List<Position>() { m4Position, m3Position, m1Position, m2Position, m5Position },
+          new List<Position>() { m1Position, m2Position, m3Position, m4Position},
         });
     });
   }
@@ -132,7 +132,7 @@ method m5() { assert true; } //Remove4:
           new List<Position>() { m3Position, m1Position, m2Position, m4Position, m5Position },
           new List<Position>() { m4Position, m3Position, m1Position, m2Position, m5Position },
           null,
-          new List<Position>() { },
+          new List<Position>() { m1Position, m2Position, m3Position, m4Position },
           new List<Position>() { m2Position, m4Position, m3Position, m1Position }
           });
     });
