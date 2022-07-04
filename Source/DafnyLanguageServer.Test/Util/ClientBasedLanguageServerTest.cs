@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -40,6 +42,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
         return namedVerifiableStatus;
       }
     }
+  }
+
+  public async IAsyncEnumerable<List<Range>> GetRunningOrder([EnumeratorCancellation]CancellationToken cancellationToken) {
+    var alreadyReported = new HashSet<Range>();
+    FileVerificationStatus foundStatus;
+    do {
+      foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r)).ToList();
+
+      yield return newlyRunning;
+    } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
@@ -69,14 +83,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(options => {
-      options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
-      options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
-      options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
-
-    }, serverOptions => {
+    client = await InitializeClient(InitialiseClientHandler, serverOptions => {
       ServerOptionsAction(serverOptions);
     });
+  }
+
+  protected virtual void InitialiseClientHandler(LanguageClientOptions options)
+  {
+    options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+    options.AddHandler(DafnyRequestNames.GhostDiagnostics,
+      NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
+    options.AddHandler(DafnyRequestNames.VerificationSymbolStatus,
+      NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
   }
 
   protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
