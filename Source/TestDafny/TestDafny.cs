@@ -35,19 +35,35 @@ public class TestDafny {
     var dafnyOptions = new DafnyOptions();
     var success = dafnyOptions.Parse(testDafnyOptions.OtherArgs.ToArray());
     if (!success) {
-      return -1;
+      // The same thing DafnyDriver does on options parsing errors
+      return (int)DafnyDriver.ExitValue.PREPROCESSING_ERROR;
     }
 
+    // First verify the file (and assume that verification should be successful).
+    // Older versions of test files that now use %testdafny were sensitive to the number
+    // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
+    // but this was never meaningful and only added maintenance burden.
+    // Here we only ensure that the exit code is 0, and as a sanity check ensures
+    // that X is strictly more than 0.
+    
     var dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
     dafnyArgs.Add($"/compile:0");
     dafnyArgs.Add(testDafnyOptions.TestFile!);
+    dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
 
     Console.Out.WriteLine("Verifying...");
 
     var (exitCode, output, error) = RunDafny(dafnyArgs);
     if (exitCode != 0) {
-      throw new Exception("Verification failed");
+      Console.Out.WriteLine("Verification failed. Output:");
+      Console.Out.WriteLine(output);
+      Console.Out.WriteLine("Error:");
+      Console.Out.WriteLine(error);
+      return exitCode;
     }
+    
+    // Then execute the program for each available compiler.
+    // Here we can pass /noVerify to save time since we already verified the program. 
     
     string expectFile = testDafnyOptions.TestFile + ".expect";
     var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
@@ -55,38 +71,55 @@ public class TestDafny {
     
     foreach(var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers()) {
-        Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
-        dafnyArgs = new List<string> { testDafnyOptions.TestFile! };
-        dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
-        dafnyArgs.Add("/noVerify");
-        dafnyArgs.Add("/useBaseNameForFileName");
-        dafnyArgs.Add("/compileVerbose:0");
-        dafnyArgs.Add("/compile:4");
-        dafnyArgs.Add($"/compileTarget:{compiler.TargetId}");
-        
-        (exitCode, output, error) = RunDafny(dafnyArgs);
-        if (exitCode != 0) {
-          // Check for known unsupported features for this compilation target
-          if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
-            // Carry on, nothing more to see here...
-            continue;
-          }
-          
-          throw new Exception("Execution failed");
+        var result = RunWithCompiler(testDafnyOptions, compiler, expectedOutput);
+        if (result != 0) {
+          return result;
         }
-        
-        AssertWithDiff.Equal(expectedOutput, output);
-      }  
+      }
     }
     
+    Console.Out.WriteLine($"All executions were successful and matched the expected output!");
     return 0;
   }
 
+  private static int RunWithCompiler(TestDafnyOptions testDafnyOptions, Compiler compiler, string expectedOutput) {
+    Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
+    var dafnyArgs = new List<string> { testDafnyOptions.TestFile! };
+    dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
+    dafnyArgs.Add("/noVerify");
+    // /noVerify is interpreted pessimistically as "did not get verification success",
+    // so we have to force compiling and running despite this.
+    dafnyArgs.Add("/compile:4");
+    dafnyArgs.Add($"/compileTarget:{compiler.TargetId}");
+        
+    var (exitCode, output, error) = RunDafny(dafnyArgs);
+    if (exitCode == 0) {
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, output);
+      if (diffMessage == null) {
+        return 0;
+      }
+
+      Console.Out.WriteLine(diffMessage);
+      return 1;
+    }
+        
+    // If we hit errors, check for known unsupported features for this compilation target
+    if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
+      return 0;
+    }
+
+    Console.Out.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
+    Console.Out.WriteLine(output);
+    Console.Out.WriteLine("Error:");
+    Console.Out.WriteLine(error);
+    return exitCode;
+  }
+  
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
-    var dotnetArguments = new[] { DafnyDriverAssembly.Location }.Concat(arguments);
-    // TODO: Refactor list of passthrough environment variables somewhere this
-    // and IntegrationTests can both reference
-    var command = new ShellLitCommand("dotnet", dotnetArguments, new[] { "PATH", "HOME", "DOTNET_NOLOGO" });
+    var dotnetArguments = new[] { DafnyDriverAssembly.Location }
+      .Concat(arguments)
+      .Concat(DafnyDriver.DefaultArgumentsForTesting);
+    var command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
     return command.Execute(null, null, null, null);
   }
 
@@ -108,7 +141,13 @@ public class TestDafny {
     if (line.Length == 0) {
       return true;
     }
+    // This is the first non-blank line we expect when we pass /noVerify
     if (line == "Dafny program verifier did not attempt verification") {
+      return true;
+    }
+    
+    // This is output if the compiler emits any errors
+    if (line.StartsWith("Wrote textual form of partial target program to")) {
       return true;
     }
     
@@ -119,11 +158,11 @@ public class TestDafny {
 
     var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
     var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
-
     if (compiler.UnsupportedFeatures.Contains(feature)) {
       return true;
     }
     
+    // This is an internal inconsistency error
     throw new Exception($"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 }

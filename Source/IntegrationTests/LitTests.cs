@@ -24,25 +24,7 @@ namespace IntegrationTests {
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string[] DefaultDafnyArguments = new[] {
-      // Try to verify 2 verification conditions at once
-      "/vcsCores:2",
-
-      // We do not want absolute or relative paths in error messages, just the basename of the file
-      "/useBaseNameForFileName",
-
-      // We do not want output such as "Compiled program written to Foo.cs"
-      // from the compilers, since that changes with the target language
-      "/compileVerbose:0",
-
-      // Hide Boogie execution traces since they are meaningless for Dafny programs
-      "/errorTrace:0",
-      
-      // Set a default time limit, to catch cases where verification time runs off the rails
-      "/timeLimit:300"
-    };
-
-    private static readonly string[] DefaultDafny0Arguments = DefaultDafnyArguments.Prepend("/countVerificationErrors:0").ToArray();
+    private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
 
     private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
       LitTestConfiguration config, bool invokeDirectly) {
@@ -81,7 +63,7 @@ namespace IntegrationTests {
               config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DefaultDafnyArguments, args),
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
               config, InvokeMainMethodsDirectly)
         }, {
           "%testdafny", (args, config) =>
@@ -100,8 +82,6 @@ namespace IntegrationTests {
         }
       };
 
-      var passthroughEnvironmentVariables = new[] { "PATH", "HOME", "DOTNET_NOLOGO" };
-
       // Silence dotnet's welcome message
       Environment.SetEnvironmentVariable("DOTNET_NOLOGO", "true");
 
@@ -119,23 +99,6 @@ namespace IntegrationTests {
 
         Environment.SetEnvironmentVariable("HOME",
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
-        passthroughEnvironmentVariables = passthroughEnvironmentVariables
-          .Concat(new[] { // Careful: Keep this list in sync with the one in lit.site.cfg
-            "APPDATA",
-            "HOMEDRIVE",
-            "HOMEPATH",
-            "INCLUDE",
-            "LIB",
-            "LOCALAPPDATA",
-            "NODE_PATH",
-            "ProgramFiles",
-            "ProgramFiles(x86)",
-            "SystemRoot",
-            "SystemDrive",
-            "TEMP",
-            "TMP",
-            "USERPROFILE"
-          }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
       } else {
@@ -151,13 +114,13 @@ namespace IntegrationTests {
             AddExtraArgs(DefaultDafny0Arguments, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"),
-            AddExtraArgs(DefaultDafnyArguments, args), config.PassthroughEnvironmentVariables);
+            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
 
-      Config = new LitTestConfiguration(substitutions, commands, features, passthroughEnvironmentVariables);
+      Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;

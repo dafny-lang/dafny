@@ -26,10 +26,14 @@ public class FeatureDescriptionAttribute : Attribute {
   }
   
   public static Feature ForDescription(string description) {
-    var memberInfo = typeof(Feature).GetMembers().First(memberInfo => {
+    var memberInfo = typeof(Feature).GetMembers().FirstOrDefault(memberInfo => {
       var attribute = (FeatureDescriptionAttribute)GetCustomAttribute(memberInfo, typeof(FeatureDescriptionAttribute));
       return attribute != null && attribute.Description == description;
     });
+    if (memberInfo == null) {
+      throw new Exception($"Unrecognized feature description: '{description}'");
+    }
+
     return (Feature)Enum.Parse(typeof(Feature), memberInfo.Name);
   }
 }
@@ -175,7 +179,7 @@ public class UnsupportedFeatureException : Exception {
   public readonly Feature Feature;
 
   public UnsupportedFeatureException(IToken token, Feature feature)
-    : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature)) {
+    : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
     
   }
   
