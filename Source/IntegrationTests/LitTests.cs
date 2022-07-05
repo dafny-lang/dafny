@@ -21,7 +21,7 @@ namespace IntegrationTests {
     private const bool InvokeMainMethodsDirectly = false;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.ForEachCompilerOptions).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
@@ -67,7 +67,7 @@ namespace IntegrationTests {
               config, InvokeMainMethodsDirectly)
         }, {
           "%testdafny", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, args, config,
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>

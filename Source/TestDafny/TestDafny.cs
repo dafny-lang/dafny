@@ -5,56 +5,50 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
-using Parser = CommandLine.Parser;
 
-public class TestDafnyOptions {
+namespace TestDafny; 
 
-  // Required unless --feature-support-table is present
-  [Value(0)]
-  public string? TestFile { get; set; } = null;
+[Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler.")]
+public class ForEachCompilerOptions {
+
+  [Value(0, Required = true)] public string? TestFile { get; set; } = null;
 
   [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
-  
-  [Option("feature-support-table")]
-  public bool PrintFeatureSupportTable { get; set; } = false;
+}
+
+[Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
+public class FeaturesOptions {
+  [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
 public class TestDafny {
 
   private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
-    
+
   public static int Main(string[] args) {
-    TestDafnyOptions? testDafnyOptions = null;
-    var defaultPArser = Parser.Default;
-    var parser = new Parser(with => {
+    var result = -1;
+    var parser = new CommandLine.Parser(with => {
       with.EnableDashDash = true;
       with.HelpWriter = Console.Error;
     });
-    parser.ParseArguments<TestDafnyOptions>(args).WithParsed(o => {
-      testDafnyOptions = o;
+    var parseResult = parser.ParseArguments<ForEachCompilerOptions, FeaturesOptions>(args);
+    parseResult.WithParsed<ForEachCompilerOptions>(options => {
+      result = ForEachCompiler(options);
+    }).WithParsed<FeaturesOptions>(options => {
+      result = GenerateCompilerTargetSupportTable(options);
     });
 
-    if (testDafnyOptions == null) {
-      return -1;
-    }
-
-    var dafnyOptions = new DafnyOptions();
-    var success = dafnyOptions.Parse(testDafnyOptions.OtherArgs.ToArray());
-    if (!success) {
-      // The same thing DafnyDriver does on options parsing errors
-      return (int)DafnyDriver.ExitValue.PREPROCESSING_ERROR;
-    }
-    
-    if (testDafnyOptions.PrintFeatureSupportTable) {
-      GenerateCompilerTargetSupportTable(dafnyOptions);
-      return 0;
-    }
-    
-    return RunTest(testDafnyOptions, dafnyOptions);
+    return result;
   }
 
-  private static int RunTest(TestDafnyOptions testDafnyOptions, DafnyOptions dafnyOptions) {
-    
+  private static DafnyOptions? ParseDafnyOptions(IEnumerable<string> dafnyArgs) {
+    var dafnyOptions = new DafnyOptions();
+    var success = dafnyOptions.Parse(dafnyArgs.ToArray());
+    return success ? dafnyOptions : null;
+  }
+
+  private static int ForEachCompiler(ForEachCompilerOptions options) {
+    var dafnyOptions = ParseDafnyOptions(options.OtherArgs);
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testdafny were sensitive to the number
@@ -62,11 +56,11 @@ public class TestDafny {
     // but this was never meaningful and only added maintenance burden.
     // Here we only ensure that the exit code is 0, and as a sanity check ensures
     // that X is strictly more than 0.
-    
-    var dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
-    dafnyArgs.Add($"/compile:0");
-    dafnyArgs.Add(testDafnyOptions.TestFile!);
-    dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
+
+    var dafnyArgs = new List<string>(options.OtherArgs) {
+      $"/compile:0",
+      options.TestFile!
+    };
 
     Console.Out.WriteLine("Verifying...");
 
@@ -78,37 +72,40 @@ public class TestDafny {
       Console.Out.WriteLine(error);
       return exitCode;
     }
-    
+
     // Then execute the program for each available compiler.
     // Here we can pass /noVerify to save time since we already verified the program. 
-    
-    string expectFile = testDafnyOptions.TestFile + ".expect";
+
+    string expectFile = options.TestFile + ".expect";
     var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
-      File.ReadAllText(expectFile);
-    
+                         File.ReadAllText(expectFile);
+
     foreach(var plugin in dafnyOptions.Plugins) {
-      foreach (var compiler in plugin.GetCompilers()) {
-        var result = RunWithCompiler(testDafnyOptions, compiler, expectedOutput);
+      foreach(var compiler in plugin.GetCompilers()) {
+        var result = RunWithCompiler(options, compiler, expectedOutput);
         if (result != 0) {
           return result;
         }
       }
     }
-    
-    Console.Out.WriteLine($"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
+
+    Console.Out.WriteLine(
+      $"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
     return 0;
   }
 
-  private static int RunWithCompiler(TestDafnyOptions testDafnyOptions, Compiler compiler, string expectedOutput) {
+  private static int RunWithCompiler(ForEachCompilerOptions options, Compiler compiler, string expectedOutput) {
     Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
-    var dafnyArgs = new List<string> { testDafnyOptions.TestFile! };
-    dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
-    dafnyArgs.Add("/noVerify");
-    // /noVerify is interpreted pessimistically as "did not get verification success",
-    // so we have to force compiling and running despite this.
-    dafnyArgs.Add("/compile:4");
-    dafnyArgs.Add($"/compileTarget:{compiler.TargetId}");
-        
+    var dafnyArgs = new List<string>(options.OtherArgs) {
+      options.TestFile!,
+      "/noVerify",
+      // /noVerify is interpreted pessimistically as "did not get verification success",
+      // so we have to force compiling and running despite this.
+      "/compile:4",
+      $"/compileTarget:{compiler.TargetId}"
+    };
+
+
     var (exitCode, output, error) = RunDafny(dafnyArgs);
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, output);
@@ -119,7 +116,7 @@ public class TestDafny {
       Console.Out.WriteLine(diffMessage);
       return 1;
     }
-        
+
     // If we hit errors, check for known unsupported features for this compilation target
     if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
       return 0;
@@ -131,7 +128,7 @@ public class TestDafny {
     Console.Out.WriteLine(error);
     return exitCode;
   }
-  
+
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
     var dotnetArguments = new[] { DafnyDriverAssembly.Location }
       .Concat(arguments)
@@ -158,16 +155,17 @@ public class TestDafny {
     if (line.Length == 0) {
       return true;
     }
+
     // This is the first non-blank line we expect when we pass /noVerify
     if (line == "Dafny program verifier did not attempt verification") {
       return true;
     }
-    
+
     // This is output if the compiler emits any errors
     if (line.StartsWith("Wrote textual form of partial target program to")) {
       return true;
     }
-    
+
     var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
     if (prefixIndex < 0) {
       return false;
@@ -178,25 +176,30 @@ public class TestDafny {
     if (compiler.UnsupportedFeatures.Contains(feature)) {
       return true;
     }
-    
+
     // This is an internal inconsistency error
-    throw new Exception($"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
+    throw new Exception(
+      $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
-  
-  private static void GenerateCompilerTargetSupportTable(DafnyOptions dafnyOptions) {
+
+  private static int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
+    var dafnyOptions = ParseDafnyOptions(featuresOptions.OtherArgs);
+
     // Header
     Console.Out.Write("| Feature |");
     var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers()).ToList();
     foreach(var compiler in allCompilers) {
       Console.Out.Write($" {compiler.TargetLanguage} |");
     }
+
     Console.Out.WriteLine();
-      
+
     // Horizontal rule ("|----|---|...")
     Console.Out.Write("|-|");
     foreach(var _ in allCompilers) {
       Console.Out.Write($"-|");
     }
+
     Console.Out.WriteLine();
 
     var footnotes = new StringBuilder();
@@ -208,16 +211,20 @@ public class TestDafny {
         footnotes.AppendLine($"{description.FootnoteIdentifier}: {description.Footnote}");
         footnotes.AppendLine();
       }
+
       Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
       foreach(var compiler in allCompilers) {
         var supported = !compiler.UnsupportedFeatures.Contains(feature);
         var cell = supported ? " X " : "";
         Console.Out.Write($" {cell} |");
       }
+
       Console.Out.WriteLine();
     }
 
     Console.Out.WriteLine();
     Console.Out.WriteLine(footnotes);
+
+    return 0;
   }
 }
