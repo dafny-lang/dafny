@@ -184,7 +184,8 @@ btoa(JSON.stringify({
 ```
 
 Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
-The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) that is both available in Emacs and [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode). The Language Server also provides features such as ghost highlighting or symbol hovering.
+
+The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) instead. It is supported in [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) only. The Language Server also provides features such as ghost highlighting or symbol hovering.
 
 ## 24.7. Using Dafny From the Command Line
 
@@ -999,6 +1000,7 @@ but such a mechanism is in the works.
 | [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
+| Tuples with more than 20 arguments |  |  X  |  X  |  |  X  |  X  |  X  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
