@@ -1,4 +1,4 @@
-name: Publish Draft Release
+name: Publish Release
 
 on:
   workflow_call:
