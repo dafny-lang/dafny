@@ -262,7 +262,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,
       IObservable<IVerificationStatus> statusUpdates) {
 
-      var result = statusUpdates.Select(boogieStatus => HandleStatusUpdate(document, implementationTask, boogieStatus));
+      var result = statusUpdates.Select(boogieStatus => HandleStatusUpdate(document, implementationTask, boogieStatus)).Replay();
+      result.Connect(); // Immediately start processing the status updates.
 
       var initial = document with {
         ImplementationIdToView = document.ImplementationIdToViewCollector!.ToImmutableDictionary(),
