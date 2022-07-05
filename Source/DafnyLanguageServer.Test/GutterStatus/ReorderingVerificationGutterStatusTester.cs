@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +20,6 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    var m1Position = new Position(0, 7);
-    var m2Position = new Position(4, 7);
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() {
@@ -30,21 +29,15 @@ method m1() {
 method m2() {
   assert 1 == 0;//Next1:  assert 2 == 0;
 }",
-        new List<IList<Position>>() {
-          new List<Position>() { m1Position, m2Position},
-          new List<Position>() { m2Position, m1Position},
-          new List<Position>() { m1Position, m2Position},
-        });
+        "m1 m2\n" +
+        "m2 m1\n" +
+        "m1 m2"
+        );
     });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    var m1Position = new Position(0, 7);
-    var m2Position = new Position(3, 7);
-    var m3Position = new Position(6, 7);
-    var m4Position = new Position(9, 7);
-    var m5Position = new Position(12, 7);
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() {
@@ -61,30 +54,23 @@ method m4() {
 }
 method m5() {
   assert true;//Next1:  assert  true;//Next6:  assert true;//Next10:  assert  true;
-}",
-        new List<IList<Position>>() {
-          new List<Position>() { m1Position, m2Position, m3Position, m4Position, m5Position },
-          new List<Position>() { m5Position, m1Position, m2Position, m3Position, m4Position },
-          new List<Position>() { m3Position, m5Position, m1Position, m2Position, m4Position },
-          new List<Position>() { m4Position, m3Position, m5Position, m1Position, m2Position },
-          new List<Position>() { m4Position, m3Position, m5Position, m1Position, m2Position },
-          new List<Position>() { m2Position, m4Position, m3Position, m5Position, m1Position },
-          new List<Position>() { m5Position, m2Position, m4Position, m3Position, m1Position },
-          new List<Position>() { m1Position, m5Position, m2Position, m4Position, m3Position },
-          new List<Position>() { m1Position, m5Position, m2Position, m4Position, m3Position },
-          new List<Position>() { m3Position, m1Position, m5Position, m2Position, m4Position },
-          new List<Position>() { m5Position, m3Position, m1Position, m2Position, m4Position },
-        });
+}", "m1 m2 m3 m4 m5\n" +
+          "m5 m1 m2 m3 m4\n" +
+          "m3 m5 m1 m2 m4\n" +
+          "m4 m3 m5 m1 m2\n" +
+          "m4 m3 m5 m1 m2\n" +
+          "m2 m4 m3 m5 m1\n" +
+          "m5 m2 m4 m3 m1\n" +
+          "m1 m5 m2 m4 m3\n" +
+          "m1 m5 m2 m4 m3\n" +
+          "m3 m1 m5 m2 m4\n" +
+          "m5 m3 m1 m2 m4"
+        );
     });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
-    var m1Position = new Position(0, 7);
-    var m2Position = new Position(1, 7);
-    var m3Position = new Position(2, 7);
-    var m4Position = new Position(5, 7);
-    var m5Position = new Position(8, 7);
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() { assert true; }
@@ -97,23 +83,16 @@ method m4() {
 }
 method m5() { assert true; } //Remove3:
 ",
-        new List<IList<Position>>() {
-          new List<Position>() { m1Position, m2Position, m3Position, m4Position, m5Position },
-          new List<Position>() { m3Position, m1Position, m2Position, m4Position, m5Position },
-          new List<Position>() { m4Position, m3Position, m1Position, m2Position, m5Position },
-          new List<Position>() { m1Position, m2Position, m3Position, m4Position},
-        });
+        "m1 m2 m3 m4 m5\n" +
+        "m3 m1 m2 m4 m5\n" +
+        "m4 m3 m1 m2 m5\n" +
+        "m1 m2 m3 m4");
     });
   }
 
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-    var m1Position = new Position(0, 7);
-    var m2Position = new Position(1, 7);
-    var m3Position = new Position(4, 7);
-    var m4Position = new Position(7, 7);
-    var m5Position = new Position(10, 7);
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() { assert true; }
@@ -127,20 +106,41 @@ method m4() {
   assert true;//Next2:  assert  true;
 }
 method m5() { assert true; } //Remove4:
-", new List<IList<Position>>() {
-          new List<Position>() { m1Position, m2Position, m3Position, m4Position, m5Position },
-          new List<Position>() { m3Position, m1Position, m2Position, m4Position, m5Position },
-          new List<Position>() { m4Position, m3Position, m1Position, m2Position, m5Position },
-          null,
-          new List<Position>() { m1Position, m2Position, m3Position, m4Position },
-          new List<Position>() { m2Position, m4Position, m3Position, m1Position }
-          });
+",
+          "m1 m2 m3 m4 m5\n" +
+          "m3 m1 m2 m4 m5\n" +
+          "m4 m3 m1 m2 m5\n" +
+          "null\n" +
+          "m1 m2 m3 m4\n" +
+          "m2 m4 m3 m1"
+      );
     });
   }
 
+  private Position GetPositionOf(string code, string symbol) {
+    var pos = code.IndexOf(symbol, StringComparison.Ordinal);
+    if (pos == -1) {
+      throw new Exception("Could not find '" + symbol + "' in:\n" + code);
+    }
+    var line = code.Take(pos).Count(c => c == '\n');
+    var character = 0;
+    while (character <= pos && code[pos - character] != '\n') {
+      character++;
+    }
 
-  private async Task TestPriorities(string codeAndChanges, IList<IList<Position>> positions) {
-    await SetUp(new Dictionary<string, string>() {
+    character--;
+
+    return (line, character);
+  }
+
+  private IList<Position> GetPositions(string code, IList<string> symbols) {
+    return symbols.Select(symbol => GetPositionOf(code, symbol)).ToList();
+  }
+
+  // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
+  private async Task TestPriorities(string codeAndChanges, string symbolsString) {
+    var symbols = ExtractSymbols(symbolsString);
+    await SetUp(new Dictionary<string, string> {
     { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
     });
 
@@ -149,10 +149,12 @@ method m5() { assert true; } //Remove4:
     client.OpenDocument(documentItem);
 
     var initialOrder = await GetFlattenedPositionOrder(CancellationToken);
-    Assert.IsTrue(positions.First().SequenceEqual(initialOrder),
-      $"Expected {string.Join(", ", positions.First())} but got {string.Join(", ", initialOrder)}");
-    foreach (var (change, expectedPositions) in changes.Zip(positions.Skip(1))) {
+    var initialPositions = GetPositions(code, symbols.First());
+    Assert.IsTrue(initialPositions.SequenceEqual(initialOrder),
+      $"Expected {string.Join(", ", initialPositions)} but got {string.Join(", ", initialOrder)}");
+    foreach (var (change, expectedSymbols) in Enumerable.Zip(changes, symbols.Skip(1))) {
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
+      var expectedPositions = expectedSymbols == null ? null : GetPositions(code, expectedSymbols);
       if (expectedPositions != null) {
         var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
         Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
@@ -160,6 +162,11 @@ method m5() { assert true; } //Remove4:
           $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
       }
     }
+  }
+
+  private static List<List<string>> ExtractSymbols(string symbolsString) {
+    return symbolsString.Split("\n")
+      .Select(array => array == "null" ? null : array.Split(" ").ToList()).ToList();
   }
 
   private async Task<List<Position>> GetFlattenedPositionOrder(CancellationToken cancellationToken) {
