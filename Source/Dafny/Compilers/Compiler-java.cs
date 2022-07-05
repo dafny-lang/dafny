@@ -319,7 +319,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // Only exists to make sure method is overriden
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
+        Reporter!.Error(MessageSource.Compiler, builtIns.MaxNonGhostTupleSizeToken, "Java back-end does not support tuples with more than 20 arguments.");
+      }
+    }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var className = TransformToClassName(baseName);
