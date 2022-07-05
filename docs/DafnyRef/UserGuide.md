@@ -955,10 +955,6 @@ The table below shows which features are supported by each backend.
 An empty cell indicated that a feature is not supported,
 while an X indicates that it is.
 
-Note that this information is currently based on code inspection
-and is not yet guaranteed to be updated as features and backends are modified,
-but such a mechanism is in the works.
-
 {% include_relative Features.md %}
 
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}
