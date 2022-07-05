@@ -604,7 +604,7 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
-  
+
       }
 
       // Unless this is an option for test generation, defer to superclass
