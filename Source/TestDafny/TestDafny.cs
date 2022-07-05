@@ -8,7 +8,7 @@ using XUnitExtensions.Lit;
 
 namespace TestDafny; 
 
-[Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler.")]
+[Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler, and assert the output matches the <test file>.expect file.")]
 public class ForEachCompilerOptions {
 
   [Value(0, Required = true)] public string? TestFile { get; set; } = null;
@@ -49,13 +49,15 @@ public class TestDafny {
 
   private static int ForEachCompiler(ForEachCompilerOptions options) {
     var dafnyOptions = ParseDafnyOptions(options.OtherArgs);
+    if (dafnyOptions == null) {
+      return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
+    }
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testdafny were sensitive to the number
     // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
     // but this was never meaningful and only added maintenance burden.
-    // Here we only ensure that the exit code is 0, and as a sanity check ensures
-    // that X is strictly more than 0.
+    // Here we only ensure that the exit code is 0.
 
     var dafnyArgs = new List<string>(options.OtherArgs) {
       $"/compile:0",
@@ -74,8 +76,7 @@ public class TestDafny {
     }
 
     // Then execute the program for each available compiler.
-    // Here we can pass /noVerify to save time since we already verified the program. 
-
+    
     string expectFile = options.TestFile + ".expect";
     var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
                          File.ReadAllText(expectFile);
@@ -98,6 +99,7 @@ public class TestDafny {
     Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
       options.TestFile!,
+      // Here we can pass /noVerify to save time since we already verified the program. 
       "/noVerify",
       // /noVerify is interpreted pessimistically as "did not get verification success",
       // so we have to force compiling and running despite this.
@@ -184,6 +186,9 @@ public class TestDafny {
 
   private static int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
     var dafnyOptions = ParseDafnyOptions(featuresOptions.OtherArgs);
+    if (dafnyOptions == null) {
+      return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
+    }
 
     // Header
     Console.Out.Write("| Feature |");
