@@ -273,7 +273,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators, String.Format("iterator {0}", iter));
+      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
     }
 
     protected bool IsRecursiveConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
