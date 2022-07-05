@@ -467,12 +467,20 @@ public class Scanner {
       parsingTrivia = true;
       triviaTrailing = pos > 0;
     }
+    int newlines = 0;
+    bool lastWasCr = false;
     while (ch == ' ' ||
 -->scan1
     ) {
       if(triviaTrailing && (ch == '\r' || ch == '\n')) {
-        triviaTrailing = false;
-        posTrailingEndLeadingStart = pos;
+        if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
+          newlines++;
+        }
+        lastWasCr = (ch == '\r');
+        if(newlines == 2) {
+          triviaTrailing = false;
+          posTrailingEndLeadingStart = pos;
+        }
       }
       NextCh();
     }
