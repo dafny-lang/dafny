@@ -208,7 +208,7 @@ public class TestDafny {
       var footnoteLink = "";
       if (description.FootnoteIdentifier != null) {
         footnoteLink = $"[^{description.FootnoteIdentifier}]";
-        footnotes.AppendLine($"{description.FootnoteIdentifier}: {description.Footnote}");
+        footnotes.AppendLine($"{footnoteLink}: {description.Footnote}");
         footnotes.AppendLine();
       }
 

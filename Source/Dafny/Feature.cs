@@ -145,7 +145,7 @@ public enum Feature {
   [FeatureDescription("Assign-such-that statements with potentially infinite bounds", "sec-update-and-call-statement",
     "compiler-infinite-assign-such-that-note", @"This refers to assign-such-that statements with multiple variables,
     and where at least one variable has potentially infinite bounds.
-    For example, the implementation of the statement `var x: nat, y: nat :| y != 0 && x / y == 10;`
+    For example, the implementation of the statement `var x: nat, y: nat :| 0 < x && 0 < y && x*x == y*y*y + 1;`
     needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.")]
   AssignSuchThatWithNonFiniteBounds,
   
@@ -167,7 +167,10 @@ public enum Feature {
   TupleInitialization,
   
   [FeatureDescription("Subtype constraints in quantifiers", "sec-quantifier-expression")]
-  SubtypeConstraintsInQuantifiers
+  SubtypeConstraintsInQuantifiers,
+  
+  [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
+  TuplesWiderThan20
 }
 
 public class UnsupportedFeatureException : Exception {

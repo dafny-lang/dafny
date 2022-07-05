@@ -45,7 +45,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Iterators,
       Feature.SubsetTypeTests,
       Feature.TraitTypeParameters,
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.TuplesWiderThan20
     };
 
     public override void CleanSourceDirectory(string sourceDirectory) {
@@ -329,7 +330,7 @@ namespace Microsoft.Dafny.Compilers {
     // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        Reporter!.Error(MessageSource.Compiler, builtIns.MaxNonGhostTupleSizeToken, "Java back-end does not support tuples with more than 20 arguments.");
+        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
     }
 

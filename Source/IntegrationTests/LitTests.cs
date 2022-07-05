@@ -21,15 +21,10 @@ namespace IntegrationTests {
     private const bool InvokeMainMethodsDirectly = false;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.ForEachCompilerOptions).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
-
-    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
-      LitTestConfiguration config, bool invokeDirectly) {
-      return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
-    }
 
     private static readonly LitTestConfiguration Config;
 
