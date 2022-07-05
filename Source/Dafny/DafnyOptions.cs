@@ -156,8 +156,6 @@ namespace Microsoft.Dafny {
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
-    
-    public bool CompileTargetSupportRequested = false;
 
 
     /// <summary>
@@ -607,10 +605,6 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-          return true;
-
-        case "compileTargetSupport":
-          CompileTargetSupportRequested = true;
           return true;
       }
 
@@ -1286,51 +1280,10 @@ program.
         return true;
       }
 
-      if (CompileTargetSupportRequested) {
-        GenerateCompilerTargetSupportTable();
-        return true;
-      }
-
       return false;
     }
 
-    private void GenerateCompilerTargetSupportTable() {
-      // Header
-      Console.Out.Write("| Feature |");
-      var allCompilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
-      foreach(var compiler in allCompilers) {
-        Console.Out.Write($" {compiler.TargetLanguage} |");
-      }
-      Console.Out.WriteLine();
-      
-      // Horizontal rule ("|----|---|...")
-      Console.Out.Write("|-|");
-      foreach(var _ in allCompilers) {
-        Console.Out.Write($"-|");
-      }
-      Console.Out.WriteLine();
-
-      var footnotes = new StringBuilder();
-      foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
-        var description = FeatureDescriptionAttribute.GetDescription(feature);
-        var footnoteLink = "";
-        if (description.FootnoteIdentifier != null) {
-          footnoteLink = $"[^{description.FootnoteIdentifier}]";
-          footnotes.AppendLine($"{description.FootnoteIdentifier}: {description.Footnote}");
-          footnotes.AppendLine();
-        }
-        Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
-        foreach(var compiler in allCompilers) {
-          var supported = !compiler.UnsupportedFeatures.Contains(feature);
-          var cell = supported ? " X " : "";
-          Console.Out.Write($" {cell} |");
-        }
-        Console.Out.WriteLine();
-      }
-
-      Console.Out.WriteLine();
-      Console.Out.WriteLine(footnotes);
-    }
+    
   }
 }
 

@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text;
 using CommandLine;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
@@ -8,14 +9,14 @@ using Parser = CommandLine.Parser;
 
 public class TestDafnyOptions {
 
+  // Required unless --feature-support-table is present
   [Value(0)]
   public string? TestFile { get; set; } = null;
 
-  [Option("exit-code")]
-  public int? ExpectedExitCode { get; set; } = 0;
+  [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
   
-  [Value(1)]
-  public IEnumerable<string> OtherArgs { get; set; }
+  [Option("feature-support-table")]
+  public bool PrintFeatureSupportTable { get; set; } = false;
 }
 
 public class TestDafny {
@@ -23,21 +24,37 @@ public class TestDafny {
   private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
     
   public static int Main(string[] args) {
-    TestDafnyOptions? options = null;
-    var parser = new Parser(with => with.EnableDashDash = true);
-    parser.ParseArguments<TestDafnyOptions>(args).WithParsed(o => {
-      options = o;
+    TestDafnyOptions? testDafnyOptions = null;
+    var defaultPArser = Parser.Default;
+    var parser = new Parser(with => {
+      with.EnableDashDash = true;
+      with.HelpWriter = Console.Error;
     });
-    return RunTest(options!);
-  }
+    parser.ParseArguments<TestDafnyOptions>(args).WithParsed(o => {
+      testDafnyOptions = o;
+    });
 
-  private static int RunTest(TestDafnyOptions testDafnyOptions) {
+    if (testDafnyOptions == null) {
+      return -1;
+    }
+
     var dafnyOptions = new DafnyOptions();
     var success = dafnyOptions.Parse(testDafnyOptions.OtherArgs.ToArray());
     if (!success) {
       // The same thing DafnyDriver does on options parsing errors
       return (int)DafnyDriver.ExitValue.PREPROCESSING_ERROR;
     }
+    
+    if (testDafnyOptions.PrintFeatureSupportTable) {
+      GenerateCompilerTargetSupportTable(dafnyOptions);
+      return 0;
+    }
+    
+    return RunTest(testDafnyOptions, dafnyOptions);
+  }
+
+  private static int RunTest(TestDafnyOptions testDafnyOptions, DafnyOptions dafnyOptions) {
+    
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testdafny were sensitive to the number
@@ -78,7 +95,7 @@ public class TestDafny {
       }
     }
     
-    Console.Out.WriteLine($"All executions were successful and matched the expected output!");
+    Console.Out.WriteLine($"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
     return 0;
   }
 
@@ -164,5 +181,43 @@ public class TestDafny {
     
     // This is an internal inconsistency error
     throw new Exception($"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
+  }
+  
+  private static void GenerateCompilerTargetSupportTable(DafnyOptions dafnyOptions) {
+    // Header
+    Console.Out.Write("| Feature |");
+    var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers()).ToList();
+    foreach(var compiler in allCompilers) {
+      Console.Out.Write($" {compiler.TargetLanguage} |");
+    }
+    Console.Out.WriteLine();
+      
+    // Horizontal rule ("|----|---|...")
+    Console.Out.Write("|-|");
+    foreach(var _ in allCompilers) {
+      Console.Out.Write($"-|");
+    }
+    Console.Out.WriteLine();
+
+    var footnotes = new StringBuilder();
+    foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
+      var description = FeatureDescriptionAttribute.GetDescription(feature);
+      var footnoteLink = "";
+      if (description.FootnoteIdentifier != null) {
+        footnoteLink = $"[^{description.FootnoteIdentifier}]";
+        footnotes.AppendLine($"{description.FootnoteIdentifier}: {description.Footnote}");
+        footnotes.AppendLine();
+      }
+      Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
+      foreach(var compiler in allCompilers) {
+        var supported = !compiler.UnsupportedFeatures.Contains(feature);
+        var cell = supported ? " X " : "";
+        Console.Out.Write($" {cell} |");
+      }
+      Console.Out.WriteLine();
+    }
+
+    Console.Out.WriteLine();
+    Console.Out.WriteLine(footnotes);
   }
 }
