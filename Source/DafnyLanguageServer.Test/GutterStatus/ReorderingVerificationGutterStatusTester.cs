@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -27,7 +29,6 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
 
   [TestInitialize]
   public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
         options
@@ -42,7 +43,7 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
             serviceProvider.GetRequiredService<ISymbolTableFactory>(),
             serviceProvider.GetRequiredService<IGhostStateDiagnosticCollector>(),
             serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-            serviceProvider.GetRequiredService<IDiagnosticPublisher>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
             serviceProvider.GetRequiredService<IOptions<VerifierOptions>>().Value
           );
           return textDocumentLoader;
@@ -52,7 +53,8 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() {
   assert 1 == 0;//Next2:  assert 2 == 0;
 }
@@ -60,15 +62,17 @@ method m1() {
 method m2() {
   assert 1 == 0;//Next1:  assert 2 == 0;
 }",
-      expectedPriorities:
-      " 1, 1 " +
-      " 1,10 " +
-      "10, 9");
+        expectedPriorities:
+        " 1, 1 " +
+        " 1,10 " +
+        "10, 9");
+    });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() {
   assert true;//Next7:  assert  true;//Next8:  assert true;
 }
@@ -84,22 +88,24 @@ method m4() {
 method m5() {
   assert true;//Next1:  assert  true;//Next6:  assert true;//Next10:  assert  true;
 }", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1, 1,10 " +
-      " 1, 1,10, 1, 9 " +
-      " 1, 1, 9,10, 8 " +
-      " 1, 1, 9,10, 8 " +
-      " 1,10, 8, 9, 7 " +
-      " 1, 9, 7, 8,10 " +
-      "10, 8, 6, 7, 9 " +
-      "10, 8, 6, 7, 9 " +
-      " 9, 7,10, 6, 8 " +
-      " 8, 7, 9, 6,10");
+        " 1, 1, 1, 1, 1 " +
+        " 1, 1, 1, 1,10 " +
+        " 1, 1,10, 1, 9 " +
+        " 1, 1, 9,10, 8 " +
+        " 1, 1, 9,10, 8 " +
+        " 1,10, 8, 9, 7 " +
+        " 1, 9, 7, 8,10 " +
+        "10, 8, 6, 7, 9 " +
+        "10, 8, 6, 7, 9 " +
+        " 9, 7,10, 6, 8 " +
+        " 8, 7, 9, 6,10");
+    });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() { assert true; }
 method m2() { assert true; }
 method m3() { assert true; } //Remove3:
@@ -110,16 +116,18 @@ method m5() {
   assert true;//Next2:  assert  true;
 }
 ", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1,10, 1 " +
-      " 1, 1, 1, 9,10 " +
-      " 1, 1, 9,10");
+        " 1, 1, 1, 1, 1 " +
+        " 1, 1, 1,10, 1 " +
+        " 1, 1, 1, 9,10 " +
+        " 1, 1, 9,10");
+    });
   }
 
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() { assert true; }
 method m2() {
   assert true;//Next3:  typo//Next5:  assert true;
@@ -132,10 +140,11 @@ method m5() {
   assert true;//Next2:  assert  true;
 }
 ", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1,10, 1 " +
-      " 1, 1, 1, 9,10 " +// No priorities set for the two edits when there is a parse error.
-      " 1,10, 8, 9");
+        " 1, 1, 1, 1, 1 " +
+        " 1, 1, 1,10, 1 " +
+        " 1, 1, 1, 9,10 " + // No priorities set for the two edits when there is a parse error.
+        " 1,10, 8, 9");
+    });
   }
 
   private async Task TestPriorities(string code, string expectedPriorities) {

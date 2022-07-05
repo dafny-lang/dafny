@@ -34,7 +34,6 @@ ParseErrors.dfy(137,19): Error: formal cannot be declared 'ghost' in this contex
 ParseErrors.dfy(139,23): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(142,27): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(143,28): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(155,19): Error: verticalbar expected
 ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
@@ -80,4 +79,4 @@ ParseErrors.dfy(255,32): Error: formal cannot be declared 'older' in this contex
 ParseErrors.dfy(256,11): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(257,17): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(261,28): Error: formal cannot be declared 'older' in this context
-77 parse errors detected in ParseErrors.dfy
+76 parse errors detected in ParseErrors.dfy

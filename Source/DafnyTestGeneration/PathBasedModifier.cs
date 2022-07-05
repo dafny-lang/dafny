@@ -10,7 +10,7 @@ namespace DafnyTestGeneration {
   public class PathBasedModifier : ProgramModifier {
 
     // prefix given to variables indicating whether or not a block was visited
-    private const string blockVarNamePrefix = "$$visited$$_";
+    private const string BlockVarNamePrefix = "$$visited$$_";
     private List<Path> paths = new();
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
@@ -19,7 +19,8 @@ namespace DafnyTestGeneration {
       p = VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        result.Add(new ProgramModification(p, ProcedureName ?? path.Impl.Name));
+        result.Add(new ProgramModification(p,
+          ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName));
         path.NoAssertPath();
       }
       return result;
@@ -30,7 +31,7 @@ namespace DafnyTestGeneration {
     /// and then populate the paths field.
     /// </summary>
     public override Implementation VisitImplementation(Implementation node) {
-      if (!ProcedureIsToBeTested(node.Name)) {
+      if (!ImplementationIsToBeTested(node)) {
         return node;
       }
       InitBlockVars(node);
@@ -60,7 +61,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     private static void InitBlockVars(Implementation node) {
       foreach (var block in node.Blocks) {
-        var var = blockVarNamePrefix + block.UniqueId;
+        var var = BlockVarNamePrefix + block.UniqueId;
         // variable declaration:
         node.LocVars.Add(new LocalVariable(new Token(),
           new TypedIdent(new Token(), var, Type.Bool)));
@@ -123,7 +124,7 @@ namespace DafnyTestGeneration {
           return;
         }
 
-        var vars = path.ConvertAll(x => blockVarNamePrefix + x);
+        var vars = path.ConvertAll(x => BlockVarNamePrefix + x);
         var varsCond = string.Join("||", vars.ConvertAll(x => $"!{x}"));
         // The only purpose of varsIn is to make a call to GetCmd possible
         var varsIn = string.Join(", ", vars.ConvertAll(x => $"{x}:bool"));

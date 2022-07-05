@@ -219,6 +219,44 @@ bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest || kind == _older;
 }
 
+bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
+  // Introducing per-quantified variable ranges creates some ambiguities in the grammar,
+  // since before that the range would terminate the quantifed domain. For example, the following statement:
+  //
+  // print set x | E, y;
+  //
+  // This would previously parse as two separate arguments to the print statement, but
+  // could now also be parsed as a single set comprehension argument with two quantified variables
+  // (and an invalid one since it would need an explicit ":: <Term>" section).
+  //
+  // Even worse:
+  //
+  // print set x | E, y <- C;
+  //
+  // This was a valid statement before as well, because "y <- C" would be parsed as the expression
+  // "y < (-C)".
+  //
+  // The /quantifierSyntax option is used to help migrate this otherwise breaking change:
+  // * /quantifierSyntax:3 keeps the old behaviour where a "| <Range>" always terminates the list of quantified variables.
+  // * /quantifierSyntax:4 instead attempts to parse additional quantified variables.
+  if (previousVar.Range != null && theOptions.QuantifierSyntax == DafnyOptions.QuantifierSyntaxOptions.Version3) {
+    return false;
+  }
+
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return la.kind == _comma && IsIdentifier(x.kind);
+}
+
+// Checks for "<-", which has to be parsed as two separate tokens,
+// but ensures no whitespace between them.
+bool IsFromArrow() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return la.kind == _openAngleBracket && x.kind == _minus
+    && la.line == x.line && la.col == x.col - 1; 
+}
+
 bool IsLabel(bool allowLabel) {
   if (!allowLabel) {
     return false;
@@ -500,18 +538,18 @@ bool IsNotEndOfCase() {
 
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
- * If inExpressionContext == false and there is an opening '<', then
- * it is assumed, without checking, that what follows is a type parameter list
+ * If inExpressionContext == true, it also checks the token immediately after
+ * the ">" to help disambiguate some cases (see implementation comment).   
  */
 bool IsGenericInstantiation(bool inExpressionContext) {
   scanner.ResetPeek();
-  if (!inExpressionContext) {
-    return la.kind == _openAngleBracket;
-  }
   IToken pt = la;
   if (!IsTypeList(ref pt)) {
     return false;
   }
+  if (!inExpressionContext) {
+    return true;
+  }  
   /* There are ambiguities in the parsing.  For example:
    *     F( a < b , c > (d) )
    * can either be a unary function F whose argument is a function "a" with type arguments "<b,c>" and
@@ -887,6 +925,7 @@ TOKENS
   sarrow = "->".
   qarrow = "~>".
   larrow = "-->".
+  minus = "-".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -908,7 +947,7 @@ Dafny
                                                string basePath = Path.GetDirectoryName(parsedFile);
                                                includedFile = Path.Combine(basePath, includedFile);
                                              }
-                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile));
+                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, theCompileThisFile));
                                            }
                                         .)
   }
@@ -1668,6 +1707,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
+  // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
   [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
@@ -3401,9 +3441,9 @@ ForallStmt<out Statement/*!*/ s>
   "forall"                                  (. x = t; tok = x; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "(" [ QuantifierDomain<out bvars, out qattrs, out range> ] ")"
+    "(" [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ] ")"
   |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
-          QuantifierDomain<out bvars, out qattrs, out range>
+          QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
   )
   (. if (bvars == null) { bvars = new List<BoundVar>(); }
@@ -4199,7 +4239,6 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
 /*------------------------------------------------------------------------*/
 MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
      Expression range = null;
      Expression bodyLeft = null;
@@ -4208,12 +4247,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      bool finite = true;
   .)
   ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-  { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-  }
-  { Attribute<ref attrs> }
-  [ "|" Expression<out range, true, true, true> ]
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
   QSep
   Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
@@ -4690,7 +4724,7 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
-  QuantifierDomain<out bvars, out attrs, out range>
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, true>
   QSep
   Expression<out body, allowLemma, allowLambda>
   (. if (univ) {
@@ -4702,28 +4736,51 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range.>
+QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range, bool allowLemma, bool allowLambda, bool allowBitwiseOps.>
 = (.
-     bvars = new List<BoundVar>();
-     BoundVar/*!*/ bv;
+     List<QuantifiedVar> qvars = new List<QuantifiedVar>();
+     QuantifiedVar/*!*/ qv;
      attrs = null;
      range = null;
   .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-  { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+  QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>         (. qvars.Add(qv); .)
+  { IF(IsQuantifierVariableDecl(qv))
+    ","
+    QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>       (. qvars.Add(qv); .)
   }
-  { Attribute<ref attrs> }
-  [ IF(la.kind == _verticalbar)   /* Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; I don't see how that's possible, but this IF is good and suppresses the reported ambiguity */
-    "|"
-    Expression<out range, true, true>
+  (. QuantifiedVar.ExtractSingleRange(qvars, out bvars, out range); .)
+  .
+  
+/*------------------------------------------------------------------------*/
+QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allowLemma, bool allowLambda, bool allowBitwiseOps.>
+= (.
+     BoundVar bv;
+     Expression domain = null;
+     Expression range = null;
+  .)
+  IdentTypeOptional<out bv>
+  [ // "<-" can also appear in GenericParameters in something like "<-T>",
+    // so we parse it as two separate tokens, but use lookahead to ensure
+    // we don't allow whitespace between them.
+    IF(IsFromArrow())
+    "<" "-"
+    // We can't allow bitwise ops here since otherwise we'll swallow up any
+    // optional "| <Range>" suffix 
+    Expression<out domain, allowLemma, allowLambda, false>
   ]
+  { Attribute<ref attrs> }
+  [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; 
+    // I don't see how that's possible, but this IF is good and suppresses the reported ambiguity
+    IF(la.kind == _verticalbar) 
+    "|"
+    Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+  ]
+  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.SyntacticType, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/
 SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
-     BoundVar bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
@@ -4731,12 +4788,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      bool finite = true;
   .)
   ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-  { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-  }
-  { Attribute<ref attrs> }
-  "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
     Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
@@ -4745,6 +4797,12 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
        q = dummyExpr;
      } else {
+       // This production used to have its own version of QuantifierDomain in which the
+       // range was not optional, so we map null to "true" here so that the rest of the
+       // logic doesn't hit exceptions.
+       if (range == null) {
+         range = LiteralExpr.CreateBoolLiteral(Token.NoToken, true);
+       }
        q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
   .)

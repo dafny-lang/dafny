@@ -200,7 +200,7 @@ and will then raise the error that it's not possible to update the non-ghost var
 TODO: This section needs rewriting
 
 This section is a tutorial on well-founded functions and extreme predicates.
-We place it here in preparation for Section [#sec-class-types]
+We place it here in preparation for [the section about class types](#sec-class-types)
 where function and predicate definitions are described.
 
 Recursive functions are a core part of computer science and mathematics.
@@ -248,18 +248,16 @@ encoding makes it possible to reason about fixpoints in an automated
 way.
 
 The encoding for greatest predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in Section
-[#sec-co-inductive-datatypes].
+[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
 
 ### 23.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
 write an equation like
-~ Equation {#eq-general}
-<p style="text-align: center;">
+
+<p style="text-align: center;" id="eq-general">
 $$f = \mathcal{F}(f)$$
 </p>
-~
 
 where $\mathcal{F}$ is a non-recursive function of type
 $(X \to Y) \to X \to Y$.
@@ -296,28 +294,26 @@ $$
 With the understanding that the argument $n$ is universally
 quantified, we can write this equation equivalently as
 
-~ Equation {#eq-fib}
-<p style="text-align: center;">
+<p style="text-align: center;" id="eq-fib">
 $$
 \mathit{fib}(n) = \mathbf{if}\:n < 2\:\mathbf{then}\:n\:\mathbf{else}\:\mathit{fib}(n-2)%2B\mathit{fib}(n-1)
 $$
 </p>
-~
 
 
 The fact that the function being defined occurs on both sides of the equation
 causes concern that we might not be defining the function properly, leading to a
 logical inconsistency.  In general, there
-could be many solutions to an equation like [#eq-general] or there could be none.
+could be many solutions to an equation like [the general equation](#eq-general) or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
 
 #### 23.4.1.1. Well-founded Functions
 
-A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
+A standard way to ensure that [the general equation](#eq-general) has a unique solution in $f$ is
 to make sure the recursion is well-founded, which roughly means that the
 recursion terminates.  This is done by introducing any well-founded
 relation $\ll$ on the domain of $f$ and making sure that the argument to each recursive
-call goes down in this ordering.  More precisely, if we formulate [#eq-general] as
+call goes down in this ordering.  More precisely, if we formulate [the general equation](#eq-general) as
 <p style="text-align: center;">
 $$
 f(x) = \mathcal{F}{'}(f)
@@ -330,7 +326,7 @@ definition satisfies  this _decrement condition_, then the function is said to b
 _well-founded_.
 
 For example, to check the decrement condition for $\mathit{fib}$
-in [#eq-fib], we can pick $\ll$
+in [the fib equation](#eq-fib), we can pick $\ll$
 to be the arithmetic less-than relation on natural numbers and check the
 following, for any $n$:
 <p style="text-align: center;"> $$ 2 \leq n \;\Longrightarrow\; n-2 \ll n \;\wedge\; n-1 \ll n $$
@@ -338,7 +334,7 @@ following, for any $n$:
 
 Note that we are entitled to use the antecedent
 $2 \leq n$ because that is the
-condition under which the else branch in [#eq-fib] is evaluated.
+condition under which the else branch in [the fib equation](#eq-fib) is evaluated.
 
 A well-founded function is often thought of as "terminating" in the sense
 that the recursive _depth_ in evaluating $f$
@@ -379,7 +375,7 @@ $n$, and hence the invocations go down in the well-founded ordering on natural n
 
 #### 23.4.1.3. Extreme Solutions
 
-We don't need to exclude the possibility of equation [#eq-general] having multiple
+We don't need to exclude the possibility of [the general equation](#eq-general) having multiple
 solutions---instead, we can just be clear about which one of them we want.
 Let's explore this, after a smidgen of lattice theory.
 
@@ -402,14 +398,14 @@ Tarski's Theorem [@Tarski:theorem] tells us that any monotonic function over a
 complete lattice has a least and a greatest fixpoint.  In particular, this means that
 $\mathcal{F}$ has a least fixpoint and a greatest fixpoint, provided $\mathcal{F}$ is monotonic.
 
-Speaking about the _set of solutions_ in $f$ to [#eq-general] is the same as speaking
+Speaking about the _set of solutions_ in $f$ to [the general equation](#eq-general) is the same as speaking
 about the _set of fixpoints_ of functor $\mathcal{F}$.  In particular, the least and greatest
-solutions to [#eq-general] are the same as the least and greatest fixpoints of $\mathcal{F}$.
-In casual speak, it happens that we say "fixpoint of [#eq-general]", or more
+solutions to [the general equation](#eq-general) are the same as the least and greatest fixpoints of $\mathcal{F}$.
+In casual speak, it happens that we say "fixpoint of [the general equation](#eq-general)", or more
 grotesquely, "fixpoint of $f$" when we really mean "fixpoint of $\mathcal{F}$".
 
 In conclusion of our little excursion into lattice theory, we have that, under the
-proviso of $\mathcal{F}$ being monotonic, the set of solutions in $f$ to [#eq-general] is nonempty,
+proviso of $\mathcal{F}$ being monotonic, the set of solutions in $f$ to [the general equation](#eq-general) is nonempty,
 and among these solutions, there is in the $\dot{\Rightarrow}$ ordering a least solution (that is,
 a function that returns `false` more often than any other) and a greatest solution (that
 is, a function that returns `true` more often than any other).
@@ -423,18 +419,14 @@ functors $\mathcal{F}$.
 Let me introduce a running example.  Consider the following equation,
 where $x$ ranges over the integers:
 
-~ Equation {#eq-EvenNat}
-<p style="text-align: center;">
+<p style="text-align: center;" id="eq-EvenNat" title="the EvenNat equation">
 $$
 g(x) = (x = 0 \:\vee\: g(x-2))
 $$
 </p>
-~
 
 This equation has four solutions in $g$.  With $w$ ranging over the integers, they are:
 
-
-Equation
 <p style="text-align: center;">
 $$
  \begin{array}{r@{}l}
@@ -453,12 +445,13 @@ In the literature, the definition of an extreme predicate is often given as a se
 _inference rules_.  To designate the least solution, a single line separating the
 antecedent (on top) from conclusion (on bottom) is used:
 
-Equation {#g-ind-rule}
-  $\frac{}{g(0)} \qquad\qquad \frac{g(x-2)}{g(x)}$
+<p style="text-align: center;" id="g-ind-rule" title="the inductive rules">
+  $$\dfrac{}{g(0)} \qquad\qquad \dfrac{g(x-2)}{g(x)}$$
+</p>
 
 Through repeated applications of such rules, one can show that the predicate holds for
 a particular value.  For example, the _derivation_, or _proof tree_,
-to the left in Figure [#fig-proof-trees] shows that $g(6)$ holds.
+to the left in [the proof tree figure](#fig-proof-trees) shows that $g(6)$ holds.
 (In this simple example, the derivation is a rather degenerate proof "tree".)
 The use of these inference rules gives rise to a least solution, because proof trees are
 accepted only if they are _finite_.
@@ -466,15 +459,17 @@ accepted only if they are _finite_.
 When inference rules are to designate the greatest solution, a thick
 line is used:
 
-~ Equation {#g-coind-rule}
-    $\genfrac{}{}{1.2pt}0{}{g(0)}
+<p style="text-align: center;" id="g-coind-rule" title="the coinductive rules">
+    $$\genfrac{}{}{1.2pt}0{}{g(0)}
   \qquad\qquad
-    \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$
+    \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$$
+</p>
 
 In this case, proof trees are allowed to be infinite.
-For example, the left-hand example below shows a finite proof tree that uses the rules of [#g-ind-rule] to establish $g(6)$.  On the right is a partial depiction of an infinite proof tree that uses the rules of [#g-coind-rule] to establish $g(1)$.
+For example, the left-hand example below shows a finite proof tree that uses [the inductive rules](#g-ind-rule) to establish $g(6)$.
+On the right is a partial depiction of an infinite proof tree that uses [the coinductive rules](#g-coind-rule) to establish $g(1)$.
 
-<p style="text-align: center;">
+<p style="text-align: center;" id="fig-proof-trees" title="the proof tree figure">
 $$\dfrac{
   \dfrac{
     \dfrac{
@@ -497,39 +492,36 @@ $$\dfrac{
 
 Note that derivations may not be unique.  For example, in the case of the greatest
 solution for $g$, there are two proof trees that establish $g(0)$:  one is the finite
-proof tree that uses the left-hand rule of [#g-coind-rule] once, the other is the infinite
-proof tree that keeps on using the right-hand rule of [#g-coind-rule].
+proof tree that uses the left-hand rule of [these coinductive rules](#g-coind-rule) once, the other is the infinite
+proof tree that keeps on using the right-hand rule of [these coinductive rules](#g-coind-rule).
 
 ### 23.4.2. Working with Extreme Predicates
 
 In general, one cannot evaluate whether or not an extreme predicate holds for some
 input, because doing so may take an infinite number of steps.  For example, following
-the recursive calls in the definition [#eq-EvenNat] to try to evaluate $g(7)$ would never
+the recursive calls in the definition [the EvenNat equation](#eq-EvenNat) to try to evaluate $g(7)$ would never
 terminate.  However, there are useful ways to establish that an extreme predicate holds
 and there are ways to make use of one once it has been established.
 
-For any $\mathcal{F}$ as in [#eq-general], I define two infinite series of well-founded
+For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
 functions, ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$
 where $k$ ranges over the natural numbers:
 
-~ Equation {#eq-least-approx}
-<p style="text-align: center;">$$
+<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
    { {}^{\flat}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
-~
-~ Equation {#eq-greatest-approx}
-<p style="text-align: center;">$$
+
+<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
    { {}^{\sharp}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
-~
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
@@ -538,47 +530,42 @@ Alternatively, we can define ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$ with
 Let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
-Then, [#eq-least-approx] and [#eq-greatest-approx] can be stated equivalently as
+Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
 ${ {}^{\flat}\!f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\!f}_k = \mathcal{F}^k(\top)$.
 
-For any solution $f$ to equation [#eq-general], we have, for any $k$ and $\ell$
+For any solution $f$ to [the general equation](#eq-general), we have, for any $k$ and $\ell$
 such that $k \leq \ell$:
 
 
-Equation {#eq-prefix-postfix}
-<p style="text-align: center;">$$
- { {}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad { {}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
+<p style="text-align: center;" id="eq-prefix-postfix" title="the prefix postfix result">$$
+ {\;{}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
 
-In other words, every ${ {}^{\flat}\!f}_k$ is a _pre-fixpoint_ of $f$ and every ${ {}^{\sharp}\!f}_k$ is a _post-fixpoint_
+In other words, every ${\;{}^{\flat}\!f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\!f}\_{k}$ is a _post-fixpoint_
 of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
-
-Equation {#eq-least-is-exists}
-<p style="text-align: center;">$$
+<p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
  f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\!f}_k(x) $$</p>
-Equation {#eq-greatest-is-forall}
-<p style="text-align: center;">$$
+<p style="text-align: center;" id="eq-greatest-is-forall" title="the greatest forall definition">$$
   f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\!f}_k(x) $$</p>
 
-
-By [#eq-prefix-postfix], we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
+By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
 $f^{\downarrow}$ and $f^{\uparrow}$ are the least and greatest fixpoints of $\mathcal{F}$.
 These equations let us do proofs by induction when dealing with extreme predicates.
-I will explain in Section [#sec-friendliness] how to check for continuity.
+I will explain in [the extreme predicate section](#sec-friendliness) how to check for continuity.
 
 Let's consider two examples, both involving function $g$ in
-[#eq-EvenNat].  As it turns out, $g$'s defining functor is continuous,
+[the EvenNat equation](#eq-EvenNat).  As it turns out, $g$'s defining functor is continuous,
 and therefore I will write $g^{\downarrow}$ and $g^{\uparrow}$ to denote the
-least and greatest solutions for $g$ in [#eq-EvenNat].
+least and greatest solutions for $g$ in [the EvenNat equation](#eq-EvenNat).
 
 #### 23.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
 $x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
-construct a proof tree like the one for $g(6)$ in Figure
-[#fig-proof-trees].  For a proof in this direction, since we're just
+construct a proof tree like the one for $g(6)$ in [the proof tree figure](#fig-proof-trees).
+For a proof in this direction, since we're just
 applying the defining equation, the fact that
 we're using a least solution for $g$ never plays a role (as long as we
 limit ourselves to finite derivations).
@@ -595,7 +582,7 @@ name _least predicate_.
 
 Let's prove $g^{\downarrow}(x) \;\Longrightarrow\; 0 \leq x \;\wedge\; x \textrm{ even}$.
 We split our task into two cases, corresponding to which of the two
-proof rules in [#g-ind-rule] was the
+proof rules in [the inductive rules](#g-ind-rule) was the
 last one applied to establish $g^{\downarrow}(x)$.  If it was the left-hand rule, then $x=0$,
 which makes it easy to establish the conclusion of our proof goal.  If it was the
 right-hand rule, then we unfold the proof tree one level and obtain $g^{\downarrow}(x-2)$.
@@ -603,12 +590,12 @@ Since the proof tree for $g^{\downarrow}(x-2)$ is smaller than where we started,
 the _induction hypothesis_ and obtain $0 \leq (x-2) \;\wedge\; (x-2) \textrm{ even}$, from which
 it is easy to establish the conclusion of our proof goal.
 
-Here's how we do the proof formally using [#eq-least-is-exists].  We massage the
+Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
 general form of our proof goal:
 
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
-| = | &nbsp;&nbsp;&nbsp;&nbsp; { [#eq-least-is-exists] }                        |
-|   | $(\\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
+| = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
+|   | $(\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
 |   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
 
@@ -651,19 +638,19 @@ that aims to emphasize the simplicity, not the mystery, of
 coinduction [@KozenSilva:Coinduction].
 
 Let's prove $\mathit{true} \;\Longrightarrow\; g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
-According to the right-hand rule of [#g-coind-rule], $g^{\uparrow}(x)$ follows if we
+According to the right-hand rule of [these coinductive rules](#g-coind-rule), $g^{\uparrow}(x)$ follows if we
 establish $g^{\uparrow}(x-2)$, and that's easy to do by invoking the coinduction hypothesis.
 The "little detail", productivity, is satisfied in this proof because we applied
-a rule in [#g-coind-rule] before invoking the coinduction hypothesis.
+a rule in [these coinductive rules](#g-coind-rule) before invoking the coinduction hypothesis.
 
 For anyone who may have felt that the intuitive proof felt too easy, here is a formal
-proof using [#eq-greatest-is-forall], which relies only on induction.  We massage the
+proof using [the greatest forall definition](#eq-greatest-is-forall), which relies only on induction.  We massage the
 general form of our proof goal:
 
 <!--
 |~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { [#eq-greatest-is-forall] }                      |
+| = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
 |   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\!f}_k(x)$                                  |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
 |   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\!f}_k(x)$                                  |
@@ -681,7 +668,7 @@ disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-
 
 Although in this paper I consider only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
-the set of solutions to [#eq-general] is nonempty.  For example, if all calls to $f$ in
+the set of solutions to [the general equation](#eq-general) is nonempty.  For example, if all calls to $f$ in
 $\mathcal{F}'(f)$ are _tail-recursive calls_, then (under the assumption that $Y$ is nonempty) the set of
 solutions is nonempty.  To see this, consider an attempted evaluation of $f(x)$ that fails
 to determine a definite result value because of an infinite chain of calls that applies $f$
@@ -733,7 +720,7 @@ keyword `function` to `predicate`.
 
 Dafny has `lemma` declarations.  These are really just special cases of methods:
 they can have pre- and postcondition specifications and their body is a code block.
-Here is the lemma we stated and proved in Section [#sec-fib-example]:
+Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny
 lemma FibProperty(n: nat)
@@ -822,7 +809,7 @@ prefix predicates.  Instead of the names ${ {}^{\flat}\!g}_k$ and ${ {}^{\sharp}
 names the prefix predicates `g#[k]` and `G#[k]`, respectively, that is, the name of
 the extreme predicate appended with `#`, and the subscript is given as an argument in
 square brackets.  The definition of the prefix predicate derives from the body of
-the extreme predicate and follows the form in [#eq-least-approx] and [#eq-greatest-approx].
+the extreme predicate and follows the form in [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx).
 Using a faux-syntax for illustrative purposes, here are the prefix
 predicates that Dafny defines automatically from the extreme
 predicates `g` and `G`:
@@ -833,10 +820,10 @@ predicate G#[_k: nat](x: int) { _k != 0 ==> (x == 0 || G#[_k-1](x-2)) }
 ```
 
 The Dafny verifier is aware of the connection between extreme predicates and their
-prefix predicates, [#eq-least-is-exists] and [#eq-greatest-is-forall].
+prefix predicates, [the least exists definition](#eq-least-is-exists) and [the greatest forall definition](#eq-greatest-is-forall).
 
 Remember that to be well defined, the defining functor of an extreme predicate
-must be monotonic, and for [#eq-least-is-exists] and [#eq-greatest-is-forall] to hold,
+must be monotonic, and for [the least exists definition](#eq-least-is-exists) and [the greatest forall definition](#eq-greatest-is-forall) to hold,
 the functor must be continuous.  Dafny enforces the former of these by checking that
 recursive calls of extreme predicates are in positive positions.  The continuity
 requirement comes down to checking that they are also in _continuous positions_:
@@ -847,7 +834,7 @@ are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coin
 ### 23.5.4. Proofs about Extreme Predicates
 
 From what I have presented so far, we can do the formal proofs from Sections
-[#sec-example-least-solution] and [#sec-example-greatest-solution].  Here is the
+[the example about the least solution](#sec-example-least-solution) and [the example about the greatest solution](#sec-example-greatest-solution).  Here is the
 former:
 
 ```dafny
@@ -868,7 +855,7 @@ lemma EvenNatAux(k: nat, x: int)
 
 Lemma `EvenNat` states the property we wish to prove.  From its
 precondition (keyword `requires`) and
-[#eq-least-is-exists], we know there is some `k` that will make the condition in the
+[the least exists definition](#eq-least-is-exists), we know there is some `k` that will make the condition in the
 assign-such-that statement true.  Such a value is then assigned to `k` and passed to
 the auxiliary lemma, which promises to establish the proof goal.  Given the condition
 `g#[k](x)`, the definition of `g#` lets us conclude `k != 0` as well as the disjunction
@@ -889,7 +876,7 @@ forall k', x' | 0 <= k' < k && g#[k'](x') {
 at the beginning of the body of `EvenNatAux`, the body can be left empty and Dafny
 completes the proof automatically.
 
-Here is the Dafny program that gives the proof from Section [#sec-example-greatest-solution]:
+Here is the Dafny program that gives the proof from [the example of the greatest solution](#sec-example-greatest-solution):
 
 ```dafny
 lemma Always(x: int)
@@ -903,7 +890,7 @@ lemma AlwaysAux(k: nat, x: int)
 While each of these proofs involves only basic proof rules, the setup feels a bit clumsy,
 even with the empty body of the auxiliary lemmas.  Moreover,
 the proofs do not reflect the intuitive proofs I described in
-Section [#sec-example-least-solution] and [#sec-example-greatest-solution].
+[the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).
 These shortcoming are addressed in the next subsection.
 
 ### 23.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
@@ -952,8 +939,8 @@ greatest lemma Always(x: int)
 { Always(x-2); }
 ```
 
-Both of these proofs follow the intuitive proofs given in Sections
-[#sec-example-least-solution] and [#sec-example-greatest-solution].  Note that in these
+Both of these proofs follow the intuitive proofs given in
+[the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).  Note that in these
 simple examples, the user is never bothered with either prefix predicates nor
 prefix lemmas---the proofs just look like "what you'd expect".
 

@@ -277,7 +277,16 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 22.2.8. `{:print}` {#sec-print}
+### 22.2.8. `{:opaque}` {#sec-opaque}
+Ordinarily, the body of a function is transparent to its users, but
+sometimes it is useful to hide it. If a function `foo` or `bar` is given the
+`{:opaque}` attribute, then Dafny hides the body of the function,
+so that it can only be seen within its recursive clique (if any),
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
+
+More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
+
+### 22.2.9. `{:print}` {#sec-print}
 This attributes declares that a method may have print effects,
 that is, it may use 'print' statements and may call other methods
 that have print effects. The attribute can be applied to compiled
@@ -286,15 +295,6 @@ applied to functions or ghost methods. An overriding method is
 allowed to use a {:print} attribute only if the overridden method
 does.
 Print effects are enforced only with `/trackPrintEffects:1`.
-
-### 22.2.9. `{:opaque}` {#sec-opaque}
-Ordinarily, the body of a function is transparent to its users, but
-sometimes it is useful to hide it. If a function `foo` or `bar` is given the
-`{:opaque}` attribute, then Dafny hides the body of the function,
-so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
-
-More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 <!--
 Describe this where refinement is described, as appropriate.
@@ -316,19 +316,60 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.2.10. `{:priority N}`
-Assign a positive priority 'N' to an implementation to control the order
-in which implementations are verified (default: N = 1).
+### 22.2.10. `{:priority}`
+`{:priority N}` assigns a positive priority 'N' to a method or function to control the order
+in which methods or functions are verified (default: N = 1).
 
+### 22.2.11. `{:rlimit}` {#sec-rlimit}
 
-### 22.2.11. `{:selective_checking}`
+`{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
+This is the per-method equivalent of the command-line flag `/rlimit:N`.
+If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+
+To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
+
+* 8K resource usage
+  ```dafny
+  method f() {
+    assert true;
+  }
+  ```
+* 10K resource usage using assertions that do not add assumptions:
+  ```dafny
+  method f() {
+    assert a: (a ==> b) <==> (!b ==> !a);
+    assert b: (a ==> b) <==> (!b ==> !a);
+    assert c: (a ==> b) <==> (!b ==> !a);
+    assert d: (a ==> b) <==> (!b ==> !a);
+  }
+  ```
+
+* 40K total resource usage using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert)
+  ```dafny
+  method {:vcs_split_on_every_assert} f(a: bool, b: bool) {
+    assert a: (a ==> b) <==> (!b ==> !a);
+    assert b: (a ==> b) <==> (!b ==> !a);
+    assert c: (a ==> b) <==> (!b ==> !a);
+    assert d: (a ==> b) <==> (!b ==> !a);
+  }
+  ```
+*  37K total resource usage and thus fails with `out of resource`.
+   ```dafny
+   method {:rlimit 30} f(a: int, b: int, c: int) {
+     assert ((1 + a*a)*c) / (1 + a*a) == c;
+   }
+   ```
+
+Note that, the default solver Z3 tends to overshoot by `7K` to `8K`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
+
+### 22.2.12. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 22.2.12. `{:tailrecursion}`
+### 22.2.13. `{:tailrecursion}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
@@ -344,7 +385,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.2.13. `{:test}`
+### 22.2.14. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
 to be executed at runtime in order to test that the program is working as intended.
 
@@ -375,10 +416,10 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
-### 22.2.14. `{:timeLimit N}`
+### 22.2.15. `{:timeLimit N}`
 Set the time limit for verifying a given function or method.
 
-### 22.2.15. `{:timeLimitMultiplier X}`
+### 22.2.16. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -386,14 +427,14 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.2.16. `{:verify false}` {#sec-verify}
+### 22.2.17. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether.
 Will not even try to verify well-formedness of postconditions and preconditions.
 We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies postconditions.
 
-### 22.2.17. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 22.2.18. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -402,7 +443,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.18. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 22.2.19. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -413,7 +454,7 @@ case error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.19. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 22.2.20. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -421,14 +462,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.20. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 22.2.21. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 22.2.21. `{:synthesize}` {#sec-synthesize-attr}
+### 22.2.22. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -462,7 +503,7 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-### 22.2.22. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+### 22.2.23. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It attribute configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,

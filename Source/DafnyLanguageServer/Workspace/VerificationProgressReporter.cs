@@ -27,27 +27,27 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private const int MaxLastTouchedMethodPriority = 10;
   private const int MaxLastTouchedMethods = 5;
 
-  private readonly ICompilationStatusNotificationPublisher publisher;
+  private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
-  private readonly IDiagnosticPublisher diagnosticPublisher;
+  private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DafnyDocument document,
-    ICompilationStatusNotificationPublisher publisher,
-    IDiagnosticPublisher diagnosticPublisher
+    ICompilationStatusNotificationPublisher statusPublisher,
+    INotificationPublisher notificationPublisher
   ) {
     this.document = document;
-    this.publisher = publisher;
+    this.statusPublisher = statusPublisher;
     this.logger = logger;
-    this.diagnosticPublisher = diagnosticPublisher;
+    this.notificationPublisher = notificationPublisher;
   }
 
   /// <summary>
   /// Sends a more precise verification status message to the client's status bar
   /// </summary>
   public void ReportProgress(string message) {
-    publisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
+    statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
   }
 
   /// <summary>
@@ -246,7 +246,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
+      notificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 
@@ -358,9 +358,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       return;
     }
     lock (LockProcessing) {
-      var split = batchResult.Split;
+      var implementation = batchResult.Implementation;
       var result = batchResult.Result;
-      var implementation = split.Implementation;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
       if (targetMethodNode == null) {

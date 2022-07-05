@@ -6838,7 +6838,11 @@ namespace Microsoft.Dafny {
           }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is UnaryOpExpr uop) {
-            uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            // The CheckTypeInference_Visitor has already visited uop.E, but uop.E's may be undetermined. If that happened,
+            // then an error has already been reported.
+            if (CheckTypeIsDetermined(uop.E.tok, uop.E.Type, "expression")) {
+              uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            }
           } else if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
             e.ResolvedOp = ResolveOp(e.Op, e.E0.Type, e.E1.Type);
@@ -11960,7 +11964,7 @@ namespace Microsoft.Dafny {
       }
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
-        this.Body = x.Body.ConvertAll((new Cloner()).CloneStmt);
+        this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements. 
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
@@ -14999,7 +15003,9 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.And:
           case BinaryExpr.Opcode.Or: {
               ConstrainSubtypeRelation(Type.Bool, e.E0.Type, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-              ConstrainSubtypeRelation(Type.Bool, e.E1.Type, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+              var secondArgumentDescription = e.E1.tok is QuantifiedVariableRangeToken
+                ? "range of quantified variable" : "second argument to {0}";
+              ConstrainSubtypeRelation(Type.Bool, e.E1.Type, expr, secondArgumentDescription + " must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
               expr.Type = Type.Bool;
               break;
             }
@@ -15101,7 +15107,9 @@ namespace Microsoft.Dafny {
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            AddXConstraint(expr.tok, "Innable", e.E1.Type, e.E0.Type, "second argument to \"" + BinaryExpr.OpcodeString(e.Op) + "\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})");
+            var subjectDescription = e.E1.tok is QuantifiedVariableDomainToken
+              ? "domain of quantified variable" : "second argument to \"" + BinaryExpr.OpcodeString(e.Op) + "\"";
+            AddXConstraint(expr.tok, "Innable", e.E1.Type, e.E0.Type, subjectDescription + " must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})");
             expr.Type = Type.Bool;
             break;
 
