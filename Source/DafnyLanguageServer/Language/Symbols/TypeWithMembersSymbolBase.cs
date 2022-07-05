@@ -9,8 +9,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public override IEnumerable<ISymbol> Children => Members;
 
-    public abstract IToken Token { get; }
-
     protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) { }
 
     public abstract string GetDetailText(CancellationToken cancellationToken);

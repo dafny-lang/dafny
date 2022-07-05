@@ -5,7 +5,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ModuleSymbol : Symbol, ILocalizableSymbol {
     public ModuleDefinition Declaration { get; }
     public object Node => Declaration;
-    public IToken Token => Declaration.FirstDeclarationToken;
 
     public ISet<ISymbol> Declarations { get; } = new HashSet<ISymbol>();
 

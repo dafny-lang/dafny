@@ -1,7 +1,6 @@
 # Upcoming
 
 - fix: Hovering over variables and methods inside cases of nested match statements work again (https://github.com/dafny-lang/dafny/pull/2334)
-- feat: Hovering a symbol in the IDE shows its associated comment or formatted javadoc (https://github.com/dafny-lang/dafny/pull/1801)
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
 - feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)

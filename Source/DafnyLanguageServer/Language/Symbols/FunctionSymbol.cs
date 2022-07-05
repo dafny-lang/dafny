@@ -6,7 +6,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FunctionSymbol : MemberSymbol, ILocalizableSymbol {
     public Function Declaration { get; }
     public object Node => Declaration;
-    public IToken Token => Declaration.FirstDeclarationToken;
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
 

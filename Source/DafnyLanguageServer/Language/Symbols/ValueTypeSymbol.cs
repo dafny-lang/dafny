@@ -6,8 +6,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public ValuetypeDecl Declaration { get; }
     public object Node => Declaration;
 
-    public IToken Token => Declaration.FirstDeclarationToken;
-
     public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
     public override IEnumerable<ISymbol> Children => Members;
