@@ -39,7 +39,7 @@
 | [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
-| Tuples with more than 20 arguments |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Tuples with more than 20 arguments](#sec-tuple-types) |  |  X  |  X  |  |  X  |  X  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
@@ -57,3 +57,5 @@
 
 [^compiler-sequence-display-nolambda-note]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
     but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
+
+
