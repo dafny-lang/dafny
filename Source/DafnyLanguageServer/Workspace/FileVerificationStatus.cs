@@ -11,8 +11,7 @@ public record FileVerificationStatus(
   DocumentUri Uri,
   int? Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
-  public override string ToString()
-  {
+  public override string ToString() {
     return $"{nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
   }
 }
