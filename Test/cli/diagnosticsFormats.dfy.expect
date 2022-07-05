@@ -1,0 +1,26 @@
+diagnosticsFormats.dfy(8,0): Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here
+diagnosticsFormats.dfy(9,17): Error: result of operation might violate newtype constraint for 'byte'
+diagnosticsFormats.dfy(12,16): Error: A precondition for this call might not hold.
+diagnosticsFormats.dfy(11,35): Related location: This is the precondition that might not hold.
+
+Dafny program verifier finished with 1 verified, 2 errors
+{"range":{"start":{"line":8,"character":0}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}
+{"range":{"start":{"line":9,"character":17}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}
+{"range":{"start":{"line":12,"character":16}},"severity":1,"message":"Error: A precondition for this call might not hold.","source":"Verifier","relatedInformation":[]}
+{"range":{"start":{"line":11,"character":35}},"severity":2,"message":"Related location: This is the precondition that might not hold.","source":"Verifier","relatedInformation":[]}
+
+Dafny program verifier finished with 1 verified, 2 errors
+diagnosticsFormats.dfy(8,0): Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here
+diagnosticsFormats.dfy(7,8): Info: newtype byte resolves as {:nativeType "byte"} (Detected Range: 0 .. 256)
+diagnosticsFormats.dfy(9,17): Error: result of operation might violate newtype constraint for 'byte'
+diagnosticsFormats.dfy(12,16): Error: A precondition for this call might not hold.
+diagnosticsFormats.dfy(11,35): Related location: This is the precondition that might not hold.
+
+Dafny program verifier finished with 1 verified, 2 errors
+{"range":{"start":{"line":8,"character":0}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}
+{"range":{"start":{"line":7,"character":8}},"severity":4,"message":"newtype byte resolves as {:nativeType \u0022byte\u0022} (Detected Range: 0 .. 256)","source":"Resolver","relatedInformation":[]}
+{"range":{"start":{"line":9,"character":17}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}
+{"range":{"start":{"line":12,"character":16}},"severity":1,"message":"Error: A precondition for this call might not hold.","source":"Verifier","relatedInformation":[]}
+{"range":{"start":{"line":11,"character":35}},"severity":2,"message":"Related location: This is the precondition that might not hold.","source":"Verifier","relatedInformation":[]}
+
+Dafny program verifier finished with 1 verified, 2 errors

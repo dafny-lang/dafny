@@ -1,3 +1,8 @@
+# Upcoming
+
+- feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line). (https://github.com/dafny-lang/dafny/pull/2363)
+
+
 # 3.7.2
 
 - fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
