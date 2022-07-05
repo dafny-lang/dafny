@@ -156,7 +156,8 @@ method m5() { assert true; } //Remove4:
       if (expectedPositions != null) {
         var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
         Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
-          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}");
+          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}." +
+          $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
       }
     }
   }
