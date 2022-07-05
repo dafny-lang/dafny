@@ -8,7 +8,6 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
@@ -156,7 +155,6 @@ namespace Microsoft.Dafny {
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
-
 
     /// <summary>
     /// Automatic shallow-copy constructor
@@ -606,6 +604,7 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
+  
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -1274,16 +1273,6 @@ some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
 program.
 ".Replace("\n", "\n  ") + base.HelpBody;
-    
-    public override bool ProcessInfoFlags() {
-      if (base.ProcessInfoFlags()) {
-        return true;
-      }
-
-      return false;
-    }
-
-    
   }
 }
 
