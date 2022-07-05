@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RunAllTests,
       Feature.MethodSynthesis
     };
-    
+
     public override string TargetLanguage => "C++";
     public override string TargetExtension => "cpp";
 

@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.Compilers {
     public void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
       ReportError(Reporter, tok, msg, wr, args);
     }
-    
+
     protected void UnsupportedFeatureError(Bpl.IToken tok, Feature feature, string message = null, ConcreteSyntaxTree wr = null, params object[] args) {
       if (!UnsupportedFeatures.Contains(feature)) {
         throw new Exception($"'{feature}' is not an element of the {TargetId} compiler's UnsupportedFeatures set");

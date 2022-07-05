@@ -76,7 +76,7 @@ public abstract class Compiler {
   /// Whether generated code can be compiled without being written to disk.
   /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
-  
+
   /// <summary>
   /// Dafny features this compiler is known to not support.
   /// </summary>

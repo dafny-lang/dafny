@@ -76,13 +76,13 @@ public class TestDafny {
     }
 
     // Then execute the program for each available compiler.
-    
+
     string expectFile = options.TestFile + ".expect";
     var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
                          File.ReadAllText(expectFile);
 
-    foreach(var plugin in dafnyOptions.Plugins) {
-      foreach(var compiler in plugin.GetCompilers()) {
+    foreach (var plugin in dafnyOptions.Plugins) {
+      foreach (var compiler in plugin.GetCompilers()) {
         var result = RunWithCompiler(options, compiler, expectedOutput);
         if (result != 0) {
           return result;
@@ -193,7 +193,7 @@ public class TestDafny {
     // Header
     Console.Out.Write("| Feature |");
     var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers()).ToList();
-    foreach(var compiler in allCompilers) {
+    foreach (var compiler in allCompilers) {
       Console.Out.Write($" {compiler.TargetLanguage} |");
     }
 
@@ -201,14 +201,14 @@ public class TestDafny {
 
     // Horizontal rule ("|----|---|...")
     Console.Out.Write("|-|");
-    foreach(var _ in allCompilers) {
+    foreach (var _ in allCompilers) {
       Console.Out.Write($"-|");
     }
 
     Console.Out.WriteLine();
 
     var footnotes = new StringBuilder();
-    foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
+    foreach (var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
       var description = FeatureDescriptionAttribute.GetDescription(feature);
       var footnoteLink = "";
       if (description.FootnoteIdentifier != null) {
@@ -218,7 +218,7 @@ public class TestDafny {
       }
 
       Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
-      foreach(var compiler in allCompilers) {
+      foreach (var compiler in allCompilers) {
         var supported = !compiler.UnsupportedFeatures.Contains(feature);
         var cell = supported ? " X " : "";
         Console.Out.Write($" {cell} |");

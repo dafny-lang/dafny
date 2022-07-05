@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExactBoundedPool,
       Feature.MethodSynthesis
     };
-    
+
     private const string DafnyRuntimeModule = "_dafny";
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";

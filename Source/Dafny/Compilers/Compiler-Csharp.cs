@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SubsetTypeTests,
       Feature.TuplesWiderThan20
     };
-    
+
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);

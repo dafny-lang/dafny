@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.AllUnderscoreExternalModuleNames
     };
 
-    
+
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";
     public override string TargetBaseDir(string dafnyProgramName) =>
@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.Compilers {
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
-          UnsupportedFeatureError(Bpl.Token.NoToken, Feature.AllUnderscoreExternalModuleNames, 
+          UnsupportedFeatureError(Bpl.Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
             "Cannot have a package name with only underscores: {0}", wr, pkgName);
           return wr;
         }
