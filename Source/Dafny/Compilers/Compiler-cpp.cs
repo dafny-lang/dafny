@@ -1760,12 +1760,6 @@ namespace Microsoft.Dafny.Compilers {
         if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
-          if (dtor2.EnclosingCtors.Count > 1) {
-            // TODO: Can't figure out how to trigger this one
-            throw new Exception(
-              String.Format("Using the same destructor {0} with multiple constructors is ambiguous", member.Name));
-          }
-
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
             UnsupportedFeatureError(dtor2.tok, Feature.Codatatypes,
               String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
