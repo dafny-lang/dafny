@@ -112,7 +112,7 @@ namespace IntegrationTests {
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testdafny"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly, 
+          MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config,
             InvokeMainMethodsDirectly);
         commands["%server"] = (args, config) =>
