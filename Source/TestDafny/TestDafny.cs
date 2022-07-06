@@ -11,9 +11,13 @@ namespace TestDafny;
 [Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler, and assert the output matches the <test file>.expect file.")]
 public class ForEachCompilerOptions {
 
-  [Value(0, Required = true)] public string? TestFile { get; set; } = null;
+  [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
+  public string? TestFile { get; set; } = null;
 
-  [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
+  [Option("dafny", HelpText = "The dafny CLI to test with. Defaults to the locally built DafnyDriver project.")]
+  public string? DafnyCliPath { get; set; } = null;
+
+  [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -66,7 +70,7 @@ public class TestDafny {
 
     Console.Out.WriteLine("Verifying...");
 
-    var (exitCode, output, error) = RunDafny(dafnyArgs);
+    var (exitCode, output, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     if (exitCode != 0) {
       Console.Out.WriteLine("Verification failed. Output:");
       Console.Out.WriteLine(output);
@@ -108,7 +112,7 @@ public class TestDafny {
     };
 
 
-    var (exitCode, output, error) = RunDafny(dafnyArgs);
+    var (exitCode, output, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, output);
       if (diffMessage == null) {
@@ -131,11 +135,15 @@ public class TestDafny {
     return exitCode;
   }
 
-  private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
-    var dotnetArguments = new[] { DafnyDriverAssembly.Location }
-      .Concat(arguments)
-      .Concat(DafnyDriver.DefaultArgumentsForTesting);
-    var command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
+  private static (int, string, string) RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
+    var argumentsWithDefaults = arguments.Concat(DafnyDriver.DefaultArgumentsForTesting);
+    ILitCommand command;
+    if (dafnyCLIPath != null) {
+      command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
+    } else {
+      var dotnetArguments = new[] { DafnyDriverAssembly.Location, "--no-build" }.Concat(argumentsWithDefaults);
+      command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
+    }
     return command.Execute(null, null, null, null);
   }
 

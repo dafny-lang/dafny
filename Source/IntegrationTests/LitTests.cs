@@ -102,14 +102,19 @@ namespace IntegrationTests {
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
+        var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
         commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
         commands["%dafny_0"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"),
+          new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DefaultDafny0Arguments, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"),
+          new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
+        commands["%testdafny"] = (args, config) =>
+          MainMethodLitCommand.Parse(TestDafnyAssembly, 
+            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config,
+            InvokeMainMethodsDirectly);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
