@@ -817,9 +817,10 @@ namespace DafnyServer.CounterexampleGeneration {
         return result;
       }
       foreach (var tpl in fSetSelect.AppsWithArg(0, instances.ToList()[0].Result)) {
-        var fieldName = GetFieldName(tpl.Args[1]);
-        if (fieldName != "alloc") {
-          result.Add(DafnyModelVariableFactory.Get(state, Unbox(tpl.Result), fieldName, var));
+        foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
+          if (fieldName != "alloc") {
+            result.Add(DafnyModelVariableFactory.Get(state, Unbox(tpl.Result), fieldName, var));
+          }
         }
       }
       return result;
@@ -849,14 +850,15 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Return the name of the field represented by the given element.
     /// Special care is required if the element represents an array index
     /// </summary>
-    private string GetFieldName(Model.Element elt) {
+    private List<string> GetFieldNames(Model.Element elt) {
+      if (elt == null) {
+        return new List<string>();
+      }
       int? dims = fDim.OptEval(elt)?.AsInt();
       if (dims is null or 0) { // meaning elt is not an array index
-        var fieldName = GetTrueName(elt);
-        if (fieldName == null) {
-          return elt.ToString();
-        }
-        return fieldName.Split(".").Last();
+        return elt.Names.Where(tuple =>
+          tuple.Func.Arity == 0 && !tuple.Func.Name.Contains("$"))
+          .Select(tuple => tuple.Func.Name.Split(".").Last()).ToList();
       }
       // Reaching this code means elt is an index into an array
       var indices = new Model.Element[(int)dims];
@@ -871,8 +873,10 @@ namespace DafnyServer.CounterexampleGeneration {
           elt = dimTuple.Args[0];
         }
       }
-      return "[" + string.Join(",", indices.ToList().
-        ConvertAll(element => element.ToString())) + "]";
+      return new List<string>() {
+        "[" + string.Join(",",
+          indices.ToList().ConvertAll(element => element.ToString())) + "]"
+      };
     }
 
     /// <summary> Unboxes an element, if possible </summary>
