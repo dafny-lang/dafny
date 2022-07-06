@@ -132,7 +132,7 @@ function char#ToInt(char): int uses {
   axiom (forall ch: char ::
     { char#ToInt(ch) }
     char#FromInt(char#ToInt(ch)) == ch &&
-    char#IsUnicodeScalarValue(char#ToInt(ch)))
+    char#IsUnicodeScalarValue(char#ToInt(ch)));
 }  
 
 function char#Plus(char, char): char uses {
