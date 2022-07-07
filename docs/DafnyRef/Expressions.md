@@ -629,7 +629,7 @@ For any expression `e`, the expression `allocated(e)` evaluates to `true`
 in a state if the value of `e` is available in that state, meaning that
 it could in principle have been the value of a variable in that state.
 
-For example, the following program verifies:
+For example, consider this valid program:
 
 ```dafny
 class C { constructor() {} }
