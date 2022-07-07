@@ -593,17 +593,17 @@ For example, the following program verifies:
 
 ```dafny
 class C { constructor() {} }
-method f(x1: C) returns (x: C)
-  ensures fresh(x)
+method f(c1: C) returns (r: C)
+  ensures fresh(r)
 {
-  assert !fresh(x1);
-  var x2 := new C();
-  label AfterX2:
-  var x3 := new C();
-  assert fresh(x2) && fresh(x3);
-  assert fresh({x2, x3});
-  assert !fresh@AfterX2(x2) && fresh@AfterX2(x3);
-  x := x2;
+  assert !fresh(c1);
+  var c2 := new C();
+  label AfterC2:
+  var c3 := new C();
+  assert fresh(c2) && fresh(c3);
+  assert fresh({c2, c3});
+  assert !fresh@AfterC2(c2) && fresh@AfterC2(c3);
+  r := c2;
 }
 ```
 
