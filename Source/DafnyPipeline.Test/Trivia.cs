@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -11,14 +12,18 @@ using Xunit;
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
   public class Trivia {
+    enum Newlines { LF, CR, CRLF };
+
+    private Newlines currentNewlines;
+
     [Fact]
-    public void Test() {
+    public void TriviaSplitWorksOnLinuxMacAndWindows() {
       ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();
-      options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
       DafnyOptions.Install(options);
-
-      var programString = @"
+      foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
+        currentNewlines = newLinesType;
+        var programString = @"
 /** Trait docstring */
 trait Trait1 { }
 
@@ -60,42 +65,55 @@ method m() returns (r: int)
 ensures true
 { assert true; }
 ";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-      Microsoft.Dafny.Type.ResetScopes();
-      BuiltIns builtIns = new BuiltIns();
-      Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-      var dafnyProgram = new Program("programName", module, builtIns, reporter);
-      Assert.Equal(0, reporter.ErrorCount);
-      Assert.Equal(5, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
-      var trait1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[0];
-      var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[1];
-      var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
-      var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[3] as ClassDecl;
-      var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
-      Assert.NotNull(class1);
-      Assert.NotNull(defaultClass);
-      Assert.Equal(4, defaultClass.Members.Count);
-      var c = defaultClass.Members[0];
-      var f = defaultClass.Members[1];
-      var g = defaultClass.Members[2];
-      var m = defaultClass.Members[3];
-      Assert.Equal("\n/** Trait docstring */\n", trait1.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("// Just a comment\n", trait2.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// Trait docstring\n", trait2.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("// This is attached to n\n", subsetType.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// This is attached to n as well\n\n", subsetType.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("// Just a comment\n", class1.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// Class docstring\n", class1.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("// Comment attached to c\n", c.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// Docstring attached to c\n\n", c.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("// This is attached to f\n", f.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// This is f docstring\n", f.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("/** This is the docstring */\n", g.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// This is not the docstring\n", g.TokenBeforeDocstring.trailingTrivia);
-      Assert.Equal("// Just a regular comment\n", m.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal("\n// This is the docstring\n", m.TokenBeforeDocstring.trailingTrivia);
+        programString = AdjustNewlines(programString);
 
-      Assert.True(true);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        Microsoft.Dafny.Type.ResetScopes();
+        BuiltIns builtIns = new BuiltIns();
+        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        Assert.Equal(0, reporter.ErrorCount);
+        Assert.Equal(5, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
+        var trait1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[0];
+        var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[1];
+        var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
+        var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[3] as ClassDecl;
+        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
+        Assert.NotNull(class1);
+        Assert.NotNull(defaultClass);
+        Assert.Equal(4, defaultClass.Members.Count);
+        var c = defaultClass.Members[0];
+        var f = defaultClass.Members[1];
+        var g = defaultClass.Members[2];
+        var m = defaultClass.Members[3];
+
+        AssertTrivia(trait1, "\n/** Trait docstring */\n", " ");
+        AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
+        AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
+        AssertTrivia(class1, "// Just a comment\n", "\n// Class docstring\n");
+        AssertTrivia(c, "// Comment attached to c\n", "\n// Docstring attached to c\n\n");
+        AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
+        AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
+        AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+      }
+    }
+
+    private string AdjustNewlines(string programString) {
+      return currentNewlines switch {
+        Newlines.LF => new Regex("\r?\n").Replace(programString, "\n"),
+        Newlines.CR => new Regex("\r?\n").Replace(programString, "\r"),
+        _ => new Regex("\r?\n").Replace(programString, "\r\n")
+      };
+    }
+
+    private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.FirstDeclarationToken.leadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.trailingTrivia);
+    }
+
+    private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.FirstDeclarationToken.leadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.trailingTrivia);
     }
   }
 }
