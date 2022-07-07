@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
@@ -23,15 +24,18 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() {
-  assert 1 == 0;//Next2:  assert 2 == 0;
+  assert fib(10) == 0;//Next2:  assert fib(10) == 0;
 }
-
 method m2() {
-  assert 1 == 0;//Next1:  assert 2 == 0;
-}",
-        "m1 m2\n" +
-        "m2 m1\n" +
-        "m1 m2"
+  assert fib(10) == 0;//Next1:  assert fib(10) == 0;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+",
+        "m1 m2 fib\n" +
+        "m2 m1 fib\n" +
+        "m1 m2 fib"
         );
     });
   }
@@ -41,30 +45,34 @@ method m2() {
     await WithNoopSolver(async () => {
       await TestPriorities(@"
 method m1() {
-  assert true;//Next7:  assert  true;//Next8:  assert true;
+  assert fib(10) == 55;//Next7:  assert  fib(10) == 55;//Next8:  assert fib(10) == 55;
 }
 method m2() {
-  assert true;//Next5:  assert  true;
+  assert fib(10) == 55;//Next5:  assert  fib(10) == 55;
 }
 method m3() {
-  assert true;//Next2:  assert  true;//Next9:  assert true;
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;//Next9:  assert fib(10) == 55;
 }
 method m4() {
-  assert true;//Next3:  assert  true;//Next4:  assert true;
+  assert fib(10) == 55;//Next3:  assert  fib(10) == 55;//Next4:  assert fib(10) == 55;
 }
 method m5() {
-  assert true;//Next1:  assert  true;//Next6:  assert true;//Next10:  assert  true;
-}", "m1 m2 m3 m4 m5\n" +
-          "m5 m1 m2 m3 m4\n" +
-          "m3 m5 m1 m2 m4\n" +
-          "m4 m3 m5 m1 m2\n" +
-          "m4 m3 m5 m1 m2\n" +
-          "m2 m4 m3 m5 m1\n" +
-          "m5 m2 m4 m3 m1\n" +
-          "m1 m5 m2 m4 m3\n" +
-          "m1 m5 m2 m4 m3\n" +
-          "m3 m1 m5 m2 m4\n" +
-          "m5 m3 m1 m2 m4"
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;//Next6:  assert fib(10) == 55;//Next10:  assert  fib(10) == 55;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+", "m1 m2 m3 m4 m5 fib\n" +
+          "m5 m1 m2 m3 m4 fib\n" +
+          "m3 m5 m1 m2 m4 fib\n" +
+          "m4 m3 m5 m1 m2 fib\n" +
+          "m4 m3 m5 m1 m2 fib\n" +
+          "m2 m4 m3 m5 m1 fib\n" +
+          "m5 m2 m4 m3 m1 fib\n" +
+          "m1 m5 m2 m4 m3 fib\n" +
+          "m1 m5 m2 m4 m3 fib\n" +
+          "m3 m1 m5 m2 m4 fib\n" +
+          "m5 m3 m1 m2 m4 fib"
         );
     });
   }
@@ -73,20 +81,23 @@ method m5() {
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
     await WithNoopSolver(async () => {
       await TestPriorities(@"
-method m1() { assert true; }
-method m2() { assert true; }
+method m1() { assert fib(10) == 55; }
+method m2() { assert fib(10) == 55; }
 method m3() {
-  assert true;//Next1:  assert  true;
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
 } 
 method m4() {
-  assert true;//Next2:  assert  true;
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
 }
-method m5() { assert true; } //Remove3:
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+method m5() { assert fib(10) == 55; } //Remove3:
 ",
-        "m1 m2 m3 m4 m5\n" +
-        "m3 m1 m2 m4 m5\n" +
-        "m4 m3 m1 m2 m5\n" +
-        "m1 m2 m3 m4");
+        "m1 m2 m3 m4 fib m5\n" +
+        "m3 m1 m2 m4 fib m5\n" +
+        "m4 m3 m1 m2 fib m5\n" +
+        "m1 m2 m3 m4 fib");
     });
   }
 
@@ -95,33 +106,39 @@ method m5() { assert true; } //Remove3:
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
     await WithNoopSolver(async () => {
       await TestPriorities(@"
-method m1() { assert true; }
+method m1() { assert fib(10) == 55; }
 method m2() {
-  assert true;//Next3:  typo//Next5:  assert true;
+  assert fib(10) == 55;//Next3:  typo//Next5:  assert fib(10) == 55;
 }
 method m3() {
-  assert true;//Next1:  assert  true;
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
 } 
 method m4() {
-  assert true;//Next2:  assert  true;
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
 }
-method m5() { assert true; } //Remove4:
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+method m5() { assert fib(10) == 55; } //Remove4:
 ",
-          "m1 m2 m3 m4 m5\n" +
-          "m3 m1 m2 m4 m5\n" +
-          "m4 m3 m1 m2 m5\n" +
+          "m1 m2 m3 m4 fib m5\n" +
+          "m3 m1 m2 m4 fib m5\n" +
+          "m4 m3 m1 m2 fib m5\n" +
           "null\n" +
-          "m1 m2 m3 m4\n" +
-          "m2 m4 m3 m1"
+          "m1 m2 m3 m4 fib\n" +
+          "m2 m4 m3 m1 fib"
       );
     });
   }
 
   private Position GetPositionOf(string code, string symbol) {
-    var pos = code.IndexOf(symbol, StringComparison.Ordinal);
-    if (pos == -1) {
+    var regex = new Regex($"(function|method) ({symbol})");
+    var match = regex.Match(code);
+    if (!match.Success) {
       throw new Exception("Could not find '" + symbol + "' in:\n" + code);
     }
+
+    var pos = match.Groups[2].Index;
     var line = code.Take(pos).Count(c => c == '\n');
     var character = 0;
     while (character <= pos && code[pos - character] != '\n') {
