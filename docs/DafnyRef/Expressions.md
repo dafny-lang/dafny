@@ -654,8 +654,8 @@ method f() {
 ```
 
 This can be useful when, for example, `allocated(e)` is evaluated in an
-[`old`](#sec-old-expression) state. For instance, if `d` is a local variable holding a datatype value
-`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
+[`old`](#sec-old-expression) state. Like in the example, where `d1` is a local variable holding a datatype value
+`Cons(c1, Nil)` where `c1` is an object that was allocated in the enclosing
 method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
 
 If the expression `e` is of a reference type, then `!old(allocated(e))`
