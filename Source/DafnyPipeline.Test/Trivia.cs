@@ -86,6 +86,8 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
+        Assert.NotNull(trait1.FirstDeclarationToken.next);
+        Assert.Equal("Trait1", trait1.FirstDeclarationToken.next.val);
 
         AssertTrivia(trait1, "\n/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
