@@ -612,7 +612,7 @@ enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). 
 case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
 freshly allocated since control flow reached label `L`.
 
-The argument of `fresh` must be either a non-null object reference
+The argument of `fresh` must be either an [`object`](#sec-object-type) reference
 or a set or sequence of object references.
 In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
 is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
