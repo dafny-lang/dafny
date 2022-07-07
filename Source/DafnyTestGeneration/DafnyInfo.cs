@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Dafny;
+using Function = Microsoft.Dafny.Function;
+using Program = Microsoft.Dafny.Program;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
@@ -18,7 +20,7 @@ namespace DafnyTestGeneration {
     private readonly Dictionary<string, int> nOfTypeParams;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
-    public readonly HashSet<string> DatatypeNames;
+    public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // TODO: what if it takes type arguments?
     public readonly Dictionary<string, Type> SubsetTypeToSuperset;
 
@@ -28,7 +30,7 @@ namespace DafnyTestGeneration {
       isStatic = new HashSet<string>();
       isNotGhost = new HashSet<string>();
       ToImportAs = new Dictionary<string, string>();
-      DatatypeNames = new HashSet<string>();
+      Datatypes = new Dictionary<string, IndDatatypeDecl>();
       nOfTypeParams = new Dictionary<string, int>();
       SubsetTypeToSuperset = new Dictionary<string, Type>();
       SubsetTypeToSuperset["_System.string"] = new SeqType(new CharType());
@@ -136,7 +138,8 @@ namespace DafnyTestGeneration {
       }
 
       private void Visit(IndDatatypeDecl d) {
-        info.DatatypeNames.Add(d.FullDafnyName);
+        info.Datatypes[d.FullDafnyName] = d;
+        info.Datatypes[d.FullSanitizedName] = d;
         insideAClass = true;
         d.Members.ForEach(Visit);
         insideAClass = false;

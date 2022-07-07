@@ -57,6 +57,20 @@ namespace DafnyServer.CounterexampleGeneration {
       return ReplaceType(type, _ => true, type => 
         new UserDefinedType(new Token(), type?.ResolvedClass.FullName, type.TypeArgs));
     }
+
+    public static Type CopyWithReplacements(Type type, List<TypeParameter> from, List<Type> to) {
+      if (from.Count != to.Count) {
+        return type;
+      }
+      Dictionary<string, Type> replacements = new();
+      for (int i = 0; i < from.Count; i++) {
+        replacements[from[i].Name] = to[i];
+      }
+      return ReplaceType(type, _ => true,
+        type => replacements.ContainsKey(type.Name) ? 
+          replacements[type.Name] :
+          new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+    }
     
     public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
       Func<UserDefinedType, Type> replacement) {

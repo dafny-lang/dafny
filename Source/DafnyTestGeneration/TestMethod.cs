@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -37,7 +36,10 @@ namespace DafnyTestGeneration {
     // These methods are used to get fresh instances of the corresponding types
     private static readonly HashSet<string> TypesToSynthesize = new();
     // is set to true wheneve the tool ecnounters something it does not support
-    private List<string> errorMessages = new(); 
+    private readonly List<string> errorMessages = new(); 
+    // records parameters for GetDefaultValue call - this is used to to
+    // terminate potential infinite recursion
+    private List<string> getDefaultValueParams = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -98,6 +100,7 @@ namespace DafnyTestGeneration {
         }
         parameterIndex++;
         if (printOutput[i] == "") {
+          getDefaultValueParams = new();
           result.Add(GetDefaultValue(DafnyInfo.GetParameterTypes(MethodName)[parameterIndex]));
           continue;
         }
@@ -143,6 +146,7 @@ namespace DafnyTestGeneration {
 
     private string GetFunctionOfType(ArrowType type) {
       type = (ArrowType) DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
+      getDefaultValueParams = new();
       var lambda = 
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
         $"=>" + // return type
@@ -185,6 +189,7 @@ namespace DafnyTestGeneration {
           for (var i = 0; i < seqVar.GetLength(); i++) {
             var element = seqVar[i];
             if (element == null) {
+              getDefaultValueParams = new();
               elements.Add(GetDefaultValue(seqType.Arg));
               continue;
             }
@@ -227,11 +232,13 @@ namespace DafnyTestGeneration {
               fields.Add(filedName + ":=" + ExtractVariable(variable.children[filedName].First()));
             }
           }
-
-          var value = dataType.ToString();
           if (variable.CanonicalName() == "") {
-            errorMessages.Add($"// Failed to determine datatype constructor (type {dataType} element {variable.Element})");
-          } else if (fields.Count == 0) {
+            // TODO: Can fields be non-empty in this case?
+            getDefaultValueParams = new();
+            return GetDefaultValue(dataType);
+          } 
+          var value = dataType.ToString();
+          if (fields.Count == 0) {
             value += "." + variable.CanonicalName();
           } else {
             value += "." + variable.CanonicalName() + "(" +
@@ -246,8 +253,8 @@ namespace DafnyTestGeneration {
           errorMessages.Add($"// Failed to determine a variable type (element {variable.Element})");
           return "null";
         case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
-          errorMessages.Add($"// Arrays are not yet supported (type {arrType} element {variable.Element})");
-          break; // arrays not supported
+          errorMessages.Add($"// Failed because arrays are not yet supported (type {arrType} element {variable.Element})");
+          break; 
         case UserDefinedType typeOfNull when variable.CanonicalName() == "null":
           return "null";
         default:
@@ -264,7 +271,7 @@ namespace DafnyTestGeneration {
           }
           return varId;
       }
-      errorMessages.Add($"// Variable has unknown type {variableType} (element {variable.Element})");
+      errorMessages.Add($"// Failed because variable has unknown type {variableType} (element {variable.Element})");
       return "null";
     }
 
@@ -276,8 +283,10 @@ namespace DafnyTestGeneration {
     /// </summary>
     private string GetDefaultValue(Type type) {
       type = DafnyModelTypeUtils.ReplaceType(type,
-        t => DafnyInfo.DatatypeNames.Contains(t.Name),
-        t => new DafnyModelTypeUtils.DatatypeType(t));
+        t => true,
+        t => DafnyInfo.Datatypes.ContainsKey(t.Name) ? 
+          new DafnyModelTypeUtils.DatatypeType(t) : 
+          new UserDefinedType(t.tok, t.Name, t.TypeArgs));
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       switch (type) {
         case IntType:
@@ -305,8 +314,33 @@ namespace DafnyTestGeneration {
         case UserDefinedType synonym when DafnyInfo.SubsetTypeToSuperset.ContainsKey(synonym.Name):
           return GetDefaultValue(DafnyInfo.SubsetTypeToSuperset[synonym.Name]);
         case DafnyModelTypeUtils.DatatypeType datatypeType:
-          errorMessages.Add($"// The program cannot determine default constructors for datatype (type {datatypeType})");
-          return datatypeType.Name + ".UNKNOWN"; // TODO
+          string value;
+          if (getDefaultValueParams.Contains(datatypeType.Name)) {
+            errorMessages.Add($"// Failed to non-recursively construct a default value for type {datatypeType}");
+            return datatypeType.Name + ".UNKNOWN";
+          } 
+          if (!DafnyInfo.Datatypes.ContainsKey(datatypeType.Name)) {
+            errorMessages.Add($"// Failed to determine default constructors for datatype (type {datatypeType})");
+            return datatypeType.Name + ".UNKNOWN";
+          }
+          getDefaultValueParams.Add(datatypeType.Name);
+          
+          var ctor = DafnyInfo.Datatypes[datatypeType.Name].Ctors.MinBy(ctor => ctor.Destructors.Count);
+          if (ctor.Destructors.Count == 0) {
+            value = datatypeType.Name + "." + ctor.Name;
+          } else {
+            var assignemnets = ctor.Destructors.Select(destructor =>
+              destructor.Name + ":=" + GetDefaultValue(
+                DafnyModelTypeUtils.CopyWithReplacements(DafnyModelTypeUtils.UseFullName(destructor.Type),
+                    ctor.EnclosingDatatype.TypeArgs, datatypeType.TypeArgs)));
+            value = datatypeType.Name + "." + ctor.Name + "(" +
+                   string.Join(",", assignemnets) + ")";
+          }
+          var name = "d" + DatatypeCreation.Count;
+          DatatypeCreation.Add((name, datatypeType, value));
+          getDefaultValueParams.RemoveAt(getDefaultValueParams.Count - 1);
+          return name;
+          
         case ArrowType arrowType:
           return GetFunctionOfType(arrowType);
         case UserDefinedType userDefinedType when userDefinedType.Name.EndsWith("?"):
