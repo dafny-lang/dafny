@@ -92,6 +92,10 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
+        Assert.NotNull(trait1.StartToken.Next);
+        Assert.Equal("Trait1", trait1.StartToken.Next.val);
+
+        AssertTrivia(trait1, "\n/** Trait docstring */\n", " ");
         AssertTrivia(moduleTest, "\n// Comment before\n", " // Module docstring\n");
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");

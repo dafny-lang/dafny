@@ -54,6 +54,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     string TrailingTrivia { get; set; }
     string LeadingTrivia { get; set; }
+    IToken next { get; set; } // The next token
   }
 
   public record Token : IToken {
@@ -87,6 +88,8 @@ namespace Microsoft.Dafny {
     public string TrailingTrivia { get; set; }
 
     public bool IsValid => this.Filename != null;
+
+    public IToken next { get; set; } // The next token
   }
 
 
@@ -8776,6 +8779,10 @@ namespace Microsoft.Dafny {
     }
     public virtual string TrailingTrivia {
       get { return WrappedToken.TrailingTrivia; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual IToken next {
+      get { return WrappedToken.next; }
       set { throw new NotSupportedException(); }
     }
   }
