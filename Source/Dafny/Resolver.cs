@@ -16796,7 +16796,7 @@ namespace Microsoft.Dafny {
               }
             }
             ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, new Dictionary<TypeParameter, Type>(), null);
-            r = new ApplyExpr(e.tok, e.Lhs, e.Args, e.CloseParen);
+            r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args, e.CloseParen);
             r.Type = fnType.Result;
           }
         }
