@@ -635,21 +635,21 @@ For example, consider this valid program:
 class C { constructor() {} }
 datatype D = Nil | Cons(c: C, D)
 method f() {
-  var d, e := Nil, Nil;
-  var r := new C();
-  label R:
-  var x := new C();
-  label X:
-  assert   old(allocated(d) && allocated(e));
-  d := Cons(r, Nil);
-  assert   old(!allocated(d) && allocated(e));
-  e := Cons(x, Nil);
-  assert   old(!allocated(d) && !allocated(e));
-  assert       allocated(d) && allocated(e);
-  assert old@R(allocated(d) && !allocated(e));
-  assert old@X(allocated(d) && allocated(e));
-  d := Nil;
-  assert   old(allocated(d) && !allocated(e));
+  var d1, d2 := Nil, Nil;
+  var c1 := new C();
+  label L1:
+  var c2 := new C();
+  label L2:
+  assert old(allocated(d1) && allocated(d2));
+  d1 := Cons(c1, Nil);
+  assert old(!allocated(d1) && allocated(d2));
+  d2 := Cons(c2, Nil);
+  assert old(!allocated(d1) && !allocated(d2));
+  assert allocated(d1) && allocated(d2);
+  assert old@L1(allocated(d1) && !allocated(d2));
+  assert old@L2(allocated(d1) && allocated(d2));
+  d1 := Nil;
+  assert old(allocated(d1) && !allocated(d2));
 }
 ```
 
