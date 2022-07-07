@@ -36,7 +36,8 @@ namespace Microsoft.Dafny {
   }
 
   public record Token : IToken {
-    public Token next;
+    public Token peekedTokens; // Used only when the scanner "peeks" tokens. Normallly null at the end of parsing
+    public Token next; // The next token
     public static readonly IToken NoToken = (IToken)new Token();
 
     public Token() => this.val = "anything so that it is nonnull";
@@ -3160,6 +3161,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken FirstDeclarationToken = Token.NoToken;
+    public IToken TokenBeforeDocstring = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }

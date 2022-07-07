@@ -293,6 +293,8 @@ public class Scanner {
   int posTrailingEndLeadingStart = -1; // Position where a leading trivia starts
   bool parsingTrivia = false;    // set to true when we are parsing trivia
   bool triviaTrailing = false;   // The first trivia is always leading
+  int triviaNewlines = 0;        // How many newlines in the trivia so far
+  bool lastWasCr = false;        // if the last newline character was \r
       
   private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
@@ -466,36 +468,50 @@ public class Scanner {
       posTrailingEndLeadingStart = pos;
       parsingTrivia = true;
       triviaTrailing = pos > 0;
+      triviaNewlines = 0;
+      lastWasCr = false;
+    } else {
+      // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
+        triviaNewlines--;
+        lastWasCr = (ch == '\r');
+      }
     }
-    int newlines = 0;
-    bool lastWasCr = false;
     while (ch == ' ' ||
 -->scan1
     ) {
       if(triviaTrailing && (ch == '\r' || ch == '\n')) {
         if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
-          newlines++;
+          triviaNewlines++;
         }
         lastWasCr = (ch == '\r');
-        if(newlines == 2) {
-          triviaTrailing = false;
-          posTrailingEndLeadingStart = pos;
-        }
       }
       NextCh();
+      if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || lastWasCr)) {
+        triviaTrailing = false;
+        posTrailingEndLeadingStart = pos;
+      }
     }
 -->scan2
     parsingTrivia = false;
     if(t == null) { // There is no trailing trivia before the first token
       posTrailingEndLeadingStart = 0;
     } else {
+      if(triviaTrailing) {
+        triviaTrailing = false;
+        posTrailingEndLeadingStart = pos;
+      }
       // Extract the trivia from the buffers
       t.trailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
     }
     
     int recKind = noSym;
     int recEnd = pos;
+    var prevT = t;
     t = new Token();
+    if(prevT != null) {
+      prevT.next = t;
+    }
     t.leadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
     
     t.pos = pos; t.col = col; t.line = line;
@@ -533,10 +549,10 @@ public class Scanner {
   // get the next token (possibly a token already seen during peeking)
   public Token/*!*/ Scan () {
    Contract.Ensures(Contract.Result<Token>() != null);
-    if (tokens.next == null) {
+    if (tokens.peekedTokens == null) {
       return NextToken();
     } else {
-      pt = tokens = tokens.next;
+      pt = tokens = tokens.peekedTokens;
       return tokens;
     }
   }
@@ -545,10 +561,10 @@ public class Scanner {
   public Token/*!*/ Peek () {
     Contract.Ensures(Contract.Result<Token>() != null);
     do {
-      if (pt.next == null) {
-        pt.next = NextToken();
+      if (pt.peekedTokens == null) {
+        pt.peekedTokens = NextToken();
       }
-      pt = pt.next;
+      pt = pt.peekedTokens;
     } while (pt.kind > maxT); // skip pragmas
 
     return pt;
