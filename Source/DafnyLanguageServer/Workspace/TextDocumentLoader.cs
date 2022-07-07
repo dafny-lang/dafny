@@ -298,6 +298,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
           (_, previousView) => previousView with { Status = status });
       }
+      Console.WriteLine("Updated concurrent dictionary running for " + implementationTask.Implementation.Name);
 
       return document with {
         ImplementationIdToView = document.ImplementationIdToViewCollector.ToImmutableDictionary(),
