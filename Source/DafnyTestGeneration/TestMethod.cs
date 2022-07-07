@@ -323,17 +323,16 @@ namespace DafnyTestGeneration {
             errorMessages.Add($"// Failed to determine default constructors for datatype (type {datatypeType})");
             return datatypeType.Name + ".UNKNOWN";
           }
-          getDefaultValueParams.Add(datatypeType.Name);
-          
+          getDefaultValueParams.Add(datatypeType.ToString());
           var ctor = DafnyInfo.Datatypes[datatypeType.Name].Ctors.MinBy(ctor => ctor.Destructors.Count);
           if (ctor.Destructors.Count == 0) {
-            value = datatypeType.Name + "." + ctor.Name;
+            value = datatypeType + "." + ctor.Name;
           } else {
             var assignemnets = ctor.Destructors.Select(destructor =>
               destructor.Name + ":=" + GetDefaultValue(
                 DafnyModelTypeUtils.CopyWithReplacements(DafnyModelTypeUtils.UseFullName(destructor.Type),
                     ctor.EnclosingDatatype.TypeArgs, datatypeType.TypeArgs)));
-            value = datatypeType.Name + "." + ctor.Name + "(" +
+            value = datatypeType + "." + ctor.Name + "(" +
                    string.Join(",", assignemnets) + ")";
           }
           var name = "d" + DatatypeCreation.Count;

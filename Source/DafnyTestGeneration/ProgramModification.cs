@@ -65,7 +65,7 @@ namespace DafnyTestGeneration {
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      var uniqueId = Guid.NewGuid().ToString();
+      var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
       engine.EliminateDeadVariables(program);
@@ -75,7 +75,7 @@ namespace DafnyTestGeneration {
       var writer = new StringWriter();
       await Task.WhenAny(engine.InferAndVerify(writer, program,
         new PipelineStatistics(), null,
-        _ => { }, uniqueId), 
+        _ => { }, guid), 
         Task.Delay(TimeSpan.FromSeconds(oldOptions.TestGenOptions.Timeout)));
       var log = writer.ToString();
       DafnyOptions.Install(oldOptions);
@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
       }
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
-          $"// No test can be generated for {this.uniqueId} because the verifier timed out or gave no counterexample (can happen if the block has dead code).");
+          $"// No test can be generated for {uniqueId} because the verifier timed out or gave no counterexample (can happen if the block has dead code).");
       }
       return null;
     }
