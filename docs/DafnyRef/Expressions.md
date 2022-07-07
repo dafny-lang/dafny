@@ -589,7 +589,7 @@ an instance method or function.
 the objects denoted by expression `e` were all
 freshly allocated since the time of entry to the enclosing method,
 or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
-For example, the following program verifies:
+For example, consider this valid program:
 
 ```dafny
 class C { constructor() {} }
