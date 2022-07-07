@@ -1,4 +1,4 @@
-// RUN: %testdafny "%s"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method Main() {
     print "Hello, World! Best, Dafny\n";

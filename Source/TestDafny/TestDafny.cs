@@ -58,7 +58,7 @@ public class TestDafny {
     }
 
     // First verify the file (and assume that verification should be successful).
-    // Older versions of test files that now use %testdafny were sensitive to the number
+    // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
     // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
     // but this was never meaningful and only added maintenance burden.
     // Here we only ensure that the exit code is 0.
@@ -141,7 +141,7 @@ public class TestDafny {
     if (dafnyCLIPath != null) {
       command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
     } else {
-      var dotnetArguments = new[] { DafnyDriverAssembly.Location, "--no-build" }.Concat(argumentsWithDefaults);
+      var dotnetArguments = new[] { DafnyDriverAssembly.Location }.Concat(argumentsWithDefaults);
       command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
     }
     return command.Execute(null, null, null, null);

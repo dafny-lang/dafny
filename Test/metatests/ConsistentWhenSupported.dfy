@@ -12,7 +12,7 @@
 
 // New way:
 
-// RUN: %testdafny "%s"
+// RUN: %testDafnyForEachCompiler "%s"
 
 iterator EmptyIterator() yields (r: bool) 
   ensures false

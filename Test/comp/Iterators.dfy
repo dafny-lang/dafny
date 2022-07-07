@@ -1,4 +1,4 @@
-// RUN: %testdafny "%s"
+// RUN: %testDafnyForEachCompiler "%s"
 
 class C {
   var x: int

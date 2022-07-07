@@ -61,7 +61,7 @@ namespace IntegrationTests {
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
               config, InvokeMainMethodsDirectly)
         }, {
-          "%testdafny", (args, config) =>
+          "%testDafnyForEachCompiler", (args, config) =>
             MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
@@ -111,7 +111,7 @@ namespace IntegrationTests {
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
-        commands["%testdafny"] = (args, config) =>
+        commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config,
             InvokeMainMethodsDirectly);
