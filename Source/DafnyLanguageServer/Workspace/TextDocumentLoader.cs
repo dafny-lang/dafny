@@ -276,6 +276,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var status = StatusFromBoogieStatus(boogieStatus);
       var implementationRange = implementationTask.Implementation.tok.GetLspRange();
       if (boogieStatus is Running) {
+        Console.WriteLine("Received running for " + implementationTask.Implementation.Name);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
         }
