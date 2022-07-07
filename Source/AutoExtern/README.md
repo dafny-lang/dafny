@@ -15,8 +15,8 @@ want to see what it can do.
 ## Usage
 
 ```
-dotnet run <Project.csproj> <SourceFile.cs> <RootNamespace> <Template.dfy> \
-    <CSharpModel.dfy> <Output.dfy>
+dotnet run <Project.csproj> <RootNamespace> <Template.dfy> \
+    <CSharpModel.dfy> <Output.dfy> <SourceFile.cs> [<SourceFile.cs> ...]
 ```
 
 The tool takes six arguments:
@@ -24,9 +24,6 @@ The tool takes six arguments:
 - The name of a C# project.  This is used to compile `SourceFile.cs` and gather
   semantic information about it using Roslyn (the C# compiler).  We need this to
   disambiguate type names.
-
-- The name of a source file to translate to Dafny.  Only interfaces and classes
-  are supported, and within those only fields and properties are exported.
 
 - A root namespace — names in that namespace will not be fully qualified.
 
@@ -39,6 +36,10 @@ The tool takes six arguments:
   writing the model.
 
 - A path to write the generated model to.
+
+- The name of one or more source files to translate to Dafny.  Only interfaces
+  and classes are supported, and within those only fields and properties are
+  exported.
 
 ## Example
 
@@ -72,7 +73,7 @@ module {:compile false} {:extern "NS"} NSModel {
 Here is what `AutoExtern` generates:
 
 ```
-$ dotnet run Library.csproj Library.cs  NS Library.dfy.template CSharpModel.dfy Library.dfy
+$ dotnet run Library.csproj NS Library.dfy.template CSharpModel.dfy Library.dfy Library.cs
 ```
 
 ```dafny

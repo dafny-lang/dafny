@@ -184,7 +184,8 @@ btoa(JSON.stringify({
 ```
 
 Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
-The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) that is both available in Emacs and [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode). The Language Server also provides features such as ghost highlighting or symbol hovering.
+
+The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) instead. It is supported in [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) only. The Language Server also provides features such as ghost highlighting or symbol hovering.
 
 ## 24.7. Using Dafny From the Command Line
 

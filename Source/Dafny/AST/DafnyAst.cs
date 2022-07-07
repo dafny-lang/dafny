@@ -1522,10 +1522,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       type = type.NormalizeExpandKeepConstraints();
       List<Type> tower;
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
-        var sst = (SubsetTypeDecl)udt.ResolvedClass;
-        var parent = sst.RhsWithArgument(udt.TypeArgs);
+      if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
+        var parent = sst.RhsWithArgument(type.TypeArgs);
         tower = GetTowerOfSubsetTypes(parent);
       } else {
         tower = new List<Type>();
@@ -1585,7 +1583,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builtIns != null);
       var j = JoinX(a, b, builtIns);
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+        Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
       }
       return j;
     }
@@ -1785,14 +1783,12 @@ namespace Microsoft.Dafny {
 
       var joinNeedsNonNullConstraint = false;
       Type j;
-      if (a is UserDefinedType && ((UserDefinedType)a).ResolvedClass is NonNullTypeDecl) {
+      if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)a).ResolvedClass;
-        j = MeetX(nnt.RhsWithArgument(a.TypeArgs), b, builtIns);
-      } else if (b is UserDefinedType && ((UserDefinedType)b).ResolvedClass is NonNullTypeDecl) {
+        j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
+      } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)b).ResolvedClass;
-        j = MeetX(a, nnt.RhsWithArgument(b.TypeArgs), builtIns);
+        j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
       } else {
         j = MeetX(a, b, builtIns);
       }
@@ -1816,6 +1812,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
+
+      a = a.NormalizeExpandKeepConstraints();
+      b = b.NormalizeExpandKeepConstraints();
+      if (a is IntVarietiesSupertype) {
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+      } else if (b is IntVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+      } else if (a is RealVarietiesSupertype) {
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
+      } else if (b is RealVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
+      }
 
       var towerA = GetTowerOfSubsetTypes(a);
       var towerB = GetTowerOfSubsetTypes(b);
@@ -1856,19 +1864,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
-      if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
-      } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
-      } else if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
-        return a.Equals(b) ? a : null;
-      } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
-      } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
-      } else if (a.IsNumericBased()) {
-        return a.Equals(b) ? a : null;
-      } else if (a.IsBitVectorType) {
+      if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
