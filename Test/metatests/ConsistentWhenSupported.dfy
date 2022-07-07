@@ -1,5 +1,5 @@
 
-// TIRED
+// Old way:
 
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
@@ -10,7 +10,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t" || true
 // RUN: %diff "%s.oldway.expect" "%t"
 
-// WIRED
+// New way:
 
 // RUN: %testdafny "%s"
 
