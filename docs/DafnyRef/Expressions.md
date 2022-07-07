@@ -584,40 +584,87 @@ or `this`, which denotes the current object in the context of
 an instance method or function.
 
 ## 20.21. Fresh Expressions {#sec-fresh-expression}
+
+`fresh(e)` returns a boolean value that is true if
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method,
+or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
+For example, the following program verifies:
+
+```dafny
+class C { constructor() {} }
+method f(x1: C) returns (x: C)
+  ensures fresh(x)
+{
+  assert !fresh(x1);
+  var x2 := new C();
+  label AfterX2:
+  var x3 := new C();
+  assert fresh(x2) && fresh(x3);
+  assert fresh({x2, x3});
+  assert !fresh@AfterX2(x2) && fresh@AfterX2(x3);
+  x := x2;
+}
+```
+
+The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
+enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
+The argument of `fresh` must be either a non-null object reference
+or a set or sequence of object references.
+In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
+is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
+(respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
+
 ````grammar
 FreshExpression_ =
   "fresh" [ "@" LabelName ]
   "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-`fresh(e)` returns a boolean value that is true if
-the objects denoted by expression `e` were all
-freshly allocated since the time of entry to the enclosing method.
-
-If the `LabelName` is present, it must denote a label that in the
-enclosing method's control flow dominates the expression. In this
-case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
-freshly allocated since control flow reached label `L`.
-
-The argument of `fresh` must be either an object reference
-or a set or sequence of object references.
-
 ## 20.22. Allocated Expressions {#sec-allocated-expression}
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
+
+For example, the following program verifies:
+
+```dafny
+class C { constructor() {} }
+datatype D = Nil | Cons(c: C, D)
+method f() {
+  var d, e := Nil, Nil;
+  var r := new C();
+  label R:
+  var x := new C();
+  label X:
+  assert   old(allocated(d) && allocated(e));
+  d := Cons(r, Nil);
+  assert   old(!allocated(d) && allocated(e));
+  e := Cons(x, Nil);
+  assert   old(!allocated(d) && !allocated(e));
+  assert       allocated(d) && allocated(e);
+  assert old@R(allocated(d) && !allocated(e));
+  assert old@X(allocated(d) && allocated(e));
+  d := Nil;
+  assert   old(allocated(d) && !allocated(e));
+}
+```
+
+This can be useful when, for example, `allocated(e)` is evaluated in an
+[`old`](#sec-old-expression) state. For instance, if `d` is a local variable holding a datatype value
+`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
+method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as [`fresh(e)`](#sec-fresh-expression).
+
 ````grammar
 AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
-
-For any expression `e`, the expression `allocated(e)` evaluates to `true`
-in a state if the value of `e` is available in that state, meaning that
-it could in principle have been the value of a variable in that state.
-This can be useful when, for example, `allocated(e)` is evaluated in an
-`old` state. For instance, if `d` is a local variable holding a datatype value
-`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
-method, then `old(allocated(d))` is `false`.
-
-If the expression `e` is of a reference type, then `!old(allocated(e))`
-is the same as `fresh(e)`.
 
 ## 20.23. Unchanged Expressions {#sec-unchanged-expression}
 
