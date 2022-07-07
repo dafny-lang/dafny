@@ -127,6 +127,7 @@ namespace Microsoft.Dafny {
       method MonochromaticMethod(c: Color) returns (x: bool) {
       return match c
             case ShadesOfGray => true
+                 ^^^ Warning: Variable name 'ShadesOfGray' on line 129 starts with a capital letter             
             case anythingElse => false;
     }
    */
@@ -156,10 +157,10 @@ namespace Microsoft.Dafny {
       if (expr is NestedMatchExpr matchExpr) {
         var idPatterns = matchExpr.Cases.Select(matchCase => matchCase.Pat).OfType<IdPattern>();
         foreach (var idPattern in idPatterns) {
-          var variableChecker = idPattern.Arguments;
-          if (!char.IsLower(idPattern.Id[0]) && variableChecker == null) {
+          var isVariable = idPattern.Arguments == null;
+          if (char.IsUpper(idPattern.Id[0]) && isVariable) {
             var lineNum = idPattern.Tok.line;
-            this.reporter.Warning(MessageSource.Rewriter, matchExpr.tok, $"Variable name '{idPattern}' on line {lineNum} starts with a capital letter");
+            this.reporter.Warning(MessageSource.Rewriter, matchExpr.tok, $"Variable name '{idPattern}' should begin with a lowercase letter");
           }
         }
       }

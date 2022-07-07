@@ -3,6 +3,13 @@
 
 module WithWarning {
     datatype Color = Red | Green | ShadesOfGray(nat)
+    datatype Country = Mexico | nigeria | Europe(nat) 
+  
+    method countryMethod (c: Country) returns (x: bool) {    
+          return match c
+            case nigeria => true
+            case anythingElse => false;
+        }
     
     method MonochromaticMethod(c: Color) returns (x: bool) {
           
@@ -32,6 +39,13 @@ module WithWarning {
 
 module WithoutWarning {
      datatype Color = Red | Green | ShadesOfGray(nat)
+      datatype Country = Mexico | Nigeria | Europe(nat) 
+       
+      method countryMethod (c: Country) returns (x: bool) {    
+          return match c
+                 case Nigeria => true
+                 case anythingElse => false;
+          }
     
     method MonochromaticMethod(c: Color) returns (x: bool) {
           

@@ -1,9 +1,9 @@
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(11,12): Warning: this branch is redundant 
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(17,12): Warning: this branch is redundant 
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(25,16): Warning: this branch is redundant 
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(9,17): Warning: Variable name 'ShadesOfGray' on line 10 starts with a capital letter
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(15,8): Warning: Variable name 'ShadesOfGray' on line 16 starts with a capital letter
-/Users/tobiaja/Documents/dafny/Test/linters/constructorMatch.dfy(23,20): Warning: Variable name 'ShadesOfGray' on line 24 starts with a capital letter
+constructorMatch.dfy(11,12): Warning: this branch is redundant 
+constructorMatch.dfy(17,12): Warning: this branch is redundant 
+constructorMatch.dfy(25,16): Warning: this branch is redundant 
+constructorMatch.dfy(9,17): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
+constructorMatch.dfy(15,8): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
+constructorMatch.dfy(23,20): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
 
 Dafny program verifier finished with 3 verified, 0 errors
 
