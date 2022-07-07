@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -78,6 +79,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
 
         return program;
+      } catch (TaskCanceledException) {
+        throw;
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
@@ -87,7 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           pos = 0,
           val = string.Empty
         };
-        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
+        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken,
+          "[internal error] Parser exception: " + e.Message);
         return program;
       }
       finally {
