@@ -132,13 +132,13 @@ method m5() { assert fib(10) == 55; } //Remove4:
   }
 
   private Position GetPositionOf(string code, string symbol) {
-    var regex = new Regex($"(function|method) ({symbol})");
+    var regex = new Regex($"(function|method) (?<name>{symbol})");
     var match = regex.Match(code);
     if (!match.Success) {
       throw new Exception("Could not find '" + symbol + "' in:\n" + code);
     }
 
-    var pos = match.Groups[2].Index;
+    var pos = match.Groups["name"].Index;
     var line = code.Take(pos).Count(c => c == '\n');
     var character = 0;
     while (character <= pos && code[pos - character] != '\n') {
