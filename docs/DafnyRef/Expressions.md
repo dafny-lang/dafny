@@ -633,7 +633,7 @@ For example, consider this valid program:
 
 ```dafny
 class C { constructor() {} }
-datatype D = Nil | Cons(c: C, D)
+datatype D = Nil | Cons(C, D)
 method f() {
   var d1, d2 := Nil, Nil;
   var c1 := new C();
