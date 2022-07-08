@@ -165,10 +165,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      var result = new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri), ghostDiagnostics, program, symbolTable);
-      result.CanDoVerification = canDoVerification;
-      result.WasResolved = true;
-      return result;
+      return new DafnyDocument(textDocument,
+        errorReporter.GetDiagnostics(textDocument.Uri),
+        canDoVerification,
+        ghostDiagnostics, program, symbolTable, WasResolved: true);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -185,14 +185,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       bool wasResolved,
       bool loadCanceled
     ) {
-      var result = new DafnyDocument(textDocument,
+      return new DafnyDocument(
+        textDocument,
         diagnostics,
-        new Diagnostic[] {},
+        false,
+        Array.Empty<Diagnostic>(),
         program,
-        CreateEmptySymbolTable(program, logger));
-      result.WasResolved = wasResolved;
-      result.LoadCanceled = loadCanceled;
-      return result;
+        CreateEmptySymbolTable(program, logger),
+        wasResolved,
+        loadCanceled
+      );
     }
 
     private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {

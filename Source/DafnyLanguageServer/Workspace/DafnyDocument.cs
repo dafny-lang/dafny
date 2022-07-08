@@ -28,34 +28,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="Program">The compiled Dafny program.</param>
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
-  public class DafnyDocument {
-
-    public DafnyDocument(DocumentTextBuffer textDocumentItem,
-      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      IReadOnlyList<Diagnostic> ghostDiagnostics,
-      Dafny.Program program, SymbolTable
-        symbolTable) {
-      TextDocumentItem = textDocumentItem;
-      ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
-      GhostDiagnostics = ghostDiagnostics;
-      Program = program;
-      SymbolTable = symbolTable;
-
-      VerificationTree = new DocumentVerificationTree(
-        TextDocumentItem.Uri.ToString(),
-        TextDocumentItem.NumberOfLines
-      );
-    }
-
-    public DocumentTextBuffer TextDocumentItem { get; }
-    public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; set; }
-    public bool CanDoVerification { get; set; }
-    public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
-    public Dafny.Program Program { get; }
-    public SymbolTable SymbolTable { get; set; }
-    public bool WasResolved { get; set; }
-    public bool LoadCanceled { get; set; } = false;
-
+  public record DafnyDocument(
+    DocumentTextBuffer TextDocumentItem,
+    IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    bool CanDoVerification,
+    IReadOnlyList<Diagnostic> GhostDiagnostics,
+    Dafny.Program Program,
+    SymbolTable SymbolTable,
+    bool WasResolved,
+    bool LoadCanceled = false
+  ) {
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
@@ -70,13 +52,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Can be migrated from a previous document
     /// The position and the range are never sent to the client.
     /// </summary>
-    public VerificationTree VerificationTree { get; set; }
+    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
+      TextDocumentItem.Uri.ToString(),
+      TextDocumentItem.NumberOfLines
+    );
 
     // List of a few last touched method positions
     public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
-    public Range? LastChange { get; set; } = null;
+    public Range? LastChange { get; init; } = null;
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
@@ -96,10 +81,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Creates a clone of the DafnyDocument
     /// </summary>
     public DafnyDocument Snapshot() {
-      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, GhostDiagnostics, Program, SymbolTable);
-      result.CanDoVerification = CanDoVerification;
-      result.WasResolved = WasResolved;
-      result.LoadCanceled = LoadCanceled;
+      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
+        Program, SymbolTable, WasResolved, LoadCanceled);
       result.Counterexamples = new(Counterexamples);
       result.ImplementationIdToView = new(ImplementationIdToView);
       result.LastTouchedMethodPositions = LastTouchedMethodPositions;

@@ -183,32 +183,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           documentChange.ContentChanges
             .Select(contentChange => contentChange.Range)
             .LastOrDefault(newDocument.LastChange);
-        newDocument.LastChange = lastChange;
-        if (!newDocument.SymbolTable.Resolved) {
-          // The document loader failed to create a new symbol table. Since we'd still like to provide
-          // features such as code completion and lookup, we re-locate the previously resolved symbols
-          // according to the change.
-          newDocument.SymbolTable =
-            relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None);
+        newDocument = newDocument with { LastChange = lastChange };
+        if (newDocument.SymbolTable.Resolved) {
+          var resolvedDocument = newDocument with {
+            ImplementationIdToView = new (migratedImplementationViews),
+            VerificationTree = migratedVerificationTree,
+            LastTouchedMethodPositions = migratedLastTouchedPositions
+          };
+          documentLoader.PublishGutterIcons(resolvedDocument, false);
+          return resolvedDocument;
         }
-        newDocument.ImplementationIdToView = new(migratedImplementationViews);
-        newDocument.VerificationTree = migratedVerificationTree;
-        newDocument.LastTouchedMethodPositions = migratedLastTouchedPositions;
-        documentLoader.PublishGutterIcons(newDocument, false);
-        return newDocument;
+        // The document loader failed to create a new symbol table. Since we'd still like to provide
+        // features such as code completion and lookup, we re-locate the previously resolved symbols
+        // according to the change.
+        var failedDocument = newDocument with {
+          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          ImplementationIdToView = new (migratedImplementationViews),
+          VerificationTree = migratedVerificationTree,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
+        };
+        documentLoader.PublishGutterIcons(failedDocument, false);
+        return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
         logger.LogTrace("document loading canceled, applying migration");
-        var oldDocumentCopy = oldDocument.Snapshot();
-
-        oldDocumentCopy.SymbolTable =
-          relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None);
-        oldDocumentCopy.VerificationTree = migratedVerificationTree;
-        oldDocumentCopy.LoadCanceled = true;
-        oldDocumentCopy.ImplementationIdToView = new(migratedImplementationViews);
-        oldDocumentCopy.LastTouchedMethodPositions = migratedLastTouchedPositions;
-        return oldDocumentCopy;
+        return oldDocument with {
+          TextDocumentItem = updatedText,
+          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          VerificationTree = migratedVerificationTree,
+          LoadCanceled = true,
+          ImplementationIdToView = new (migratedImplementationViews),
+          LastTouchedMethodPositions = migratedLastTouchedPositions
+        };
       }
     }
 
@@ -280,19 +287,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             var previousDiagnostics = lastPublishedDocument.LoadCanceled
               ? new Diagnostic[] { }
               : lastPublishedDocument.ParseAndResolutionDiagnostics;
-            var lastPublishedDocumentCopy = lastPublishedDocument.Snapshot();
-            lastPublishedDocumentCopy.LoadCanceled = false;
-            lastPublishedDocumentCopy.ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
-              new() {
-                Message =
-                  "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
-                  t.Exception,
-                Severity = DiagnosticSeverity.Error,
-                Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
-                Source = "Crash"
-              }
-            }).ToList();
-            observer?.OnNext(lastPublishedDocumentCopy);
+            observer?.OnNext(lastPublishedDocument with {
+              LoadCanceled = false,
+              ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
+                new() {
+                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
+                  Severity = DiagnosticSeverity.Error,
+                  Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
+                  Source = "Crash"
+                }
+              }).ToList()
+            });
             telemetryPublisher.PublishUnhandledException(t.Exception);
           }
           observer?.OnCompleted();
