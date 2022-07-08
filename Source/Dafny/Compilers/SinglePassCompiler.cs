@@ -77,6 +77,15 @@ namespace Microsoft.Dafny.Compilers {
       ReportError(Reporter, tok, msg, wr, args);
     }
 
+    protected void UnsupportedFeatureError(Bpl.IToken tok, Feature feature, string message = null, ConcreteSyntaxTree wr = null, params object[] args) {
+      if (!UnsupportedFeatures.Contains(feature)) {
+        throw new Exception($"'{feature}' is not an element of the {TargetId} compiler's UnsupportedFeatures set");
+      }
+
+      message ??= UnsupportedFeatureException.MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description;
+      Error(tok, message, wr, args);
+    }
+
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
@@ -931,6 +940,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
       Contract.Requires(cl is DatatypeDecl || cl is ClassDecl);
+      // TODO: Decide whether to express this as a Feature
       throw new NotImplementedException();
     }
 
@@ -1393,7 +1403,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {

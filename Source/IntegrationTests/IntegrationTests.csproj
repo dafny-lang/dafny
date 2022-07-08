@@ -24,6 +24,7 @@
         <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
         <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
         <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+        <ProjectReference Include="..\TestDafny\TestDafny.csproj" />
         <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
     </ItemGroup>
     
