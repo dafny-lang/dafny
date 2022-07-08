@@ -1245,7 +1245,7 @@ namespace Microsoft.Dafny.Compilers {
         if (at.Dims == 1) {
           wr.Write("DafnyArray<{0}>::Null()", TypeName(elType, wr, null));
         } else {
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.MultiDimensionalArrays);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.MultiDimensionalArrays);
         }
       } else {
         wr.Write("nullptr");
@@ -1296,7 +1296,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.Iterators);
     }
 
     protected override void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr) {
@@ -1339,7 +1339,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetQuantifierName(string bvType) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Quantifiers);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.Quantifiers);
     }
 
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
@@ -1496,7 +1496,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (bvType.NativeType == null) {
-        throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
       } else if (bvType.NativeType.Bitwidth == bvType.Width) {
         // no truncation needed
         return wr;
@@ -1515,15 +1515,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.NonSequentializableForallStatements);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
     protected override string IdProtect(string name) {
@@ -1702,18 +1702,18 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.ArrayLength);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.ArrayLength);
         case SpecialField.ID.Floor:
           compiledName = "int()";
           break;
         case SpecialField.ID.IsLimit:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.IsSucc:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.Offset:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.IsNat:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Ordinals);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.Ordinals);
         case SpecialField.ID.Keys:
           compiledName = "dafnyKeySet()";
           break;
@@ -1721,7 +1721,7 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "dafnyValues()";
           break;
         case SpecialField.ID.Items:
-          throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.MapItems);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.MapItems);
         case SpecialField.ID.Reads:
           compiledName = "_reads";
           break;
@@ -2439,11 +2439,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.ExactBoundedPool);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.ExactBoundedPool);
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.RunAllTests);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
 

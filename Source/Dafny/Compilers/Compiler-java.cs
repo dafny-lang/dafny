@@ -4010,7 +4010,7 @@ namespace Microsoft.Dafny.Compilers {
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.Iterators);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
