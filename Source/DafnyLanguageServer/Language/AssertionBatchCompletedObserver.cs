@@ -16,7 +16,8 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
 
   public AssertionBatchCompletedObserver(
     ILogger logger,
-    bool reportVerificationDiagnostics) {
+    bool reportVerificationDiagnostics
+    ) {
     this.logger = logger;
     this.reportVerificationDiagnostics = reportVerificationDiagnostics;
   }
