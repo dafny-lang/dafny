@@ -50,3 +50,5 @@ jobs:
       draft: false
       release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
       prerelease: true
+    secrets:
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
