@@ -27,7 +27,7 @@ on:
     secrets:
       # Required if release_nuget is true
       nuget_api_key:
-        type: string
+        required: false
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
@@ -119,6 +119,6 @@ jobs:
       # NuGet will consider any package with a version-suffix as a prerelease
       run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
 
-   - name: Upload package to NuGet
-     if: ${{ inputs.release_nuget }}
-     run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
