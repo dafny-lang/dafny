@@ -28,6 +28,14 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.MethodSynthesis,
+      Feature.ExternalConstructors,
+      Feature.SubsetTypeTests,
+      Feature.AllUnderscoreExternalModuleNames
+    };
+
+
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";
     public override string TargetBaseDir(string dafnyProgramName) =>
@@ -141,7 +149,8 @@ namespace Microsoft.Dafny.Compilers {
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
-          Error(Token.NoToken, "Cannot have a package name with only underscores: {0}", wr, pkgName);
+          UnsupportedFeatureError(Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
+            "Cannot have a package name with only underscores: {0}", wr, pkgName);
           return wr;
         }
         while (pkgName.StartsWith("_")) {
@@ -1017,7 +1026,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -3286,7 +3295,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
@@ -3373,6 +3382,8 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
       } else {
+        // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
+        // so I'm not using UnsupportedFeatureError for now.
         Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }

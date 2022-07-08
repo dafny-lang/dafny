@@ -16,6 +16,12 @@ options:
 	diff -q OptionsTemp.txt Options.txt || ( cp OptionsTemp.txt Options.txt && echo Updated Options.txt )
 	rm OptionsTemp.txt
 
+features:
+	dotnet run --no-build --project ../../Source/TestDafny/TestDafny.csproj features > FeaturesTemp.md
+	if [ ! -e Features.md ]; then cp FeaturesTemp.md Features.md; fi
+	diff -q FeaturesTemp.md Features.md || ( cp FeaturesTemp.md Features.md && echo Updated Features.md )
+	rm FeaturesTemp.md
+
 clean:
 	@-rm -f DafnyRef.pdf
 
