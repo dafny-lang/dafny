@@ -14,6 +14,60 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task ManyConcurrentVerificationRuns() {
+    var source = @"
+method m1() {
+  assert fib(10) == 55;
+}
+method m2() {
+  assert fib(10) == 55;
+}
+method m3() {
+  assert fib(10) == 55;
+}
+method m4() {
+  assert fib(10) == 55;
+}
+method m5() {
+  assert fib(1) == 22322231212312;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}".TrimStart();
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var m1 = new Position(0, 7);
+    var m2 = new Position(3, 7);
+    var m3 = new Position(6, 7);
+    var m4 = new Position(9, 7);
+    var m5 = new Position(12, 7);
+    var _1 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m1, CancellationToken);
+    var _2 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m2, CancellationToken);
+    var _3 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m3, CancellationToken);
+    var _4 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m4, CancellationToken);
+    var _5 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m5, CancellationToken);
+
+    var s1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+
+
+    var s2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+
+    var s3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s4 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s5 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s6 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s7 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s8 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s9 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s10 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var s11 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+  }
+
+  [TestMethod]
   public async Task MigrateDeletedVerifiableSymbol() {
     var source = @"method Foo() { assert false; }";
     await SetUp(new Dictionary<string, string> {

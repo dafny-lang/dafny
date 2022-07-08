@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.Counterexamples)
+        var counterExamples = GetLanguageSpecificModels(document.Counterexamples.ToArray())
           .SelectMany(GetCounterExamples)
           .WithCancellation(cancellationToken)
           .ToArray();

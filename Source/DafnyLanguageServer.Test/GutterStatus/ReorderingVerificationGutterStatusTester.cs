@@ -21,137 +21,106 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
+    await TestPriorities(@"
 method m1() {
-  assert fib(10) == 0;//Next2:  assert fib(10) == 0;
+  assert fib(30) == 0;//Next2:  assert fib(30) == 0;
 }
 method m2() {
-  assert fib(10) == 0;//Next1:  assert fib(10) == 0;
+  assert fib(30) == 0;//Next1:  assert fib(30) == 0;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
 ",
-        "m1 m2 fib\n" +
-        "m2 m1 fib\n" +
-        "m1 m2 fib"
-        );
-    });
+      "m1 m2 fib\n" +
+      "m2 m1 fib\n" +
+      "m1 m2 fib"
+    );
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
+    await TestPriorities(@"
 method m1() {
-  assert fib(10) == 55;//Next7:  assert  fib(10) == 55;//Next8:  assert fib(10) == 55;
+  assert fib(40) == 55;//Next7:  assert  fib(40) == 55;//Next8:  assert fib(40) == 55;
 }
 method m2() {
-  assert fib(10) == 55;//Next5:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next5:  assert  fib(40) == 55;
 }
 method m3() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;//Next9:  assert fib(10) == 55;
+  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;//Next9:  assert fib(40) == 55;
 }
 method m4() {
-  assert fib(10) == 55;//Next3:  assert  fib(10) == 55;//Next4:  assert fib(10) == 55;
+  assert fib(40) == 55;//Next3:  assert  fib(40) == 55;//Next4:  assert fib(40) == 55;
 }
 method m5() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;//Next6:  assert fib(10) == 55;//Next10:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;//Next6:  assert fib(40) == 55;//Next10:  assert  fib(40) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
 ", "m1 m2 m3 m4 m5 fib\n" +
-          "m5 m1 m2 m3 m4 fib\n" +
-          "m3 m5 m1 m2 m4 fib\n" +
-          "m4 m3 m5 m1 m2 fib\n" +
-          "m4 m3 m5 m1 m2 fib\n" +
-          "m2 m4 m3 m5 m1 fib\n" +
-          "m5 m2 m4 m3 m1 fib\n" +
-          "m1 m5 m2 m4 m3 fib\n" +
-          "m1 m5 m2 m4 m3 fib\n" +
-          "m3 m1 m5 m2 m4 fib\n" +
-          "m5 m3 m1 m2 m4 fib"
-        );
-    });
+      "m5 m1 m2 m3 m4 fib\n" +
+      "m3 m5 m1 m2 m4 fib\n" +
+      "m4 m3 m5 m1 m2 fib\n" +
+      "m4 m3 m5 m1 m2 fib\n" +
+      "m2 m4 m3 m5 m1 fib\n" +
+      "m5 m2 m4 m3 m1 fib\n" +
+      "m1 m5 m2 m4 m3 fib\n" +
+      "m1 m5 m2 m4 m3 fib\n" +
+      "m3 m1 m5 m2 m4 fib\n" +
+      "m5 m3 m1 m2 m4 fib"
+    );
   }
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
-method m1() { assert fib(10) == 55; }
-method m2() { assert fib(10) == 55; }
+    await TestPriorities(@"
+method m1() { assert fib(40) == 55; }
+method m2() { assert fib(40) == 55; }
 method m3() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;
 } 
 method m4() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
-method m5() { assert fib(10) == 55; } //Remove3:
+method m5() { assert fib(40) == 55; } //Remove3:
 ",
-        "m1 m2 m3 m4 fib m5\n" +
-        "m3 m1 m2 m4 fib m5\n" +
-        "m4 m3 m1 m2 fib m5\n" +
-        "m1 m2 m3 m4 fib");
-    });
+    "m1 m2 m3 m4 fib m5\n" +
+    "m3 m1 m2 m4 fib m5\n" +
+    "m4 m3 m1 m2 fib m5\n" +
+    "m1 m2 m3 m4 fib");
   }
 
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-    await WithNoopSolver(async () => {
       await TestPriorities(@"
-method m1() { assert fib(10) == 55; }
+method m1() { assert fib(40) == 55; }
 method m2() {
-  assert fib(10) == 55;//Next3:  typo//Next5:  assert fib(10) == 55;
+  assert fib(40) == 55;//Next3:  typo//Next5:  assert fib(40) == 55;
 }
 method m3() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;
 } 
 method m4() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
+  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
-method m5() { assert fib(10) == 55; } //Remove4:
+method m5() { assert fib(40) == 55; } //Remove4:
 ",
-          "m1 m2 m3 m4 fib m5\n" +
-          "m3 m1 m2 m4 fib m5\n" +
-          "m4 m3 m1 m2 fib m5\n" +
-          "null\n" +
-          "m1 m2 m3 m4 fib\n" +
-          "m2 m4 m3 m1 fib"
-      );
-    });
-  }
-
-  private Position GetPositionOf(string code, string symbol) {
-    var regex = new Regex($"(function|method) (?<name>{symbol})");
-    var match = regex.Match(code);
-    if (!match.Success) {
-      throw new Exception("Could not find '" + symbol + "' in:\n" + code);
-    }
-
-    var pos = match.Groups["name"].Index;
-    var line = code.Take(pos).Count(c => c == '\n');
-    var character = 0;
-    while (character <= pos && code[pos - character] != '\n') {
-      character++;
-    }
-
-    character--;
-
-    return (line, character);
-  }
-
-  private IList<Position> GetPositions(string code, IList<string> symbols) {
-    return symbols.Select(symbol => GetPositionOf(code, symbol)).ToList();
+      "m1 m2 m3 m4 fib m5\n" +
+      "m3 m1 m2 m4 fib m5\n" +
+      "m4 m3 m1 m2 fib m5\n" +
+      "null\n" +
+      "m1 m2 m3 m4 fib\n" +
+      "m2 m4 m3 m1 fib"
+    );
   }
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
@@ -166,19 +135,28 @@ method m5() { assert fib(10) == 55; } //Remove4:
     client.OpenDocument(documentItem);
 
     var initialOrder = await GetFlattenedPositionOrder(CancellationToken);
-    var initialPositions = GetPositions(code, symbols.First());
-    Assert.IsTrue(initialPositions.SequenceEqual(initialOrder),
-      $"Expected {string.Join(", ", initialPositions)} but got {string.Join(", ", initialOrder)}");
-    foreach (var (change, expectedSymbols) in Enumerable.Zip(changes, symbols.Skip(1))) {
+    var initialSymbols = GetSymbols(code, initialOrder).ToList();
+    Assert.IsTrue(symbols.First().SequenceEqual(initialSymbols),
+      $"Expected {string.Join(", ", symbols.First())} but got {string.Join(", ", initialSymbols)}");
+    foreach (var (change, expectedSymbols) in changes.Zip(symbols.Skip(1))) {
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
-      var expectedPositions = expectedSymbols == null ? null : GetPositions(code, expectedSymbols);
-      if (expectedPositions != null) {
+      if (expectedSymbols != null) {
         var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
-        Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
-          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}." +
+        var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
+        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
           $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
       }
     }
+  }
+
+  private IEnumerable<string> GetSymbols(string code, List<Position> positions) {
+    var lines = code.Split("\n");
+    return positions.Select(position => {
+      var line = lines[position.Line];
+      var word = line.Skip(position.Character).TakeWhile(c => !char.IsPunctuation(c)).ToArray();
+      return new string(word);
+    });
   }
 
   private static List<List<string>> ExtractSymbols(string symbolsString) {

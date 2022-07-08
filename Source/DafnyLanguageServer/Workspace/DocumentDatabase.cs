@@ -11,7 +11,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -187,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
-            ImplementationIdToView = migratedImplementationViews,
+            ImplementationIdToView = new (migratedImplementationViews),
             VerificationTree = migratedVerificationTree,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
@@ -199,7 +198,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationIdToView = migratedImplementationViews,
+          ImplementationIdToView = new (migratedImplementationViews),
           VerificationTree = migratedVerificationTree,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
@@ -212,10 +211,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return oldDocument with {
           TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          Counterexamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationIdToView = migratedImplementationViews,
+          ImplementationIdToView = new (migratedImplementationViews),
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
@@ -242,17 +240,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable VSTHRD003
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
-      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-
-      return withVerificationTasks with {
-        ImplementationIdToView = withVerificationTasks.ImplementationIdToView.ToDictionary(
-          kv => kv.Key,
-          kv =>
-            kv.Value with {
-              Diagnostics = resolvedDocument.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-            }
-        ),
-      };
+      await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+      return resolvedDocument;
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {

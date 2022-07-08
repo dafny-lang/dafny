@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -81,6 +82,6 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
 
   public void OnNext(DafnyDocument document) {
     notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document;
+    LastPublishedDocument = document.Snapshot();
   }
 }

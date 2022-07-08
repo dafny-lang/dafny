@@ -101,7 +101,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.LoadAsync(textDocument, cancellationToken);
     }
 
-    public Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
+    public Task PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
       if (CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
