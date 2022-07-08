@@ -42,19 +42,19 @@ function fib(n: nat): nat {
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
-  assert fib(40) == 55;//Next7:  assert  fib(40) == 55;//Next8:  assert fib(40) == 55;
+  assert fib(30) == 55;//Next7:  assert  fib(30) == 55;//Next8:  assert fib(30) == 55;
 }
 method m2() {
-  assert fib(40) == 55;//Next5:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next5:  assert  fib(30) == 55;
 }
 method m3() {
-  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;//Next9:  assert fib(40) == 55;
+  assert fib(30) == 55;//Next2:  assert  fib(30) == 55;//Next9:  assert fib(30) == 55;
 }
 method m4() {
-  assert fib(40) == 55;//Next3:  assert  fib(40) == 55;//Next4:  assert fib(40) == 55;
+  assert fib(30) == 55;//Next3:  assert  fib(30) == 55;//Next4:  assert fib(30) == 55;
 }
 method m5() {
-  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;//Next6:  assert fib(40) == 55;//Next10:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next1:  assert  fib(30) == 55;//Next6:  assert fib(30) == 55;//Next10:  assert  fib(30) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
@@ -76,18 +76,18 @@ function fib(n: nat): nat {
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
     await TestPriorities(@"
-method m1() { assert fib(40) == 55; }
-method m2() { assert fib(40) == 55; }
+method m1() { assert fib(30) == 55; }
+method m2() { assert fib(30) == 55; }
 method m3() {
-  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next1:  assert  fib(30) == 55;
 } 
 method m4() {
-  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next2:  assert  fib(30) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
-method m5() { assert fib(40) == 55; } //Remove3:
+method m5() { assert fib(30) == 55; } //Remove3:
 ",
     "m1 m2 m3 m4 fib m5\n" +
     "m3 m1 m2 m4 fib m5\n" +
@@ -99,20 +99,20 @@ method m5() { assert fib(40) == 55; } //Remove3:
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
       await TestPriorities(@"
-method m1() { assert fib(40) == 55; }
+method m1() { assert fib(30) == 55; }
 method m2() {
-  assert fib(40) == 55;//Next3:  typo//Next5:  assert fib(40) == 55;
+  assert fib(30) == 55;//Next3:  typo//Next5:  assert fib(30) == 55;
 }
 method m3() {
-  assert fib(40) == 55;//Next1:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next1:  assert  fib(30) == 55;
 } 
 method m4() {
-  assert fib(40) == 55;//Next2:  assert  fib(40) == 55;
+  assert fib(30) == 55;//Next2:  assert  fib(30) == 55;
 }
 function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }
-method m5() { assert fib(40) == 55; } //Remove4:
+method m5() { assert fib(30) == 55; } //Remove4:
 ",
       "m1 m2 m3 m4 fib m5\n" +
       "m3 m1 m2 m4 fib m5\n" +

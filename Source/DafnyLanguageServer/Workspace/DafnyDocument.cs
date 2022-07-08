@@ -85,6 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Program, SymbolTable, WasResolved, LoadCanceled);
       result.Counterexamples = new(Counterexamples);
       result.ImplementationIdToView = new(ImplementationIdToView);
+      result.LastTouchedMethodPositions = LastTouchedMethodPositions;
       return result;
     }
   }
