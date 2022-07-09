@@ -60,12 +60,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
         :- expect toVisit.Push(right);
         :- expect toVisit.Push(left);
 
-        while (0 < toVisit.size) {
-          // TODO: PopFast needs fixing on the json branch
-          var next := toVisit.At(toVisit.size - 1);
-          toVisit.PopFast(next);
+        while (0 < toVisit.size) 
+          invariant toVisit.Valid?()
+          invariant fresh(toVisit)
+          invariant fresh(toVisit.data)
+        {
+          // TODO: Have to add Pop() to Stacks.dfy
+          var next := toVisit.Pop();
+
           match next
           case Concat(nextLeft, nextRight, _) => {
+            // No way to grab the result of Force() here if present, but that's okay
             :- expect toVisit.Push(nextRight);
             :- expect toVisit.Push(nextLeft);
           }
@@ -80,6 +85,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
+  // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
     var s: seq<T>
 
