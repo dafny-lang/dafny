@@ -121,4 +121,4 @@ jobs:
 
     - name: Upload package to NuGet
       if: ${{ inputs.release_nuget }}
-      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
