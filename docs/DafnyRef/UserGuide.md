@@ -119,7 +119,7 @@ This language server is used within the Dafny VSCode Extension, and it currently
 - Ghost statements highlighting
 - Gutter highlights.
 
-## 24.6.1. Gutter highlights meaning {#sec-dafny-server}
+### 24.6.1. Gutter highlights meaning {#sec-gutter-highlights}
 
 The first time a file is loaded, the gutter will highlight in a transparent squiggly green line all the methods that need to be verified, like this:
 
@@ -264,7 +264,7 @@ working directory. A command-line argument not matching a known option is consid
 the language that the dafny files are being compiled to.
 
 The command `Dafny.exe /?` gives the current set of options supported
-by the tool. The most commonly used options are described in [Section 24.10](#sec-command-line-options).
+by the tool. The most commonly used options are described in [Section 24.11](#sec-command-line-options).
 
 - Options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
