@@ -18,10 +18,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
-    /// <param name="token">The token to get the range of.</param>
-    /// <param name="other">An optional other token to get the end of the range of.</param>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken startToken, IToken? endToken = null) {
+    public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
       endToken ??= startToken;
       endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
