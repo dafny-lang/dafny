@@ -116,7 +116,7 @@ public class BuiltIns {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
             (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
@@ -195,7 +195,7 @@ public class BuiltIns {
       TypeApplication_JustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
-    Expression body = new ApplyExpr(tok, fn, args);
+    Expression body = new ApplyExpr(tok, fn, args, tok);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
       Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
