@@ -6154,7 +6154,7 @@ namespace Microsoft.Dafny {
 
       var args = new List<Expression>() { depth };
       args.AddRange(fexp.Args);
-      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
+      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
       prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
       prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
@@ -8878,27 +8878,51 @@ namespace Microsoft.Dafny {
 
     private RangeToken rangeToken;
 
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
+    protected IToken[] FormatTokens = null;
+
     /// Creates a token on the entire range of the expression.
     /// Used only for error reporting.
     public RangeToken RangeToken {
       get {
         if (rangeToken == null) {
-          var startTok = tok;
-          var endTok = tok;
-          foreach (var e in SubExpressions) {
-            if (e.tok.filename != tok.filename || e.IsImplicit) {
-              // Ignore auto-generated expressions, if any.
-              continue;
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+            foreach (var e in SubExpressions) {
+              if (e.tok.filename != tok.filename || e.IsImplicit) {
+                // Ignore auto-generated expressions, if any.
+                continue;
+              }
+
+              if (e.StartToken.pos < startTok.pos) {
+                startTok = e.StartToken;
+              } else if (e.EndToken.pos > endTok.pos) {
+                endTok = e.EndToken;
+              }
             }
 
-            if (e.StartToken.pos < startTok.pos) {
-              startTok = e.StartToken;
-            } else if (e.EndToken.pos > endTok.pos) {
-              endTok = e.EndToken;
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                if (token.filename != tok.filename) {
+                  continue;
+                }
+
+                if (token.pos < startTok.pos) {
+                  startTok = token;
+                }
+
+                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+                  endTok = token;
+                }
+              }
             }
+
+            rangeToken = new RangeToken(startTok, endTok);
           }
-
-          rangeToken = new RangeToken(startTok, endTok);
         }
 
         return rangeToken;
@@ -10248,13 +10272,15 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression E0;
     public readonly Expression E1;
+    public readonly IToken CloseParen;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
       Contract.Invariant(!SelectOne || E1 == null);
     }
 
-    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1)
+    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(seq != null);
@@ -10264,6 +10290,10 @@ namespace Microsoft.Dafny {
       Seq = seq;
       E0 = e0;
       E1 = e1;
+      CloseParen = closeParen;
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -10367,10 +10397,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, Expression fn, List<Expression> args)
+    public IToken CloseParen;
+
+    public ApplyExpr(IToken tok, Expression fn, List<Expression> args, IToken closeParen)
       : base(tok) {
       Function = fn;
       Args = args;
+      CloseParen = closeParen;
+      FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
   }
 
@@ -10378,6 +10412,7 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
+    public readonly IToken CloseParen;
     public readonly Label/*?*/ AtLabel;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
@@ -10444,8 +10479,8 @@ namespace Microsoft.Dafny {
 
     [FilledInDuringResolution] public Function Function;
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+      : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
@@ -10454,7 +10489,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(type == null);
     }
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
@@ -10466,17 +10501,19 @@ namespace Microsoft.Dafny {
       this.Name = fn;
       this.Receiver = receiver;
       this.OpenParen = openParen;
+      this.CloseParen = closeParen;
       this.AtLabel = atLabel;
       this.Bindings = bindings;
+      this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
 
     /// <summary>
     /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
     /// to be already resolved, and are all given positionally.
     /// </summary>
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
       Label /*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+      : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
@@ -12893,6 +12930,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ApplySuffix : SuffixExpr {
     public readonly IToken/*?*/ AtTok;
+    public readonly IToken CloseParen;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
 
@@ -12901,13 +12939,17 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
       AtTok = atLabel;
+      CloseParen = closeParen;
       Bindings = new ActualBindings(args);
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
   }
 

@@ -3,6 +3,7 @@
 - fix: Hovering over variables and methods inside cases of nested match statements work again (https://github.com/dafny-lang/dafny/pull/2334)
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
+- fix: Underconstrained closures don't crash Dafny anymore. (https://github.com/dafny-lang/dafny/pull/2382)
 - fix: Caching in the language server does not prevent gutter icons from being updated correctly. (https://github.com/dafny-lang/dafny/pull/2312)
 - fix: Last edited verified first & corrected display of verification status https://github.com/dafny-lang/dafny/pull/2352
 - fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
