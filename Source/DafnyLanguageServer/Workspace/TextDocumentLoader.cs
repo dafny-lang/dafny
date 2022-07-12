@@ -214,21 +214,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var implementationTasks = document.VerificationTasks!;
 
-      DafnyDocument latestVerifiedDocument = null;
-      document.VerificationUpdates.Subscribe(d => latestVerifiedDocument = d);
-
       var verificationTasks = new List<Task<DafnyDocument>>();
       foreach (var implementationTask in implementationTasks) {
         verificationTasks.Add(Verify(entry, document, implementationTask, cancellationToken));
       }
 
-      await Task.WhenAll(verificationTasks);
-
-      if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, latestVerifiedDocument!);
+      if (!implementationTasks.Any()) {
+        entry.EndVerification();
       }
 
-      NotifyStatusAsync(document.TextDocumentItem, latestVerifiedDocument!, cancellationToken);
+      var lastDocument = await entry.LastDocument;
+
+      if (VerifierOptions.GutterStatus) {
+        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
+      }
+
+      NotifyStatusAsync(document.TextDocumentItem, lastDocument, cancellationToken);
     }
 
     public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,

@@ -326,7 +326,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void EndVerification() {
-        verificationCompleted.SetResult();
+        verificationCompleted.TrySetResult();
       }
 
       public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
