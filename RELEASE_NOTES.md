@@ -11,6 +11,7 @@
 # 3.7.1
 
 - fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
+- feat: Methods and function methods marked with test attr will receive JUnit annotation when compiled to Java (https://github.com/dafny-lang/dafny/pull/2395)
 
 
 # 3.7.0
