@@ -63,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
-        databaseEntry.Observer.Dispose();
+        // databaseEntry.Observer.Dispose();
         databaseEntry.CancelPendingUpdates();
         try {
           await databaseEntry.LastDocument;
@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document,
         translatedDocument,
         cancellationSource,
-        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
+        new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
       );
       documents.Add(document.Uri, documentEntry);
 
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var document = task.Result;
-        documentEntry.Observe(document.Updates);
+        documentEntry.Observe(document.VerificationUpdates);
         if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
           return;
         }
@@ -311,15 +311,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public Task<DafnyDocument> ResolvedDocument { get; }
       public Task<DafnyDocument> TranslatedDocument { get; }
       public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
-      public Task<DafnyDocument> LastDocument => Observer.IdleChangesIncludingLast.Where(idle => idle).
-        Select(_ => Observer.LastPublishedDocument).
-        FirstAsync().ToTask();
+
+      public Task<DafnyDocument> LastDocument =>
+        ResolvedDocument.ContinueWith(t =>
+          Observer.LastAndUpcomingPublishedDocuments.Where(d => d.RunningVerificationTasks == 0).FirstAsync().ToTask(), TaskScheduler.Current).Unwrap();
 
       public DocumentEntry(int? version,
         DocumentTextBuffer textBuffer,
         Task<DafnyDocument> translatedDocument,
         CancellationTokenSource cancellationSource,
-        RequestUpdatesOnUriObserver observer) {
+        DiagnosticsObserver observer) {
         this.cancellationSource = cancellationSource;
         Observer = observer;
         TranslatedDocument = translatedDocument;
@@ -334,13 +335,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationSource.Cancel();
       }
 
-      public RequestUpdatesOnUriObserver Observer { get; }
+      public DiagnosticsObserver Observer { get; }
 
       public void Observe(IObservable<DafnyDocument> updates) {
-        Observer.OnNext(updates);
+        updates.Subscribe(Observer);
       }
 
-      public bool Idle => Observer.Idle;
+      public bool Idle => true; // TODO fix;
     }
   }
 }

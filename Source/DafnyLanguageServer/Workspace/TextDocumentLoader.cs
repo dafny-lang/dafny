@@ -243,7 +243,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult(implementationTask.CacheStatus);
       }
 
-      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(dafnyDocument, implementationTask, update));
+      dafnyDocument.RunningVerificationTasks++;
+      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(dafnyDocument, implementationTask, update),
+        () => {
+          dafnyDocument.RunningVerificationTasks--;
+        });
       return statusUpdates.ToTask(cancellationToken);
     }
 
@@ -276,18 +280,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       // TODO something against publishing stale state
-      document.Updates.OnNext(document.Snapshot());
-    }
-
-    private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result, CancellationToken cancellationToken) {
-      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
-        // All unvisited trees need to set them as "verified"
-        if (!cancellationToken.IsCancellationRequested) {
-          SetAllUnvisitedMethodsAsVerified(document);
-        }
-
-        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, finalDocument);
-      });
+      document.VerificationUpdates.OnNext(document.Snapshot());
     }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
