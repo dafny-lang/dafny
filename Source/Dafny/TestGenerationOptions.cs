@@ -8,12 +8,15 @@ namespace Microsoft.Dafny {
 
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
+    public enum Oracles { None, Spec };
     public Modes Mode = Modes.None;
+    public Oracles Oracle = Oracles.None;
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
     public uint Timeout = 100;
     public bool Verbose = false;
+    public bool noPrune = false;
     [CanBeNull] public string PrintBpl = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
@@ -25,6 +28,10 @@ namespace Microsoft.Dafny {
           WarnDeadCode = true;
           Mode = Modes.Block;
           return true;
+        
+        case "noPrune":
+          noPrune = true;
+          return true;
 
         case "generateTestMode":
           if (ps.ConfirmArgumentCount(1)) {
@@ -32,7 +39,17 @@ namespace Microsoft.Dafny {
               "None" => Modes.None,
               "Block" => Modes.Block,
               "Path" => Modes.Path,
-              _ => throw new Exception("Invalid value for testMode")
+              _ => throw new Exception("Invalid value for generateTestMode")
+            };
+          }
+          return true;
+
+        case "generateTestOracle":
+          if (ps.ConfirmArgumentCount(1)) {
+            Oracle = args[ps.i] switch {
+              "None" => Oracles.None,
+              "Spec" => Oracles.Spec,
+              _ => throw new Exception("Invalid value for generateTestOracle")
             };
           }
           return true;
@@ -85,6 +102,12 @@ namespace Microsoft.Dafny {
     Path prints path-coverage tests for the given program.
     Using /definiteAssignment:3 and /loopUnroll is highly recommended when
     generating tests.
+    Please also consider using /prune, which generates more test at the cost
+    of weaker test correctness guarantees
+/generateTestOracle:<None|Spec>
+    Determines the kind of oracles generated for the tests.
+    None is the default and has no effect (the test contains no runtime checks).
+    Spec asks the tool to generate runtime checks based on method specification
 /warnDeadCode
     Use block-coverage tests to warn about potential dead code.
 /generateTestSeqLengthLimit:<n>

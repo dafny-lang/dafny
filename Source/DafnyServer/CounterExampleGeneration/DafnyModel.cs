@@ -38,8 +38,8 @@ namespace DafnyServer.CounterexampleGeneration {
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
     // values of that type that appear in the model. 
     private readonly Dictionary<Type, HashSet<int>> reservedNumerals = new();
-    // set of all characters values that appear in the model
-    private readonly HashSet<char> reservedChars = new();
+    // set of all UTF values for characters that appear in the model
+    private readonly HashSet<int> reservedChars = new();
     private bool isTrueReserved; // True if "true" appears anywhere in the model
     // maps an element representing a primitive value to the string representation of that value
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
@@ -49,6 +49,7 @@ namespace DafnyServer.CounterexampleGeneration {
     // the model will begin assigning characters starting from this utf value
     private const int FirstCharacterUtfValue = 65; // 'A'
     private static readonly Regex BvTypeRegex = new("^bv[0-9]+Type$");
+    public static readonly Regex UnderscoreRemovalRegex = new("__");
 
 
     public DafnyModel(Model model) {
@@ -186,8 +187,38 @@ namespace DafnyServer.CounterexampleGeneration {
       foreach (var app in fCharToInt.Apps) {
         if (int.TryParse(((Model.Integer)app.Result).Numeral,
               out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-          reservedChars.Add(Convert.ToChar(UTFCode));
+          reservedChars.Add(UTFCode);
         }
+      }
+    }
+
+    /// <summary>
+    /// Return the character representation of a UTF code understood by Dafny
+    /// This is either the character itself, if it parsable ASCII,
+    /// Escaped character, for the cases specified in Dafny manual,
+    /// Or escaped UTF code otherwise
+    /// </summary>
+    private string PrettyPrintChar(int UTFCode) {
+      switch (UTFCode) {
+        case 0:
+          return "'\\0'";
+        case 9:
+          return "'\\t'";
+        case 10:
+          return "'\\n'";
+        case 13:
+          return "'\\r'";
+        case 34:
+          return "'\\\"'";
+        case 39:
+          return "'\\\''";
+        case 92:
+          return "'\\\\'";
+       default:
+         if ((UTFCode >= 32) && (UTFCode <= 126)) {
+           return $"'{Convert.ToChar(UTFCode)}'";
+         }
+         return $"'\\u{UTFCode:X4}'";
       }
     }
 
@@ -434,7 +465,7 @@ namespace DafnyServer.CounterexampleGeneration {
           isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
             return new DafnyModelTypeUtils.DatatypeType(
-              (UserDefinedType) ReconstructType(isOfType[0]));
+              (ReconstructType(isOfType[0]) as UserDefinedType) ?? UndefinedType);
           }
           return new DafnyModelTypeUtils.DatatypeType(UndefinedType);
         case "MapType":
@@ -527,7 +558,7 @@ namespace DafnyServer.CounterexampleGeneration {
         AppWithResult(typeElement)?.
         Args.Select(e => 
           GetBoogieType(e) == "DatatypeTypeType" ? 
-          new DafnyModelTypeUtils.DatatypeType((UserDefinedType) ReconstructType(e)) : 
+          new DafnyModelTypeUtils.DatatypeType((ReconstructType(e) as UserDefinedType) ?? UndefinedType) : 
           ReconstructType(e)).ToList();
       if (typeArgs == null) {
         return new UserDefinedType(new Token(), tagName.Substring(9), null);
@@ -602,7 +633,7 @@ namespace DafnyServer.CounterexampleGeneration {
         if (fCharToInt.OptEval(elt) != null) {
           if (int.TryParse(((Model.Integer) fCharToInt.OptEval(elt)).Numeral,
                 out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-            return "'" + Convert.ToChar(UTFCode) + "'";
+            return PrettyPrintChar(UTFCode);
           }
         }
         return GetUnreservedCharValue(elt);
@@ -637,11 +668,11 @@ namespace DafnyServer.CounterexampleGeneration {
         return reservedValue;
       }
       int i = FirstCharacterUtfValue;
-      while (reservedChars.Contains(Convert.ToChar(i))) {
+      while (reservedChars.Contains(i)) {
         i++;
       }
-      reservedValuesMap[element] = $"'{Convert.ToChar(i)}'";
-      reservedChars.Add(Convert.ToChar(i));
+      reservedValuesMap[element] = PrettyPrintChar(i);
+      reservedChars.Add(i);
       return reservedValuesMap[element];
     }
 
@@ -858,7 +889,9 @@ namespace DafnyServer.CounterexampleGeneration {
       if (dims is null or 0) { // meaning elt is not an array index
         return elt.Names.Where(tuple =>
           tuple.Func.Arity == 0 && !tuple.Func.Name.Contains("$"))
-          .Select(tuple => tuple.Func.Name.Split(".").Last()).ToList();
+          .Select(tuple => UnderscoreRemovalRegex
+            .Replace(tuple.Func.Name.Split(".").Last(), "_"))
+          .ToList();
       }
       // Reaching this code means elt is an index into an array
       var indices = new Model.Element[(int)dims];

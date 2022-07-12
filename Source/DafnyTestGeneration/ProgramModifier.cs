@@ -30,7 +30,7 @@ namespace DafnyTestGeneration {
     protected Implementation? ImplementationToTarget;
     // Boogie names of implementations to be tested or inlined
     private HashSet<string> toModify = new();
-    private DafnyInfo dafnyInfo;
+    protected DafnyInfo dafnyInfo;
 
     /// <summary>
     /// Create tests and return the list of bpl test files
@@ -56,6 +56,8 @@ namespace DafnyTestGeneration {
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine("// Annotating blocks...");
       }
+      var engine = ExecutionEngine.CreateWithoutSharedCache(DafnyOptions.O);
+      engine.CoalesceBlocks(program);
       var annotator = new AnnotationVisitor();
       program = annotator.VisitProgram(program);
       ImplementationToTarget = annotator.ImplementationToTarget;
@@ -188,18 +190,6 @@ namespace DafnyTestGeneration {
           return node; // Can happen if included modules are not verified
         }
 
-        // construct the call to the "Impl$$" implementation:
-        var cmd = new CallCmd(new Token(), calleName,
-          node.InParams
-            .ConvertAll(v => (Expr)new IdentifierExpr(new Token(), v))
-            .ToList(),
-          calleeProc.OutParams
-            .ConvertAll(v => new IdentifierExpr(new Token(), v))
-            .ToList());
-        cmd.Proc = calleeProc;
-        // create a block for this call:
-        var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
-          new ReturnCmd(new Token()));
         // define local variables to hold unused return values:
         var vars = calleeProc.OutParams
           .Where(p1 => !node.OutParams
@@ -214,6 +204,19 @@ namespace DafnyTestGeneration {
         var outParams = node.OutParams.ConvertAll(v =>
           (Variable)new Formal(new Token(),
             new TypedIdent(new Token(), v.Name, v.TypedIdent.Type), false)).ToList();
+        var returnVars = outParams.Concat(vars);
+        // construct the call to the "Impl$$" implementation:
+        var cmd = new CallCmd(new Token(), calleName,
+          inParams
+            .ConvertAll(v => (Expr)new IdentifierExpr(new Token(), v))
+            .ToList(),
+          calleeProc.OutParams
+            .ConvertAll(v => new IdentifierExpr(new Token(), returnVars.First(rv => rv.Name == v.Name)))
+            .ToList());
+        cmd.Proc = calleeProc;
+        // create a block for this call:
+        var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
+          new ReturnCmd(new Token()));
         // construct the new implementation:
         var callerImpl = new Implementation(new Token(), callerName,
           node.TypeParameters, inParams, outParams, vars,
@@ -304,7 +307,7 @@ namespace DafnyTestGeneration {
           return base.VisitBlock(node); // ignore blocks with zero commands
         }
         var data = new List<object>
-          {"Block", implementation.Name, node.UniqueId.ToString()};
+          { "Block", implementation.Name, node.UniqueId.ToString() };
         node.cmds.Add(GetAssumePrintCmd(data));
         return base.VisitBlock(node);
       }

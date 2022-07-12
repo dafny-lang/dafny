@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyServer.CounterexampleGeneration;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
+using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
+using LetExpr = Microsoft.Dafny.LetExpr;
+using OldExpr = Microsoft.Dafny.OldExpr;
 using Program = Microsoft.Dafny.Program;
 using Type = Microsoft.Dafny.Type;
 
@@ -11,52 +15,144 @@ namespace DafnyTestGeneration {
 
   /// <summary> Extract essential info from a parsed Dafny program </summary>
   public class DafnyInfo {
-
-    // method -> list of return types
-    private readonly Dictionary<string, List<Type>> returnTypes;
-    private readonly Dictionary<string, List<Type>> parameterTypes;
-    private readonly HashSet<string> isStatic; // static methods
-    private readonly HashSet<string> isNotGhost; // ghost methods
-    private readonly Dictionary<string, int> nOfTypeParams;
+    
+    private readonly Dictionary<string, Method> methods;
+    private readonly Dictionary<string, Function> functions;
+    public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
-    public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // TODO: what if it takes type arguments?
-    public readonly Dictionary<string, Type> SubsetTypeToSuperset;
+    private readonly Dictionary<string, Type> subsetTypeToSuperset;
+    // list of top level scopes accessible from the testing module
+    private readonly List<VisibilityScope> scopes;
 
     public DafnyInfo(Program program) {
-      returnTypes = new Dictionary<string, List<Type>>();
-      parameterTypes = new Dictionary<string, List<Type>>();
-      isStatic = new HashSet<string>();
-      isNotGhost = new HashSet<string>();
+      methods = new Dictionary<string, Method>();
+      functions = new Dictionary<string, Function>();
       ToImportAs = new Dictionary<string, string>();
       Datatypes = new Dictionary<string, IndDatatypeDecl>();
-      nOfTypeParams = new Dictionary<string, int>();
-      SubsetTypeToSuperset = new Dictionary<string, Type>();
-      SubsetTypeToSuperset["_System.string"] = new SeqType(new CharType());
-      SubsetTypeToSuperset["_System.nat"] = Type.Int;
+      subsetTypeToSuperset = new Dictionary<string, Type>();
+      subsetTypeToSuperset["_System.string"] = new SeqType(new CharType());
+      subsetTypeToSuperset["string"] = new SeqType(new CharType());
+      subsetTypeToSuperset["_System.nat"] = Type.Int;
+      subsetTypeToSuperset["nat"] = Type.Int;
+      subsetTypeToSuperset["_System.object"] = new UserDefinedType(new Token(), "object", new List<Type>());
+      scopes = program.DefaultModuleDef.TopLevelDecls?
+        .OfType<LiteralModuleDecl>()
+        .Select(declaration => 
+          declaration.DefaultExport.VisibilityScope).ToList() ?? new List<VisibilityScope>();
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
     }
 
-    public IList<Type> GetReturnTypes(string method) {
-      return returnTypes[method];
+    public IList<Type> GetReturnTypes(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].Outs.Select(arg => 
+          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+      } 
+      if (functions.ContainsKey(callable)) {
+        return new List<Type>
+          { DafnyModelTypeUtils.UseFullName(functions[callable].ResultType) };
+      }
+      throw new Exception("Cannot identify callable " + callable);
     }
 
-    public int GetNOfTypeParams(string method) {
-      return nOfTypeParams[method];
+    public int GetNOfTypeArgs(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].TypeArgs.Count;
+      } 
+      if (functions.ContainsKey(callable)) {
+        return functions[callable].TypeArgs.Count;
+      }
+      throw new Exception("Cannot identify callable " + callable);
     }
     
-    public IList<Type> GetParameterTypes(string method) {
-      return parameterTypes[method];
+    public IList<Type> GetFormalsTypes(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].Ins.Select(arg => 
+          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+      } 
+      if (functions.ContainsKey(callable)) {
+        return functions[callable].Formals.Select(arg => 
+          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+      }
+      throw new Exception("Cannot identify callable " + callable);
     }
 
-    public bool IsStatic(string method) {
-      return isStatic.Contains(method);
+    public bool IsStatic(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].IsStatic;
+      } 
+      if (functions.ContainsKey(callable)) {
+        return functions[callable].IsStatic;
+      }
+      throw new Exception("Cannot identify callable " + callable);
     }
     
-    public bool IsGhost(string method) {
-      return !isNotGhost.Contains(method);
+    public bool IsGhost(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].IsGhost || methods[callable].IsLemmaLike;
+      } 
+      if (functions.ContainsKey(callable)) {
+        return functions[callable].IsGhost;
+      }
+      return true;
+    }
+
+    public bool IsAccessible(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return scopes.Any(scope => methods[callable].IsVisibleInScope(scope));
+      } 
+      if (functions.ContainsKey(callable)) {
+        return scopes.Any(scope => functions[callable].IsVisibleInScope(scope));
+      }
+      return false;
+    }
+
+    public Type? GetSupersetType(Type type) {
+      if (type is not UserDefinedType userDefinedType ||
+          !subsetTypeToSuperset.ContainsKey(userDefinedType.Name)) {
+        return null;
+      }
+      var superSetType = subsetTypeToSuperset[userDefinedType.Name];
+      superSetType = DafnyModelTypeUtils.CopyWithReplacements(superSetType,
+        superSetType.TypeArgs.ConvertAll(arg =>
+          (arg as UserDefinedType)?.Name ?? ""), type.TypeArgs);
+      if ((superSetType is UserDefinedType tmp) &&
+          (tmp.Name.StartsWith("_System") &&
+           subsetTypeToSuperset.ContainsKey(tmp.Name))) {
+        return subsetTypeToSuperset[tmp.Name];
+      }
+      return superSetType;
+    }
+    
+    public IEnumerable<Expression> GetEnsures(List<string> ins, List<string> outs, string callableName, string receiver) {
+      Dictionary<IVariable, string> subst = new Dictionary<IVariable, string>();
+      if (methods.ContainsKey(callableName)) {
+        for (int i = 0; i < methods[callableName].Ins.Count; i++) {
+          subst[methods[callableName].Ins[i]] = ins[i];
+        }
+        for (int i = 0; i < methods[callableName].Outs.Count; i++) {
+          subst[methods[callableName].Outs[i]] = outs[i];
+        }
+        return methods[callableName].Ens.Select(e =>
+            new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
+          .Where(e => e != null);
+      } 
+      if (functions.ContainsKey(callableName)) {
+        for (int i = 0; i < functions[callableName].Formals.Count; i++) {
+          subst[functions[callableName].Formals[i]] = ins[i];
+        }
+
+        if (functions[callableName].Result != null) {
+          subst[functions[callableName].Result] = outs[0];
+        }
+
+        return functions[callableName].Ens.Select(e =>
+            new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
+          .Where(e => e != null);
+      }
+      throw new Exception("Cannot identify callable " + callableName);
     }
 
     /// <summary>
@@ -66,12 +162,8 @@ namespace DafnyTestGeneration {
 
       private readonly DafnyInfo info;
 
-      // path to a method in the tree of modules and classes:
-      private bool insideAClass; // method is inside a class (not static)
-
       internal DafnyInfoExtractor(DafnyInfo info) {
         this.info = info;
-        insideAClass = false;
       }
 
       internal void Visit(Program p) {
@@ -106,7 +198,7 @@ namespace DafnyTestGeneration {
                                 $"condition");
         }
 
-        info.SubsetTypeToSuperset[name] = type;
+        info.subsetTypeToSuperset[name] = type;
       }
 
       private void Visit(TypeSynonymDeclBase newType) {
@@ -122,7 +214,7 @@ namespace DafnyTestGeneration {
                                 $"which may or may not match the associated " +
                                 $"condition");
         }
-        info.SubsetTypeToSuperset[name] = type;
+        info.subsetTypeToSuperset[name] = type;
       }
       private void Visit(LiteralModuleDecl d) {
         if (d.ModuleDef.IsAbstract) {
@@ -140,20 +232,11 @@ namespace DafnyTestGeneration {
       private void Visit(IndDatatypeDecl d) {
         info.Datatypes[d.FullDafnyName] = d;
         info.Datatypes[d.FullSanitizedName] = d;
-        insideAClass = true;
         d.Members.ForEach(Visit);
-        insideAClass = false;
       }
 
       private void Visit(ClassDecl d) {
-        if (d.Name == "_default") {
-          insideAClass = false; // methods in _default are considered static
-          d.Members.ForEach(Visit);
-          return;
-        }
-        insideAClass = true;
         d.Members.ForEach(Visit);
-        insideAClass = false;
       }
 
       private void Visit(MemberDecl d) {
@@ -165,36 +248,109 @@ namespace DafnyTestGeneration {
       }
 
       private new void Visit(Method m) {
-        var methodName = m.FullDafnyName;
-        if (m.HasStaticKeyword || !insideAClass) {
-          info.isStatic.Add(methodName);
-        }
-        if (!m.IsLemmaLike && !m.IsGhost) {
-          info.isNotGhost.Add(methodName);
-        }
-        var returnTypes = m.Outs.Select(arg => 
-          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();
-        var parameterTypes = m.Ins.Select(arg => 
-          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();
-        info.parameterTypes[methodName] = parameterTypes;
-        info.returnTypes[methodName] = returnTypes;
-        info.nOfTypeParams[methodName] = m.TypeArgs.Count;
+        info.methods[m.FullDafnyName] = m;
       }
 
       private new void Visit(Function f) {
-        var functionName = f.FullDafnyName;
-        if (f.HasStaticKeyword || !insideAClass) {
-          info.isStatic.Add(functionName);
+        info.functions[f.FullDafnyName] = f;
+      }
+    }
+    
+    private class ClonerWithSubstitution : Cloner {
+
+      private Dictionary<IVariable, string> subst;
+      private bool isValidExpression;
+      private string receiver;
+      private DafnyInfo dafnyInfo;
+      public ClonerWithSubstitution(DafnyInfo dafnyInfo, Dictionary<IVariable, string> subst, string receiver) {
+        this.subst = subst;
+        this.receiver = receiver;
+        this.dafnyInfo = dafnyInfo;
+        isValidExpression = true;
+      }
+
+      public override Type CloneType(Type type) {
+        // TODO: type arguments
+        if (type is UserDefinedType userDefinedType) {
+          var name = userDefinedType?.ResolvedClass?.FullName ??
+                     userDefinedType.Name;
+          if (name.StartsWith("_System.")) {
+            name = name[8..];
+          }
+          return new UserDefinedType(new Token(), name,
+            type.TypeArgs.ConvertAll(CloneType));
         }
-        if (!f.IsGhost) {
-          info.isNotGhost.Add(functionName);
+        return base.CloneType(type);
+      }
+
+      public override Expression CloneExpr(Expression expr) {
+        if (expr == null) {
+          return null;
+        } 
+        switch (expr) {
+          case ImplicitThisExpr_ConstructorCall:
+            isValidExpression = false;
+            return base.CloneExpr(expr);
+          case ThisExpr:
+            return new IdentifierExpr(expr.tok, receiver); 
+          case AutoGhostIdentifierExpr:
+            isValidExpression = false;
+            return base.CloneExpr(expr);
+          case ExprDotName or NameSegment or ApplySuffix: {
+            if (!expr.WasResolved()) {
+              isValidExpression = false;
+              return base.CloneExpr(expr);
+            }
+            if (expr.Resolved is IdentifierExpr or MemberSelectExpr or DatatypeValue) {
+              return CloneExpr(expr.Resolved);
+            }
+            return base.CloneExpr(expr);
+          }
+          case DatatypeValue datatypeValue:
+            if (datatypeValue.Type is UserDefinedType udt &&
+                udt.ResolvedClass != null) {
+              return new ApplyExpr(new Token(),
+                new IdentifierExpr(new Token(),udt.ResolvedClass.FullDafnyName + "." + 
+                datatypeValue.MemberName), 
+                datatypeValue.Arguments.ConvertAll(CloneExpr));
+            }
+            isValidExpression = false;
+            return base.CloneExpr(expr);
+          case IdentifierExpr identifierExpr: {
+            if ((identifierExpr.Var != null) && (identifierExpr.Var.IsGhost)) {
+              isValidExpression = false;
+              return base.CloneExpr(expr);
+            }
+            if ((identifierExpr.Var != null) &&
+                (subst.ContainsKey(identifierExpr.Var))) {
+              return new IdentifierExpr(expr.tok, subst[identifierExpr.Var]);
+            } 
+            return base.CloneExpr(expr);
+          }
+          case MemberSelectExpr memberSelectExpr: {
+            if (memberSelectExpr.Member.IsGhost || 
+                dafnyInfo.scopes.All(scope => !memberSelectExpr.Member.IsVisibleInScope(scope))) {
+              isValidExpression = false;
+              return base.CloneExpr(expr);
+            }
+            if (memberSelectExpr.Obj is StaticReceiverExpr staticReceiverExpr) {
+              return new IdentifierExpr(expr.tok,
+                ((staticReceiverExpr.Type) as UserDefinedType).ResolvedClass
+                .FullDafnyName + "." + memberSelectExpr.MemberName);
+            }
+            return base.CloneExpr(expr);
+          }
+          case OldExpr or UnchangedExpr or FreshExpr or LetExpr or 
+            LetOrFailExpr or ComprehensionExpr or WildcardExpr or StmtExpr:
+            isValidExpression = false;
+            return base.CloneExpr(expr);
+          default:
+            return base.CloneExpr(expr);
         }
-        var returnTypes = new List<Type> { DafnyModelTypeUtils.UseFullName(f.ResultType) };
-        var parameterTypes = f.Formals.Select(f => 
-          DafnyModelTypeUtils.UseFullName(f.Type)).ToList();
-        info.parameterTypes[functionName] = parameterTypes;
-        info.returnTypes[functionName] = returnTypes;
-        info.nOfTypeParams[functionName] = f.TypeArgs.Count;
+      }
+      public Expression? CloneValidOrNull(Expression expr) {
+        var result = CloneExpr(expr);
+        return isValidExpression ? result : null;
       }
     }
   }

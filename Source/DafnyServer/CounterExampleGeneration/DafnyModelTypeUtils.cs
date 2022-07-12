@@ -12,7 +12,7 @@ namespace DafnyServer.CounterexampleGeneration {
   public class DafnyModelTypeUtils {
     
     private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
-    private static readonly Regex UnderscoreRemovalRegex = new("__");
+    private static readonly Regex SystemRegex = new("^_System.(nat|string|object)");
 
     public class DatatypeType : UserDefinedType {
       public DatatypeType(UserDefinedType type) : base(new Token(), type.Name, type.TypeArgs) { }
@@ -27,7 +27,9 @@ namespace DafnyServer.CounterexampleGeneration {
       // strip everything after @, this is done for type variables:
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
-      newName = UnderscoreRemovalRegex.Replace(newName, "_");
+      newName = DafnyModel.UnderscoreRemovalRegex.Replace(newName, "_");
+      // Remove _System. prefix
+      newName = SystemRegex.Replace(newName, "$1");
       var newType = new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
       if (type is DatatypeType) {
@@ -55,17 +57,23 @@ namespace DafnyServer.CounterexampleGeneration {
     
     public static Type UseFullName(Type type) {
       return ReplaceType(type, _ => true, type => 
-        new UserDefinedType(new Token(), type?.ResolvedClass.FullName, type.TypeArgs));
+        new UserDefinedType(new Token(), type?.ResolvedClass?.FullName ?? type.Name, type.TypeArgs));
     }
 
-    public static Type CopyWithReplacements(Type type, List<TypeParameter> from, List<Type> to) {
+    public static Type CopyWithReplacements(Type type, List<string> from, List<Type> to) {
       if (from.Count != to.Count) {
         return type;
       }
       Dictionary<string, Type> replacements = new();
       for (int i = 0; i < from.Count; i++) {
-        replacements[from[i].Name] = to[i];
+        replacements[from[i]] = to[i];
       }
+      replacements["_System.string"] =
+        new UserDefinedType(new Token(), "string", new List<Type>());
+      replacements["_System.nat"] =
+        new UserDefinedType(new Token(), "nat", new List<Type>());
+      replacements["_System.object"] =
+        new UserDefinedType(new Token(), "object", new List<Type>());
       return ReplaceType(type, _ => true,
         type => replacements.ContainsKey(type.Name) ? 
           replacements[type.Name] :
@@ -79,7 +87,7 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       var newType = condition(userType) ? replacement(userType) : type;
       // TODO: What if ReplaceTypeVariable is used to replace type with something that has type variables?
-      newType.TypeArgs = type.TypeArgs.ConvertAll(t => 
+      newType.TypeArgs = newType.TypeArgs.ConvertAll(t => 
           TransformType(t, t => ReplaceType(t, condition, replacement)));
       return newType;
     }

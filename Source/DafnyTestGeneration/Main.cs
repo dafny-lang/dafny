@@ -98,7 +98,7 @@ namespace DafnyTestGeneration {
         }
 
         var testMethod = new TestMethod(dafnyInfo, log);
-        if (testMethodToUniqueId.ContainsKey(testMethod)) {
+        if (testMethodToUniqueId.ContainsKey(testMethod) && testMethod.IsValid) {
           if (DafnyOptions.O.TestGenOptions.Verbose) {
             Console.WriteLine(
               $"// Test for {modifications[i].uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");

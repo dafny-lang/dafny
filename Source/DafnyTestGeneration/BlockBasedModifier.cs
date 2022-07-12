@@ -39,7 +39,8 @@ namespace DafnyTestGeneration {
 
     public override Implementation VisitImplementation(Implementation node) {
       implementation = node;
-      if (ImplementationIsToBeTested(node)) {
+      if (ImplementationIsToBeTested(node) && 
+          dafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
         VisitBlockList(node.Blocks);
       }
       return node;

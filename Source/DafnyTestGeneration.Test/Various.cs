@@ -310,7 +310,7 @@ module Test {
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
-      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 1));
+      Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 1));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "[]"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "\\[[0-9]+\\]")));
@@ -337,7 +337,7 @@ module Math {
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Math.Min")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
-      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 0));
+      Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 0));
       Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
       Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[1]) <= int.Parse(m.ArgValues[0])));
     }
@@ -365,7 +365,7 @@ module ShortCircuit {
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
-      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 0));
+      Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "false"));
     }

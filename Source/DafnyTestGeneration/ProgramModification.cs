@@ -41,11 +41,12 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      options.Prune = true;
       options.ProverOptions = new List<string>() {
         "O:model_compress=false",
-        "O:model_evaluator.completion=true"
+        "O:model_evaluator.completion=true",
+        // "O:model.completion=true" TODO: Figure out whether this is needed
       };
+      options.Prune = !DafnyOptions.O.TestGenOptions.noPrune;
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
@@ -70,7 +71,6 @@ namespace DafnyTestGeneration {
       program.Typecheck(options);
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
-      engine.CoalesceBlocks(program);
       engine.Inline(program);
       var writer = new StringWriter();
       await Task.WhenAny(engine.InferAndVerify(writer, program,

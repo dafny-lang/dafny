@@ -33,7 +33,8 @@ namespace DafnyTestGeneration {
     /// and then populate the paths field.
     /// </summary>
     public override Implementation VisitImplementation(Implementation node) {
-      if (!ImplementationIsToBeTested(node)) {
+      if (!ImplementationIsToBeTested(node) || 
+          !dafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
         return node;
       }
       var blockToVariable = InitBlockVars(node);
