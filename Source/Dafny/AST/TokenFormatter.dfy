@@ -2,7 +2,7 @@ module {:extern @" Helpers {
   public class HelperString {
     public static readonly System.Text.RegularExpressions.Regex NewlineRegex =
       new System.Text.RegularExpressions.Regex(new string(new char[]  
-        {'(','?','m',')','^','\\','s','*'}));
+        {'(','?','m',')','(','^',')','\\','s','*'}));
 
     public static string Reindent(string input, string newIndent) {
       return NewlineRegex.Replace(input, newIndent);

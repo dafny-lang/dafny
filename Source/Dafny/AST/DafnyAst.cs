@@ -83,9 +83,9 @@ namespace Microsoft.Dafny {
 
     public string val { get; set; } // Used by coco, so we can't rename it to Val
 
-    public string LeadingTrivia { get; set; }
+    public string LeadingTrivia { get; set; } = "";
 
-    public string TrailingTrivia { get; set; }
+    public string TrailingTrivia { get; set; } = "";
 
     public bool IsValid => this.Filename != null;
 
