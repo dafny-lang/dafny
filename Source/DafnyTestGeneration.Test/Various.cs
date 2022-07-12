@@ -18,26 +18,28 @@ namespace DafnyTestGeneration.Test {
     [TestMethod]
     public async Task NoInlining() {
       var source = @"
-class Inlining {
-  method b (i:int) returns (r:int) {
-    if (i == 0) {
-        return 7;
-    } else {
-        return 81;
+module M {
+  class Inlining {
+    method b (i:int) returns (r:int) {
+      if (i == 0) {
+          return 7;
+      } else {
+          return 81;
+      }
     }
-  }
-  method a (i:int) returns (r:int) {
-    r := b(i);
+    method a (i:int) returns (r:int) {
+      r := b(i);
+    }
   }
 }
 ".TrimStart();
       var program = Utils.Parse(source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
-      Assert.AreEqual(2, methods.Count(m => m.MethodName == "Inlining.b"));
-      Assert.AreEqual(1, methods.Count(m => m.MethodName == "Inlining.a"));
-      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("Inlining.b")));
-      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("Inlining.a")));
+      Assert.AreEqual(2, methods.Count(m => m.MethodName == "M.Inlining.b"));
+      Assert.AreEqual(1, methods.Count(m => m.MethodName == "M.Inlining.a"));
+      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.b")));
+      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 1));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[1] == "0"));
@@ -49,26 +51,28 @@ class Inlining {
     [TestMethod]
     public async Task Inlining() {
       var source = @"
-class Inlining {
-  method b (i:int) returns (r:int) {
-    if (i == 0) {
-        return 7;
-    } else {
-        return 81;
+module M {
+  class Inlining {
+    method b (i:int) returns (r:int) {
+      if (i == 0) {
+          return 7;
+      } else {
+          return 81;
+      }
     }
-  }
-  method a (i:int) returns (r:int) {
-    r := b(i);
+    method a (i:int) returns (r:int) {
+      r := b(i);
+    }
   }
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod = "Inlining.a";
+      DafnyOptions.O.TestGenOptions.TargetMethod = "M.Inlining.a";
       DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
-      Assert.IsTrue(methods.All(m => m.MethodName == "Inlining.a"));
-      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("Inlining.a")));
+      Assert.IsTrue(methods.All(m => m.MethodName == "M.Inlining.a"));
+      Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 1));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[1] == "0"));
@@ -79,7 +83,7 @@ class Inlining {
     [TestMethod]
     public async Task PathBasedTests() {
       var source = @"
-class Paths {
+module Paths {
   static method eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
@@ -127,7 +131,7 @@ class Paths {
     [TestMethod]
     public async Task BlockBasedTests() {
       var source = @"
-class Paths {
+module Paths {
   static method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
     if (i % 2 == 0) {
       divBy2 := true;
@@ -254,19 +258,21 @@ module Module {
     [TestMethod]
     public async Task DeadCode() {
       var source = @"
-method m(a:int) returns (b:int)
-  requires a > 0
-{
-  if (a == 0) {
-    return 0;
+module M {
+  method m(a:int) returns (b:int)
+    requires a > 0
+  {
+    if (a == 0) {
+      return 0;
+    }
+    return 1;
   }
-  return 1;
 }
 ".TrimStart();
       var program = Utils.Parse(source);
       DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.IsTrue(stats.Contains("Code at (5,12) is potentially unreachable."));
+      Assert.IsTrue(stats.Contains("Code at (6,14) is potentially unreachable."));
       Assert.AreEqual(2, stats.Count); // second is line with stats
     }
 
@@ -311,9 +317,9 @@ module Test {
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
       Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 1));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "[]"));
+      Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "[]"));
       Assert.IsTrue(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "\\[[0-9]+\\]")));
+        Regex.IsMatch(m.ValueCreation[0].value, "\\[[0-9]+\\]")));
     }
 
     [TestMethod]

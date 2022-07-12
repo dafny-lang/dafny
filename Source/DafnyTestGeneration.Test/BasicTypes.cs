@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
     [TestMethod]
     public async Task Ints() {
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method compareToZero(i: int) returns (ret: int) {
     if (i == 0) {
         return 0;
@@ -46,7 +46,7 @@ class SimpleTest {
     [TestMethod]
     public async Task Bools() {
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method checkIfTrue(b: bool) returns (ret: bool) {
     if (b) {
         return true;
@@ -70,7 +70,7 @@ class SimpleTest {
     [TestMethod]
     public async Task Reals() {
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method compareToZero(r: real) returns (ret: int) {
     if (r == 0.0) {
         return 0;
@@ -110,7 +110,7 @@ class SimpleTest {
     [TestMethod]
     public async Task BitVectors() {
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method compareToBase(r: bv10) returns (ret: int) {
     if (r == (10 as bv10)) {
         return 0;
@@ -141,7 +141,7 @@ class SimpleTest {
     [TestMethod]
     public async Task Chars() {
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method compareToB(c: char) returns (ret: int) {
     if (c == 'B') {
         return 0;
@@ -174,7 +174,7 @@ class SimpleTest {
       // not specify the exact value of c when the only constraint on it is that
       // c != 'B"
       var source = @"
-class SimpleTest {
+module SimpleTest {
   static method compareToB(c: char) returns (b:bool) {
     if (c == 'B') {
       return false;
