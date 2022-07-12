@@ -858,8 +858,8 @@ namespace Microsoft.Dafny {
           }
           // function is okay, so check all NON-ghost arguments
           isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
-          for (var i = 0; i < callExpr.Function.Formals.Count && i < callExpr.Args.Count; i++) {
-            if (!callExpr.Function.Formals[i].IsGhost) {
+          for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
+            if (!callExpr.Function.Formals[i].IsGhost  && i < callExpr.Args.Count) {
               isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
             }
           }
