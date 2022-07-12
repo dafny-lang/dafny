@@ -4528,7 +4528,7 @@ NameSegment<out Expression e>
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
      if (openParen != null) {
-       e = new ApplySuffix(openParen, atLabel, e, args);
+       e = new ApplySuffix(openParen, atLabel, e, args, t);
      } else {
        Contract.Assert(atLabel == null);
      }
@@ -4615,7 +4615,7 @@ Suffix<ref Expression e>
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args);
+           e = new ApplySuffix(openParen, atLabel, e, args, t);
          } else {
            Contract.Assert(atLabel == null);
          }
@@ -4652,6 +4652,7 @@ Suffix<ref Expression e>
         [ Expression<out ee, true, true>       (. e1 = ee; .)
         ]
       )
+    "]"
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
@@ -4664,32 +4665,31 @@ Suffix<ref Expression e>
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
-             e = new SeqSelectExpr(x, false, e, e0, e1);
+             e = new SeqSelectExpr(x, false, e, e0, e1, t);
            } else if (multipleLengths != null) {
              Expression prev = null;
              List<Expression> seqs = new List<Expression>();
               foreach (var len in multipleLengths) {
                 var end = prev == null ? len : new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
-                seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
+                seqs.Add(new SeqSelectExpr(x, false, e, prev, end, t));
                 prev = end;
               }
              if (takeRest) {
-               seqs.Add(new SeqSelectExpr(x, false, e, prev, null));
+               seqs.Add(new SeqSelectExpr(x, false, e, prev, null, t));
              }
              e = new SeqDisplayExpr(x, seqs);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);
-             e = new SeqSelectExpr(x, true, e, e0, null);
+             e = new SeqSelectExpr(x, true, e, e0, null, t);
            } else {
              Contract.Assert(e0 != null);
              e = new SeqUpdateExpr(x, e, e0, e1);
            }
          }
       .)
-    "]"
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, null, e, args); .)
+    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t); .)
   )
   .
 
