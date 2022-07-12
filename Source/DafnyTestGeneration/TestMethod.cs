@@ -184,6 +184,12 @@ namespace DafnyTestGeneration {
         return ExtractVariable(duplicateVariable.Original, asType);
       }
 
+      if (variable.Type.ToString().Contains("_System.Tuple") ||
+          (asType?.ToString() ?? "").Contains("_System.Tuple")) {
+        errorMessages.Add("// Failed - temporary disable datatype support");
+        return "";
+      }
+      
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
         DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
@@ -246,6 +252,7 @@ namespace DafnyTestGeneration {
           ValueCreation.Add((mapName, asType ?? variableType, $"map[{string.Join(", ", mappingStrings)}]"));
           return mapName;
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
+          errorMessages.Add("// Failed - temporary disable datatype support");
           var tupleName = "d" + ValueCreation.Count;
           // TODO: specify type
           ValueCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
@@ -346,6 +353,11 @@ namespace DafnyTestGeneration {
     /// an element (e.g. T@U!val!25).
     /// </summary>
     private string GetDefaultValue(Type type, Type? asType=null) {
+      if (type.ToString().Contains("_System.Tuple") ||
+          (asType?.ToString() ?? "").Contains("_System.Tuple")) {
+        errorMessages.Add("// Failed - temporary disable datatype support");
+        return "";
+      }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
       type = DafnyModelTypeUtils.ReplaceType(type,
         _ => true,
@@ -377,6 +389,7 @@ namespace DafnyTestGeneration {
           ValueCreation.Add((mapName, asType ?? type, "map[]"));
           return mapName;
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple"):
+          errorMessages.Add("// Failed - temporary disable datatype support");
           // TODO: specify type
           var tupleName = "d" + ValueCreation.Count;
           ValueCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
