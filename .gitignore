@@ -65,3 +65,4 @@ Source/.vs
 node_modules/
 package.json
 package-lock.json
+/Source/Dafny/AST/TokenFormatter.cs

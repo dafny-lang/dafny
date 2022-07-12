@@ -28,13 +28,32 @@ namespace Microsoft.Dafny {
   using Bpl = Microsoft.Boogie;
   using System.Diagnostics;
 
+  public enum DriverAction {
+    Run,
+    Format
+  }
+
+  public class DummyTokenIndentation : TokenFormatter.ITokenIndentations {
+    public void getIndentation(IToken token, out string indentation, out bool wasSet) {
+      wasSet = false;
+      indentation = "";
+      if (token.val == "}") {
+        indentation = new string(' ', Math.Max(token.col, 2) - 2);
+        wasSet = true;
+      }
+    }
+  }
+
   public class DafnyDriver {
+    public DriverAction Action { get; }
     public DafnyOptions Options { get; }
+
 
     private readonly ExecutionEngine engine;
 
-    private DafnyDriver(DafnyOptions dafnyOptions) {
+    private DafnyDriver(DafnyOptions dafnyOptions, DriverAction action) {
       Options = dafnyOptions;
+      Action = action;
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
@@ -102,8 +121,14 @@ namespace Microsoft.Dafny {
       ErrorReporter reporter = new ConsoleErrorReporter();
 
       var dafnyOptions = new DafnyOptions();
+      var action = DriverAction.Run;
+      if (args[0] == "format") {
+        action = DriverAction.Format;
+        args = args.Skip(1).ToArray();
+      }
+
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
-      var driver = new DafnyDriver(dafnyOptions);
+      var driver = new DafnyDriver(dafnyOptions, action);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
@@ -266,6 +291,19 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
 
+      if (Action == DriverAction.Format) {
+        if (0 == dafnyFiles.Count) {
+          Console.WriteLine("`dafny format` requires at least one dafny file");
+          exitValue = ExitValue.PREPROCESSING_ERROR;
+          return exitValue;
+        }
+        if (2 <= dafnyFiles.Count) {
+          Console.WriteLine("`dafny format` takes only one file for now");
+          exitValue = ExitValue.PREPROCESSING_ERROR;
+          return exitValue;
+        }
+      }
+
       if (DafnyOptions.O.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
           Console.WriteLine();
@@ -294,7 +332,22 @@ namespace Microsoft.Dafny {
       }
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
-      string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out var dafnyProgram);
+      Program dafnyProgram;
+      string err;
+      if (Action == DriverAction.Format) {
+        err = Dafny.Main.Parse(dafnyFiles, programName, reporter, out dafnyProgram);
+        if (err != null) {
+          exitValue = ExitValue.DAFNY_ERROR;
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, err);
+        } else {
+          var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          var result = TokenFormatter.__default.printSourceReindent(firstToken, new DummyTokenIndentation());
+          Console.WriteLine(result);
+        }
+        return exitValue;
+      }
+
+      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, err);
