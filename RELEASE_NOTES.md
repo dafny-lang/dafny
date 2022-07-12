@@ -7,11 +7,11 @@
 - fix: Caching in the language server does not prevent gutter icons from being updated correctly. (https://github.com/dafny-lang/dafny/pull/2312)
 - fix: Last edited verified first & corrected display of verification status https://github.com/dafny-lang/dafny/pull/2352
 - fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
+- feat: Methods and function methods marked with test attr will receive JUnit annotation when compiled to Java (https://github.com/dafny-lang/dafny/pull/2395)
 
 # 3.7.1
 
 - fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
-- feat: Methods and function methods marked with test attr will receive JUnit annotation when compiled to Java (https://github.com/dafny-lang/dafny/pull/2395)
 
 
 # 3.7.0
