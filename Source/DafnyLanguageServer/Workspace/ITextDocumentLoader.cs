@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken);
 
-    Task<IVerificationStatus> Verify(DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken);
+    Task<DafnyDocument> Verify(DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken);
 
     /// <summary>
     /// Publishes the verification diagnostics (VerificationTree) for the given document

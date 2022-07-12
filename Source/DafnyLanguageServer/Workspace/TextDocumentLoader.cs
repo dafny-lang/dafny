@@ -13,6 +13,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using VC;
 
@@ -215,7 +216,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var implementationTasks = document.VerificationTasks!;
 
-      var verificationTasks = new List<Task<IVerificationStatus>>();
+      DafnyDocument latestVerifiedDocument = null;
+      document.VerificationUpdates.Subscribe(d => latestVerifiedDocument = d);
+
+      var verificationTasks = new List<Task<DafnyDocument>>();
       foreach (var implementationTask in implementationTasks) {
         verificationTasks.Add(Verify(document, implementationTask, cancellationToken));
       }
@@ -223,13 +227,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await Task.WhenAll(verificationTasks);
 
       if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, document);
+        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, latestVerifiedDocument!);
       }
 
-      NotifyStatusAsync(document.TextDocumentItem, document, cancellationToken);
+      NotifyStatusAsync(document.TextDocumentItem, latestVerifiedDocument!, cancellationToken);
     }
 
-    public Task<IVerificationStatus> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
+    public Task<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
 
       var statusUpdates = implementationTask.TryRun();
@@ -240,15 +244,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
           dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, completedCache.Result);
         }
-        return Task.FromResult(implementationTask.CacheStatus);
+        return Task.FromResult(dafnyDocument);
       }
 
+      var task = dafnyDocument.VerificationUpdates.
+        Where(d => {
+          return d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
+                 PublishedVerificationStatus.Error;
+        }).FirstAsync().ToTask();
       dafnyDocument.RunningVerificationTasks++;
       statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(dafnyDocument, implementationTask, update),
         () => {
           dafnyDocument.RunningVerificationTasks--;
         });
-      return statusUpdates.ToTask(cancellationToken);
+      return task;
     }
 
     private void HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
