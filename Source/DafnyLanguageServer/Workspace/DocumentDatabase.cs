@@ -320,7 +320,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private TaskCompletionSource verificationCompleted = new();
       public void RestartVerification() {
-        verificationCompleted = new TaskCompletionSource();
+        if (verificationCompleted.Task.IsCompleted) {
+          verificationCompleted = new TaskCompletionSource();
+        }
       }
 
       public void EndVerification() {
@@ -328,7 +330,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
-        if (t.IsCompleted) {
+        if (t.IsCompletedSuccessfully) {
           return verificationCompleted.Task.ContinueWith(_ => t, TaskScheduler.Current).Unwrap();
         }
 
