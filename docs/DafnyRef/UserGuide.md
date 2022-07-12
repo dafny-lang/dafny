@@ -111,7 +111,7 @@ There is a language server for Dafny, which [implements](https://github.com/dafn
 This server is used by the Dafny VSCode Extension, and it currently offers the following features:
 - Quick syntax highlighting
 - Parsing, Resolution and realtime verification diagnostics
-- Support for Dafny plugins
+- Support for [Dafny plugins](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer#plugins)
 - Limited support for symbol completion
 - Limited support for code navigation
 - Counter-example display
