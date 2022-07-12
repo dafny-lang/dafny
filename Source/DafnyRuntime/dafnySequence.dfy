@@ -1,9 +1,40 @@
 
 include "../../Test/libraries/src/JSON/Stacks.dfy"
 
+
+
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import opened Stacks
+
+  trait Seq<T> {
+    predicate Valid()
+
+    method Length() returns (l: nat)
+
+    function At(i: nat): T
+
+    method Concatenate(s: Seq<T>) returns (l: Seq<T>)
+
+    method Slice(start: nat, end: nat) returns (s: Seq<T>)
+      requires start <= end <= Length()
+  }
+
+  class ArraySeq<T> extends Seq<T> {
+    const values: array<T>
+
+    constructor(s: seq<T>) {
+
+    }
+  }
+
+  class ConcatSeq<T> extends Seq<T> {
+    
+  }
+
+  class LazySeq<T> extends Seq<T> {
+    var 
+  }
 
   datatype Seq<T> = Empty | Direct(a: seq<T>) | Concat(left: Seq<T>, right: Seq<T>, length: nat) {
 
