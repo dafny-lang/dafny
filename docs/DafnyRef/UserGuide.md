@@ -95,8 +95,7 @@ text editor. However, some tools provide syntax-aware features:
 
 - VSCode, a cross-platform editor for many programming languages has an extension for dafny,
   installed from within VSCode. VSCode is available [here](http://code.visualstudio.com).
-  [More information about this extension](#sec-dafny-language-server-vscode)
-  The extension provides syntax highlighting, in-line parser,
+  The [extension](#sec-dafny-language-server-vscode) provides syntax highlighting, in-line parser,
   type and verification errors, code navigation, counter-example display and gutter highlights.
   
 
@@ -108,16 +107,16 @@ on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki
 
 ## 24.6. Dafny VSCode extension and the Dafny Language Server {#sec-dafny-language-server-vscode}
 
-Dafny [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
-This language server is used within the Dafny VSCode Extension, and it currently offers the following features:
+There is a language server for Dafny, which [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
+This server is used by the Dafny VSCode Extension, and it currently offers the following features:
 - Quick syntax highlighting
 - Parsing, Resolution and realtime verification diagnostics
 - Support for Dafny plugins
-- Moderate support for symbol completion
-- Moderate support for code navigation
+- Limited support for symbol completion
+- Limited support for code navigation
 - Counter-example display
-- Ghost statements highlighting
-- Gutter highlights.
+- Highlighting of ghost statement
+- Gutter highlights
 
 ### 24.6.1. Gutter highlights meaning {#sec-gutter-highlights}
 
@@ -126,28 +125,28 @@ The first time a file is loaded, the gutter will highlight in a transparent squi
 ![image](https://user-images.githubusercontent.com/3601079/178058374-a1e5e9ca-2c5e-493a-bb60-d00310962741.png)
 
 When the file is saved (in verification on save), or whenever the Dafny verifier is ready (in verification on change), it will start to verify methods.
-The gutter will turn as a thin green rectangle on methods that have been verified, and display an animated less transparent green squiggly line on methods that are being actively verified:
+That line will turn into a thin green rectangle on methods that have been verified, and display an animated less transparent green squiggly line on methods that are being actively verified:
 
 ![image](https://user-images.githubusercontent.com/3601079/178058713-1266a23f-fdb4-4494-844a-488cc214c797.png)
 
 When the verification finishes, if a method, a function, a constant with default initialization or a subset type with a witness has some verification errors in it,
-Dafny will display two yellow vertical rails indicating an error context.
+the editor will display two yellow vertical rails indicating an error context.
 
 ![image](https://user-images.githubusercontent.com/3601079/178058908-71425938-57a4-454d-805d-2923d7c4de73.png)
 
 Inside this context, if there is a failing assertion on a line,
 it will fill the gap between the vertical yellow bars with a red rectangle, even if there might be other assertions that are verified on the line.
 If there is no error on a line, but there is at least one assertion that verified, it will display a green disk with a white checkmark on it,
-which can be used to indicate progress in a proof.
+which can be used to check progress in a proof search.
 
-As soon as a line is changed, the gutter icons turn transparent and squiggly, to indicate they are obsolete.
+As soon as a line is changed, the gutter icons turn transparent and squiggly, to indicate their obsolescence.
 
 ![image](https://user-images.githubusercontent.com/3601079/178063330-dd346ddf-aa60-487e-a368-3a4af572aeac.png)
 
-The red error rectangles have half the size, so that visually it's clear that they might be obsolete.
+The red error rectangles occupy only half the horizontal space, to visualise their possible obsolescence.
 
 When the file is saved (in verification on save), or as soon as possible otherwise,
-these squiggly icons will be animated whenever the Dafny verifier inspect the area.
+these squiggly icons will be animated while the Dafny verifier inspect the area.
 
 ![image](https://user-images.githubusercontent.com/3601079/178063848-d0fb02d9-c743-4ffc-9e34-c5f8731c79d1.png)
 
@@ -157,8 +156,8 @@ but Dafny is still re-verifying it.
 
 ![image](https://user-images.githubusercontent.com/3601079/178068281-f15fa83f-6180-4de1-ab63-b65957f6c86b.png)
 
-If there is a parse or resolution error, the previous gutter icons turn gray and a red triangle indicate 
-the line where the parse or resolution error is.
+If there is a parse or resolution error, the previous gutter icons turn gray and a red triangle indicates 
+the position of the parse or resolution error.
 
 ![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
 
