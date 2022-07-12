@@ -44,7 +44,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
     var requestPosition = request.Position;
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
     foreach (var taskToRun in tasks) {
-      var _= documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
+      var _= documentLoader.Verify(documentEntry, translatedDocument, taskToRun, CancellationToken.None);
     }
 
     return !documentEntry.Idle;

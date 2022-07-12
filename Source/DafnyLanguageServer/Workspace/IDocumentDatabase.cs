@@ -66,5 +66,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument> LastDocument { get; }
     void Observe(IObservable<DafnyDocument> updates);
     public bool Idle { get; }
+    void RestartVerification();
+
+    void EndVerification();
+
   }
 }

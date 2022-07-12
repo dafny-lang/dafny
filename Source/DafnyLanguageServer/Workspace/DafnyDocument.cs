@@ -42,7 +42,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   ) {
     public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
     public Subject<DafnyDocument> VerificationUpdates { get; } = new();
-    public int RunningVerificationTasks { get; set; } = 0;
+
+    public ISet<IImplementationTask> RunningVerificationTasks { get; set; } = new HashSet<IImplementationTask>();
 
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
@@ -93,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         VerificationTree = VerificationTree,
         Counterexamples = new(Counterexamples),
         ImplementationIdToView = new(ImplementationIdToView),
-        LastTouchedMethodPositions = LastTouchedMethodPositions
+        LastTouchedMethodPositions = LastTouchedMethodPositions,
       };
       return result;
     }

@@ -47,7 +47,7 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
 
   public void OnNext(DafnyDocument document) {
     notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document.Snapshot();
+    LastPublishedDocument = document;
     lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
   }
 }

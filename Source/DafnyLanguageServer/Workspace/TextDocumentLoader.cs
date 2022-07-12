@@ -7,13 +7,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using VC;
 
@@ -211,7 +209,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task VerifyAllTasks(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
       statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var implementationTasks = document.VerificationTasks!;
@@ -221,7 +219,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var verificationTasks = new List<Task<DafnyDocument>>();
       foreach (var implementationTask in implementationTasks) {
-        verificationTasks.Add(Verify(document, implementationTask, cancellationToken));
+        verificationTasks.Add(Verify(entry, document, implementationTask, cancellationToken));
       }
 
       await Task.WhenAll(verificationTasks);
@@ -233,7 +231,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       NotifyStatusAsync(document.TextDocumentItem, latestVerifiedDocument!, cancellationToken);
     }
 
-    public Task<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
+    public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
 
       var statusUpdates = implementationTask.TryRun();
@@ -247,20 +245,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult(dafnyDocument);
       }
 
+      dafnyDocument.RunningVerificationTasks.Add(implementationTask);
+      entry.RestartVerification();
       var task = dafnyDocument.VerificationUpdates.
-        Where(d => {
-          return d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
-                 PublishedVerificationStatus.Error;
-        }).FirstAsync().ToTask();
-      dafnyDocument.RunningVerificationTasks++;
-      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(dafnyDocument, implementationTask, update),
-        () => {
-          dafnyDocument.RunningVerificationTasks--;
-        });
+        Where(d => d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
+                   PublishedVerificationStatus.Error).FirstAsync().ToTask(cancellationToken);
+      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update));
       return task;
     }
 
-    private void HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+    private void HandleStatusUpdate(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
       var id = GetImplementationId(implementationTask.Implementation);
       var status = StatusFromBoogieStatus(boogieStatus);
       var implementationRange = implementationTask.Implementation.tok.GetLspRange();
@@ -281,6 +275,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+        }
+
+        document.RunningVerificationTasks.Remove(implementationTask);
+        if (!document.RunningVerificationTasks.Any()) {
+          entry.EndVerification();
         }
       } else {
         document.ImplementationIdToView!.AddOrUpdate(id,

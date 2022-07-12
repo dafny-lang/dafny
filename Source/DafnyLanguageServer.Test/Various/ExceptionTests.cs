@@ -108,13 +108,13 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.PrepareVerificationTasksAsync(loaded, cancellationToken);
     }
 
-    public Task VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
-      return loader.VerifyAllTasks(document, cancellationToken);
+    public Task VerifyAllTasks(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
+      return loader.VerifyAllTasks(entry, document, cancellationToken);
     }
 
-    public Task<DafnyDocument> Verify(DafnyDocument document, IImplementationTask implementationTask,
+    public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
-      return loader.Verify(document, implementationTask, cancellationToken);
+      return loader.Verify(entry ,document, implementationTask, cancellationToken);
     }
 
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {

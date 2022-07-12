@@ -78,24 +78,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
-      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
+      var observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
+      var translatedDocument = LoadVerificationTasksAsync(observer, resolvedDocumentTask, cancellationSource.Token);
 
       var documentEntry = new DocumentEntry(
         document.Version,
         document,
         translatedDocument,
         cancellationSource,
-        new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
+        observer
       );
+
       documents.Add(document.Uri, documentEntry);
 
       documentEntry.Observe(
         ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
         Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
 
-      if (VerifyOnOpen) {
-        Verify(documentEntry, cancellationSource.Token);
-      }
+      Verify(documentEntry, VerifyOnOpen, cancellationSource.Token);
     }
 
     private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -110,19 +110,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void Verify(IDocumentEntry documentEntry, CancellationToken cancellationToken) {
-      var _ = documentEntry.TranslatedDocument.ContinueWith(task => {
+    private void Verify(IDocumentEntry entry, bool actuallyVerify, CancellationToken cancellationToken) {
+      var _ = entry.TranslatedDocument.ContinueWith(task => {
+
         if (task.IsCanceled || task.IsFaulted) {
           return;
         }
 
         var document = task.Result;
-        documentEntry.Observe(document.VerificationUpdates);
-        if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
+
+        if (!actuallyVerify) {
+          entry.EndVerification();
           return;
         }
 
-        var _ = documentLoader.VerifyAllTasks(document, cancellationToken);
+        if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
+          entry.EndVerification();
+          return;
+        }
+
+        var _ = documentLoader.VerifyAllTasks(entry, document, cancellationToken);
       }, TaskScheduler.Current);
     }
 
@@ -145,7 +152,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
       var resolvedDocumentTask = GetResolvedDocumentAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
-      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
+      var translatedDocument = LoadVerificationTasksAsync(databaseEntry.Observer, resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
         updatedText,
@@ -157,9 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
         .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
 
-      if (VerifyOnChange) {
-        Verify(entry, cancellationSource.Token);
-      }
+      Verify(entry, VerifyOnChange, cancellationSource.Token);
     }
 
     private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
@@ -234,11 +239,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> LoadVerificationTasksAsync(DiagnosticsObserver observer, Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
       await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+      resolvedDocument.VerificationUpdates.Subscribe(observer);
       return resolvedDocument;
     }
 
@@ -251,7 +257,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      Verify(databaseEntry, cancellationSource.Token);
+      Verify(databaseEntry, true, cancellationSource.Token);
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
@@ -312,9 +318,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public Task<DafnyDocument> TranslatedDocument { get; }
       public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
 
-      public Task<DafnyDocument> LastDocument =>
-        ResolvedDocument.ContinueWith(t =>
-          Observer.LastAndUpcomingPublishedDocuments.Where(d => d.RunningVerificationTasks == 0).FirstAsync().ToTask(), TaskScheduler.Current).Unwrap();
+      private TaskCompletionSource verificationCompleted = new();
+      public void RestartVerification() {
+        verificationCompleted = new TaskCompletionSource();
+      }
+
+      public void EndVerification() {
+        verificationCompleted.SetResult();
+      }
+
+      public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
+        if (t.IsCompleted) {
+          return verificationCompleted.Task.ContinueWith(_ => t, TaskScheduler.Current).Unwrap();
+        }
+
+        return t;
+      }, TaskScheduler.Current).Unwrap();
 
       public DocumentEntry(int? version,
         DocumentTextBuffer textBuffer,
@@ -332,6 +351,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void CancelPendingUpdates() {
+        EndVerification();
         cancellationSource.Cancel();
       }
 
@@ -341,7 +361,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         updates.Subscribe(Observer);
       }
 
-      public bool Idle => true; // TODO fix;
+      public bool Idle => !verificationCompleted.Task.IsCompleted;
     }
   }
 }
