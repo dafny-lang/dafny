@@ -11,7 +11,7 @@
 # 3.7.1
 
 - fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
-
+- fix: Methods produced by the test generation code can now be compiled directly to C# XUnit tests (https://github.com/dafny-lang/dafny/pull/2269)
 
 # 3.7.0
 
@@ -25,7 +25,6 @@
 - fix: No more display of previous obsolete verification diagnostics if newer are available (https://github.com/dafny-lang/dafny/pull/2142)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
 - fix: Various improvements to language server robustness (https://github.com/dafny-lang/dafny/pull/2254)
-
 
 # 3.6.0
 
