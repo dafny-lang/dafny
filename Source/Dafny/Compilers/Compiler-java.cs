@@ -501,11 +501,20 @@ namespace Microsoft.Dafny.Compilers {
       }
       return wGet;
     }
+
+    private void AddTestCheckerIfNeeded(Declaration decl, ConcreteSyntaxTree wr) {
+      if (DafnyOptions.O.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+        return;
+      }
+      wr.WriteLine("@org.junit.jupiter.api.Test");
+    }
+
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
       }
+      AddTestCheckerIfNeeded(m, wr);
       string targetReturnTypeReplacement = null;
       int nonGhostOuts = 0;
       int nonGhostIndex = 0;
@@ -566,6 +575,7 @@ namespace Microsoft.Dafny.Compilers {
         // No need for abstract version of static method
         return null;
       }
+      AddTestCheckerIfNeeded(member, wr);
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
