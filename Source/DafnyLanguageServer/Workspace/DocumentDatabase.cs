@@ -111,21 +111,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void Verify(IDocumentEntry documentEntry, CancellationToken cancellationToken) {
-      var withVerificationTasks = documentEntry.TranslatedDocument;
-
-      var updates = withVerificationTasks.ContinueWith(task => {
+      var _ = documentEntry.TranslatedDocument.ContinueWith(task => {
         if (task.IsCanceled || task.IsFaulted) {
-          return Observable.Empty<DafnyDocument>();
+          return;
         }
 
         var document = task.Result;
+        documentEntry.Observe(document.Updates);
         if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
-          return Observable.Empty<DafnyDocument>();
+          return;
         }
 
-        return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservable().Merge();
-      documentEntry.Observe(updates);
+        var _ = documentLoader.VerifyAllTasks(document, cancellationToken);
+      }, TaskScheduler.Current);
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {

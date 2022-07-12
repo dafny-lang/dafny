@@ -5,6 +5,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -38,6 +40,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool WasResolved,
     bool LoadCanceled = false
   ) {
+
+    public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
+    public Subject<DafnyDocument> Updates { get; } = new();
+
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
@@ -52,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Can be migrated from a previous document
     /// The position and the range are never sent to the client.
     /// </summary>
-    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
+    public VerificationTree VerificationTree { get; set; } = new DocumentVerificationTree(
       TextDocumentItem.Uri.ToString(),
       TextDocumentItem.NumberOfLines
     );
@@ -82,10 +88,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public DafnyDocument Snapshot() {
       var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
-        Program, SymbolTable, WasResolved, LoadCanceled);
-      result.Counterexamples = new(Counterexamples);
-      result.ImplementationIdToView = new(ImplementationIdToView);
-      result.LastTouchedMethodPositions = LastTouchedMethodPositions;
+        Program, SymbolTable, WasResolved, LoadCanceled)
+      {
+        VerificationTree = VerificationTree,
+        Counterexamples = new(Counterexamples),
+        ImplementationIdToView = new(ImplementationIdToView),
+        LastTouchedMethodPositions = LastTouchedMethodPositions
+      };
       return result;
     }
   }
