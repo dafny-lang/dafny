@@ -10,6 +10,16 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="CompileDafnySources" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)AST/TokenFormatter.cs" Inputs="$(ProjectDir)AST/TokenFormatter.dfy">
+    <Exec Command="dotnet tool restore" />
+    <Exec Command="dotnet --info" />
+    <Exec Command="dotnet tool run dafny -compile:0 -spillTargetCode:2 -useRuntimeLib -compileTarget:cs $(ProjectDir)AST/TokenFormatter.dfy" />
+    <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
+    <ItemGroup>
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+    </ItemGroup>
+  </Target>
+
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>DafnyPipeline</AssemblyName>
