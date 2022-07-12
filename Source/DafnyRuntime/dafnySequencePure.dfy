@@ -5,7 +5,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
   import opened Stacks
 
-  datatype Seq<T> = Empty | Direct(a: seq<T>) | Concat(left: Seq<T>, right: Seq<T>, length: nat) {
+  datatype SeqExpr<T> = Empty | Direct(a: seq<T>) | Concat(left: SeqExpr<T>, right: SeqExpr<T>, length: nat) {
 
     predicate Valid() {
       match this
@@ -30,11 +30,11 @@ module {:options "/functionSyntax:4"} MetaSeq {
       Force()[i]
     }
 
-    function Concatenate(s: Seq<T>): Seq<T> {
+    function Concatenate(s: SeqExpr<T>): SeqExpr<T> {
       Concat(this, s, Length() + s.Length())
     }
 
-    method Slice(start: nat, end: nat) returns (s: Seq<T>)
+    method Slice(start: nat, end: nat) returns (s: SeqExpr<T>)
       requires start <= end <= Length()
 
     function Value(): seq<T> 
@@ -59,11 +59,11 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  function CalcConcat<T>(left: Seq<T>, right: Seq<T>, length: nat): seq<T> {
+  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): seq<T> {
     left.Value() + right.Value()
   } by method {
     var builder: SeqBuilder<T> := new SeqBuilder(length);
-    var toVisit := new Stack<Seq<T>>(Empty);
+    var toVisit := new Stack<SeqExpr<T>>(Empty);
     :- expect toVisit.Push(right);
     :- expect toVisit.Push(left);
 
