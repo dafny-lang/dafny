@@ -273,14 +273,14 @@ is not allowed.
 There are also operators on each numeric type:
 
  operator        | description
-------------------------------------------------------
+-----------------|------------------------------------
   `+`            | addition (plus)
   `-`            | subtraction (minus)
-------------------------------------------------------
+-----------------|------------------------------------
   `*`            | multiplication (times)
   `/`            | division (divided by)
   `%`            | modulus (mod)  -- int only
-------------------------------------------------------
+-----------------|------------------------------------
   `-`            | negation (unary minus)
 
 The binary operators are left associative, and they associate with
@@ -347,19 +347,19 @@ truncate the high-order bits from the results; that is, they perform
 unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
 
  operator        | description
-------------------------------------------------------
+-----------------|------------------------------------
  `<<`            | bit-limited bit-shift left
  `>>`            | unsigned bit-shift right
-------------------------------------------------------
+-----------------|------------------------------------
   `+`            | bit-limited addition
   `-`            | bit-limited subtraction
-------------------------------------------------------
+-----------------|------------------------------------
   `*`            | bit-limited multiplication
-------------------------------------------------------
+-----------------|------------------------------------
   `&`            | bit-wise and
   `|`            | bit-wise or 
   `^`            | bit-wise exclusive-or
-------------------------------------------------------
+-----------------|------------------------------------
   `-`            | bit-limited negation (unary minus)
   `!`            | bit-wise complement
 
@@ -411,7 +411,7 @@ Escape sequences can also be used to write other characters.  The
 supported escape sequences are the following:
 
  escape sequence    | meaning
-----------------------------------------------------------------------------
+--------------------|-------------------------------------------------------
  `\'`               | the character `'`
  `\"`               | the character `"`
  `\\`               | the character `\`
@@ -432,7 +432,7 @@ Character values are ordered and can be compared using the standard
 relational operators:
 
  operator        | description
------------------------------------------------------
+-----------------|-----------------------------------
   `<`              | less than
   `<=`             | at most
   `>=`             | at least
@@ -656,7 +656,7 @@ In addition to equality and disequality, set types
 support the following relational operations:
 
  operator        | description
-------------------------------------------------------
+-----------------|------------------------------------
  `<`             | proper subset
  `<=`            | subset
  `>=`            | superset
@@ -669,12 +669,12 @@ Sets support the following binary operators, listed in order of
 increasing binding power:
 
  operator      | description
-----------------------------------------------------
+---------------|------------------------------------
  `!!`          | disjointness
-----------------------------------------------------
+---------------|------------------------------------
  `+`           | set union
  `-`           | set difference
-----------------------------------------------------
+---------------|------------------------------------
  `*`           | set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
@@ -732,7 +732,7 @@ In addition to equality and disequality, multiset types
 support the following relational operations:
 
  operator          | description
--------------------------------------------------------
+-------------------|-----------------------------------
   `<`              | proper multiset subset
   `<=`             | multiset subset
   `>=`             | multiset superset
@@ -745,12 +745,12 @@ Multisets support the following binary operators, listed in order of
 increasing binding power:
 
  operator      | description
-----------------------------------------------------
+---------------|------------------------------------
  `!!`          | multiset disjointness
-----------------------------------------------------
+---------------|------------------------------------
  `+`           | multiset union
  `-`           | multiset difference
-----------------------------------------------------
+---------------|------------------------------------
  `*`           | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
@@ -877,7 +877,7 @@ first `hi` elements of `s`.
 In the sequence slice operation, _slices_ is a nonempty list of
 length designators separated and optionally terminated by a colon, and
 there is at least one colon.  Each length designator is a non-negative
-integer-based numeric; the sum of the length deisgnators is no greater than `|s|`.  If there
+integer-based numeric; the sum of the length designators is no greater than `|s|`.  If there
 are _k_ colons, the operation produces _k + 1_ consecutive subsequences
 from `s`, with the length of each indicated by the corresponding length
 designator, and returns these as a sequence of
