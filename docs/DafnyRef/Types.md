@@ -1086,7 +1086,7 @@ with arrays where parallel assignment is needed:
   }
 ```
 
-See [Section 15.3](#sec-array-to-seq) on how to convert an array to a sequence.
+See [Section 15.2](#sec-array-to-seq) on how to convert an array to a sequence.
 
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
@@ -2820,7 +2820,7 @@ okay to leave off the "`<T>`" in the fourth statement above.  However,
 as with the third statement, `array` has no anonymous constructor, so
 an error message is generated.
 
-## 15.3. Converting arrays to sequences {#sec-array-to-seq}
+## 15.2. Converting arrays to sequences {#sec-array-to-seq}
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
@@ -2878,7 +2878,7 @@ conversion:
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
-## 15.2. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
+## 15.3. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
 
 An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each

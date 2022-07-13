@@ -790,7 +790,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 0](#sec-module-refinement)).
+in [Section 21](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
@@ -841,7 +841,7 @@ use any local names:
 In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
 
-### 4.8.4. Expression Context Name Resolution
+### 4.8.3. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -903,7 +903,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### 4.8.5. Type Context Name Resolution
+### 4.8.4. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 
