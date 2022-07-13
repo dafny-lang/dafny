@@ -574,7 +574,7 @@ which binds the variable `x` to the values `0`, `1`, `2`, `3`, `4`, and `5`.
 
 Here are some more examples.
 
-- `x: byte` (where a value of type `byte` has values `x | 0 <= x < 256`)
+- `x: byte` (where a value of type `byte` is an int-based number `x` in the range `0 <= x < 256`)
 - `x: nat | x <= 5`
 - `x <- integerSet`
 - `x: nat <- integerSet`
