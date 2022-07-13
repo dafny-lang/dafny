@@ -46,6 +46,7 @@ jobs:
         ref: ${{ inputs.sha }}
     - uses: actions/setup-python@v1
     - name: Ensure tag exists
+      if: ${{ inputs.prerelease }}
       run: |
         git tag ${{ inputs.tag_name }} -f
         git push origin ${{ inputs.tag_name }} -f
