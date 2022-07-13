@@ -44,6 +44,14 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.Iterators,
+      Feature.SubsetTypeTests,
+      Feature.TraitTypeParameters,
+      Feature.MethodSynthesis,
+      Feature.TuplesWiderThan20
+    };
+
     public override void CleanSourceDirectory(string sourceDirectory) {
       try {
         Directory.Delete(sourceDirectory, true);
@@ -340,7 +348,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // Only exists to make sure method is overriden
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
+        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      }
+    }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var className = TransformToClassName(baseName);
@@ -467,7 +479,7 @@ namespace Microsoft.Dafny.Compilers {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -890,7 +902,8 @@ namespace Microsoft.Dafny.Compilers {
           var v = variance[i];
           var ta = typeArgs[i];
           if (ComplicatedTypeParameterForCompilation(v, ta)) {
-            Error(tok, "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
+            UnsupportedFeatureError(tok, Feature.TraitTypeParameters,
+              "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
               ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
           }
         }
@@ -1671,7 +1684,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+      bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
@@ -1685,7 +1699,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("(" + nativeName + ")(" + CastIfSmallNativeType(e0.Type) + "(");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? leftShift : rightShift, isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? leftShift : rightShift, isRotateLeft, nativeType, true, wr, inLetExprBody, wStmts, tr);
       wr.Write(")");
       if (nativeType == null) {
         wr.Write(".or");
@@ -1693,25 +1707,26 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("|");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? rightShift : leftShift, !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? rightShift : leftShift, !isRotateLeft, nativeType, false, wr, inLetExprBody, wStmts, tr);
       wr.Write(")))");
       if (needsCast) {
         wr.Write("))");
       }
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+        ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
       }
-      tr(e0, wr, inLetExprBody);
+      tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
       if (!firstOp) {
         wr.Write($"({bv.Width} - ");
       }
       wr.Write("((");
-      tr(e1, wr, inLetExprBody);
+      tr(e1, wr, inLetExprBody, wStmts);
       wr.Write(")");
       if (AsNativeType(e1.Type) == null) {
         wr.Write(".intValue()");
@@ -2263,6 +2278,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private void EmitRuntimeJar(string targetDirectory) {
+      // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
+      var jarName = "DafnyRuntime.jar";
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+      var stream = assembly.GetManifestResourceStream(jarName);
+      if (stream is not null) {
+        var fullJarName = $"{targetDirectory}/{jarName}";
+        FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
+        stream.CopyTo(outStream);
+        outStream.Close();
+      }
+    }
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
       ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
@@ -2275,8 +2303,14 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
       }
+
+      var targetDirectory = Path.GetDirectoryName(targetFilename);
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        EmitRuntimeJar(targetDirectory);
+      }
+
       var files = new List<string>();
-      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
+      foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
@@ -2288,14 +2322,18 @@ namespace Microsoft.Dafny.Compilers {
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
       psi.EnvironmentVariables["CLASSPATH"] = classpath;
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
+      var proc = Process.Start(psi)!;
+      DataReceivedEventHandler printer = (sender, e) => {
+        if (e.Data is not null) {
+          outputWriter.WriteLine(e.Data);
+        }
+      };
+      proc.ErrorDataReceived += printer;
+      proc.OutputDataReceived += printer;
+      proc.BeginErrorReadLine();
+      proc.BeginOutputReadLine();
       proc.WaitForExit();
+
       if (proc.ExitCode != 0) {
         outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
         return false;
@@ -2329,12 +2367,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected string GetClassPath(string targetFilename) {
-      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      // DafnyRuntime.jar has already been created using Maven. It is added to the java CLASSPATH below.
-      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime.jar");
+      var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      return "." + Path.PathSeparator + targetDirectory + Path.PathSeparator + Path.Combine(targetDirectory, "DafnyRuntime.jar");
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -2412,17 +2446,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
         EmitTypeDescriptorsActuals(typeArguments, tok, wr, ref sep);
       }
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
-        // the arguments of any external constructor are placed here
-        for (int i = 0; i < ctor.Ins.Count; i++) {
-          Formal p = ctor.Ins[i];
-          if (!p.IsGhost) {
-            wr.Write(sep);
-            TrExpr(initCall.Args[i], wr, false, wStmts);
-            sep = ", ";
-          }
-        }
-      }
+      wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
       wr.Write(")");
     }
 
@@ -2634,7 +2658,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+        Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       if (inTypes.Count != 1) {
         functions.Add(inTypes.Count);
       }
@@ -2642,14 +2667,13 @@ namespace Microsoft.Dafny.Compilers {
       if (!untyped) {
         wr.Write("({0}<{1}{2}>)", DafnyFunctionIface(inTypes.Count), Util.Comma("", inTypes, t => BoxedTypeName(t, wr, tok) + ", "), BoxedTypeName(resultType, wr, tok));
       }
-      wr.Write($"({Util.Comma(inNames, nm => nm)}) ->");
+      wr.Write($"({inNames.Comma(nm => nm)}) ->");
       var w = wr.NewExprBlock("");
       wr.Write(")");
       return w;
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts = null) {
+    protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       functions.Add(0);
       wr.Write($"(({DafnyFunctionIface(0)}<{BoxedTypeName(resultType, wr, resultTok)}>)(() ->");
       var w = wr.NewBigExprBlock("", ")).apply()");
@@ -3211,7 +3235,8 @@ namespace Microsoft.Dafny.Compilers {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
@@ -3226,9 +3251,9 @@ namespace Microsoft.Dafny.Compilers {
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " extends ";
-        foreach (var trait in superClasses) {
-          if (!trait.IsObject) {
-            w.Write($"{sep}{TypeName(trait, w, tok)}");
+        foreach (var tr in superClasses) {
+          if (!tr.IsObject) {
+            w.Write($"{sep}{TypeName(tr, w, tok)}");
             sep = ", ";
           }
         }
@@ -3623,8 +3648,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
-        Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ref ConcreteSyntaxTree wStmts) {
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);
       }
@@ -3784,7 +3810,8 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr(e, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"((java.util.function.Function<java.math.BigInteger, {BoxedTypeName(resultType, wr, resultTok)}>)(({bvName}) ->");
       var w = wr.NewBigExprBlock("", $")).apply(java.math.BigInteger.valueOf({source}))");
       return w;
@@ -4022,7 +4049,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
@@ -4038,7 +4065,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock("public static void __Main()");
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
@@ -4053,11 +4081,11 @@ namespace Microsoft.Dafny.Compilers {
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {

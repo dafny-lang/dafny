@@ -9,9 +9,9 @@ In general an attribute may have any name the user chooses. It may be
 followed by a comma-separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
 
-In general, any Dafny entity may have a list of attributes.
+Any Dafny entity may have a list of attributes.
 Dafny does not check that the attributes listed for an entity
-are appropriate for that entity (which means that misspellings may
+are appropriate for it (which means that misspellings may
 go silently unnoticed).
 
 The grammar shows where the attribute annotations may appear:
@@ -19,12 +19,11 @@ The grammar shows where the attribute annotations may appear:
 Attribute = "{:" AttributeName [ Expressions ] "}"
 ````
 
-Dafny has special processing for some attributes[^boogie-attributes]. For some attributes, the
-setting is only looked for on the entity with the attribute. For others, we start
-at the entity and if the attribute is not there, look up in the hierarchy
-(enclosing class and enclosing modules).
-The attribute
-declaration closest to the entity overrides those further away.
+Dafny has special processing for some attributes[^boogie-attributes].  Of those,
+some apply only to the entity bearing the attribute, while others (inherited
+attributes) apply to the entity and its descendants (such as nested modules,
+types, or declarations).  The attribute declaration closest to the entity
+overrides those further away.
 
 [^boogie-attributes]: All entities that Dafny translates to Boogie have their attributes passed on to Boogie except for the [`{:axiom}`](#sec-axiom) attribute (which conflicts with Boogie usage) and the [`{:trigger}`](#sec-trigger) attribute which is instead converted into a Boogie quantifier _trigger_. See Section 11 of [@Leino:Boogie2-RefMan].
 
@@ -159,6 +158,8 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 One difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
+For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
+
 ## 22.2. Attributes on functions and methods
 
 ### 22.2.1. `{:autoReq}`
@@ -276,7 +277,16 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 22.2.8. `{:print}` {#sec-print}
+### 22.2.8. `{:opaque}` {#sec-opaque}
+Ordinarily, the body of a function is transparent to its users, but
+sometimes it is useful to hide it. If a function `foo` or `bar` is given the
+`{:opaque}` attribute, then Dafny hides the body of the function,
+so that it can only be seen within its recursive clique (if any),
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
+
+More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
+
+### 22.2.9. `{:print}` {#sec-print}
 This attributes declares that a method may have print effects,
 that is, it may use 'print' statements and may call other methods
 that have print effects. The attribute can be applied to compiled
@@ -285,15 +295,6 @@ applied to functions or ghost methods. An overriding method is
 allowed to use a {:print} attribute only if the overridden method
 does.
 Print effects are enforced only with `/trackPrintEffects:1`.
-
-### 22.2.9. `{:opaque}` {#sec-opaque}
-Ordinarily, the body of a function is transparent to its users, but
-sometimes it is useful to hide it. If a function `foo` or `bar` is given the
-`{:opaque}` attribute, then Dafny hides the body of the function,
-so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
-
-More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 <!--
 Describe this where refinement is described, as appropriate.
@@ -315,19 +316,60 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.2.10. `{:priority N}`
-Assign a positive priority 'N' to an implementation to control the order
-in which implementations are verified (default: N = 1).
+### 22.2.10. `{:priority}`
+`{:priority N}` assigns a positive priority 'N' to a method or function to control the order
+in which methods or functions are verified (default: N = 1).
 
+### 22.2.11. `{:rlimit}` {#sec-rlimit}
 
-### 22.2.11. `{:selective_checking}`
+`{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
+This is the per-method equivalent of the command-line flag `/rlimit:N`.
+If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+
+To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
+
+* 8K resource usage
+  ```dafny
+  method f() {
+    assert true;
+  }
+  ```
+* 10K resource usage using assertions that do not add assumptions:
+  ```dafny
+  method f() {
+    assert a: (a ==> b) <==> (!b ==> !a);
+    assert b: (a ==> b) <==> (!b ==> !a);
+    assert c: (a ==> b) <==> (!b ==> !a);
+    assert d: (a ==> b) <==> (!b ==> !a);
+  }
+  ```
+
+* 40K total resource usage using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert)
+  ```dafny
+  method {:vcs_split_on_every_assert} f(a: bool, b: bool) {
+    assert a: (a ==> b) <==> (!b ==> !a);
+    assert b: (a ==> b) <==> (!b ==> !a);
+    assert c: (a ==> b) <==> (!b ==> !a);
+    assert d: (a ==> b) <==> (!b ==> !a);
+  }
+  ```
+*  37K total resource usage and thus fails with `out of resource`.
+   ```dafny
+   method {:rlimit 30} f(a: int, b: int, c: int) {
+     assert ((1 + a*a)*c) / (1 + a*a) == c;
+   }
+   ```
+
+Note that, the default solver Z3 tends to overshoot by `7K` to `8K`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
+
+### 22.2.12. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 22.2.12. `{:tailrecursion}`
+### 22.2.13. `{:tailrecursion}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
@@ -343,31 +385,16 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.15. test
-The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
-
-    method {:test} test_example()
-
-Dafny also provides support for unit tests with parameters provided by a method source.  To invoke this behavior, your tests should be of this form.
-
-    method {:test "MethodSource", "MethodSourceName"} test_example([parameters])
-
-Your method source's signature should be of this form
-
-    static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
-
-where the method is static and the return type is a sequence of tuples.  The types inside each tuple must match the types of your test method's parameters.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
-
-### 22.1.16. timeLimitMultiplier
-=======
 ### 22.2.13. `{:test}`
+=======
+### 22.2.14. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
 to be executed at runtime in order to test that the program is working as intended.
 
 There are two different ways to dynamically test functionality in a test:
 
 1. A test can optionally return a single value to indicate success or failure.
-   If it does, this must be a [failure-compatible type](#1971-failure-compatible-types)
+   If it does, this must be a _failure-compatible_ type
    just as the [update-with-failure statement](#sec-update-failure) requires. That is,
    the returned type must define a `IsFailure()` function method. If `IsFailure()`
    evaluates to `true` on the return value, the test will be marked a failure, and this
@@ -391,10 +418,10 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
-### 22.2.14. `{:timeLimit N}`
+### 22.2.15. `{:timeLimit N}`
 Set the time limit for verifying a given function or method.
 
-### 22.2.15. `{:timeLimitMultiplier X}`
+### 22.2.16. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -402,23 +429,16 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.17. trigger
-Trigger attributes are used on quantifiers and comprehensions.
-They are translated into Boogie triggers.
-
-### 22.1.18. typeQuantifier
-The `{:typeQuantifier}` attribute must be used on a quantifier if it
-quantifies over types.
-### 22.2.15. `{:verify false}` {#sec-verify}
-=======
 ### 22.2.16. `{:verify false}` {#sec-verify}
+=======
+### 22.2.17. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether.
 Will not even try to verify well-formedness of postconditions and preconditions.
 We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies postconditions.
 
-### 22.2.17. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 22.2.18. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -427,7 +447,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.18. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 22.2.19. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -438,7 +458,7 @@ case error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.19. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 22.2.20. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -446,15 +466,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.20. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 22.2.21. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-
-### 22.2.21. synthesize {#sec-synthesize-attr}
+### 22.2.22. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -487,6 +506,15 @@ ARGLIST   = ID   // this can be one of the bound variables
 BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
+
+### 22.2.23. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+
+This attribute applies only to modules. It attribute configures Dafny as if
+`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
+options revert to their previous values.
+
+Only a small subset of Dafny's command line options is supported.  Use the
+`/attrHelp` flag to see which ones.
 
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
@@ -681,10 +709,6 @@ Here are ways one can prove `assert P(j + 4);`:
 * Change the trigger `{:trigger Q(i)}` to `{:trigger P(i)}` (replace the trigger)
 * Change the trigger `{:trigger Q(i)}` to `{:trigger Q(i)} {:trigger P(i)}` (add a trigger)
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
-
-### 22.5.5. `{:typeQuantifier}` (deprecated)
-The `{:typeQuantifier}` attribute must be used on a quantifier if it
-quantifies over types.
 
 
 

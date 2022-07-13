@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
+using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
 
@@ -24,14 +23,21 @@ namespace DafnyTestGeneration {
     public readonly string MethodName;
     // values of the arguments to be passed to the method call
     public readonly List<string> ArgValues;
+    // number of type parameters for the method (all will be set to defaultType)
+    public readonly int NOfTypeParams = 0;
+    // default type to replace any type variable with
+    private readonly DafnyModelType defaultType = new("int");
+    // the DafnyModel that describes the inputs to this test method
+    private DafnyModel dafnyModel;
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
-      var dafnyModel = DafnyModel.ExtractModel(log);
-      MethodName = Utils.GetDafnyMethodName(argumentNames.First());
+      dafnyModel = DafnyModel.ExtractModel(log);
+      MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
+      NOfTypeParams = typeNames.Count(typeName => typeName == "Ty");
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
 
@@ -51,6 +57,9 @@ namespace DafnyTestGeneration {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(null);
       for (var i = 0; i < printOutput.Count; i++) {
+        if (types[i] == "Ty") {
+          continue; // this means that this parameter is a type variable
+        }
         if (printOutput[i] == "") {
           result.Add(GetDefaultValue(DafnyModelType.FromString(types[i])));
           continue;
@@ -75,6 +84,11 @@ namespace DafnyTestGeneration {
       return result;
     }
 
+    // Returns a new value of the defaultType type (set to int by default)
+    private string GetADefaultTypeValue(DafnyModelVariable variable) {
+      return dafnyModel.GetUnreservedNumericValue(variable.Element, Type.Int);
+    }
+
     /// <summary>
     /// Extract the value of a variable. This can have side-effects on
     /// assignments, reservedValues, reservedValuesMap, and objectsToMock.
@@ -89,7 +103,11 @@ namespace DafnyTestGeneration {
       }
 
       List<string> elements = new();
-      switch (variable.Type.Name) {
+      var variableType = variable.Type.ReplaceTypeVariables(defaultType);
+      if (variableType.Equals(defaultType) && !variableType.Equals(variable.Type)) {
+        return GetADefaultTypeValue(variable);
+      }
+      switch (variableType.Name) {
         case "?":
           return "null";
         case "char":
@@ -106,7 +124,7 @@ namespace DafnyTestGeneration {
           for (var i = 0; i < seqVar.GetLength(); i++) {
             var element = seqVar[i];
             if (element == null) {
-              elements.Add(GetDefaultValue(variable.Type.TypeArgs.First()));
+              elements.Add(GetDefaultValue(variableType.TypeArgs.First()));
               continue;
             }
             elements.Add(ExtractVariable(element));
@@ -129,10 +147,11 @@ namespace DafnyTestGeneration {
           return $"map[{string.Join(", ", mappingStrings)}]";
         case var arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType):
           break;
+        case var _ when (!variable.Value.StartsWith("(") && variable.Value != "null"):
+          return "DATATYPES_NOT_SUPPORTED";
         default:
           var varId = $"v{ObjectsToMock.Count}";
-          var dafnyType =
-            new DafnyModelType(variable.Type.GetNonNullable().InDafnyFormat().ToString());
+          var dafnyType = variableType.GetNonNullable().InDafnyFormat();
           ObjectsToMock.Add(new(varId, dafnyType));
           mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
@@ -153,6 +172,7 @@ namespace DafnyTestGeneration {
     /// an element (e.g. T@U!val!25).
     /// </summary>
     private string GetDefaultValue(DafnyModelType type) {
+      type = type.ReplaceTypeVariables(defaultType);
       var result = type.Name switch {
         "char" => "\'a\'",
         "bool" => "false",
@@ -229,14 +249,18 @@ namespace DafnyTestGeneration {
       }
 
       // the method call itself:
+      var typeArguments = "";
+      if (NOfTypeParams > 0) {
+        typeArguments = "<" + string.Join(",", Enumerable.Repeat(defaultType.ToString(), NOfTypeParams)) + ">";
+      }
       string methodCall;
       if (DafnyInfo.IsStatic(MethodName)) {
-        methodCall = $"{MethodName}({string.Join(", ", ArgValues)});";
+        methodCall = $"{MethodName}{typeArguments}({string.Join(", ", ArgValues)});";
       } else {
         var receiver = ArgValues[0];
         ArgValues.RemoveAt(0);
         methodCall = $"{receiver}.{MethodName.Split(".").Last()}" +
-                     $"({string.Join(", ", ArgValues)});";
+                     $"{typeArguments}({string.Join(", ", ArgValues)});";
         ArgValues.Insert(0, receiver);
       }
 

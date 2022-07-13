@@ -1,4 +1,4 @@
-# 20. Expressions
+# 20. Expressions {#sec-expressions}
 The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
@@ -192,7 +192,7 @@ RelOp =
 ````
 
 The relation expressions that have a ``RelOp`` compare two or more terms.
-As explained in section [#sec-basic-types], `==`, `!=`, ``<``, `>`, `<=`, and `>=`
+As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
 are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
@@ -204,7 +204,7 @@ The `!!` represents disjointness for sets and multisets as explained in
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
 co-inductive values for equality to a nesting level of k, as
-explained in section [#sec-co-equality].
+explained in [the section about co-equality](#sec-co-equality).
 
 ## 20.6. Bit Shifts
 ````grammar
@@ -584,40 +584,87 @@ or `this`, which denotes the current object in the context of
 an instance method or function.
 
 ## 20.21. Fresh Expressions {#sec-fresh-expression}
+
+`fresh(e)` returns a boolean value that is true if
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method,
+or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
+For example, consider this valid program:
+
+```dafny
+class C { constructor() {} }
+method f(c1: C) returns (r: C)
+  ensures fresh(r)
+{
+  assert !fresh(c1);
+  var c2 := new C();
+  label AfterC2:
+  var c3 := new C();
+  assert fresh(c2) && fresh(c3);
+  assert fresh({c2, c3});
+  assert !fresh@AfterC2(c2) && fresh@AfterC2(c3);
+  r := c2;
+}
+```
+
+The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
+enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
+The argument of `fresh` must be either an [`object`](#sec-object-type) reference
+or a set or sequence of object references.
+In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
+is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
+(respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
+
 ````grammar
 FreshExpression_ =
   "fresh" [ "@" LabelName ]
   "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-`fresh(e)` returns a boolean value that is true if
-the objects denoted by expression `e` were all
-freshly allocated since the time of entry to the enclosing method.
+## 20.22. Allocated Expressions {#sec-allocated-expression}
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
 
-If the `LabelName` is present, it must denote a label that in the
-enclosing method's control flow dominates the expression. In this
-case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
-freshly allocated since control flow reached label `L`.
+For example, consider this valid program:
 
-The argument of `fresh` must be either an object reference
-or a set or sequence of object references.
+```dafny
+class C { constructor() {} }
+datatype D = Nil | Cons(C, D)
+method f() {
+  var d1, d2 := Nil, Nil;
+  var c1 := new C();
+  label L1:
+  var c2 := new C();
+  label L2:
+  assert old(allocated(d1) && allocated(d2));
+  d1 := Cons(c1, Nil);
+  assert old(!allocated(d1) && allocated(d2));
+  d2 := Cons(c2, Nil);
+  assert old(!allocated(d1) && !allocated(d2));
+  assert allocated(d1) && allocated(d2);
+  assert old@L1(allocated(d1) && !allocated(d2));
+  assert old@L2(allocated(d1) && allocated(d2));
+  d1 := Nil;
+  assert old(allocated(d1) && !allocated(d2));
+}
+```
 
-## 20.22. Allocated Expressions
+This can be useful when, for example, `allocated(e)` is evaluated in an
+[`old`](#sec-old-expression) state. Like in the example, where `d1` is a local variable holding a datatype value
+`Cons(c1, Nil)` where `c1` is an object that was allocated in the enclosing
+method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as [`fresh(e)`](#sec-fresh-expression).
+
 ````grammar
 AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
-
-For any expression `e`, the expression `allocated(e)` evaluates to `true`
-in a state if the value of `e` is available in that state, meaning that
-it could in principle have been the value of a variable in that state.
-This can be useful when, for example, `allocated(e)` is evaluated in an
-`old` state. For instance, if `d` is a local variable holding a datatype value
-`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
-method, then `old(allocated(d))` is `false`.
-
-If the expression `e` is of a reference type, then `!old(allocated(e))`
-is the same as `fresh(e)`.
 
 ## 20.23. Unchanged Expressions {#sec-unchanged-expression}
 
@@ -751,7 +798,7 @@ seq(k, n => n+1)
 is a sequence of k elements whose values are obtained by evaluating the
 second argument (a function) on the indices 0 up to k.
 
-See section [#sec-sequences] for more information on
+See [this section](#sec-sequences) for more information on
 sequences.
 
 ## 20.28. Set Display Expression
@@ -981,21 +1028,19 @@ Note that the braces enclosing the ``CaseClause``s may be omitted.
 QuantifierExpression(allowLemma, allowLambda) =
     ( "forall" | "exists" ) QuantifierDomain "::"
     Expression(allowLemma, allowLambda)
-
-QuantifierDomain =
-  IdentTypeOptional { "," IdentTypeOptional } { Attribute }
-  [ "|" Expression(allowLemma: true, allowLambda: true) ]
 ````
 
 A ``QuantifierExpression`` is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
 quantified variables, namely those in the ``QuantifierDomain``.
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
 ```dafny
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
+assert forall x: nat | 0 <= x < |s|, y <- s[x] :: y < x;
 ```
 
 The quantifier identifiers are _bound_ within the scope of the
@@ -1010,16 +1055,12 @@ It this is not possible, the program is in error.
 ````grammar
 SetComprehensionExpr(allowLemma, allowLambda) =
   [ "set" | "iset" ]
-  IdentTypeOptional
-  { "," IdentTypeOptional }
-  { Attribute }
-  "|"
-  Expression(allowLemma, allowLambda)
+  QuantifierDomain(allowLemma, allowLambda)
   [ "::" Expression(allowLemma, allowLambda) ]
 ````
 
 A set comprehension expression is an expression that yields a set
-(possibly infinite if `iset` is used) that
+(possibly infinite only if `iset` is used) that
 satisfies specified conditions. There are two basic forms.
 
 If there is only one quantified variable, the optional ``"::" Expression``
@@ -1040,12 +1081,17 @@ set x : T | P(x) :: x
 For the full form
 
 ```dafny
-var S := set x1:T1, x2:T2 ... | P(x1, x2, ...) :: Q(x1, x2, ...)
+var S := set x1: T1 <- C1 | P1(x1),
+             x2: T2 <- C2 | P2(x1, x2),
+             ... 
+             :: Q(x1, x2, ...)
 ```
 
 the elements of `S` will be all values resulting from evaluation of `Q(x1, x2, ...)`
-for all combinations of quantified variables `x1, x2, ...` such that
-predicate `P(x1, x2, ...)` holds. For example,
+for all combinations of quantified variables `x1, x2, ...` (from their respective `C1, C2, ...`
+domains) such that all predicates `P1(x1), P2(x1, x2), ...` hold. 
+
+For example,
 
 ```dafny
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
@@ -1054,7 +1100,9 @@ yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
 
 The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
-`P` or `Q` expressions.
+various expressions. The `<- C` domain expressions are also optional and default to
+`iset x: T` (i.e. all values of the variable's type), as are the `| P` expressions which
+default to `true`. See also [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 If a finite set was specified ("set" keyword used), Dafny must be able to prove that the
 result is finite otherwise the set comprehension expression will not be
@@ -1063,14 +1111,17 @@ accepted.
 Set comprehensions involving reference types such as
 
 ```dafny
-set o: object | true
+set o: object
 ```
 
-are allowed in ghost contexts. In particular, in ghost contexts, the
+are allowed in ghost expressions within methods, but not in ghost functions[^set-of-objects-not-in-functions].
+In particular, in ghost contexts, the
 check that the result is finite should allow any set comprehension
 where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
+
+[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
 
 The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.
@@ -1090,7 +1141,7 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-## 20.36. Statements in an Expression
+## 20.36. Statements in an Expression {#sec-statement-in-an-expression}
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
              | RevealStmt | CalcStmt
@@ -1196,19 +1247,16 @@ the whole let-or-fail expression. Typically that means that `tmp.PropagateFailur
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" )
-  IdentTypeOptional
-  { "," IdentTypeOptional }
-  { Attribute }
-  [ "|" Expression(allowLemma: true, allowLambda: true) ]
+  QuantifierDomain(allowLemma, allowLambda)
   "::"
   Expression(allowLemma, allowLambda)
   [ ":=" Expression(allowLemma, allowLambda) ]
 ````
 
 A ``MapComprehensionExpr`` defines a finite or infinite map value
-by defining a domain (using the ``IdentTypeOptional`` and the optional
-condition following the "|") and for each value in the domain,
+by defining a domain and for each value in the domain,
 giving the mapped value using the expression following the "::".
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
 ```dafny
@@ -1251,20 +1299,20 @@ the type parameters.
 
 To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
 prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
-must be the name of the copredicate or colemma and it must be
+must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
-## 20.41. Hash Call
+## 20.41. Hash Call {#sec-hash-call}
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
   "(" [ Bindings ] ")"
 ````
-A ``HashCall`` is used to call the prefix for a copredicate or colemma.
+A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
 
-In the case where the `colemma` is generic, the generic type
+In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
 ```dafny
@@ -1288,14 +1336,14 @@ function ones<T>(s: T): Stream<T>
   Cons(1, s, ones(s))
 }
 
-copredicate atmost(a: Stream, b: Stream)
+greatest predicate atmost(a: Stream, b: Stream)
 {
   match a
   case Nil => true
   case Cons(h,s,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-colemma {:induction false} Theorem0<T>(s: T)
+greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
@@ -1340,9 +1388,9 @@ followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
 selected by the ``DotSuffix`` is generic), or
-* a ``HashCall`` for the case where we want to call a prefix copredicate
-  or colemma. The result is the result of calling the prefix copredicate
-  or colemma.
+* a ``HashCall`` for the case where we want to call a prefix predicate
+  or prefix lemma. The result is the result of calling the prefix predicate
+  or prefix lemma.
 
 ### 20.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 
@@ -1411,7 +1459,7 @@ A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
-section [#sec-other-sequence-expressions] for details.
+[the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 ### 20.42.4. Slices By Length Suffix
 ````grammar
@@ -1427,7 +1475,7 @@ SlicesByLengthSuffix_ =
 
 Applying a ``SlicesByLengthSuffix_`` to a sequence produces a
 sequence of subsequences of the original sequence.
-See section [#sec-other-sequence-expressions] for details.
+See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 ### 20.42.5. Sequence Update Suffix
 ````grammar
@@ -1582,3 +1630,13 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 [^CTC]: This set of operations that are constant-folded may be enlarged in
 future versions of Dafny.
 
+## 20.47. List of specification expressions {#sec-list-of-specification-expressions}
+
+The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
+
+* [Fresh expressions](#sec-fresh-expression)
+* [Allocated expressions](#sec-allocated-expression)
+* [Unchanged expressions](#sec-unchanged-expression)
+* [Old expressions](#sec-old-expression)
+* [Assert and calc expressions](#sec-statement-in-an-expression)
+* [Hash Calls](#sec-hash-call)

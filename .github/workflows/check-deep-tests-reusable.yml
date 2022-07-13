@@ -1,0 +1,27 @@
+name: Check Deep Tests (Reusable Workflow)
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        type: string
+      branch:
+        type: string
+
+jobs:
+  check-deep-tests:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        path: dafny
+        submodules: true
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
+          console.log(script({github, context, core,
+                              workflow_id: 'deep-tests.yml',
+                              ...('${{ inputs.sha }}' ? {sha: '${{ inputs.sha }}'} : {}),
+                              ...('${{ inputs.branch }}' ? {branch: '${{ inputs.branch }}'} : {})}))

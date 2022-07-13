@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -13,13 +14,14 @@ public class TextLogger {
   }
 
   public void LogResults(List<(Implementation, VerificationResult)> verificationResults) {
-    foreach (var (implementation, result) in verificationResults) {
+    var orderedResults = verificationResults.OrderBy(vr => vr.Item1.VerboseName);
+    foreach (var (implementation, result) in orderedResults) {
       tw.WriteLine("");
-      tw.WriteLine($"Results for {implementation.Name}");
+      tw.WriteLine($"Results for {implementation.VerboseName}");
       tw.WriteLine($"  Overall outcome: {result.Outcome}");
       tw.WriteLine($"  Overall time: {result.End - result.Start}");
       tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
-      foreach (var vcResult in result.VCResults) {
+      foreach (var vcResult in result.VCResults.OrderBy(r => r.vcNum)) {
         tw.WriteLine("");
         tw.WriteLine($"  Assertion batch {vcResult.vcNum}:");
         tw.WriteLine($"    Outcome: {vcResult.outcome}");

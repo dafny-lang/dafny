@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -16,6 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
+    private readonly Dictionary<DiagnosticSeverity, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
 
     /// <summary>
@@ -29,12 +31,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> AllDiagnostics => diagnostics;
+
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
+        // For untitled documents, the URI needs to have a "untitled" scheme
+        // to match what the client requires in the `diagnostics` dictionary.
+        // We achieve this by expanding it into a file system path and parsing it again.
+        var alternativeUntitled = documentUri.GetFileSystemPath();
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
-        return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
+        return new List<Diagnostic>(
+          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(alternativeUntitled) ??
+          Enumerable.Empty<Diagnostic>());
       }
       finally {
         rwLock.ExitReadLock();
@@ -55,15 +66,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
       }
+
+      var uri = GetDocumentUriOrDefault(error.Tok);
+      var diagnostic = new Diagnostic {
+        Severity = DiagnosticSeverity.Error,
+        Message = error.Msg,
+        Range = error.Tok.GetLspRange(),
+        RelatedInformation = relatedInformation,
+        Source = VerifierMessageSource.ToString()
+      };
       AddDiagnosticForFile(
-        new Diagnostic {
-          Severity = DiagnosticSeverity.Error,
-          Message = error.Msg,
-          Range = error.Tok.GetLspRange(),
-          RelatedInformation = relatedInformation,
-          Source = VerifierMessageSource.ToString()
-        },
-        GetDocumentUriOrDefault(error.Tok)
+        diagnostic,
+        VerifierMessageSource,
+        uri
       );
     }
 
@@ -107,7 +122,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
       };
-      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
+      AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;
     }
 
@@ -121,11 +136,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
+    public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+      rwLock.EnterReadLock();
+      try {
+        return countsNotVerificationOrCompiler.GetValueOrDefault(ToSeverity(level), 0);
+      }
+      finally {
+        rwLock.ExitReadLock();
+      }
+    }
+
+    private void AddDiagnosticForFile(Diagnostic item, MessageSource messageSource, DocumentUri documentUri) {
       rwLock.EnterWriteLock();
       try {
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
+        if (messageSource != MessageSource.Verifier && messageSource != MessageSource.Compiler) {
+          countsNotVerificationOrCompiler[severity] =
+            countsNotVerificationOrCompiler.GetValueOrDefault(severity, 0) + 1;
+        }
         diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
       }
       finally {

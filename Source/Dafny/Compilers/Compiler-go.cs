@@ -29,6 +29,14 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.MethodSynthesis,
+      Feature.ExternalConstructors,
+      Feature.SubsetTypeTests,
+      Feature.AllUnderscoreExternalModuleNames
+    };
+
+
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";
     public override string TargetBaseDir(string dafnyProgramName) =>
@@ -68,11 +76,12 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
+
+      var rt = wr.NewFile("dafny/dafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var rt = wr.NewFile("dafny/dafny.go");
-      ReadRuntimeSystem("DafnyRuntime.go", rt);
     }
 
     const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";
@@ -141,7 +150,8 @@ namespace Microsoft.Dafny.Compilers {
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
-          Error(Bpl.Token.NoToken, "Cannot have a package name with only underscores: {0}", wr, pkgName);
+          UnsupportedFeatureError(Bpl.Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
+            "Cannot have a package name with only underscores: {0}", wr, pkgName);
           return wr;
         }
         while (pkgName.StartsWith("_")) {
@@ -309,7 +319,8 @@ namespace Microsoft.Dafny.Compilers {
       return cw;
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
+      TopLevelDecl trait, List<Type> superClasses /*?*/, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       //
       // type Trait interface {
       //   AbstractMethod0(param0 type0, ...) returnType0
@@ -1016,7 +1027,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree CreateFreshMethod(Method m) {
@@ -2146,17 +2157,17 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
         GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
-      var wStmts = wr.Fork();
 
       var bv = e0.Type.AsBitVectorType;
       if (bv.Width == 0) {
-        tr(e0, wr, inLetExprBody);
+        tr(e0, wr, inLetExprBody, wStmts);
       } else {
         ConcreteSyntaxTree wFirstArg;
         if (bv.NativeType != null) {
@@ -2782,8 +2793,9 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
-        Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ref ConcreteSyntaxTree wStmts) {
       Contract.Assert(boundVars.Count == boundTypes.Count);
       wr.Write("(func (");
       for (int i = 0; i < boundVars.Count; i++) {
@@ -2814,7 +2826,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       wr.Write("func (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -2824,8 +2837,10 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wStmts = w.Fork();
       w.Write("return ");
       wrBody = w.Fork();
       w.WriteLine();
@@ -2835,12 +2850,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts = null) {
+      ConcreteSyntaxTree wStmts) {
       var w = wr.NewBigExprBlock("func () " + TypeName(resultType, wr, resultTok), "()");
       return w;
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var w = wr.NewExprBlock("func ({0} int) {1}", bvName, TypeName(resultType, wr, resultTok));
       wr.Write("({0})", source);
       return w;
@@ -3284,7 +3300,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
@@ -3310,7 +3326,9 @@ namespace Microsoft.Dafny.Compilers {
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = idGenerator.FreshId("coer");
-        CreateIIFE(bvName, fat, tok, tat, tok, wr, out var ans, out wr);
+        // Nothing interesting should be written to wStmts
+        var blackHole = new ConcreteSyntaxTree();
+        CreateIIFE(bvName, fat, tok, tat, tok, wr, ref blackHole, out var ans, out wr);
 
         wr.Write("func (");
         var sep = "";
@@ -3369,6 +3387,8 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
       } else {
+        // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
+        // so I'm not using UnsupportedFeatureError for now.
         Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }

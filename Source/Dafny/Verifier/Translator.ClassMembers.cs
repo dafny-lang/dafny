@@ -10,30 +10,32 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
-    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods) {
+    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods, bool includeInformationAboutType) {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
       Contract.Assert(VisibleInScope(c));
 
-      sink.AddTopLevelDeclaration(GetClass(c));
-      if (c is ArrayClassDecl) {
-        // classes.Add(c, predef.ClassDotArray);
-        AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
-      }
+      if (includeInformationAboutType) {
+        sink.AddTopLevelDeclaration(GetClass(c));
+        if (c is ArrayClassDecl) {
+          // classes.Add(c, predef.ClassDotArray);
+          AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
+        }
 
-      AddIsAndIsAllocForClassLike(c);
+        AddIsAndIsAllocForClassLike(c);
 
-      if (c is TraitDecl) {
-        //this adds: function implements$J(Ty, typeArgs): bool;
-        var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
-        var vars = new List<Bpl.Variable> { arg_ref };
-        vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
-        var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
-        sink.AddTopLevelDeclaration(implement_intr);
-      } else if (c is ClassDecl classDecl) {
-        AddImplementsAxioms(classDecl);
+        if (c is TraitDecl) {
+          //this adds: function implements$J(Ty, typeArgs): bool;
+          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
+          var vars = new List<Bpl.Variable> { arg_ref };
+          vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
+          var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
+          sink.AddTopLevelDeclaration(implement_intr);
+        } else if (c is ClassDecl classDecl) {
+          AddImplementsAxioms(classDecl);
+        }
       }
 
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
@@ -712,10 +714,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name,
-          new List<Boogie.TypeVariable>(), inParams, outParams,
-          localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc,
+           inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -795,8 +795,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = new Boogie.Implementation(m.tok, proc.Name, new List<Boogie.TypeVariable>(), inParams, outParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+
+        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -891,9 +891,11 @@ namespace Microsoft.Dafny {
       };
       var ens = new List<Boogie.Ensures>();
 
-      var proc = new Boogie.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Boogie.TypeVariable>(),
+      var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
+      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
@@ -950,9 +952,9 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        var impl = new Boogie.Implementation(f.tok, proc.Name, new List<Boogie.TypeVariable>(),
-          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
-        sink.AddTopLevelDeclaration(impl);
+        var impl = AddImplementationWithVerboseName(f.tok, proc,
+          Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+          implOutParams, localVariables, stmts, kv);
       }
 
       if (InsertChecksums) {
@@ -1474,6 +1476,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      AddVerboseName(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);
