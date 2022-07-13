@@ -9,13 +9,15 @@ module {:extern @" Helpers {
     }
   }
 } /*/"} DefaultCode {
-
+}
+module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
+  type {:extern "String"} CsString(!new)
+  class {:extern "String"} {:compile false} String {
+    static function Concat(s1: CsString, s2: CsString): CsString
+  }
 }
 module {:extern "/*/dummy{}", "Top"} {:compile false} {:options "-functionSyntax:4"} Top {
-  type {:extern "*/string"} {:compile false} CsString(!new,0) {
-    // TODO: need a better way to express infix operators.
-    function {:extern "Substring(0)+"} {:compile false} concat(other: CsString): CsString
-  }
+  import opened System
   trait {:extern "*/Microsoft.Dafny.IToken"} {:compile false} IToken {
     var val: CsString
     var leadingTrivia: CsString
@@ -38,12 +40,13 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
   module {:extern "Dafny"} Dafny {
     module {:extern "TokenFormatter"} TokenFormatter {
       import opened Top
+      import opened System
 
       newtype {:native} CInt = x: int | 0 <= x < 65535
 
 
       function {:extern} {:macro "new string(character, length)"} newString(character: char, length: CInt): CsString
-      const {:extern @"""", @"Substring(0)"} CsStringEmpty: CsString;
+      const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
 
       function {:extern "Helpers.HelperString", "Reindent"} {:macro} Reindent(input: CsString, newIndent: CsString): (output: CsString)
 
@@ -64,7 +67,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         decreases if token == null then 0 else |token.remainingTokens| + 1
         invariant token == null || token.Valid()
         {
-          s := s.concat(token.leadingTrivia).concat(token.val).concat(token.trailingTrivia);
+          s := String.Concat(String.Concat(String.Concat(s, token.leadingTrivia), token.val), token.trailingTrivia);
           token := token.next;
         }
       }
@@ -88,7 +91,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           }
           var leadingTrivia := if isSet then Reindent(token.leadingTrivia, currentIndent) else token.leadingTrivia;
           var trailingTrivia :=  if isSet then Reindent(token.trailingTrivia, newIndent) else token.trailingTrivia;
-          s := s.concat(leadingTrivia).concat(token.val).concat(trailingTrivia);
+          s := String.Concat(String.Concat(String.Concat(s, leadingTrivia), token.val), trailingTrivia);
           token := token.next;
         }
       }
