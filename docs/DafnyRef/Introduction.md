@@ -26,12 +26,12 @@ checker—when the tool produces errors, the programmer responds by
 changing the program’s type declarations, specifications, and statements.
 
 (This document typically uses "Dafny" to refer to the programming language
-and "dafny" to refer to the software tool that verifies and compiles programs
+and `dafny` to refer to the software tool that verifies and compiles programs
 in the Dafny language.)
 
-The easiest way to try out Dafny is to [download](https://github.com/dafny-lang/dafny/releases) it
+The easiest way to try out `dafny` is to [download](https://github.com/dafny-lang/dafny/releases) it
 to run it on your machine as you follow along with the [Dafny tutorial](../OnlineTutorial/guide).
-Dafny can be run from the command line (on Linux, MacOS, Windows or other platforms) or from an IDE
+The dafny tool can be run from the command line (on Linux, MacOS, Windows or other platforms) or from an IDE
 such as emacs or an editor such as VSCode, which can provide syntax highlighting without
 the built-in verification.
 

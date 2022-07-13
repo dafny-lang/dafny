@@ -93,18 +93,18 @@ the language:  `false` and `true`.
 Type `bool` supports the following operations:
 
  operator           | description
---------------------|------------------------------------
+---------------------------------------------------------
  `<==>`             | equivalence (if and only if)
---------------------|------------------------------------
+---------------------------------------------------------
  `==>`              | implication (implies)
  `<==`              | reverse implication (follows from)
---------------------|------------------------------------
+---------------------------------------------------------
  `&&`               | conjunction (and)
  `||`               | disjunction (or)
---------------------|------------------------------------
+---------------------------------------------------------
  `==`               | equality
  `!=`               | disequality
---------------------|------------------------------------
+---------------------------------------------------------
  `!`                | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
@@ -226,7 +226,7 @@ The language includes a literal for each integer, like
 using the prefix "`0x`", as in `0x0`, `0xD`, and `0x7c1` (always with
 a lower case `x`, but the hexadecimal digits themselves are case
 insensitive).  Leading zeros are allowed.  To form negative literals,
-use the unary minus operator, as in `-12`, but not -(12).
+use the unary minus operator, as in `-12`, but not `-(12)`.
 
 There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
@@ -273,15 +273,15 @@ is not allowed.
 There are also operators on each numeric type:
 
  operator        | description
------------------|------------------------------------
+------------------------------------------------------
   `+`            | addition (plus)
   `-`            | subtraction (minus)
------------------|------------------------------------
+------------------------------------------------------
   `*`            | multiplication (times)
   `/`            | division (divided by)
   `%`            | modulus (mod)  -- int only
-  -----------------|------------------------------------
-`-`            | negation (unary minus)
+------------------------------------------------------
+  `-`            | negation (unary minus)
 
 The binary operators are left associative, and they associate with
 each other in the two groups.
@@ -326,7 +326,7 @@ Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
 Each such type is
 distinct and is designated by the prefix `bv` followed (without white space) by
-a positive integer (without leading zeros) stating the number of bits. For example,
+a postive integer without leading zeros or zero, stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
 The type `bv0` is also legal; it is a bit-vector type with no bits and just one value, `0x0`.
 
@@ -347,21 +347,21 @@ truncate the high-order bits from the results; that is, they perform
 unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
 
  operator        | description
- -----------------|------------------------------------
+------------------------------------------------------
  `<<`            | bit-limited bit-shift left
-  `>>`            | unsigned bit-shift right
------------------|------------------------------------
-     `+`            | bit-limited addition
-    `-`            | bit-limited subtraction
-  -----------------|------------------------------------
+ `>>`            | unsigned bit-shift right
+------------------------------------------------------
+  `+`            | bit-limited addition
+  `-`            | bit-limited subtraction
+------------------------------------------------------
   `*`            | bit-limited multiplication
-  -----------------|------------------------------------
- `&`            | bit-wise and
-  `|`            | bit-wise or
+------------------------------------------------------
+  `&`            | bit-wise and
+  `|`            | bit-wise or 
   `^`            | bit-wise exclusive-or
------------------|------------------------------------
-`-`            | bit-limited negation (unary minus)
-`!`            | bit-wise complement
+------------------------------------------------------
+  `-`            | bit-limited negation (unary minus)
+  `!`            | bit-wise complement
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
@@ -411,7 +411,7 @@ Escape sequences can also be used to write other characters.  The
 supported escape sequences are the following:
 
  escape sequence    | meaning
---------------------|-------------------------------------------------------
+----------------------------------------------------------------------------
  `\'`               | the character `'`
  `\"`               | the character `"`
  `\\`               | the character `\`
@@ -432,7 +432,7 @@ Character values are ordered and can be compared using the standard
 relational operators:
 
  operator        | description
------------------|-----------------------------------
+-----------------------------------------------------
   `<`              | less than
   `<=`             | at most
   `>=`             | at least
@@ -656,7 +656,7 @@ In addition to equality and disequality, set types
 support the following relational operations:
 
  operator        | description
------------------|------------------------------------
+------------------------------------------------------
  `<`             | proper subset
  `<=`            | subset
  `>=`            | superset
@@ -669,12 +669,12 @@ Sets support the following binary operators, listed in order of
 increasing binding power:
 
  operator      | description
----------------|------------------------------------
+----------------------------------------------------
  `!!`          | disjointness
----------------|------------------------------------
+----------------------------------------------------
  `+`           | set union
  `-`           | set difference
----------------|------------------------------------
+----------------------------------------------------
  `*`           | set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
@@ -685,8 +685,8 @@ no elements in common, that is, it is equivalent to
 ```dafny
 A * B == {}
 ```
-However, the disjointness operator is chaining, so `A !! B !! C !! D`
-means:
+However, the disjointness operator is chaining though in a slightly different way than other chaining operators:
+ `A !! B !! C !! D` means that `A`, `B`, `C` and `D` are all mutually disjoint, that is
 ```dafny
 A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 ```
@@ -732,7 +732,7 @@ In addition to equality and disequality, multiset types
 support the following relational operations:
 
  operator          | description
--------------------|-----------------------------------
+-------------------------------------------------------
   `<`              | proper multiset subset
   `<=`             | multiset subset
   `>=`             | multiset superset
@@ -745,12 +745,12 @@ Multisets support the following binary operators, listed in order of
 increasing binding power:
 
  operator      | description
----------------|------------------------------------
+----------------------------------------------------
  `!!`          | multiset disjointness
----------------|------------------------------------
+----------------------------------------------------
  `+`           | multiset union
  `-`           | multiset difference
----------------|------------------------------------
+----------------------------------------------------
  `*`           | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
@@ -766,7 +766,7 @@ it is equivalent to
 ```dafny
 A * B == multiset{}
 ```
-Like the analogous set operator, `!!` is chaining.
+Like the analogous set operator, `!!` is chaining and means mutual disjointness.
 
 In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
@@ -877,9 +877,9 @@ first `hi` elements of `s`.
 In the sequence slice operation, _slices_ is a nonempty list of
 length designators separated and optionally terminated by a colon, and
 there is at least one colon.  Each length designator is a non-negative
-integer-based numeric, whose sum is no greater than `|s|`.  If there
+integer-based numeric; the sum of the length deisgnators is no greater than `|s|`.  If there
 are _k_ colons, the operation produces _k + 1_ consecutive subsequences
-from `s`, each of the length indicated by the corresponding length
+from `s`, with the length of each indicated by the corresponding length
 designator, and returns these as a sequence of
 sequences.
 If _slices_ is terminated by a
@@ -1230,7 +1230,7 @@ type Monad<T>
 can be used abstractly to represent an arbitrary parameterized monad.
 
 Even as an opaque type, the type
-may be given members such as constants, methods or functions.
+may be given members such as constants, methods or functions. (TODO: Examples please)
 
 
 ## 11.3. Subset types {#sec-subset-types}
@@ -1409,7 +1409,7 @@ even though, technically, the `~>` types are the arrow types and the
 remember that `-->` and `->` are subset types is in some error messages.
 For example, if you try to assign a partial function to a variable whose
 type is a total arrow type and the verifier is not able to prove that the
-partial function really is total, then you'll get an error say the subset-type
+partial function really is total, then you'll get an error saying that the subset-type
 constraint may not be satisfied.
 
 For more information about arrow types, see [Section 17](#sec-arrow-types).
@@ -1837,9 +1837,9 @@ The default is non-static (i.e., instance) and non-ghost.
 An instance method has an implicit receiver parameter, `this`.
 A static method M in a class C can be invoked by `C.M(…)`.
 
-An ordinary method is declared with the `method` keyword.
+An ordinary method is declared with the `method` keyword;
 [the section about constructors](#sec-constructors) explains methods that instead use the
-`constructor` keyword. [the section about lemmas](#sec-lemmas) discusses methods that are
+`constructor` keyword; [the section about lemmas](#sec-lemmas) discusses methods that are
 declared with the `lemma` keyword. Methods declared with the
 `least lemma` or `greatest lemma` keyword phrases
 are discussed later in the context of extreme
@@ -2030,7 +2030,7 @@ given).
 
 A two-state function is allowed to be called only from a two-state context, which
 means a method, a two-state lemma (see below), or another two-state function.
-Just like a label used with an `old` expressions, any label used in a call to a
+Just like a label used with an `old` expression, any label used in a call to a
 two-state function must denote a program point that _dominates_ the call. This means
 that any control leading to the call must necessarily have passed through the labeled
 program point.
@@ -2245,9 +2245,9 @@ function Factorial(n: int): (f: int)
 
 By default, a function is `ghost`, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
-keywords "`function method`".
+keywords "`function method`". [TODO: This use of keywords is proposed to change.]
 
-Like methods, functions can be either _instance_ (which they are be default) or
+Like methods, functions can be either _instance_ (which they are by default) or
 _static_ (when the function declaration contains the keyword `static`).
 An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
 by `C.F(…)`. This provides a convenient way to declare a number of helper
@@ -2636,9 +2636,8 @@ Static members of a trait may not be redeclared;
 thus, if there is a body it must be declared in the trait;
 the compiler will require a body, though the verifier will not.
 
-[^overload]: It is possible to conceive of a mechanism for disambiguating
-conflicting names, but this would add complexity to the language that does not
-appear to be needed, at least as yet.
+[//]: # Caution - a newline (not a blank line) ends a footnote
+[^overload]: It is possible to conceive of a mechanism for disambiguating conflicting names, but this would add complexity to the language that does not appear to be needed, at least as yet.
 
 Where traits within an extension hierarchy do declare instance members with the same
 name (and thus the same signature), some rules apply. Recall that, for methods,
@@ -2821,6 +2820,8 @@ okay to leave off the "`<T>`" in the fourth statement above.  However,
 as with the third statement, `array` has no anonymous constructor, so
 an error message is generated.
 
+## 15.3. Converting arrays to sequences {#sec-array-to-seq}
+
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
 `array<T>`, integer-based numerics `lo` and `hi` satisfying
@@ -2847,7 +2848,7 @@ In the last operation, both `lo` and `hi` have been omitted, thus
 The subarray operations are especially useful in specifications.  For
 example, the loop invariant of a binary search algorithm that uses
 variables `lo` and `hi` to delimit the subarray where the search `key`
-may be still found can be expressed as follows:
+may still be found can be expressed as follows:
 ```dafny
 key !in a[..lo] && key !in a[hi..]
 ```
@@ -2915,14 +2916,6 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
-## 15.3. Converting arrays to sequences {#sec-array-to-seq}
-
-To convert an array `x` to a sequence, use the `[..]` operator:
-```dafny
-  var intArr: array<int> := new int[] [1, 2, 3];
-  var intSeq: seq<int> := intArr[..];
-  assert intSeq == [1, 2, 3];
-```
 
 <!--PDF NEWPAGE-->
 # 16. Iterator types {#sec-iterator-types}
@@ -3405,7 +3398,7 @@ Note that the expression
 ```dafny
 Cons(5, Nil).tail.head
 ```
-is not well-formed, since `Cons(5, Nil).tail` does not satisfy
+is not well-formed, since `Cons(5, Nil).tail` does not necessarily satisfy
 `Cons?`.
 
 A constructor can have the same name as

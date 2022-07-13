@@ -23,6 +23,10 @@ that use them.
 
 ## 5.1. Specification Clauses
 
+
+Within expressions in specification clauseis, you can use
+[specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
+
 ### 5.1.1. Requires Clause {#sec-requires-clause}
 
 ````grammar
@@ -37,7 +41,8 @@ functions, lambda expressions and iterators. Dafny checks
 that the preconditions are met at all call sites. The
 callee may then assume the preconditions hold on entry.
 
-If no `requires` clause is specified it is taken to be `true`.
+If no `requires` clause is specified, then a default implicit
+clause `requires true` is used.
 
 If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
@@ -58,7 +63,8 @@ EnsuresClause(allowLambda) =
 An `ensures` clause specifies the post condition for a
 method, function or iterator.
 
-If no `ensures` clause is specified it is taken to be `true`.
+If no `ensures` clause is specified, then a default implicit
+clause `ensures true` is used.
 
 If more than one `ensures` clause is given, then the
 postcondition is the conjunction of all of the expressions
@@ -69,8 +75,6 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-Within an ensures clause, you can of course make use of
-[specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
 
 ### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
@@ -127,9 +131,9 @@ recursive) call to a function or method, Dafny checks that the effective
 
  What does "strictly smaller" mean? Dafny provides a built-in
  well-founded order for every type and, in some cases, between types. For
- example, the Boolean "false" is strictly smaller than "true", the
- integer 78 is strictly smaller than 102, the set `{2,5}` is strictly
- smaller than the set `{2,3,5}`, and for "s" of type `seq<Color>` where
+ example, the Boolean `false` is strictly smaller than `true`, the
+ integer `78` is strictly smaller than `102`, the set `{2,5}` is strictly
+ smaller than the set `{2,3,5}`, and for `s` of type `seq<Color>` where
  `Color` is some inductive datatype, the color `s[0]` is strictly less than
  `s` (provided `s` is nonempty).
 
@@ -401,8 +405,8 @@ If a `reads` clause refers to a sequence or multiset, that collection
 comprehension of the form `set o: object | o in c` before computing the
 union of object sets from other `reads` clauses.
 
-An expression in a `reads` clause is also allowed to be a function to
-a collection of references. This is converted to a set by taking the
+An expression in a `reads` clause is also allowed to be a function call whose value is 
+a collection of references. Such an expression is converted to a set by taking the
 union of the function's image over all inputs. For example, if `F` is
 a function from `int` to `set<object>`, then `reads F` has the meaning
 
@@ -512,7 +516,7 @@ MethodSpec =
   }
 ````
 
-A method specification is zero or more `modifies` `requires`
+A method specification is zero or more `modifies`, `requires`.
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
@@ -528,7 +532,7 @@ FunctionSpec =
   }
 ````
 
-A function specification is zero or more `reads` `requires`
+A function specification is zero or more `reads`, `requires`.
 `ensures` or `decreases` clauses, in any order. A function
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
