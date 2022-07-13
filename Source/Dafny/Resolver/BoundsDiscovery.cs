@@ -192,8 +192,8 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
-            if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, e1.Type.AsSeqType.Arg));
+            if (whereIsBv == 0 && e1.Type.AsSeqType is { } seqType) {
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, seqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
