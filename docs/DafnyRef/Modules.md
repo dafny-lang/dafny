@@ -638,7 +638,7 @@ module M {
 ```
 export set `C` will contain the names `a`, `b`, and `c`.
 
-## 4.6. Module Abstraction (#sec-module-abstraction)
+## 4.6. Module Abstraction {#sec-module-abstraction}
 
 Sometimes, using a specific implementation is unnecessary; instead,
 all that is needed is a module that implements some interface.  In
