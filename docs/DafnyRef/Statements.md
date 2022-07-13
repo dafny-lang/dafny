@@ -395,8 +395,10 @@ UpdateFailureStmt  =
     ";"
 ````
 
-A `:-` statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
+A `:-`[^elephant] statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
+
+[^elephant]: The `:-` token is called the elephant symbol or operator.
 
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
@@ -795,7 +797,7 @@ function usesTuple() : int
 }
 ```
 
-The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 19.7](#sec-update-failure)).
 
 ## 19.9. Guards
 ````grammar
