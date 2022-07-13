@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,15 +11,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   public class TestNotificationReceiver<TNotification> {
     private readonly SemaphoreSlim availableNotifications = new(0);
     private readonly ConcurrentQueue<TNotification> notifications = new();
+    private readonly List<TNotification> notificationHistory = new();
 
     public void NotificationReceived(TNotification request) {
       notifications.Enqueue(request);
       availableNotifications.Release();
     }
 
+    public IReadOnlyList<TNotification> History => notificationHistory;
+
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
       if (notifications.TryDequeue(out var notification)) {
+        notificationHistory.Add(notification);
         return notification;
       }
       throw new System.InvalidOperationException("got a signal for a received notification but it was not present in the queue");
