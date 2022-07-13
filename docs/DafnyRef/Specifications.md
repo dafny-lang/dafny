@@ -24,7 +24,7 @@ that use them.
 ## 5.1. Specification Clauses
 
 
-Within expressions in specification clauseis, you can use
+Within expressions in specification clauses, you can use
 [specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
 
 ### 5.1.1. Requires Clause {#sec-requires-clause}
@@ -133,7 +133,7 @@ recursive) call to a function or method, Dafny checks that the effective
  well-founded order for every type and, in some cases, between types. For
  example, the Boolean `false` is strictly smaller than `true`, the
  integer `78` is strictly smaller than `102`, the set `{2,5}` is strictly
- smaller than the set `{2,3,5}`, and for `s` of type `seq<Color>` where
+ smaller than (because it is a proper subset of) the set `{2,3,5}`, and for `s` of type `seq<Color>` where
  `Color` is some inductive datatype, the color `s[0]` is strictly less than
  `s` (provided `s` is nonempty).
 
@@ -516,7 +516,7 @@ MethodSpec =
   }
 ````
 
-A method specification is zero or more `modifies`, `requires`.
+A method specification is zero or more `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
@@ -532,7 +532,7 @@ FunctionSpec =
   }
 ````
 
-A function specification is zero or more `reads`, `requires`.
+A function specification is zero or more `reads`, `requires`,
 `ensures` or `decreases` clauses, in any order. A function
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
