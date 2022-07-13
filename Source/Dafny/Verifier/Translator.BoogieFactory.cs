@@ -873,7 +873,10 @@ namespace Microsoft.Dafny {
         return null;
       } else if (exprTok is IToken t) {
         return t;
+      } else if (exprTok == Boogie.Token.NoToken) {
+        return Token.NoToken;
       } else {
+        // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
           filename = exprTok.filename,
