@@ -2844,6 +2844,7 @@ namespace Microsoft.Dafny.Compilers {
     protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
+      
       if (stmt.IsGhost) {
         return;
       }
