@@ -833,10 +833,9 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
-      Diagnostic[] resolutionDiagnostics3) {
-      Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
-      foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
+      Assert.AreEqual(first.Length, second.Length);
+      foreach (var t in first.Zip(second)) {
         Assert.AreEqual(t.First.Message, t.Second.Message);
       }
     }

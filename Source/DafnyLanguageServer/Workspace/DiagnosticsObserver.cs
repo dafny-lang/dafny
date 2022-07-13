@@ -46,8 +46,14 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   }
 
   public void OnNext(DafnyDocument document) {
-    notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document;
-    lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
+    lock (this) { // TODO do we need this lock?
+      if (document.Version < LastPublishedDocument.Version) {
+        return;
+      }
+
+      notificationPublisher.PublishNotifications(LastPublishedDocument, document);
+      LastPublishedDocument = document;
+      lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
+    }
   }
 }

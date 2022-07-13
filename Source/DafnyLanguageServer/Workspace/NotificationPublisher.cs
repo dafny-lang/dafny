@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -60,7 +61,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
       }
-
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
