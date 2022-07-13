@@ -390,14 +390,14 @@ stringToken =
 
 A string constant is either a normal string constant or a verbatim string constant.
 A normal string constant is enclosed by `"` and can contain characters from the
-``stringChar`` set and ``escapeChar``s.
+``stringChar`` set and ``escapedChar``s.
 
 A verbatim string constant is enclosed between `@"` and `"` and can
 consist of any characters (including newline characters) except that two
 successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
-Within a verbatim string constant, a backslash character represents itself and is not the first character of an `escapeChar`.
+Within a verbatim string constant, a backslash character represents itself and is not the first character of an `escapedChar`.
 
 ### 2.5.7. Ellipsis
 ````grammar
