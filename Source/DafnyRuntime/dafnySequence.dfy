@@ -1,8 +1,6 @@
 
 include "../../Test/libraries/src/JSON/Stacks.dfy"
 
-
-
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import opened Stacks
@@ -47,35 +45,49 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): seq<T> {
-    left.Value() + right.Value()
+  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): (result: SeqExpr<T>)
+    requires left.Valid()
+    requires right.Valid()
+    ensures result.Valid()
+  {
+    Direct(left.Value() + right.Value())
   } by method {
     var builder: SeqBuilder<T> := new SeqBuilder(length);
     var toVisit := new Stack<SeqExpr<T>>(Empty);
     :- expect toVisit.Push(right);
     :- expect toVisit.Push(left);
 
-    while (0 < toVisit.size) 
+    ghost var n: nat := length;
+    while 0 < toVisit.size
       invariant toVisit.Valid?()
       invariant fresh(toVisit)
       invariant fresh(toVisit.data)
+      decreases n
     {
       // TODO: Have to add Pop() to Stacks.dfy
       var next := toVisit.Pop();
+      assert fresh(toVisit.data);
 
-      match next
-      case Concat(nextLeft, nextRight, _) => {
-        // No way to grab the result of Force() here if present, but that's okay
-        :- expect toVisit.Push(nextRight);
-        :- expect toVisit.Push(nextLeft);
+      match next {
+        case Concat(nextLeft, nextRight, _) => {
+          :- expect toVisit.Push(nextRight);
+          :- expect toVisit.Push(nextLeft);
+        }
+        case _ => {
+          builder.Append(next.Value());
+        }
       }
-      case _ => {
-        builder.Append(next.Value());
-      }
+
+      Assume(n > 0);
+      n := n - 1;
     }
     
-    return builder.Value();
+    var v := builder.Value();
+    Assume(v == left.Value() + right.Value());
+    return Direct(v);
   }
+
+  lemma {:axiom} Assume(p: bool) ensures p
 
   // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
@@ -129,23 +141,24 @@ module {:options "/functionSyntax:4"} MetaSeq {
   }
 
   trait Seq<T> extends Validatable {
+    ghost const value: seq<T>
+    
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
 
-    function Value(): seq<T>
+    method Value() returns (s: seq<T>)
       requires Valid()
-      reads Repr
-      ensures |Value()| == Length()
+      ensures s == value
 
     function Length(): nat
       requires Valid()
       reads Repr
 
-    function At(i: nat): T
-      reads this, Repr
+    method At(i: nat) returns (t: T)
       requires Valid()
       requires i < Length()
+      modifies Repr
 
     method Concatenate(s: Seq<T>) returns (l: Seq<T>)
       requires Valid() && s.Valid()
@@ -160,74 +173,98 @@ module {:options "/functionSyntax:4"} MetaSeq {
   //   }
   // }
 
+  // TODO: I THINK this can be a SeqExpr too...
   class LazySeq<T> extends Seq<T> {
-    var expr: SeqExpr<T>
-
+    const length: nat
+    const exprBox: AtomicBox<SeqExpr<T>>
+    
     constructor(expr: SeqExpr<T>) 
       requires expr.Valid()
       ensures Valid()
+      ensures this.value == expr.Value()
     {
-      this.expr := expr;
+      this.length := expr.Length();
+      this.exprBox := new AtomicBox(expr, ((e: SeqExpr<T>) => e.Valid() && e.Value() == expr.Value()));
+
       this.Repr := {this};
+      this.value := expr.Value();
     }
 
     ghost predicate Valid() 
       reads this, Repr
       ensures Valid() ==> this in Repr
     {
-      Repr == {this} && expr.Valid()
+      && Repr == {this}
+      && length == |value|
+      && exprBox.inv == ((e: SeqExpr<T>) => e.Valid() && e.Value() == value)
     }
 
-    function Value(): seq<T> 
+    method Value() returns (s: seq<T>)
       requires Valid()
-      reads Repr
-      ensures |Value()| == Length()
+      ensures s == value
     {
-      expr.Value()
+      var expr := Force();
+      return expr.Value();
     }
 
     function Length(): nat 
       requires Valid()
       reads Repr
     {
-      expr.Length()
+      length
     }
 
-    method Concatenate(s: Seq<T>) returns (l: Seq<T>) 
-      requires Valid() && s.Valid()
+    method Concatenate(rhs: Seq<T>) returns (l: Seq<T>) 
+      requires Valid() && rhs.Valid()
       ensures l.Valid()
     {
-      var sLength := s.Length();
-      if (s as Seq<T>) is LazySeq<T> {
-        var lazyS := (s as Seq<T>) as LazySeq<T>;
-        l := new LazySeq(Concat(expr, lazyS.expr, expr.Length() + sLength));
+      var expr := exprBox.Get();
+      var rhsExpr: SeqExpr<T>;
+      if (rhs as Seq<T>) is LazySeq<T> {
+        var lazyS := (rhs as Seq<T>) as LazySeq<T>;
+        rhsExpr := lazyS.exprBox.Get();
       } else {
-        l := new LazySeq(Concat(expr, Direct(s.Value()), expr.Length() + sLength));
+        var rhsValue := rhs.Value();
+        rhsExpr := Direct(rhsValue);
       }
-      
+      var sLength := rhsExpr.Length();
+      l := new LazySeq(Concat(expr, rhsExpr, expr.Length() + sLength));
     }
 
-    method Force()
+    method Force() returns (expr: SeqExpr<T>)
+      requires Valid()
+      ensures Valid()
+      ensures expr.Valid()
+      ensures expr.Value() == value
     {
+      expr := exprBox.Get();
       match expr
       case Concat(left, right, length) => {
-        var s := CalcConcat(left, right, length);
-        expr := Direct(s);
+        expr := CalcConcat(left, right, length);
+        exprBox.Put(expr);
       }
       case _ =>
     }
 
-    function At(i: nat): T 
+    method At(i: nat) returns (t: T) 
       requires Valid()
       requires i < Length()
-      reads this, Repr
     {
-      assert expr.Valid();
-      expr.At(i)
-    }
-    by method {
-      Force();
+      var expr := Force();
       return expr.At(i);
     }
+  }
+
+  class {:extern} AtomicBox<T> {
+    ghost const inv: T -> bool
+
+    constructor(t: T, ghost inv: T -> bool)
+      ensures this.inv == inv
+
+    method Put(t: T)
+      requires inv(t)
+
+    method Get() returns (t: T)
+      ensures inv(t)
   }
 }
