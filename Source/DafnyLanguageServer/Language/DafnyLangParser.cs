@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
-          filename = document.GetFilePath(),
+          Filename = document.GetFilePath(),
           line = 1,
           col = 1,
           pos = 0,

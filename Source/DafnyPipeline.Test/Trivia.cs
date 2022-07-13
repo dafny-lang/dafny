@@ -107,13 +107,13 @@ ensures true
     }
 
     private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.trailingTrivia);
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.TrailingTrivia);
     }
 
     private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.FirstDeclarationToken.leadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.trailingTrivia);
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.TrailingTrivia);
     }
   }
 }

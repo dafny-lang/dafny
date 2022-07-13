@@ -502,16 +502,16 @@ public class Scanner {
         posTrailingEndLeadingStart = pos;
       }
       // Extract the trivia from the buffers
-      t.trailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
+      t.TrailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
     }
     
     int recKind = noSym;
     int recEnd = pos;
     t = new Token();
-    t.leadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
+    t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
     
     t.pos = pos; t.col = col; t.line = line;
-    t.filename = this.Filename;
+    t.Filename = this.Filename;
     int state;
     if (start.ContainsKey(ch)) {
       Contract.Assert(start[ch] != null);

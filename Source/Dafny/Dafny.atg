@@ -1236,7 +1236,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
-     c.FirstDeclarationToken = dmodClass.FirstToken;
+     c.StartToken = dmodClass.FirstToken;
      c.TokenBeforeDocstring = tokenBeforeDocstring;
   .)
   .
@@ -1276,7 +1276,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
-     trait.FirstDeclarationToken = dmodIn.FirstToken;
+     trait.StartToken = dmodIn.FirstToken;
      trait.TokenBeforeDocstring = tokenBeforeDocstring;
     .)
   .
@@ -1350,7 +1350,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
-     dt.FirstDeclarationToken = dmod.FirstToken;
+     dt.StartToken = dmod.FirstToken;
      dt.TokenBeforeDocstring = bodyStart;
   .)
   .
@@ -1402,8 +1402,8 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.FirstDeclarationToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
-  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.FirstDeclarationToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
+  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
+  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
   }
   OldSemi
   .
@@ -1433,7 +1433,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 if (e != null) {
                                                   c.BodyEndTok = t; // Until we have proper ranges
                                                 }
-                                                c.FirstDeclarationToken = dmod.FirstToken;
+                                                c.StartToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
   OldSemi                                    (. c.TokenBeforeDocstring = t; .)
@@ -1487,7 +1487,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
-       td.FirstDeclarationToken = dmod.FirstToken;        
+       td.StartToken = dmod.FirstToken;        
     .)
   )             (. td.TokenBeforeDocstring = t; .)
   .
@@ -1551,7 +1551,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.BodyEndTok = t;
-     td.FirstDeclarationToken = dmod.FirstToken;
+     td.StartToken = dmod.FirstToken;
      td.TokenBeforeDocstring = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
@@ -1903,7 +1903,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
-     m.FirstDeclarationToken = dmod.FirstToken;
+     m.StartToken = dmod.FirstToken;
      m.TokenBeforeDocstring = tokenBeforeDocstring;
  .)
   .
@@ -2567,7 +2567,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
-     f.FirstDeclarationToken = dmod.FirstToken;
+     f.StartToken = dmod.FirstToken;
      f.TokenBeforeDocstring = tokenBeforeDocstring;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {

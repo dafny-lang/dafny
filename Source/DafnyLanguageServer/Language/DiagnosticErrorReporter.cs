@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
-      return token.filename == null
+      return token.Filename == null
         ? entryDocumentUri
         : token.GetDocumentUri();
     }

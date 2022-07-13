@@ -15654,7 +15654,7 @@ namespace Microsoft.Dafny {
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.line, tok.col) {
-            filename = tok.filename,
+            Filename = tok.Filename,
             val = f.Name
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));

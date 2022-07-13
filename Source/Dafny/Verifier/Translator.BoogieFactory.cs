@@ -879,12 +879,12 @@ namespace Microsoft.Dafny {
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
-          filename = exprTok.filename,
+          Filename = exprTok.filename,
           kind = exprTok.kind,
-          leadingTrivia = "",
+          LeadingTrivia = "",
           line = exprTok.line,
           pos = exprTok.pos,
-          trailingTrivia = "",
+          TrailingTrivia = "",
           val = exprTok.val
         };
       }
