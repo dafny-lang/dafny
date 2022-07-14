@@ -221,7 +221,7 @@ The dafny tool terminates with these exit codes:
 
 * 0 -- success
 * 1 -- invalid command-line arguments
-* 2 -- syntax, parse or type errors
+* 2 -- syntax, parse, or name or type resolution errors
 * 3 -- compilation errors
 * 4 -- verification errors
 
