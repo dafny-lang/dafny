@@ -24,6 +24,10 @@ namespace DafnyPipeline.Test {
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
+// Comment before
+module Test // Module docstring
+{}
+
 /** Trait docstring */
 trait Trait1 { }
 
@@ -73,12 +77,14 @@ ensures true
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
-        Assert.Equal(5, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
-        var trait1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[0];
-        var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[1];
-        var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
-        var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[3] as ClassDecl;
-        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
+        Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
+        var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
+        var trait1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[1];
+        var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
+        var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[3];
+        var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
+        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as ClassDecl;
+        Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);
         Assert.Equal(4, defaultClass.Members.Count);
@@ -86,8 +92,8 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
-
-        AssertTrivia(trait1, "\n/** Trait docstring */\n", " ");
+        AssertTrivia(moduleTest, "\n// Comment before\n", " // Module docstring\n");
+        AssertTrivia(trait1, "/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
         AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
         AssertTrivia(class1, "// Just a comment\n", "\n// Class docstring\n");

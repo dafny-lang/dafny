@@ -1068,11 +1068,12 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
                                         false, theVerifyThisFile, theCompileThisFile);
    .)
-   SYNC
+   SYNC                                (. module.TokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
    "}"
     (.
+	  module.StartToken = dmod.FirstToken;
       module.BodyEndTok = t;
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);

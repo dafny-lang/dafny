@@ -14,6 +14,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
 using Microsoft.Boogie;
 
@@ -3497,6 +3498,7 @@ namespace Microsoft.Dafny {
   // Represents module X { ... }
   public class LiteralModuleDecl : ModuleDecl {
     public readonly ModuleDefinition ModuleDef;
+
     [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
 
     private ModuleSignature emptySignature;
@@ -3519,6 +3521,8 @@ namespace Microsoft.Dafny {
     public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
       : base(module.tok, module.Name, parent, false, false) {
       ModuleDef = module;
+      StartToken = module.StartToken;
+      TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     }
     public override object Dereference() { return ModuleDef; }
   }
@@ -3756,6 +3760,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
