@@ -1205,7 +1205,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
-     IToken tokenBeforeDocstring = Token.NoToken;
+     IToken tokenWithTrailingDocString = Token.NoToken;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
@@ -1219,12 +1219,12 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
   { Attribute<ref attrs> }
-  ClassName<out id>                     (. tokenBeforeDocstring = t; .)
-  [ GenericParameters<typeArgs, true> ] (. tokenBeforeDocstring = t; .)
+  ClassName<out id>                     (. tokenWithTrailingDocString = t; .)
+  [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
   [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenBeforeDocstring = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenBeforeDocstring = t; .) }
-  | ellipsis                    (. isRefining = true; tokenBeforeDocstring = t; .)
+    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
+    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   SYNC
   "{"                                            (. bodyStart = t;  .)
@@ -1237,7 +1237,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
      c.StartToken = dmodClass.FirstToken;
-     c.TokenBeforeDocstring = tokenBeforeDocstring;
+     c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
   .
 
@@ -1247,7 +1247,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ id;
-     IToken/*!*/ tokenBeforeDocstring;
+     IToken/*!*/ tokenWithTrailingDocString;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
@@ -1260,12 +1260,12 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   SYNC
   "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstToken); .)
   { Attribute<ref attrs> }
-  ClassName<out id>                         (. tokenBeforeDocstring = t; .)
-  [ GenericParameters<typeArgs, true> ]     (. tokenBeforeDocstring = t; .)
+  ClassName<out id>                         (. tokenWithTrailingDocString = t; .)
+  [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
   [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenBeforeDocstring = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenBeforeDocstring = t; .) }
-  | ellipsis                    (. isRefining = true; tokenBeforeDocstring = t; .)
+    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
+    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
@@ -1277,7 +1277,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
      trait.StartToken = dmodIn.FirstToken;
-     trait.TokenBeforeDocstring = tokenBeforeDocstring;
+     trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
     .)
   .
 
@@ -1351,7 +1351,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
      dt.StartToken = dmod.FirstToken;
-     dt.TokenBeforeDocstring = bodyStart;
+     dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
 
@@ -1402,8 +1402,8 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
-  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenBeforeDocstring = t; .)
+  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; .)
+  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; .)
   }
   OldSemi
   .
@@ -1436,7 +1436,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 c.StartToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenBeforeDocstring = t; .)
+  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1489,7 +1489,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
        td.StartToken = dmod.FirstToken;        
     .)
-  )             (. td.TokenBeforeDocstring = t; .)
+  )             (. td.TokenWithTrailingDocString = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1552,7 +1552,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      }
      td.BodyEndTok = t;
      td.StartToken = dmod.FirstToken;
-     td.TokenBeforeDocstring = t;
+     td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
@@ -1811,7 +1811,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      bool isLeastLemma = false;
      bool isGreatestLemma = false;
      IToken signatureEllipsis = null;
-     IToken tokenBeforeDocstring = Token.NoToken;
+     IToken tokenWithTrailingDocString = Token.NoToken;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
@@ -1871,7 +1871,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
       Formals<false, isCompilable, false, false, outs>
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
-  )                                             (. tokenBeforeDocstring = t; .)
+  )                                             (. tokenWithTrailingDocString = t; .)
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
   [ IF(isConstructor)
@@ -1904,7 +1904,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
      m.StartToken = dmod.FirstToken;
-     m.TokenBeforeDocstring = tokenBeforeDocstring;
+     m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
   .
 
@@ -2273,7 +2273,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      bool isPredicate = false; bool isLeastPredicate = false; bool isGreatestPredicate = false;
      IToken/*?*/ headToken = null; // used only for a basic "function" or "predicate"
      IToken/*?*/ functionMethodToken = null; // used only for a basic "function" or "predicate"
-     IToken tokenBeforeDocstring = Token.NoToken;
+     IToken tokenWithTrailingDocString = Token.NoToken;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
@@ -2396,7 +2396,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   )
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>();
-     tokenBeforeDocstring = t;
+     tokenWithTrailingDocString = t;
   .)
   FunctionSpec<reqs, reads, ens, decreases, ref decAttrs>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
@@ -2568,7 +2568,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      f.StartToken = dmod.FirstToken;
-     f.TokenBeforeDocstring = tokenBeforeDocstring;
+     f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate

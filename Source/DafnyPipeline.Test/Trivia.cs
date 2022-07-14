@@ -108,12 +108,12 @@ ensures true
 
     private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
       Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.TrailingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
     }
 
     private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
       Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenBeforeDocstring.TrailingTrivia);
+      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
     }
   }
 }
