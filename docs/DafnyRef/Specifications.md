@@ -396,7 +396,7 @@ mention anything else (since anything else would be irrelevant, anyhow).
 A `reads` clause specifies the set of memory locations that a function,
 lambda, or iterator may read. The memory locations are all the fields
 of all of the references given in the set specified in the frame expression
-and the single fields given in `FrameField` elements of the frame expression.
+and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
 For example, in
 ```dafny
 class C {
@@ -484,7 +484,7 @@ memory to something that Dafny can reason about.
 
 Just as for a `reads` clause, the memory locations allowed to be modified
 in a method are all the fields of any object reference in the frame expression
-set and any specific field denoted by a `FrameField` in the `modifies` clause.
+set and any specific field denoted by a [`FrameField`](#sec-frame-expression) in the `modifies` clause.
 For example, in
 ```dafny
 class C {
