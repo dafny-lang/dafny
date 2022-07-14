@@ -1,19 +1,41 @@
 
 include "../../Test/libraries/src/JSON/Stacks.dfy"
+include "../../Test/libraries/src/Collections/Sequences/Seq.dfy"
+include "../../Test/libraries/src/Math.dfy"
 
 module {:options "/functionSyntax:4"} MetaSeq {
 
+  import Math
+
   import opened Stacks
 
-  datatype SeqExpr<T> = Empty | Direct(a: seq<T>) | Concat(left: SeqExpr<T>, right: SeqExpr<T>, length: nat) {
-
-    predicate Valid() {
+  datatype SeqExpr<T> = 
+    | Empty
+    | Direct(a: seq<T>)
+    | Concat(left: SeqExpr<T>, right: SeqExpr<T>, length: nat)
+    | Lazy(ghost value: seq<T>, exprBox: AtomicBox<SeqExpr<T>>, length: nat) 
+  {
+    ghost predicate Valid()
+      decreases Depth(), 0
+    {
       match this
       case Concat(left, right, length) => 
         && left.Valid()
         && right.Valid()
         && left.Length() + right.Length() == length
+      case Lazy(value, exprBox, length) => 
+        && length == |value|
+        && exprBox.inv == ((e: SeqExpr<T>) => e.Valid() && e.Value() == value)
       case _ => true
+    }
+
+    ghost function Depth(): nat {
+      1 + match this {
+        case Empty => 0
+        case Direct(_) => 0
+        case Concat(left, right, _) => Math.Max(left.Depth(), right.Depth())
+        case Lazy(_, _, _) => 0
+      }
     }
 
     function Length(): nat {
@@ -21,6 +43,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       case Empty => 0
       case Direct(a) => |a|
       case Concat(_, _, length) => length
+      case Lazy(_, _, length) => length
     }
 
     function At(i: nat): T 
@@ -36,46 +59,55 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     function Value(): seq<T> 
       requires Valid()
+      decreases Depth(), 1
       ensures |Value()| == Length()
     {
       match this
       case Empty => []
       case Direct(a) => a
-      case Concat(left, right, _) => left.Value() + right.Value()
+      case Concat(left, right, length) => CalcConcat(left, right, length)
+      case Lazy(value, _, _) => value
+    } by method {
+      match this
+      case Empty => return [];
+      case Direct(a) => return a;
+      case Concat(left, right, _) => return CalcConcat(left, right, length);
+      case Lazy(_, seqExpr, _) => {
+        var expr := exprBox.Get();
+        var value := expr.Value();
+        exprBox.Put(Direct(value));
+        return value;
+      }
     }
   }
 
-  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): (result: SeqExpr<T>)
-    requires left.Valid()
-    requires right.Valid()
-    ensures result.Valid()
+  function CalcConcat<T>(expr: SeqExpr<T>): (result: seq<T>)
+    requires expr.Valid()
+    decreases expr.Depth(), 1
   {
-    Direct(left.Value() + right.Value())
+    expr.Value()
   } by method {
-    var builder: SeqBuilder<T> := new SeqBuilder(length);
+    var builder: SeqBuilder<T> := new SeqBuilder(expr.Length());
     var toVisit := new Stack<SeqExpr<T>>(Empty);
-    :- expect toVisit.Push(right);
-    :- expect toVisit.Push(left);
+    :- expect toVisit.Push(expr);
 
-    ghost var n: nat := length;
+    ghost var n: nat := expr.Length();
     while 0 < toVisit.size
       invariant toVisit.Valid?()
       invariant fresh(toVisit)
       invariant fresh(toVisit.data)
+      invariant forall e <- toVisit.Repr :: e.Valid()
       decreases n
     {
       // TODO: Have to add Pop() to Stacks.dfy
       var next := toVisit.Pop();
-      assert fresh(toVisit.data);
 
       match next {
-        case Concat(nextLeft, nextRight, _) => {
+        case Concat(nextLeft, nextRight, _) =>
           :- expect toVisit.Push(nextRight);
           :- expect toVisit.Push(nextLeft);
-        }
-        case _ => {
+        case _ =>
           builder.Append(next.Value());
-        }
       }
 
       Assume(n > 0);
@@ -84,7 +116,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     
     var v := builder.Value();
     Assume(v == left.Value() + right.Value());
-    return Direct(v);
+    return v;
   }
 
   lemma {:axiom} Assume(p: bool) ensures p
@@ -165,14 +197,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures l.Valid()
   }
 
-  // class ArraySeq<T> extends Seq<T> {
-  //   const values: array<T>
-
-  //   constructor(s: seq<T>) {
-  //     values := new T[|s|] (i requires 0 <= i < |s| => s[i]);
-  //   }
-  // }
-
   // TODO: I THINK this can be a SeqExpr too...
   class LazySeq<T> extends Seq<T> {
     const length: nat
@@ -240,7 +264,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       expr := exprBox.Get();
       match expr
       case Concat(left, right, length) => {
-        expr := CalcConcat(left, right, length);
+        expr := Direct(CalcConcat(left, right, length));
         exprBox.Put(expr);
       }
       case _ =>
