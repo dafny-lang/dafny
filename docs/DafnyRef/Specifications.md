@@ -545,7 +545,6 @@ LambdaSpec =
   | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
-// TODO - the above grammar is not quite right for Requires
 
 A lambda specification provides a specification for a lambda function expression;
 it consists of zero or more `reads` or `requires` clauses.
