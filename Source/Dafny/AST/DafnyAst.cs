@@ -23,11 +23,11 @@ namespace Microsoft.Dafny {
 
   public interface IToken : Microsoft.Boogie.IToken {
     /*
-    int kind { get; set; } // Used by coco, so we can't rename it to Kind
-    int pos { get; set; } // Used by coco, so we can't rename it to Pos
-    int col { get; set; } // Used by coco, so we can't rename it to Col
-    int line { get; set; } // Used by coco, so we can't rename it to Line
-    string val { get; set; } // Used by coco, so we can't rename it to Val
+    int kind { get; set; }
+    int pos { get; set; }
+    int col { get; set; }
+    int line { get; set; }
+    string val { get; set; }
     bool IsValid { get; }*/
     string Boogie.IToken.filename {
       get => Filename;
@@ -69,17 +69,17 @@ namespace Microsoft.Dafny {
     }
 
 
-    public int kind { get; set; }
+    public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
     public string Filename { get; set; }
 
-    public int pos { get; set; }
+    public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
-    public int col { get; set; }
+    public int col { get; set; } // Used by coco, so we can't rename it to Col
 
-    public int line { get; set; }
+    public int line { get; set; } // Used by coco, so we can't rename it to Line
 
-    public string val { get; set; }
+    public string val { get; set; } // Used by coco, so we can't rename it to Val
 
     public string LeadingTrivia { get; set; }
 
