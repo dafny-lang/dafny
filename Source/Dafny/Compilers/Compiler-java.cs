@@ -2798,7 +2798,7 @@ namespace Microsoft.Dafny.Compilers {
           truncateResult = true;
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
@@ -2815,7 +2815,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);

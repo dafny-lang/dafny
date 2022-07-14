@@ -40,7 +40,7 @@ class Defaults:
     EXCLUDED_FOLDERS = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
-    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/timeLimit:300"]
+    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/compileVerbose:0", "/timeLimit:300"]
     EXTENSIONS = [".dfy", ".transcript"]
 
 class Colors:

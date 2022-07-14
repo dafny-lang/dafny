@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 56 verified, 0 errors
+Dafny program verifier finished with 58 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0
@@ -85,6 +85,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -93,7 +97,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -193,6 +197,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -201,7 +209,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -301,6 +309,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -309,7 +321,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -409,6 +421,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -417,7 +433,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -517,6 +533,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -525,7 +545,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y

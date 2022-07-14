@@ -2853,19 +2853,19 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mul:
           opString = "*"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
           } else {
-            opString = "/";  // for reals
+            opString = "/";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
           } else {
-            opString = "%";  // for reals
+            opString = "%";
           }
           break;
 

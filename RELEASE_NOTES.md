@@ -1,3 +1,8 @@
+# Upcoming
+
+- fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
+  (https://github.com/dafny-lang/dafny/pull/2413)
+
 # 3.7.2
 
 - fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)

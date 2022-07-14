@@ -2715,6 +2715,15 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
+    protected bool NeedsEuclideanDivision(Type typ) {
+      if (AsNativeType(typ) is { LowerBound: var lb }) {
+        // Dafny's division differs from '/' only on negative numbers
+        return lb < BigInteger.Zero;
+      }
+      // IsNumericBased drills past newtypes, unlike IsIntegerType
+      return typ.IsNumericBased(Type.NumericPersuasion.Int);
+    }
+
     /// <summary>
     /// Note, C# reverses the order of brackets in array type names.
     /// </summary>
