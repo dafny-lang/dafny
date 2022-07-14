@@ -542,16 +542,17 @@ allowed to modify any memory.
 LambdaSpec =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause(allowLabel: false)
+  | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
-// TODO - the above grammar is not quite right for Requires
 
-A lambda specification is zero or more `reads` or `requires` clauses.
+A lambda specification provides a specification for a lambda function expression;
+it consists of zero or more `reads` or `requires` clauses.
+Any `requires` clauses may not have labels or attributes.
 Lambda specifications do not have `ensures` clauses because the body
 is never opaque.
 Lambda specifications do not have `decreases`
-clauses because they do not have names and thus cannot be recursive. A
+clauses because lambda expressions do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
