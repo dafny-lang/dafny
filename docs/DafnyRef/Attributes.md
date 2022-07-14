@@ -41,8 +41,8 @@ fill much of the dynamic-frames boilerplate into a class.
 
 From the user's perspective, what needs to be done is simply:
 
-* mark the class with `{:autocontracts}`
-* declare a function (or predicate) called `Valid()`
+* mark the class with {:autocontracts}
+* declare a function (or predicate) called Valid()
 
 
 AutoContracts will then:
@@ -52,19 +52,19 @@ AutoContracts will then:
    ghost var Repr: set<object>
 ```
 
-* For function/predicate `Valid()`, insert:
+* For function/predicate Valid(), insert:
 ```dafny
    reads this, Repr
 ```
-* Into body of `Valid()`, insert (at the beginning of the body):
+* Into body of Valid(), insert (at the beginning of the body):
 ```dafny
    this in Repr && null !in Repr
 ```
-* and also insert, for every array-valued field `A` declared in the class:
+* and also insert, for every array-valued field A declared in the class:
 ```dafny
-   && (A != null ==> A in Repr)
+   (A != null ==> A in Repr) &&
 ```
-* and for every field `F` of a class type `T` where `T` has a field called `Repr`, also insert:
+* and for every field F of a class type T where T has a field called Repr, also insert:
 ```dafny
    (F != null ==> F in Repr && F.Repr <= Repr && this !in Repr)
 ```
@@ -109,7 +109,7 @@ It can take one of the following forms:
 will have its default behavior which is to choose a native type that can hold any
 value satisfying the constraints, if possible, otherwise BigInteger is used.
 * `{:nativeType true}` - Also gives default ``NewtypeDecl`` behavior,
-but gives an error if the base type is not integral.
+but gives an error if base type is not integral.
 * `{:nativeType false}` - Inhibits using a native type. BigInteger is used.
 * `{:nativeType "typename"}` - This form has an native integral
 type name as a string literal. Acceptable values are:
@@ -122,20 +122,17 @@ type name as a string literal. Acceptable values are:
    * `"number"`    53 bits, signed
    * `"ulong"`     64 bits, unsigned
    * `"long"`      64 bits, signed
-
   If the target compiler
-  does not support a named native type X, then an error is generated. Also, if, after
+  does not support X, then an error is generated. Also, if, after
   scrutinizing the constraint predicate, the compiler cannot confirm
   that the type's values will fit in X, an error is generated.
-  The names given above do not have to match the names in the target compilation language,
-  just the characteristics of that type.
 
 ### 22.1.3. `{:ignore}` (deprecated)
 Ignore the declaration (after checking for duplicate names).
 
 ### 22.1.4. `{:extern}` {#sec-extern}
 
-`{:extern}` is a target-language dependent modifier used
+`{:extern}` is a target-language dependent modifier used:
 
 * to alter the `CompileName` of entities such as modules, classes, methods, etc.,
 * to alter the `ReferenceName` of the entities,
@@ -149,7 +146,7 @@ A common use case of `{:extern}` is to avoid name clashes with existing library 
 
 `{:extern}` takes 0, 1, or 2 (possibly empty) string arguments:
 
-- `{:extern}`: Dafny will use the Dafny-determined name as the `CompileName` and not affect the `ReferenceName`
+- `{:extern}`: Dafny will use the Dafny name as the `CompileName` and not affect the `ReferenceName`
 - `{:extern s1}`: Dafny will use `s1` as the `CompileName`, and replaces the last portion of the `ReferenceName` by `s1`.
      When used on an opaque type, s1 is used as a hint as to how to declare that type when compiling.
 - `{:extern s1, s2}` Dafny will use `s2` as the `CompileName`.
@@ -158,6 +155,8 @@ A common use case of `{:extern}` is to avoid name clashes with existing library 
 
 Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
   malformed target code.
+
+One difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
 For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
 
@@ -203,8 +202,6 @@ The `{:axiom}` attribute only prevents Dafny from verifying that the body matche
 Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
 To prevent Dafny from running all these checks, one would use [`{:verify false}`](#sec-verify), which is not recommended.
 
-The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
-
 ### 22.2.3. `{:compile}`
 The `{:compile}` attribute takes a boolean argument. It may be applied to
 any top-level declaration. If that argument is false, then that declaration
@@ -220,7 +217,7 @@ See [`{:extern <name>}`](#sec-extern).
 The fuel attributes is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
 `{:fuel}` annotation can be added to the function itself, it which
-case it will apply to all uses of that function, or it can be overridden
+case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
 while, assert, or assume.  The general format is:
 
@@ -287,15 +284,15 @@ sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 so that it can only be seen within its recursive clique (if any),
 or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
 
-More information about the Boogie implementation of `{:opaque}` is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
+More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 ### 22.2.9. `{:print}` {#sec-print}
-This attribute declares that a method may have print effects,
-that is, it may use `print` statements and may call other methods
+This attributes declares that a method may have print effects,
+that is, it may use 'print' statements and may call other methods
 that have print effects. The attribute can be applied to compiled
 methods, constructors, and iterators, and it gives an error if
 applied to functions or ghost methods. An overriding method is
-allowed to use a `{:print}` attribute only if the overridden method
+allowed to use a {:print} attribute only if the overridden method
 does.
 Print effects are enforced only with `/trackPrintEffects:1`.
 
@@ -432,10 +429,10 @@ Boogie `timelimit` command-line option.
 
 ### 22.2.17. `{:verify false}` {#sec-verify}
      
-Skip verification of a function or a method altogether,
-not even trying to verify the well-formedness of postconditions and preconditions.
-We discourage using this attribute and prefer [`{:axiom}`](#sec-axiom),
-which performs these minimal checks while not checking that the body satisfies the postconditions.
+Skip verification of a function or a method altogether.
+Will not even try to verify well-formedness of postconditions and preconditions.
+We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
+which performs these minimal checks while not checking that the body satisfies postconditions.
 
 ### 22.2.18. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
@@ -450,10 +447,10 @@ If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
-[assertion batches](#sec-assertion-batches) that timed out are split into N [assertion batches](#sec-assertion-batches) and retried
+[assertion batches](#sec-assertion-batches) that timed out are split into <n> [assertion batches](#sec-assertion-batches) and retried
 until we succeed proving them, or there is only one
 single assertion that it timeouts (in which
-case an error is reported for that assertion).
+case error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
@@ -508,7 +505,7 @@ BOUNDVARS = ID : ID
 
 ### 22.2.23. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
-This attribute applies only to modules. It configures Dafny as if
+This attribute applies only to modules. It attribute configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
 options revert to their previous values.
 
@@ -641,14 +638,14 @@ which may depend on the heap, is also valid for any good heap that is either the
 same as the current heap, or that is derived from it by heap update operations.
 
 ### 22.5.2. `{:induction}` {#sec-induction-quantifier}
-See [`{:induction}`](#sec-induction) for functions and methods.
+See [`{:induction}`](#sec-induction).
 
 ### 22.5.3. `{:layerQuantifier}`
 The word 'layer' actually refers to the [`{:fuel}`](#sec-fuel).
 When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
-This variable has the predefined _LayerType_.
+This variable as the predefined _LayerType_.
 A `{:layerQuantifier}` attribute may be placed on a quantifier expression.
 Translation of Dafny into Boogie defines a _LayerType_ which has defined zero and
 successor constructors.

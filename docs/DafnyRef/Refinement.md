@@ -181,7 +181,7 @@ module B refines A {
 ```
 
 Formally, a child `method` definition may refine a parent `method`
-declaration or definition by performing one or more of the following
+declaration or definition to perform one or more of the following
 operations:
 
 * provide a body missing in the parent (as in `ToDefine`),

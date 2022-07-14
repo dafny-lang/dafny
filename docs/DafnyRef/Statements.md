@@ -1365,9 +1365,7 @@ The compiler, on the other hand, will complain if it encounters a body-less meth
 compiler is supposed to generate code for the method, but it isn't clever enough to do that by
 itself without a given method body. If the method implementation is provided by code written
 outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
-compiler will no longer complain about the absence of a method body; the verifier will not 
-object either, even though there is now no proof that the Dafny specifications are satisfied
-by the external implementation.
+compiler will no longer complain about the absence of a method body.
 
 A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
 and the verifier is silently happy with not having a proof to check against the lemma specification.
@@ -1708,16 +1706,11 @@ x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
 Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
-One can always write an explicit function to convert a data value to a string
-and then call it explicitly in a `print` statement or elsewhere.
 
 Dafny does not keep track of print effects. `print` statements are allowed
 only in non-ghost contexts and not in expressions, with one exception.
 The exception is that a function-by-method may contain `print` statements,
 whose effect may be observed as part of the run-time evaluation of such functions.
-
-The verifier checks that each expression is well-defined, but otherwise 
-ignores the `print` statement.
 
 ## 19.20. Reveal Statement {#sec-reveal-statement}
 ````grammar
