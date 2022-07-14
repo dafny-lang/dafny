@@ -1,4 +1,4 @@
-name: Build DafnyRef.pdf
+name: Build DafnyRef
 
 on:
   push:
@@ -84,6 +84,10 @@ jobs:
       with:
         name: DafnyRef
         path: dafny/docs/DafnyRef/DafnyRef.pdf
+    - uses: helaili/jekyll-action@v2
+      with:
+        build_only: true
+        jekyll_src: 'docs'
     # Building the reference manual may update files,
     # such as renumbering sections or updating Options.txt.
     # These changes should have been checked in earlier,
