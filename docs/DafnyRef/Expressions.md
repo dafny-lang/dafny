@@ -119,7 +119,7 @@ must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
 ordinary equality.
 
-See [Section 7.1.1](#sec-equivalence-operator) for an explanation of the
+See [Section 0](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
 ## 20.3. Implies or Explies Expressions {#sec-implication}
@@ -365,7 +365,7 @@ UnaryExpression(allowLemma, allowLambda) =
 A ``UnaryExpression`` applies either 
 logical complement (`!` -- [Section 7.1](#sec-booleans)),
 numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
-bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
+bit-vector negation (`-` -- [Section 0](#sec-bit-vector-types))
  to its operand.
 
 ## 20.12. Primary Expressions
