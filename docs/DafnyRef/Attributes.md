@@ -66,7 +66,7 @@ AutoContracts will then:
 ```
 * and for every field F of a class type T where T has a field called Repr, also insert:
 ```dafny
-   (F != null ==> F in Repr && F.Repr <= Repr && this !in Repr)
+   (F != null ==> F in Repr && F.Repr <= Repr && this !in F.Repr)
 ```
   Except, if A or F is declared with `{:autocontracts false}`, then the implication will not
 be added.

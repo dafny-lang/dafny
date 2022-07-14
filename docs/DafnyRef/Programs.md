@@ -15,7 +15,7 @@ Main() method. If a legal Main() method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal Main() method are described in the User Guide
-([Section 24.9.1](#sec-user-guide-main)).
+([Section 24.10.1](#sec-user-guide-main)).
 If there is more than one Main(), Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
@@ -47,7 +47,7 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 
 ## 3.2. Top Level Declarations
 ````grammar
-TopDecl = {
+TopDecl =
   { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
@@ -58,7 +58,6 @@ TopDecl = {
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
   )
-  }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
 or within a ``SubModuleDecl``. A top-level declaration is one of
@@ -90,7 +89,7 @@ Abstract modules are not compiled.
 The `ghost` modifier is used to mark entities as being used for
 specification only, not for compilation to code.
 
-The `static` modifier is used for class members that that
+The `static` modifier is used for class members that
 are associated with the class as a whole rather than with
 an instance of the class.
 
