@@ -41,6 +41,14 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.Iterators,
+      Feature.SubsetTypeTests,
+      Feature.TraitTypeParameters,
+      Feature.MethodSynthesis,
+      Feature.TuplesWiderThan20
+    };
+
     public override void CleanSourceDirectory(string sourceDirectory) {
       try {
         Directory.Delete(sourceDirectory, true);
@@ -322,7 +330,7 @@ namespace Microsoft.Dafny.Compilers {
     // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        Reporter!.Error(MessageSource.Compiler, builtIns.MaxNonGhostTupleSizeToken, "Java back-end does not support tuples with more than 20 arguments.");
+        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
     }
 
@@ -427,7 +435,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -444,7 +452,7 @@ namespace Microsoft.Dafny.Compilers {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -824,7 +832,8 @@ namespace Microsoft.Dafny.Compilers {
           var v = variance[i];
           var ta = typeArgs[i];
           if (ComplicatedTypeParameterForCompilation(v, ta)) {
-            Error(tok, "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
+            UnsupportedFeatureError(tok, Feature.TraitTypeParameters,
+              "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
               ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
           }
         }
@@ -3970,7 +3979,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
 
       if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
@@ -4002,11 +4011,11 @@ namespace Microsoft.Dafny.Compilers {
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Bpl.Token.NoToken, Feature.Iterators);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
