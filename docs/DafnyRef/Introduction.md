@@ -6,7 +6,7 @@ is a natural part of writing software.
 The Dafny static program verifier can be used to verify the functional
 correctness of programs.
 This document is a reference manual for the programming language and a user guide
-for the dafny tool that performs verification and compilation to an
+for the `dafny` tool that performs verification and compilation to an
 executable form.
 
 The Dafny programming language is designed to support the static
@@ -26,7 +26,7 @@ checker—when the tool produces errors, the programmer responds by
 changing the program’s type declarations, specifications, and statements.
 
 (This document typically uses "Dafny" to refer to the programming language
-and "dafny" to refer to the software tool that verifies and compiles programs
+and `dafny` to refer to the software tool that verifies and compiles programs
 in the Dafny language.)
 
 The easiest way to try out the Dafny language is to [download the supporting tools and documentation](https://github.com/dafny-lang/dafny/releases) and
