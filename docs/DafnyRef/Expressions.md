@@ -43,7 +43,7 @@ in order of increasing binding power.
  `^`                      | bit-wise exclusive-or (not equal)
 --------------------------|------------------------------------
  `as` operation           | [type conversion](#sec-as-expression)
- `is` operation           | [type conversion](#sec-as-expression)
+ `is` operation           | [type test](#sec-as-expression)
 --------------------------|------------------------------------
  `-`                      | arithmetic negation (unary minus)
  `!`                      | logical negation, bit-wise complement
@@ -113,13 +113,13 @@ EquivExpression(allowLemma, allowLambda) =
   ImpliesExpliesExpression(allowLemma, allowLambda)
   { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
 ````
-An ``EquivExpression`` that contains one or more "<==>"s is
+An ``EquivExpression`` that contains one or more `<==>`s is
 a boolean expression and all the contained ``ImpliesExpliesExpression``
-must also be boolean expressions. In that case each "<==>"
+must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
 ordinary equality.
 
-See [Section 0](#sec-equivalence-operator] for an explanation of the
+See [Section 0](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
 ## 20.3. Implies or Explies Expressions {#sec-implication}
@@ -137,7 +137,7 @@ ImpliesExpression(allowLemma, allowLambda) =
   [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
-See [Section 7.1.3](#sec-implication-and-reverse-implication)] for an explanation
+See [Section 7.1.3](#sec-implication-and-reverse-implication) for an explanation
 of the `==>` and `<==` operators.
 
 ## 20.4. Logical Expressions
@@ -281,7 +281,7 @@ instead.
 
 Bit-vector operations are not allowed in some contexts.
 The `|` symbol is used both for bit-wise or and as the delimiter in a
-[cardinality](#sec-cardinality-expression) expression: an ambiguity arise if
+[cardinality](#sec-cardinality-expression) expression: an ambiguity arises if
 the expression E in `| E |` contains a `|`. This situation is easily
 remedied; just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
@@ -362,8 +362,11 @@ UnaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-A ``UnaryExpression`` applies either numeric ([Section 7.2](#sec-numeric-types))
-or logical ([Section 7.1](#sec-booleans)) negation to its operand.
+A ``UnaryExpression`` applies either 
+logical complement (`!` -- [Section 7.1](#sec-booleans)),
+numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
+bit-vector negation (`-` -- [Section 0](#sec-bit-vector-types))
+ to its operand.
 
 ## 20.12. Primary Expressions
 ````grammar
@@ -449,8 +452,7 @@ x requires F.requires(x) reads F.reads(x) => F(x)
 ````grammar
 Lhs =
   ( NameSegment { Suffix }
-  | ConstAtomExpression
-    Suffix { Suffix }
+  | ConstAtomExpression Suffix { Suffix }
   )
 ````
 
@@ -545,7 +547,7 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-This allocated a new object of a class type as explained
+This allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
 ## 20.18. Havoc Right-Hand-Side
@@ -727,8 +729,7 @@ particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
 
-[^Old]: The semantics of `old` in Dafny differs from similar
-constructs in other specification languages like ACSL or JML.
+[^Old]: The semantics of `old` in Dafny differs from similar constructs in other specification languages like ACSL or JML.
 
 The argument of an `old` expression may not contain nested `old`,
 [`fresh`](#sec-fresh-expression),
@@ -942,7 +943,7 @@ that is, in `match`
 and [expressions](#sec-match-expression).
 `CasePattern`s are used
 in `LetExpr`s and `VarDeclStatement`s.
-The `ExtendedPattern` differs from `CasePattern` is allowing literals
+The `ExtendedPattern` differs from `CasePattern` in allowing literals
 and symbolic constants.
 
 When matching an inductive or coinductive value in
@@ -971,7 +972,7 @@ a constant with the given name (if the name is declared but with a non-matching 
 Any ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
-The number of ``ExtendedPattern`` must match the number
+The number of ``ExtendedPattern``s must match the number
 of parameters to the constructor (or the arity of the
 tuple).
 When matching a value of base type, the ``ExtendedPattern`` should
@@ -1156,7 +1157,7 @@ can be evaluated without error. For example:
 assume x != 0; 10/x
 ```
 
-`Assert`, `assume`, `expect`, 'reveal' and `calc` statements can be used in this way.
+`Assert`, `assume`, `expect`, `reveal` and `calc` statements can be used in this way.
 
 ## 20.37. Let Expression {#sec-let-expression}
 
@@ -1207,7 +1208,7 @@ The syntax using `:-` is discussed in the following subsection.
 
 The Let expression described in [Section 20.37](#sec-let-expression) has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements [Section 19.7](#sec-update-failure), failure results in
+failure results. However, in statements ([Section 19.7](#sec-update-failure)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms.
 
@@ -1374,8 +1375,8 @@ Suffix =
 ````
 
 The ``Suffix`` non-terminal describes ways of deriving a new value from
-the entity to which the suffix is appended. There are six kinds
-of suffixes which are described below.
+the entity to which the suffix is appended. The several kinds
+of suffixes are described below.
 
 ### 20.42.1. Augmented Dot Suffix
 ````grammar
@@ -1616,8 +1617,8 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 - int, bit-vector, real, boolean, char and string literals
 - int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
-- real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
-- bool operations: `&& || ==> <== <==> == !=` and unary '!'
+- real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !=`
+- bool operations: `&& || ==> <== <==> == !=` and unary `!`
 - bit-vector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
 - char operations: `< <= > >= == !=`
 - string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`, indexing `[]`
@@ -1627,8 +1628,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 - conditional (if-then-else) expressions
 - parenthesized expressions
 
-[^CTC]: This set of operations that are constant-folded may be enlarged in
-future versions of Dafny.
+[^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
 ## 20.47. List of specification expressions {#sec-list-of-specification-expressions}
 

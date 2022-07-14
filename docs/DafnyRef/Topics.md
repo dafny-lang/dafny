@@ -81,7 +81,7 @@ some notes about type inference:
   In the first quantifier, type inference fails to infer the type of
   `pair` before it tries to look up the members `.0` and `.1`, which
   results in a "type of the receiver not fully determined" error. The
-  rememdy is to provide the type of `pair` explicitly, as is done in the
+  remedy is to provide the type of `pair` explicitly, as is done in the
   second quantifier.
 
   (In the future, Dafny may do more type inference before giving up on the member lookup.)
@@ -168,7 +168,7 @@ These statements are determined to be ghost:
 - [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
 - [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
 - [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
-- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to an non-ghost array in its body.
+- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to a non-ghost array in its body.
 
 These statements always non-ghost:
 
@@ -681,9 +681,11 @@ and HOL [@Krauss:PhD].
 
 ## 23.5. Functions in Dafny
 
-In this section, I explain with examples the support in
+This section explains with examples the support in
 Dafny for well-founded functions, extreme predicates,
 and proofs regarding these.
+
+TODO: This topic appears to replicate the previous section
 
 ### 23.5.1. Well-founded Functions in Dafny
 
@@ -794,10 +796,10 @@ for which `fib(k)` falls in the given range.
 
 ### 23.5.3. Extreme Predicates in Dafny {#sec-friendliness}
 
-In this previous subsection, I explained that a `predicate` declaration introduces a
+The previous subsection explained that a `predicate` declaration introduces a
 well-founded predicate.  The declarations for introducing extreme predicates are
 `least predicate` and `greatest predicate`.  Here is the definition of the least and
-greatest solutions of $g$ from above, let's call them `g` and `G`:
+greatest solutions of $g$ from above; let's call them `g` and `G`:
 
 ```dafny
 least predicate g(x: int) { x == 0 || g(x-2) }
@@ -833,7 +835,7 @@ are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coin
 
 ### 23.5.4. Proofs about Extreme Predicates
 
-From what I have presented so far, we can do the formal proofs from Sections
+From what has been presented so far, we can do the formal proofs for
 [the example about the least solution](#sec-example-least-solution) and [the example about the greatest solution](#sec-example-greatest-solution).  Here is the
 former:
 
@@ -973,7 +975,7 @@ are given in the following table:
 | type parameter | `false` |
 | arrow types | `false` |
 
-Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `x`. Here's an illustration of that order, in a program that verifies:
+Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `X`. Here's an illustration of that order, in a program that verifies:
 
 ``` dafny
 datatype D = D(s: set<D>)
