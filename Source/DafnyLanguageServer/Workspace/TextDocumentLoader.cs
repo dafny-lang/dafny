@@ -289,7 +289,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       // TODO something against publishing stale state
-      document.VerificationUpdates.OnNext(document.Snapshot());
+      document.VerificationUpdates.OnNext(document);
     }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
