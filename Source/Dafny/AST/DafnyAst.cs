@@ -22,10 +22,8 @@ namespace Microsoft.Dafny {
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public interface IToken : Microsoft.Boogie.IToken {
-    // Inherited for now.
     /*
     int kind { get; set; } // Used by coco, so we can't rename it to Kind
-    string filename { get; set; } // Could be renamed to Filename, for another time.
     int pos { get; set; } // Used by coco, so we can't rename it to Pos
     int col { get; set; } // Used by coco, so we can't rename it to Col
     int line { get; set; } // Used by coco, so we can't rename it to Line
