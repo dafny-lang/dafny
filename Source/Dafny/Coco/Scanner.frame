@@ -510,7 +510,7 @@ public class Scanner {
     var prevT = t;
     t = new Token();
     if(prevT != null) {
-      prevT.next = t;
+      prevT.Next = t;
     }
     t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
     

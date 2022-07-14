@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     string TrailingTrivia { get; set; }
     string LeadingTrivia { get; set; }
-    IToken next { get; set; } // The next token
+    IToken Next { get; set; } // The next token
   }
 
   public record Token : IToken {
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
 
     public bool IsValid => this.Filename != null;
 
-    public IToken next { get; set; } // The next token
+    public IToken Next { get; set; } // The next token
   }
 
 
@@ -4073,7 +4073,7 @@ namespace Microsoft.Dafny {
         .Where(member => member.tok.line > 0)
         .Select(member => member.tok)
         .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
-          .Select(moduleDecl => moduleDecl.ModuleDef.FirstDeclarationToken)
+          .Select(moduleDecl => moduleDecl.ModuleDef.StartToken)
           .Where(tok => tok.line > 0)
         ).FirstOrDefault(Token.NoToken);
     }
@@ -8781,8 +8781,8 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.TrailingTrivia; }
       set { throw new NotSupportedException(); }
     }
-    public virtual IToken next {
-      get { return WrappedToken.next; }
+    public virtual IToken Next {
+      get { return WrappedToken.Next; }
       set { throw new NotSupportedException(); }
     }
   }

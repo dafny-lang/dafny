@@ -20,19 +20,19 @@ module {:extern "/*/dummy{}", "Top"} {:compile false} {:options "-functionSyntax
   import opened System
   trait {:extern "*/Microsoft.Dafny.IToken"} {:compile false} IToken {
     var val: CsString
-    var leadingTrivia: CsString
-    var trailingTrivia: CsString
+    var LeadingTrivia: CsString
+    var TrailingTrivia: CsString
     ghost var remainingTokens: seq<IToken>
-    var next: IToken?
+    var Next: IToken?
 
     ghost predicate Valid() reads * decreases |remainingTokens| {
-      if next == null then
+      if Next == null then
         remainingTokens == []
       else
         && |remainingTokens| > 0
-        && next == remainingTokens[0]
-        && next.remainingTokens == remainingTokens[1..]
-        && next.Valid()
+        && Next == remainingTokens[0]
+        && Next.remainingTokens == remainingTokens[1..]
+        && Next.Valid()
     }
   }
 }
@@ -67,8 +67,8 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         decreases if token == null then 0 else |token.remainingTokens| + 1
         invariant token == null || token.Valid()
         {
-          s := String.Concat(String.Concat(String.Concat(s, token.leadingTrivia), token.val), token.trailingTrivia);
-          token := token.next;
+          s := String.Concat(String.Concat(String.Concat(s, token.LeadingTrivia), token.val), token.TrailingTrivia);
+          token := token.Next;
         }
       }
 
@@ -89,10 +89,10 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             currentIndent := newIndent;
             isSet := true;
           }
-          var leadingTrivia := if isSet then Reindent(token.leadingTrivia, currentIndent) else token.leadingTrivia;
-          var trailingTrivia :=  if isSet then Reindent(token.trailingTrivia, newIndent) else token.trailingTrivia;
-          s := String.Concat(String.Concat(String.Concat(s, leadingTrivia), token.val), trailingTrivia);
-          token := token.next;
+          var LeadingTrivia := if isSet then Reindent(token.LeadingTrivia, currentIndent) else token.LeadingTrivia;
+          var TrailingTrivia :=  if isSet then Reindent(token.TrailingTrivia, newIndent) else token.TrailingTrivia;
+          s := String.Concat(String.Concat(String.Concat(s, LeadingTrivia), token.val), TrailingTrivia);
+          token := token.Next;
         }
       }
     }
