@@ -24,11 +24,15 @@ namespace DafnyTestGeneration {
     // values of the arguments to be passed to the method call
     public readonly List<string> ArgValues;
     // number of type parameters for the method (all will be set to defaultType)
-    public readonly int NOfTypeParams = 0;
+    public readonly int NOfTypeParams;
     // default type to replace any type variable with
     private readonly DafnyModelType defaultType = new("int");
     // the DafnyModel that describes the inputs to this test method
-    private DafnyModel dafnyModel;
+    private readonly DafnyModel dafnyModel;
+
+    // Set of all types for which a {:synthesize} - annotated method is needed
+    // These methods are used to get fresh instances of the corresponding types
+    private static readonly HashSet<DafnyModelType> TypesToSynthesize = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -39,6 +43,32 @@ namespace DafnyTestGeneration {
       argumentNames.RemoveAt(0);
       NOfTypeParams = typeNames.Count(typeName => typeName == "Ty");
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
+    }
+
+    public static void ClearTypesToSynthesize() {
+      TypesToSynthesize.Clear();
+    }
+
+    /// <summary>
+    /// Returns the name given to a {:synthesize} - annotated method that
+    /// returns a value of certain type
+    /// </summary>
+    private static string GetSynthesizeMethodName(DafnyModelType typ) {
+      return "getFresh" + Regex.Replace(typ.ToString(), "[^a-zA-Z]", "");
+    }
+
+    /// <summary>
+    /// Returns a string that contains all the {:synthesize} annotated methods
+    /// necessary to compile the tests
+    /// </summary>
+    public static string EmitSynthesizeMethods() {
+      var result = "";
+      foreach (var typ in TypesToSynthesize) {
+        var methodName = GetSynthesizeMethodName(typ);
+        result += $"\nmethod {{:synthesize}} {methodName}() " +
+                  $"returns (o:{typ}) ensures fresh(o)";
+      }
+      return result;
     }
 
     /// <summary>
@@ -153,6 +183,7 @@ namespace DafnyTestGeneration {
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType = variableType.GetNonNullable().InDafnyFormat();
           ObjectsToMock.Add(new(varId, dafnyType));
+          TypesToSynthesize.Add(dafnyType);
           mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -191,6 +222,7 @@ namespace DafnyTestGeneration {
       // this should only be reached if the type is non-nullable
       var varId = $"v{ObjectsToMock.Count}";
       ObjectsToMock.Add(new(varId, type));
+      TypesToSynthesize.Add(type);
       return varId;
     }
 
@@ -227,20 +259,16 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       // test method parameters and declaration:
-      var parameters = string.Join(", ", ObjectsToMock
-        .Select(kVPair => $"{kVPair.id}:{kVPair.type}"));
+      var mockedLines = ObjectsToMock
+        .Select(kVPair => $"var {kVPair.id} := " +
+                          $"{GetSynthesizeMethodName(kVPair.type)}();");
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);
       }
 
-      var returnsDeclaration = string.Join(", ",
-        Enumerable.Range(0, returnParNames.Count).Select(i =>
-            $"{returnParNames[i]}:{DafnyInfo.GetReturnTypes(MethodName)[i]}"));
-      var modifiesClause = string.Join("",
-        ObjectsToMock.Select(i => $" modifies {i.id}"));
-      lines.Add($"method test{id}({parameters}) " +
-                $"returns ({returnsDeclaration}) {modifiesClause} {{");
+      lines.Add($"method {{:test}} test{id}() {{");
+      lines.AddRange(mockedLines);
 
       // assignments necessary to set up the test case:
       foreach (var assignment in Assignments) {
@@ -266,7 +294,7 @@ namespace DafnyTestGeneration {
 
       var returnValues = "";
       if (returnParNames.Count != 0) {
-        returnValues = string.Join(", ", returnParNames) + " := ";
+        returnValues = "var " + string.Join(", ", returnParNames) + " := ";
       }
 
       lines.Add(returnValues + methodCall);

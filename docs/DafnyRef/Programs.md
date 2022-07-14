@@ -47,7 +47,7 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 
 ## 3.2. Top Level Declarations
 ````grammar
-TopDecl = {
+TopDecl =
   { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
@@ -58,7 +58,6 @@ TopDecl = {
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
   )
-  }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
 or within a ``SubModuleDecl``. A top-level declaration is one of
@@ -90,7 +89,7 @@ Abstract modules are not compiled.
 The `ghost` modifier is used to mark entities as being used for
 specification only, not for compilation to code.
 
-The `static` modifier is used for class members that that
+The `static` modifier is used for class members that
 are associated with the class as a whole rather than with
 an instance of the class.
 

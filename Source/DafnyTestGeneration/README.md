@@ -5,7 +5,6 @@
 [**Implementation**](#implementation) <br>
 [**How to Generate Tests?**](#how-to-generate-tests) <br>
 [**How to Run Tests?**](#how-to-run-tests) <br>
-[**Example**](#example) <br>
 [**Dead Code Identification Example**](#dead-code-identification-example)
 
 ## Purpose
@@ -21,9 +20,7 @@ To generate a test that covers a particular basic block or path, we add an asser
 
 While these manipulations could be done with the Dafny source directly, we instead modify the Boogie translation, since it is much easier to work with basic blocks and paths on this lower level.
 
-Objects present an obstacle for test generation since it is not possible to mock objects in Dafny and the prover model does not specify how an object was allocated\constructed. Currently, we require that a test method take any object it needs as an argument. This allows us to compile the test methods to Java or another language where object mocking is possible (see [How to Run Tests?](#how-to-run-tests)).
-
-Even though it is possible to run the tests in this way, we currently provide no oracle against which to compare the result. In the future, it may be possible to generate an oracle directly from the prover model provided that there is no non-determinism in the tested code.
+We currently provide no oracle against which to compare the result. In the future, it may be possible to generate an oracle directly from the prover model provided that there is no non-determinism in the tested code.
 
 
 ## Implementation
@@ -47,36 +44,6 @@ Even though it is possible to run the tests in this way, we currently provide no
 
 ## How to Run Tests?
 
-To run the tests, you would first need to compile the code to some other language. Once this is done, the main difficulty is to mock the arguments that the test methods take. The following code (to be inserted into the class with the tests) should do the job in Java (you would also need to add `import java.lang.reflect.*;` at the top of the file):
-
-```java
-public static void main(String[] args) throws Exception {
-  for (Method method: __default.class.getDeclaredMethods()) {
-    if (!method.getName().startsWith("test"))
-      continue;
-    Object result = method.invoke(null, mockParameters(method));
-    String resultString = result == null ? "null" : result.toString();
-    System.out.println(method.getName() + " " + resultString);
-  }
-}
-
-
-public static Object[] mockParameters(Method method) {
-  Object[] parameters = null;;
-  try {
-    Class<?>[] types = method.getParameterTypes();
-    parameters = new Object[types.length];
-    for (int i = 0; i < types.length; i++)
-      parameters[i] = types[i].getConstructor().newInstance();
-  } catch (Exception e) {
-    e.printStackTrace();
-  }
-  return parameters;
-}
-```
-
-## Example
-
 Suppose you have a file called `object.dfy` with the following code:
 ```dafny
 module M {
@@ -93,7 +60,7 @@ module M {
   }
 }
 ```
-The tests can be run like this (in this particular case, `/definiteAssignment:3` adds proof obligations that cause the Dafny to Boogie translator to emit an implementation for the target method):
+The tests can be generated like this:
 
 ```dafny /definiteAssignment:3 /generateTestMode:Block object.dfy ```
 
@@ -102,33 +69,38 @@ Dafny will give the following list of tests as output (tabulation added manually
 include "object.dfy"
 module objectUnitTests {
   import M
-  method test0(v0:M.Value) returns (r0:int)  modifies v0 {
+  method {:test} test0() {
+    var v0 := getFreshMValue();
     v0.v := -39;
-    r0 := M.compareToZero(v0);
+    var r0 := M.compareToZero(v0);
   }
-  method test1(v0:M.Value) returns (r0:int)  modifies v0 {
+  method {:test} test1() {
+    var v0 := getFreshMValue();
     v0.v := 39;
-    r0 := M.compareToZero(v0);
+    var r0 := M.compareToZero(v0);
   }
-  method test2(v0:M.Value) returns (r0:int)  modifies v0 {
+  method {:test} test2() {
+    var v0 := getFreshMValue();
     v0.v := 0;
-    r0 := M.compareToZero(v0);
+    var r0 := M.compareToZero(v0);
   }
+  method {:synthesize} getFreshMValue() 
+    returns (o:M.Value) 
+    ensures fresh(o)
 }
 ```
 
-Saving these tests in a file `test.dfy` and compiling the code to Java using `dafny /compileTarget:java test.dfy` produces directory `test-java`. The tests are located in `test-java/objectUnitTests_Compile/__default.java`. To run the tests, it is first necessary to add the code shown [above](#how-to-run-tests) to the file with the tests. The code can then be compiled to bytecode using:
+Saving these tests in a file `test.dfy` and compiling the code to C# using `dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify test.dfy` produces a file `test.cs`. 
+
+You can then run `dotnet test YourCSProjectFile.csproj` to execute the tests.
+
+Note that your `.csproj` file must include `xunit` and `Moq` libraries: 
 
 ```
-javac -cp PATH_TO_DafnyRuntime.jar:test-java test-java/objectUnitTests_Compile/__default.java
-```
-
-Finally, running the code with `java -cp PATH_TO_DafnyRuntime.jar:test-java objectUnitTests_Compile/__default` yields:
-
-```
-test1 1
-test0 -1
-test2 0
+<ItemGroup>
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="Moq" Version="4.16.1" />
+</ItemGroup>
 ```
 
 ## Dead Code Identification Example
