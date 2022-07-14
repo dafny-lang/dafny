@@ -468,7 +468,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-`modify` statement (cf. [Section 19.22](#sec-modify-statement)).
+`modify` statement (cf. [Section 20.22](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -542,16 +542,17 @@ allowed to modify any memory.
 LambdaSpec =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause(allowLabel: false)
+  | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
-// TODO - the above grammar is not quite right for Requires
 
-A lambda specification is zero or more `reads` or `requires` clauses.
+A lambda specification provides a specification for a lambda function expression;
+it consists of zero or more `reads` or `requires` clauses.
+Any `requires` clauses may not have labels or attributes.
 Lambda specifications do not have `ensures` clauses because the body
 is never opaque.
 Lambda specifications do not have `decreases`
-clauses because they do not have names and thus cannot be recursive. A
+clauses because lambda expressions do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
