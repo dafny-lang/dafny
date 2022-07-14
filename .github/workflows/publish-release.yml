@@ -20,10 +20,13 @@ jobs:
     steps:
       - id: get-version
         uses: battila7/get-version-action@v2
+      - run: echo ${{ steps.get-version.outputs.version }}
+      - run: echo ${{ steps.get-version.outputs.version-without-v }}
     outputs:
       version: ${{ steps.get-version.outputs.version-without-v }}
 
   publish-release:
+    needs: [get-version]
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
       name: ${{ needs.get-version.outputs.version }}
