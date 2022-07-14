@@ -29,8 +29,8 @@ changing the program’s type declarations, specifications, and statements.
 and `dafny` to refer to the software tool that verifies and compiles programs
 in the Dafny language.)
 
-The easiest way to try out `dafny` is to [download](https://github.com/dafny-lang/dafny/releases) it
-to run it on your machine as you follow along with the [Dafny tutorial](../OnlineTutorial/guide).
+The easiest way to try out the Dafny language is to [download the supporting tools and documentation](https://github.com/dafny-lang/dafny/releases) and
+run `dafny` on your machine as you follow along with the [Dafny tutorial](../OnlineTutorial/guide).
 The `dafny` tool can be run from the command line (on Linux, MacOS, Windows or other platforms) or from an IDE
 such as emacs or an editor such as VSCode, which can provide syntax highlighting without
 the built-in verification.
