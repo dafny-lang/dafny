@@ -121,46 +121,65 @@ namespace Microsoft.Dafny {
     }
   }
   /*
-   * Code Example that displays a Warning
-   * 
+   * Code Example that displays the Warnings
+   *
    * datatype Color = Red | Green | ShadesOfGray(nat)
       method MonochromaticMethod(c: Color) returns (x: bool) {
       return match c
             case ShadesOfGray => true
-                 ^^^ Warning: Variable name 'ShadesOfGray' on line 129 starts with a capital letter             
+                 ^^^ Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter           
             case anythingElse => false;
+            
+   * datatype Country = Mexico | nigeria | Europe(nat) 
+                                 ^^^ Warning: Constructor name 'nigeria' should begin with an uppercase letter         
+    method countryMethod (c: Country) returns (x: bool) {    
+          return match c
+            case nigeria => true
+            case anythingElse => false;
+        }
+            
     }
    */
-  class ConstructorMatchWarning : IRewriter {
+  class ConstructorWarning : IRewriter {
     internal override void PostResolve(Program program) {
       base.PostResolve(program);
       foreach (var moduleDefinition in program.Modules()) {
+        // Implements warning for constructors with lowercase 
+        foreach (var datatypeDecl in moduleDefinition.TopLevelDecls.OfType<DatatypeDecl>()) {
+          foreach (var ctor in datatypeDecl.Ctors) {
+            var ctorName = ctor.Name[0];
+            if (char.IsLower(ctorName)) {
+              this.Reporter.Warning(MessageSource.Rewriter, ctor.tok, $"Constructor name '{ctor.Name}' should begin with an uppercase letter");
+            }
+          }
+        }
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
           foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new ConstructorMatchWarningVisitor(this.Reporter);
+            var visitor = new ConstructorWarningVisitor(this.Reporter);
             visitor.Visit(callable, Unit.Default);
           }
         }
       }
     }
-    public ConstructorMatchWarning(ErrorReporter reporter) : base(reporter) {
+    public ConstructorWarning(ErrorReporter reporter) : base(reporter) {
     }
   }
-
-  class ConstructorMatchWarningVisitor : TopDownVisitor<Unit> {
+  class ConstructorWarningVisitor : TopDownVisitor<Unit> {
     private readonly ErrorReporter reporter;
-    public ConstructorMatchWarningVisitor(ErrorReporter reporter) {
+    public ConstructorWarningVisitor(ErrorReporter reporter) {
       this.reporter = reporter;
     }
-
+    // Implements warning for constructors in match 
     protected override bool VisitOneExpr(Expression expr, ref Unit st) {
       if (expr is NestedMatchExpr matchExpr) {
-        var idPatterns = matchExpr.Cases.Select(matchCase => matchCase.Pat).OfType<IdPattern>();
-        foreach (var idPattern in idPatterns) {
-          var isVariable = idPattern.Arguments == null;
-          if (char.IsUpper(idPattern.Id[0]) && isVariable) {
-            var lineNum = idPattern.Tok.line;
-            this.reporter.Warning(MessageSource.Rewriter, matchExpr.tok, $"Variable name '{idPattern}' should begin with a lowercase letter");
+        var matchExprCases = matchExpr.Cases;
+        foreach (var caseExpr in matchExprCases) {
+          if (caseExpr.Pat is IdPattern idPattern) {
+            var isVariable = idPattern.Arguments == null;
+            if (char.IsUpper(idPattern.Id[0]) && isVariable) {
+              this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
+                $"Variable name '{idPattern}' should begin with a lowercase letter");
+            }
           }
         }
       }
