@@ -103,13 +103,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
     var reversed := Seq.Reverse(toVisit.Repr);
     assert reversed == [left, right];
     assert forall e <- reversed :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
+    ghost var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
     calc {
-      builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
-      [] + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
-      Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
-      Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), [left, right]));
-      Seq.Flatten([left.Value()] + Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), [right]));
-      Seq.Flatten([left.Value(), right.Value()]);
+      builder.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+      [] + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+      Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+      // Boy, a good old `seq e <- Seq.Reverse(toVisit.Repr), t <- e.Value() :: t` sure would be nice right about now :)
+      Seq.Flatten(Seq.Map(valueFn, [left, right]));
+      { reveal Seq.Map(); }
+      Seq.Flatten([left.Value()] + Seq.Map(valueFn, [right]));
+      { reveal Seq.Map(); }
+      Seq.Flatten([left.Value(), right.Value()] + []);
       left.Value() + Seq.Flatten([right.Value()]);
       left.Value() + right.Value();
       answer;
@@ -121,7 +125,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       invariant fresh(toVisit)
       invariant fresh(toVisit.data)
       invariant forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth())
-      invariant builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr))) == answer
+      invariant builder.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr))) == answer
       decreases Sum(Seq.Map((e: SeqExpr<T>) => e.Depth(), toVisit.Repr))
     {
       // TODO: Have to add Pop() to Stacks.dfy
