@@ -87,302 +87,28 @@ namespace Microsoft.Dafny {
 
   public class Include : IComparable {
     public readonly IToken tok;
-    public readonly string includerFilename;
-    public readonly string includedFilename;
-    public readonly string canonicalPath;
+    public string IncluderFilename { get; }
+    public string IncludedFilename { get; }
+    public string CanonicalPath { get; }
+    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename) {
+    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
-      this.includerFilename = includer;
-      this.includedFilename = theFilename;
-      this.canonicalPath = DafnyFile.Canonicalize(theFilename);
+      this.IncluderFilename = includer;
+      this.IncludedFilename = theFilename;
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
+      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.canonicalPath.CompareTo(i.canonicalPath);
+        return this.CanonicalPath.CompareTo(i.CanonicalPath);
       } else {
         throw new NotImplementedException();
       }
-    }
-  }
-
-  public class BuiltIns {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
-    readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-    public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
-    public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-    public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-    readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new Dictionary<List<bool>, TupleTypeDecl>(new Dafny.IEnumerableComparer<bool>());
-    public readonly ISet<int> Bitwidths = new HashSet<int>();
-    [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
-
-    public readonly SubsetTypeDecl NatDecl;
-    public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
-    public readonly TraitDecl ObjectDecl;
-    public UserDefinedType ObjectQ() {
-      Contract.Assume(ObjectDecl != null);
-      return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
-    }
-
-    public BuiltIns() {
-      SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
-      // create type synonym 'string'
-      var str = new TypeSynonymDecl(Token.NoToken, "string",
-        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-        new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
-      SystemModule.TopLevelDecls.Add(str);
-      // create subset type 'nat'
-      var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
-      var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
-      var ax = AxiomAttribute();
-      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat",
-        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-        new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
-      SystemModule.TopLevelDecls.Add(NatDecl);
-      // create trait 'object'
-      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
-      SystemModule.TopLevelDecls.Add(ObjectDecl);
-      // add one-dimensional arrays, since they may arise during type checking
-      // Arrays of other dimensions may be added during parsing as the parser detects the need for these
-      UserDefinedType tmp = ArrayType(1, Type.Int, true);
-      // Arrow types of other dimensions may be added during parsing as the parser detects the need for these.  For the 0-arity
-      // arrow type, the resolver adds a Valid() predicate for iterators, whose corresponding arrow type is conveniently created here.
-      CreateArrowTypeDecl(0);
-      // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
-      // by the parser as the parser detects the need for these.
-    }
-
-    private Attributes DontCompile() {
-      var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
-      return new Attributes("compile", new List<Expression>() { flse }, null);
-    }
-
-    public static Attributes AxiomAttribute() {
-      return new Attributes("axiom", new List<Expression>(), null);
-    }
-
-    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
-      Contract.Requires(1 <= dims);
-      Contract.Requires(arg != null);
-      return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
-    }
-    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
-      Contract.Requires(tok != null);
-      Contract.Requires(1 <= dims);
-      Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
-      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
-
-      var arrayName = ArrayClassName(dims);
-      if (useClassNameType) {
-        arrayName = arrayName + "?";
-      }
-      if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
-        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
-        for (int d = 0; d < dims; d++) {
-          string name = dims == 1 ? "Length" : "Length" + d;
-          Field len = new SpecialField(Token.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
-          len.EnclosingClass = arrayClass;  // resolve here
-          arrayClass.Members.Add(len);
-        }
-        arrayTypeDecls.Add(dims, arrayClass);
-        SystemModule.TopLevelDecls.Add(arrayClass);
-        CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
-      }
-      UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
-      return udt;
-    }
-
-    public static string ArrayClassName(int dims) {
-      Contract.Requires(1 <= dims);
-      if (dims == 1) {
-        return "array";
-      } else {
-        return "array" + dims;
-      }
-    }
-
-    /// <summary>
-    /// Idempotently add an arrow type with arity 'arity' to the system module, and along
-    /// with this arrow type, the two built-in subset types based on the arrow type.
-    /// </summary>
-    public void CreateArrowTypeDecl(int arity) {
-      Contract.Requires(0 <= arity);
-      if (!ArrowTypeDecls.ContainsKey(arity)) {
-        IToken tok = Token.NoToken;
-        var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
-        var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
-        var argExprs = args.ConvertAll(a =>
-              (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-        var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
-          Type = new SetType(true, ObjectQ()),
-        };
-        var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-        var req = new Function(tok, "requires", false, true,
-          new List<TypeParameter>(), args, null, Type.Bool,
-          new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
-          new Specification<Expression>(new List<Expression>(), null),
-          null, null, null, null, null);
-        var reads = new Function(tok, "reads", false, true,
-          new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
-          new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
-          new Specification<Expression>(new List<Expression>(), null),
-          null, null, null, null, null);
-        readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
-        readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
-        readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
-        var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
-        ArrowTypeDecls.Add(arity, arrowDecl);
-        SystemModule.TopLevelDecls.Add(arrowDecl);
-
-        // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
-        tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
-        tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-        var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
-          new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-          id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
-        PartialArrowTypeDecls.Add(arity, partialArrow);
-        SystemModule.TopLevelDecls.Add(partialArrow);
-
-        // declaration of total arrow-type
-
-        tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
-        tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-        var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
-          new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-          id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
-        TotalArrowTypeDecls.Add(arity, totalArrow);
-        SystemModule.TopLevelDecls.Add(totalArrow);
-      }
-    }
-
-    /// <summary>
-    /// Returns an expression that is the constraint of:
-    /// the built-in partial-arrow type (if "!total", in which case "member" is expected to denote the "reads" member), or
-    /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
-    /// The given "id" is expected to be already resolved.
-    /// </summary>
-    private Expression ArrowSubtypeConstraint(IToken tok, IToken endTok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-      Contract.Requires(id != null);
-      Contract.Requires(member != null);
-      Contract.Requires(tps != null && 1 <= tps.Count);
-      var f = new IdentifierExpr(tok, id);
-      // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
-      // OR
-      // forall x0,x1,x2 :: f.requires(x0,x1,x2)
-      var bvs = new List<BoundVar>();
-      var args = new List<Expression>();
-      var bounds = new List<ComprehensionExpr.BoundedPool>();
-      for (int i = 0; i < tps.Count - 1; i++) {
-        var bv = new BoundVar(tok, "x" + i, new UserDefinedType(tps[i]));
-        bvs.Add(bv);
-        args.Add(new IdentifierExpr(tok, bv));
-        bounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());
-      }
-      var fn = new MemberSelectExpr(tok, f, member.Name) {
-        Member = member,
-        TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
-        TypeApplication_JustMember = new List<Type>(),
-        Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
-      };
-      Expression body = new ApplyExpr(tok, fn, args);
-      body.Type = member.ResultType;  // resolve here
-      if (!total) {
-        Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
-        emptySet.Type = member.ResultType;  // resolve here
-        body = Expression.CreateEq(body, emptySet, member.ResultType);
-      }
-      if (tps.Count > 1) {
-        body = new ForallExpr(tok, endTok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
-      }
-      return body;
-    }
-
-    Type GetTypeOfFunction(Function f, List<Type> typeArgumentsClass, List<Type> typeArgumentsMember) {
-      Contract.Requires(f != null);
-      Contract.Requires(f.EnclosingClass != null);
-      Contract.Requires(typeArgumentsClass != null);
-      Contract.Requires(typeArgumentsMember != null);
-      Contract.Requires(typeArgumentsClass.Count == f.EnclosingClass.TypeArgs.Count);
-      Contract.Requires(typeArgumentsMember.Count == f.TypeArgs.Count);
-
-      var atd = ArrowTypeDecls[f.Formals.Count];
-
-      var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
-      var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
-      var typeMap = Resolver.TypeSubstitutionMap(formals, actuals);
-      return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => Resolver.SubstType(arg.Type, typeMap)), Resolver.SubstType(f.ResultType, typeMap));
-    }
-
-    public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
-      Contract.Requires(tok != null);
-      Contract.Requires(0 <= dims);
-      Contract.Requires(argumentGhostness == null || argumentGhostness.Count == dims);
-      Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
-
-      TupleTypeDecl tt;
-      argumentGhostness = argumentGhostness ?? new bool[dims].Select(_ => false).ToList();
-      if (!tupleTypeDecls.TryGetValue(argumentGhostness, out tt)) {
-        Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
-        // tuple#2 is already defined in DafnyRuntime.cs
-        var attributes = dims == 2 && !argumentGhostness.Contains(true) ? DontCompile() : null;
-        tt = new TupleTypeDecl(argumentGhostness, SystemModule, attributes);
-        tupleTypeDecls.Add(argumentGhostness, tt);
-        SystemModule.TopLevelDecls.Add(tt);
-      }
-      return tt;
-    }
-
-    public static char IsGhostToChar(bool isGhost) {
-      return isGhost ? 'G' : 'O';
-    }
-
-    public static bool IsGhostFromChar(char c) {
-      Contract.Requires(c == 'G' || c == 'O');
-      return c == 'G';
-    }
-
-    public static string ArgumentGhostnessToString(List<bool> argumentGhostness) {
-      return argumentGhostness.Count + (!argumentGhostness.Contains(true)
-        ? "" : String.Concat(argumentGhostness.Select(IsGhostToChar)));
-    }
-
-    public static IEnumerable<bool> ArgumentGhostnessFromString(string s, int count) {
-      List<bool> argumentGhostness = new bool[count].ToList();
-      if (System.Char.IsDigit(s[s.Length - 1])) {
-        return argumentGhostness.Select(_ => false);
-      } else {
-        return argumentGhostness.Select((_, i) => IsGhostFromChar(s[s.Length - count + i]));
-      }
-    }
-
-    public static string TupleTypeName(List<bool> argumentGhostness) {
-      return "_tuple#" + ArgumentGhostnessToString(argumentGhostness);
-    }
-
-    public static bool IsTupleTypeName(string s) {
-      Contract.Requires(s != null);
-      return s.StartsWith("_tuple#");
-    }
-    public const string TupleTypeCtorNamePrefix = "_#Make";  // the printer wants this name prefix to be uniquely recognizable
-
-    public static string TupleTypeCtorName(int dims) {
-      Contract.Assert(0 <= dims);
-      return TupleTypeCtorNamePrefix + dims;
     }
   }
 
@@ -1796,10 +1522,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       type = type.NormalizeExpandKeepConstraints();
       List<Type> tower;
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
-        var sst = (SubsetTypeDecl)udt.ResolvedClass;
-        var parent = sst.RhsWithArgument(udt.TypeArgs);
+      if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
+        var parent = sst.RhsWithArgument(type.TypeArgs);
         tower = GetTowerOfSubsetTypes(parent);
       } else {
         tower = new List<Type>();
@@ -1859,7 +1583,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builtIns != null);
       var j = JoinX(a, b, builtIns);
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+        Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
       }
       return j;
     }
@@ -2059,14 +1783,12 @@ namespace Microsoft.Dafny {
 
       var joinNeedsNonNullConstraint = false;
       Type j;
-      if (a is UserDefinedType && ((UserDefinedType)a).ResolvedClass is NonNullTypeDecl) {
+      if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)a).ResolvedClass;
-        j = MeetX(nnt.RhsWithArgument(a.TypeArgs), b, builtIns);
-      } else if (b is UserDefinedType && ((UserDefinedType)b).ResolvedClass is NonNullTypeDecl) {
+        j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
+      } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
         joinNeedsNonNullConstraint = true;
-        var nnt = (NonNullTypeDecl)((UserDefinedType)b).ResolvedClass;
-        j = MeetX(a, nnt.RhsWithArgument(b.TypeArgs), builtIns);
+        j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
       } else {
         j = MeetX(a, b, builtIns);
       }
@@ -2090,6 +1812,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
+
+      a = a.NormalizeExpandKeepConstraints();
+      b = b.NormalizeExpandKeepConstraints();
+      if (a is IntVarietiesSupertype) {
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+      } else if (b is IntVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+      } else if (a is RealVarietiesSupertype) {
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
+      } else if (b is RealVarietiesSupertype) {
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
+      }
 
       var towerA = GetTowerOfSubsetTypes(a);
       var towerB = GetTowerOfSubsetTypes(b);
@@ -2130,19 +1864,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
-      if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
-      } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
-      } else if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
-        return a.Equals(b) ? a : null;
-      } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
-      } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
-      } else if (a.IsNumericBased()) {
-        return a.Equals(b) ? a : null;
-      } else if (a.IsBitVectorType) {
+      if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
@@ -4728,84 +4450,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TupleTypeDecl : IndDatatypeDecl {
-    public readonly List<bool> ArgumentGhostness;
-
-    public int Dims => ArgumentGhostness.Count;
-
-    public int NonGhostDims => ArgumentGhostness.Count(x => !x);
-
-    /// <summary>
-    /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
-    /// </summary>
-    public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
-      : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
-      Contract.Requires(0 <= argumentGhostness.Count);
-      Contract.Requires(systemModule != null);
-
-      // Resolve the type parameters here
-      Contract.Assert(TypeArgs.Count == Dims);
-      for (var i = 0; i < Dims; i++) {
-        var tp = TypeArgs[i];
-        tp.Parent = this;
-        tp.PositionalIndex = i;
-      }
-    }
-
-    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(argumentGhostness), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
-      Contract.Requires(systemModule != null);
-      Contract.Requires(typeArgs != null);
-      ArgumentGhostness = argumentGhostness;
-      foreach (var ctor in Ctors) {
-        ctor.EnclosingDatatype = this;  // resolve here
-        GroundingCtor = ctor;
-        TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
-        for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByGroundingCtor[i] = !argumentGhostness[i];
-        }
-      }
-      this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
-    }
-    private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
-      Contract.Requires(0 <= dims);
-      var ts = new List<TypeParameter>();
-      for (int i = 0; i < dims; i++) {
-        var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Covariant_Strict);
-        tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-        ts.Add(tp);
-      }
-      return ts;
-    }
-    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
-      Contract.Requires(typeArgs != null);
-      var formals = new List<Formal>();
-      var nonGhostArgs = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        string compileName;
-        if (argumentGhostness[i]) {
-          // This name is irrelevant, since it won't be used in compilation. Give it a strange name
-          // that would alert us of any bug that nevertheless tries to access this name.
-          compileName = "this * ghost * arg * should * never * be * compiled * " + i.ToString();
-        } else {
-          compileName = nonGhostArgs.ToString();
-          nonGhostArgs++;
-        }
-        var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null, nameForCompilation: compileName);
-        formals.Add(f);
-      }
-      string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
-      var ctor = new DatatypeCtor(Token.NoToken, ctorName, formals, null);
-      return new List<DatatypeCtor>() { ctor };
-    }
-
-    public override string SanitizedName =>
-      sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-    public override string CompileName =>
-      compileName ??= SanitizedName;
-  }
-
   public class CoDatatypeDecl : DatatypeDecl {
     public override string WhatKind { get { return "codatatype"; } }
     [FilledInDuringResolution] public CoDatatypeDecl SscRepr;
@@ -6128,6 +5772,63 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A QuantifiedVar is a bound variable used in a quantifier such as "forall x :: ...",
+  /// a comprehension such as "set x | 0 <= x < 10", etc.
+  /// In addition to its type, which may be inferred, it can have an optional domain collection expression
+  /// (x <- C) and an optional range boolean expressions (x | E).
+  /// </summary>
+  [DebuggerDisplay("Quantified<{name}>")]
+  public class QuantifiedVar : BoundVar {
+    public readonly Expression Domain;
+    public readonly Expression Range;
+
+    public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
+      : base(tok, name, type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+      Domain = domain;
+      Range = range;
+    }
+
+    /// <summary>
+    /// Map a list of quantified variables to an eqivalent list of bound variables plus a single range expression.
+    /// The transformation looks like this in general:
+    ///
+    /// x1 <- C1 | E1, ..., xN <- CN | EN
+    ///
+    /// becomes:
+    ///
+    /// x1, ... xN | x1 in C1 && E1 && ... && xN in CN && EN
+    ///
+    /// Note the result will be null rather than "true" if there are no such domains or ranges.
+    /// Some quantification contexts (such as comprehensions) will replace this with "true".
+    /// </summary>
+    public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
+      bvars = new List<BoundVar>();
+      range = null;
+
+      foreach (var qvar in qvars) {
+        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
+        bvars.Add(bvar);
+
+        if (qvar.Domain != null) {
+          // Attach a token wrapper so we can produce a better error message if the domain is not a collection
+          var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
+          var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
+          range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+        }
+
+        if (qvar.Range != null) {
+          // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
+          var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
+          range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+        }
+      }
+    }
+  }
+
   public class ActualBinding {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
@@ -6453,7 +6154,7 @@ namespace Microsoft.Dafny {
 
       var args = new List<Expression>() { depth };
       args.AddRange(fexp.Args);
-      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
+      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
       prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
       prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
@@ -9046,6 +8747,54 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
+  public class QuantifiedVariableDomainToken : TokenWrapper {
+    public QuantifiedVariableDomainToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
+  public class QuantifiedVariableRangeToken : TokenWrapper {
+    public QuantifiedVariableRangeToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+
+  class QuantifiedVariableDomainCloner : Cloner {
+    public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
+    private QuantifiedVariableDomainCloner() { }
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableDomainToken(tok);
+    }
+  }
+
+  class QuantifiedVariableRangeCloner : Cloner {
+    public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
+    private QuantifiedVariableRangeCloner() { }
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableRangeToken(tok);
+    }
+  }
+
   // ------------------------------------------------------------------------------------------------------
   [DebuggerDisplay("{Printer.ExprToString(this)}")]
   public abstract class Expression {
@@ -9129,27 +8878,51 @@ namespace Microsoft.Dafny {
 
     private RangeToken rangeToken;
 
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
+    protected IToken[] FormatTokens = null;
+
     /// Creates a token on the entire range of the expression.
     /// Used only for error reporting.
     public RangeToken RangeToken {
       get {
         if (rangeToken == null) {
-          var startTok = tok;
-          var endTok = tok;
-          foreach (var e in SubExpressions) {
-            if (e.tok.filename != tok.filename || e.IsImplicit) {
-              // Ignore auto-generated expressions, if any.
-              continue;
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+            foreach (var e in SubExpressions) {
+              if (e.tok.filename != tok.filename || e.IsImplicit) {
+                // Ignore auto-generated expressions, if any.
+                continue;
+              }
+
+              if (e.StartToken.pos < startTok.pos) {
+                startTok = e.StartToken;
+              } else if (e.EndToken.pos > endTok.pos) {
+                endTok = e.EndToken;
+              }
             }
 
-            if (e.StartToken.pos < startTok.pos) {
-              startTok = e.StartToken;
-            } else if (e.EndToken.pos > endTok.pos) {
-              endTok = e.EndToken;
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                if (token.filename != tok.filename) {
+                  continue;
+                }
+
+                if (token.pos < startTok.pos) {
+                  startTok = token;
+                }
+
+                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+                  endTok = token;
+                }
+              }
             }
+
+            rangeToken = new RangeToken(startTok, endTok);
           }
-
-          rangeToken = new RangeToken(startTok, endTok);
         }
 
         return rangeToken;
@@ -10499,13 +10272,15 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression E0;
     public readonly Expression E1;
+    public readonly IToken CloseParen;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
       Contract.Invariant(!SelectOne || E1 == null);
     }
 
-    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1)
+    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(seq != null);
@@ -10515,6 +10290,10 @@ namespace Microsoft.Dafny {
       Seq = seq;
       E0 = e0;
       E1 = e1;
+      CloseParen = closeParen;
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -10618,10 +10397,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, Expression fn, List<Expression> args)
+    public IToken CloseParen;
+
+    public ApplyExpr(IToken tok, Expression fn, List<Expression> args, IToken closeParen)
       : base(tok) {
       Function = fn;
       Args = args;
+      CloseParen = closeParen;
+      FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
   }
 
@@ -10629,6 +10412,7 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
+    public readonly IToken CloseParen;
     public readonly Label/*?*/ AtLabel;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
@@ -10695,8 +10479,8 @@ namespace Microsoft.Dafny {
 
     [FilledInDuringResolution] public Function Function;
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+      : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
@@ -10705,7 +10489,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(type == null);
     }
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
@@ -10717,17 +10501,19 @@ namespace Microsoft.Dafny {
       this.Name = fn;
       this.Receiver = receiver;
       this.OpenParen = openParen;
+      this.CloseParen = closeParen;
       this.AtLabel = atLabel;
       this.Bindings = bindings;
+      this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
 
     /// <summary>
     /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
     /// to be already resolved, and are all given positionally.
     /// </summary>
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
       Label /*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+      : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
@@ -11452,11 +11238,19 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// A ComprehensionExpr has the form:
-  ///   BINDER x Attributes | Range(x) :: Term(x)
-  /// When BINDER is "forall" or "exists", the range may be "null" (which stands for the logical value "true").
-  /// For other BINDERs (currently, "set"), the range is non-null.
-  /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
-  /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
+  ///   BINDER { x [: Type] [<- Domain] [Attributes] [| Range] } [:: Term(x)]
+  /// Where BINDER is currently "forall", "exists", "iset"/"set", or "imap"/"map".
+  ///
+  /// Quantifications used to only support a single range, but now each
+  /// quantified variable can have a range attached.
+  /// The overall Range is now filled in by the parser by extracting any implicit
+  /// "x in Domain" constraints and per-variable Range constraints into a single conjunct.
+  ///
+  /// The Term is optional if the expression only has one quantified variable,
+  /// but required otherwise.
+  /// 
+  /// LambdaExpr also inherits from this base class but isn't really a comprehension,
+  /// and should be considered implementation inheritance.
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
@@ -13136,6 +12930,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ApplySuffix : SuffixExpr {
     public readonly IToken/*?*/ AtTok;
+    public readonly IToken CloseParen;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
 
@@ -13144,13 +12939,17 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
       AtTok = atLabel;
+      CloseParen = closeParen;
       Bindings = new ActualBindings(args);
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
   }
 

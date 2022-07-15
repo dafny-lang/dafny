@@ -249,17 +249,18 @@ def pack(args, releases):
         release.build()
         release.pack()
     if not args.skip_manual:
-        run(["make", "--quiet", "refman-release"])
+        run(["make", "--quiet", "refman"])
 
 def check_version_cs(args):
     # Checking version.cs
     fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
     lines = fp.readlines()
-    qstart = lines[2].index('"')
-    qend = lines[2].index('"', qstart+1)
-    lastdot = lines[2].rindex('.',qstart)
-    v1 = lines[2][qstart+1:lastdot]
-    v2 = lines[2][lastdot+1:qend]
+    verline = lines[5]
+    qstart = verline.index('"')
+    qend = verline.index('"', qstart+1)
+    lastdot = verline.rindex('.',qstart)
+    v1 = verline[qstart+1:lastdot]
+    v2 = verline[lastdot+1:qend]
     now = time.localtime()
     year = now[0]
     month = now[1]
@@ -273,10 +274,10 @@ def check_version_cs(args):
         hy = args.version
     if hy != v1:
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1) and not args.trial:
+    if (v2 != v3 or hy != v1):
         return False
     fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
     return True
 
 def parse_arguments():
@@ -291,13 +292,14 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if not DAFNY_RELEASE_REGEX.match(args.version):
-        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-        return
-    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+    if not args.trial:
+        if not DAFNY_RELEASE_REGEX.match(args.version):
+            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+            return
+        if not check_version_cs(args):
+            return
 
-    if not check_version_cs(args):
-        return
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
     flush("* Finding and downloading Z3 releases")

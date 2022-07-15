@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -442,12 +444,12 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.includerFilename == null ? "roots" : include.includerFilename;
+      string key = include.IncluderFilename ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.canonicalPath);
+        existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
+        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
       }
     }
 
@@ -857,7 +859,7 @@ namespace Microsoft.Dafny {
           // function is okay, so check all NON-ghost arguments
           isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
           for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
-            if (!callExpr.Function.Formals[i].IsGhost) {
+            if (!callExpr.Function.Formals[i].IsGhost && i < callExpr.Args.Count) {
               isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
             }
           }

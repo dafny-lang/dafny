@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
           // and then it would make sense to rename this class.
           var textLogger = new TextLogger();
           textLogger.Initialize(parameters);
-          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults);
+          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList());
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
         }
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
     private static TestResult TestResultForBatch(string currentFileFragment, XElement methodNode, XElement batchNode) {
       var methodName = methodNode.Attribute("name")!.Value;
       var batchNumber = batchNode.Attribute("number")!.Value;
-      var name = $"{methodName}$${batchNumber}";
+      var name = $"{methodName} (assertion batch {batchNumber})";
 
       var startTime = batchNode.Attribute("startTime")!.Value;
       var conclusionNode = batchNode.Nodes()

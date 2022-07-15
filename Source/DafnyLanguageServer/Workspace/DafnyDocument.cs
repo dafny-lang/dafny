@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -24,21 +25,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    bool CanDoVerification,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<ImplementationId, ImplementationView>? ImplementationViews,
-    IReadOnlyList<Counterexample> CounterExamples,
+    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
+    IReadOnlyList<Counterexample> Counterexamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
-    ProgramVerificationTasks? VerificationTasks = null,
+    bool WasResolved,
+    IReadOnlyList<IImplementationTask>? VerificationTasks = null,
     bool LoadCanceled = false
   ) {
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationViews == null
-        ? ArraySegment<Diagnostic>.Empty
-        : ImplementationViews.SelectMany(kv => kv.Value.Diagnostics));
+      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -70,6 +71,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public int LinesCount => VerificationTree.Range.End.Line;
+    public IVerificationProgressReporter? GutterProgressReporter { get; set; }
+    public ConcurrentStack<Counterexample>? CounterexamplesCollector { get; set; }
+    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationIdToViewCollector { get; set; }
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);

@@ -39,6 +39,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           DafnyOptions.Install(DafnyOptions.Create());
           DafnyOptions.O.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+          // ShowSnippets == true enable boogie assertion's token to contain the range of expressions, not their single token 
+          DafnyOptions.O.ShowSnippets = true;
           initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");
@@ -151,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
-        var dafnyFile = new DafnyFile(include.includedFilename);
+        var dafnyFile = new DafnyFile(include.IncludedFilename);
         int errorCount = Parser.Parse(
           useStdin: false,
           dafnyFile.SourceFileName,
@@ -163,16 +165,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           compileThisFile: false
         );
         if (errorCount != 0) {
-          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.includedFilename}");
+          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.IncludedFilename}");
           return false;
         }
       } catch (IllegalDafnyFile e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
-        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.IncludedFilename} failed.");
+        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.IncludedFilename);
         return false;
       } catch (IOException e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
-        logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.IncludedFilename}.");
+        logger.LogDebug(e, "could not open file {Filename}", include.IncludedFilename);
         return false;
       }
       return true;

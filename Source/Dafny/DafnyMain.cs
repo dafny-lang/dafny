@@ -9,6 +9,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -22,7 +23,7 @@ namespace Microsoft.Dafny {
     public string FilePath { get; private set; }
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
-    public bool isPrecompiled { get; private set; }
+    public bool IsPrecompiled { get; set; }
     public string SourceFileName { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -33,7 +34,7 @@ namespace Microsoft.Dafny {
     public static string Canonicalize(String filePath) {
       return Path.GetFullPath(filePath);
     }
-    public static List<string> fileNames(IList<DafnyFile> dafnyFiles) {
+    public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
       foreach (DafnyFile f in dafnyFiles) {
         sourceFiles.Add(f.FilePath);
@@ -59,10 +60,10 @@ namespace Microsoft.Dafny {
       }
 
       if (extension == ".dfy" || extension == ".dfyi") {
-        isPrecompiled = false;
+        IsPrecompiled = false;
         SourceFileName = filePath;
       } else if (extension == ".dll") {
-        isPrecompiled = true;
+        IsPrecompiled = true;
         var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
@@ -129,14 +130,14 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.isPrecompiled, !dafnyFile.isPrecompiled);
+        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
       }
 
       if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludes(module, builtIns, DafnyFile.fileNames(files), new Errors(reporter));
+        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
@@ -162,7 +163,7 @@ namespace Microsoft.Dafny {
       r.ResolveProgram(program);
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile, true);
 
-      if (reporter.Count(ErrorLevel.Error) != 0) {
+      if (reporter.ErrorCountUntilResolver != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
       }
 
@@ -176,45 +177,70 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, IList<string> excludeFiles, Errors errs) {
-      SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
-      DependencyMap dmap = new DependencyMap();
-      foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, null, fileName));
+    public static string ParseIncludesDepthFirstNotCompiledFirst(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
+      var includesFound = new SortedSet<Include>(new IncludeComparer());
+      var allIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
+      var notCompiledRoots = allIncludes.Where(include => !include.CompileIncludedCode).ToList();
+      var compiledRoots = allIncludes.Where(include => include.CompileIncludedCode).ToList();
+      allIncludes.Clear();
+      allIncludes.AddRange(notCompiledRoots);
+
+      var notCompiledResult = TraverseIncludesFrom(0);
+      if (notCompiledResult != null) {
+        return notCompiledResult;
       }
-      dmap.AddIncludes(includes);
-      bool newlyIncluded;
-      do {
-        newlyIncluded = false;
 
-        List<Include> newFilesToInclude = new List<Include>();
-        dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
-        foreach (Include include in ((LiteralModuleDecl)module).ModuleDef.Includes) {
-          bool isNew = includes.Add(include);
-          if (isNew) {
-            newlyIncluded = true;
-            newFilesToInclude.Add(include);
-          }
-        }
+      var notCompiledIncludeCount = allIncludes.Count;
+      allIncludes.AddRange(compiledRoots);
 
-        foreach (Include include in newFilesToInclude) {
-          DafnyFile file;
-          try { file = new DafnyFile(include.includedFilename); } catch (IllegalDafnyFile) {
-            return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
-          }
-          string ret = ParseFile(file, include, module, builtIns, errs, false);
-          if (ret != null) {
-            return ret;
-          }
-        }
-      } while (newlyIncluded);
-
+      var compiledResult = TraverseIncludesFrom(notCompiledIncludeCount);
+      if (compiledResult != null) {
+        return compiledResult;
+      }
 
       if (DafnyOptions.O.PrintIncludesMode != DafnyOptions.IncludesModes.None) {
-        dmap.PrintMap();
+        var dependencyMap = new DependencyMap();
+        dependencyMap.AddIncludes(allIncludes);
+        dependencyMap.PrintMap();
       }
 
       return null; // Success
+
+      string TraverseIncludesFrom(int startingIndex) {
+        var includeIndex = startingIndex;
+        var stack = new Stack<Include>();
+
+        while (true) {
+          var addedItems = allIncludes.Skip(includeIndex);
+          foreach (var addedItem in addedItems.Reverse()) {
+            stack.Push(addedItem);
+          }
+          includeIndex = allIncludes.Count;
+
+          if (stack.Count == 0) {
+            break;
+          }
+
+          var include = stack.Pop();
+          if (!includesFound.Add(include) || excludeFiles.Contains(include.CanonicalPath)) {
+            continue;
+          }
+
+          DafnyFile file;
+          try {
+            file = new DafnyFile(include.IncludedFilename);
+          } catch (IllegalDafnyFile) {
+            return ($"Include of file \"{include.IncludedFilename}\" failed.");
+          }
+
+          string result = ParseFile(file, include, module, builtIns, errs, false, include.CompileIncludedCode);
+          if (result != null) {
+            return result;
+          }
+        }
+
+        return null;
+      }
     }
 
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {

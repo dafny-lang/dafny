@@ -390,11 +390,11 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       Type.EnableScopes();
-      var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
+      var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
-      if (reporter.Count(ErrorLevel.Error) > 0) {
+      if (reporter.ErrorCount > 0) {
         return;
       } // if there were errors, then the implict ModuleBindings data structure invariant
 
@@ -407,7 +407,7 @@ namespace Microsoft.Dafny {
           "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
-      if (reporter.Count(ErrorLevel.Error) > 0) {
+      if (reporter.ErrorCount > 0) {
         return;
       } // give up on trying to resolve anything else
 
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
           var literalDecl = (LiteralModuleDecl)decl;
           var m = literalDecl.ModuleDef;
 
-          var errorCount = reporter.Count(ErrorLevel.Error);
+          var errorCount = reporter.ErrorCount;
           if (m.RefinementQId != null) {
             ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
@@ -501,12 +501,12 @@ namespace Microsoft.Dafny {
 
           var sig = literalDecl.Signature;
           // set up environment
-          var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
+          var preResolveErrorCount = reporter.ErrorCount;
 
           ResolveModuleExport(literalDecl, sig);
           var good = ResolveModuleDefinition(m, sig);
 
-          if (good && reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+          if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
           }
@@ -519,17 +519,17 @@ namespace Microsoft.Dafny {
           prog.ModuleSigs[m] = sig;
 
           foreach (var rewriter in rewriters) {
-            if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
+            if (!good || reporter.ErrorCount != preResolveErrorCount) {
               break;
             }
             rewriter.PostResolveIntermediate(m);
           }
-          if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
+          if (good && reporter.ErrorCount == errorCount) {
             m.SuccessfullyResolved = true;
           }
           Type.PopScope(tempVis);
 
-          if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
+          if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
             var nw = cloner.CloneModuleDefinition(m, m.CompileName + "_Compile");
@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(decl.Signature != null);
       }
 
-      if (reporter.Count(ErrorLevel.Error) != origErrorCount) {
+      if (reporter.ErrorCount != origErrorCount) {
         // do nothing else
         return;
       }
@@ -872,7 +872,7 @@ namespace Microsoft.Dafny {
         return
           new SetComprehension(e.tok, e.tok, true, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-              new ApplyExpr(e.tok, e, bexprs) {
+              new ApplyExpr(e.tok, e, bexprs, e.tok) {
                 Type = new SetType(true, builtIns.ObjectQ())
               }) {
               ResolvedOp =
@@ -2335,7 +2335,7 @@ namespace Microsoft.Dafny {
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
       var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
@@ -6838,7 +6838,11 @@ namespace Microsoft.Dafny {
           }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is UnaryOpExpr uop) {
-            uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            // The CheckTypeInference_Visitor has already visited uop.E, but uop.E's may be undetermined. If that happened,
+            // then an error has already been reported.
+            if (CheckTypeIsDetermined(uop.E.tok, uop.E.Type, "expression")) {
+              uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
+            }
           } else if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
             e.ResolvedOp = ResolveOp(e.Op, e.E0.Type, e.E1.Type);
@@ -10583,7 +10587,7 @@ namespace Microsoft.Dafny {
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
-      var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
+      var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
@@ -10637,7 +10641,7 @@ namespace Microsoft.Dafny {
       // ---------- here comes method MoveNext() ----------
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
-      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
       req.Add(new AttributedExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
@@ -10657,7 +10661,7 @@ namespace Microsoft.Dafny {
         new LiteralExpr(iter.tok),
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
-      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
         valid_call)));
@@ -11960,7 +11964,7 @@ namespace Microsoft.Dafny {
       }
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
-        this.Body = x.Body.ConvertAll((new Cloner()).CloneStmt);
+        this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements. 
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
@@ -13104,7 +13108,7 @@ namespace Microsoft.Dafny {
     }
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>());
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), tok);
     }
 
     private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
@@ -13254,7 +13258,7 @@ namespace Microsoft.Dafny {
           }
           Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
           Expression id0 = id0 = makeTemp("idx", s, codeContext, lseq.E0);
-          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null, lseq.CloseParen);
           lhsExtract.Type = lseq.Type;
         } else if (lhsResolved is MultiSelectExpr lmulti) {
           Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
@@ -14999,7 +15003,9 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.And:
           case BinaryExpr.Opcode.Or: {
               ConstrainSubtypeRelation(Type.Bool, e.E0.Type, expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-              ConstrainSubtypeRelation(Type.Bool, e.E1.Type, expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+              var secondArgumentDescription = e.E1.tok is QuantifiedVariableRangeToken
+                ? "range of quantified variable" : "second argument to {0}";
+              ConstrainSubtypeRelation(Type.Bool, e.E1.Type, expr, secondArgumentDescription + " must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
               expr.Type = Type.Bool;
               break;
             }
@@ -15101,7 +15107,9 @@ namespace Microsoft.Dafny {
 
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            AddXConstraint(expr.tok, "Innable", e.E1.Type, e.E0.Type, "second argument to \"" + BinaryExpr.OpcodeString(e.Op) + "\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})");
+            var subjectDescription = e.E1.tok is QuantifiedVariableDomainToken
+              ? "domain of quantified variable" : "second argument to \"" + BinaryExpr.OpcodeString(e.Op) + "\"";
+            AddXConstraint(expr.tok, "Innable", e.E1.Type, e.E0.Type, subjectDescription + " must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})");
             expr.Type = Type.Bool;
             break;
 
@@ -15381,7 +15389,7 @@ namespace Microsoft.Dafny {
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>());
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
@@ -16734,7 +16742,8 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var cRhs = new MethodCallInformation(e.tok, mse, e.Bindings.ArgumentBindings);
+                var tok = DafnyOptions.O.ShowSnippets ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
+                var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
@@ -16756,10 +16765,11 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
-            rr.Function = callee;
-            rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
-            rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
+            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+              Function = callee,
+              TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass,
+              TypeApplication_JustFunction = mse.TypeApplication_JustMember
+            };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
             ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, typeMap, callee.IsStatic ? null : mse.Obj);
             rr.Type = SubstType(callee.ResultType, typeMap);
@@ -16786,7 +16796,7 @@ namespace Microsoft.Dafny {
               }
             }
             ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, new Dictionary<TypeParameter, Type>(), null);
-            r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
+            r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args, e.CloseParen);
             r.Type = fnType.Result;
           }
         }
@@ -18002,6 +18012,10 @@ namespace Microsoft.Dafny {
 
       public override int Count(ErrorLevel level) {
         return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+
+      public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+        return Count(level);
       }
     }
 

@@ -14,40 +14,29 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  /// The last [MaxLastTouchedMethods] recently modified methods will be
-  /// automatically assigned a priority ranging from
-  /// [MaxLastTouchedMethodPriority - MaxLastTouchedMethods + 1]
-  /// to [MaxLastTouchedMethodPriority] (below, from 6 to 10)
-  /// Since priorities range from 1 to infinite, the only requirement is
-  /// that [MaxLastTouchedMethods] is less than [MaxLastTouchedMethodPriority]
-  /// 10 is a nice priority, not too high so that it can be overriden easily
-  /// to always trigger the verifier to verify them first (for any reason) 
-  /// and not too low so that it's still possible to manually set up priorities 1-5 to
-  /// methods that are not being modified.
-  private const int MaxLastTouchedMethodPriority = 10;
   private const int MaxLastTouchedMethods = 5;
 
-  private readonly ICompilationStatusNotificationPublisher publisher;
+  private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
-  private readonly IDiagnosticPublisher diagnosticPublisher;
+  private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DafnyDocument document,
-    ICompilationStatusNotificationPublisher publisher,
-    IDiagnosticPublisher diagnosticPublisher
+    ICompilationStatusNotificationPublisher statusPublisher,
+    INotificationPublisher notificationPublisher
   ) {
     this.document = document;
-    this.publisher = publisher;
+    this.statusPublisher = statusPublisher;
     this.logger = logger;
-    this.diagnosticPublisher = diagnosticPublisher;
+    this.notificationPublisher = notificationPublisher;
   }
 
   /// <summary>
   /// Sends a more precise verification status message to the client's status bar
   /// </summary>
   public void ReportProgress(string message) {
-    publisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
+    statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
   }
 
   /// <summary>
@@ -58,6 +47,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     var previousTrees = document.VerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
+
+    HashSet<Position> recordedPositions = new HashSet<Position>();
 
     void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree) {
       var position = verificationTree.Position;
@@ -70,7 +61,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         verificationTree.StatusCurrent = CurrentStatus.Obsolete;
         verificationTree.Children = previousTree.Children;
       }
-      result.Add(verificationTree);
+      // Prevent duplicating trees, e.g. reveal lemmas that have the same position as the function. 
+      if (!recordedPositions.Contains(verificationTree.Position)) {
+        result.Add(verificationTree);
+        recordedPositions.Add(verificationTree.Position);
+      }
     }
 
     var documentFilePath = document.GetFilePath();
@@ -152,6 +147,16 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     document.VerificationTree.Children = result;
   }
 
+  public void UpdateLastTouchedMethodPositions() {
+    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
+      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
+    if (newlyTouchedVerificationTree != null) {
+      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
+      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+    }
+  }
+
   /// <summary>
   /// On receiving all implementations that are going to be verified, assign each implementation
   /// to its original method tree.
@@ -162,17 +167,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     if (document.LoadCanceled) {
       return;
     }
-    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
-    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
-    if (newlyTouchedVerificationTree != null) {
-      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
-    }
-
-    var positionToVerificationTree = document.VerificationTree.Children.ToImmutableDictionary(
-      verificationTree => verificationTree.Position,
-      verificationTree => verificationTree);
 
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
@@ -181,18 +175,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
 
     foreach (var implementation in implementations) {
-      var verificationTree = positionToVerificationTree!.GetValueOrDefault(implementation.tok.GetLspPosition(), null);
-      int priority = GetVerificationPriority(verificationTree);
-
-      if (priority > 0 && implementation.Priority < priority) {
-        implementation.Attributes.AddLast(
-          new QKeyValue(
-            implementation.tok,
-            "priority",
-            new List<object>() {
-              new Boogie.LiteralExpr(implementation.tok, BigNum.FromInt(priority))
-            }, null));
-      }
 
       var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
@@ -240,7 +222,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
+      notificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 
@@ -269,7 +251,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   /// <param name="implementation">The implementation which is going to be verified next</param>
-  public void ReportStartVerifyImplementation(Implementation implementation) {
+  public void ReportVerifyImplementationRunning(Implementation implementation) {
     if (document.LoadCanceled) {
       return;
     }
@@ -352,9 +334,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       return;
     }
     lock (LockProcessing) {
-      var split = batchResult.Split;
+      var implementation = batchResult.Implementation;
       var result = batchResult.Result;
-      var implementation = split.Implementation;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
       if (targetMethodNode == null) {
@@ -438,24 +419,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  /// <summary>
-  /// Returns the verification priority for a given method, depending on if it was recently modified
-  /// </summary>
-  /// <param name="method">The method to consider</param>
-  /// <returns>The automatically set priority for the underlying method, or 0</returns>
-  private int GetVerificationPriority(VerificationTree? method) {
-    if (method != null) {
-      var lastTouchedIndex = document.LastTouchedMethodPositions.IndexOf(method.Position);
-      // 0 if not found
-      if (lastTouchedIndex == -1) {
-        return 0;
-      }
-      var lastTouchedCount = document.LastTouchedMethodPositions.Count;
-      var priority = MaxLastTouchedMethodPriority + lastTouchedIndex + 1 - lastTouchedCount;
-      return priority;
-    }
-    return 0;
-  }
 
   /// <summary>
   /// Helper to remember that a method tree was recently modified.

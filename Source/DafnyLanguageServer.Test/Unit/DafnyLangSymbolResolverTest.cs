@@ -36,16 +36,4 @@ public class DafnyLangSymbolResolverTest {
       return this;
     }
   }
-
-  [TestMethod]
-  public void EnsureResilienceAgainstErrors() {
-    // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
-    dafnyLangSymbolResolver.ResolveSymbols(null!, program, CancellationToken.None);
-    Assert.AreEqual(1, reporter.ErrorCount);
-    Assert.AreEqual(1, reporter.GetErrors()[ErrorLevel.Error].Count);
-    var expected = "Dafny encountered an error.  Please report it at ";
-    Assert.AreEqual(expected, reporter.GetErrors()[ErrorLevel.Error][0].message.Substring(0, expected.Length));
-  }
 }

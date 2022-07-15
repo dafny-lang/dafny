@@ -27,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     public Task SetUp() => SetUp(null);
 
     public async Task SetUp(IDictionary<string, string> configuration) {
+      DafnyOptions.Install(DafnyOptions.Create());
       this.configuration = configuration;
       notificationReceiver = new();
       client = await InitializeClient(options => {
@@ -193,9 +194,9 @@ method f(x: int) {
     }
 
     [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
-    public async Task IndicateSlowHints() {
+    public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 

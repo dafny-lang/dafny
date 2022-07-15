@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
-    public async Task OpeningFlawlessDocumentReportsEmptyDiagnostics() {
+    public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
@@ -32,6 +32,19 @@ method Multiply(x: int, y: int) returns (product: int)
     var step := Multiply(x, y - 1);
     product := x + step;
   }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task OpeningOpaqueFunctionWorks() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -209,21 +222,10 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
       var diagnosticsAfterOpening = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
-
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((0, 53), (0, 54)),
-            Text = ""
-          }
-        }
-      });
+      ApplyChange(ref documentItem, new Range((0, 53), (0, 54)), "");
 
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
@@ -282,21 +284,8 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnosticsAfterOpening = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((8, 30), (8, 31)),
-            Text = "+"
-          }
-        }
-      });
+      ApplyChange(ref documentItem, new Range((8, 30), (8, 31)), "+");
 
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
@@ -325,22 +314,10 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+
+      var diagnosticsAfterOpening = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
-
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((8, 30), (8, 31)),
-            Text = "+"
-          }
-        }
-      });
-
+      ApplyChange(ref documentItem, new Range((8, 30), (8, 31)), "+");
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -361,9 +338,9 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
       var diagnosticsAfterOpening = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
-
       var newVersion = documentItem with { Version = documentItem.Version + 1 };
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
@@ -555,7 +532,7 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.AreEqual(2, relatedInformation.Length);
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
-      Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
+      Assert.AreEqual(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
       Assert.AreEqual("Related location", relatedInformation[1].Message);
       Assert.AreEqual(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -643,7 +620,7 @@ method test(i: int, j: int) {
       var source = @"
 method test() {
   other(2, 1);
-//     ^^^^^^^
+//^^^^^^^^^^^^
 }
 
 method other(i: int, j: int)
@@ -656,7 +633,7 @@ method other(i: int, j: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 7), (1, 14)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 2), (1, 14)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -665,7 +642,7 @@ method other(i: int, j: int)
       var source = @"
 method test() {
   var x := 1 + other(2, 1);
-//             ^^^^^^^^^^
+//             ^^^^^^^^^^^
 }
 
 function method other(i: int, j: int): int
@@ -679,7 +656,7 @@ function method other(i: int, j: int): int
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 15), (1, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -804,11 +781,13 @@ method test() {
       Assert.AreEqual(0, resolutionDiagnostics.Length);
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+
+      // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
+      // Contains migrated verification error.
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
@@ -849,11 +828,8 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-
-      // The diagnostics of test2 has not been migrated since test2 no longer exists.
-      Assert.AreEqual(1, verificationTaskDiagnostics.Length);
+      var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -935,14 +911,28 @@ method Foo() {
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
-      var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
-      Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);
-      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Verification diagnostics were removed since task no longer exists.
-      Assert.AreEqual(0, verificationTaskDiagnostics.Length);
-      var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(1, verificationDiagnostics2.Length);
+      Assert.AreEqual(1, translationDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task DiagnosticsAfterSavingWithVerifyOnChange() {
+      var source = @"
+method Foo() { 
+  assert true; 
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics1.Length);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
+      var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.IsTrue(diagnostics2.Any());
     }
   }
 }
