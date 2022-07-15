@@ -425,7 +425,7 @@ Set the time limit for verifying a given function or method.
 ### 23.2.16. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
-specified a `{:timeLimit Y}` attributed is passed on to Boogie
+specified a `{:timeLimit Y}` attribute is passed on to Boogie
 where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
