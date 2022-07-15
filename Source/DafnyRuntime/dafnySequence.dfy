@@ -6,6 +6,7 @@ include "../../Test/libraries/src/Math.dfy"
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import Math
+  import Seq
 
   import opened Stacks
 
@@ -30,10 +31,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
 
     ghost function Depth(): nat {
-      1 + match this {
+      match this {
         case Empty => 0
         case Direct(_) => 0
-        case Concat(left, right, _) => Math.Max(left.Depth(), right.Depth())
+        case Concat(left, right, _) => 1 + Math.Max(left.Depth(), right.Depth())
         case Lazy(_, _, _) => 0
       }
     }
@@ -65,13 +66,13 @@ module {:options "/functionSyntax:4"} MetaSeq {
       match this
       case Empty => []
       case Direct(a) => a
-      case Concat(_, _, _) => CalcConcat(this)
+      case Concat(left, right, length) => CalcConcat(left, right, length)
       case Lazy(value, _, _) => value
     } by method {
       match this
       case Empty => return [];
       case Direct(a) => return a;
-      case Concat(_, _, _) => return CalcConcat(this);
+      case Concat(left, right, length) => return CalcConcat(left, right, length);
       case Lazy(_, seqExpr, _) => {
         var expr := exprBox.Get();
         var value := expr.Value();
@@ -81,26 +82,51 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  function CalcConcat<T>(expr: SeqExpr<T>): (result: seq<T>)
-    requires expr.Valid()
-    decreases expr.Depth(), 1
+  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): (result: seq<T>)
+    requires left.Valid()
+    requires right.Valid()
+    requires left.Length() + right.Length() == length
+    decreases 1 + Math.Max(left.Depth(), right.Depth())
   {
-    expr.Value()
+    left.Value() + right.Value()
   } by method {
-    var builder: SeqBuilder<T> := new SeqBuilder(expr.Length());
-    var toVisit := new Stack<SeqExpr<T>>(Empty);
-    :- expect toVisit.Push(expr);
+    var builder: SeqBuilder<T> := new SeqBuilder(length);
+    assert builder.Value() == [];
 
-    ghost var n: nat := expr.Length();
+    var toVisit := new Stack<SeqExpr<T>>(Empty);
+    :- expect toVisit.Push(right);
+    :- expect toVisit.Push(left);
+    assert forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
+    
+    ghost var answer := left.Value() + right.Value();
+    assert toVisit.Repr == [right, left];
+    var reversed := Seq.Reverse(toVisit.Repr);
+    assert reversed == [left, right];
+    assert forall e <- reversed :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
+    calc {
+      builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
+      [] + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
+      Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr)));
+      Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), [left, right]));
+      Seq.Flatten([left.Value()] + Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), [right]));
+      Seq.Flatten([left.Value(), right.Value()]);
+      left.Value() + Seq.Flatten([right.Value()]);
+      left.Value() + right.Value();
+      answer;
+    }
+    assert builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr))) == answer;
+
     while 0 < toVisit.size
       invariant toVisit.Valid?()
       invariant fresh(toVisit)
       invariant fresh(toVisit.data)
-      invariant forall e <- toVisit.Repr :: e.Valid()
-      decreases n
+      invariant forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth())
+      invariant builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr))) == answer
+      decreases Sum(Seq.Map((e: SeqExpr<T>) => e.Depth(), toVisit.Repr))
     {
       // TODO: Have to add Pop() to Stacks.dfy
       var next := toVisit.Pop();
+      assert next.Valid();
 
       match next {
         case Concat(nextLeft, nextRight, _) =>
@@ -109,37 +135,38 @@ module {:options "/functionSyntax:4"} MetaSeq {
         case _ =>
           builder.Append(next.Value());
       }
-
-      Assume(n > 0);
-      n := n - 1;
     }
     
     var v := builder.Value();
-    Assume(v == expr.Value());
+    Assume(v == left.Value() + right.Value());
     return v;
+  }
+
+  function Sum(s: seq<nat>): nat {
+    Seq.FoldLeft((a, b) => a + b, 0, s)
   }
 
   lemma {:axiom} Assume(p: bool) ensures p
 
   // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
-    var s: seq<T>
+    var value: seq<T>
 
     constructor(length: nat) 
       ensures Value() == []
     {
-      s := [];
+      value := [];
     }
 
     method Append(t: seq<T>) 
       modifies this
       ensures Value() == old(Value()) + t
     {
-      s := s + t;
+      value := value + t;
     }
 
     function Value(): seq<T> reads this {
-      s
+      value
     }
   }
 
@@ -242,7 +269,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
   class {:extern} AtomicBox<T> {
     ghost const inv: T -> bool
 
-    constructor(t: T, ghost inv: T -> bool)
+    constructor(ghost inv: T -> bool, t: T)
+      requires inv(t)
       ensures this.inv == inv
 
     method Put(t: T)
