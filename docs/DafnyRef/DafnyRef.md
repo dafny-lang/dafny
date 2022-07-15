@@ -57,4 +57,4 @@ user understand how to do proofs with Dafny.
 
 {% include_relative SyntaxTests.md %}
 
-# 26. References
+# 27. References

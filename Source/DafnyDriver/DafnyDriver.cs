@@ -41,6 +41,51 @@ namespace Microsoft.Dafny {
     // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
     public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR }
 
+    // Environment variables that the CLI directly or indirectly (through target language tools) reads.
+    // This is defined for the benefit of testing infrastructure to ensure that they are maintained
+    // through separate processes.
+    public static readonly string[] ReferencedEnvironmentVariables = { "PATH", "HOME", "DOTNET_NOLOGO" };
+
+    static DafnyDriver() {
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        ReferencedEnvironmentVariables = ReferencedEnvironmentVariables
+          .Concat(new[] { // Careful: Keep this list in sync with the one in lit.site.cfg
+            "APPDATA",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "INCLUDE",
+            "LIB",
+            "LOCALAPPDATA",
+            "NODE_PATH",
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "SystemRoot",
+            "SystemDrive",
+            "TEMP",
+            "TMP",
+            "USERPROFILE"
+          }).ToArray();
+      }
+    }
+
+    public static readonly string[] DefaultArgumentsForTesting = new[] {
+      // Try to verify 2 verification conditions at once
+      "/vcsCores:2",
+
+      // We do not want absolute or relative paths in error messages, just the basename of the file
+      "/useBaseNameForFileName",
+
+      // We do not want output such as "Compiled program written to Foo.cs"
+      // from the compilers, since that changes with the target language
+      "/compileVerbose:0",
+
+      // Hide Boogie execution traces since they are meaningless for Dafny programs
+      "/errorTrace:0",
+      
+      // Set a default time limit, to catch cases where verification time runs off the rails
+      "/timeLimit:300"
+    };
+
     public static int Main(string[] args) {
       int ret = 0;
       var thread = new System.Threading.Thread(
@@ -260,7 +305,17 @@ namespace Microsoft.Dafny {
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
-        var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+        bool compiled;
+        try {
+          compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+        } catch (UnsupportedFeatureException e) {
+          if (!DafnyOptions.O.Compiler.UnsupportedFeatures.Contains(e.Feature)) {
+            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Compiler.TargetId} compiler's UnsupportedFeatures set");
+          }
+          reporter.Error(MessageSource.Compiler, e.Token, e.Message);
+          compiled = false;
+        }
+
         exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
       }
 

@@ -427,5 +427,16 @@ function ToRelativeIndependent(): (p: Position)
 }
 ");
     }
+
+    [TestMethod]
+    public async Task HoveringVariablesInsideNestedMatchStmtWorks() {
+      await AssertHover(@"
+lemma dummy(e: int) {
+  match e {
+    case _ => var xx := 1;
+                   ^[```dafny\nghost xx: int\n```]
+  }
+}");
+    }
   }
 }

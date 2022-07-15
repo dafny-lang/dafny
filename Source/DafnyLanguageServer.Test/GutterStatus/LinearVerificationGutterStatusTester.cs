@@ -8,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -15,14 +16,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
+
   [TestInitialize]
   public override async Task SetUp() {
     verificationStatusGutterReceiver = new();
-    client = await InitializeClient(options =>
-      options
-        .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
-      );
+    await base.SetUp();
+  }
+
+  protected override void InitialiseClientHandler(LanguageClientOptions options) {
+    base.InitialiseClientHandler(options);
+    options
+      .AddHandler(DafnyRequestNames.VerificationStatusGutter,
+        NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived));
   }
 
   public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
@@ -159,12 +164,12 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// </summary>
   /// <param name="code">The original code with the //Next: comments or //NextN:</param>
   /// <returns></returns>
-  public Tuple<string, List<Tuple<Range, string>>> ExtractCodeAndChanges(string code) {
+  public (string code, List<(Range changeRange, string changeValue)> changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
     var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?//(?<newtOrRemove>Next|Remove)(?<id>\d*):(?<newline>\\n)?)");
     var originalCode = code;
     var matches = matcher.Matches(code);
-    var changes = new List<Tuple<Range, string>>();
+    var changes = new List<(Range, string)>();
     while (matches.Count > 0) {
       var firstChange = 0;
       Match firstChangeMatch = null;
@@ -197,7 +202,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         var line = newlines.Count;
         var character = index;
         if (newlines.Count > 0) {
-          var lastNewline = newlines[newlines.Count - 1];
+          var lastNewline = newlines[^1];
           character = index - (lastNewline.Index + lastNewline.Value.Length);
         }
 
@@ -206,13 +211,13 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
       var optionalNewLine = firstChangeMatch.Groups["newline"].Success ? "\n" : "";
       // For now, simple: Remove the line
-      changes.Add(new Tuple<Range, string>(
+      changes.Add(new(
         new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), optionalNewLine));
       code = code.Substring(0, startRemove) + optionalNewLine + code.Substring(endRemove);
       matches = matcher.Matches(code);
     }
 
-    return new Tuple<string, List<Tuple<Range, string>>>(originalCode, changes);
+    return (originalCode, changes);
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.

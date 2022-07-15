@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void RecomputeVerificationTree();
     void ReportRealtimeDiagnostics(bool verificationStarted, DafnyDocument document);
 
-    void ReportStartVerifyImplementation(Implementation implToken);
+    void ReportVerifyImplementationRunning(Implementation implToken);
     void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
     void ReportAssertionBatchResult(AssertionBatchResult batchResult);
