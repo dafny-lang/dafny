@@ -1775,8 +1775,8 @@ signature.
 ````grammar
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 ````
-The _k-type_ may be specified only for least and greatest lemmas and is described
-in [Section 23](#sec-advanced-topics).
+The _KType_ may be specified only for least and greatest lemmas and is described
+in [Section 23](#sec-friendliness) and subsequent sections.
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =

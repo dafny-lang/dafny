@@ -495,7 +495,7 @@ solution for $g$, there are two proof trees that establish $g(0)$:  one is the f
 proof tree that uses the left-hand rule of [these coinductive rules](#g-coind-rule) once, the other is the infinite
 proof tree that keeps on using the right-hand rule of [these coinductive rules](#g-coind-rule).
 
-### 23.4.2. Working with Extreme Predicates
+### 23.4.2. Working with Extreme Predicates {#sec-extreme-predicates}
 
 In general, one cannot evaluate whether or not an extreme predicate holds for some
 input, because doing so may take an infinite number of steps.  For example, following
