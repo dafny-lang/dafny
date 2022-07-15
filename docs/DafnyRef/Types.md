@@ -362,6 +362,9 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 -----------------|------------------------------------
   `-`            | bit-limited negation (unary minus)
   `!`            | bit-wise complement
+-----------------|------------------------------------
+  .RotateLeft(n) | rotates bits left by n bit positions
+  .RotateRight(n)| rotates bits right by n bit positions
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
@@ -372,6 +375,12 @@ must be non-negative, and
 no more than the number of bits in the type.
 There is no signed right shift as all bit-vector values correspond to
 non-negative integers.
+
+The argument of the `RotateLeft` and `RotateRight` operations is a
+non-negative `int` that is no larger than the bit-width of the value being rotated.
+`RotateLeft` moves bits to higher bit positions (e.g., `(2 as bv4).RotateLeft(1) == (4 as bv4)`
+and `(8 as bv4).RotateLeft(1) == (1 as bv4)`);
+`RotateRight` moves bits to lower bit positions, so `b.RotateLeft(n).RotateRight(n) == b`.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
@@ -387,6 +396,22 @@ These produce assertion errors:
 {% include_relative examples/Example-BV4.dfy %}
 {% include_relative examples/Example-BV4a.dfy %}
 ```
+
+Bit-vector constants (like all constants) can be initialized using expressions, but pay attention
+to how type inference applies to such expressions. For example,
+```dafny
+const a: bv3 := -1
+```
+is legal because Dafny interprets `-1` as a `bv3` expression, because `a` has type `bv3`.
+Consequently the `-` is `bv3` negation and the `1` is a `bv3` literal; the value of the expression `-1` is
+the `bv3` value `7`, which is then the value of `a`.
+
+On the other hand,
+```dafny
+const b: bv3 = 6 & 11
+```
+is illegal because, again, the `&` is `bv3` bit-wise-and and the numbers must be valid `bv3` literals.
+But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
