@@ -1562,7 +1562,7 @@ immediately executed.
       in the `Hello-py` folder. The compiled program can be run using
       `python Hello-py/Hello.py`, where `python ` is python version 3.
 
-   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cs` is
+   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cpp` is
       `Hello.exe` and other files written to the current folder. The compiled
       program can be run using `./Hello.exe`.
 
