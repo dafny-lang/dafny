@@ -70,7 +70,7 @@ NameSegmentForTypeName = Ident [ GenericInstantiation ]
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
-([Section 21.40](#sec-name-segment))
+([Section 21.41](#sec-name-segment))
 that does not allow a ``HashCall``.
 
 The following sections describe each of these kinds of types in more detail.
@@ -203,7 +203,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in [Section 21.34](#sec-quantifier-expression).
+exists), described in [Section 21.35](#sec-quantifier-expression).
 
 ## 7.2. Numeric Types {#sec-numeric-types}
 
@@ -675,7 +675,7 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-[Section 21.35](#sec-set-comprehension-expression).
+[Section 21.36](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
@@ -836,7 +836,7 @@ brackets.  To illustrate,
 are three examples of sequence displays.
 
   There is also a sequence
-comprehension expression ([Section 21.27](#sec-seq-comprehension)):
+comprehension expression ([Section 21.28](#sec-seq-comprehension)):
 ```dafny
 seq(5, i => i*i)
 ```
@@ -1003,7 +1003,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 21.39](#sec-map-comprehension-expression).
+explained in [Section 21.40](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -1547,7 +1547,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 21.46](#sec-compile-time-constants).
+in [Section 21.47](#sec-compile-time-constants).
 
 ## 12.1. Conversion operations {#sec-conversion}
 
@@ -1808,7 +1808,7 @@ signature.
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 ````
 The _KType_ may be specified only for least and greatest lemmas and is described
-in [Section 24](#sec-friendliness) and subsequent sections.
+in [Section 24.5.3](#sec-friendliness) and subsequent sections.
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
