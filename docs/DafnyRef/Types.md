@@ -388,6 +388,22 @@ These produce assertion errors:
 {% include_relative examples/Example-BV4a.dfy %}
 ```
 
+Bit-vector constants (like all constants) can be initialized using expressions, but pay attention
+to how type inference applies to such expressions. For example,
+```dafny
+const a: bv3 := -1
+```
+is legal because Dafny interprets `-1` as a `bv3` expression, because `a` has type `bv3`.
+Consequently the `-` is `bv3` negation and the `1` is a `bv3` literal; the value of the expression `-1` is
+the `bv3` value `7`, which is then the value of `a`.
+
+On the other hand,
+```dafny
+const b: bv3 = 6 & 11
+```
+is illegal because, again, the `&` is `bv3` bit-wise-and and the numbers must be valid `bv3` literals.
+But `11` is not a valid `bv3` literal.
+
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
 ## 7.4. Ordinal type {#sec-ordinals}
