@@ -32,10 +32,15 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     ghost function Depth(): nat {
       match this {
-        case Empty => 0
-        case Direct(_) => 0
         case Concat(left, right, _) => 1 + Math.Max(left.Depth(), right.Depth())
-        case Lazy(_, _, _) => 0
+        case _ => 0
+      }
+    }
+
+    ghost function NodeCount(): nat {
+      match this {
+        case Concat(left, right, _) => 1 + left.NodeCount() + right.NodeCount()
+        case _ => 1
       }
     }
 
@@ -66,13 +71,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
       match this
       case Empty => []
       case Direct(a) => a
-      case Concat(left, right, length) => CalcConcat(left, right, length)
+      case Concat(left, right, length) => left.Value() + right.Value()
       case Lazy(value, _, _) => value
     } by method {
       match this
       case Empty => return [];
       case Direct(a) => return a;
-      case Concat(left, right, length) => return CalcConcat(left, right, length);
+      case Concat(left, right, length) => {
+        var builder := new SeqBuilder<T>(length);
+        AppendValue(builder);
+        return builder.Value();
+      }
       case Lazy(_, seqExpr, _) => {
         var expr := exprBox.Get();
         var value := expr.Value();
@@ -80,77 +89,135 @@ module {:options "/functionSyntax:4"} MetaSeq {
         return value;
       }
     }
-  }
 
-  function CalcConcat<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): (result: seq<T>)
-    requires left.Valid()
-    requires right.Valid()
-    requires left.Length() + right.Length() == length
-    decreases 1 + Math.Max(left.Depth(), right.Depth())
-  {
-    left.Value() + right.Value()
-  } by method {
-    var builder: SeqBuilder<T> := new SeqBuilder(length);
-    assert builder.Value() == [];
-
-    var toVisit := new Stack<SeqExpr<T>>(Empty);
-    :- expect toVisit.Push(right);
-    :- expect toVisit.Push(left);
-    assert forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
-    
-    ghost var answer := left.Value() + right.Value();
-    assert toVisit.Repr == [right, left];
-    var reversed := Seq.Reverse(toVisit.Repr);
-    assert reversed == [left, right];
-    assert forall e <- reversed :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
-    ghost var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
-    calc {
-      builder.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
-      [] + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
-      Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
-      // Boy, a good old `seq e <- Seq.Reverse(toVisit.Repr), t <- e.Value() :: t` sure would be nice right about now :)
-      Seq.Flatten(Seq.Map(valueFn, [left, right]));
-      { reveal Seq.Map(); }
-      Seq.Flatten([left.Value()] + Seq.Map(valueFn, [right]));
-      { reveal Seq.Map(); }
-      Seq.Flatten([left.Value(), right.Value()] + []);
-      left.Value() + Seq.Flatten([right.Value()]);
-      left.Value() + right.Value();
-      answer;
-    }
-    assert builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr))) == answer;
-
-    while 0 < toVisit.size
-      invariant toVisit.Valid?()
-      invariant fresh(toVisit)
-      invariant fresh(toVisit.data)
-      invariant forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth())
-      invariant builder.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr))) == answer
-      decreases Sum(Seq.Map((e: SeqExpr<T>) => e.Depth(), toVisit.Repr))
+    method AppendValue(builder: SeqBuilder<T>) 
+      requires Valid()
+      modifies builder
+      ensures builder.Value() == old(builder.Value()) + Value();
     {
-      // TODO: Have to add Pop() to Stacks.dfy
-      var next := toVisit.Pop();
-      assert next.Valid();
-
-      match next {
-        case Concat(nextLeft, nextRight, _) =>
-          :- expect toVisit.Push(nextRight);
-          :- expect toVisit.Push(nextLeft);
-        case _ =>
-          builder.Append(next.Value());
+      match this {
+        case Empty =>
+        case Direct(a) => {
+          builder.Append(a);
+        }
+        case Concat(left, right, _) => {
+          left.AppendValue(builder);
+          right.AppendValue(builder);
+        }
+        case Lazy(value, _, _) => {
+          var expr := exprBox.Get();
+          expr.AppendValue(builder);
+        }
       }
     }
+  }
+
+  // function CalcConcatStackBased<T>(left: SeqExpr<T>, right: SeqExpr<T>, length: nat): (result: seq<T>)
+  //   requires left.Valid()
+  //   requires right.Valid()
+  //   requires left.Length() + right.Length() == length
+  //   decreases 1 + Math.Max(left.Depth(), right.Depth())
+  // {
+  //   left.Value() + right.Value()
+  // } by method {
+  //   var builder: SeqBuilder<T> := new SeqBuilder(length);
+  //   assert builder.Value() == [];
+
+  //   var toVisit := new Stack<SeqExpr<T>>(Empty);
+  //   :- expect toVisit.Push(right);
+  //   :- expect toVisit.Push(left);
+  //   assert forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
     
-    var v := builder.Value();
-    Assume(v == left.Value() + right.Value());
-    return v;
-  }
+  //   ghost var answer := left.Value() + right.Value();
+  //   assert toVisit.Repr == [right, left];
+  //   var reversed := Seq.Reverse(toVisit.Repr);
+  //   assert reversed == [left, right];
+  //   assert forall e <- reversed :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth());
+  //   ghost var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
+  //   calc {
+  //     builder.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+  //     [] + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+  //     Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(toVisit.Repr)));
+  //     Seq.Flatten(Seq.Map(valueFn, [left, right]));
+  //     { reveal Seq.Map(); }
+  //     Seq.Flatten([left.Value()] + Seq.Map(valueFn, [right]));
+  //     { reveal Seq.Map(); }
+  //     Seq.Flatten([left.Value(), right.Value()] + []);
+  //     left.Value() + Seq.Flatten([right.Value()]);
+  //     left.Value() + right.Value();
+  //     answer;
+  //   }
+  //   assert builder.Value() + Seq.Flatten(Seq.Map((e: SeqExpr<T>) requires e.Valid() => e.Value(), Seq.Reverse(toVisit.Repr))) == answer;
 
-  function Sum(s: seq<nat>): nat {
-    Seq.FoldLeft((a, b) => a + b, 0, s)
-  }
+  //   while 0 < toVisit.size
+  //     invariant toVisit.Valid?()
+  //     invariant fresh(toVisit.data)
+  //     invariant forall e <- toVisit.Repr :: e.Valid() && e.Depth() < 1 + Math.Max(left.Depth(), right.Depth())
+  //     invariant builder.Value() + ConcatValueOnStack(toVisit.Repr) == answer
+  //     decreases TotalNodesOnStack(toVisit.Repr) + TotalDepthOnStack(toVisit.Repr)
+  //   {
+  //     ghost var stackBefore := toVisit.Repr;
+  //     ghost var builderBefore := builder.Value();
+  //     ghost var stackNodesBefore := TotalNodesOnStack(toVisit.Repr);
+  //     ghost var stackDepthBefore :=  TotalDepthOnStack(toVisit.Repr);
 
-  lemma {:axiom} Assume(p: bool) ensures p
+  //     // TODO: Have to add Pop() to Stacks.dfy
+  //     var next := toVisit.Pop();
+  //     assert next.Valid();
+
+  //     match next {
+  //       case Concat(nextLeft, nextRight, _) =>
+  //         :- expect toVisit.Push(nextRight);
+  //         :- expect toVisit.Push(nextLeft);
+  //       case _ =>
+  //         assert next.Depth() == 0;
+  //         builder.Append(next.Value());
+  //         assert toVisit.Repr + [next] == stackBefore;
+  //         SumDistributesOverConcat(toVisit.Repr, [next]);
+  //         assert TotalNodesOnStack(toVisit.Repr) + next.NodeCount() == TotalNodesOnStack(stackBefore);
+  //         assert stackNodesBefore < TotalNodesOnStack(toVisit.Repr);
+  //     }
+  //   }
+    
+  //   assert |toVisit.Repr| == 0;
+  //   return builder.Value();
+  // }
+
+  // ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>
+  //   requires (forall e <- s :: e.Valid())
+  // {
+  //   var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
+  //   Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)))
+  // }
+
+  // ghost function TotalDepthOnStack<T>(s: seq<SeqExpr<T>>): nat
+  // {
+  //   Sum(Seq.Map((e: SeqExpr<T>) => e.Depth(), s))
+  // }
+
+  // ghost function TotalNodesOnStack<T>(s: seq<SeqExpr<T>>): nat
+  // {
+  //   Sum(Seq.Map((e: SeqExpr<T>) => e.NodeCount(), s))
+  // }
+
+  // lemma 
+
+  // function Sum(s: seq<nat>): nat {
+  //   Seq.FoldLeft((x, y) => x + y, 0, s)
+  // }
+
+  // lemma SumDistributesOverConcat(a: seq<nat>, b: seq<nat>)
+  //   ensures Sum(a + b) == Sum(a) + Sum(b)
+  // {
+  //   var f := (x, y) => x + y;
+  //   calc {
+  //     Sum(a + b);
+  //     Seq.FoldLeft(f, 0, a + b);
+  //     { Seq.LemmaFoldLeftDistributesOverConcat(f, 0, a, b); }
+  //     Seq.FoldLeft(f, Seq.FoldLeft(f, 0, a), b);
+  //     Sum(a) + Sum(b);
+  //   }
+  // }
 
   // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
