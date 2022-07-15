@@ -96,6 +96,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
         case Empty =>
           if 0 < toAppendAfter.size {
             var next := toAppendAfter.Pop();
+            LemmaConcatValueOnStackWithTip(toAppendAfter.Repr, next);
             next.AppendValue(builder, toAppendAfter);
           }
         case Direct(a) => {
@@ -107,6 +108,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
         }
         case Concat(left, right, _) => {
           :- expect toAppendAfter.Push(right);
+          LemmaConcatValueOnStackWithTip(old(toAppendAfter.Repr), right);
           left.AppendValue(builder, toAppendAfter);
         }
         case Lazy(value, _, _, _) => {
@@ -122,6 +124,14 @@ module {:options "/functionSyntax:4"} MetaSeq {
   {
     var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
     Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)))
+  }
+
+  lemma LemmaConcatValueOnStackWithTip<T>(s: seq<SeqExpr<T>>, x: SeqExpr<T>) 
+    requires (forall e <- s :: e.Valid())
+    requires x.Valid()
+    ensures ConcatValueOnStack(s + [x]) == ConcatValueOnStack(s) + x.Value()
+  {
+    reveal Seq.Map();
   }
 
   // TODO: Make this an extern. How to monomorphize?
