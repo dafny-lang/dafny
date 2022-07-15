@@ -362,6 +362,9 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 -----------------|------------------------------------
   `-`            | bit-limited negation (unary minus)
   `!`            | bit-wise complement
+-----------------|------------------------------------
+  .RotateLeft(n) | rotates bits left by n bit positions
+  .RotateRight(n)| rotates bits right by n bit positions
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
@@ -372,6 +375,12 @@ must be non-negative, and
 no more than the number of bits in the type.
 There is no signed right shift as all bit-vector values correspond to
 non-negative integers.
+
+The argument of the `RotateLeft` and `RotateRight` operations is a
+non-negative `int` that is no larger than the bit-width of the value being rotated.
+`RotateLeft` moves bits to higher bit positions (e.g., `(2 as bv4).RotateLeft(1) == (4 as bv4)`
+and `(8 as bv4).RotateLeft(1) == (1 as bv4)`);
+`RotateRight` moves bits to lower bit positions, so `b.RotateLeft(n).RotateRight(n) == b`.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
