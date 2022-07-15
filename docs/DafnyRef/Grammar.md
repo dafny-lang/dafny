@@ -605,7 +605,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `/functionSyntax:4` option needs to be provided to enable this feature (See [Section 24.10.5](#sec-controlling-language)).
+the `/functionSyntax:4` option needs to be provided to enable this feature (See [Section 25.11.5](#sec-controlling-language)).
 
 The general production for quantifier domains is:
 

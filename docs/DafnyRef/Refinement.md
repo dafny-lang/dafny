@@ -1,4 +1,4 @@
-# 21. Refinement {#sec-module-refinement}
+# 22. Refinement {#sec-module-refinement}
 
 Refinement is the process of replacing something somewhat abstract with something somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,
@@ -58,7 +58,7 @@ So that it is clear that refinement is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
-## 21.1. Export set declarations
+## 22.1. Export set declarations
 
 A refining export set declaration begins with the syntax
 ````grammar
@@ -75,7 +75,7 @@ module with the name of the parent module. The result module has a default
 export set according to the general rules for export sets, after all of
 the result module's export set declarations have been assembled.
 
-## 21.2. Import declarations
+## 22.2. Import declarations
 
 Aliasing import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
@@ -86,11 +86,11 @@ abstract import and the refining module contains a regular aliasing
 import for the same name. Dafny checks that the refining import _adheres_ to
 the abstract import.
 
-## 21.3. Sub-module declarations
+## 22.3. Sub-module declarations
 
 TODO
 
-## 21.4. Const declarations
+## 22.4. Const declarations
 
 Const declarations can be refined as in the following example.
 
@@ -121,7 +121,7 @@ from a parent module if
 A refining module can also introduce new `const` declarations that do
 not exist in the refinement parent.
 
-## 21.5. Method declarations
+## 22.5. Method declarations
 
 Method declarations can be refined as in the following example.
 
@@ -181,7 +181,7 @@ module B refines A {
 ```
 
 Formally, a child `method` definition may refine a parent `method`
-declaration or definition to perform one or more of the following
+declaration or definition by performing one or more of the following
 operations:
 
 * provide a body missing in the parent (as in `ToDefine`),
@@ -245,7 +245,7 @@ lemmas that mention it.
 A refining module can also introduce new `method` declarations or
 definitions that do not exist in the refinement parent.
 
-## 21.6. Lemma declarations
+## 22.6. Lemma declarations
 
 As lemmas are (ghost) methods, the description of method refinement from
 the previous section also applies to lemma refinement.
@@ -254,7 +254,7 @@ A valid refinement is one that does not invalidate any proofs. A lemma
 from a refinement parent must still be valid for the refinement result
 of any method or lemma it mentions.
 
-## 21.7. Function and predicate declarations
+## 22.7. Function and predicate declarations
 
 Function (and equivalently predicate) declarations can be refined as in
 the following example.
@@ -291,15 +291,15 @@ is the same as for methods and lemmas, as described in the previous section.
 A refining module can also introduce new `function` declarations or
 definitions that do not exist in the refinement parent.
 
-## 21.8. Iterator declarations
+## 22.8. Iterator declarations
 
 TODO
 
-## 21.9. Class and trait declarations
+## 22.9. Class and trait declarations
 
 TODO
 
-## 21.10. Type declarations
+## 22.10. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
 
 TODO

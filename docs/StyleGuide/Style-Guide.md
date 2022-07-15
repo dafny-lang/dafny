@@ -137,9 +137,9 @@ Use 2 spaces for each indentation.
 Although there is no strict requirement, it is generally recommended to have a maximum of 120 characters per line.
 
 ### Newlines
-Use newlines between sequential **functions**, **methods**, **predicates**, and **lemmas** to increase readability.
+Put one blank line between sequential **functions**, **methods**, **predicates**, and **lemmas** to increase readability.
 
-End each file with a newline.
+End each file with a newline character.
 
 ### Functions, Methods, Predicates, and Lemmas
 Every Dafny method has the following signature.
@@ -312,8 +312,8 @@ only have to write `{:extern}`, not `{:extern "<name>"}`.
 
 ### Things to Consider
 Ask these questions before designing / implementing a program in Dafny.
-* Is this variable name / function name `X` a good name?
+* Is this variable name / function name `X` a good name? Is its purpose intuitively clear from the name?
 * Does it make sense that this method `M` is in module `X`? Shouldn't it be in module `Y` instead?
 * Does the definition `X` belong to the file `Y.dfy`?
-* Is `X.dfy` a good filename?
+* Is `X.dfy` a good filename, that is, is its intended use clear from the name?
 
