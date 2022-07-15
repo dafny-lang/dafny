@@ -64,6 +64,8 @@ or within a ``SubModuleDecl``. A top-level declaration is one of
 various kinds of declarations described later. Top-level declarations are
 implicitly members of a default (unnamed) top-level module.
 
+Declarations within a module or at the top-level  all begin with reserved keywords and do not end with semicolons.
+
 The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
 ``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
 type declarations and are described in [Section 6](#sec-types) and

@@ -287,8 +287,6 @@ The dafny tool terminates with these exit codes:
 Errors in earlier phases of processing typically hide later errors.
 For example, if a program has parsing errors, verification or compilation will
 not be attempted.
-The option `-countVerificationErrors:0` forces the tool to always end with a 0
-exit code.
 
 ## 25.9. Verification
 

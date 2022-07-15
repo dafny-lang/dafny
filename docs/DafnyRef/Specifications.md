@@ -21,6 +21,9 @@ This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
 that use them.
 
+Specification clauses typically appear in a sequence. They all begin with a 
+keyword and do not end with semicolons.
+
 ## 5.1. Specification Clauses
 
 

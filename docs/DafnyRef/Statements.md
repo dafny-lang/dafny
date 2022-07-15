@@ -19,6 +19,8 @@ programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
+Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+
 ## 20.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
@@ -765,6 +767,13 @@ a method or function. The type of each local variable must be given
 unless its type can be inferred, either from a given initial value, or
 from other uses of the variable. If initial values are given, the number
 of values must match the number of variables declared.
+
+The scope of the declared variable extends to the end of the block in which it is
+declared. However, be aware that if a simple variable declaration is followed
+by an expression (rather than a subsequent statement) then the `var` begins a
+[Let Expression](#sec-let-expression) and the scope of the introduced variables is
+only to the end of the expression. In this case, though, the `var` is in an expression
+context, not a statement context.
 
 Note that the type of each variable must be given individually. The following code
 
