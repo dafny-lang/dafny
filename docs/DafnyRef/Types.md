@@ -379,7 +379,7 @@ non-negative integers.
 The argument of the `RotateLeft` and `RotateRight` operations is a
 non-negative `int` that is no larger than the bit-width of the value being rotated.
 `RotateLeft` moves bits to higher bit positions (e.g., `(2 as bv4).RotateLeft(1) == (4 as bv4)`
-and `(8 as bv4).Rotateleft(1) == (1 as bv4)`);
+and `(8 as bv4).RotateLeft(1) == (1 as bv4)`);
 `RotateRight` moves bits to lower bit positions, so `b.RotateLeft(n).RotateRight(n) == b`.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
