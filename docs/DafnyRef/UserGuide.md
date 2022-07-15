@@ -1521,7 +1521,9 @@ used, how compilation proceeds, and whether the compiled program is
 immediately executed.
 
 * `-compile:<n>` - control whether compilation happens. The value of
-  `<n>` can be one of the following.
+  `<n>` can be one of the following. Note that if the program is 
+   compiled, it will be compiled to the target language determined by
+   the `-compileTarget` option, which is C\# by default.
 
    * `0` - do not compile the program
 
@@ -1540,17 +1542,29 @@ immediately executed.
 * `-compileTarget:<s>` - set the target programming language for the
   compiler. The value of `<s>` can be one of the following.
 
-   * `cs` - C\#
+   * `cs` - C\# . Produces a .dll file that can be run using `dotnet`.
+      For example, `dafny Hello.dfy` will produce `Hello.dll` and `Hello.runtimeconfig.json`.
+      The dll can be run using `dotnet Hello.dll`.
 
-   * `go` - Go
+   * `go` - Go. The default output of `dafny Hello.dfy -compileTarget:go` is
+      in the `Hello-go` folder. It is run using
 
-   * `js` - Javascript
+   * `js` - Javascripti. The default output of `dafny Hello.dfy -compileTarget:js` is
+      the file `Hello.js`, which can be run using `node Hello.js`. (You must have 
+      `bignumber.js` installed.)
 
-   * `java` - Java
+   * `java` - Java. The default output of `dafny Hello.dfy -compileTarget:java` is
+      in the `Hello-java` folder. The compiled program can be run using
+      `java -cp Hello-java:Hello-java/DafnyRuntime.jar Hello`.
 
-   * `py` - Python
+   * `py` - Python. The default output of `dafny Hello.dfy -compileTarget:py` is
+      in the `Hello-py` folder. The compiled program can be run using
+      `python Hello-py/Hello.py`, where `python ` is python version 3.
 
-   * `cpp` - C++
+   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cs` is
+      `Hello.exe` and other files written to the current folder. The compiled
+      program can be run using `./Hello.exe`.
+
 
 * `-spillTargetCode:<n>` - control whether to write out compiled code in
   the target language (instead of just holding it in internal temporary
