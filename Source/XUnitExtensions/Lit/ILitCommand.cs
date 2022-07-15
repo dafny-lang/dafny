@@ -77,6 +77,6 @@ namespace XUnitExtensions.Lit {
       return result.Files.Select(f => f.Path);
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
   }
 }

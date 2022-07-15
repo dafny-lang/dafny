@@ -1,19 +1,19 @@
 <!--PDF NEWPAGE-->
-# 24. Dafny User's Guide {#sec-user-guide}
+# 25. Dafny User's Guide {#sec-user-guide}
 
 Most of this document describes the Dafny programming language.
 This section describes the `dafny` tool, a combined verifier and compiler
 that implements the Dafny language.
 
-The development of the dafny language and tool is a GitHub project at [https://github.com/dafny-lang/dafny](https://github.com/dafny-lang/dafny).
+The development of the Dafny language and tool is a GitHub project at [https://github.com/dafny-lang/dafny](https://github.com/dafny-lang/dafny).
 The project is open source, with collaborators from various organizations and additional contributors welcome.
 The software itself is licensed under the [MIT license](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 
-## 24.1. Introduction
+## 25.1. Introduction
 
-The dafny tool implements the following capabilities:
+The `dafny` tool implements the following capabilities:
 
-- checking that the input files represent a valid Dafny program (i.e., syntax, grammar and type checking);
+- checking that the input files represent a valid Dafny program (i.e., syntax, grammar and name and type resolution);
 - verifying that the program meets its specifications, by translating the program to verification conditions
 and checking those with Boogie and an SMT solver, typically Z3;
 - compiling the program to a target language, such as C#, Java, Javascript, Go (and others in development);
@@ -22,7 +22,7 @@ and checking those with Boogie and an SMT solver, typically Z3;
 Using various command-line flags, the tool can perform various combinations of the last three actions (the first
 action is always performed).
 
-## 24.2. Dafny Programs and Files
+## 25.2. Dafny Programs and Files
 
 A Dafny program is a set of modules.
 Modules can refer to other modules, such as through `import` declarations
@@ -53,14 +53,9 @@ Thus it is important to eventually check all files, preferably in an order
 in which the files without dependencies are checked first, then those that
 depend on them, etc., until all files are checked.
 
-[^fn-duplicate-files]: File names are considered equal if they
-have the same absolute path, compared as case-sensitive strings
-(regardless of whether the underlying file-system is case sensitive).
-Use of symbolic links
-may make the same file have a different absolute path; this will generally
-cause duplicate declaration errors.
+[^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-## 24.3. Installing Dafny
+## 25.3. Installing Dafny
 
 The instructions for installing dafny and the required dependencies and environment
 are described on the Dafny wiki:
@@ -76,16 +71,16 @@ Current and past Dafny binary releases can be found at
 Each release is a .zip file with a name combining the release name and the
 platform. Current platforms are Windows 10, Ubuntu 16ff, and MacOS 10.14ff.
 
-The principal dependency of the dafny tool is that it uses `dotnet`, which
-is available and must be installed on Linux and Mac platforms to use dafny.
+The principal dependency of the `dafny` tool is that it uses `dotnet`, which
+is available and must be installed on Linux and Mac platforms to use `dafny`.
 
-## 24.4. Dafny Code Style
+## 25.4. Dafny Code Style
 
 There are code style conventions for Dafny code, recorded [here](https://dafny-lang.github.io/dafny/StyleGuide/Style-Guide).
 Most significantly, code is written without tabs and with a 2 space indentation.
 
 
-## 24.5. IDEs for Dafny
+## 25.5. IDEs for Dafny
 
 Dafny source files are text files and can of course be edited with any
 text editor. However, some tools provide syntax-aware features:
@@ -93,15 +88,74 @@ text editor. However, some tools provide syntax-aware features:
 - There is a [Dafny mode for
     Emacs](https://github.com/boogie-org/boogie-friends).
 
-- VSCode, a cross-platform editor for many programming languages has an extension for dafny, installed from within VSCode. VSCode is available [here](http://code.visualstudio.com). The extension provides syntax highlighting, in-line parser, type and verification errors, and code navigation.
+- VSCode, a cross-platform editor for many programming languages has an extension for Dafny,
+  installed from within VSCode. VSCode is available [here](http://code.visualstudio.com).
+  The [extension](#sec-dafny-language-server-vscode) provides syntax highlighting, in-line parser,
+  type and verification errors, code navigation, counter-example display and gutter highlights.
 
 - An old Visual Studio plugin is no longer supported
 
 Information about installing IDE extensions for Dafny is found
 on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 
+## 25.6. Dafny VSCode extension and the Dafny Language Server {#sec-dafny-language-server-vscode}
 
-## 24.6. The Dafny Server
+There is a language server for Dafny, which [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
+This server is used by the Dafny VSCode Extension, and it currently offers the following features:
+- Quick syntax highlighting
+- Parsing, Resolution and realtime verification diagnostics
+- Support for [Dafny plugins](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer#plugins)
+- Limited support for symbol completion
+- Limited support for code navigation
+- Counter-example display
+- Highlighting of ghost statement
+- Gutter highlights
+
+### 25.6.1. Gutter highlights meaning {#sec-gutter-highlights}
+
+The first time a file is loaded, the gutter will highlight in a transparent squiggly green line all the methods that need to be verified, like this:
+
+![image](https://user-images.githubusercontent.com/3601079/178058374-a1e5e9ca-2c5e-493a-bb60-d00310962741.png)
+
+When the file is saved (in verification on save), or whenever the Dafny verifier is ready (in verification on change), it will start to verify methods.
+That line will turn into a thin green rectangle on methods that have been verified, and display an animated less transparent green squiggly line on methods that are being actively verified:
+
+![image](https://user-images.githubusercontent.com/3601079/178058713-1266a23f-fdb4-4494-844a-488cc214c797.png)
+
+When the verification finishes, if a method, a function, a constant with default initialization or a subset type with a witness has some verification errors in it,
+the editor will display two yellow vertical rails indicating an error context.
+
+![image](https://user-images.githubusercontent.com/3601079/178058908-71425938-57a4-454d-805d-2923d7c4de73.png)
+
+Inside this context, if there is a failing assertion on a line,
+it will fill the gap between the vertical yellow bars with a red rectangle, even if there might be other assertions that are verified on the line.
+If there is no error on a line, but there is at least one assertion that verified, it will display a green disk with a white checkmark on it,
+which can be used to check progress in a proof search.
+
+As soon as a line is changed, the gutter icons turn transparent and squiggly, to indicate their obsolescence.
+
+![image](https://user-images.githubusercontent.com/3601079/178063330-dd346ddf-aa60-487e-a368-3a4af572aeac.png)
+
+The red error rectangles occupy only half the horizontal space, to visualise their possible obsolescence.
+
+When the file is saved (in verification on save), or as soon as possible otherwise,
+these squiggly icons will be animated while the Dafny verifier inspect the area.
+
+![image](https://user-images.githubusercontent.com/3601079/178063848-d0fb02d9-c743-4ffc-9e34-c5f8731c79d1.png)
+
+If the method was verifying before a change, instead of two yellow vertical bars with a red squiggly line,
+the gutter icons display an animated squiggly but more firm green line, thereby indicating that the method used to verify,
+but Dafny is still re-verifying it.
+
+![image](https://user-images.githubusercontent.com/3601079/178068281-f15fa83f-6180-4de1-ab63-b65957f6c86b.png)
+
+If there is a parse or resolution error, the previous gutter icons turn gray and a red triangle indicates 
+the position of the parse or resolution error.
+
+![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
+
+
+## 25.7. The Dafny Server {#sec-dafny-server}
 
 Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
 
@@ -184,9 +238,10 @@ btoa(JSON.stringify({
 ```
 
 Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
-The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) that is both available in Emacs and [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode). The Language Server also provides features such as ghost highlighting or symbol hovering.
 
-## 24.7. Using Dafny From the Command Line
+The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) instead. It is supported in [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) only. The Language Server also provides features such as ghost highlighting or symbol hovering.
+
+## 25.8. Using Dafny From the Command Line
 
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
@@ -201,7 +256,7 @@ working directory. A command-line argument not matching a known option is consid
 the language that the dafny files are being compiled to.
 
 The command `Dafny.exe /?` gives the current set of options supported
-by the tool. The most commonly used options are described in [Section 24.10](#sec-command-line-options).
+by the tool. The most commonly used options are described in [Section 25.11](#sec-command-line-options).
 
 - Options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
@@ -209,7 +264,7 @@ by the tool. The most commonly used options are described in [Section 24.10](#se
 intervening white space; if the argument itself contains white space, the argument must be enclosed in quotes.
 - Escape characters are determined by the shell executing the command-line.
 
-The dafny tool performs several tasks:
+The `dafny` tool performs several tasks:
 
 - Checking the form of the text in a `.dfy` file. This step is always performed, unless the tool is simply asked for
 help information or version number.
@@ -219,13 +274,13 @@ default, but can be skipped by using the `-noVerify` or `-dafnyVerify:0` option
 successful but can be skipped or always executed by using variations of the `-compile` option.
 - Whether the source code of the compiled target is written out is controlled by `-spillTargetCode`
 - The particular target language used is chosen by `-compileTarget`
-- Whether or not the dafny tool attempts to run the compiled code is controlled by `-compile`
+- Whether or not the `dafny` tool attempts to run the compiled code is controlled by `-compile`
 
 The dafny tool terminates with these exit codes:
 
 * 0 -- success
 * 1 -- invalid command-line arguments
-* 2 -- parse or types errors
+* 2 -- syntax, parse, or name or type resolution errors
 * 3 -- compilation errors
 * 4 -- verification errors
 
@@ -235,18 +290,18 @@ not be attempted.
 The option `-countVerificationErrors:0` forces the tool to always end with a 0
 exit code.
 
-## 24.8. Verification
+## 25.9. Verification
 
 In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
-### 24.8.1. Verification debugging when verification fails {#sec-verification-debugging}
+### 25.9.1. Verification debugging when verification fails {#sec-verification-debugging}
 
 Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
 
-#### 24.8.1.1. Failing postconditions {#sec-failing-postconditions}
+#### 25.9.1.1. Failing postconditions {#sec-failing-postconditions}
 Let's look at an example of a failing postcondition.
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
@@ -289,8 +344,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 That's it! Now the postcondition is not failing anymore, but the `assert` contains the error!
 you can now move to the next section to find out how to debug this `assert`.
 
-#### 24.8.1.2. Failing asserts {#sec-failing-asserts}
-In the [previous section](#sec-failing-postconditions), we arrive to the point where we have a failing assertion:
+#### 25.9.1.2. Failing asserts {#sec-failing-asserts}
+In the [previous section](#sec-failing-postconditions), we arrived at the point where we have a failing assertion:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
@@ -365,10 +420,10 @@ b ==>  2 <= (if !b then 3 else 1)
 !b || !b;
 !b;
 ```
-Now we can understand what went wrong: When b is true, all of these formulas above are false, this is why the Dafny verifier was not able to prove them.
+Now we can understand what went wrong: When b is true, all of these formulas above are false, this is why the `dafny` verifier was not able to prove them.
 In the next section, we will explain how to "move asserts up" in certain useful patterns.
 
-#### 24.8.1.3. Failing asserts cases {#sec-failing-asserts-special-cases}
+#### 25.9.1.3. Failing asserts cases {#sec-failing-asserts-special-cases}
 
 This list is not exhaustive but can definitely be useful to provide the next step to figure out why Dafny could not prove an assertion.
 
@@ -398,16 +453,16 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br><br><br><br><br>&nbsp;&nbsp;`  var x: m_mod(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  modify this, i; // Temporarily`<br>&nbsp;&nbsp;`  var x := T;     // Temporarily`<br>&nbsp;&nbsp;`  assume B(k, x);`<br>&nbsp;&nbsp;`//  var x := m_mod(k);`<br>&nbsp;&nbsp;`  assert P(x);`
   <br>`modify x, y;`<br>`assert P(x, y, z);` | `assert x != z && y != z;`<br>`modify x, y;`<br>`assert P(x, y, z);`
 
-### 24.8.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
+### 25.9.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
-In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or timeouts.
+In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or times out.
 
-#### 24.8.2.1. `assume false;` {#sec-assume-false}
+#### 25.9.2.1. `assume false;` {#sec-assume-false}
 
 Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point[^explainer-assume-false], and since the final compilation steps do not accept this command, it is safe to use it during development.
 Another similar command, `assert false;`, would also short-circuit the verifier, but it would still make the verifier try to prove `false`, which can also lead to timeouts.
 
-[^explainer-assume-false]: `assume false` tells the Dafny verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
+[^explainer-assume-false]: `assume false` tells the `dafny` verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
 
 Thus, let us say a program of this shape takes forever to verify.
 
@@ -439,7 +494,7 @@ method NotTerminating() {
 }
 ```
 
-This verifies instantly. This gives use a strategy to bissect, or do binary search to find the assertion that slows everything down.
+This verifies instantly. This gives use a strategy to bisect, or do binary search to find the assertion that slows everything down.
 Now, we move the `assume false;` below the next assertion:
 
 ```dafny
@@ -495,7 +550,7 @@ method NotTerminating() {
 Now, if verification is slow, it means that `assert Y;` is the problem.
 If verification is fast, it means that the problem lies in the `else` branch.
 One trick to ensure we measure the verification time of the `else` branch and not the then branch is to move the first `assume false;` to the top of the then branch, along with a comment indicating that we are short-circuiting it for now.
-Then, we can move the second `assume false;` down and identify which of the two assertions makes the verifier to be slow.
+Then, we can move the second `assume false;` down and identify which of the two assertions makes the verifier slow.
 
 
 ```dafny
@@ -518,11 +573,11 @@ If verification is fast, which of the two assertions `assert Z;` or `assert P;` 
 [^answer-slowdown]: `assert P;`.
 
 We now hope you know enough of `assume false;` to locate assertions that make verification slow.
-Nest, we will describe some other strategies at the assertion level to figure out what happens and perhaps fix it.
+Next, we will describe some other strategies at the assertion level to figure out what happens and perhaps fix it.
 
-#### 24.8.2.2. `assert ... by {}` {#sec-verification-debugging-assert-by}
+#### 25.9.2.2. `assert ... by {}` {#sec-verification-debugging-assert-by}
 
-If an assertion `assert X;` is slow, it is possible that calling a lemma or invoking other assertions can help proving it: The postcondition of this lemma, or the added assertions, could help the Dafny verifier figure out faster how to prove the result.
+If an assertion `assert X;` is slow, it is possible that calling a lemma or invoking other assertions can help to prove it: The postcondition of this lemma, or the added assertions, could help the `dafny` verifier figure out faster how to prove the result.
 
 ```dafny
   assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
@@ -546,11 +601,11 @@ A good practice consists of wrapping the intermediate verification steps in an `
   }
 ```
 
-Now, only `X` is available for the Dafny Verifier to prove the rest of the method.
+Now, only `X` is available for the `dafny` verifier to prove the rest of the method.
 
-[^verifier-lost]: By default, the expression of an assertion or a precondition is added to the knowledge base of the Dafny verifier for further assertions or postconditions. However, this is not always desirable, because if the verifier has too much knowledge, it might get lost trying to prove something in the wrong direction.
+[^verifier-lost]: By default, the expression of an assertion or a precondition is added to the knowledge base of the `dafny` verifier for further assertions or postconditions. However, this is not always desirable, because if the verifier has too much knowledge, it might get lost trying to prove something in the wrong direction.
 
-#### 24.8.2.3. Labeling and revealing assertions {#sec-labeling-revealing-assertions}
+#### 25.9.2.3. Labeling and revealing assertions {#sec-labeling-revealing-assertions}
 
 Another way to prevent assertions or preconditions from cluttering the verifier[^verifier-lost] is to label and reveal them.
 Labeling an assertion has the effect of "hiding" its result, until there is a "reveal" calling that label.
@@ -578,15 +633,15 @@ method Slow(i: int, j: int)
 }
 ```
 
-#### 24.8.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
+#### 25.9.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
 
 Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code.
 However, doing so naively results in the body of a `function method Fun()` be available for every caller, which can cause the verifier to time out or get extremely slow[^verifier-lost].
 A solution for that is to add the attribute [`{:opaque}`](#sec-opaque) right between `function method` and `Fun()`, and use [`reveal Fun();`](#sec-reveal-statement) in the calling functions or methods when needed.
 
-#### 24.8.2.5. Conversion to and from bitvectors {#sec-conversion-to-and-from-bitvectors}
+#### 25.9.2.5. Conversion to and from bitvectors {#sec-conversion-to-and-from-bitvectors}
 
-Bitvectors and natural integers are very similar, but they are not treated the same by the Dafny verifier. As such, conversion from `bv8` to an `int` and vice-versa is not straightforward, and can result in slowdowns.
+Bitvectors and natural integers are very similar, but they are not treated the same by the `dafny` verifier. As such, conversion from `bv8` to an `int` and vice-versa is not straightforward, and can result in slowdowns.
 
 There are two solutions to this for now. First, one can define a [subset type](#sec-subset-types) instead of using the built-in type `bv8`:
 
@@ -618,7 +673,7 @@ newtype {:nativeType "char"} byte = x | 0 <= x < 256
 
 One might consider refactoring this code into separate functions if used over and over.
 
-#### 24.8.2.6. Nested loops {#sec-nested-loops}
+#### 25.9.2.6. Nested loops {#sec-nested-loops}
 
 In the case of nested loops, the verifier might timeout sometimes because of the information available[^verifier-lost].
 One way to mitigate this problem, when it happens, is to isolate the inner loop by refactoring it into a separate method, with suitable pre and postconditions that will usually assume and prove the invariant again.
@@ -652,12 +707,12 @@ method innerLoop()
 
 In the next section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focus on certain parts.
 
-### 24.8.3. Assertion batches {#sec-assertion-batches}
+### 25.9.3. Assertion batches {#sec-assertion-batches}
 
 To understand how to control verification,
-it is first useful to understand how Dafny verifies functions and methods.
+it is first useful to understand how `dafny` verifies functions and methods.
 
-For every method (or function, constructor, etc.), Dafny extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
+For every method (or function, constructor, etc.), `dafny` extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
 
 **Integer assertions:**
 
@@ -669,35 +724,35 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_. 
 **Object assertions:**
 
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
-* Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
-* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
-* Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`.
-* Every [sequence access](#sec-sequences) `a[x]` yield an _assertion_, that `0 <= x < |a|`, because sequences are never null.
+* Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
+* Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every [array access](#sec-array-types) `a[x]` yields the assertion that `0 <= x < a.Length`.
+* Every [sequence access](#sec-sequences) `a[x]` yields an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
-* Every method overriding a [`trait`](#sec-trait-types) yield an _assertion_ that any postcondition it provides is equal to or more detailed than in its parent trait, and an _assertion_ that any precondition it provides is equal to or more permissive than in its parent trait.
+* Every method overriding a [`trait`](#sec-trait-types) yields an _assertion_ that any postcondition it provides implies the postcondition of its parent trait, and an _assertion_ that any precondition it provides is implied by the precondition of its parent trait.
 
 **Other implicit assertions:**
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
-* [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
-* Every recursive function yield an _assertion_ that [it terminates](#sec-loop-termination).
-* Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yield an _assertion_ that all cases are covered.
+* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
+* Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
+* Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
 
 **Explicit assertions:**
 
 * Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
 * A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.
 * Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
-  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
+  (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 * Every [`ensures`](#sec-ensures-clause) clause yields an _assertion_ at the end of the method and on every return, and on [`forall`](#sec-forall-statement) statements.
 * Every [`invariant`](#sec-invariant-clause) clause yields an _assertion_ that it holds before the loop and an _assertion_ that it holds at the end of the loop.
 * Every [`decreases`](#sec-decreases-clause) clause yields an _assertion_ at either a call site or at the end of a while loop.
-* Every [`yield ensures`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every yielding point.
-* Every [`yield requires`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every point when the iterator is called.
+* Every [`yield ensures`](#sec-iterator-specification) clause on an [iterator](#sec-iterator-types) yields _assertions_ that the clause holds at every yielding point.
+* Every [`yield requires`](#sec-iterator-specification) clause on an [iterator](#sec-iterator-types) yields _assertions_ that the clause holds at every point when the iterator is called.
 
 
-[^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
+[^precision-requires-clause]: `dafny` actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
 
 It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code,
 except for `ensures` or `decreases` that generate assertions that seem earlier in the code but, for verification purposes, would be placed later.
@@ -705,24 +760,24 @@ In this list, each assertion depends on other assertions, statements and express
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-The fundamental unit of verification in Dafny is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default Dafny collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tries to prove it correct.
+The fundamental unit of verification in `dafny` is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default `dafny` collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tries to prove it correct.
 
 * If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
 * If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
-  In order to retrieve additional failing assertions, Dafny will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes Dafny to make one batch for each assertion.
+  In order to retrieve additional failing assertions, `dafny` will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes `dafny` to make one batch for each assertion.
 
-[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. Dafny reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what Dafny knows.
+[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. `dafny` reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what `dafny` knows.
 
 [^example-assertion-turned-into-assumption]: This [post](https://github.com/dafny-lang/dafny/discussions/1898#discussioncomment-2344533) gives an overview of how assertions are turned into assumptions for verification purposes.
 
-[^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
+[^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, `dafny` can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
 
-[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and arbitrarily transforms the clones of an assertion into assumptions except in exactly one batch, so that each assertion is verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+[^smaller-batches]: To create a smaller batch, `dafny` duplicates the assertion batch, and arbitrarily transforms the clones of an assertion into assumptions except in exactly one batch, so that each assertion is verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
-#### 24.8.3.1. Controlling assertion batches {#sec-assertion-batches-control}
+#### 25.9.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how Dafny partitions assertions into batches.
+Here is how you can control how `dafny` partitions assertions into batches.
 
 * [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
 * [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
@@ -734,7 +789,7 @@ The effect of these attributes may vary, because they are low-level attributes a
   Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
 * [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
 
-### 24.8.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
+### 25.9.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 
 There are many great options that control various aspects of verifying dafny programs. Here we mention only a few:
 
@@ -747,17 +802,17 @@ There are many great options that control various aspects of verifying dafny pro
 
 You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
-## 24.9. Compilation {#sec-compilation}
+## 25.10. Compilation {#sec-compilation}
 
 The `dafny` tool can compile a Dafny program to one of several target languages. Details and idiosyncrasies of each
 of these are described in the following subsections. In general note the following:
 
 - The compiled code originating from `dafny` can be compiled with other source and binary code, but only the `dafny`-originated code is verified.
 - Output file names can be set using `-out`.
-- Code generated by Dafny relies requires a Dafny-specific runtime library.  By default the runtime is included in the generated code for most languages (use `-useRuntimeLib` to omit it).  For Java and C++ the runtime must be linked to separately, except when running the generated code using Dafny's `-compile:3` or `-compile:4`.  All runtime libraries are part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases.
+- Code generated by `dafny` relies requires a Dafny-specific runtime library.  By default the runtime is included in the generated code for most languages (use `-useRuntimeLib` to omit it).  For Java and C++ the runtime must be linked to separately, except when running the generated code using `dafny`'s `-compile:3` or `-compile:4`.  All runtime libraries are part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases.
 - Names in Dafny are written out as names in the target language. In some cases this can result in naming conflicts. Thus if a Dafny program is intended to be compiled to a target language X, you should avoid using Dafny identifiers that are not legal identifiers in X or that conflict with reserved words in X.
 
-### 24.9.1. Main method {#sec-user-guide-main}
+### 25.10.1. Main method {#sec-user-guide-main}
 
 To generate a stand-alone executable from a Dafny program, the
 Dafny program must use a specific method as the executable entry point.
@@ -799,7 +854,7 @@ Note, however, that the following are allowed:
 * The method is allowed to have `ensures` clauses
 * The method is allowed to have `decreases` clauses, including a
   `decreases *`. (If Main() has a `decreases *`, then its execution may
-  go on forever, but in the absence of a `decreases *` on Main(), Dafny
+  go on forever, but in the absence of a `decreases *` on Main(), `dafny`
   will have verified that the entire execution will eventually
   terminate.)
 
@@ -807,7 +862,7 @@ If no legal candidate entry point is identified, `dafny` will still produce exec
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
-### 24.9.2. `extern` declarations {#sec-extern-decls}
+### 25.10.2. `extern` declarations {#sec-extern-decls}
 
 A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
@@ -828,14 +883,14 @@ target-specific name mangling. However, because naming conventions (and
 the set of allowed identifiers) vary between languages, Dafny allows
 additional forms for the `{:extern}` attribute.
 
-The form `{:extern <s1>}` instructs Dafny to compile references to most
+The form `{:extern <s1>}` instructs `dafny` to compile references to most
 declarations using the name `s1` instead of the Dafny name. For [opaque
 types](#sec-opaque-types), however, `s1` is sometimes used as a hint as
 to how to declare that type when compiling. This hint is interpreted
 differently by each compiler.
 
-Finally, the form `{:extern <s1>, <s2>}` instructs Dafny to use `s2` as
-the direct name of the declaration. Dafny will typically use a
+Finally, the form `{:extern <s1>, <s2>}` instructs `dafny` to use `s2` as
+the direct name of the declaration. `dafny` will typically use a
 combination of `s1` and `s2`, such as `s1.s2`, to reference the
 declaration. It may also be the case that one of the arguments is simply
 ignored, depending on the target language.
@@ -843,7 +898,7 @@ ignored, depending on the target language.
 The recommended style is to prefer `{:extern}` when possible, and use
 similar names across languages. This is usually feasible because
 existing external code is expected to have the same interface as the
-code that Dafny would generate for a declaration of that form. Because
+code that `dafny` would generate for a declaration of that form. Because
 many Dafny types compile down to custom types defined in the Dafny
 runtime library, it's typically necessary to write wrappers by hand that
 encapsulate existing external code using a compatible interface, and
@@ -866,7 +921,7 @@ namespace Externs_Compile {
 }
 ```
 
-Note that Dafny does not check the arguments to `{:extern}`, so it is
+Note that `dafny` does not check the arguments to `{:extern}`, so it is
 the user's responsibility to ensure that the provided names result in
 code that is well-formed in the target language.
 
@@ -883,7 +938,7 @@ on some target language support for something resembling "partial"
 modules, where different subsets of the contents are defined in
 different places.
 
-The story for a classes is similar. Code for the class will be generated
+The story for classes is similar. Code for a class will be generated
 if any of its members are not `{:extern}`. Depending on the target
 language, making either all or none of the members `{:extern}` may be
 the only options that result in valid target code. Traits with
@@ -903,11 +958,11 @@ Types marked with `{:extern}` must be opaque. The name argument, if any,
 usually refers to the type name in the target language, but some
 compilers treat it differently.
 
-### 24.9.3. C\#
+### 25.10.3. C\#
 
 TO BE WRITTEN
 
-### 24.9.4. Java
+### 25.10.4. Java
 
 The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
 to a directory _A_-java. The `-out` option can be used to choose a
@@ -919,15 +974,15 @@ for each of the `.dfy` files.
 
 TO BE WRITTEN
 
-### 24.9.5. Javascript
+### 25.10.5. Javascript
 
 TO BE WRITTEN
 
-### 24.9.6. Go
+### 25.10.6. Go
 
 TO BE WRITTEN
 
-### 24.9.7. C++
+### 25.10.7. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
@@ -940,84 +995,23 @@ implementation.
 - We do not support more advanced Dafny features like traits or co-inductive
   types.
 - Very limited support for higher order functions even for array init.  Use
-  extern definitions like newArrayFill (see [extern.dfy]
-  (https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
+  extern definitions like newArrayFill (see 
+  [extern.dfy](https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
   similar.  See also the example in [`functions.dfy`]
   (https://github.com/dafny-lang/dafny/blob/master/Test/c++/functions.dfy).
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 24.9.8. Supported features by target language
+### 25.10.8. Supported features by target language
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
-An empty cell indicated that a feature is not supported,
+An empty cell indicates that a feature is not supported,
 while an X indicates that it is.
 
-Note that this information is currently based on code inspection
-and is not yet guaranteed to be updated as features and backends are modified,
-but such a mechanism is in the works.
+{% include_relative Features.md %}
 
-| Feature | C# | JavaScript | Go | Java | Python | C++ |
-|-|-|-|-|-|-|-|
-| [Unbounded integers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [Real numbers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [Ordinals](#sec-ordinals) |  X  |  X  |  X  |  X  |  X  |  |
-| [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  |  |
-| [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [User-defined types with traits as type parameters](#sec-trait-types) |  X  |  X  |  X  |  |  X  |  X  |
-| [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |
-| [Co-inductive datatypes](#sec-co-inductive-datatypes) |  X  |  X  |  X  |  X  |  |  |
-| [Multisets](#sec-multisets) |  X  |  X  |  X  |  X  |  |  |
-| [Runtime type descriptors](#) |  X  |  X  |  X  |  X  |  |  |
-| [Multi-dimensional arrays](#sec-multi-dimensional-arrays) |  X  |  X  |  X  |  X  |  X  |  |
-| [Map comprehensions](#sec-map-comprehension-expression) |  X  |  X  |  X  |  X  |  X  |  |
-| [Traits](#sec-trait-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [Let-such-that expressions](#sec-let-expression) |  X  |  X  |  X  |  X  |  X  |  |
-| [Non-native numeric newtypes](#sec-newtypes) |  X  |  X  |  X  |  X  |  X  |  |
-| [Method synthesis](#sec-synthesize-attr) |  X  |  |  |  |  |  |
-| [External classes](#sec-extern-decls) |  X  |  X  |  X  |  X  |  X  |  |
-| [Instantiating the `object` type](#sec-object-type) |  X  |  X  |  X  |  X  |  X  |  |
-| [`forall` statements that cannot be sequentialized](#sec-forall-statement)[^compiler-feature-forall-note] |  X  |  X  |  X  |  X  |  |  |
-| [Taking an array's length](#sec-array-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [`m.Items` when `m` is a map](#sec-maps) |  X  |  X  |  X  |  X  |  X  |  |
-| [The /runAllTests option](#sec-test-attribute) |  X  |  X  |  X  |  X  |  X  |  |
-| [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  X  |
-| [Exact value constraints in quantifiers (`x == C`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  |  |
-| [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |
-| [Type test expressions (`x is T`)](#sec-as-expression) |  X  |  X  |  X  |  X  |  X  |  |
-| [Type test expressions on subset types](#sec-as-expression) |  |  |  |  |  |  |
-| [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |
-| [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [`for` loops](#sec-for-loops) |  X  |  X  |  X  |  X  |  |  X  |
-| [`continue` statements](#sec-break-continue) |  X  |  X  |  X  |  X  |  |  X  |
-| [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^compiler-infinite-assign-such-that-note] |  X  |  X  |  X  |  X  |  |  X  |
-| [Sequence update expressions](#sec-other-sequence-expressions) |  X  |  X  |  X  |  X  |  |  X  |
-| [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^compiler-sequence-display-nolambda-note] |  X  |  X  |  X  |  X  |  |  X  |
-| [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |
-| [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
-| [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
-| [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
-
-[^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
-    with the statement's body directly inside. The alternative, default compilation strategy
-    is to calculate the quantified variable bindings separately as a collection of tuples,
-    and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
-    for details.
-
-[^compiler-sequence-display-of-characters-note]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as "Hello".
-
-[^compiler-infinite-assign-such-that-note]: This refers to assign-such-that statements with multiple variables,
-    and where at least one variable has potentially infinite bounds.
-    For example, the implementation of the statement `var x: nat, y: nat :| 0 < x && 0 < y && x*x == y*y*y + 1;`
-    needs to avoid the naive approach of iterating all possible values of `x` and `y` in a nested loop.
-
-[^compiler-sequence-display-nolambda-note]: Sequence construction expressions often use a direct lambda expression, as in `seq(10, x => x * x)`,
-    but they can also be used with arbitrary function values, as in `seq(10, squareFn)`.
-
-## 24.10. Dafny Command Line Options {#sec-command-line-options}
+## 25.11. Dafny Command Line Options {#sec-command-line-options}
 
 There are many command-line options to the `dafny` tool.
 The most current documentation of the options is within the tool itself,
@@ -1025,7 +1019,7 @@ using the `/?` or `/help` option.
 
 Remember that options can be stated with either a leading `/` or a leading `-`.
 
-### 24.10.1. Help and version information {#sec-controlling-help}
+### 25.11.1. Help and version information {#sec-controlling-help}
 
 These options select output including documentation on command-line
 options or attribute declarations, information on the version of Dafny
@@ -1052,7 +1046,7 @@ being used, and information about how Dafny was invoked.
 
 * `-wait` - wait for the user to press `Enter` before terminating after a successful execution.
 
-### 24.10.2. Controlling input {#sec-controlling-input}
+### 25.11.2. Controlling input {#sec-controlling-input}
 
 These options control how Dafny processes its input.
 
@@ -1064,14 +1058,14 @@ These options control how Dafny processes its input.
 
   <https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl>
 
-* `-stdin` - read standard input and treat it as Dafny souce code,
+* `-stdin` - read standard input and treat it as Dafny source code,
   instead of reading from a file.
 
-### 24.10.3. Controlling plugins {#sec-controlling-plugins}
+### 25.11.3. Controlling plugins {#sec-controlling-plugins}
 
 TO BE WRITTEN
 
-### 24.10.4. Controlling output {#sec-controlling-output}
+### 25.11.4. Controlling output {#sec-controlling-output}
 
 These options instruct Dafny to print various information about your
 program during processing, including variations of the original source
@@ -1101,7 +1095,7 @@ code (which can be helpful for debugging).
     include mechanism that have the `{:verify false}` attribute, as well
     as datatypes and fields included from other files.
 
-  * `NoGhost` - disabls printing of functions, ghost methods, and proof
+  * `NoGhost` - disables printing of functions, ghost methods, and proof
     statements in implementation methods. Also disable anything
     `NoIncludes` disables.
 
@@ -1141,7 +1135,7 @@ code (which can be helpful for debugging).
 * `-titrace` - print debugging information during the type inference
   process.
 
-### 24.10.5. Controlling language features {#sec-controlling-language}
+### 25.11.5. Controlling language features {#sec-controlling-language}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
@@ -1183,7 +1177,7 @@ older versions of Dafny.
 
   * `experimentalDefaultCompiled` - like `migration3to4`, but allow
     `function` and `predicate` as alternatives to declaring compiled
-    functions and predic ates, respectively
+    functions and predicates, respectively
 
   * `experimentalPredicateAlwaysGhost` - compiled functions are written
     `function`. Ghost functions are written `ghost function`. Predicates
@@ -1214,7 +1208,7 @@ older versions of Dafny.
   implicitly static and field declarations are not allowed at the
   module scope.
 
-### 24.10.6. Controlling warnings {#sec-controlling-warnings}
+### 25.11.6. Controlling warnings {#sec-controlling-warnings}
 
 These options control what warnings Dafny produces, and whether to treat
 warnings as errors.
@@ -1233,7 +1227,7 @@ warnings as errors.
 
 * `-warningsAsErrors` - treat warnings as errors.
 
-### 24.10.7. Controlling verification {#sec-controlling-verification}
+### 25.11.7. Controlling verification {#sec-controlling-verification}
 
 These options control how Dafny verifies the input program, including
 how much it verifies, what techniques it uses to perform verification,
@@ -1265,7 +1259,7 @@ and what information it produces about the verification process.
 
 * `-verificationLogger:<configuration string>` - log verification
   results to the given test result logger. The currently supported
-  loggers are `trx`, `csv`, and `text`. These are the XML-based format
+  loggers are `trx`, `csv`, and `text`. These are the XML-based formats
   commonly used for test results for .NET languages, a custom CSV
   schema, and a textual format meant for human consumption,
   respectively. You can provide configuration using the same string
@@ -1287,9 +1281,9 @@ and what information it produces about the verification process.
   resource use costs for each assertion, allowing identification of
   especially expensive assertions.
 
-* `-mimicVerificationOf:<Dafny version>` - let Dafny attempt to mimic
-  the verification behavior of a previous version of Dafny. This can be
-  useful during migration to a newer version of Dafny when a Dafny
+* `-mimicVerificationOf:<dafny version>` - let `dafny` attempt to mimic
+  the verification behavior of a previous version of `dafny`. This can be
+  useful during migration to a newer version of `dafny` when a Dafny
   program has proofs, such as methods or lemmas, that are unstable in
   the sense that their verification may become slower or fail altogether
   after logically irrelevant changes are made in the verification input.
@@ -1470,7 +1464,7 @@ and what information it produces about the verification process.
   code, regardless of whether errors are found. If `1` (default) then
   use the appropriate exit code. This option is deprecated.
 
-### 24.10.8. Controlling boogie {#sec-controlling-boogie}
+### 25.11.8. Controlling boogie {#sec-controlling-boogie}
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 
@@ -1505,22 +1499,24 @@ PROVER_OPTIONS="\
 #"$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
 ```
 
-### 24.10.9. Controlling the prover {#sec-controlling-prover}
+### 25.11.9. Controlling the prover {#sec-controlling-prover}
 
 TO BE WRITTEN
 
-### 24.10.10. Controlling test generation {#sec-controlling-test-gen}
+### 25.11.10. Controlling test generation {#sec-controlling-test-gen}
 
 TO BE WRITTEN
 
-### 24.10.11. Controlling compilation {#sec-controlling-compilation}
+### 25.11.11. Controlling compilation {#sec-controlling-compilation}
 
 These options control what code gets compiled, what target language is
 used, how compilation proceeds, and whether the compiled program is
 immediately executed.
 
 * `-compile:<n>` - control whether compilation happens. The value of
-  `<n>` can be one of the following.
+  `<n>` can be one of the following. Note that if the program is 
+   compiled, it will be compiled to the target language determined by
+   the `-compileTarget` option, which is C\# by default.
 
    * `0` - do not compile the program
 
@@ -1539,21 +1535,34 @@ immediately executed.
 * `-compileTarget:<s>` - set the target programming language for the
   compiler. The value of `<s>` can be one of the following.
 
-   * `cs` - C\#
+   * `cs` - C\# . Produces a .dll file that can be run using `dotnet`.
+      For example, `dafny Hello.dfy` will produce `Hello.dll` and `Hello.runtimeconfig.json`.
+      The dll can be run using `dotnet Hello.dll`.
 
-   * `go` - Go
+   * `go` - Go. The default output of `dafny Hello.dfy -compileTarget:go` is
+      in the `Hello-go` folder. It is run using
+      ``GOPATH=`pwd`/Hello-go/ GO111MODULE=auto go run Hello-go/src/Hello.go``
 
-   * `js` - Javascript
+   * `js` - Javascript. The default output of `dafny Hello.dfy -compileTarget:js` is
+      the file `Hello.js`, which can be run using `node Hello.js`. (You must have 
+      `bignumber.js` installed.)
 
-   * `java` - Java
+   * `java` - Java. The default output of `dafny Hello.dfy -compileTarget:java` is
+      in the `Hello-java` folder. The compiled program can be run using
+      `java -cp Hello-java:Hello-java/DafnyRuntime.jar Hello`.
 
-   * `py` - Python
+   * `py` - Python. The default output of `dafny Hello.dfy -compileTarget:py` is
+      in the `Hello-py` folder. The compiled program can be run using
+      `python Hello-py/Hello.py`, where `python` is Python version 3.
 
-   * `cpp` - C++
+   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cpp` is
+      `Hello.exe` and other files written to the current folder. The compiled
+      program can be run using `./Hello.exe`.
+
 
 * `-spillTargetCode:<n>` - control whether to write out compiled code in
   the target language (instead of just holding it in internal temporary
-  memory). The value of `<s>` can be one of the following.
+  memory). The value of `<n>` can be one of the following.
 
    * `0` (default) - don't make any extra effort to write the textual
      target program (but still compile it, if `-compile` indicates to do
@@ -1577,7 +1586,7 @@ out the textual target program as part of compilation, in which case
 
 * `-out:<file>` - set the name to use for compiled code files.
 
-By default, Dafny reuses the name of the Dafny file being compiled.
+By default, `dafny` reuses the name of the Dafny file being compiled.
 Compilers that generate a single file use the file name as-is (e.g. the
 C# backend will generate `<file>.dll` and optionally `<file>.cs` with
 `-spillTargetCode`). Compilers that generate multiple files use the file
@@ -1617,6 +1626,6 @@ periods.
   compiled assembly rather than including `DafnyRuntime.cs` in the build
   process.
 
-## 24.11. Full list of -command-line options <!-- PDFOMIT -->
+## 25.12. Full list of -command-line options <!-- PDFOMIT -->
 For the on-line version only, the output of `dafny /?` follows: <!--PDFOMIT-->
 {% include_relative Options.txt %} <!-- PDFOMIT -->
