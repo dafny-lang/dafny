@@ -2805,8 +2805,17 @@ The initial values of the array elements are arbitrary values of type
 ```
 a := new T[] [t1, t2, t3, t4];
 ```
+The initial values can also be initialized using a lambda expressions, as follows:
+```
+a := new int[5](i => i*i);
+```
+In fact, the initializer can simply be a function name for the right type of function:
+```
+a := new int[5]{Square);
+```
+
 The length of an array is retrieved using the immutable `Length`
-member.  For example, the array allocated above satisfies:
+member.  For example, the array allocated with `a := new T[n];` satisfies:
 ```dafny
 a.Length == n
 ```
