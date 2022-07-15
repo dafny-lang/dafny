@@ -419,7 +419,7 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
-### 22.2.14. `{:timeLimit N}` {#sec-time-limit}
+### 23.2.15. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 
 ### 23.2.16. `{:timeLimitMultiplier X}`
