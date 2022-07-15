@@ -581,9 +581,11 @@ LiteralExpression =
    charToken | stringToken )
 ````
 A literal expression is a boolean literal, a null object reference,
-an integer or real literal, a character or string literal,
-or `this`, which denotes the current object in the context of
-an instance method or function.
+an integer or real literal, a character or string literal.
+
+## 21.20. `this` Expression
+The `this` token denotes the current object in the context of 
+a constructor, instance method, or instance function.
 
 ## 21.21. Fresh Expressions {#sec-fresh-expression}
 
@@ -995,7 +997,7 @@ MatchExpression(allowLemma, allowLambda) =
   )
 
 CaseExpression(allowLemma, allowLambda) =
-  "case" ExtendedPattern "=>" Expression(allowLemma, allowLambda)
+  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
 ````
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
@@ -1006,23 +1008,26 @@ The ``Expression`` following the `match` keyword is called the
 _selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
 the [section on `CaseBinding`s](#sec-case-pattern).
 
-All of the variables in the ``CasePattern``s must be distinct.
+All of the variables in the ``ExtendedPattern``s must be distinct.
 If types for the identifiers are not given then types are inferred
 from the types of the constructor's parameters. If types are
 given then they must agree with the types of the
 corresponding parameters.
 
 A ``MatchExpression`` is evaluated by first evaluating the selector.
-The ``ExtendedPattern``s of each ``CaseClause`` are then compared in order
+The ``ExtendedPattern``s of each match alternative are then compared in order
  with the resulting value until a matching pattern is found.
 If the constructor had
-parameters then the actual values used to construct the selector
+parameters, then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
-The expression to the right of the `=>` in the ``CaseClause`` is then
+The expression to the right of the `=>` in the matched alternative is then
 evaluated in the environment enriched by this binding. The result
 of that evaluation is the result of the ``MatchExpression``.
 
-Note that the braces enclosing the ``CaseClause``s may be omitted.
+Note that the braces enclosing the sequence of match alternatives may be omitted.
+Those braces are required if lemma or lambda expressions are used in the
+body of a match alternative; they may also be needed for disambiguation if
+there are nested match expressions.
 
 ## 21.34. Quantifier Expression {#sec-quantifier-expression}
 ````grammar

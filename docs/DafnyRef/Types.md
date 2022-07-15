@@ -1875,6 +1875,11 @@ constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
+In general, a constructor is responsible for initializating the 
+instance fields of its class. However, any field that is given an
+initializer in its declaration may not be reassigned in the body
+of the constructor.
+
 #### 13.3.2.1. Classes with no explicit constructors
 
 For a class that declares no constructors, an instance of the class is
@@ -1955,7 +1960,9 @@ dropping the "`.`".
 The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
 If there is no `new;` statement, the entire body is the initialization phase.
-The initialization phase is intended to initialize field variables.
+The initialization phase is intended to initialize field variables
+that were not given values in their declaration; it may not reassign
+to fields that do have initializers in their declarations.
 In this phase, uses of the object reference `this` are restricted;
 a program may use `this`
 
