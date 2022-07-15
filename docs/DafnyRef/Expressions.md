@@ -1026,7 +1026,7 @@ of that evaluation is the result of the ``MatchExpression``.
 
 Note that the braces enclosing the sequence of match alternatives may be omitted.
 Those braces are required if lemma or lambda expressions are used in the
-body of a match alternative; they may also be needed for disambiguation if
+body of any match alternative; they may also be needed for disambiguation if
 there are nested match expressions.
 
 ## 21.35. Quantifier Expression {#sec-quantifier-expression}

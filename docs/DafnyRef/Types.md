@@ -2810,16 +2810,20 @@ dimension.  Array types are (heap-based) reference types.
 
 ## 15.1. One-dimensional arrays
 
-A one-dimensional array of `n` `T` elements is created as follows:
+A one-dimensional array of `n` `T` elements may be initialized by
+any expression that returns a value of the desired type.
+Commonly, [array allocation expressions](#sec-array-allocation) are used.
+Some examples are shown here:
 ```dafny
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
-`T`. They can be initialized using an ordered list of expressions enclosed in square brackets, as follows:
+`T`. 
+A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
 ```
 a := new T[] [t1, t2, t3, t4];
 ```
-The initial values can also be initialized using a lambda expressions, as follows:
+The initialazation can also use an expression that returns a function of type `nat -> T`:
 ```
 a := new int[5](i => i*i);
 ```
