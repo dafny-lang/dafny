@@ -2802,7 +2802,7 @@ a := new int[5](i => i*i);
 ```
 
 The length of an array is retrieved using the immutable `Length`
-member.  For example, the array allocated with `a := new int[5];` satisfies:
+member.  For example, the array allocated with `a := new T[n];` satisfies:
 ```dafny
 a.Length == n
 ```
