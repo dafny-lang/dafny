@@ -2800,6 +2800,10 @@ The initial values can also be initialized using a lambda expressions, as follow
 ```
 a := new int[5](i => i*i);
 ```
+In fact, the initializer can simply be a function name for the right type of function:
+```
+a := new int[5]{Square);
+```
 
 The length of an array is retrieved using the immutable `Length`
 member.  For example, the array allocated with `a := new T[n];` satisfies:
