@@ -1548,6 +1548,7 @@ immediately executed.
 
    * `go` - Go. The default output of `dafny Hello.dfy -compileTarget:go` is
       in the `Hello-go` folder. It is run using
+      ``GOPATH=`pwd`/Hello-go/ GO111MODULE=auto go run Hello-go/src/Hello.go``
 
    * `js` - Javascripti. The default output of `dafny Hello.dfy -compileTarget:js` is
       the file `Hello.js`, which can be run using `node Hello.js`. (You must have 
