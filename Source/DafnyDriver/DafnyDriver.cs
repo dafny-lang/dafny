@@ -34,12 +34,19 @@ namespace Microsoft.Dafny {
   }
 
   public class DummyTokenIndentation : TokenFormatter.ITokenIndentations {
-    public void getIndentation(IToken token, out string indentation, out bool wasSet) {
-      wasSet = false;
-      indentation = "";
+    public void GetIndentation(IToken token, string currentIndentation, out string indentationBefore, out string lastIndentation, out string indentationAfter,
+      out bool wasSet) {
       if (token.val == "}") {
-        indentation = new string(' ', Math.Max(token.col, 2) - 2);
         wasSet = true;
+        var indentationBeforeCount = token.col + 1;
+        indentationBefore = new string(' ', indentationBeforeCount);
+        lastIndentation = new string(' ', Math.Max(indentationBeforeCount - 2, 0));
+        indentationAfter = lastIndentation;
+      } else {
+        wasSet = false;
+        indentationBefore = "";
+        lastIndentation = "";
+        indentationAfter = "";
       }
     }
   }
