@@ -344,7 +344,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 That's it! Now the postcondition is not failing anymore, but the `assert` contains the error!
 you can now move to the next section to find out how to debug this `assert`.
 
-#### 24.8.1.2. Failing asserts {#sec-failing-asserts}
+#### 24.9.1.2. Failing asserts {#sec-failing-asserts}
 In the [previous section](#sec-failing-postconditions), we arrived at the point where we have a failing assertion:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
