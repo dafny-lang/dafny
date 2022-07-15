@@ -1,9 +1,13 @@
-
+include "../../Test/libraries/src/JSON/Stacks.dfy"
+include "../../Test/libraries/src/Collections/Sequences/Seq.dfy"
 include "../../Test/libraries/src/Math.dfy"
 
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import Math
+  import Seq
+
+  import opened Stacks
 
   datatype SeqExpr<T> = 
     | Empty
@@ -30,13 +34,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
         case Concat(left, right, _) => 1 + Math.Max(left.Depth(), right.Depth())
         case Lazy(_, depth, _, _) => depth
         case _ => 0
-      }
-    }
-
-    ghost function NodeCount(): nat {
-      match this {
-        case Concat(left, right, _) => 1 + left.NodeCount() + right.NodeCount()
-        case _ => 1
       }
     }
 
@@ -75,7 +72,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
       case Direct(a) => return a;
       case Concat(left, right, length) => {
         var builder := new SeqBuilder<T>(length);
-        AppendValue(builder);
+        var toAppendAfter := new Stack<SeqExpr<T>>(Empty);
+        AppendValue(builder, toAppendAfter);
         return builder.Value();
       }
       case Lazy(_, _, seqExpr, _) => {
@@ -86,27 +84,44 @@ module {:options "/functionSyntax:4"} MetaSeq {
       }
     }
 
-    method AppendValue(builder: SeqBuilder<T>) 
+    method {:tailrecursion} AppendValue(builder: SeqBuilder<T>, toAppendAfter: Stack<SeqExpr<T>>) 
       requires Valid()
-      modifies builder
-      decreases Depth()
-      ensures builder.Value() == old(builder.Value()) + Value();
+      requires toAppendAfter.Valid?()
+      requires forall e <- toAppendAfter.Repr :: e.Valid()
+      modifies builder, toAppendAfter, toAppendAfter.data
+      decreases toAppendAfter.size, Depth()
+      ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(toAppendAfter.Repr);
     {
       match this {
         case Empty =>
+          if 0 < toAppendAfter.size {
+            var next := toAppendAfter.Pop();
+            next.AppendValue(builder, toAppendAfter);
+          }
         case Direct(a) => {
           builder.Append(a);
+          if 0 < toAppendAfter.size {
+            var next := toAppendAfter.Pop();
+            next.AppendValue(builder, toAppendAfter);
+          }
         }
         case Concat(left, right, _) => {
-          left.AppendValue(builder);
-          right.AppendValue(builder);
+          :- expect toAppendAfter.Push(right);
+          left.AppendValue(builder, toAppendAfter);
         }
         case Lazy(value, _, _, _) => {
           var expr := exprBox.Get();
-          expr.AppendValue(builder);
+          expr.AppendValue(builder, toAppendAfter);
         }
       }
     }
+  }
+
+  ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>
+    requires (forall e <- s :: e.Valid())
+  {
+    var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
+    Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)))
   }
 
   // TODO: Make this an extern. How to monomorphize?
