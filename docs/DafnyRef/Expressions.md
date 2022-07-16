@@ -918,16 +918,18 @@ TO BE WRITTEN - binding form
 ## 21.33. Case and Extended Patterns {#sec-case-pattern}
 ````grammar
 CasePattern =
-  ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
-  | "(" [ CasePattern { "," CasePattern } ] ")"
+  ( IdentTypeOptional
+  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
+  )
+
+SingleExtendedPattern =
+  ( PossiblyNegatedLiteralExpression
   | IdentTypeOptional
+  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
   )
 
 ExtendedPattern =
-  ( PossiblyNegatedLiteralExpression
-  | IdentTypeOptional
-  | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
-  )
+  ( SingleExtendedPattern { "|" SingleExtendedPattern } )
 
 PossiblyNegatedLiteralExpression =
   ( "-" ( Nat | Dec )
@@ -944,13 +946,14 @@ that is, in `match`
 and [expressions](#sec-match-expression).
 `CasePattern`s are used
 in `LetExpr`s and `VarDeclStatement`s.
-The `ExtendedPattern` differs from `CasePattern` in allowing literals
-and symbolic constants.
+The `ExtendedPattern` differs from `CasePattern` in allowing literals,
+symbolic constants, and disjunctive (“or”) patterns.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
-must correspond to a
+must correspond to one of the following:
 
+* (0) a case disjunction (“or-pattern”)
 * (1) bound variable (a simple identifier),
 * (2) a constructor of the type of the value,
 * (3) a literal of the correct type, or
@@ -958,6 +961,8 @@ must correspond to a
 
 If the extended pattern is
 
+* a sequence of `|`-separated sub-patterns, then the pattern matches values
+  matched by any of the sub-patterns.
 * a parentheses-enclosed possibly-empty list of patterns,
 then the pattern matches a tuple.
 * an identifier followed
@@ -970,6 +975,9 @@ matches a constructor.
 a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
    * otherwise, the identifier is a new bound variable
 
+Disjunctive patterns may not bind variables, and may not be nested inside other
+patterns.
+
 Any ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
@@ -980,7 +988,7 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-The `ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
+`ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
 identifiers contained in a `CaseBinding_` or `CasePattern` must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to

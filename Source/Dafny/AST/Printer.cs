@@ -2870,6 +2870,14 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           break;
+        case DisjunctivePattern dp:
+          var psep = "";
+          foreach (var arg in dp.Alternatives) {
+            wr.Write(psep);
+            PrintExtendedPattern(arg);
+            psep = " | ";
+          }
+          break;
         case LitPattern litPat:
           wr.Write(litPat.ToString());
           break;

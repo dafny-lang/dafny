@@ -44,20 +44,11 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    FreshIdGenerator defaultTempVarIdGenerator;
+    FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
     string FreshTempVarName(string prefix, ICodeContext context) {
-      var decl = context as Declaration;
-      if (decl != null) {
-        return decl.IdGenerator.FreshId(prefix);
-      }
-
-      // TODO(wuestholz): Is the following code ever needed?
-      if (defaultTempVarIdGenerator == null) {
-        defaultTempVarIdGenerator = new FreshIdGenerator();
-      }
-
-      return defaultTempVarIdGenerator.FreshId(prefix);
+      var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
+      return gen.FreshId(prefix);
     }
 
     interface IAmbiguousThing<Thing> {
@@ -11947,6 +11938,7 @@ namespace Microsoft.Dafny {
       public List<ExtendedPattern> Patterns;
 
       public RBranch(IToken tok, int branchid, List<ExtendedPattern> patterns) {
+        Contract.Requires(patterns.All(p => !(p is DisjunctivePattern)));
         this.Tok = tok;
         this.BranchID = branchid;
         this.Patterns = patterns;
@@ -11964,6 +11956,7 @@ namespace Microsoft.Dafny {
       }
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
+        Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
         this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements. 
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
@@ -12190,7 +12183,7 @@ namespace Microsoft.Dafny {
      * PairPB contains, for each branches, its head pattern and the rest of the branch.
      */
     private SyntaxContainer CompileRBranchConstant(MatchTempInfo mti, MatchingContext context, Expression currMatchee, List<Expression> matchees, List<Tuple<ExtendedPattern, RBranch>> pairPB) {
-      // Decreate the count for each branch (increases back for each occurence later on)
+      // Decrease the count for each branch (increases back for each occurence later on)
       foreach (var PB in pairPB) {
         mti.UpdateBranchID(PB.Item2.BranchID, -1);
       }
@@ -12501,6 +12494,48 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private ExtendedPattern RemoveDisjunctivePatterns(ExtendedPattern pat, bool allowVariables) {
+      switch (pat) {
+        case LitPattern:
+          return pat;
+        case IdPattern p:
+          if (p.Arguments == null && !p.Id.StartsWith("_") && !allowVariables) {
+            reporter.Error(MessageSource.Resolver, pat.Tok, "Or-patterns may not bind variables");
+            return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
+          }
+          return new IdPattern(p.Tok, p.Id, p.Arguments?.ConvertAll(a => RemoveDisjunctivePatterns(a, allowVariables)));
+        case DisjunctivePattern p:
+          reporter.Error(MessageSource.Resolver, pat.Tok, "Or-patterns are not allowed inside other patterns");
+          return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
+        default:
+          Contract.Assert(false);
+          return null;
+      }
+    }
+
+    private IEnumerable<ExtendedPattern> FlattenDisjunctivePatterns(ExtendedPattern pat) {
+      // TODO: Once we rewrite the pattern-matching compiler, we'll handle disjunctive patterns in it, too.
+      // For now, we handle top-level disjunctive patterns by duplicating the corresponding cases here, and disjunctive
+      // sub-patterns are unsupported.
+      return pat is DisjunctivePattern p
+        ? p.Alternatives.ConvertAll(a => RemoveDisjunctivePatterns(a, allowVariables: false))
+        : Enumerable.Repeat(RemoveDisjunctivePatterns(pat, allowVariables: true), 1);
+    }
+
+    private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
+      var cloner = new Cloner();
+      foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
+        yield return new NestedMatchCaseExpr(c.Tok, pat, cloner.CloneExpr(c.Body), cloner.CloneAttributes(c.Attributes));
+      }
+    }
+
+    private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
+      var cloner = new Cloner();
+      foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
+        yield return new NestedMatchCaseStmt(c.Tok, pat, c.Body.ConvertAll(cloner.CloneStmt), cloner.CloneAttributes(c.Attributes));
+      }
+    }
+
     private void CompileNestedMatchExpr(NestedMatchExpr e, ResolveOpts opts) {
       if (e.ResolvedExpression != null) {
         //post-resolve, skip
@@ -12510,12 +12545,13 @@ namespace Microsoft.Dafny {
         Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
       }
 
-      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count, opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
+      var cases = e.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
+      MatchTempInfo mti = new MatchTempInfo(e.tok, cases.Count, opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
 
       // create Rbranches from MatchCaseExpr and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < e.Cases.Count; id++) {
-        var branch = e.Cases.ElementAt(id);
+      for (int id = 0; id < cases.Count; id++) {
+        var branch = cases.ElementAt(id);
         branches.Add(new RBranchExpr(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
@@ -12534,8 +12570,8 @@ namespace Microsoft.Dafny {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
             scope.PushMarker();
-            CheckLinearNestedMatchCase(e.Source.Type, e.Cases.ElementAt(id), opts);
-            ResolveExpression(e.Cases.ElementAt(id).Body, opts);
+            CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), opts);
+            ResolveExpression(cases.ElementAt(id).Body, opts);
             scope.PopMarker();
           }
         }
@@ -12564,13 +12600,14 @@ namespace Microsoft.Dafny {
         Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
       }
 
+      var cases = s.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
       // initialize the MatchTempInfo to record position and duplication information about each branch
-      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count, codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, cases.Count, codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < s.Cases.Count; id++) {
-        var branch = s.Cases.ElementAt(id);
+      for (int id = 0; id < cases.Count; id++) {
+        var branch = cases.ElementAt(id);
         branches.Add(new RBranchStmt(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
@@ -12588,8 +12625,8 @@ namespace Microsoft.Dafny {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
             scope.PushMarker();
-            CheckLinearNestedMatchCase(s.Source.Type, s.Cases.ElementAt(id), opts);
-            s.Cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, codeContext));
+            CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), opts);
+            cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, codeContext));
             scope.PopMarker();
           }
         }
@@ -12652,6 +12689,7 @@ namespace Microsoft.Dafny {
     }
 
     // pat could be
+    // 0 - A DisjunctivePattern
     // 1 - An IdPattern (without argument) at base type
     // 2 - A LitPattern at base type
     // 3* - An IdPattern at tuple type representing a tuple
@@ -12662,7 +12700,17 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (!type.IsDatatype) { // Neither tuple nor datatype
+      if (pat is DisjunctivePattern dp) {
+        foreach (var alt in dp.Alternatives) {
+          // Pushing a scope silences the “duplicate parameter” error in
+          // `CheckLinearVarPattern`.  This is acceptable because disjunctive
+          // patterns are not allowed to bind variables (the corresponding
+          // error is raised in `RemoveDisjunctivePatterns`).
+          scope.PushMarker();
+          CheckLinearExtendedPattern(type, alt, opts);
+          scope.PopMarker();
+        }
+      } else if (!type.IsDatatype) { // Neither tuple nor datatype
         if (pat is IdPattern id) {
           if (id.Arguments != null) {
             // pat is a tuple or constructor
@@ -12715,6 +12763,7 @@ namespace Microsoft.Dafny {
         return;
       } else { // matching a datatype value
         if (!(pat is IdPattern)) {
+          Contract.Assert(pat is LitPattern);
           reporter.Error(MessageSource.Resolver, pat.Tok, "Constant pattern used in place of datatype");
         }
         IdPattern idpat = (IdPattern)pat;
