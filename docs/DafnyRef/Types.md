@@ -92,8 +92,8 @@ the language:  `false` and `true`.
 
 Type `bool` supports the following operations:
 
- operator           |: precedence :| description
---------------------|--------------|------------------------------------
+ operator           | precedence | description
+--------------------|:----------:|------------------------------------
  `<==>`             | 0 | equivalence (if and only if)
 --------------------|------------------------------------
  `==>`              | 1 | implication (implies)
@@ -272,16 +272,16 @@ is not allowed.
 
 There are also operators on each numeric type:
 
- operator        | description
+ operator        | precedence | description
+-----------------|:---:|------------------------------------
+  `+`            | 5 | addition (plus)
+  `-`            | 5 | subtraction (minus)
 -----------------|------------------------------------
-  `+`            | addition (plus)
-  `-`            | subtraction (minus)
+  `*`            | 6 | multiplication (times)
+  `/`            | 6 | division (divided by)
+  `%`            | 6 | modulus (mod)  -- int only
 -----------------|------------------------------------
-  `*`            | multiplication (times)
-  `/`            | division (divided by)
-  `%`            | modulus (mod)  -- int only
------------------|------------------------------------
-  `-`            | negation (unary minus)
+  `-`            | 7 | negation (unary minus)
 
 The binary operators are left associative, and they associate with
 each other in the two groups.
@@ -346,25 +346,25 @@ The arithmetic operations
 truncate the high-order bits from the results; that is, they perform
 unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
 
- operator        | description
+ operator        | precedence | description
+-----------------|:---:|------------------------------------
+ `<<`            | 5 | bit-limited bit-shift left
+ `>>`            | 5 | unsigned bit-shift right
 -----------------|------------------------------------
- `<<`            | bit-limited bit-shift left
- `>>`            | unsigned bit-shift right
+  `+`            | 6 | bit-limited addition
+  `-`            | 6 | bit-limited subtraction
 -----------------|------------------------------------
-  `+`            | bit-limited addition
-  `-`            | bit-limited subtraction
+  `*`            | 7 | bit-limited multiplication
 -----------------|------------------------------------
-  `*`            | bit-limited multiplication
+  `&`            | 9 | bit-wise and
+  `|`            | 9 | bit-wise or 
+  `^`            | 9 | bit-wise exclusive-or
 -----------------|------------------------------------
-  `&`            | bit-wise and
-  `|`            | bit-wise or 
-  `^`            | bit-wise exclusive-or
+  `-`            | 10 | bit-limited negation (unary minus)
+  `!`            | 10 | bit-wise complement
 -----------------|------------------------------------
-  `-`            | bit-limited negation (unary minus)
-  `!`            | bit-wise complement
------------------|------------------------------------
-  .RotateLeft(n) | rotates bits left by n bit positions
-  .RotateRight(n)| rotates bits right by n bit positions
+  .RotateLeft(n) | 11 | rotates bits left by n bit positions
+  .RotateRight(n)| 11 | rotates bits right by n bit positions
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
