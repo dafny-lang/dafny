@@ -95,9 +95,11 @@ Type `bool` supports the following operations:
  operator           | description
 --------------------|------------------------------------
  `<==>`             | equivalence (if and only if)
+---
 --------------------|------------------------------------
  `==>`              | implication (implies)
  `<==`              | reverse implication (follows from)
+---
 --------------------|------------------------------------
  `&&`               | conjunction (and)
  `||`               | disjunction (or)
