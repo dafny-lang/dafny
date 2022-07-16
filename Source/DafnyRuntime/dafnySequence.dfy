@@ -88,22 +88,31 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires Valid()
       requires toAppendAfter.Valid?()
       requires forall e <- toAppendAfter.Repr :: e.Valid()
+      requires {builder} !! {toAppendAfter, toAppendAfter.data}
       modifies builder, toAppendAfter, toAppendAfter.data
       decreases toAppendAfter.size, Depth()
-      ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(toAppendAfter.Repr);
+      ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(old(toAppendAfter.Repr));
     {
       match this {
         case Empty =>
+          builder.Append([]);
           if 0 < toAppendAfter.size {
             var next := toAppendAfter.Pop();
+            assert toAppendAfter.Repr + [next] == old(toAppendAfter.Repr);
             LemmaConcatValueOnStackWithTip(toAppendAfter.Repr, next);
+            assert next.Value() + ConcatValueOnStack(toAppendAfter.Repr) == ConcatValueOnStack(old(toAppendAfter.Repr));
             next.AppendValue(builder, toAppendAfter);
+            assert builder.Value() == (old(builder.Value()) + Value()) + ConcatValueOnStack(old(toAppendAfter.Repr));
           }
         case Direct(a) => {
           builder.Append(a);
           if 0 < toAppendAfter.size {
             var next := toAppendAfter.Pop();
+            assert toAppendAfter.Repr + [next] == old(toAppendAfter.Repr);
+            LemmaConcatValueOnStackWithTip(toAppendAfter.Repr, next);
+            assert next.Value() + ConcatValueOnStack(toAppendAfter.Repr) == ConcatValueOnStack(old(toAppendAfter.Repr));
             next.AppendValue(builder, toAppendAfter);
+            assert builder.Value() == (old(builder.Value()) + Value()) + ConcatValueOnStack(old(toAppendAfter.Repr));
           }
         }
         case Concat(left, right, _) => {
@@ -111,7 +120,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
           LemmaConcatValueOnStackWithTip(old(toAppendAfter.Repr), right);
           left.AppendValue(builder, toAppendAfter);
         }
-        case Lazy(value, _, _, _) => {
+        case Lazy(_, _, exprBox, _) => {
           var expr := exprBox.Get();
           expr.AppendValue(builder, toAppendAfter);
         }
@@ -129,11 +138,22 @@ module {:options "/functionSyntax:4"} MetaSeq {
   lemma LemmaConcatValueOnStackWithTip<T>(s: seq<SeqExpr<T>>, x: SeqExpr<T>) 
     requires (forall e <- s :: e.Valid())
     requires x.Valid()
-    ensures ConcatValueOnStack(s + [x]) == ConcatValueOnStack(s) + x.Value()
+    ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
   {
-    reveal Seq.Map();
+    var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
+    calc {
+      ConcatValueOnStack(s + [x]);
+      Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
+      { reveal Seq.Reverse(); }
+      Seq.Flatten(Seq.Map(valueFn, [x] + Seq.Reverse(s)));
+      { reveal Seq.Map(); }
+      Seq.Flatten([x.Value()] + Seq.Map(valueFn, Seq.Reverse(s)));
+      x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
+      x.Value() + ConcatValueOnStack(s);
+    }
   }
 
+  // TODO: Add precondition on allocated length
   // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
     var value: seq<T>
