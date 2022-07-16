@@ -13,7 +13,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
     | Empty
     | Direct(a: seq<T>)
     | Concat(left: SeqExpr<T>, right: SeqExpr<T>, length: nat)
-    | Lazy(ghost value: seq<T>, ghost boxDepth: nat, exprBox: AtomicBox<SeqExpr<T>>, length: nat) 
+    | Lazy(ghost value: seq<T>, ghost boxDepth: nat, ghost boxSize: nat,
+           exprBox: AtomicBox<SeqExpr<T>>, length: nat) 
   {
     ghost predicate Valid()
       decreases Depth(), 0
@@ -23,17 +24,29 @@ module {:options "/functionSyntax:4"} MetaSeq {
         && left.Valid()
         && right.Valid()
         && left.Length() + right.Length() == length
-      case Lazy(value, depth, exprBox, length) => 
+      case Lazy(value, depth, size, exprBox, length) => 
         && length == |value|
-        && exprBox.inv == ((e: SeqExpr<T>) => e.Depth() < depth && e.Valid() && e.Value() == value)
+        && exprBox.inv == ((e: SeqExpr<T>) => 
+          && e.Depth() < depth 
+          && e.Size() < size
+          && e.Valid() 
+          && e.Value() == value)
       case _ => true
     }
 
     ghost function Depth(): nat {
       match this {
         case Concat(left, right, _) => 1 + Math.Max(left.Depth(), right.Depth())
-        case Lazy(_, depth, _, _) => depth
+        case Lazy(_, depth, _, _, _) => depth
         case _ => 0
+      }
+    }
+
+    ghost function Size(): nat {
+      match this {
+        case Concat(left, right, _) => 1 + left.Size() + right.Size()
+        case Lazy(_, _, boxSize, _, _) => 1 + boxSize
+        case _ => 1
       }
     }
 
@@ -42,7 +55,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       case Empty => 0
       case Direct(a) => |a|
       case Concat(_, _, length) => length
-      case Lazy(_, _, _, length) => length
+      case Lazy(_, _, _, _, length) => length
     }
 
     function At(i: nat): T 
@@ -65,7 +78,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       case Empty => []
       case Direct(a) => a
       case Concat(left, right, length) => left.Value() + right.Value()
-      case Lazy(value, _, _, _) => value
+      case Lazy(value, _, _, _, _) => value
     } by method {
       match this
       case Empty => return [];
@@ -76,7 +89,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
         AppendValue(builder, toAppendAfter);
         return builder.Value();
       }
-      case Lazy(_, _, seqExpr, _) => {
+      case Lazy(_, _, _, seqExpr, _) => {
         var expr := exprBox.Get();
         var value := expr.Value();
         exprBox.Put(Direct(value));
@@ -90,7 +103,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires forall e <- toAppendAfter.Repr :: e.Valid()
       requires {builder} !! {toAppendAfter, toAppendAfter.data}
       modifies builder, toAppendAfter, toAppendAfter.data
-      decreases toAppendAfter.size, Depth()
+      decreases Size() + SizeSum(toAppendAfter.Repr)
       ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(old(toAppendAfter.Repr));
     {
       match this {
@@ -118,9 +131,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
         case Concat(left, right, _) => {
           :- expect toAppendAfter.Push(right);
           LemmaConcatValueOnStackWithTip(old(toAppendAfter.Repr), right);
+          assert SizeSum(toAppendAfter.Repr) == old(SizeSum(toAppendAfter.Repr)) + right.Size();
           left.AppendValue(builder, toAppendAfter);
         }
-        case Lazy(_, _, exprBox, _) => {
+        case Lazy(_, _, _, exprBox, _) => {
           var expr := exprBox.Get();
           expr.AppendValue(builder, toAppendAfter);
         }
@@ -139,6 +153,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     requires (forall e <- s :: e.Valid())
     requires x.Valid()
     ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
+    ensures SizeSum(s + [x]) == x.Size() + SizeSum(s)
   {
     var valueFn := (e: SeqExpr<T>) requires e.Valid() => e.Value();
     calc {
@@ -151,6 +166,14 @@ module {:options "/functionSyntax:4"} MetaSeq {
       x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
       x.Value() + ConcatValueOnStack(s);
     }
+  }
+
+  ghost function SizeSum<T>(s: seq<SeqExpr<T>>): nat {
+    if |s| == 0 then 
+      0 
+    else
+      var last := |s| - 1;
+      SizeSum(s[..last]) + s[last].Size()
   }
 
   // TODO: Add precondition on allocated length
