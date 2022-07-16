@@ -90,33 +90,29 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     method {:tailrecursion} AppendValue(builder: SeqBuilder<T>, toAppendAfter: Stack<SeqExpr<T>>) 
       requires Valid()
+      requires builder.Valid()
       requires toAppendAfter.Valid?()
       requires forall e <- toAppendAfter.Repr :: e.Valid()
-      requires {builder} !! {toAppendAfter, toAppendAfter.data}
-      modifies builder, toAppendAfter, toAppendAfter.data
+      requires builder.Remaining() == |Value()| + |ConcatValueOnStack(toAppendAfter.Repr)|
+      requires {builder, builder.storage} !! {toAppendAfter, toAppendAfter.data}
+      modifies builder, builder.storage, toAppendAfter, toAppendAfter.data
       decreases Size() + SizeSum(toAppendAfter.Repr)
+      ensures builder.Valid()
       ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(old(toAppendAfter.Repr));
     {
       match this {
         case Empty =>
-          builder.Append([]);
           if 0 < toAppendAfter.size {
             var next := toAppendAfter.Pop();
-            assert toAppendAfter.Repr + [next] == old(toAppendAfter.Repr);
             LemmaConcatValueOnStackWithTip(toAppendAfter.Repr, next);
-            assert next.Value() + ConcatValueOnStack(toAppendAfter.Repr) == ConcatValueOnStack(old(toAppendAfter.Repr));
             next.AppendValue(builder, toAppendAfter);
-            assert builder.Value() == (old(builder.Value()) + Value()) + ConcatValueOnStack(old(toAppendAfter.Repr));
           }
         case Direct(a) => {
           builder.Append(a);
           if 0 < toAppendAfter.size {
             var next := toAppendAfter.Pop();
-            assert toAppendAfter.Repr + [next] == old(toAppendAfter.Repr);
             LemmaConcatValueOnStackWithTip(toAppendAfter.Repr, next);
-            assert next.Value() + ConcatValueOnStack(toAppendAfter.Repr) == ConcatValueOnStack(old(toAppendAfter.Repr));
             next.AppendValue(builder, toAppendAfter);
-            assert builder.Value() == (old(builder.Value()) + Value()) + ConcatValueOnStack(old(toAppendAfter.Repr));
           }
         }
         case Concat(left, right, _) => {
@@ -166,26 +162,51 @@ module {:options "/functionSyntax:4"} MetaSeq {
       SizeSum(s[..last]) + s[last].Size()
   }
 
-  // TODO: Add precondition on allocated length
   // TODO: Make this an extern. How to monomorphize?
   class SeqBuilder<T> {
-    var value: seq<T>
+    const storage: array<T>
+    var size: nat
+
+    ghost predicate Valid() reads this {
+      0 <= size <= storage.Length
+    }
 
     constructor(length: nat) 
+      ensures Valid()
       ensures Value() == []
+      ensures Remaining() == length
+      ensures fresh(storage)
     {
-      value := [];
+      storage := new T[length];
+      size := 0;
+    }
+
+    ghost function Remaining(): nat
+      requires Valid()
+      reads this, storage
+    {
+      storage.Length - size
     }
 
     method Append(t: seq<T>) 
-      modifies this
+      requires Valid()
+      requires size + |t| <= storage.Length
+      modifies this, storage
+      ensures Valid()
       ensures Value() == old(Value()) + t
     {
-      value := value + t;
+      // TODO: Need an extern for an optimized way to do this
+      forall i | 0 <= i < |t| {
+        storage[size + i] := t[i];
+      }
+      size := size + |t|;
     }
 
-    function Value(): seq<T> reads this {
-      value
+    function Value(): seq<T> 
+      requires Valid()
+      reads this, storage
+    {
+      storage[..size]
     }
   }
 
