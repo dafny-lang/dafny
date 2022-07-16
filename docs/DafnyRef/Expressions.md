@@ -6,21 +6,16 @@ in order of increasing binding power.
 
  operator                 | description
 --------------------------|------------------------------------
-<hr>|
  `;`                      | That is [LemmaCall; Expression](#sec-top-level-expression)
 --------------------------|------------------------------------
-<hr>|
  `<==>`                   | [equivalence (if and only if)](#sec-equivalence)
 --------------------------|------------------------------------
-<hr>|
  `==>`                    | [implication (implies)](#sec-implication)
  `<==`                    | reverse implication (follows from)
 --------------------------|------------------------------------
-<hr>|
  `&&`, `&`                | conjunction (and)
  `||`, `|`                | disjunction (or)
 --------------------------|------------------------------------
-<hr>|
  `==`                     | equality
  `==#[k]`                 | prefix equality (co-inductive)
  `!=`                     | disequality
@@ -33,33 +28,26 @@ in order of increasing binding power.
  `!in`                    | collection non-membership
  `!!`                     | disjointness
 --------------------------|------------------------------------
-<hr>|
  `<<`                     | left-shift
  `>>`                     | right-shift
 --------------------------|------------------------------------
-<hr>|
  `+`                      | addition (plus)
  `-`                      | subtraction (minus)
 --------------------------|------------------------------------
-<hr>|
  `*`                      | multiplication (times)
  `/`                      | division (divided by)
  `%`                      | modulus (mod)
 --------------------------|------------------------------------
-<hr>|
  `|`                      | bit-wise or
  `&`                      | bit-wise and
  `^`                      | bit-wise exclusive-or (not equal)
 --------------------------|------------------------------------
-<hr>|
  `as` operation           | [type conversion](#sec-as-expression)
  `is` operation           | [type test](#sec-as-expression)
 --------------------------|------------------------------------
-<hr>|
  `-`                      | arithmetic negation (unary minus)
  `!`                      | logical negation, bit-wise complement
 --------------------------|------------------------------------
-<hr>|
  Primary Expressions      |
 
 We are calling the ``UnaryExpression``s that are neither
