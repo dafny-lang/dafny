@@ -56,8 +56,21 @@ module {:options "/functionSyntax:4"} MetaSeq {
       Value()[i]
     }
 
-    function Concatenate(s: SeqExpr<T>): SeqExpr<T> {
-      Concat(this, s, Length() + s.Length())
+    method Concatenate(s: SeqExpr<T>) returns (ret: SeqExpr<T>)
+      requires Valid()
+      requires s.Valid()
+      ensures ret.Valid()
+    {
+      var c := Concat(this, s, Length() + s.Length());
+
+      ghost var value := c.Value();
+      ghost var size := 1 + c.Size();
+      ghost var inv := ((e: SeqExpr<T>) => 
+          && e.Size() < size
+          && e.Valid() 
+          && e.Value() == value);
+      var box := new AtomicBox(inv, c);
+      return Lazy(value, size, box, c.Length());
     }
 
     function Value(): seq<T> 
@@ -68,7 +81,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       match this
       case Empty => []
       case Direct(a) => a
-      case Concat(left, right, length) => left.Value() + right.Value()
+      case Concat(left, right, _) => left.Value() + right.Value()
       case Lazy(value, _, _, _) => value
     } by method {
       match this
