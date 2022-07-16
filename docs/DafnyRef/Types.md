@@ -92,20 +92,20 @@ the language:  `false` and `true`.
 
 Type `bool` supports the following operations:
 
- operator           | description
+ operator           |: precedence :| description
+--------------------|--------------|------------------------------------
+ `<==>`             | 0 | equivalence (if and only if)
 --------------------|------------------------------------
- `<==>`             | equivalence (if and only if)
+ `==>`              | 1 | implication (implies)
+ `<==`              | 1 | reverse implication (follows from)
 --------------------|------------------------------------
- `==>`              | implication (implies)
- `<==`              | reverse implication (follows from)
+ `&&`               | 2 | conjunction (and)
+ `||`               | 3 |  disjunction (or)
 --------------------|------------------------------------
- `&&`               | conjunction (and)
- `||`               | disjunction (or)
+ `==`               | 4 | equality
+ `!=`               | 4 | disequality
 --------------------|------------------------------------
- `==`               | equality
- `!=`               | disequality
---------------------|------------------------------------
- `!`                | negation (not)
+ `!`                | 5 | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
