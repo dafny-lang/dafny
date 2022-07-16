@@ -4,51 +4,51 @@ reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
 
- operator                 | description
+ operator                 | precedence | description
+--------------------------|:----------:|-----------------------
+ `;`                      | 0 | That is [LemmaCall; Expression](#sec-top-level-expression)
 --------------------------|------------------------------------
- `;`                      | That is [LemmaCall; Expression](#sec-top-level-expression)
+ `<==>`                   | 1 | [equivalence (if and only if)](#sec-equivalence)
 --------------------------|------------------------------------
- `<==>`                   | [equivalence (if and only if)](#sec-equivalence)
+ `==>`                    | 2 | [implication (implies)](#sec-implication)
+ `<==`                    | 2 | reverse implication (follows from)
 --------------------------|------------------------------------
- `==>`                    | [implication (implies)](#sec-implication)
- `<==`                    | reverse implication (follows from)
+ `&&`, `&`                | 3 | conjunction (and)
+ `||`, `|`                | 3 | disjunction (or)
 --------------------------|------------------------------------
- `&&`, `&`                | conjunction (and)
- `||`, `|`                | disjunction (or)
+ `==`                     | 4 | equality
+ `==#[k]`                 | 4 | prefix equality (co-inductive)
+ `!=`                     | 4 | disequality
+ `!=#[k]`                 | 4 | prefix disequality (co-inductive)
+ `<`                      | 4 | less than
+ `<=`                     | 4 | at most
+ `>=`                     | 4 | at least
+ `>`                      | 4 | greater than
+ `in`                     | 4 | collection membership
+ `!in`                    | 4 | collection non-membership
+ `!!`                     | 4 | disjointness
 --------------------------|------------------------------------
- `==`                     | equality
- `==#[k]`                 | prefix equality (co-inductive)
- `!=`                     | disequality
- `!=#[k]`                 | prefix disequality (co-inductive)
- `<`                      | less than
- `<=`                     | at most
- `>=`                     | at least
- `>`                      | greater than
- `in`                     | collection membership
- `!in`                    | collection non-membership
- `!!`                     | disjointness
+ `<<`                     | 5 | left-shift
+ `>>`                     | 5 | right-shift
 --------------------------|------------------------------------
- `<<`                     | left-shift
- `>>`                     | right-shift
+ `+`                      | 6 | addition (plus)
+ `-`                      | 6 | subtraction (minus)
 --------------------------|------------------------------------
- `+`                      | addition (plus)
- `-`                      | subtraction (minus)
+ `*`                      | 7 | multiplication (times)
+ `/`                      | 7 | division (divided by)
+ `%`                      | 7 | modulus (mod)
 --------------------------|------------------------------------
- `*`                      | multiplication (times)
- `/`                      | division (divided by)
- `%`                      | modulus (mod)
+ `|`                      | 8 | bit-wise or
+ `&`                      | 8 | bit-wise and
+ `^`                      | 8 | bit-wise exclusive-or (not equal)
 --------------------------|------------------------------------
- `|`                      | bit-wise or
- `&`                      | bit-wise and
- `^`                      | bit-wise exclusive-or (not equal)
+ `as` operation           | 9 | [type conversion](#sec-as-expression)
+ `is` operation           | 9 | [type test](#sec-as-expression)
 --------------------------|------------------------------------
- `as` operation           | [type conversion](#sec-as-expression)
- `is` operation           | [type test](#sec-as-expression)
+ `-`                      | 10 | arithmetic negation (unary minus)
+ `!`                      | 10 | logical negation, bit-wise complement
 --------------------------|------------------------------------
- `-`                      | arithmetic negation (unary minus)
- `!`                      | logical negation, bit-wise complement
---------------------------|------------------------------------
- Primary Expressions      |
+ Primary Expressions      | 11 |
 
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
