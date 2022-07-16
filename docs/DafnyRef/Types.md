@@ -100,12 +100,12 @@ Type `bool` supports the following operations:
  `<==`              | 1 | reverse implication (follows from)
 --------------------|------------------------------------
  `&&`               | 2 | conjunction (and)
- `||`               | 3 |  disjunction (or)
+ `||`               | 2 |  disjunction (or)
 --------------------|------------------------------------
- `==`               | 4 | equality
- `!=`               | 4 | disequality
+ `==`               | 3 | equality
+ `!=`               | 3 | disequality
 --------------------|------------------------------------
- `!`                | 5 | negation (not)
+ `!`                | 9 | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
@@ -281,7 +281,7 @@ There are also operators on each numeric type:
   `/`            | 6 | division (divided by)
   `%`            | 6 | modulus (mod)  -- int only
 -----------------|------------------------------------
-  `-`            | 7 | negation (unary minus)
+  `-`            | 9 | negation (unary minus)
 
 The binary operators are left associative, and they associate with
 each other in the two groups.
@@ -348,23 +348,23 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 
  operator        | precedence | description
 -----------------|:---:|------------------------------------
- `<<`            | 5 | bit-limited bit-shift left
- `>>`            | 5 | unsigned bit-shift right
+ `<<`            | 4 | bit-limited bit-shift left
+ `>>`            | 4 | unsigned bit-shift right
 -----------------|------------------------------------
-  `+`            | 6 | bit-limited addition
-  `-`            | 6 | bit-limited subtraction
+  `+`            | 5 | bit-limited addition
+  `-`            | 5 | bit-limited subtraction
 -----------------|------------------------------------
-  `*`            | 7 | bit-limited multiplication
+  `*`            | 6 | bit-limited multiplication
 -----------------|------------------------------------
-  `&`            | 9 | bit-wise and
-  `|`            | 9 | bit-wise or 
-  `^`            | 9 | bit-wise exclusive-or
+  `&`            | 7 | bit-wise and
+  `|`            | 7 | bit-wise or 
+  `^`            | 7 | bit-wise exclusive-or
 -----------------|------------------------------------
-  `-`            | 10 | bit-limited negation (unary minus)
-  `!`            | 10 | bit-wise complement
+  `-`            | 9 | bit-limited negation (unary minus)
+  `!`            | 9 | bit-wise complement
 -----------------|------------------------------------
-  .RotateLeft(n) | 11 | rotates bits left by n bit positions
-  .RotateRight(n)| 11 | rotates bits right by n bit positions
+  .RotateLeft(n) | 10 | rotates bits left by n bit positions
+  .RotateRight(n)| 10 | rotates bits right by n bit positions
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
@@ -693,14 +693,14 @@ chaining.
 Sets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description
+ operator      | precedence | description
+---------------|:---:|------------------------------------
+ `!!`          | 3 | disjointness
 ---------------|------------------------------------
- `!!`          | disjointness
+ `+`           | 5 | set union
+ `-`           | 5 | set difference
 ---------------|------------------------------------
- `+`           | set union
- `-`           | set difference
----------------|------------------------------------
- `*`           | set intersection
+ `*`           | 6 |set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names.  The expression `A !! B`,
@@ -719,11 +719,11 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
 
- expression          | result type |  description
----------------------|:-:|------------------------------------
- `|s|`               | `nat`  | set cardinality (not for `iset`)
- `e in s`            | `bool` | set membership
- `e !in s`           | `bool` | set non-membership
+ expression          | precedence | result type |  description
+---------------------|:---:|:---:|------------------------------------
+ `e in s`            | 3   | `bool` | set membership
+ `e !in s`           | 3   | `bool` | set non-membership
+ `|s|`               | 10  | `nat`  | set cardinality (not for `iset`)
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
@@ -769,14 +769,14 @@ chaining.
 Multisets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description
+ operator      | precedence | description
+---------------|:---:|------------------------------------
+ `!!`          | 3 | multiset disjointness
 ---------------|------------------------------------
- `!!`          | multiset disjointness
+ `+`           | 5 |multiset union
+ `-`           | 5 |multiset difference
 ---------------|------------------------------------
- `+`           | multiset union
- `-`           | multiset difference
----------------|------------------------------------
- `*`           | multiset intersection
+ `*`           | 6 | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names. The `+` operator
@@ -797,13 +797,13 @@ In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
 
- expression      | result type      | description
------------------|:----------------:|------------------------------------------
- `|s|`           |   `nat`          | multiset cardinality
- `e in s`        |   `bool`         | multiset membership
- `e !in s`       |   `bool`         | multiset non-membership
- `s[e]`          |   `nat`          | multiplicity of `e` in `s`
- `s[e := n]`     | `multiset<T>`    | multiset update (change of multiplicity)
+ expression      | precedence | result type      | description
+-----------------|:---:|:----------------:|------------------------------------------
+ `e in s`        | 3  |  `bool`         | multiset membership
+ `e !in s`       | 3  |  `bool`         | multiset non-membership
+ `|s|`           | 10 |   `nat`          | multiset cardinality
+ `s[e]`          | 10 |  `nat`          | multiplicity of `e` in `s`
+ `s[e := n]`     | 10 | `multiset<T>`    | multiset update (change of multiplicity)
 
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -870,18 +870,18 @@ of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
 
- expression         | result type | description
- ---------------------|:---:|----------------------------------------
- `|s|`               | `nat` | sequence length
- `s[i]`              | `T` |sequence selection
- `s[i := e]`         | `seq<T>` | sequence update
- `e in s`            | `bool` | sequence membership
- `e !in s`           | `bool` | sequence non-membership
- `s[lo..hi]`         | `seq<T>`| subsequence
- `s[lo..]`           | `seq<T>` | drop
- `s[..hi]`           | `seq<T>` | take
- `s[`_slices_`]`   | `seq<seq<T>>` | slice
- `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>`
+ expression         | precedence | result type | description
+ -------------------|:---:|:---:|----------------------------------------
+ `e in s`           | 3 | `bool` | sequence membership
+ `e !in s`          | 3 | `bool` | sequence non-membership
+ `|s|`              | 10 | `nat` | sequence length
+ `s[i]`             | 10 | `T` |sequence selection
+ `s[i := e]`        | 10 | `seq<T>` | sequence update
+ `s[lo..hi]`        | 10 | `seq<T>`| subsequence
+ `s[lo..]`          | 10 | `seq<T>` | drop
+ `s[..hi]`          | 10 | `seq<T>` | take
+ `s[`_slices_`]`    | 10 | `seq<seq<T>>` | slice
+ `multiset(s)`      | 10 | `multiset<T>`| sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
@@ -1014,16 +1014,16 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression     | result type | description
- ---------------|:-----------:|------------------------------------
- `|fm|`         | `nat`       | map cardinality
- `m[d]`         | `U`         | map selection
- `m[t := u]`    | `map<T,U>`  | map update
- `t in m`       | `bool`      | map domain membership
- `t !in m`      | `bool`      | map domain non-membership
- `m.Keys`      | (i)`set<T>`    | the domain of `m`
- `m.Values`    | (i)`set<U>`    | the range of `m`
- `m.Items`     | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
+ expression     | precedence | result type | description
+ ---------------|:---:|:-----------:|------------------------------------
+ `t in m`       | 3 | `bool`      | map domain membership
+ `t !in m`      | 3 | `bool`      | map domain non-membership
+ `|fm|`         | 10 | `nat`       | map cardinality
+ `m[d]`         | 10 | `U`         | map selection
+ `m[t := u]`    | 10 | `map<T,U>`  | map update
+ `m.Keys`      | 10 | (i)`set<T>`    | the domain of `m`
+ `m.Values`    | 10 | (i)`set<U>`    | the range of `m`
+ `m.Items`     | 10 | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
