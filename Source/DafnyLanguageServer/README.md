@@ -106,17 +106,17 @@ Plugins are libraries linked to a `Dafny.dll` of the same version than the langu
 A plugin typically defines:
 
 * Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration` which receives plugins arguments in their method `ParseArguments`, and
-  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter` when their method `GetRewriters()` is called by Dafny,
-  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler` when their method `GetCompilers()` is called by Dafny,
+  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when their method `GetRewriters()` is called by Dafny,
+  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when their method `GetCompilers()` is called by Dafny,
   3) If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`,
-     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer` when their method `GetQuickFixers()` is called by the Dafny Language Server.
+     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer`s when their method `GetQuickFixers()` is called by the Dafny Language Server.
 
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
-  If no configuration class is provided, an automatic configuration will load every defined `Rewriter`s automatically.
+  If no configuration class is provided, an automatic configuration will load every defined `Rewriter` automatically.
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Compiler`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetCompilers()`.
-  If no configuration class is provided, an automatic configuration will load every defined `Compiler`s automatically.
+  If no configuration class is provided, an automatic configuration will load every defined `Compiler` automatically.
 * Zero or more classes extending `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer`.
   Only a configuration class of type `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration` can be responsible for instantiating them and returning them in `GetQuickFixers()`.
 
@@ -210,7 +210,7 @@ Every quick fix consists of a title (provided immediately), and zero or more `Qu
 An `QuickFixEdit` has a `Range` to remove and some `string` to insert instead. All `QuickFixEdit`
 of the same `QuickFix` are applied at the same time if selected.
 
-To create a `QuickFix`, we can either use the easy-to-use `ÌnstantQuickFix`, which accepts a title and an array of edits:
+To create a `QuickFix`, we can either use the easy-to-use `InstantQuickFix`, which accepts a title and an array of edits:
 ```
   return new QuickFix[] {
     new InstantQuickFix("Insert comment", new QuickFixEdit[] {
@@ -248,4 +248,4 @@ That's it! Now, build your library while inside your folder:
 
 This will create the file `PluginTutorial/bin/Debug/net6.0/PluginTutorial.dll`.
 Now, open VSCode, open Dafny settings, and enter the absolute path to this DLL in the plugins section.
-Restart VSCode, it should work!
+Restart VSCode, and it should work!
