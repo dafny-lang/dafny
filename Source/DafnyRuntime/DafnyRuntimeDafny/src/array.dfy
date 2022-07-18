@@ -1,38 +1,8 @@
-
+include "frames.dfy"
 
 module {:options "/functionSyntax:4"} Arrays {
 
-  // A trait for objects with a Valid() predicate. Necessary in order to
-  // generalize some proofs, but also useful for reducing the boilerplate
-  // that most such objects need to include.
-  trait {:termination false} Validatable {
-    // Ghost state tracking the common set of objects most
-    // methods need to read.
-    ghost var Repr: set<object>
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-
-    // Convenience predicate for when your object's validity depends on one
-    // or more other objects.
-    ghost predicate ValidComponent(component: Validatable)
-      reads this, Repr 
-    {
-      && component in Repr
-      && component.Repr <= Repr
-      && this !in component.Repr
-      && component.Valid()
-    }
-
-    // Convenience predicate, since you often want to assert that 
-    // new objects in Repr are fresh as well in most postconditions.
-    twostate predicate ValidAndDisjoint()
-      reads this, Repr
-    {
-      Valid() && fresh(Repr - old(Repr))
-    }
-  }
+  import opened Frames
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
@@ -88,6 +58,19 @@ module {:options "/functionSyntax:4"} Arrays {
         old(values)[..start] + 
         from.values[fromStart..fromEnd] + 
         old(values)[(start + (fromEnd - fromStart))..]
+  }
+
+  datatype InitializedArray<T> = InitializedArray(a: Array<T>) {
+    ghost predicate Valid() reads a, a.Repr {
+      && a.Valid()
+      && forall i | 0 <= i < a.Length() :: a.values[i].Set?
+    }
+    ghost function Value(): seq<T> 
+      requires Valid()
+      reads a, a.Repr
+    {
+      seq(a.Length(), i requires Valid() && 0 <= i < a.Length() reads a, a.Repr => a.Read(i))
+    }
   }
 
   // Feasibility implementation
