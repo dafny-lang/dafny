@@ -5,13 +5,18 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny.Helpers;
 
 public class HelperString {
-  public static readonly System.Text.RegularExpressions.Regex NewlineRegex =
-    new(@"(?<=\r?\n)\s*(?=(?<followedByChar>\S|$))");
+  public static readonly Regex NewlineRegex =
+    new(@"(?<=\r?\n)[ \t]*(?=(?<followedByChar>\S|$))");
 
   public static string Reindent(string input, string indentationBefore, string lastIndentation) {
     return NewlineRegex.Replace(input,
       (Match match) =>
-        match.Groups["followedByChar"].Value.Length > 0 ? indentationBefore : lastIndentation);
+        match.Groups["followedByChar"].Value.Length > 0 ?
+          match.Groups["followedByChar"].Value == "*" ?
+            indentationBefore + "  "
+            : indentationBefore
+          : lastIndentation
+          );
   }
 }
 
