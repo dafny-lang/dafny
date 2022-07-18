@@ -4,8 +4,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -27,7 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
+    public DiagnosticErrorReporter(string documentSource, DocumentUri entryDocumentUri) {
+      this.entryDocumentsource = documentSource;
       this.entryDocumentUri = entryDocumentUri;
     }
 
@@ -82,25 +85,66 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    private static IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
+    private readonly string entryDocumentsource;
+
+    public static string FormatRelated(string related) {
+      return $"Could not prove: {related}";
+    }
+
+    private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+      var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
+      if (tokenForMessage is RangeToken range) {
+        var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
+        if (message == PostConditionFailingMessage) {
+          var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
+          message = $"This postcondition might not hold: {postcondition}";
+        } else if (message == "Related location") {
+          // We can do better than that.
+          var tokenUri = tokenForMessage.GetDocumentUri();
+          var tokenUriSystemPath = tokenUri.GetFileSystemPath();
+          var entryDocumentUriSystemPath = entryDocumentUri.GetFileSystemPath();
+          if (tokenUri == entryDocumentUri || tokenUriSystemPath == entryDocumentUriSystemPath ||
+              tokenUriSystemPath == "/" + entryDocumentUriSystemPath) {
+            message = FormatRelated(entryDocumentsource.Substring(range.StartToken.pos, rangeLength));
+          } else {
+            var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
+            try {
+              var file = File.OpenRead(fileName);
+              var toRead = new byte[rangeLength];
+              file.Read(toRead, range.StartToken.pos, rangeLength);
+              file.Close();
+              var read = toRead.ToString();
+              if (read != null) {
+                message = FormatRelated(read);
+              } else {
+                message = "Related location (could not read file " + fileName + ")";
+              }
+            } catch (FileNotFoundException) {
+              message = message + "(could not open file " + fileName + ")";
+            }
+          }
+        }
+      }
+
       yield return new DiagnosticRelatedInformation {
         Message = message,
         Location = CreateLocation(token)
       };
-      if (token is NestedToken nestedToken) {
-        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(nestedToken.Inner, RelatedLocationMessage)) {
+      if (inner != null) {
+        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, RelatedLocationMessage)) {
           yield return nestedInformation;
         }
       }
     }
 
     private static Location CreateLocation(IToken token) {
+      var uri = DocumentUri.Parse(token.filename);
       return new Location {
         Range = token.GetLspRange(),
-
         // During parsing, we store absolute paths to make reconstructing the Uri easier
         // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-        Uri = token.GetDocumentUri()
+        Uri = uri
       };
     }
 

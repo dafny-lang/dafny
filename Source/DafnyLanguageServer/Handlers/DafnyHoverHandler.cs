@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
-              node.Filename == document.Uri.GetFileSystemPath()) {
+              node.Filename == document.Uri.ToString()) {
             areMethodStatistics = true;
             return GetTopLevelInformation(node, orderedAssertionBatches);
           }
