@@ -2,17 +2,20 @@ include "../../../Test/libraries/src/JSON/Stacks.dfy"
 include "../../../Test/libraries/src/Collections/Sequences/Seq.dfy"
 include "../../../Test/libraries/src/Math.dfy"
 
+include "array.dfy"
+
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import Math
   import Seq
 
   import opened Stacks
+  import opened Arrays
 
   datatype SeqExpr<T> = 
     | Empty
     | Direct(a: seq<T>)
-    | Concat(left: SeqExpr<T>, right: SeqExpr<T>, length: nat)
+    | ConcatBoth(left: SeqExpr<T>, right: SeqExpr<T>, length: nat)
     | Lazy(ghost value: seq<T>, ghost boxSize: nat,
            exprBox: AtomicBox<SeqExpr<T>>, length: nat) 
   {
@@ -20,7 +23,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       decreases Size(), 0
     {
       match this
-      case Concat(left, right, length) => 
+      case ConcatBoth(left, right, length) => 
         && left.Valid()
         && right.Valid()
         && left.Length() + right.Length() == length
@@ -35,7 +38,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     ghost function Size(): nat {
       match this {
-        case Concat(left, right, _) => 1 + left.Size() + right.Size()
+        case ConcatBoth(left, right, _) => 1 + left.Size() + right.Size()
         case Lazy(_, boxSize, _, _) => 1 + boxSize
         case _ => 1
       }
@@ -45,7 +48,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       match this
       case Empty => 0
       case Direct(a) => |a|
-      case Concat(_, _, length) => length
+      case ConcatBoth(_, _, length) => length
       case Lazy(_, _, _, length) => length
     }
 
@@ -61,7 +64,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires s.Valid()
       ensures ret.Valid()
     {
-      var c := Concat(this, s, Length() + s.Length());
+      var c := ConcatBoth(this, s, Length() + s.Length());
 
       ghost var value := c.Value();
       ghost var size := 1 + c.Size();
@@ -81,13 +84,13 @@ module {:options "/functionSyntax:4"} MetaSeq {
       match this
       case Empty => []
       case Direct(a) => a
-      case Concat(left, right, _) => left.Value() + right.Value()
+      case ConcatBoth(left, right, _) => left.Value() + right.Value()
       case Lazy(value, _, _, _) => value
     } by method {
       match this
       case Empty => return [];
       case Direct(a) => return a;
-      case Concat(left, right, length) => {
+      case ConcatBoth(left, right, length) => {
         var builder := new SeqBuilder<T>(length);
         var toAppendAfter := new Stack<SeqExpr<T>>(Empty);
         AppendValue(builder, toAppendAfter);
@@ -107,8 +110,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires toAppendAfter.Valid?()
       requires forall e <- toAppendAfter.Repr :: e.Valid()
       requires builder.Remaining() == |Value()| + |ConcatValueOnStack(toAppendAfter.Repr)|
-      requires {builder, builder.storage} !! {toAppendAfter, toAppendAfter.data}
-      modifies builder, builder.storage, toAppendAfter, toAppendAfter.data
+      requires builder.Repr !! {toAppendAfter, toAppendAfter.data}
+      modifies builder.Repr, toAppendAfter, toAppendAfter.data
       decreases Size() + SizeSum(toAppendAfter.Repr)
       ensures builder.Valid()
       ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(old(toAppendAfter.Repr));
@@ -128,7 +131,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
             next.AppendValue(builder, toAppendAfter);
           }
         }
-        case Concat(left, right, _) => {
+        case ConcatBoth(left, right, _) => {
           :- expect toAppendAfter.Push(right);
           LemmaConcatValueOnStackWithTip(old(toAppendAfter.Repr), right);
           assert SizeSum(toAppendAfter.Repr) == old(SizeSum(toAppendAfter.Repr)) + right.Size();
@@ -176,50 +179,55 @@ module {:options "/functionSyntax:4"} MetaSeq {
   }
 
   // TODO: Make this an extern. How to monomorphize?
-  class SeqBuilder<T> {
-    const storage: array<T>
+  class SeqBuilder<T> extends Validatable {
+    const storage: Array<T>
     var size: nat
 
-    ghost predicate Valid() reads this {
-      0 <= size <= storage.Length
+    ghost predicate Valid() reads this, Repr 
+      ensures Valid() ==> this in Repr
+    {
+      && this in Repr
+      && ValidComponent(storage)
+      && 0 <= size <= storage.Length()
+      && forall i | 0 <= i < size :: storage.values[i].Set?
     }
 
     constructor(length: nat) 
       ensures Valid()
       ensures Value() == []
       ensures Remaining() == length
-      ensures fresh(storage)
+      ensures fresh(Repr)
     {
-      storage := new T[length];
+      storage := new DafnyArray<T>(length);
       size := 0;
+      new;
+      Repr := {this} + storage.Repr;
     }
 
     ghost function Remaining(): nat
       requires Valid()
-      reads this, storage
+      reads this, Repr
     {
-      storage.Length - size
+      storage.Length() - size
     }
 
     method Append(t: seq<T>) 
       requires Valid()
-      requires size + |t| <= storage.Length
-      modifies this, storage
-      ensures Valid()
+      requires size + |t| <= storage.Length()
+      modifies Repr
+      ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + t
+      ensures Remaining() == old(Remaining()) - |t|
     {
-      // TODO: Need an extern for an optimized way to do this
-      forall i | 0 <= i < |t| {
-        storage[size + i] := t[i];
-      }
+      storage.WriteRange(size, t);
       size := size + |t|;
     }
 
-    function Value(): seq<T> 
+    function Value(): seq<T>
       requires Valid()
-      reads this, storage
+      reads this, Repr
     {
-      storage[..size]
+      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
     }
   }
 
