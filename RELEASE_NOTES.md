@@ -1,6 +1,6 @@
 # Upcoming
 
-- feat: Snippet in the error messages of the language server. (https://github.com/dafny-lang/dafny/pull/2434)
+- feat: *Less code navigation when verifying code*: In the IDE, failing postconditions and preconditions error messages now immediately display the sub-conditions that Dafny could not prove. Both on hover and in the Problems window. (https://github.com/dafny-lang/dafny/pull/2434)
 
 # 3.7.2
 
