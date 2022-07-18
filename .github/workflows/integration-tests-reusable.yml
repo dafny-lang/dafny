@@ -11,11 +11,12 @@ on:
         type: number
 
 env:
-  newest:
-     dotnet-version: 6.0.x # SDK Version for building Dafny
-     java-version: 18
-  oldest:
-     java-version: 1.8
+  dotnet-version: 6.0.x # SDK Version for building Dafny
+
+target-language-version:
+  java-version:
+    newest: 18
+    oldest: 1.8
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
@@ -60,7 +61,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: ${{ env.newest.dotnet-version }}
+        dotnet-version: ${{ env.dotnet-version }}
     - name: C++ for ubuntu 18.04
       if: matrix.os == 'ubuntu-18.04'
       run: |
@@ -73,7 +74,7 @@ jobs:
     - name: Set up JDK 18
       uses: actions/setup-java@v1
       with:
-        java-version: ${{ env.newest.java-version }}
+        java-version: ${{ target-language-version.java-version.newest }}
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
     - name: Install lit
