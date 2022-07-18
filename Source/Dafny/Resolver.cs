@@ -9385,6 +9385,9 @@ namespace Microsoft.Dafny {
               // member is a field or a fully defined function or method
             } else if (cl is TraitDecl) {
               // there are no expectations that a field needs to repeat the signature of inherited body-less members
+            } else if (Attributes.Contains(member.Attributes, "extern")) {
+              // Extern functions do not need to be reimplemented.
+              // TODO: When `:extern` is separated from `:compile false`, this should become `:compile false`.
             } else {
               reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
             }
