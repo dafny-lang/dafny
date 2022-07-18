@@ -191,7 +191,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           GutterVerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
                                                        (description?.SuccessDescription ?? "_no message_"),
           GutterVerificationStatus.Error =>
-            $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
+            $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
             (description?.FailureDescription ?? "_no message_"),
           GutterVerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
           _ => $"{obsolescence}**Waiting to be verified...**",
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
             returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
-          ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 
