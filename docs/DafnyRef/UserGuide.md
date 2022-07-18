@@ -1146,10 +1146,14 @@ code (which can be helpful for debugging).
 
     ```json
     {
-      "range": { // Start and (optional) end of diagnostic
-        "start": {
-          "line": 6, // 1-based line number
-          "character": 0 // 0-based column number
+      "location": {
+        "filename": "xyz.dfy",
+        "range": { // Start and (optional) end of diagnostic
+          "start": {
+            "line": 6, // 1-based line number
+            "character": 0 // 0-based column number
+          },
+          "end": { "line": 6, "character": 3 }
         }
       },
       "severity": 2, // 1: error; 2: warning; 4: info
@@ -1157,7 +1161,7 @@ code (which can be helpful for debugging).
       "source": "Parser",
       "relatedInformation": [ // Optional
         {
-          "location": { ... }, // Like "range" above
+          "location": { ... }, // Like above
           "message": "...",
         }
       ]

@@ -11,12 +11,27 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok, string? category, string message) {
+  private static JsonObject SerializePosition(IToken tok) {
+    return new JsonObject {
+      ["line"] = tok.line,
+      ["character"] = tok.col - 1
+    };
+  }
+
+  private static JsonObject SerializeRange(IToken tok) {
+    var range = new JsonObject {
+      ["start"] = SerializePosition(tok),
+    };
+    if (tok is RangeToken rt) {
+      range["end"] = SerializePosition(rt.EndToken);
+    }
+    return range;
+  }
+
   private static JsonObject SerializeToken(IToken tok) {
     return new JsonObject {
-      ["start"] = new JsonObject {
-        ["line"] = tok.line,
-        ["character"] = tok.col - 1
-      }
+      ["filename"] = tok.filename,
+      ["range"] = SerializeRange(tok)
     };
   }
 
