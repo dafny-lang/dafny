@@ -31,6 +31,9 @@ module Test {
     * Followed by newline
     * This is the end */
   module Indented {
+    /* Multiline comment
+     * should be indented like that
+     */
     // Multiple coments
     // One per line
     method Weird()

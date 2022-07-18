@@ -6,17 +6,35 @@ namespace Microsoft.Dafny.Helpers;
 
 public class HelperString {
   public static readonly Regex NewlineRegex =
-    new(@"(?<=\r?\n)[ \t]*(?=(?<followedByChar>\S|$))");
+    new(@"(?<=\r?\n)[ \t]*(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)");
 
   public static string Reindent(string input, string indentationBefore, string lastIndentation) {
+    var commentExtra = "";
+    // Invariant: Relative indentation inside a multi-line comment should be unchanged
+
     return NewlineRegex.Replace(input,
-      (Match match) =>
-        match.Groups["followedByChar"].Value.Length > 0 ?
-          match.Groups["followedByChar"].Value == "*" ?
-            indentationBefore + "  "
-            : indentationBefore
-          : lastIndentation
-          );
+      (Match match) => {
+        var result = indentationBefore;
+        var v = match.Groups["commentType"].Value;
+        if (v.Length > 0) {
+          if (v.StartsWith("/*")) {
+            // We reindent everything 
+            commentExtra = new string(' ', match.Groups["followedByChar"].Value.Length - 1);
+            return indentationBefore;
+          } else if (v.StartsWith("*") ||
+                     v.StartsWith("//")) {
+            return indentationBefore + commentExtra;
+          } else if (v.StartsWith("\r") || v.StartsWith("\n")) {
+            return indentationBefore;
+          } else { // For multi-line comments without stars.
+            return indentationBefore + commentExtra + " ";
+          }
+        } else {
+          result = lastIndentation;
+          return result;
+        }
+      }
+    );
   }
 }
 
