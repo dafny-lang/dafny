@@ -496,7 +496,7 @@ Right-hand-side expressions appear in the following constructs:
 These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be produced.
 
-## 21.16. Array Allocation
+## 21.16. Array Allocation {#sec-array-allocation}
 ````grammar
 ArrayAllocation_ =
   "new" [ Type ] "[" [ Expressions ] "]"
@@ -505,8 +505,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This allocates a new single or multi-dimensional array as explained in
-section [Section 15](#sec-array-types).
+This expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 ```dafny

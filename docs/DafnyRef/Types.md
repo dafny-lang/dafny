@@ -2968,6 +2968,9 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
+There is however syntax to create a multi-dimensional array value
+using a function: see [Section 21.16](#sec-array-allocation).
+
 
 <!--PDF NEWPAGE-->
 # 16. Iterator types {#sec-iterator-types}
