@@ -170,4 +170,90 @@ module {:options "/functionSyntax:4"} Arrays {
       values := valuesArray[..];
     }
   }
+
+  class ResizableArray<T> extends Validatable {
+    const storage: Array<T>
+    var size: nat
+
+    ghost predicate Valid() reads this, Repr 
+      ensures Valid() ==> this in Repr
+    {
+      && this in Repr
+      && ValidComponent(storage)
+      && 0 <= size <= storage.Length()
+      && forall i | 0 <= i < size :: storage.values[i].Set?
+    }
+
+    constructor(length: nat) 
+      ensures Valid()
+      ensures Value() == []
+      ensures Remaining() == length
+      ensures fresh(Repr)
+    {
+      storage := new DafnyArray<T>(length);
+      size := 0;
+      new;
+      Repr := {this} + storage.Repr;
+    }
+
+    ghost function Value(): seq<T>
+      requires Valid()
+      reads this, Repr
+    {
+      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
+    }
+
+    ghost function Remaining(): nat
+      requires Valid()
+      reads this, Repr
+    {
+      storage.Length() - size
+    }
+
+    function Last(): T 
+      requires Valid()
+      requires 0 < size
+      reads this, Repr
+    {
+      storage.Read(size - 1)
+    }
+
+    method AddLast(t: T) 
+      requires Valid()
+      requires size + 1 <= storage.Length()
+      modifies Repr
+      ensures ValidAndDisjoint()
+      ensures Value() == old(Value()) + [t]
+      ensures Remaining() == old(Remaining()) - 1
+    {
+      storage.Write(size, t);
+      size := size + 1;
+    }
+
+    method RemoveLast() returns (t: T) 
+      requires Valid()
+      requires 0 < size
+      modifies Repr
+      ensures ValidAndDisjoint()
+      ensures Value() == old(Value()[..(size - 1)])
+      ensures Remaining() == old(Remaining()) + 1
+    {
+      t := storage.Read(size - 1);
+      size := size - 1;
+    }
+
+    method Append(other: InitializedArray<T>) 
+      requires Valid()
+      requires other.Valid()
+      requires Repr !! other.a.Repr
+      requires size + other.a.Length() <= storage.Length()
+      modifies Repr
+      ensures ValidAndDisjoint()
+      ensures Value() == old(Value()) + other.Value()
+      ensures Remaining() == old(Remaining()) - other.a.Length()
+    {
+      storage.WriteRangeArray(size, other.a, 0, other.a.Length());
+      size := size + other.a.Length();
+    }
+  }
 }

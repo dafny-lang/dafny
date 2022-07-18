@@ -16,7 +16,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  // TODO: How to deal
+  // TODO: How to deal with variance?
   trait SeqExpr<T> extends Validatable {
    
     ghost predicate Valid()
@@ -44,13 +44,15 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     method ToArray() returns (ret: InitializedArray<T>)
       requires Valid()
-      decreases Size(), 2
+      decreases Repr, 2
       ensures ret.Valid()
+      ensures fresh(ret.a.Repr)
       ensures ret.Value() == Value()
 
     method Concatenate(s: SeqExpr<T>) returns (ret: SeqExpr<T>)
       requires Valid()
       requires s.Valid()
+      requires Repr !! s.Repr
       ensures ret.Valid()
     {
       var c := new Concat(this, s);
@@ -112,8 +114,9 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     method ToArray() returns (ret: InitializedArray<T>)
       requires Valid()
-      decreases Size(), 2
+      decreases Repr, 2
       ensures ret.Valid()
+      ensures fresh(ret.a.Repr)
       ensures ret.Value() == Value()
     {
       return value;
@@ -134,6 +137,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && this in Repr
       && ValidComponent(left)
       && ValidComponent(right)
+      && left.Repr !! right.Repr
       && length == left.Length() + right.Length()
       && depth == 1 + Math.Max(left.Depth(), right.Depth())
     }
@@ -141,6 +145,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     constructor(left: SeqExpr<T>, right: SeqExpr<T>) 
       requires left.Valid()
       requires right.Valid()
+      requires left.Repr !! right.Repr
       ensures Valid()
       ensures fresh(Repr - left.Repr - right.Repr)
     {
@@ -186,49 +191,57 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     method ToArray() returns (ret: InitializedArray<T>)
       requires Valid()
-      decreases Size(), 2
+      decreases Repr, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()
     {
       var builder := new ResizableArray<T>(length);
-      var toAppendAfter := new ResizableArray<SeqExpr<T>>(depth);
-      AppendValue(builder, toAppendAfter);
+      assert builder.storage.Length() == length;
+      assert builder.Remaining() == length;
+      var leftArray := left.ToArray();
+      assert leftArray.a.Length() == left.Length();
+      builder.Append(leftArray);
+      assert builder.Remaining() == length - leftArray.a.Length();
+      var rightArray := right.ToArray();
+      builder.Append(rightArray);
       return InitializedArray(builder.storage);
     }
 
-    method {:tailrecursion} AppendValue(builder: ResizableArray<T>, toAppendAfter: ResizableArray<SeqExpr<T>>)
+    method ToArrayOptimized() returns (ret: InitializedArray<T>)
       requires Valid()
-      requires builder.Valid()
-      requires toAppendAfter.Valid()
-      requires forall e <- toAppendAfter.Value() :: e.Valid()
-      requires builder.Remaining() == |Value()| + |ConcatValueOnStack(toAppendAfter.Value())|
-      requires builder.Repr !! toAppendAfter.Repr
-      modifies builder.Repr, toAppendAfter.Repr
-      decreases Size() + SizeSum(toAppendAfter.Value())
-      ensures builder.Valid()
-      ensures builder.Value() == old(builder.Value()) + Value() + ConcatValueOnStack(old(toAppendAfter.Value()));
+      decreases Repr, 3
+      ensures ret.Valid()
+      ensures ret.Value() == Value()
     {
-      // TODO: Optimized version
-      // match this {
-      //   case Direct(a) => {
-      //     builder.Append(a);
-      //     if 0 < toAppendAfter.size {
-      //       var next := toAppendAfter.RemoveLast();
-      //       LemmaConcatValueOnStackWithTip(toAppendAfter.Value(), next);
-      //       next.AppendValue(builder, toAppendAfter);
-      //     }
-      //   }
-      //   case ConcatBoth(left, right, _, _) => {
-      //     toAppendAfter.AddLast(right);
-      //     LemmaConcatValueOnStackWithTip(old(toAppendAfter.Value()), right);
-      //     assert SizeSum(toAppendAfter.Value()) == old(SizeSum(toAppendAfter.Value())) + right.Size();
-      //     left.AppendValue(builder, toAppendAfter);
-      //   }
-      //   case Lazy(_, _, exprBox, _, _) => {
-      //     var expr := exprBox.Get();
-      //     expr.AppendValue(builder, toAppendAfter);
-      //   }
-      // }
+      var builder := new ResizableArray<T>(length);
+      var stack := new ResizableArray<SeqExpr<T>>(depth);
+      stack.AddLast(this);
+      assert stack.Value() == [this];
+      LemmaConcatValueOnStackWithTip([], this);
+      assert ConcatValueOnStack(stack.Value()) == Value();
+      while 0 < stack.size 
+        invariant builder.Valid()
+        invariant stack.Valid()
+        invariant forall e <- stack.Value() :: e.Valid()
+        invariant builder.Remaining() == |ConcatValueOnStack(stack.Value())|
+        invariant builder.Value() + ConcatValueOnStack(stack.Value()) == Value()
+        decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
+      {
+        var next: SeqExpr<T> := stack.RemoveLast();
+        if next is Concat<T> {
+          var concat := next as Concat<T>;
+          stack.AddLast(concat.right);
+          stack.AddLast(concat.left);
+        } else if next is Lazy<T> {
+          var lazy := next as Lazy<T>;
+          var boxed := lazy.exprBox.Get();
+          stack.AddLast(boxed);
+        } else {
+          var a := ToArray();
+          builder.Append(a);
+        }
+      }
+      return InitializedArray(builder.storage);
     }
   }
 
@@ -246,10 +259,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
     {
       && this in Repr
       && length == |value|
-      && exprBox.inv == ((e: SeqExpr<T>) reads e => 
-        && e.Size() < size
+      && exprBox.inv == ((e: SeqExpr<T>) reads e, e.Repr => 
+        && ValidComponent(e) 
+        && (assert e.Repr < Repr; e.Size() < size)
         && e.Depth() < depth
-        && e.Valid() 
         && e.Value() == value)
     }
 
@@ -261,10 +274,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
       var depth := 1 + wrapped.Depth();
       var value := wrapped.Value();
       var size := 1 + wrapped.Size();
-      ghost var inv := ((e: SeqExpr<T>) => 
+      ghost var inv := ((e: SeqExpr<T>) reads e, e.Repr => 
+          && e.Valid() 
           && e.Size() < size
           && e.Depth() < depth
-          && e.Valid() 
           && e.Value() == value);
       this.exprBox := new AtomicBox(inv, wrapped);
 
@@ -305,7 +318,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     method ToArray() returns (ret: InitializedArray<T>)
       requires Valid()
-      decreases Size(), 2
+      decreases Repr, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()
     {
@@ -352,83 +365,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
     else
       var last := |s| - 1;
       SizeSum(s[..last]) + s[last].Size()
-  }
-
-  class ResizableArray<T> extends Validatable {
-    const storage: Array<T>
-    var size: nat
-
-    ghost predicate Valid() reads this, Repr 
-      ensures Valid() ==> this in Repr
-    {
-      && this in Repr
-      && ValidComponent(storage)
-      && 0 <= size <= storage.Length()
-      && forall i | 0 <= i < size :: storage.values[i].Set?
-    }
-
-    constructor(length: nat) 
-      ensures Valid()
-      ensures Value() == []
-      ensures Remaining() == length
-      ensures fresh(Repr)
-    {
-      storage := new DafnyArray<T>(length);
-      size := 0;
-      new;
-      Repr := {this} + storage.Repr;
-    }
-
-    ghost function Value(): seq<T>
-      requires Valid()
-      reads this, Repr
-    {
-      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
-    }
-
-    ghost function Remaining(): nat
-      requires Valid()
-      reads this, Repr
-    {
-      storage.Length() - size
-    }
-
-    method AddLast(t: T) 
-      requires Valid()
-      requires size + 1 <= storage.Length()
-      modifies Repr
-      ensures ValidAndDisjoint()
-      ensures Value() == old(Value()) + [t]
-      ensures Remaining() == old(Remaining()) - 1
-    {
-      storage.Write(size, t);
-      size := size + 1;
-    }
-
-    method RemoveLast() returns (t: T) 
-      requires Valid()
-      requires 0 < size
-      modifies Repr
-      ensures ValidAndDisjoint()
-      ensures Value() == old(Value())[..size]
-      ensures Remaining() == old(Remaining()) + 1
-    {
-      t := storage.Read(size - 1);
-      size := size - 1;
-    }
-
-    method Append(other: InitializedArray<T>) 
-      requires Valid()
-      requires other.Valid()
-      requires size + other.a.Length() <= storage.Length()
-      modifies Repr
-      ensures ValidAndDisjoint()
-      ensures Value() == old(Value()) + other.Value()
-      ensures Remaining() == old(Remaining()) - other.a.Length()
-    {
-      storage.WriteRangeArray(size, other.a, 0, other.a.Length());
-      size := size + other.a.Length();
-    }
   }
 
   class {:extern} AtomicBox<T> {
