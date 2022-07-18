@@ -1,6 +1,6 @@
-include "../../../Test/libraries/src/JSON/Stacks.dfy"
-include "../../../Test/libraries/src/Collections/Sequences/Seq.dfy"
-include "../../../Test/libraries/src/Math.dfy"
+include "../../../../Test/libraries/src/JSON/Stacks.dfy"
+include "../../../../Test/libraries/src/Collections/Sequences/Seq.dfy"
+include "../../../../Test/libraries/src/Math.dfy"
 
 include "array.dfy"
 
