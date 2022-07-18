@@ -16,23 +16,52 @@ public class HelperString {
 }
 
 public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
-  public Dictionary<IToken, int> TokenToMinIndentationBefore;
-  public Dictionary<IToken, int> TokenToMinIndentationAfter;
+  public Dictionary<int, int> TokenToMinIndentationBefore;
+  public Dictionary<int, int> TokenToMinIndentationAfter;
 
-  private WhitespaceFormatter(Dictionary<IToken, int> tokenToMinIndentationBefore, Dictionary<IToken, int> tokenToMinIndentationAfter) {
+  private WhitespaceFormatter(Dictionary<int, int> tokenToMinIndentationBefore, Dictionary<int, int> tokenToMinIndentationAfter) {
     TokenToMinIndentationBefore = tokenToMinIndentationBefore;
     TokenToMinIndentationAfter = tokenToMinIndentationAfter;
   }
 
   public static WhitespaceFormatter ForProgram(Program program) {
-    Dictionary<IToken, int> tokenToMinIndentationBefore = new();
-    Dictionary<IToken, int> tokenToMinIndentationAfter = new();
+    Dictionary<int, int> posToMinIndentationBefore = new();
+    Dictionary<int, int> posToMinIndentationAfter = new();
 
-    foreach (var module in program.CompileModules) {
+    var indent = 0;
 
+    void SetMemberIndentation(MemberDecl member) {
+      posToMinIndentationBefore.TryAdd(member.BodyStartTok.pos, indent);
+      indent += 2;
+      posToMinIndentationAfter.TryAdd(member.BodyStartTok.pos, indent);
+      posToMinIndentationBefore.TryAdd(member.BodyEndTok.pos, indent);
+      indent -= 2;
+      posToMinIndentationAfter.TryAdd(member.BodyEndTok.pos, indent);
+    }
+    void SetDeclIndentation(TopLevelDecl topLevelDecl) {
+      if (topLevelDecl.StartToken.line > 0) {
+        posToMinIndentationBefore.TryAdd(topLevelDecl.BodyStartTok.pos, indent);
+        indent += 2;
+        posToMinIndentationAfter.TryAdd(topLevelDecl.BodyStartTok.pos, indent);
+        if (topLevelDecl is LiteralModuleDecl moduleDecl) {
+          foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
+            SetDeclIndentation(decl2);
+          }
+        } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
+          foreach (var members in declWithMembers.Members) {
+            SetMemberIndentation(members);
+          }
+        }
+        posToMinIndentationBefore.TryAdd(topLevelDecl.BodyEndTok.pos, indent);
+        indent -= 2;
+        posToMinIndentationAfter.TryAdd(topLevelDecl.BodyEndTok.pos, indent);
+      }
+    }
+    foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
+      SetDeclIndentation(decl);
     }
 
-    var formatter = new WhitespaceFormatter(tokenToMinIndentationBefore, tokenToMinIndentationAfter);
+    var formatter = new WhitespaceFormatter(posToMinIndentationBefore, posToMinIndentationAfter);
     return formatter;
   }
 
@@ -46,13 +75,13 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
     lastIndentation = currentIndentation;
     indentationAfter = currentIndentation;
     wasSet = false;
-    if (TokenToMinIndentationBefore.TryGetValue(token, out var preIndentation)) {
+    if (TokenToMinIndentationBefore.TryGetValue(token.pos, out var preIndentation)) {
       indentationBefore = new string(' ', preIndentation);
       lastIndentation = lastIndentation;
       indentationAfter = indentationBefore;
       wasSet = true;
     }
-    if (TokenToMinIndentationAfter.TryGetValue(token, out var postIndentation)) {
+    if (TokenToMinIndentationAfter.TryGetValue(token.pos, out var postIndentation)) {
       lastIndentation = new string(' ', postIndentation);
       indentationAfter = lastIndentation;
       wasSet = true;

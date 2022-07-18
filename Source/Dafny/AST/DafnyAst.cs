@@ -3526,6 +3526,8 @@ namespace Microsoft.Dafny {
       ModuleDef = module;
       StartToken = module.StartToken;
       TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+      BodyStartTok = module.BodyStartTok;
+      BodyEndTok = module.BodyEndTok;
     }
     public override object Dereference() { return ModuleDef; }
   }
