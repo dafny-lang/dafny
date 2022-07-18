@@ -1,3 +1,7 @@
+# Upcoming
+
+- feat: Snippet in the error messages of the language server. (https://github.com/dafny-lang/dafny/pull/2434)
+
 # 3.7.2
 
 - fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
