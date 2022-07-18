@@ -3,9 +3,10 @@ import builtins
 from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
-from collections import deque, Counter
+from collections import Counter
 from functools import reduce
 from types import GeneratorType
+from itertools import chain, combinations
 import copy
 
 class classproperty(property):
@@ -87,19 +88,9 @@ class Set(frozenset):
 
     @property
     def AllSubsets(self):
-        complete = set(self)
-        queue = deque([set()])
-        yield Set(queue[0])
-        while True:
-            s = queue.pop()
-            missing = complete - s
-            if missing == set():
-                break
-            for e in missing:
-                n = s.copy()
-                n.add(e)
-                yield Set(n)
-                queue.appendleft(n)
+        # https://docs.python.org/3/library/itertools.html#itertools-recipes
+        s = list(self)
+        return map(Set, chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
     def __str__(self) -> str:
         return '{' + ', '.join(map(str, self)) + '}'
