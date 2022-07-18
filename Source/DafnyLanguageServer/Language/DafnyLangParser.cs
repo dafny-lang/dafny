@@ -39,6 +39,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           DafnyOptions.Install(DafnyOptions.Create());
           DafnyOptions.O.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+          // ShowSnippets == true enable boogie assertion's token to contain the range of expressions, not their single token 
+          DafnyOptions.O.ShowSnippets = true;
           initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");

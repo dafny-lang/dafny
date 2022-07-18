@@ -33,6 +33,11 @@ namespace Microsoft.Dafny.Compilers {
     // True if the most recently visited AST has a method annotated with {:synthesize}:
     protected bool Synthesize = false;
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.SubsetTypeTests,
+      Feature.TuplesWiderThan20
+    };
+
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);
@@ -123,6 +128,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
+        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      }
+
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
       if (Synthesize) {
@@ -140,8 +149,8 @@ namespace Microsoft.Dafny.Compilers {
     //     ...
     //   }
     // They aren't in any namespace to make them universally accessible.
-    private static void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions");
+    private void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
 
@@ -1171,7 +1180,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new NotSupportedException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new cce.UnreachableException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
 
       public ConcreteSyntaxTree /*?*/ ErrorWriter() => InstanceMemberWriter;
@@ -2879,6 +2888,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
+        case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
@@ -2902,8 +2912,6 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
-        case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "Contains"; reverseArguments = true; break;
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
@@ -3046,7 +3054,7 @@ namespace Microsoft.Dafny.Compilers {
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
     }
 

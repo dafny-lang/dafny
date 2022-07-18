@@ -16,7 +16,8 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
 
   public AssertionBatchCompletedObserver(
     ILogger logger,
-    bool reportVerificationDiagnostics) {
+    bool reportVerificationDiagnostics
+    ) {
     this.logger = logger;
     this.reportVerificationDiagnostics = reportVerificationDiagnostics;
   }
@@ -55,7 +56,7 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
 
   public void ReportSplitResult(Split split, VCResult vcResult) {
     if (reportVerificationDiagnostics) {
-      completedBatches.OnNext(new AssertionBatchResult(split, vcResult));
+      completedBatches.OnNext(new AssertionBatchResult(split.Implementation, vcResult));
     }
   }
 

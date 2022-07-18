@@ -102,7 +102,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
 
+      var progressReporter = CreateVerificationProgressReporter(loaded);
+      progressReporter.UpdateLastTouchedMethodPositions();
+
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+      if (VerifierOptions.GutterStatus) {
+        progressReporter.RecomputeVerificationTree();
+        progressReporter.ReportRealtimeDiagnostics(false, loaded);
+        progressReporter.ReportImplementationsBeforeVerification(
+          verificationTasks.Select(t => t.Implementation).ToArray());
+      }
+
       var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
 
       foreach (var task in verificationTasks) {
@@ -125,17 +135,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         VerificationTasks = verificationTasks,
         ImplementationIdToView = initialViews.ToImmutableDictionary(),
       };
-      var progressReporter = CreateVerificationProgressReporter(result);
-      if (VerifierOptions.GutterStatus) {
-        progressReporter.RecomputeVerificationTree();
-        progressReporter.ReportRealtimeDiagnostics(false, result);
-        progressReporter.ReportImplementationsBeforeVerification(
-          verificationTasks.Select(t => t.Implementation).ToArray());
-      }
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
+
       var subscription = verifier.BatchCompletions.Where(c =>
-        implementations.Contains(c.Split.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+        implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
+
       result.GutterProgressReporter = progressReporter;
       return result;
     }
@@ -239,12 +244,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
 
-      if (VerifierOptions.GutterStatus) {
-        dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
-      }
-
       var statusUpdates = implementationTask.TryRun();
       if (statusUpdates == null) {
+        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+          foreach (var result in completedCache.Result.VCResults) {
+            dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(new AssertionBatchResult(implementationTask.Implementation, result));
+          }
+          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, completedCache.Result);
+        }
         return Observable.Empty<DafnyDocument>();
       }
 
@@ -255,7 +262,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,
       IObservable<IVerificationStatus> statusUpdates) {
 
-      var result = statusUpdates.Select(boogieStatus => HandleStatusUpdate(document, implementationTask, boogieStatus));
+      var result = statusUpdates.Select(boogieStatus => HandleStatusUpdate(document, implementationTask, boogieStatus)).Replay();
+      result.Connect(); // Immediately start processing the status updates.
 
       var initial = document with {
         ImplementationIdToView = document.ImplementationIdToViewCollector!.ToImmutableDictionary(),
@@ -267,6 +275,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var id = GetImplementationId(implementationTask.Implementation);
       var status = StatusFromBoogieStatus(boogieStatus);
       var implementationRange = implementationTask.Implementation.tok.GetLspRange();
+      if (boogieStatus is Running) {
+        if (VerifierOptions.GutterStatus) {
+          document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
+        }
+      }
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {

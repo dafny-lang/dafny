@@ -7,7 +7,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
-  public record AssertionBatchResult(Split Split, VCResult Result);
+  public record AssertionBatchResult(Implementation Implementation, VCResult Result);
 
   public record ProgramVerificationTasks(IReadOnlyList<IImplementationTask> Tasks);
 

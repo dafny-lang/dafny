@@ -22,11 +22,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="token">The token to get the range of.</param>
     /// <param name="other">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken token, IToken? other = null) {
-      other ??= token;
+    public static Range GetLspRange(this IToken startToken, IToken? endToken = null) {
+      endToken ??= startToken;
+      endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
-        GetLspPosition(token),
-        ToLspPosition(other.line, other.col + other.val.Length)
+        GetLspPosition(startToken),
+        ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
     }
 

@@ -258,7 +258,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public static LineVerificationStatus RenderLineVerificationStatus(
-      bool isSingleLine, bool contextHasErrors, bool contextIsPending,
+      bool isFinalError, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
       LineVerificationStatus simpleStatus = verificationStatus switch {
         GutterVerificationStatus.Nothing => LineVerificationStatus.Nothing,
@@ -266,17 +266,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         // because there might be other errors on the same range.
         GutterVerificationStatus.Verified =>
           contextHasErrors
-            ? isSingleLine // Sub-implementations that are verified do not count
+            ? isFinalError // Sub-implementations that are verified do not count
               ? LineVerificationStatus.AssertionVerifiedInErrorContext
               : LineVerificationStatus.ErrorContext
-            : contextIsPending && !isSingleLine
+            : contextIsPending && !isFinalError
               ? LineVerificationStatus.Nothing
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
         GutterVerificationStatus.Inconclusive =>
           LineVerificationStatus.ErrorContext,
-        GutterVerificationStatus.Error => isSingleLine
+        GutterVerificationStatus.Error => isFinalError
             ? LineVerificationStatus.AssertionFailed
             : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
@@ -284,11 +284,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
     }
 
+    protected virtual bool IsFinalError => false;
+
     // Requires PropagateChildrenErrorsUp to have been called before.
     public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
       Range range = otherRange ?? Range;
-      var isSingleLine = range.Start.Line == range.End.Line;
-      LineVerificationStatus targetStatus = RenderLineVerificationStatus(isSingleLine, contextHasErrors, contextIsPending, StatusCurrent, StatusVerification);
+      var isFinalError = range.Start.Line == range.End.Line || IsFinalError;
+      LineVerificationStatus targetStatus = RenderLineVerificationStatus(isFinalError, contextHasErrors, contextIsPending, StatusCurrent, StatusVerification);
       for (var line = range.Start.Line; line <= range.End.Line; line++) {
         if (line < 0 || perLineDiagnostics.Length <= line) {
           // An error occurred? We don't want null pointer exceptions anyway
@@ -538,6 +540,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       EndTime = parentStartTime.AddMilliseconds(batchTime);
       return this;
     }
+
+    protected override bool IsFinalError => true;
 
     // Ranges that should also display an error
     // TODO: Will need to compute this statically for the tests

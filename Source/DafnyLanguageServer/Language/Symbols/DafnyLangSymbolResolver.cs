@@ -5,7 +5,6 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
