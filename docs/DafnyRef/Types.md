@@ -2952,7 +2952,7 @@ sequence.
 
 
 <!--PDF NEWPAGE-->
-# 16. Iterator types {#sec-iterator-types}
+# 16. Iterator Types {#sec-iterator-types}
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
@@ -3007,9 +3007,10 @@ For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
 ```dafny
 iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
   var i := 0;
-  while i < 10 {
+  while i < 10 invariant |xs| == i {
     x := start + i;
     yield;
     i := i + 1;
@@ -3020,7 +3021,20 @@ An instance of this iterator is created using
 ```dafny
 iter := new Gen(30);
 ```
-TODO: Add example of using the iterator
+It is used like this:
+```
+method Main() {
+  var i := new Gen(30);
+  while true
+    invariant i.Valid() && fresh(i._new)
+    decreases 10 - |i.xs|
+  {
+    var m := i.MoveNext();
+    if (!m) {break; }
+    print i.x;
+  }
+}
+```
 
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the
