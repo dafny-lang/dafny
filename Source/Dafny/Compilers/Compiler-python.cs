@@ -592,12 +592,9 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
               case DatatypeDecl dt:
-                if (dt is TupleTypeDecl) {
-                  throw new UnsupportedFeatureException(tok, Feature.TupleInitialization);
-                }
-                var s = DtCtorDeclarationName(dt.GetGroundingCtor());
+                var constructor = dt is TupleTypeDecl ? "" : DtCtorDeclarationName(dt.GetGroundingCtor());
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-                return $"{s}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
+                return $"{constructor}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
 
               case TypeParameter:
                 return "None";
