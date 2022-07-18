@@ -7,10 +7,11 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Boogie;
+using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok, string? category, string message) {
+record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
   private static JsonObject SerializePosition(IToken tok) {
     return new JsonObject {
       ["line"] = tok.line,
@@ -44,23 +45,40 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
     };
   }
 
-  private static IEnumerable<JsonNode> SerializeRelatedInformation(IToken tok) {
+  private static string SerializeMessage(string? category, string message) {
+    return category == null ? message : $"{category}: {message}";
+  }
+
+  private static JsonObject SerializeRelated(IToken tok, string? category, string message) {
+    return new JsonObject {
+      ["location"] = SerializeToken(tok),
+      ["message"] = SerializeMessage(category, message),
+    };
+  }
+
+  private static IEnumerable<JsonNode> SerializeInnerTokens(IToken tok) {
     while (tok is NestedToken ntok) {
       tok = ntok.Inner;
-      yield return new JsonObject {
-        ["location"] = SerializeToken(tok),
-        ["message"] = "Related location",
-      };
+      yield return SerializeRelated(tok, null, "Related location");
+    }
+  }
+
+  private static IEnumerable<JsonNode> SerializeAuxInfo(ErrorInformation.AuxErrorInfo aux) {
+    yield return SerializeRelated(aux.Tok, aux.Category, aux.Msg);
+    foreach (var n in SerializeInnerTokens(aux.Tok)) {
+      yield return n;
     }
   }
 
   public JsonNode ToJson() {
+    var auxRelated = related?.SelectMany(SerializeAuxInfo) ?? Enumerable.Empty<JsonNode>();
+    var innerRelated = SerializeInnerTokens(tok);
     return new JsonObject {
       ["range"] = SerializeToken(tok),
       ["severity"] = SerializeErrorLevel(level),
-      ["message"] = category == null ? message : $"{category}: {message}",
+      ["message"] = SerializeMessage(category, message),
       ["source"] = source.ToString(),
-      ["relatedInformation"] = new JsonArray(SerializeRelatedInformation(tok).ToArray())
+      ["relatedInformation"] = new JsonArray(auxRelated.Concat(innerRelated).ToArray())
     };
   }
 
@@ -72,14 +90,22 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
 public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
   public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string? category = null) {
     var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
-    new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message).WriteJsonTo(tw);
+    new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message, null).WriteJsonTo(tw);
+  }
+
+  public override void WriteErrorInformation(VCGeneration.ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
+    var related = errorInfo.Aux.Where(e =>
+      !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).ToList();
+    new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
+      errorInfo.Tok, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
+    tw.Flush();
   }
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
   public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
     if (base.Message(source, level, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, null, msg).WriteJsonTo(Console.Out);
+      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
       return true;
     }
 
