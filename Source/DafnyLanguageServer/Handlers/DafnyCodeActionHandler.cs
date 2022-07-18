@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
 
-  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
+  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
     this.logger = logger;
     this.documents = documents;
   }
@@ -43,12 +42,12 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// Returns the fixes along with a unique identifier
   /// </summary>
   public IEnumerable<QuickFixWithId> GetFixesWithIds(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request) {
-    var ID = 0;
+    var id = 0;
     foreach (var fixer in fixers) {
       var fixerInput = new VerificationQuickFixerInput(document);
       var quickFixes = fixer.GetQuickFixes(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
-        new QuickFixWithId(quickFix, ID++));
+        new QuickFixWithId(quickFix, id++));
       foreach (var codeAction in fixerCodeActions) {
         yield return codeAction;
       }
@@ -85,30 +84,32 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       new VerificationQuickFixer()
     }.Concat(
       DafnyOptions.O.Plugins.SelectMany(plugin =>
-        plugin is ConfiguredPlugin configuredPlugin &&
-          configuredPlugin.Configuration is PluginConfiguration configuration ?
+        plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetQuickFixers() : new QuickFixer[] { })).ToArray();
   }
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
     var command = request.Data;
-    if (command != null) {
-      string documentUri = command[0].Value<string>();
-      int id = command[1].Value<int>();
-      if (documentUriToQuickFixes.TryGetValue(documentUri, out var quickFixes)) {
-        QuickFixWithId? selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((QuickFixWithId?)null!);
-        if (selectedQuickFix != null) {
-          return Task.FromResult(new CodeAction() {
-            Edit = new WorkspaceEdit() {
-              DocumentChanges = new Container<WorkspaceEditDocumentChange>(
-                new WorkspaceEditDocumentChange(new TextDocumentEdit() {
-                  TextDocument = new OptionalVersionedTextDocumentIdentifier() {
-                    Uri = documentUri
-                  },
-                  Edits = new TextEditContainer(GetTextEdits(selectedQuickFix.QuickFix.GetEdits()))
-                }))
-            }
-          });
+    if (command != null && command.Count() > 2 && command[1] != null) {
+      string? documentUri = command[0]?.Value<string>();
+      if (documentUri != null && documentUriToQuickFixes.TryGetValue(documentUri, out var quickFixes)) {
+        int? id = command[1]?.Value<int>();
+        if (id != null) {
+          QuickFixWithId? selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id)
+            .FirstOrDefault((QuickFixWithId?)null);
+          if (selectedQuickFix != null) {
+            return Task.FromResult(new CodeAction {
+              Edit = new WorkspaceEdit() {
+                DocumentChanges = new Container<WorkspaceEditDocumentChange>(
+                  new WorkspaceEditDocumentChange(new TextDocumentEdit() {
+                    TextDocument = new OptionalVersionedTextDocumentIdentifier() {
+                      Uri = documentUri
+                    },
+                    Edits = new TextEditContainer(GetTextEdits(selectedQuickFix.QuickFix.GetEdits()))
+                  }))
+              }
+            });
+          }
         }
       }
     }
@@ -137,7 +138,7 @@ public class VerificationQuickFixerInput : IQuickFixInput {
   public string Uri => Document.Uri.GetFileSystemPath();
   public int Version => Document.Version;
   public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program? Program => Document.Program;
+  public Dafny.Program Program => Document.Program;
   public DafnyDocument Document { get; }
 
   public Diagnostic[] Diagnostics {
