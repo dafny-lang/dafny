@@ -12,12 +12,15 @@ module {:options "/functionSyntax:4"} MetaSeq {
   import opened Stacks
   import opened Arrays
 
+  // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
+  // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
+  // TODO: Would also be good to assert that seq<T> is only used in specifications.
   datatype SeqExpr<T> = 
     | Empty
     | Direct(a: seq<T>)
     | ConcatBoth(left: SeqExpr<T>, right: SeqExpr<T>, length: nat)
     | Lazy(ghost value: seq<T>, ghost boxSize: nat,
-           exprBox: AtomicBox<SeqExpr<T>>, length: nat) 
+           exprBox: AtomicBox<SeqExpr<T>>, length: nat)
   {
     ghost predicate Valid()
       decreases Size(), 0
@@ -104,7 +107,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       }
     }
 
-    method {:tailrecursion} AppendValue(builder: SeqBuilder<T>, toAppendAfter: Stack<SeqExpr<T>>) 
+    method {:tailrecursion} AppendValue(builder: SeqBuilder<T>, toAppendAfter: Stack<SeqExpr<T>>)
       requires Valid()
       requires builder.Valid()
       requires toAppendAfter.Valid?()
