@@ -13137,6 +13137,7 @@ namespace Microsoft.Dafny {
       Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
+      if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
       //TODO More?
     }
     public void Visit(Expression expr) {

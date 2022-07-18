@@ -15,6 +15,7 @@ using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Helpers;
 
 namespace Microsoft.Dafny {
   using System;
@@ -31,24 +32,6 @@ namespace Microsoft.Dafny {
   public enum DriverAction {
     Run,
     Format
-  }
-
-  public class DummyTokenIndentation : TokenFormatter.ITokenIndentations {
-    public void GetIndentation(IToken token, string currentIndentation, out string indentationBefore, out string lastIndentation, out string indentationAfter,
-      out bool wasSet) {
-      if (token.val == "}") {
-        wasSet = true;
-        var indentationBeforeCount = token.col + 1;
-        indentationBefore = new string(' ', indentationBeforeCount);
-        lastIndentation = new string(' ', Math.Max(indentationBeforeCount - 2, 0));
-        indentationAfter = lastIndentation;
-      } else {
-        wasSet = false;
-        indentationBefore = "";
-        lastIndentation = "";
-        indentationAfter = "";
-      }
-    }
   }
 
   public class DafnyDriver {
