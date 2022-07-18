@@ -4068,14 +4068,18 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return TopLevelDecls.OfType<ClassDecl>()
-        .SelectMany(classDecl => classDecl.Members)
-        .Where(member => member.tok.line > 0)
-        .Select(member => member.tok)
-        .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
-          .Select(moduleDecl => moduleDecl.ModuleDef.StartToken)
-          .Where(tok => tok.line > 0)
-        ).FirstOrDefault(Token.NoToken);
+      IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
+        if (decl.StartToken.line > 0) {
+          return new List<IToken>() { decl.StartToken };
+        } else if (decl is TopLevelDeclWithMembers declWithMembers) {
+          return declWithMembers.Members.Where(
+              member => member.tok.line > 0)
+            .Select(member => member.tok);
+        } else {
+          return new List<IToken>() { };
+        }
+      });
+      return topTokens.FirstOrDefault((IToken?)null);
     }
   }
 
