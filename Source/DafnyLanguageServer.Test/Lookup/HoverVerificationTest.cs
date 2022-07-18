@@ -61,7 +61,7 @@ method Abs(x: int) returns (y: int)
         @"[**Error:**](???) A postcondition might not hold on this return path.  
 This is assertion #1 of 2 in method Abs  
 Resource usage: ??? RU  
-Related location: testFile.dfy(6, 5)"
+Return path: testFile.dfy(6, 5)"
       );
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
