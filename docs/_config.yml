@@ -27,7 +27,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://dafny-lang.github.io/dafny" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
-theme: minima
+theme: jekyll-theme-minimal
 
 markdown: kramdown
 highlighter: rouge
