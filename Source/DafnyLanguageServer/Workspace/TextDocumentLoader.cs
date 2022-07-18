@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       return CreateDocumentWithEmptySymbolTable(
         loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private DafnyDocument LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       IncludePluginLoadErrors(errorReporter, program);
@@ -316,7 +316,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
-      var errorReporter = new DiagnosticErrorReporter(document.Uri);
+      var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
       foreach (var counterExample in result.Errors) {
         errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
       }
