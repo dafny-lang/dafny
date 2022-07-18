@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -29,7 +30,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
       var ghost = variable.IsGhost ? "ghost " : "";
-      return $"{ghost}{variable.Name}: {variable.Type}";
+      try {
+        return $"{ghost}{variable.Name}: {variable.Type}";
+      } catch (Exception e) {
+        return $"{ghost}{variable.Name}: <Internal error: {e}>";
+      }
     }
 
     /// <summary>

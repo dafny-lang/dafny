@@ -7561,7 +7561,7 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Type>() != null);
 
         Contract.Assume(type != null);  /* we assume object has been resolved */
-        return type?.Normalize();
+        return type.Normalize();
       }
     }
     public bool IsMutable {

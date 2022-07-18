@@ -12002,7 +12002,8 @@ namespace Microsoft.Dafny {
     // deep clone Patterns and Body
     private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
       Cloner cloner = new Cloner();
-      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x => cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
+      return new RBranchStmt(branch.Tok, branch.BranchID,
+        branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), new List<Statement>(branch.Body), cloner.CloneAttributes(branch.Attributes));
     }
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
