@@ -54,7 +54,7 @@ Dafny also offers an extensive toolbox for mathematical proofs about software, i
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
-   * [**Tips and Tricks and FAQs](HowToFAQ)
+   * [**Tips and Tricks and FAQs**](HowToFAQ)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
