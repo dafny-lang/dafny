@@ -2163,6 +2163,12 @@ PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
   [ GenericParameters ]
   [ KType ]
   Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
+  [
+    ":"
+    ( Type
+    | "(" Ident ":" "bool" ")"
+    )
+  ]
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2305,8 +2311,8 @@ clauses.
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
+keyword with the `predicate` keyword and possibly omitting a declaration of the
+return type (if it is not named).
 
 ### 13.4.3. Function Transparency
 A function is said to be _transparent_ in a location if the
