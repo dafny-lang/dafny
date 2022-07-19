@@ -17,13 +17,17 @@ public class HelperString {
         var v = match.Groups["commentType"].Value;
         if (v.Length > 0) {
           if (v.StartsWith("/*")) {
-            var prefixWithStar = v.StartsWith("/**");
+            var doubleStar = v.StartsWith("/**");
             var originalComment = match.Groups["commentType"].Value;
             var currentIndentation = match.Groups["currentIndent"].Value;
             var result = new Regex($@"(?<=\r?\n){currentIndentation}(?<star>\s*\*)?").Replace(
               originalComment, match1 => {
-                if (prefixWithStar && match1.Groups["star"].Success) {
-                  return indentationBefore + "  *";
+                if (match1.Groups["star"].Success) {
+                  if (doubleStar) {
+                    return indentationBefore + "  *";
+                  } else {
+                    return indentationBefore + " *";
+                  }
                 } else {
                   return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
                 }
