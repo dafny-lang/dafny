@@ -32,7 +32,7 @@ public class HelperString {
           }
 
           if (v.StartsWith("//")) {
-            return indentationBefore;
+            return indentationBefore + match.Groups["commentType"].Value;
           }
           if (v.StartsWith("\r") || v.StartsWith("\n")) {
             return indentationBefore + match.Groups["commentType"].Value; ;

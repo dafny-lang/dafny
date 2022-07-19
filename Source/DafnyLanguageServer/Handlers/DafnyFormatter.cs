@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Helpers;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -28,7 +29,7 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
     if (documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
       var lastDocument = await documentEntry.LastDocument;
       var firstToken = lastDocument.Program.GetFirstTopLevelToken();
-      var result = TokenFormatter.__default.printSourceReindent(firstToken, new DummyTokenIndentation());
+      var result = TokenFormatter.__default.printSourceReindent(firstToken, WhitespaceFormatter.ForProgram(lastDocument.Program));
       return new TextEditContainer(new TextEdit[] {
         new TextEdit() {NewText = result, Range = lastDocument.VerificationTree.Range}
       });

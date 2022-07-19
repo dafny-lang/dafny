@@ -32,9 +32,9 @@ module Test {
     * This is the end */
   module Indented {
     /* Multiline comment
-     * should be indented like that
-     */
-    // Multiple coments
+    * should be indented like that
+    */
+    // Multiple comments
     // One per line
     method Weird()
       returns (x: int)
