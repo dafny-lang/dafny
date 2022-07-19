@@ -15,6 +15,27 @@ layout: page
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
+    <img src="banner.png" alt="Banner">
+
+        Dafny is a <strong>verification-ready programming language</strong>.
+        As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
+        When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript or Go</strong> (more to come!), so it can integrate with your existing workflow.
+
+        Dafny will give you <strong>assurance that your code meets the specifications you write</strong>, while letting you write both code and specifications in the Dafny programming language itself.
+        Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
+
+        Dafny has support for common programming concepts such as 
+- [inductive datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#181-inductive-datatypes) that can have methods and are suitable for pattern matching,
+- [lazily unboudned datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#182-co-inductive-datatypes),
+- [subset types](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-subset-types), such as for bounded integers,
+- [lambda expressions](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-lambda-expressions),
+- and [immutable and mutable data structures](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-collection-types).
+
+Dafny also offers an extensive toolbox for mathematical proofs, including
+- [bounded and unbounded quantifiers](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-forall-statement"),
+- [calculational proofs](https://dafny.org/dafny/DafnyRef/DafnyRef#1923-calc-statement),
+- [pre- and post-conditions, termination conditions, loop invariants, and read/write specifications](https://dafny.org/dafny/DafnyRef/DafnyRef#51-specification-clauses)
+
 This site contains links to Dafny documentation.
 
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
