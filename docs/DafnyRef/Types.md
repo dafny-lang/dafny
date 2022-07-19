@@ -1878,9 +1878,10 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
+* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof. (TODO: `:extern` attribute?)
+clauses are true without proof.
 
 ### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
