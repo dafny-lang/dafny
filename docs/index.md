@@ -18,7 +18,8 @@ layout: page
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](dafny/DafnyRef/DafnyRef)
 - [Dafny Resource Compendium](#resources)
-![Dafny Banner]("banner.png")
+
+![Dafny Banner](./banner.png)
 
 Dafny is a <strong>verification-ready programming language</strong>.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
@@ -28,8 +29,8 @@ Dafny will give you <strong>assurance that your code meets the specifications yo
 Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
 
 Dafny has support for common programming concepts such as 
-- [inductive datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#181-inductive-datatypes) that can have methods and are suitable for pattern matching,
-- [lazily unboudned datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#182-co-inductive-datatypes),
+- [inductive datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-inductive-datatypes) that can have methods and are suitable for pattern matching,
+- [lazily unbounded datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-co-inductive-datatypes),
 - [subset types](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-subset-types), such as for bounded integers,
 - [lambda expressions](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-lambda-expressions),
 - and [immutable and mutable data structures](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-collection-types).
