@@ -2110,8 +2110,6 @@ The following example illustrates using such an eta-expansion:
 {% include_relative examples/Example-TwoState-EtaExample.dfy %}
 ```
 
-TO BE WRITTEN - unchanged predicate
-
 ## 13.4. Function Declarations {#sec-function-declarations}
 
 ````grammar
