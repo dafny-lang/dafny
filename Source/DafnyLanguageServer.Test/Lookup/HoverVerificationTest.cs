@@ -58,7 +58,7 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy", CompilationStatus.VerificationFailed);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[Error:](???) A postcondition might not hold on this return path.  
+        @"[Error:](???) This postcondition might not hold on a return path.  
 This is assertion #1 of 2 in method Abs  
 Resource usage: ??? RU  
 Related location: testFile.dfy(6, 5)"
