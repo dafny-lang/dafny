@@ -9,6 +9,20 @@ module {:options "/functionSyntax:4"} Arrays {
   import opened Frames
   import opened Math
 
+  // We use this instead of the built-in Dafny array<T> type for two reasons:
+  // 
+  // 1. Every element of an array<T> must be initialized.
+  //    This means you have to provide initial values when creating one,
+  //    which you can't do in generic code if your T is not auto-initializable (T(0)).
+  //    This RFC proposes a way to model uninitialized storage
+  //    that could be compiled to efficient enough code instead
+  //    (i.e. the Unset constructor below could be marked ghost):
+  //    https://github.com/dafny-lang/rfcs/pull/11
+  // 2. The array<T> type does not support any bulk-assignment
+  //    operations, which are important to optimize as much as possible
+  //    in this performance-sensitive code.
+  //    See https://github.com/dafny-lang/dafny/issues/2447.
+  
   datatype ArrayCell<T> = Set(value: T) | Unset
 
   trait {:extern} Array<T> extends Validatable {

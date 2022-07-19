@@ -187,43 +187,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       var rightArray := right.ToArray();
       ret.Append(rightArray);
     }
-
-    // method {:vcs_split_on_every_assert} ToArrayOptimized() returns (ret: ResizableArray<T>)
-    //   requires Valid()
-    //   decreases Repr, 3
-    //   ensures ret.Valid()
-    //   ensures ret.Value() == Value()
-    // {
-    //   var builder := new ResizableArray<T>(length);
-    //   var stack := new ResizableArray<SeqExpr<T>>(10);
-    //   stack.AddLast(this);
-    //   assert stack.Value() == [this];
-    //   LemmaConcatValueOnStackWithTip([], this);
-    //   assert ConcatValueOnStack(stack.Value()) == Value();
-    //   while 0 < stack.size 
-    //     invariant stack.Valid()
-    //     // invariant PairwiseDisjoint({builder as Validatable, stack as Validatable} + (set v: Validatable <- stack.Value()))
-    //     invariant fresh(builder.Repr)
-    //     invariant fresh(stack.Repr)
-    //     invariant builder.Value() + ConcatValueOnStack(stack.Value()) == Value()
-    //     decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
-    //   {
-    //     var next: SeqExpr<T> := stack.RemoveLast();
-    //     if next is Concat<T> {
-    //       var concat := next as Concat<T>;
-    //       stack.AddLast(concat.right);
-    //       stack.AddLast(concat.left);
-    //     } else if next is Lazy<T> {
-    //       var lazy := next as Lazy<T>;
-    //       var boxed := lazy.exprBox.Get();
-    //       stack.AddLast(boxed);
-    //     } else {
-    //       var a := ToArray();
-    //       builder.Append(a);
-    //     }
-    //   }
-    //   return builder;
-    // }
   }
 
   class Lazy<T> extends SeqExpr<T> {
@@ -302,45 +265,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       exprBox.Put(direct);
       return a;
     }
-  }
-
-  ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>
-    reads (set e <- s, o <- e.Repr :: o)
-    requires (forall e <- s :: e.Valid())
-  {
-    if |s| == 0 then
-      []
-    else
-      s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
-  }
-
-  lemma LemmaConcatValueOnStackWithTip<T>(s: seq<SeqExpr<T>>, x: SeqExpr<T>) 
-    requires (forall e <- s :: e.Valid())
-    requires x.Valid()
-    ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
-  {
-    // var valueFn := (e: SeqExpr<T>) reads e, e.Repr requires e.Valid() => e.Value();
-    // calc {
-    //   ConcatValueOnStack(s + [x]);
-    //   Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
-    //   { reveal Seq.Reverse(); }
-    //   Seq.Flatten(Seq.Map(valueFn, [x] + Seq.Reverse(s)));
-    //   { reveal Seq.Map(); }
-    //   Seq.Flatten([x.Value()] + Seq.Map(valueFn, Seq.Reverse(s)));
-    //   x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
-    //   x.Value() + ConcatValueOnStack(s);
-    // }
-  }
-
-  ghost function SizeSum<T>(s: seq<SeqExpr<T>>): nat 
-    reads set e <- s, o <- e.Repr :: o
-    requires forall e <- s :: e.Valid()
-  {
-    if |s| == 0 then 
-      0 
-    else
-      var last := |s| - 1;
-      SizeSum(s[..last]) + s[last].Size()
   }
 
   class {:extern} AtomicBox<T> {
