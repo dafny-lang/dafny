@@ -15,16 +15,19 @@ layout: page
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
+**Quick Links:**
+- [Dafny Reference Manual and User Guide](dafny/DafnyRef/DafnyRef)
+- [Dafny Resource Compendium](#resources)
 ![Dafny Banner]("banner.png")
 
-        Dafny is a <strong>verification-ready programming language</strong>.
-        As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
-        When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript or Go</strong> (more to come!), so it can integrate with your existing workflow.
+Dafny is a <strong>verification-ready programming language</strong>.
+As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
+When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript or Go</strong> (more to come!), so it can integrate with your existing workflow.
 
-        Dafny will give you <strong>assurance that your code meets the specifications you write</strong>, while letting you write both code and specifications in the Dafny programming language itself.
-        Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
+Dafny will give you <strong>assurance that your code meets the specifications you write</strong>, while letting you write both code and specifications in the Dafny programming language itself.
+Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
 
-        Dafny has support for common programming concepts such as 
+Dafny has support for common programming concepts such as 
 - [inductive datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#181-inductive-datatypes) that can have methods and are suitable for pattern matching,
 - [lazily unboudned datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#182-co-inductive-datatypes),
 - [subset types](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-subset-types), such as for bounded integers,
@@ -36,7 +39,7 @@ Dafny also offers an extensive toolbox for mathematical proofs, including
 - [calculational proofs](https://dafny.org/dafny/DafnyRef/DafnyRef#1923-calc-statement),
 - [pre- and post-conditions, termination conditions, loop invariants, and read/write specifications](https://dafny.org/dafny/DafnyRef/DafnyRef#51-specification-clauses)
 
-This site contains links to Dafny documentation.
+# Compendium of Dafny resources {#resources}
 
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
 
