@@ -126,33 +126,16 @@ namespace Microsoft.Dafny {
    * datatype Color = Red | Green | ShadesOfGray(nat)
       method MonochromaticMethod(c: Color) returns (x: bool) {
       return match c
-            case ShadesOfGray => true
-                 ^^^ Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter           
-            case anythingElse => false;
-            
-   * datatype Country = Mexico | nigeria | Europe(nat) 
-                                 ^^^ Warning: Constructor name 'nigeria' should begin with an uppercase letter         
-    method countryMethod (c: Country) returns (x: bool) {    
-          return match c
-            case nigeria => true
+            case Green => true
+                 ^^^ Warning: Constructor name 'Green' should contain a parenthesis at the end           
             case anythingElse => false;
         }
-            
     }
    */
   class ConstructorWarning : IRewriter {
     internal override void PostResolve(Program program) {
       base.PostResolve(program);
       foreach (var moduleDefinition in program.Modules()) {
-        // Implements warning for constructors with lowercase 
-        foreach (var datatypeDecl in moduleDefinition.TopLevelDecls.OfType<DatatypeDecl>()) {
-          foreach (var ctor in datatypeDecl.Ctors) {
-            var ctorName = ctor.Name[0];
-            if (char.IsLower(ctorName)) {
-              this.Reporter.Warning(MessageSource.Rewriter, ctor.tok, $"Constructor name '{ctor.Name}' should begin with an uppercase letter");
-            }
-          }
-        }
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
           foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
             var visitor = new ConstructorWarningVisitor(this.Reporter);
@@ -169,16 +152,16 @@ namespace Microsoft.Dafny {
     public ConstructorWarningVisitor(ErrorReporter reporter) {
       this.reporter = reporter;
     }
-    // Implements warning for constructors in match 
+    // Implements warning for constructors in match and ensures constructor name has a set parenthesis at the end 
     protected override bool VisitOneExpr(Expression expr, ref Unit st) {
       if (expr is NestedMatchExpr matchExpr) {
         var matchExprCases = matchExpr.Cases;
         foreach (var caseExpr in matchExprCases) {
           if (caseExpr.Pat is IdPattern idPattern) {
-            var isVariable = idPattern.Arguments == null;
-            if (char.IsUpper(idPattern.Id[0]) && isVariable) {
+            var isConstructor = idPattern.Arguments != null;
+            if (idPattern.HasParenthesis == false && isConstructor) {
               this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
-                $"Variable name '{idPattern}' should begin with a lowercase letter");
+                $"Constructor name '{idPattern}' should contain a parenthesis at the end");
             }
           }
         }

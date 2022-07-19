@@ -43,7 +43,7 @@ module WithoutWarning {
        
       method countryMethod (c: Country) returns (x: bool) {    
           return match c
-                 case Nigeria => true
+                 case Nigeria() => true
                  case anythingElse => false;
           }
     

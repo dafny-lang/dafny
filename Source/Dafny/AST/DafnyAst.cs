@@ -12341,6 +12341,7 @@ namespace Microsoft.Dafny {
   }
 
   public class IdPattern : ExtendedPattern {
+    public bool HasParenthesis { get; }
     public readonly String Id;
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
     public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
@@ -12350,9 +12351,10 @@ namespace Microsoft.Dafny {
       this.Arguments = new List<ExtendedPattern>();
     }
 
-    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
+    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
       Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      HasParenthesis = hasParenthesis;
       this.Id = id;
       this.Type = new InferredTypeProxy();
       this.Arguments = arguments;

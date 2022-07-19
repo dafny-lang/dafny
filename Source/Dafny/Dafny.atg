@@ -3274,7 +3274,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
         }
       ]
      ")"
-                                           (. pat = new IdPattern(id, id.val, arguments); .)
+                                           (. pat = new IdPattern(id, id.val, arguments, false, true); .)
   | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.tok, lit); .)
   | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, null); .)
   )

@@ -10,6 +10,12 @@ module WithWarning {
             case ShadesOfGray => true
             case anythingElse => false;
     }
+    method MonoMethod(c: Color) returns (x: bool) {
+              
+              return match c
+                case Green => true
+                case anythingElse => false;
+        }
 
     function method MonochromaticFunction(c: Color) : bool {
         match c
@@ -36,8 +42,15 @@ module WithoutWarning {
     method MonochromaticMethod(c: Color) returns (x: bool) {
           return match c
             case ShadesOfGray(_) => true
+            case Green() => true
             case anythingElse => false;
     }
+    method MonoMethod(c: Color) returns (x: bool) {
+                  
+                  return match c
+                    case Green() => true
+                    case anythingElse => false;
+            }
 
     function method MonochromaticFunction(c: Color) : bool {
         match c

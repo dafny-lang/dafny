@@ -1,10 +1,8 @@
 constructorMatch.dfy(18,12): Warning: this branch is redundant 
 constructorMatch.dfy(24,12): Warning: this branch is redundant 
 constructorMatch.dfy(32,16): Warning: this branch is redundant 
-constructorMatch.dfy(6,32): Warning: Constructor name 'nigeria' should begin with an uppercase letter
-constructorMatch.dfy(17,17): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
-constructorMatch.dfy(23,17): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
-constructorMatch.dfy(31,21): Warning: Variable name 'ShadesOfGray' should begin with a lowercase letter
+constructorMatch.dfy(10,17): Warning: Constructor name 'nigeria' should contain a parenthesis at the end
+constructorMatch.dfy(46,22): Warning: Constructor name 'Nigeria' should contain a parenthesis at the end
 
 Dafny program verifier finished with 3 verified, 0 errors
 
