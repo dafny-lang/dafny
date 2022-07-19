@@ -45,10 +45,8 @@ Dafny also offers an extensive toolbox for mathematical proofs about software, i
 
 # Compendium of Dafny resources {#resources}
 
-[Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
-
 * Quick start material:
-   * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL)
+   * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) and [Releases](https://github.com/dafny-lang/dafny/releases)
    * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
