@@ -21,6 +21,9 @@ This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
 that use them.
 
+Specification clauses typically appear in a sequence. They all begin with a 
+keyword and do not end with semicolons.
+
 ## 5.1. Specification Clauses
 
 
@@ -327,9 +330,8 @@ PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
 
 Frame expressions are used to denote the set of memory locations
 that a Dafny program element may read or write. A frame
-expression is a set expression. The form `{}` (that is, the empty set)
-says that no memory locations may be modified,
-which is also the default if no `modifies` clause is given explicitly.
+expression is a set expression. The form `{}` is the empty set.
+The type of the frame expression is `set<object>`.
 
 Note that framing only applies to the heap, or memory accessed through
 references. Local variables are not stored on the heap, so they cannot be
@@ -339,6 +341,7 @@ value types, and are treated like integers or local variables. Arrays and
 objects are reference types, and they are stored on the heap (though as
 always there is a subtle distinction between the reference itself and the
 value it points to.)
+
 
 The ``FrameField`` construct is used to specify a field of a
 class object. The identifier following the back-quote is the
@@ -394,7 +397,27 @@ If a `reads` clause uses `*`, then the `reads` clause is not allowed to
 mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
-lambda, or iterator may read. If more than one `reads` clause is given
+lambda, or iterator may read. The memory locations are all the fields
+of all of the references given in the set specified in the frame expression
+and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
+For example, in
+```dafny
+class C {
+  var x: int
+  var y: int
+
+  predicate f(c: C) 
+    reads this, c`x
+  {
+    this.x == c.x
+  }
+}
+```
+the `reads` clause allows reading `this.x`, `this,y`, and `c.x` (which may be the same
+memory location as `this.x`).
+}
+
+If more than one `reads` clause is given
 in a specification the effective read set is the union of the sets
 specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
@@ -462,13 +485,31 @@ one of the tools that allow Dafny to work on one method at a time,
 because they restrict what would otherwise be arbitrary modifications of
 memory to something that Dafny can reason about.
 
+Just as for a `reads` clause, the memory locations allowed to be modified
+in a method are all the fields of any object reference in the frame expression
+set and any specific field denoted by a [`FrameField`](#sec-frame-expression) in the `modifies` clause.
+For example, in
+```dafny
+class C {
+  var next: C
+  var value: int
+
+  method M() 
+    modifies next
+  { ... }
+}
+```
+method `M` is permitted to modify `this.next.next` and `this.next.value`
+but not `this.next`. To be allowed to modify `this.next`, the modifies clause
+must include `this`, or some expression that evaluates to `this`.
+
 If an object is newly allocated within the body of a method
 or within the scope of a `modifies` statement or a loop's `modifies` clause,
  then the fields of that object may always be modified.
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-`modify` statement (cf. [Section 19.22](#sec-modify-statement)).
+`modify` statement (cf. [Section 20.22](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -542,16 +583,17 @@ allowed to modify any memory.
 LambdaSpec =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause(allowLabel: false)
+  | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
-// TODO - the above grammar is not quite right for Requires
 
-A lambda specification is zero or more `reads` or `requires` clauses.
+A lambda specification provides a specification for a lambda function expression;
+it consists of zero or more `reads` or `requires` clauses.
+Any `requires` clauses may not have labels or attributes.
 Lambda specifications do not have `ensures` clauses because the body
 is never opaque.
 Lambda specifications do not have `decreases`
-clauses because they do not have names and thus cannot be recursive. A
+clauses because lambda expressions do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 

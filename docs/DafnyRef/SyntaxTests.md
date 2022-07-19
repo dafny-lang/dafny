@@ -57,7 +57,7 @@ literal:  true false null
 op:      - ! ~ x  -!~x
 op:      a + b - c * d / e % f a+b-c*d/e%f
 op:      <= >= < > == != b&&c || ==> <==> <==
-# 25. !=# !! in !in
+# 28. !=# !! in !in
 op:      !in∆  !iné
 not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }

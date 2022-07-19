@@ -53,8 +53,13 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative UserGuide.md %}
 
+<!--PDF NEWPAGE-->
+{% include_relative VSCodeIDE.md %}
+
+<!--PDF NEWPAGE-->
+{% include_relative CommandLineOptions.md %}
 
 
 {% include_relative SyntaxTests.md %}
 
-# 26. References
+# 29. References

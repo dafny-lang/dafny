@@ -216,7 +216,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -500,7 +500,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
