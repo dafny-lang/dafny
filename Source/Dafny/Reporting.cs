@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
         IncludeToken includeToken = (IncludeToken)tok;
         Include include = includeToken.Include;
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.filename + " contains error(s)");
+          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.Filename + " contains error(s)");
           include.ErrorReported = true;
         }
       }
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
     // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
-      tok.filename = filename;
+      tok.Filename = filename;
       Error(source, tok, msg);
     }
 
@@ -148,7 +148,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string TokenToString(IToken tok) {
-      return String.Format("{0}({1},{2})", tok.filename, tok.line, tok.col - 1);
+      return String.Format("{0}({1},{2})", tok.Filename, tok.line, tok.col - 1);
     }
   }
 
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny {
         var errorLine = ErrorToString(level, tok, msg);
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
-          if (tok.filename == nestedToken.filename &&
+          if (tok.Filename == nestedToken.Filename &&
               tok.line == nestedToken.line &&
               tok.col == nestedToken.col) {
             continue;

@@ -13,13 +13,82 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
+
+  public interface IToken : Microsoft.Boogie.IToken {
+    /*
+    int kind { get; set; }
+    int pos { get; set; }
+    int col { get; set; }
+    int line { get; set; }
+    string val { get; set; }
+    bool IsValid { get; }*/
+    string Boogie.IToken.filename {
+      get => Filename;
+      set => Filename = value;
+    }
+
+    string Filename { get; set; }
+
+    /// <summary>
+    /// TrailingTrivia contains everything after the token,
+    /// until and including two newlines between which there is no commment
+    /// All the remaining trivia is for the LeadingTrivia of the next token
+    ///
+    /// ```
+    /// const /*for const*/ x /*for x*/ := /* for := */ 1/* for 1 */
+    /// // for 1 again
+    /// // for 1 again
+    ///
+    /// // Two newlines, now all the trivia is for var y
+    /// // this line as well.
+    /// var y := 2
+    /// ```
+    /// </summary>
+    string TrailingTrivia { get; set; }
+    string LeadingTrivia { get; set; }
+  }
+
+  public record Token : IToken {
+    public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
+    public static readonly IToken NoToken = (IToken)new Token();
+
+    public Token() : this(0, 0) {
+    }
+
+    public Token(int linenum, int colnum) {
+      this.line = linenum;
+      this.col = colnum;
+      this.val = "anything so that it is nonnull";
+    }
+
+
+    public int kind { get; set; } // Used by coco, so we can't rename it to Kind
+
+    public string Filename { get; set; }
+
+    public int pos { get; set; } // Used by coco, so we can't rename it to Pos
+
+    public int col { get; set; } // Used by coco, so we can't rename it to Col
+
+    public int line { get; set; } // Used by coco, so we can't rename it to Line
+
+    public string val { get; set; } // Used by coco, so we can't rename it to Val
+
+    public string LeadingTrivia { get; set; }
+
+    public string TrailingTrivia { get; set; }
+
+    public bool IsValid => this.Filename != null;
+  }
+
 
   public class Program {
     [ContractInvariantMethod]
@@ -3113,6 +3182,8 @@ namespace Microsoft.Dafny {
     public IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken StartToken = Token.NoToken;
+    public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -3427,6 +3498,7 @@ namespace Microsoft.Dafny {
   // Represents module X { ... }
   public class LiteralModuleDecl : ModuleDecl {
     public readonly ModuleDefinition ModuleDef;
+
     [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
 
     private ModuleSignature emptySignature;
@@ -3449,6 +3521,8 @@ namespace Microsoft.Dafny {
     public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
       : base(module.tok, module.Name, parent, false, false) {
       ModuleDef = module;
+      StartToken = module.StartToken;
+      TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     }
     public override object Dereference() { return ModuleDef; }
   }
@@ -3685,6 +3759,8 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken StartToken = Token.NoToken;
+    public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
@@ -8671,8 +8747,8 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.col; }
       set { throw new NotSupportedException(); }
     }
-    public virtual string filename {
-      get { return WrappedToken.filename; }
+    public virtual string Filename {
+      get { return WrappedToken.Filename; }
       set { throw new NotSupportedException(); }
     }
     public bool IsValid {
@@ -8692,6 +8768,14 @@ namespace Microsoft.Dafny {
     }
     public virtual string val {
       get { return WrappedToken.val; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual string LeadingTrivia {
+      get { return WrappedToken.LeadingTrivia; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual string TrailingTrivia {
+      get { return WrappedToken.TrailingTrivia; }
       set { throw new NotSupportedException(); }
     }
   }
@@ -8893,7 +8977,7 @@ namespace Microsoft.Dafny {
             var startTok = tok;
             var endTok = tok;
             foreach (var e in SubExpressions) {
-              if (e.tok.filename != tok.filename || e.IsImplicit) {
+              if (e.tok.Filename != tok.Filename || e.IsImplicit) {
                 // Ignore auto-generated expressions, if any.
                 continue;
               }
@@ -8907,7 +8991,7 @@ namespace Microsoft.Dafny {
 
             if (FormatTokens != null) {
               foreach (var token in FormatTokens) {
-                if (token.filename != tok.filename) {
+                if (token.Filename != tok.Filename) {
                   continue;
                 }
 
@@ -11070,7 +11154,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns a resolved binary expression
     /// </summary>
-    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
       : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
       ResolvedOp = rop;
       switch (rop) {
@@ -12319,7 +12403,7 @@ namespace Microsoft.Dafny {
           } else {
             var n = (BigInteger)lit.Value;
             var tok = new Token(neg.tok.line, neg.tok.col) {
-              filename = neg.tok.filename,
+              Filename = neg.tok.Filename,
               val = "-0"
             };
             return new LiteralExpr(tok, -n);
