@@ -30,7 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
       var ghost = variable.IsGhost ? "ghost " : "";
-      var ghost = variable.IsGhost ? "ghost " : "";
       string type;
       try {
         type = variable.Type.ToString();
