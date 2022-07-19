@@ -1278,9 +1278,9 @@ program.
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private Bpl.IToken token;
+  private IToken token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
@@ -1303,7 +1303,7 @@ class DafnyAttributeOptions : DafnyOptions {
   };
 
   private readonly Errors errors;
-  public Bpl.IToken Token { get; set; }
+  public IToken Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;
@@ -1311,7 +1311,7 @@ class DafnyAttributeOptions : DafnyOptions {
   }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
-    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Microsoft.Dafny.Token.NoToken);
   }
 
   private void Unsupported(string name, Bpl.CommandLineParseState ps) {
