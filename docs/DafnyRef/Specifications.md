@@ -616,7 +616,7 @@ clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
 Examples of iterators, including iterator specifications, are given in
-[Section 0](#sec-iterator-types). Briefly
+[Section 16](#sec-iterator-types). Briefly
 - a requires clause gives a precondition for creating an iterator
 - a ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
 - a decreases clause is used to show that the iterator will eventually terminate
