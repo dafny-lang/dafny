@@ -15,7 +15,7 @@ layout: page
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
-    <img src="banner.png" alt="Banner">
+![Dafny Banner]("banner.png")
 
         Dafny is a <strong>verification-ready programming language</strong>.
         As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
