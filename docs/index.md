@@ -19,7 +19,7 @@ layout: page
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
 - [Tips and Tricks and FAQs](HowToFAQ)
 - [Compendium of Dafny Resources for Users](#resources)
-- [Dafny GitHub project (for developers)](https://github.com/dafny-lang/dafny)
+- [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
 
 ![Dafny Banner](./banner.png "Dafny")
 
