@@ -3,7 +3,7 @@
 * toc
 {:toc}
 
-This style guide provides coding conventions for the Dafny code.
+This style guide describes recommended coding conventions for Dafny code.
 
 *This documentation is still in progress. Please feel free to add more suggestions.*
 
@@ -18,10 +18,17 @@ Any **lemmas**, **predicates**, **functions**, **methods**, **classes**, **modul
 are named with `PascalCase`.
 ```dafny
 method FindIndex(arr: seq<int>, k: int)
-    ...
+  ...
 ```
 
-Any static or global **constants** are named with `UPPERCASE_WITH_UNDERSCORES`.
+The **lemma** keyword indicates a ghost method used for proof purposes. Any **lemma** names should be prefixed with `Lemma`.
+
+  lemma LemmaValueIsInIndex(arr: seq<int>, k: int)
+    ...
+
+
+
+Any static or global **constants** are named with `UPPERCASE_WITH_UNDERSCORES` (a.k.a. SCREAMING_SNAKE_CASE).
 ```dafny
 static const MONTHS_IN_A_YEAR := 12
 ```
@@ -31,22 +38,28 @@ Avoid redundant names when variables or methods are in a class/module.
 ```dafny
 class Integer {
 
-    // The following method converts the given integer
-    // to a string.
-    //
-    // this method name can be simplified to ToString()
-    // so that the method call is Integer.ToString(i)
-    // instead of Integer.IntegerToString(i).
+  // The following method converts the given integer
+  // to a string.
+  //
+  // this method name can be simplified to ToString()
+  // so that the method call is Integer.ToString(i)
+  // instead of Integer.IntegerToString(i).
 
-    // YES
-    method ToString(i: int) returns (s: string)
-        ...
+  // YES
+  method ToString(i: int) returns (s: string)
+    ...
 
-    // NO
-    method IntegerToString(i: int) returns (s: string)
-        ...
+  // NO
+  method IntegerToString(i: int) returns (s: string)
+    ...
 }
 ```
+
+## Module names
+
+Library code should be encapsulated in a containing module, likely with submodules.
+The containing module should have a name that is descriptive but also likely to be unique, as top-level modules with the same name cannot be combined in one program.
+Reserve the name `Dafny` for system supplied code.
 
 ## Code Layout
 
@@ -54,10 +67,10 @@ class Integer {
 Opening braces go on the same line by default.
 ```dafny
 module M {
+  ...
+  method Met() {
     ...
-    method Met() {
-        ...
-    }
+  }
 }
 ```
 In case the method (or function, lemma, etc) signature is too long to fit in one line, or in case the signature has at
@@ -65,13 +78,13 @@ least one specification clause, the opening brace goes on a new line.
 
 ```dafny
 module M {
+  ...
+  method Met(i: int) returns (j: int)
+    requires i % 2 == 0
+    ensures j > 10
+  {
     ...
-    method Met(i: int) returns (j: int)
-        requires i % 2 == 0
-        ensures j > 10
-    {
-        ...
-    }
+  }
 }
 ```
 
@@ -85,7 +98,7 @@ import Coffee
 ...
 ```
 
-However, if some members of a module are used very frequently, import it using `opened`:
+However, if some members of a module are used very frequently, import them using `opened`:
 ```dafny
 import opened Donut
 ...
@@ -96,8 +109,8 @@ import MyModule
 import YourModule
 ...
 method MyMethod() {
-    MyModule.foo();
-    YourModule.foo();
+  MyModule.foo();
+  YourModule.foo();
 }
 ```
 
@@ -107,8 +120,8 @@ import M = MyModuleWithACumbersomeName
 import Y = YourModuleWithACumbersomeName
 ...
 method MyMethod() {
-    M.foo();
-    Y.foo();
+  M.foo();
+  Y.foo();
 }
 ```
 
@@ -145,10 +158,10 @@ End each file with a newline character.
 Every Dafny method has the following signature.
 ```dafny
 method {:<attributes>} MethodName(param1: Type, param2: Type) returns (ret: Type)
-    requires P()
-    modifies param2
-    ensures Q()
-    decreases param1
+  requires P()
+  modifies param2
+  ensures Q()
+  decreases param1
 ```
 
 When possible, put `MethodName` and the `returns` statement on the same line, as the keyword `returns` is distinct from
@@ -159,26 +172,96 @@ In case the Method signature is too long, we can break it down.
 ```dafny
 method {:<attributes>} MethodName(param1: Type, param2: Type,
         param3: Type, param4: Type, param5: Type)
-    returns (ret1: Type, ret2: Type, ret3: Type, ret4: Type,
+  returns (ret1: Type, ret2: Type, ret3: Type, ret4: Type,
         ret5: Type)
-    requires P1()
-    requires P2()
-    requires P3()
-    modifies param2
-    modifies param3
-    ensures Q1()
-    ensures Q2()
-    decreases param1
+  requires P1()
+  requires P2()
+  requires P3()
+  modifies param2
+  modifies param3
+  ensures Q1()
+  ensures Q2()
+  decreases param1
 ```
 
 Multiple `requires` or `ensures` can be combined into one:
 ```dafny
 requires
-    && P1()
-    && P2()
-    && P3()
+  && P1()
+  && P2()
+  && P3()
 ```
 The same rules apply to `function`, `predicate`, and `lemma` definitions.
+
+## Content Conventions
+
+### Order
+
+Functions, predicates, and methods within a file should be sorted topologically, meaning that everything `method M` depends on should be above `M` in the file.
+
+```
+function MyFunction(a: int): int
+{ 
+  ...
+}
+method MyMethod(i: int)
+{
+  ...
+  return MyFunction(i);
+}
+```
+
+### Predicates
+
+Predicates should be used instead of functions that return a `bool` value.
+
+```
+// YES
+predicate Foo()
+{
+  ...
+}
+
+// NO
+function Foo(): bool
+{
+  ...
+}
+```
+
+### Lemmas
+
+When writing inductive proofs, contributors are strongly encouraged to
+make the base case explicit.
+
+```
+// YES
+lemma LemmaMinOfConcat(a: seq<int>, b: seq<int>)
+  requires 0 < |a| && 0 < |b|
+  ensures Min(a+b) <= Min(a)
+  ensures Min(a+b) <= Min(b)
+  ensures Min(a+b) == Min(a) || Min(a+b) == Min(b)
+{
+  if |a| == 1 {
+  } else {
+    assert a[1..] + b == (a + b)[1..];
+    LemmaMinOfConcat(a[1..], b);
+  }
+}
+
+// NO
+lemma LemmaMinOfConcat(a: seq<int>, b: seq<int>)
+  requires 0 < |a| && 0 < |b|
+  ensures Min(a+b) <= Min(a)
+  ensures Min(a+b) <= Min(b)
+  ensures Min(a+b) == Min(a) || Min(a+b) == Min(b)
+{
+  if |a| > 1 {
+    assert a[1..] + b == (a + b)[1..];
+    LemmaMinOfConcat(a[1..], b);
+  }
+}
+```
 
 ## Things to Avoid
 
@@ -192,21 +275,21 @@ In many cases, Dafny does not require parentheses around expressions. Here are s
 // YES
 var i := 1;
 while i < 10 {
+  ...
+  if 1 < i {
     ...
-    if 1 < i {
-        ...
-    }
-    ...
+  }
+  ...
 }
 
 // NO
 var i := 1;
 while (i < 10) {
+  ...
+  if (1 < i) {
     ...
-    if (1 < i) {
-        ...
-    }
-    ...
+  }
+  ...
 }
 ```
 
@@ -227,26 +310,26 @@ print(x);
 ```dafny
 // YES
 method Collatz(num: nat)
-    decreases *
+  decreases *
 {
-    var n := num;
-    while 1 < n
-        decreases *
-    {
-        n := if n % 2 == 0 then n / 2 else n * 3 + 1;
-    }
+  var n := num;
+  while 1 < n
+    decreases *
+  {
+    n := if n % 2 == 0 then n / 2 else n * 3 + 1;
+  }
 }
 
 // NO
 method Collatz(num: nat)
-    decreases *
+  decreases *
 {
-    var n := num;
-    while (1 < n) // unnecessary parentheses
-        decreases *
-    {
-        n := if ((n % 2) == 0) then (n / 2) else ((n * 3) + 1); // unnecessary parentheses
-    }
+  var n := num;
+  while (1 < n) // unnecessary parentheses
+    decreases *
+  {
+    n := if ((n % 2) == 0) then (n / 2) else ((n * 3) + 1); // unnecessary parentheses
+  }
 }
 ```
 ### Whitespace
@@ -260,13 +343,13 @@ A type declaration should have a form of `variableName: variableType`.
 // YES
 const one: int := 1
 class {:extern} Util {
-    var {:extern} Exception: System.String
+  var {:extern} Exception: System.String
 }
 
 // NO
 const one : int := 1 // unnecessary whitespace
 class {:extern} Util {
-    var {:extern} Exception : System.String // unnecessary whitespace
+  var {:extern} Exception : System.String // unnecessary whitespace
 }
 ```
 
@@ -293,14 +376,15 @@ Avoid too little or too much whitespace that reduces the overall readability.
 ```dafny
 // YES
 lemma MyLemma<A, B>(x: seq<seq<A>>, y: B) {
-    ...
+  ...
 }
 
 // NO
 lemma MyLemma <A,B> ( x : seq<seq<A>> , y :B){
-    ...
+  ...
 }
 ```
+
 
 ## Recommendations
 This section describes a few recommendations that can help make code more readable and easy to follow, although not
