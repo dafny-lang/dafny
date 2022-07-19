@@ -166,41 +166,10 @@ module ConcreteModule {
     }    ---------- end desugared ----------*/
     match n {
       case {:split false} 0 =>
-        :- Func1()
-        /*---------- desugared ----------
-        var valueOrError0: Status;
-        valueOrError0 := Func1();
-        if valueOrError0.IsFailure() {
-          r := valueOrError0.PropagateFailure();
-          return;
-        }
-        ---------- end desugared ----------*/;
-        
-        /*---------- desugared ----------
-        if m == 1 {
-          :- Func1()
-          /*---------- desugared ----------
-          var valueOrError1: Status;
-          valueOrError1 := Func1();
-          if valueOrError1.IsFailure() {
-            r := valueOrError1.PropagateFailure();
-            return;
-          }
-          ---------- end desugared ----------*/;
-        } else {
-          return Success;
-        }        ---------- end desugared ----------*/
+        :- Func1();
         match m {
           case {:split false} 1 =>
-            :- Func1()
-            /*---------- desugared ----------
-            var valueOrError1: Status;
-            valueOrError1 := Func1();
-            if valueOrError1.IsFailure() {
-              r := valueOrError1.PropagateFailure();
-              return;
-            }
-            ---------- end desugared ----------*/;
+            :- Func1();
           case {:split false} _ =>
             return Success;
         }

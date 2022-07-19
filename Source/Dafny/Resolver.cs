@@ -11999,11 +11999,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private class ClonerKeepLocalVariablesIfTypeNotSet : Cloner {
+      public override LocalVariable CloneLocalVariable(LocalVariable local) {
+        if (local.type == null) {
+          return local;
+        }
+
+        return base.CloneLocalVariable(local);
+      }
+    }
+
     // deep clone Patterns and Body
     private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
-      Cloner cloner = new Cloner();
-      return new RBranchStmt(branch.Tok, branch.BranchID,
-        branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), new List<Statement>(branch.Body), cloner.CloneAttributes(branch.Attributes));
+      Cloner cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
+      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x => cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
     }
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
