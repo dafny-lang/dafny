@@ -990,7 +990,3 @@ method TestD(dd: D) {
   }
 }
 ```
-
-
-TODO: Write this section; revise the above
-
