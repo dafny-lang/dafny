@@ -20,7 +20,7 @@ public class HelperString {
             var prefixWithStar = v.StartsWith("/**");
             var originalComment = match.Groups["commentType"].Value;
             var currentIndentation = match.Groups["currentIndent"].Value;
-            var result = new Regex($@"(?<=\r?\n|^){currentIndentation}(?<star>\s*\*)?").Replace(
+            var result = new Regex($@"(?<=\r?\n){currentIndentation}(?<star>\s*\*)?").Replace(
               originalComment, match1 => {
                 if (prefixWithStar && match1.Groups["star"].Success) {
                   return indentationBefore + "  *";
@@ -28,7 +28,7 @@ public class HelperString {
                   return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
                 }
               });
-            return result;
+            return indentationBefore + result;
           }
 
           if (v.StartsWith("//")) {

@@ -76,6 +76,17 @@ method topLevel(
         var reprinted = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
           WhitespaceFormatter.ForProgram(dafnyProgram));
         Assert.Equal(programString, reprinted);
+
+        // Verify that the formatting is stable.
+        module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        Microsoft.Dafny.Type.ResetScopes();
+        builtIns = new BuiltIns();
+        Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
+        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        Assert.Equal(0, reporter.ErrorCount);
+        var reprinted2 = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
+          WhitespaceFormatter.ForProgram(dafnyProgram));
+        Assert.Equal(reprinted, reprinted2);
       }
     }
 
