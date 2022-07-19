@@ -70,7 +70,7 @@ NameSegmentForTypeName = Ident [ GenericInstantiation ]
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
-([Section 21.40](#sec-name-segment))
+([Section 21.41](#sec-name-segment))
 that does not allow a ``HashCall``.
 
 The following sections describe each of these kinds of types in more detail.
@@ -92,20 +92,20 @@ the language:  `false` and `true`.
 
 Type `bool` supports the following operations:
 
- operator           | description
+ operator           | precedence | description
+--------------------|:----------:|------------------------------------
+ `<==>`             | 1 | equivalence (if and only if)
 --------------------|------------------------------------
- `<==>`             | equivalence (if and only if)
+ `==>`              | 2 | implication (implies)
+ `<==`              | 2 | reverse implication (follows from)
 --------------------|------------------------------------
- `==>`              | implication (implies)
- `<==`              | reverse implication (follows from)
+ `&&`               | 3 | conjunction (and)
+ `||`               | 3 |  disjunction (or)
 --------------------|------------------------------------
- `&&`               | conjunction (and)
- `||`               | disjunction (or)
+ `==`               | 4 | equality
+ `!=`               | 4 | disequality
 --------------------|------------------------------------
- `==`               | equality
- `!=`               | disequality
---------------------|------------------------------------
- `!`                | negation (not)
+ `!`                | 10 | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
@@ -203,7 +203,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in [Section 21.34](#sec-quantifier-expression).
+exists), described in [Section 21.35](#sec-quantifier-expression).
 
 ## 7.2. Numeric Types {#sec-numeric-types}
 
@@ -272,16 +272,16 @@ is not allowed.
 
 There are also operators on each numeric type:
 
- operator        | description
+ operator        | precedence | description
+-----------------|:---:|------------------------------------
+  `+`            | 6 | addition (plus)
+  `-`            | 6 | subtraction (minus)
 -----------------|------------------------------------
-  `+`            | addition (plus)
-  `-`            | subtraction (minus)
+  `*`            | 7 | multiplication (times)
+  `/`            | 7 | division (divided by)
+  `%`            | 7 | modulus (mod)  -- int only
 -----------------|------------------------------------
-  `*`            | multiplication (times)
-  `/`            | division (divided by)
-  `%`            | modulus (mod)  -- int only
------------------|------------------------------------
-  `-`            | negation (unary minus)
+  `-`            | 10 | negation (unary minus)
 
 The binary operators are left associative, and they associate with
 each other in the two groups.
@@ -346,22 +346,25 @@ The arithmetic operations
 truncate the high-order bits from the results; that is, they perform
 unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
 
- operator        | description
+ operator        | precedence | description
+-----------------|:---:|------------------------------------
+ `<<`            | 5 | bit-limited bit-shift left
+ `>>`            | 5 | unsigned bit-shift right
 -----------------|------------------------------------
- `<<`            | bit-limited bit-shift left
- `>>`            | unsigned bit-shift right
+  `+`            | 6 | bit-limited addition
+  `-`            | 6 | bit-limited subtraction
 -----------------|------------------------------------
-  `+`            | bit-limited addition
-  `-`            | bit-limited subtraction
+  `*`            | 7 | bit-limited multiplication
 -----------------|------------------------------------
-  `*`            | bit-limited multiplication
+  `&`            | 8 | bit-wise and
+  `|`            | 8 | bit-wise or 
+  `^`            | 8 | bit-wise exclusive-or
 -----------------|------------------------------------
-  `&`            | bit-wise and
-  `|`            | bit-wise or 
-  `^`            | bit-wise exclusive-or
+  `-`            | 10 | bit-limited negation (unary minus)
+  `!`            | 10 | bit-wise complement
 -----------------|------------------------------------
-  `-`            | bit-limited negation (unary minus)
-  `!`            | bit-wise complement
+  .RotateLeft(n) | 11 | rotates bits left by n bit positions
+  .RotateRight(n)| 11 | rotates bits right by n bit positions
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
@@ -372,6 +375,12 @@ must be non-negative, and
 no more than the number of bits in the type.
 There is no signed right shift as all bit-vector values correspond to
 non-negative integers.
+
+The argument of the `RotateLeft` and `RotateRight` operations is a
+non-negative `int` that is no larger than the bit-width of the value being rotated.
+`RotateLeft` moves bits to higher bit positions (e.g., `(2 as bv4).RotateLeft(1) == (4 as bv4)`
+and `(8 as bv4).RotateLeft(1) == (1 as bv4)`);
+`RotateRight` moves bits to lower bit positions, so `b.RotateLeft(n).RotateRight(n) == b`.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
@@ -387,6 +396,22 @@ These produce assertion errors:
 {% include_relative examples/Example-BV4.dfy %}
 {% include_relative examples/Example-BV4a.dfy %}
 ```
+
+Bit-vector constants (like all constants) can be initialized using expressions, but pay attention
+to how type inference applies to such expressions. For example,
+```dafny
+const a: bv3 := -1
+```
+is legal because Dafny interprets `-1` as a `bv3` expression, because `a` has type `bv3`.
+Consequently the `-` is `bv3` negation and the `1` is a `bv3` literal; the value of the expression `-1` is
+the `bv3` value `7`, which is then the value of `a`.
+
+On the other hand,
+```dafny
+const b: bv3 = 6 & 11
+```
+is illegal because, again, the `&` is `bv3` bit-wise-and and the numbers must be valid `bv3` literals.
+But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
@@ -650,7 +675,7 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-[Section 21.35](#sec-set-comprehension-expression).
+[Section 21.36](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
@@ -668,14 +693,14 @@ chaining.
 Sets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description
+ operator      | precedence | description
+---------------|:---:|------------------------------------
+ `!!`          | 4 | disjointness
 ---------------|------------------------------------
- `!!`          | disjointness
+ `+`           | 6 | set union
+ `-`           | 6 | set difference
 ---------------|------------------------------------
- `+`           | set union
- `-`           | set difference
----------------|------------------------------------
- `*`           | set intersection
+ `*`           | 7 |set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names.  The expression `A !! B`,
@@ -694,11 +719,11 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
 
- expression          | result type |  description
----------------------|:-:|------------------------------------
- `|s|`               | `nat`  | set cardinality (not for `iset`)
- `e in s`            | `bool` | set membership
- `e !in s`           | `bool` | set non-membership
+ expression          | precedence | result type |  description
+---------------------|:---:|:---:|------------------------------------
+ `e in s`            | 4   | `bool` | set membership
+ `e !in s`           | 3   | `bool` | set non-membership
+ `|s|`               | 11  | `nat`  | set cardinality (not for `iset`)
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
@@ -744,14 +769,14 @@ chaining.
 Multisets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description
+ operator      | precedence | description
+---------------|:---:|------------------------------------
+ `!!`          | 4 | multiset disjointness
 ---------------|------------------------------------
- `!!`          | multiset disjointness
+ `+`           | 6 |multiset union
+ `-`           | 6 |multiset difference
 ---------------|------------------------------------
- `+`           | multiset union
- `-`           | multiset difference
----------------|------------------------------------
- `*`           | multiset intersection
+ `*`           | 7 | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names. The `+` operator
@@ -772,13 +797,13 @@ In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
 
- expression      | result type      | description
------------------|:----------------:|------------------------------------------
- `|s|`           |   `nat`          | multiset cardinality
- `e in s`        |   `bool`         | multiset membership
- `e !in s`       |   `bool`         | multiset non-membership
- `s[e]`          |   `nat`          | multiplicity of `e` in `s`
- `s[e := n]`     | `multiset<T>`    | multiset update (change of multiplicity)
+ expression      | precedence | result type      | description
+-----------------|:---:|:----------------:|------------------------------------------
+ `e in s`        | 4  |  `bool`         | multiset membership
+ `e !in s`       | 4  |  `bool`         | multiset non-membership
+ `|s|`           | 11 |   `nat`          | multiset cardinality
+ `s[e]`          | 11 |  `nat`          | multiplicity of `e` in `s`
+ `s[e := n]`     | 11 | `multiset<T>`    | multiset update (change of multiplicity)
 
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -811,7 +836,7 @@ brackets.  To illustrate,
 are three examples of sequence displays.
 
   There is also a sequence
-comprehension expression ([Section 21.27](#sec-seq-comprehension)):
+comprehension expression ([Section 21.28](#sec-seq-comprehension)):
 ```dafny
 seq(5, i => i*i)
 ```
@@ -845,18 +870,18 @@ of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
 
- expression         | result type | description
- ---------------------|:---:|----------------------------------------
- `|s|`               | `nat` | sequence length
- `s[i]`              | `T` |sequence selection
- `s[i := e]`         | `seq<T>` | sequence update
- `e in s`            | `bool` | sequence membership
- `e !in s`           | `bool` | sequence non-membership
- `s[lo..hi]`         | `seq<T>`| subsequence
- `s[lo..]`           | `seq<T>` | drop
- `s[..hi]`           | `seq<T>` | take
- `s[`_slices_`]`   | `seq<seq<T>>` | slice
- `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>`
+ expression         | precedence | result type | description
+ -------------------|:---:|:---:|----------------------------------------
+ `e in s`           | 4 | `bool` | sequence membership
+ `e !in s`          | 4 | `bool` | sequence non-membership
+ `|s|`              | 11 | `nat` | sequence length
+ `s[i]`             | 11 | `T` |sequence selection
+ `s[i := e]`        | 11 | `seq<T>` | sequence update
+ `s[lo..hi]`        | 11 | `seq<T>`| subsequence
+ `s[lo..]`          | 11 | `seq<T>` | drop
+ `s[..hi]`          | 11 | `seq<T>` | take
+ `s[`_slices_`]`    | 11 | `seq<seq<T>>` | slice
+ `multiset(s)`      | 11 | `multiset<T>`| sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
@@ -978,7 +1003,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 21.39](#sec-map-comprehension-expression).
+explained in [Section 21.40](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -989,16 +1014,16 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression     | result type | description
- ---------------|:-----------:|------------------------------------
- `|fm|`         | `nat`       | map cardinality
- `m[d]`         | `U`         | map selection
- `m[t := u]`    | `map<T,U>`  | map update
- `t in m`       | `bool`      | map domain membership
- `t !in m`      | `bool`      | map domain non-membership
- `m.Keys`      | (i)`set<T>`    | the domain of `m`
- `m.Values`    | (i)`set<U>`    | the range of `m`
- `m.Items`     | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
+ expression     | precedence | result type | description
+ ---------------|:---:|:-----------:|------------------------------------
+ `t in m`       | 4 | `bool`      | map domain membership
+ `t !in m`      | 4 | `bool`      | map domain non-membership
+ `|fm|`         | 11 | `nat`       | map cardinality
+ `m[d]`         | 11 | `U`         | map selection
+ `m[t := u]`    | 11 | `map<T,U>`  | map update
+ `m.Keys`      | 11 | (i)`set<T>`    | the domain of `m`
+ `m.Values`    | 11 | (i)`set<U>`    | the range of `m`
+ `m.Items`     | 11 | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -1522,7 +1547,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 21.46](#sec-compile-time-constants).
+in [Section 21.47](#sec-compile-time-constants).
 
 ## 12.1. Conversion operations {#sec-conversion}
 
@@ -1587,6 +1612,9 @@ ClassMemberDecl(allowConstructors, isValueType,
                allowConstructors, isWithinAbstractModule)
   )
 ````
+
+Declarations within a class all begin with reserved keywords and do not end with semicolons.
+
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
 module declaration. It will be false for ``ClassMemberDecl``s
@@ -1763,6 +1791,10 @@ A method signature specifies the method generic parameters,
 input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
 if `ghost` was already specified for the method.
+Within the body of a method, formal parameters are immutable, that is, 
+they may not be assigned to, though their array elements or fields may be
+assigned, if otherwise permitted.
+The out parameters are mutable and must be assigned in the body of the method.
 
 A ``ellipsis`` is used when a method or function is being redeclared
 in a module that refines another module. (cf. [Section 22](#sec-module-refinement))
@@ -1775,8 +1807,8 @@ signature.
 ````grammar
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 ````
-The _k-type_ may be specified only for least and greatest lemmas and is described
-in [Section 24](#sec-advanced-topics).
+The _KType_ may be specified only for least and greatest lemmas and is described
+in [Section 24.5.3](#sec-friendliness) and subsequent sections.
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
@@ -1868,6 +1900,11 @@ constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
+In general, a constructor is responsible for initializating the 
+instance fields of its class. However, any field that is given an
+initializer in its declaration may not be reassigned in the body
+of the constructor.
+
 #### 13.3.2.1. Classes with no explicit constructors
 
 For a class that declares no constructors, an instance of the class is
@@ -1948,7 +1985,9 @@ dropping the "`.`".
 The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
 If there is no `new;` statement, the entire body is the initialization phase.
-The initialization phase is intended to initialize field variables.
+The initialization phase is intended to initialize field variables
+that were not given values in their declaration; it may not reassign
+to fields that do have initializers in their declarations.
 In this phase, uses of the object reference `this` are restricted;
 a program may use `this`
 
@@ -2771,17 +2810,30 @@ dimension.  Array types are (heap-based) reference types.
 
 ## 15.1. One-dimensional arrays
 
-A one-dimensional array of `n` `T` elements is created as follows:
+A one-dimensional array of `n` `T` elements may be initialized by
+any expression that returns a value of the desired type.
+Commonly, [array allocation expressions](#sec-array-allocation) are used.
+Some examples are shown here:
 ```dafny
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
-`T`. They can be initialized using an ordered list of expressions enclosed in square brackets, as follows:
+`T`. 
+A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
 ```
 a := new T[] [t1, t2, t3, t4];
 ```
+The initialazation can also use an expression that returns a function of type `nat -> T`:
+```
+a := new int[5](i => i*i);
+```
+In fact, the initializer can simply be a function name for the right type of function:
+```
+a := new int[5]{Square);
+```
+
 The length of an array is retrieved using the immutable `Length`
-member.  For example, the array allocated above satisfies:
+member.  For example, the array allocated with `a := new T[n];` satisfies:
 ```dafny
 a.Length == n
 ```
@@ -2915,6 +2967,9 @@ swap statement above is well-formed only if:
 In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
+
+There is however syntax to create a multi-dimensional array value
+using a function: see [Section 21.16](#sec-array-allocation).
 
 
 <!--PDF NEWPAGE-->

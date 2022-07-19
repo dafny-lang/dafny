@@ -19,6 +19,8 @@ programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
+Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+
 ## 20.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
@@ -28,7 +30,7 @@ which is the label, followed by a colon and a statement. The label may be
 referenced in a `break` or `continue` statement within the labeled statement
 (see [Section 20.2](#sec-break-continue)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
-The label may also be used in an `old` expression ([Section 21.24](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
@@ -395,8 +397,10 @@ UpdateFailureStmt  =
     ";"
 ````
 
-A `:-` statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
+A `:-`[^elephant] statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
+
+[^elephant]: The `:-` token is called the elephant symbol or operator.
 
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
@@ -764,6 +768,13 @@ unless its type can be inferred, either from a given initial value, or
 from other uses of the variable. If initial values are given, the number
 of values must match the number of variables declared.
 
+The scope of the declared variable extends to the end of the block in which it is
+declared. However, be aware that if a simple variable declaration is followed
+by an expression (rather than a subsequent statement) then the `var` begins a
+[Let Expression](#sec-let-expression) and the scope of the introduced variables is
+only to the end of the expression. In this case, though, the `var` is in an expression
+context, not a statement context.
+
 Note that the type of each variable must be given individually. The following code
 
 ```dafny
@@ -795,7 +806,7 @@ function usesTuple() : int
 }
 ```
 
-The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
 
 ## 20.9. Guards
 ````grammar
@@ -1365,7 +1376,9 @@ The compiler, on the other hand, will complain if it encounters a body-less meth
 compiler is supposed to generate code for the method, but it isn't clever enough to do that by
 itself without a given method body. If the method implementation is provided by code written
 outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
-compiler will no longer complain about the absence of a method body.
+compiler will no longer complain about the absence of a method body; the verifier will not 
+object either, even though there is now no proof that the Dafny specifications are satisfied
+by the external implementation.
 
 A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
 and the verifier is silently happy with not having a proof to check against the lemma specification.
@@ -1463,14 +1476,14 @@ MatchStmt =
 CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-[ `ExtendedPattern` is defined in [Section 21.32](#sec-case-pattern).]
+[ `ExtendedPattern` is defined in [Section 21.33](#sec-case-pattern).]
 
 The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the `CaseBinding_`s is
 the same as for match expressions and is described in
-[Section 21.32](#sec-case-pattern).
+[Section 21.33](#sec-case-pattern).
 
 The code below shows an example of a match statement.
 
@@ -1706,11 +1719,16 @@ x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
 Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
+One can always write an explicit function to convert a data value to a string
+and then call it explicitly in a `print` statement or elsewhere.
 
 Dafny does not keep track of print effects. `print` statements are allowed
 only in non-ghost contexts and not in expressions, with one exception.
 The exception is that a function-by-method may contain `print` statements,
 whose effect may be observed as part of the run-time evaluation of such functions.
+
+The verifier checks that each expression is well-defined, but otherwise 
+ignores the `print` statement.
 
 ## 20.20. Reveal Statement {#sec-reveal-statement}
 ````grammar
