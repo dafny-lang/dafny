@@ -630,7 +630,10 @@ namespace Microsoft.Dafny {
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
-      if (VerificationLoggerConfigs.Any()) {
+      // We check that we haven't already set BoogieXmlFilename here
+      // so that we don't hit spurious errors or generate another temporary file name
+      // when cloning options.
+      if (VerificationLoggerConfigs.Any() && BoogieXmlFilename == null) {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
         }

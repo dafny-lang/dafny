@@ -73,6 +73,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires value.Valid()
       ensures Valid()
       ensures fresh(Repr - value.Repr)
+      ensures this.value == value
     {
       this.value := value;
 
@@ -192,7 +193,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   class Lazy<T> extends SeqExpr<T> {
     ghost const value: seq<T>
     ghost const size: nat
-    const exprBox: AtomicBox<SeqExpr<T>>
+    const exprBox: SeqExprBox<T>
     const length: nat
 
     ghost predicate Valid() 
@@ -201,29 +202,23 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures Valid() ==> this in Repr
     {
       && this in Repr
+      && ValidComponent(exprBox)
+      && exprBox.value == value
       && length == |value|
-      && exprBox.inv == ((e: SeqExpr<T>) reads e, e.Repr => 
-        && e.Valid() 
-        && e.Size() < size
-        && e.Value() == value)
     }
 
     constructor(wrapped: SeqExpr<T>) 
       requires wrapped.Valid()
       ensures Valid()
-      ensures fresh(Repr)
+      ensures fresh(Repr - wrapped.Repr)
     {
-      var value := wrapped.Value();
-      var size := 1 + wrapped.Size();
-      ghost var inv := ((e: SeqExpr<T>) reads e, e.Repr => 
-          && e.Valid() 
-          && e.Size() < size
-          && e.Value() == value);
-      this.exprBox := new AtomicBox(inv, wrapped);
-
-      this.value := value;
-      this.size := size;
-      Repr := {this};
+      this.exprBox := new SeqExprBox(wrapped);
+      this.length := wrapped.Length();
+      this.value := wrapped.Value();
+      this.size := 1 + wrapped.Size();
+      new;
+      assert this.length == |value|;
+      Repr := {this} + exprBox.Repr;
     }
 
     ghost function Size(): nat 
@@ -259,27 +254,60 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
     {
-      var expr := exprBox.Get();
+      var expr := AtomicBox.Get(exprBox);
+      assert expr.Value() == value;
       var a := expr.ToArray();
-      var direct := new Direct(a);
-      exprBox.Put(direct);
+      assert a.Value() == value;
+      var direct: Direct<T> := new Direct(a);
+      assert && direct.Value() == value;
+      assert direct in direct.Repr;
+      assert  && direct.Repr <= direct.Repr;
+      assert && direct.Valid();
+
+      AtomicBox.Put(exprBox as AtomicBox<SeqExpr<T>>, direct.Repr, direct);
       return a;
     }
   }
 
-  class {:extern} AtomicBox<T> {
-    ghost const inv: T -> bool
+  trait AtomicBox<T> extends Validatable{
 
-    constructor(ghost inv: T -> bool, t: T)
-      requires inv(t)
-      ensures this.inv == inv
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+    {
+      this in Repr
+    }
 
-    method Put(t: T)
-      requires inv(t)
+    ghost predicate Invariant(repr: set<object>, t: T) reads repr
 
-    method Get() returns (t: T)
-      ensures inv(t)
+    // TODO: Figure out how to do a feasibility implementation.
+    // This is missing a modifies!
+    static method {:extern} Put(b: AtomicBox<T>, ghost repr: set<object>, t: T)
+      requires b.Invariant(repr, t)
+      ensures b.Repr == repr
+
+    static method {:extern} Get(b: AtomicBox<T>) returns (t: T)
+      ensures b.Invariant(b.Repr, t)
   }
 
-
+  class SeqExprBox<T> extends AtomicBox<SeqExpr<T>> {
+    ghost const value: seq<T>
+    ghost const size: nat
+    constructor(e: SeqExpr<T>) 
+      requires e.Valid()
+      ensures Valid()
+      ensures fresh(Repr - e.Repr)
+      ensures value == e.Value()
+    {
+      this.Repr := {this} + e.Repr;
+      this.value := e.Value();
+      this.size := e.Size();
+    }
+    ghost predicate Invariant(repr: set<object>, t: SeqExpr<T>) reads repr {
+      && t in repr
+      && t.Repr <= repr
+      && t.Valid()
+      && t.Value() == value
+    }
+  }
 }

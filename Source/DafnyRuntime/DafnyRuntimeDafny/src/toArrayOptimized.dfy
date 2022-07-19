@@ -32,19 +32,22 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       var next: SeqExpr<T> := stack.RemoveLast();
       if next is Concat<T> {
         var concat := next as Concat<T>;
-        // ghost var stackBefore := stack.Value();
+        ghost var stackBefore := stack.Value();
         stack.AddLast(concat.right);
-        // LemmaConcatValueOnStackWithTip(stackBefore, concat.right);
-        // ghost var stackInbetween := stack.Value();
+        LemmaConcatValueOnStackWithTip(stackBefore, concat.right);
+        ghost var stackInbetween := stack.Value();
         stack.AddLast(concat.left);
-        // LemmaConcatValueOnStackWithTip(stackInbetween, concat.left);
+        LemmaConcatValueOnStackWithTip(stackInbetween, concat.left);
+        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
       } else if next is Lazy<T> {
         var lazy := next as Lazy<T>;
         var boxed := lazy.exprBox.Get();
         stack.AddLast(boxed);
+        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
       } else {
         var a := next.ToArray();
         builder.Append(a);
+        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
       }
     }
     return builder;
