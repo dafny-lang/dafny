@@ -1076,9 +1076,6 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of using an iterator class
-TODO: Should a foreach statment be added to Dafny
-
 ### 10.5.1. Sequences and arrays
 
 Sequences and arrays are indexable and have a length. So the idiom to
@@ -1591,7 +1588,7 @@ corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class Types {#sec-class-types}
+# 13. Class types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -2563,7 +2560,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types {#sec-trait-types}
+# 14. Trait types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -2800,7 +2797,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array Types {#sec-array-types}
+# 15. Array types {#sec-array-types}
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -2973,7 +2970,7 @@ using a function: see [Section 21.16](#sec-array-allocation).
 
 
 <!--PDF NEWPAGE-->
-# 16. Iterator Types {#sec-iterator-types}
+# 16. Iterator types {#sec-iterator-types}
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
