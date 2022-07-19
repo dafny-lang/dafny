@@ -43,8 +43,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
     public Subject<DafnyDocument> VerificationUpdates { get; } = new();
 
-    public ISet<IImplementationTask> RunningVerificationTasks { get; set; } = new HashSet<IImplementationTask>();
-
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(

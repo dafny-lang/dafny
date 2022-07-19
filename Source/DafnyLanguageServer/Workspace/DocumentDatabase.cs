@@ -95,7 +95,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
         Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
 
-      Verify(documentEntry, VerifyOnOpen, cancellationSource.Token);
+      if (VerifyOnOpen) {
+        Verify(documentEntry, cancellationSource.Token);
+      } else {
+        documentEntry.EndVerification();
+      }
+
     }
 
     private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -110,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void Verify(IDocumentEntry entry, bool actuallyVerify, CancellationToken cancellationToken) {
+    private void Verify(IDocumentEntry entry, CancellationToken cancellationToken) {
       var _ = entry.TranslatedDocument.ContinueWith(task => {
 
         if (task.IsCanceled || task.IsFaulted) {
@@ -118,11 +123,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var document = task.Result;
-
-        if (!actuallyVerify) {
-          entry.EndVerification();
-          return;
-        }
 
         if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
           entry.EndVerification();
@@ -164,7 +164,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
         .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
 
-      Verify(entry, VerifyOnChange, cancellationSource.Token);
+      if (VerifyOnChange) {
+        Verify(entry, cancellationSource.Token);
+      } else {
+        entry.EndVerification();
+      }
     }
 
     private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
@@ -257,7 +261,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      Verify(databaseEntry, true, cancellationSource.Token);
+      databaseEntry.RestartVerification();
+      Verify(databaseEntry, cancellationSource.Token);
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
@@ -334,7 +339,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return verificationCompleted.Task.ContinueWith(_ => t, TaskScheduler.Current).Unwrap();
         }
 
-        return t;
+        return ResolvedDocument;
       }, TaskScheduler.Current).Unwrap();
 
       public DocumentEntry(int? version,

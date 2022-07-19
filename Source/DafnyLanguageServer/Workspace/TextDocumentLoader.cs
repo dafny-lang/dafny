@@ -214,9 +214,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var implementationTasks = document.VerificationTasks!;
 
-      var verificationTasks = new List<Task<DafnyDocument>>();
       foreach (var implementationTask in implementationTasks) {
-        verificationTasks.Add(Verify(entry, document, implementationTask, cancellationToken));
+        Verify(entry, document, implementationTask, cancellationToken);
       }
 
       if (!implementationTasks.Any()) {
@@ -232,32 +231,34 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       NotifyStatusAsync(document.TextDocumentItem, lastDocument, cancellationToken);
     }
 
-    public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
+    public bool Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
 
-      lock (implementationTask) { // TryRun is not thread-safe.
-        var statusUpdates = implementationTask.TryRun();
-        if (statusUpdates == null) {
-          if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
-            foreach (var result in completedCache.Result.VCResults) {
-              dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(
-                new AssertionBatchResult(implementationTask.Implementation, result));
-            }
+      var statusUpdates = implementationTask.TryRun();
+      if (statusUpdates == null) {
 
-            dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation,
-              completedCache.Result);
+        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+          foreach (var result in completedCache.Result.VCResults) {
+            dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(
+              new AssertionBatchResult(implementationTask.Implementation, result));
           }
 
-          return Task.FromResult(dafnyDocument);
+          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation,
+            completedCache.Result);
         }
-        dafnyDocument.RunningVerificationTasks.Add(implementationTask);
-        entry.RestartVerification();
-        var task = dafnyDocument.VerificationUpdates.
-          Where(d => d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
-                     PublishedVerificationStatus.Error).FirstAsync().ToTask(cancellationToken);
-        statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update));
-        return task;
+
+        return false;
       }
+
+      entry.RestartVerification();
+      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update),
+        () => {
+          if (dafnyDocument.VerificationTasks!.All(t => t.IsDone)) {
+            entry.EndVerification();
+          }
+        });
+
+      return true;
     }
 
     private void HandleStatusUpdate(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
@@ -281,11 +282,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
-        }
-
-        document.RunningVerificationTasks.Remove(implementationTask);
-        if (!document.RunningVerificationTasks.Any()) {
-          entry.EndVerification();
         }
       } else {
         document.ImplementationIdToView!.AddOrUpdate(id,

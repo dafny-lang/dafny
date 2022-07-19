@@ -112,7 +112,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.VerifyAllTasks(entry, document, cancellationToken);
     }
 
-    public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask,
+    public bool Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
       return loader.Verify(entry ,document, implementationTask, cancellationToken);
     }

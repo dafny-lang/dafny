@@ -54,6 +54,8 @@ class SlowVerifier : IProgramVerifier {
     public IObservable<IVerificationStatus> TryRun() {
       return source;
     }
+    
+    public bool IsDone => false;
 
     public void Cancel() {
       source.OnError(new TaskCanceledException());
