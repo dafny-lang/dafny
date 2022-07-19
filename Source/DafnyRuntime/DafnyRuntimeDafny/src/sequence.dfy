@@ -268,16 +268,18 @@ module {:options "/functionSyntax:4"} MetaSeq {
   }
 
   class {:extern} AtomicBox<T> {
-    ghost const inv: T ~> bool
+    ghost const inv: T -> bool
 
-    constructor(ghost inv: T ~> bool, t: T)
-      requires inv.requires(t) && inv(t)
+    constructor(ghost inv: T -> bool, t: T)
+      requires inv(t)
       ensures this.inv == inv
 
     method Put(t: T)
-      requires inv.requires(t) && inv(t)
+      requires inv(t)
 
     method Get() returns (t: T)
-      ensures inv.requires(t) && inv(t)
+      ensures inv(t)
   }
+
+
 }

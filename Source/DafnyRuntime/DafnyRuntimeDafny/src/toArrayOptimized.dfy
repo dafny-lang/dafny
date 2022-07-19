@@ -17,15 +17,14 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     var builder := new ResizableArray<T>(e.length);
     var stack := new ResizableArray<SeqExpr<T>>(10);
     stack.AddLast(e);
-    // assert stack.Value() == [e];
-    // LemmaConcatValueOnStackWithTip([], e);
-    // assert ConcatValueOnStack(stack.Value()) == e.Value();
+    assert stack.Value() == [e];
+    LemmaConcatValueOnStackWithTip([], e);
+    assert ConcatValueOnStack(stack.Value()) == e.Value();
     while 0 < stack.size 
       invariant stack.Valid()
       // invariant PairwiseDisjoint({builder as Validatable, stack as Validatable} + (set v: Validatable <- stack.Value()))
       invariant builder.Valid()
-      invariant fresh(builder.Repr)
-      invariant fresh(stack.Repr)
+      invariant builder.Repr !! stack.Repr
       invariant forall e <- stack.Value() :: e.Valid()
       invariant builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value()
       decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
