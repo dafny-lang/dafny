@@ -13,7 +13,7 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-<font size="+4"><p style="text-align: center;">The Dafny Langauge and Software Verification System</p></font>
+<font size="+4"><p style="text-align: center;">The Dafny Language and Software Verification System</p></font>
 
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
