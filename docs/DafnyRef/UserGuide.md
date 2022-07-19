@@ -1358,23 +1358,28 @@ terminology.
   procedure might be more likely to cause proofs to fail in the future.
 
 * `-vcsSplitOnEveryAssert` - prove each (explicit or implicit) assertion
-  in each procedure separately. See also the attribute [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for restricting this option on specific procedures. By default, Boogie attempts to prove
-  that every assertion in a given procedure holds all at once, in a
-  single query to an SMT solver. This usually performs well, but
-  sometimes causes the solver to take longer. If a proof that you
-  believe should succeed is timing out, using this option can sometimes
-  help.
+  in each procedure separately. See also the attribute
+  [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for
+  restricting this option on specific procedures. By default, Boogie
+  attempts to prove that every assertion in a given procedure holds all
+  at once, in a single query to an SMT solver. This usually performs
+  well, but sometimes causes the solver to take longer. If a proof that
+  you believe should succeed is timing out, using this option can
+  sometimes help.
 
 * `-vcsCores:<n>` - try to verify `<n>` procedures simultaneously.
   Setting `<n>` to the number of physical cores available tends to be
   effective at speeding up overall proof time.
 
 * `-timeLimit:<n>` - spend at most `<n>` seconds attempting to prove any
-  single SMT query. This setting can also be set per method using the attribute [`{:timeLimit n}`](#sec-time-limit).
+  single SMT query. This setting can also be set per method using the
+  attribute [`{:timeLimit n}`](#sec-time-limit).
 
 * `-rlimit:<n>` - set the maximum solver resource count to use while
   proving a single SMT query. This can be a more deterministic approach
-  than setting a time limit. To choose an appropriate value, please refer to the documentation of the attribute [`{:rlimit}`](#sec-rlimit) that can be applied per procedure.
+  than setting a time limit. To choose an appropriate value, please
+  refer to the documentation of the attribute [`{:rlimit}`](#sec-rlimit)
+  that can be applied per procedure.
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 
