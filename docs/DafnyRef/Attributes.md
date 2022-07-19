@@ -4,6 +4,7 @@ Attributes are declared between `{:` and `}` like this:
 ```dafny
 {:attributeName "argument", "second" + "argument", 57}
 ```
+(White-space may follow but not precede the `:` in `{:`.)
 
 In general an attribute may have any name the user chooses. It may be
 followed by a comma-separated list of expressions. These expressions will
