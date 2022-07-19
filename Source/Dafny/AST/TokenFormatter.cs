@@ -64,31 +64,55 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
 
     var indent = 0;
 
+    void SetBeforeAfter(IToken token, int before, int after) {
+      posToMinIndentationBefore.TryAdd(token.pos, before);
+      posToMinIndentationAfter.TryAdd(token.pos, after);
+    }
+
     void SetMemberIndentation(MemberDecl member) {
-      posToMinIndentationBefore.TryAdd(member.BodyStartTok.pos, indent);
+      if (member is Method method) {
+        foreach (var token in method.OwnedTokens) {
+          if (token.val == "(" || token.val == "<" || token.val == "[") {
+            SetBeforeAfter(token, indent, indent + 2);
+            indent += 2;
+          }
+          if (token.val == ")" || token.val == ">" || token.val == "]") {
+            indent -= 2;
+            SetBeforeAfter(token, indent + 2, indent);
+          }
+
+          if (token.val == "returns") {
+            SetBeforeAfter(token, indent + 2, indent + 2);
+          }
+        }
+      }
+
+      SetBeforeAfter(member.BodyStartTok, indent, indent + 2);
       indent += 2;
-      posToMinIndentationAfter.TryAdd(member.BodyStartTok.pos, indent);
-      posToMinIndentationBefore.TryAdd(member.BodyEndTok.pos, indent);
+      if (member is Method) {
+
+      }
+
       indent -= 2;
-      posToMinIndentationAfter.TryAdd(member.BodyEndTok.pos, indent);
+      SetBeforeAfter(member.BodyEndTok, indent + 2, indent);
     }
     void SetDeclIndentation(TopLevelDecl topLevelDecl) {
       if (topLevelDecl.StartToken.line > 0) {
-        posToMinIndentationBefore.TryAdd(topLevelDecl.BodyStartTok.pos, indent);
+        SetBeforeAfter(topLevelDecl.BodyStartTok, indent, indent + 2);
         indent += 2;
-        posToMinIndentationAfter.TryAdd(topLevelDecl.BodyStartTok.pos, indent);
-        if (topLevelDecl is LiteralModuleDecl moduleDecl) {
-          foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
-            SetDeclIndentation(decl2);
-          }
-        } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
-          foreach (var members in declWithMembers.Members) {
-            SetMemberIndentation(members);
-          }
+      }
+      if (topLevelDecl is LiteralModuleDecl moduleDecl) {
+        foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
+          SetDeclIndentation(decl2);
         }
-        posToMinIndentationBefore.TryAdd(topLevelDecl.BodyEndTok.pos, indent);
+      } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
+        foreach (var members in declWithMembers.Members) {
+          SetMemberIndentation(members);
+        }
+      }
+      if (topLevelDecl.StartToken.line > 0) {
         indent -= 2;
-        posToMinIndentationAfter.TryAdd(topLevelDecl.BodyEndTok.pos, indent);
+        SetBeforeAfter(topLevelDecl.BodyStartTok, indent + 2, indent);
       }
     }
     foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {

@@ -1209,6 +1209,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      IToken tokenWithTrailingDocString = Token.NoToken;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
+     var ownedTokens = new List<IToken>();
      Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter> typeArgs = new List<TypeParameter>();
@@ -1218,27 +1219,29 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      DeclModifierData dmod;
   .)
   SYNC
-  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
+  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  ClassName<out id>                     (. tokenWithTrailingDocString = t; .)
-  [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
-  [ "extends"
+  ClassName<out id>                     (. tokenWithTrailingDocString = t; ownedTokens.Add(t); .)
+  [ GenericParameters<typeArgs, true, ownedTokens> ] (. tokenWithTrailingDocString = t; .)
+  [ "extends"                   (. ownedTokens.Add(t); .)
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
-  | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
+    {","                        (. ownedTokens.Add(t); .) 
+     Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  | ellipsis                    (. ownedTokens.Add(t); isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   SYNC
-  "{"                                            (. bodyStart = t;  .)
+  "{"                           (. bodyStart = t; ownedTokens.Add(t); .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false, false>
     }
-  "}"
+  "}"                           (. ownedTokens.Add(t); .)
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
      c.StartToken = dmodClass.FirstToken;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
+     c.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -1251,6 +1254,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      IToken/*!*/ tokenWithTrailingDocString;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
+     var ownedTokens = new List<IToken>();
      Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
@@ -1259,26 +1263,28 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      DeclModifierData dmod;
   .)
   SYNC
-  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstToken); .)
+  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  ClassName<out id>                         (. tokenWithTrailingDocString = t; .)
-  [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
-  [ "extends"
+  ClassName<out id>                         (. tokenWithTrailingDocString = t; ownedTokens.Add(t); .)
+  [ GenericParameters<typeArgs, true, ownedTokens> ]     (. tokenWithTrailingDocString = t; .)
+  [ "extends"                   (. ownedTokens.Add(t); .)
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
-  | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
+    {","                        (. ownedTokens.Add(t); .)
+     Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; ownedTokens.Add(t); .)
   ]
-  "{"                                            (. bodyStart = t; .)
+  "{"                           (. ownedTokens.Add(t); bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false, false>
     }
-  "}"
+  "}"                           (. ownedTokens.Add(t); .)
   (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
      trait.StartToken = dmodIn.FirstToken;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
+     trait.OwnedTokens = ownedTokens;
     .)
   .
 
@@ -1321,6 +1327,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
+     var ownedTokens = new List<IToken>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool isRefining = false;
      bool co = false;
@@ -1330,18 +1337,19 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   SYNC
   ( "datatype"
   | "codatatype"     (. co = true; .)
-  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  DatatypeName<out id>
-  [ GenericParameters<typeArgs, true> ]
+  DatatypeName<out id>                     (. ownedTokens.Add(t); .)
+  [ GenericParameters<typeArgs, true, ownedTokens> ]
   (
-  "="                                      (. bodyStart = t; .)
+  "="                                      (. bodyStart = t; ownedTokens.Add(t); .)
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
       $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
   ]
-  [ "|" ] DatatypeMemberDecl<ctors>
-  { "|" DatatypeMemberDecl<ctors> }
-  | ellipsis                               (. isRefining = true; bodyStart = t; .)
+  [ "|" (. ownedTokens.Add(t); .) ] DatatypeMemberDecl<ctors>
+  { "|" (. ownedTokens.Add(t); .)
+    DatatypeMemberDecl<ctors> }
+  | ellipsis                               (. isRefining = true; bodyStart = t; ownedTokens.Add(t); .)
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
@@ -1508,25 +1516,28 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Expression witness = null;
      var kind = "opaque type";
      var members = new List<MemberDecl>();
+     var ownedTokens = new List<IToken>();
      var isRefining = false;
   .)
-  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  SynonymTypeName<out id>
+  SynonymTypeName<out id>     (. ownedTokens.Add(t); .)
   { TypeParameterCharacteristics<ref characteristics> }
-  [ GenericParameters<typeArgs, true> ]
-  [ "="
+  [ GenericParameters<typeArgs, true, ownedTokens> ]
+  [ "="                       (. ownedTokens.Add(t); .)
     ( IF(IsIdentColonOrBar())
-      LocalVarName<out bvId>
-      [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-      "|"
+      LocalVarName<out bvId>  (. ownedTokens.Add(t); .)
+      [ ":"                   (. ownedTokens.Add(t); .)
+        Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+      "|"                     (. ownedTokens.Add(t); .)
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
       [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
+        ( "ghost"                              (. ownedTokens.Add(t); .)
+          "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; ownedTokens.Add(t); .)
           Expression<out witness, false, true>
-        | "witness"
-          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+        | "witness"                            (. ownedTokens.Add(t); .)
+          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; ownedTokens.Add(t); .)
           | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
           )
         )
@@ -1540,7 +1551,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          kind = "type synonym";
       .)
     )
-  | ellipsis                               (. isRefining = true; .)
+  | ellipsis                               (. isRefining = true; ownedTokens.Add(t); .)
     [ TypeMembers<module, members> ]
   | TypeMembers<module, members>
   ]
@@ -1554,6 +1565,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      td.BodyEndTok = t;
      td.StartToken = dmod.FirstToken;
      td.TokenWithTrailingDocString = t;
+     td.OwnedTokens = ownedTokens;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
@@ -1682,6 +1694,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      List<AttributedExpression/*!*/> yieldReq = new List<AttributedExpression/*!*/>();
      List<AttributedExpression/*!*/> yieldEns = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
+     var ownedTokens = new List<IToken>();
      Attributes readsAttrs = null;
      Attributes modAttrs = null;
      Attributes decrAttrs = null;
@@ -1692,18 +1705,18 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
-  "iterator"
+  "iterator"                (. ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  IteratorName<out id>
+  IteratorName<out id>      (. ownedTokens.Add(t); .)
   (
-    [ GenericParameters<typeArgs, true> ]
-    Formals<true, true, false, false, ins>
-    [ ( "yields"
+    [ GenericParameters<typeArgs, true, ownedTokens> ]
+    Formals<true, true, false, false, ins, ownedTokens>
+    [ ( "yields"            (. ownedTokens.Add(t); .)
       | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
-      Formals<false, true, false, false, outs>
+      Formals<false, true, false, false, outs, ownedTokens>
     ]
-  | ellipsis                (. signatureEllipsis = t; .)
+  | ellipsis                (. signatureEllipsis = t; ownedTokens.Add(t); .)
   )
   IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -1716,13 +1729,14 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              body, attrs, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
      iter.BodyEndTok = bodyEnd;
+     iter.OwnedTokens = ownedTokens;
  .)
   .
 
 /*------------------------------------------------------------------------*/
 TypeVariableName<out IToken id> = NoUSIdent<out id> .
 
-GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
+GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
      TypeParameter.TypeParameterCharacteristics characteristics;
@@ -1733,13 +1747,14 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
-  "<"
-  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+  "<"                       (. ownedTokens.Add(t); .)
+  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); }
+                               ownedTokens.Add(t); .)
   ]
-  TypeVariableName<out id>
+  TypeVariableName<out id>  (. ownedTokens.Add(t); .)
   { TypeParameterCharacteristics<ref characteristics> }
   (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
-  { ","
+  { ","                     (. ownedTokens.Add(t); .)
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
     .)
@@ -1749,7 +1764,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     { TypeParameterCharacteristics<ref characteristics> }
     (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   }
-  ">"
+  ">"                       (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1765,12 +1780,12 @@ Variance<out TypeParameter.TPVarianceSyntax variance>
 
 /*------------------------------------------------------------------------*/
 TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
-= "("
+= "(" (. characteristics.StartToken = t; .)
   TPCharOption<ref characteristics>
-  { ","
+  { ","  (. characteristics.OwnedTokens.Add(t); .)
     TPCharOption<ref characteristics>
   }
-  ")"
+  ")" (. characteristics.EndToken = t; .)
   .
 
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
@@ -1815,33 +1830,34 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      IToken tokenWithTrailingDocString = Token.NoToken;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     var ownedTokens = new List<IToken>() {};
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
-  ( "method"                        (. isPlainOlMethod = true; caption = "method";
+  ( "method"                        (. isPlainOlMethod = true; caption = "method"; ownedTokens.Add(t);
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
-  | "lemma"                         (. isLemma = true; caption = "lemma";
+  | "lemma"                         (. isLemma = true; caption = "lemma"; ownedTokens.Add(t);
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-      "lemma"
+  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
+      "lemma"                       (. ownedTokens.Add(t); .)
     | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "least" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
     | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
     )
     "lemma"
-                                    (. isLeastLemma = true;  caption = "least lemma";
+                                    (. isLeastLemma = true;  caption = "least lemma"; ownedTokens.Add(t);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
+  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
+    "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma"; ownedTokens.Add(t);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (.  CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | "constructor"                   (.  CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t);
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -1853,7 +1869,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(ref dmod, caption, allowed); .)
   { Attribute<ref attrs> }
-  [ MethodFunctionName<out id>               (. hasName = true; .)
+  [ MethodFunctionName<out id>               (. hasName = true; ownedTokens.Add(id); .)
   ]
   (. if (!hasName) {
        id = keywordToken;
@@ -1863,15 +1879,15 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      }
   .)
   (
-    [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
+    [ GenericParameters<typeArgs, false, ownedTokens> ]
+    [ KType<ref kType, ownedTokens>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
-    Formals<true, isCompilable, isTwoStateLemma, false, ins>
-    [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, isCompilable, false, false, outs>
+    Formals<true, isCompilable, isTwoStateLemma, false, ins, ownedTokens>
+    [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } ownedTokens.Add(t);  .)
+      Formals<false, isCompilable, false, false, outs, ownedTokens>
     ]
-  | ellipsis                                    (. signatureEllipsis = t; .)
+  | ellipsis                                    (. signatureEllipsis = t; ownedTokens.Add(t); .)
   )                                             (. tokenWithTrailingDocString = t; .)
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
@@ -1906,16 +1922,17 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      m.BodyEndTok = bodyEnd;
      m.StartToken = dmod.FirstToken;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
+     m.OwnedTokens = ownedTokens;
  .)
   .
 
 /*------------------------------------------------------------------------*/
-KType<ref ExtremePredicate.KType kType>
-= "["
+KType<.ref ExtremePredicate.KType kType, List<IToken> ownedTokens.>
+= "["           (. ownedTokens.Add(t); .)
   ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
   | "ORDINAL"   (. kType = ExtremePredicate.KType.ORDINAL; .)
-  )
-  "]"
+  )             (. ownedTokens.Add(t); .)
+  "]"           (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2025,7 +2042,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   .
 
 /*------------------------------------------------------------------------*/
-Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allowOlderKeyword, List<Formal> formals.>
+Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allowOlderKeyword, List<Formal> formals, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken id;
      Type ty;
@@ -2035,17 +2052,18 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      bool isNameOnly;
      bool isOlder;
   .)
-  "("
+  "("            (. ownedTokens.Add(t); .)
   [
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+    { ","        (. ownedTokens.Add(t); .) 
+      GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
     }
   ]
-  ")"
+  ")"            (. ownedTokens.Add(t); .)
   .
 
 ParameterDefaultValue<bool incoming, out Expression defaultValue>
@@ -2268,6 +2286,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      List<AttributedExpression> reqs = new List<AttributedExpression>();
      List<AttributedExpression> ens = new List<AttributedExpression>();
      List<FrameExpression> reads = new List<FrameExpression>();
+     var ownedTokens = new List<IToken>() {};
      List<Expression> decreases;
      Attributes decAttrs = null;
      Expression body = null;
@@ -2327,72 +2346,73 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
     (
-      [ GenericParameters<typeArgs, false> ]
-      Formals<true, true, isTwoState, true, formals>
-      ":"
+      [ GenericParameters<typeArgs, false, ownedTokens> ]
+      Formals<true, true, isTwoState, true, formals, ownedTokens>
+      ":"        (. ownedTokens.Add(t); .)
       (  IF(FollowedByColon())
-         "("
+         "("     (. ownedTokens.Add(t); .)
            GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
-         ")"
+         ")"     (. ownedTokens.Add(t); .)
          | Type<out returnType>
       )
-    | ellipsis   (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
 
   /* ----- predicate ----- */
-  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    [ "method"   (. functionMethodToken = t; .)
+  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
+    [ "method"   (. functionMethodToken = t; ownedTokens.Add(t); .)
     ]
     { Attribute<ref attrs> }
-    MethodFunctionName<out id>
+    MethodFunctionName<out id> (. ownedTokens.Add(id); .)
     (
-      [ GenericParameters<typeArgs, false> ]
-      [ Formals<true, true, isTwoState, true, formals>
+      [ GenericParameters<typeArgs, false, ownedTokens> ]
+      [ Formals<true, true, isTwoState, true, formals, ownedTokens>
       ]
-      [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":" (. ownedTokens.Add(t); .)
+        Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | ellipsis   (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
 
   /* ----- least predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
     | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
-    "predicate"
+    "predicate"                (. ownedTokens.Add(t); .)
     (. isLeastPredicate = true; .)
     { Attribute<ref attrs> }
-    MethodFunctionName<out id>
+    MethodFunctionName<out id> (. ownedTokens.Add(id); .)
     (
-      [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
-      Formals<true, false, false, false, formals>
+      [ GenericParameters<typeArgs, false, ownedTokens> ]
+      [ KType<ref kType, ownedTokens> ]
+      Formals<true, false, false, false, formals, ownedTokens>
       [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | ellipsis                 (. signatureEllipsis = t; .)
+    | ellipsis                 (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
 
   /* ----- greatest predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-      "predicate"     
+    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
+      "predicate"                (. ownedTokens.Add(t); .)
     | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
     { Attribute<ref attrs> }
-    MethodFunctionName<out id>
+    MethodFunctionName<out id>  (. ownedTokens.Add(id); .)
     (
-      [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
-      Formals<true, false, false, false, formals>
+      [ GenericParameters<typeArgs, false, ownedTokens> ]
+      [ KType<ref kType, ownedTokens> ]
+      Formals<true, false, false, false, formals, ownedTokens>
       [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | ellipsis                 (. signatureEllipsis = t; .)
+    | ellipsis                 (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
   )
 
@@ -2570,6 +2590,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      f.BodyEndTok = bodyEnd;
      f.StartToken = dmod.FirstToken;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
+     f.OwnedTokens = ownedTokens;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate
