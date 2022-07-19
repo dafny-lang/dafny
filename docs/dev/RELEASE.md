@@ -45,7 +45,7 @@
    git clone git@github.com:dafny-lang/dafny.git dafny-for-tagging
    cd dafny-for-tagging
    git tag v<$VER>
-   git push v<$VER>
+   git push origin v<$VER>
    ```
 
 5. A GitHub action will automatically run in reaction to the tag being pushed,

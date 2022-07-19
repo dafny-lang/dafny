@@ -68,7 +68,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = document.GetFilePath();
+    var documentFilePath = document.Uri.ToString();
     foreach (var module in document.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
@@ -82,7 +82,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "datatype",
                 ctor.Name,
                 ctor.CompileName,
-                ctor.tok.filename,
+                ctor.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             }
@@ -90,7 +90,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.filename != documentFilePath;
+            var memberWasNotIncluded = member.tok.Filename != documentFilePath;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -104,7 +104,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "constant",
                 member.Name,
                 member.CompileName,
-                member.tok.filename,
+                member.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
@@ -113,7 +113,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.CompileName,
-                member.tok.filename,
+                member.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
@@ -122,7 +122,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   "by method part of function",
                   member.Name,
                   member.CompileName + "_by_method",
-                  member.tok.filename,
+                  member.tok.Filename,
                   verificationTreeRangeByMethod);
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
               }
@@ -130,7 +130,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           }
         }
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.filename != documentFilePath) {
+          if (subsetTypeDecl.tok.Filename != documentFilePath) {
             continue;
           }
           var verificationTreeRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
@@ -138,7 +138,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.CompileName,
-            subsetTypeDecl.tok.filename,
+            subsetTypeDecl.tok.Filename,
             verificationTreeRange);
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
@@ -353,7 +353,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
           GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
-          if (token.filename != implementationNode.Filename) {
+          if (token.Filename != implementationNode.Filename) {
             return;
           }
 
@@ -368,7 +368,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           var nodeDiagnostic = new AssertionVerificationTree(
             $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
             $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
-            token.filename,
+            token.Filename,
             secondaryOutcomePosition,
             outcomeRange
           ) {
@@ -401,15 +401,15 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
-            null;
+            null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();
