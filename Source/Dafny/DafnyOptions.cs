@@ -1017,7 +1017,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Dump additional positional information (displayed as mouse-over tooltips by
     the VS plugin) to stdout as 'Info' messages.
 /diagnosticsFormat:<text|json>
-    Chose how to report errors, warnings, and info messages.
+    Choose how to report errors, warnings, and info messages.
     text (default): Use human readable output
     json: Print each message as a JSON object, one per line.
 
