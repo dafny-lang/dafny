@@ -22,19 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
         - uses: action/checkout@v1
-        - name: Setup java latest
-          id: use-java-latest
-          if: inputs.use-java-oldest
-          uses: actions/setup-java@v1
-          with:
-            java-version: 1.8
-          
+        - name: Setup java newest
+          id: java-newest
+          if: inputs.java-newest
+          run: echo "::set-output name=java::[\"18\"]"
         - name: Setup java oldest
-          id: use-java-oldest
-          if: "!inputs.use-java-oldest"
+          id: java-oldest
+          if: inputs.java-oldest
           uses: actions/setup-java@v1
-          with:
-            java-version: 18
+          run: echo "::set-output name=java::[\"1.8\"]"
+    
         
   
   populate-matrix-dimensions:
