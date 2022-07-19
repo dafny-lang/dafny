@@ -69,6 +69,7 @@ Dafny also offers an extensive toolbox for mathematical proofs about software, i
    * Problem reports on [GitHub](https://gitnub.com/dafny-lang/dafny/Issues)
    * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)
    * (Internal to Amazon only) The Dafny channel in the AWS workspace on Slack.
+   * (Internal to Amazon only) Dafny Coding Clinic
 
 There are also publications and lecture notes:
 
