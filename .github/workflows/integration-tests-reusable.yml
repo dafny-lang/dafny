@@ -13,15 +13,30 @@ on:
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
-target-language-version:
-  java-version:
-    newest: 18
-    oldest: 1.8
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
   # For now that just makes the sharding a little cleaner, but it will shortly
   # be used to switch between one platform and all platforms based on an input parameter.
+  target-language-version:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: action/checkout@v1
+        - name: Setup java latest
+          id: use-java-latest
+          if: inputs.use-java-oldest
+          uses: actions/setup-java@v1
+          with:
+            java-version: 1.8
+          
+        - name: Setup java oldest
+          id: use-java-oldest
+          if: "!inputs.use-java-oldest"
+          uses: actions/setup-java@v1
+          with:
+            java-version: 18
+        
+  
   populate-matrix-dimensions:
     runs-on: ubuntu-latest
     steps:
