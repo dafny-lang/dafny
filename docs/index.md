@@ -18,7 +18,7 @@ layout: page
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
 - [Compendium of Dafny Resources for Users](#resources)
-- [Dafny GitHub project (for developers)](https://github/com/afny-lang/dafny)
+- [Dafny GitHub project (for developers)](https://github.com/dafny-lang/dafny)
 
 ![Dafny Banner](./banner.png "Dafny")
 
@@ -50,11 +50,12 @@ Dafny also offers an extensive toolbox for mathematical proofs, including
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
    * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * Detailed documents for programmers
-   * [Dafny Reference Manual](DafnyRef/DafnyRef)
+   * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
+   * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
-   * [Style Guide for Dafny programs](StyleGuide/Style-Guide)
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
+   * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
    * [Sequences](OnlineTutorial/Sequences)
@@ -74,8 +75,14 @@ There are also publications and lecture notes:
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
-Notes for Dafny contributors:
-* Notes on Compilation
+And some books:
+* K. Rustan M. Leino and Kaleb Leino, 2022, [_Program Proofs_](_https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). to be avilalbe from MIT Press in 2023.
+* Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
+* Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
+
+: 
+
+Preliminary notes about Dafny integration with code in other programming languages:
    * [Go](Compilation/Go)
    * [C++](Compilation/Cpp)
    * [Reference values](Compilation/ReferenceTypes)
