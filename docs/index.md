@@ -17,6 +17,7 @@ layout: page
 
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
+- [Tips and Tricks and FAQs](HowToFAQ)
 - [Compendium of Dafny Resources for Users](#resources)
 - [Dafny GitHub project (for developers)](https://github.com/dafny-lang/dafny)
 
@@ -24,22 +25,23 @@ layout: page
 
 Dafny is a <strong>verification-ready programming language</strong>.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
-When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript or Go</strong> (more to come!), so it can integrate with your existing workflow.
+When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript, Python, C++ or Go</strong> (more to come!), so it can integrate with your existing workflow.
 
 Dafny will give you <strong>assurance that your code meets the specifications you write</strong>, while letting you write both code and specifications in the Dafny programming language itself.
 Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
 
 Dafny has support for common programming concepts such as 
+- mathematical iand bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance
 - [inductive datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-inductive-datatypes) that can have methods and are suitable for pattern matching,
 - [lazily unbounded datatypes](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-co-inductive-datatypes),
 - [subset types](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-subset-types), such as for bounded integers,
-- [lambda expressions](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-lambda-expressions),
+- [lambda expressions](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-lambda-expressions) and functional programming idioms,
 - and [immutable and mutable data structures](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-collection-types).
 
-Dafny also offers an extensive toolbox for mathematical proofs, including
+Dafny also offers an extensive toolbox for mathematical proofs about software, including
 - [bounded and unbounded quantifiers](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-forall-statement"),
-- [calculational proofs](https://dafny.org/dafny/DafnyRef/DafnyRef#1923-calc-statement),
-- [pre- and post-conditions, termination conditions, loop invariants, and read/write specifications](https://dafny.org/dafny/DafnyRef/DafnyRef#51-specification-clauses)
+- [calculational proofs](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-calc-statement) and ability to use and prove lemmas,
+- [pre- and post-conditions, termination conditions, loop invariants, and read/write specifications](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-specification-clauses)
 
 # Compendium of Dafny resources {#resources}
 
@@ -52,6 +54,7 @@ Dafny also offers an extensive toolbox for mathematical proofs, including
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
+   * [**Tips and Tricks and FAQs](HowToFAQ)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
@@ -62,6 +65,11 @@ Dafny also offers an extensive toolbox for mathematical proofs, including
    * [Lemmas and Induction](OnlineTutorial/Lemmas)
    * [Modules](OnlineTutorial/Modules)
    * [Termination](OnlineTutorial/Termination)
+
+* Forums for Q&amp;A
+   * Problem reports on [GitHub](https://gitnub.com/dafny-lang/dafny/Issues)
+   * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)
+   * (Internal to Amazon only) The Dafny channel in the AWS workspace on Slack.
 
 There are also publications and lecture notes:
 
@@ -76,11 +84,9 @@ There are also publications and lecture notes:
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
 And some books:
-* K. Rustan M. Leino and Kaleb Leino, 2022, [_Program Proofs_](_https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). to be avilalbe from MIT Press in 2023.
+* K. Rustan M. Leino and Kaleb Leino, 2022, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). to be available from MIT Press in 2023.
 * Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
-
-: 
 
 Preliminary notes about Dafny integration with code in other programming languages:
    * [Go](Compilation/Go)
