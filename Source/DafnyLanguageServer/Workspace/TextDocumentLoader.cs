@@ -235,24 +235,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public Task<DafnyDocument> Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
 
-      var statusUpdates = implementationTask.TryRun();
-      if (statusUpdates == null) {
-        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
-          foreach (var result in completedCache.Result.VCResults) {
-            dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(new AssertionBatchResult(implementationTask.Implementation, result));
-          }
-          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, completedCache.Result);
-        }
-        return Task.FromResult(dafnyDocument);
-      }
+      lock (implementationTask) { // TryRun is not thread-safe.
+        var statusUpdates = implementationTask.TryRun();
+        if (statusUpdates == null) {
+          if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+            foreach (var result in completedCache.Result.VCResults) {
+              dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(
+                new AssertionBatchResult(implementationTask.Implementation, result));
+            }
 
-      dafnyDocument.RunningVerificationTasks.Add(implementationTask);
-      entry.RestartVerification();
-      var task = dafnyDocument.VerificationUpdates.
-        Where(d => d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
-                   PublishedVerificationStatus.Error).FirstAsync().ToTask(cancellationToken);
-      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update));
-      return task;
+            dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation,
+              completedCache.Result);
+          }
+
+          return Task.FromResult(dafnyDocument);
+        }
+        dafnyDocument.RunningVerificationTasks.Add(implementationTask);
+        entry.RestartVerification();
+        var task = dafnyDocument.VerificationUpdates.
+          Where(d => d.ImplementationIdToView[GetImplementationId(implementationTask.Implementation)].Status >=
+                     PublishedVerificationStatus.Error).FirstAsync().ToTask(cancellationToken);
+        statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update));
+        return task;
+      }
     }
 
     private void HandleStatusUpdate(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
