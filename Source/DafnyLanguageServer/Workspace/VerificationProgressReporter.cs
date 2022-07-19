@@ -68,7 +68,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = document.GetFilePath();
+    var documentFilePath = document.Uri.ToString();
     foreach (var module in document.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
