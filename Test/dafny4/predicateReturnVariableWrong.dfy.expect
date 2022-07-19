@@ -1,0 +1,4 @@
+predicateReturnVariableWrong.dfy(4,34): Error: predicates return type should be bool, got int
+predicateReturnVariableWrong.dfy(8,40): Error: least predicates return type should be bool, got int
+predicateReturnVariableWrong.dfy(12,43): Error: greatest predicates return type should be bool, got int
+3 parse errors detected in predicateReturnVariableWrong.dfy
