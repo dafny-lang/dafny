@@ -1,4 +1,3 @@
-include "../../../../Test/libraries/src/Collections/Sequences/Seq.dfy"
 include "../../../../Test/libraries/src/Math.dfy"
 
 include "array.dfy"
@@ -7,7 +6,6 @@ include "frames.dfy"
 module {:options "/functionSyntax:4"} MetaSeq {
 
   import Math
-  import Seq
 
   import opened Frames
   import opened Arrays
@@ -34,19 +32,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
       reads Repr
       decreases Repr, 1
 
-    function Depth(): nat
-
     ghost function Value(): seq<T> 
       requires Valid()
       reads this, Repr
       decreases Repr, 2
       ensures |Value()| == Length()
 
-    method ToArray() returns (ret: InitializedArray<T>)
+    method ToArray() returns (ret: ResizableArray<T>)
       requires Valid()
       decreases Repr, 2
       ensures ret.Valid()
-      ensures fresh(ret.a.Repr)
+      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
 
     method Concatenate(s: SeqExpr<T>) returns (ret: SeqExpr<T>)
@@ -61,7 +57,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   }
 
   class Direct<T> extends SeqExpr<T> {
-    const value: InitializedArray<T>
+    const value: ResizableArray<T>
 
     ghost predicate Valid()
       reads this, Repr
@@ -69,18 +65,18 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures Valid() ==> this in Repr
     {
       && this in Repr
-      && ValidComponent(value.a)
+      && ValidComponent(value)
       && value.Valid()
     }
 
-    constructor(value: InitializedArray<T>) 
+    constructor(value: ResizableArray<T>) 
       requires value.Valid()
       ensures Valid()
-      ensures fresh(Repr - value.a.Repr)
+      ensures fresh(Repr - value.Repr)
     {
       this.value := value;
 
-      Repr := {this} + value.a.Repr;
+      Repr := {this} + value.Repr;
     }
 
     ghost function Size(): nat 
@@ -91,16 +87,12 @@ module {:options "/functionSyntax:4"} MetaSeq {
       1
     }
 
-    function Depth(): nat {
-      1
-    }
-
     function Length(): nat 
       requires Valid() 
       reads Repr 
       decreases Repr, 1
     {
-      value.a.Length()
+      value.size
     }
 
     ghost function Value(): seq<T> 
@@ -112,11 +104,11 @@ module {:options "/functionSyntax:4"} MetaSeq {
       value.Value()
     }
 
-    method ToArray() returns (ret: InitializedArray<T>)
+    method ToArray() returns (ret: ResizableArray<T>)
       requires Valid()
       decreases Repr, 2
       ensures ret.Valid()
-      ensures fresh(ret.a.Repr)
+      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
     {
       return value;
@@ -127,7 +119,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
     const left: SeqExpr<T>
     const right: SeqExpr<T>
     const length: nat
-    const depth: nat
 
     ghost predicate Valid() 
       reads this, Repr
@@ -139,7 +130,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && ValidComponent(right)
       && left.Repr !! right.Repr
       && length == left.Length() + right.Length()
-      && depth == 1 + Math.Max(left.Depth(), right.Depth())
     }
 
     constructor(left: SeqExpr<T>, right: SeqExpr<T>) 
@@ -152,7 +142,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       this.left := left;
       this.right := right;
       this.length := left.Length() + right.Length();
-      this.depth := 1 + Math.Max(left.Depth(), right.Depth());
 
       Repr := {this} + left.Repr + right.Repr;
     }
@@ -163,10 +152,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       decreases Repr, 1
     {
       1 + left.Size() + right.Size()
-    }
-
-    function Depth(): nat {
-      depth
     }
 
     function Length(): nat 
@@ -189,60 +174,56 @@ module {:options "/functionSyntax:4"} MetaSeq {
       result
     }
 
-    method ToArray() returns (ret: InitializedArray<T>)
+    method ToArray() returns (ret: ResizableArray<T>)
       requires Valid()
       decreases Repr, 2
       ensures ret.Valid()
+      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
     {
-      var builder := new ResizableArray<T>(length);
-      assert builder.storage.Length() == length;
-      assert builder.Remaining() == length;
+      ret := new ResizableArray<T>(length);
       var leftArray := left.ToArray();
-      assert leftArray.a.Length() == left.Length();
-      builder.Append(leftArray);
-      assert builder.Remaining() == length - leftArray.a.Length();
+      ret.Append(leftArray);
       var rightArray := right.ToArray();
-      builder.Append(rightArray);
-      return InitializedArray(builder.storage);
+      ret.Append(rightArray);
     }
 
-    method ToArrayOptimized() returns (ret: InitializedArray<T>)
-      requires Valid()
-      decreases Repr, 3
-      ensures ret.Valid()
-      ensures ret.Value() == Value()
-    {
-      var builder := new ResizableArray<T>(length);
-      var stack := new ResizableArray<SeqExpr<T>>(depth);
-      stack.AddLast(this);
-      assert stack.Value() == [this];
-      LemmaConcatValueOnStackWithTip([], this);
-      assert ConcatValueOnStack(stack.Value()) == Value();
-      while 0 < stack.size 
-        invariant builder.Valid()
-        invariant stack.Valid()
-        invariant forall e <- stack.Value() :: e.Valid()
-        invariant builder.Remaining() == |ConcatValueOnStack(stack.Value())|
-        invariant builder.Value() + ConcatValueOnStack(stack.Value()) == Value()
-        decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
-      {
-        var next: SeqExpr<T> := stack.RemoveLast();
-        if next is Concat<T> {
-          var concat := next as Concat<T>;
-          stack.AddLast(concat.right);
-          stack.AddLast(concat.left);
-        } else if next is Lazy<T> {
-          var lazy := next as Lazy<T>;
-          var boxed := lazy.exprBox.Get();
-          stack.AddLast(boxed);
-        } else {
-          var a := ToArray();
-          builder.Append(a);
-        }
-      }
-      return InitializedArray(builder.storage);
-    }
+    // method {:vcs_split_on_every_assert} ToArrayOptimized() returns (ret: ResizableArray<T>)
+    //   requires Valid()
+    //   decreases Repr, 3
+    //   ensures ret.Valid()
+    //   ensures ret.Value() == Value()
+    // {
+    //   var builder := new ResizableArray<T>(length);
+    //   var stack := new ResizableArray<SeqExpr<T>>(10);
+    //   stack.AddLast(this);
+    //   assert stack.Value() == [this];
+    //   LemmaConcatValueOnStackWithTip([], this);
+    //   assert ConcatValueOnStack(stack.Value()) == Value();
+    //   while 0 < stack.size 
+    //     invariant stack.Valid()
+    //     // invariant PairwiseDisjoint({builder as Validatable, stack as Validatable} + (set v: Validatable <- stack.Value()))
+    //     invariant fresh(builder.Repr)
+    //     invariant fresh(stack.Repr)
+    //     invariant builder.Value() + ConcatValueOnStack(stack.Value()) == Value()
+    //     decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
+    //   {
+    //     var next: SeqExpr<T> := stack.RemoveLast();
+    //     if next is Concat<T> {
+    //       var concat := next as Concat<T>;
+    //       stack.AddLast(concat.right);
+    //       stack.AddLast(concat.left);
+    //     } else if next is Lazy<T> {
+    //       var lazy := next as Lazy<T>;
+    //       var boxed := lazy.exprBox.Get();
+    //       stack.AddLast(boxed);
+    //     } else {
+    //       var a := ToArray();
+    //       builder.Append(a);
+    //     }
+    //   }
+    //   return builder;
+    // }
   }
 
   class Lazy<T> extends SeqExpr<T> {
@@ -250,7 +231,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
     ghost const size: nat
     const exprBox: AtomicBox<SeqExpr<T>>
     const length: nat
-    const depth: nat
 
     ghost predicate Valid() 
       reads this, Repr
@@ -260,9 +240,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && this in Repr
       && length == |value|
       && exprBox.inv == ((e: SeqExpr<T>) reads e, e.Repr => 
-        && ValidComponent(e) 
-        && (assert e.Repr < Repr; e.Size() < size)
-        && e.Depth() < depth
+        && e.Valid() 
+        && e.Size() < size
         && e.Value() == value)
     }
 
@@ -271,19 +250,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures Valid()
       ensures fresh(Repr)
     {
-      var depth := 1 + wrapped.Depth();
       var value := wrapped.Value();
       var size := 1 + wrapped.Size();
       ghost var inv := ((e: SeqExpr<T>) reads e, e.Repr => 
           && e.Valid() 
           && e.Size() < size
-          && e.Depth() < depth
           && e.Value() == value);
       this.exprBox := new AtomicBox(inv, wrapped);
 
-      this.depth := depth;
       this.value := value;
       this.size := size;
+      Repr := {this};
     }
 
     ghost function Size(): nat 
@@ -292,10 +269,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       decreases Repr, 1
     {
       size
-    }
-
-    function Depth(): nat {
-      depth
     }
 
     function Length(): nat 
@@ -316,10 +289,11 @@ module {:options "/functionSyntax:4"} MetaSeq {
       value
     }
 
-    method ToArray() returns (ret: InitializedArray<T>)
+    method ToArray() returns (ret: ResizableArray<T>)
       requires Valid()
       decreases Repr, 2
       ensures ret.Valid()
+      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
     {
       var expr := exprBox.Get();
@@ -334,8 +308,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
     reads (set e <- s, o <- e.Repr :: o)
     requires (forall e <- s :: e.Valid())
   {
-    var valueFn := (e: SeqExpr<T>) requires e.Valid() reads e, e.Repr => e.Value();
-    Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)))
+    if |s| == 0 then
+      []
+    else
+      s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
   }
 
   lemma LemmaConcatValueOnStackWithTip<T>(s: seq<SeqExpr<T>>, x: SeqExpr<T>) 
@@ -343,17 +319,17 @@ module {:options "/functionSyntax:4"} MetaSeq {
     requires x.Valid()
     ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
   {
-    var valueFn := (e: SeqExpr<T>) reads e, e.Repr requires e.Valid() => e.Value();
-    calc {
-      ConcatValueOnStack(s + [x]);
-      Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
-      { reveal Seq.Reverse(); }
-      Seq.Flatten(Seq.Map(valueFn, [x] + Seq.Reverse(s)));
-      { reveal Seq.Map(); }
-      Seq.Flatten([x.Value()] + Seq.Map(valueFn, Seq.Reverse(s)));
-      x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
-      x.Value() + ConcatValueOnStack(s);
-    }
+    // var valueFn := (e: SeqExpr<T>) reads e, e.Repr requires e.Valid() => e.Value();
+    // calc {
+    //   ConcatValueOnStack(s + [x]);
+    //   Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
+    //   { reveal Seq.Reverse(); }
+    //   Seq.Flatten(Seq.Map(valueFn, [x] + Seq.Reverse(s)));
+    //   { reveal Seq.Map(); }
+    //   Seq.Flatten([x.Value()] + Seq.Map(valueFn, Seq.Reverse(s)));
+    //   x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
+    //   x.Value() + ConcatValueOnStack(s);
+    // }
   }
 
   ghost function SizeSum<T>(s: seq<SeqExpr<T>>): nat 
@@ -368,16 +344,16 @@ module {:options "/functionSyntax:4"} MetaSeq {
   }
 
   class {:extern} AtomicBox<T> {
-    ghost const inv: T -> bool
+    ghost const inv: T ~> bool
 
-    constructor(ghost inv: T -> bool, t: T)
-      requires inv(t)
+    constructor(ghost inv: T ~> bool, t: T)
+      requires inv.requires(t) && inv(t)
       ensures this.inv == inv
 
     method Put(t: T)
-      requires inv(t)
+      requires inv.requires(t) && inv(t)
 
     method Get() returns (t: T)
-      ensures inv(t)
+      ensures inv.requires(t) && inv(t)
   }
 }

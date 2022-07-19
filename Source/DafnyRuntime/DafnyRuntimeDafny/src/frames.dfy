@@ -30,4 +30,11 @@ module {:options "/functionSyntax:4"} Frames {
       Valid() && fresh(Repr - old(Repr))
     }
   }
+
+  ghost predicate PairwiseDisjoint(s: set<Validatable>) 
+    reads s, set v <- s, o <- v.Repr :: o
+  {
+    && forall v <- s :: v.Valid()
+    && forall v <- s, v' <- s | v != v' :: v.Repr !! v'.Repr
+  }
 }

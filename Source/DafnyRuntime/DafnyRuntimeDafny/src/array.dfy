@@ -1,8 +1,13 @@
+
+// TODO: Avoid depending on stdlib
+include "../../../../Test/libraries/src/Math.dfy"
+
 include "frames.dfy"
 
 module {:options "/functionSyntax:4"} Arrays {
 
   import opened Frames
+  import opened Math
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
@@ -58,19 +63,6 @@ module {:options "/functionSyntax:4"} Arrays {
         old(values)[..start] + 
         from.values[fromStart..fromEnd] + 
         old(values)[(start + (fromEnd - fromStart))..]
-  }
-
-  datatype InitializedArray<T> = InitializedArray(a: Array<T>) {
-    ghost predicate Valid() reads a, a.Repr {
-      && a.Valid()
-      && forall i | 0 <= i < a.Length() :: a.values[i].Set?
-    }
-    ghost function Value(): seq<T> 
-      requires Valid()
-      reads a, a.Repr
-    {
-      seq(a.Length(), i requires Valid() && 0 <= i < a.Length() reads a, a.Repr => a.Read(i))
-    }
   }
 
   // Feasibility implementation
@@ -172,8 +164,10 @@ module {:options "/functionSyntax:4"} Arrays {
   }
 
   class ResizableArray<T> extends Validatable {
-    const storage: Array<T>
+    var storage: Array<T>
     var size: nat
+
+    const MIN_SIZE := 10;
 
     ghost predicate Valid() reads this, Repr 
       ensures Valid() ==> this in Repr
@@ -187,9 +181,9 @@ module {:options "/functionSyntax:4"} Arrays {
     constructor(length: nat) 
       ensures Valid()
       ensures Value() == []
-      ensures Remaining() == length
       ensures fresh(Repr)
     {
+      // TODO: Replace with extern to create native array
       storage := new DafnyArray<T>(length);
       size := 0;
       new;
@@ -203,13 +197,6 @@ module {:options "/functionSyntax:4"} Arrays {
       seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
     }
 
-    ghost function Remaining(): nat
-      requires Valid()
-      reads this, Repr
-    {
-      storage.Length() - size
-    }
-
     function Last(): T 
       requires Valid()
       requires 0 < size
@@ -220,14 +207,30 @@ module {:options "/functionSyntax:4"} Arrays {
 
     method AddLast(t: T) 
       requires Valid()
-      requires size + 1 <= storage.Length()
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + [t]
-      ensures Remaining() == old(Remaining()) - 1
     {
+      if size == storage.Length() {
+        Reallocate(Math.Max(MIN_SIZE, storage.Length() * 2));
+      }
       storage.Write(size, t);
       size := size + 1;
+    }
+
+    method Reallocate(newCapacity: nat) 
+      requires Valid()
+      requires size <= newCapacity
+      modifies Repr
+      ensures ValidAndDisjoint()
+      ensures storage.Length() == newCapacity
+      ensures Value() == old(Value())
+    {
+      var newStorage := new DafnyArray<T>(newCapacity);
+      newStorage.WriteRangeArray(0, storage, 0, size);
+      storage := newStorage;
+
+      Repr := {this} + storage.Repr;
     }
 
     method RemoveLast() returns (t: T) 
@@ -236,24 +239,24 @@ module {:options "/functionSyntax:4"} Arrays {
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()[..(size - 1)])
-      ensures Remaining() == old(Remaining()) + 1
     {
       t := storage.Read(size - 1);
       size := size - 1;
     }
 
-    method Append(other: InitializedArray<T>) 
+    method Append(other: ResizableArray<T>) 
       requires Valid()
       requires other.Valid()
-      requires Repr !! other.a.Repr
-      requires size + other.a.Length() <= storage.Length()
+      requires Repr !! other.Repr
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + other.Value()
-      ensures Remaining() == old(Remaining()) - other.a.Length()
     {
-      storage.WriteRangeArray(size, other.a, 0, other.a.Length());
-      size := size + other.a.Length();
+      if storage.Length() < size + other.size {
+        Reallocate(Math.Max(size + other.size, storage.Length() * 2));
+      }
+      storage.WriteRangeArray(size, other.storage, 0, other.size);
+      size := size + other.size;
     }
   }
 }
