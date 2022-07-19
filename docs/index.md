@@ -13,13 +13,14 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-<font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
+<font size="+4"><p style="text-align: center;">The Dafny Langauge and Software Verification System</p></font>
 
 **Quick Links:**
-- [Dafny Reference Manual and User Guide](dafny/DafnyRef/DafnyRef)
-- [Dafny Resource Compendium](#resources)
+- [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
+- [Compendium of Dafny Resources for Users](#resources)
+- [Dafny GitHub project (for developers)](https://github/com/afny-lang/dafny)
 
-![Dafny Banner](./banner.png)
+![Dafny Banner](./banner.png "Dafny")
 
 Dafny is a <strong>verification-ready programming language</strong>.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
