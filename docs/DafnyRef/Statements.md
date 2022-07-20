@@ -1820,25 +1820,25 @@ sometimes less information is better for the solver as it helps the solver focus
 relevant information.
 
 Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
-an extended illustration of this technique.
+an extended illustration of this technique to make all the dependencies of an `assert` explicit.
 
 ### 20.20.3. Revealing function bodies
 
 Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
-However, sometimes it is helpful to mark a function _opaque_ and treat it as an uninterpreted function, whose properties are
+However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
 just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
 possible where there might be information overload otherwise.
 
 But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
 body of the function can be _revealed_ using the reveal statement. Here is an example:
 ```dafny
-function {: opaque} f(i: int): int { i + 1 }
+function {:opaque} f(i: int): int { i + 1 }
 
 method m(int i) {
   assert f(i) == i + 1;
 }
 ```
-Without the `{:opaque}` attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
 Note that the psuedo-function-call in the `reveal` statement is written without arguments.
 
