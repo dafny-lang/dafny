@@ -1774,6 +1774,7 @@ In this example there is no point to labeling an assertion and then immediately 
 the reveal is in an assert-by block or much later in the method body.
 
 ### 20.20.2. Revealing function and lemma bodies
+
 Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
 However, sometimes it is helpful to mark a function _opaque_ and treat it as an uninterpreted function, whose properties are
 just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
