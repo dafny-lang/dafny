@@ -33,7 +33,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public IEnumerable<FoldingRange> Visit(ModuleSymbol moduleSymbol) {
-      return CreateFoldingRangesOfEntryDocument(moduleSymbol, moduleSymbol.Declaration.tok);
+      return CreateFoldingRangesOfEntryDocument(moduleSymbol, moduleSymbol.
+                                                .tok);
     }
 
     public IEnumerable<FoldingRange> Visit(ClassSymbol classSymbol) {
@@ -75,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public IEnumerable<FoldingRange> Visit(ScopeSymbol scopeSymbol) {
-      return CreateFoldingRangesOfEntryDocument(scopeSymbol, scopeSymbol.Declaration.Tok);
+      return CreateFoldingRangesOfEntryDocument(scopeSymbol, scopeSymbol.BodyStartToken);
     }
 
     private IEnumerable<FoldingRange> CreateFoldingRangesOfEntryDocument(ILocalizableSymbol symbol, Boogie.IToken token) {
