@@ -17,7 +17,32 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   //   PairwiseDisjoint(allValidatables)
   // }
 
-  method {:tailrecursion} ToArrayOptimized<T>(builder: ResizableArray<T>, e: SeqExpr<T>, stack: ResizableArray<SeqExpr<T>>)
+  method AppendRecursive<T>(builder: ResizableArray<T>, e: SeqExpr<T>)
+    requires e.Valid()
+    requires builder.Valid()
+    requires builder.Repr !! e.Repr;
+    modifies builder.Repr
+    decreases e.Size()
+    ensures builder.ValidAndDisjoint()
+    ensures e.Valid()
+    ensures builder.Value() == old(builder.Value()) + e.Value();
+
+  {
+    if e is Concat<T> {
+      var concat := e as Concat<T>;
+      AppendRecursive(builder, concat.left);
+      AppendRecursive(builder, concat.right);
+    } else if e is Lazy<T> {
+      var lazy := e as Lazy<T>;
+      var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      AppendRecursive(builder, boxed);
+    } else {
+      var a := e.ToArray();
+      builder.Append(a);
+    }
+  }
+
+  method {:tailrecursion} AppendOptimized<T>(builder: ResizableArray<T>, e: SeqExpr<T>, stack: ResizableArray<SeqExpr<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
@@ -29,22 +54,22 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     requires forall expr <- stack.Value() :: stack.Repr !! builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
     modifies builder.Repr, stack.Repr
     decreases e.Size() + SizeSum(stack.Value())
-    // ensures builder.Valid()
-    // ensures stack.Valid()
-    // ensures e.Valid()
-    // ensures forall expr <- stack.Value() :: expr.Valid()
-    // ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
-
+    ensures builder.Valid()
+    ensures stack.Valid()
+    ensures e.Valid()
+    ensures forall expr <- stack.Value() :: expr.Valid()
+    ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   {
-    // if e is Concat<T> {
-    //   var concat := e as Concat<T>;
-    //   stack.AddLast(concat.right);
-    //   ToArrayOptimized(builder, concat.left, stack);
-    // } else if e is Lazy<T> {
-    //   var lazy := e as Lazy<T>;
-    //   var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
-    //   ToArrayOptimized(builder, boxed, stack);
-    // } else {
+    if e is Concat<T> {
+      var concat := e as Concat<T>;
+      LemmaConcatValueOnStackWithTip(stack.Value(), concat.right);
+      stack.AddLast(concat.right);
+      AppendOptimized(builder, concat.left, stack);
+    } else if e is Lazy<T> {
+      var lazy := e as Lazy<T>;
+      var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      AppendOptimized(builder, boxed, stack);
+    } else {
       var a := e.ToArray();
       assert forall expr <- stack.Value() :: expr.Valid();
       builder.Append(a);
@@ -59,6 +84,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
         assert forall expr <- stack.Value()[..(stack.size - 1)] :: willBeNext != expr && willBeNext.Repr !! expr.Repr;
         assert forall expr <- stack.Value(), expr' <- stack.Value() | expr != expr' :: expr.Repr !! expr'.Repr;
         var next: SeqExpr<T> := stack.RemoveLast();
+        LemmaConcatValueOnStackWithTip(stack.Value(), next);
         assert next == willBeNext;
         assert stack.Value() == old(stack.Value()[..(stack.size - 1)]);
         assert forall expr <- stack.Value() :: next != expr && next.Repr !! expr.Repr;
@@ -74,9 +100,13 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
         assert forall expr <- stack.Value() :: builder.Repr !! expr.Repr;
         
         assert forall expr <- stack.Value() :: stack.Repr !! expr.Repr;
-        ToArrayOptimized(builder, next, stack);
+
+        assert next.Size() + SizeSum(stack.Value()) == old(SizeSum(stack.Value()));
+        assert next.Size() + SizeSum(stack.Value()) < e.Size() + old(SizeSum(stack.Value()));
+
+        AppendOptimized(builder, next, stack);
       }
-    // }
+    }
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>

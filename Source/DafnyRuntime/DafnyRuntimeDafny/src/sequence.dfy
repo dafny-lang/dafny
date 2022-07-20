@@ -15,7 +15,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
   // TODO: How to deal with variance?
-  // TODO: require Size() > 0
   trait SeqExpr<T> extends Validatable {
    
     ghost predicate Valid()
@@ -27,6 +26,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires Valid()
       reads this, Repr
       decreases Repr, 1
+      ensures 0 < Size()
 
     function Length(): nat 
       requires Valid() 
@@ -45,16 +45,16 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures ret.Valid()
       ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
+  }
 
-    method Concatenate(s: SeqExpr<T>) returns (ret: SeqExpr<T>)
-      requires Valid()
-      requires s.Valid()
-      requires Repr !! s.Repr
-      ensures ret.Valid()
-    {
-      var c := new Concat(this, s);
-      ret := new Lazy(c);
-    }
+  method Concatenate<T>(left: SeqExpr<T>, right: SeqExpr<T>) returns (ret: SeqExpr<T>)
+    requires left.Valid()
+    requires right.Valid()
+    requires left.Repr !! right.Repr
+    ensures ret.Valid()
+  {
+    var c := new Concat(left, right);
+    ret := new Lazy(c);
   }
 
   class Direct<T> extends SeqExpr<T> {
@@ -85,6 +85,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires Valid()
       reads this, Repr
       decreases Repr, 1
+      ensures 0 < Size()
     {
       1
     }
@@ -152,6 +153,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires Valid()
       reads this, Repr
       decreases Repr, 1
+      ensures 0 < Size()
     {
       1 + left.Size() + right.Size()
     }
@@ -225,6 +227,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       requires Valid()
       reads this, Repr
       decreases Repr, 1
+      ensures 0 < Size()
     {
       size
     }
