@@ -5,7 +5,6 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -276,7 +275,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(bodyExpression);
       }
 
-      public override void VisitUnknown(object node, Boogie.IToken token) {
+      public override void VisitUnknown(object node, IToken token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
