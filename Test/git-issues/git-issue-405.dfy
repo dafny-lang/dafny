@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 const WITNESS := seq(10, i => 0)     // This line alone suffices to cause the original bug

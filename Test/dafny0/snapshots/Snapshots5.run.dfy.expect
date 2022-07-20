@@ -2,11 +2,7 @@ Snapshots5.v0.dfy(10,12): Warning: /!\ No terms found to trigger on.
 Snapshots5.v0.dfy(13,10): Warning: /!\ No terms found to trigger on.
 Snapshots5.v0.dfy(20,12): Warning: /!\ No terms found to trigger on.
 Snapshots5.v0.dfy(26,11): Warning: /!\ No terms found to trigger on.
-Processing command (at Snapshots5.v0.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
-  >>> DoNothingToAssert
 Processing command (at Snapshots5.v0.dfy(10,40)) assert (forall b#1_1: bool :: true ==> b#1_1 || !b#1_1) || 0 != 0;
-  >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> DoNothingToAssert
 Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 3 != 3;
   >>> DoNothingToAssert
@@ -19,11 +15,7 @@ Snapshots5.v1.dfy(13,10): Warning: /!\ No terms found to trigger on.
 Snapshots5.v1.dfy(20,12): Warning: /!\ No terms found to trigger on.
 Snapshots5.v1.dfy(22,10): Warning: /!\ No terms found to trigger on.
 Snapshots5.v1.dfy(27,11): Warning: /!\ No terms found to trigger on.
-Processing command (at Snapshots5.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
-  >>> MarkAsFullyVerified
 Processing command (at Snapshots5.v1.dfy(10,40)) assert (forall b#1_1: bool :: true ==> b#1_1 || !b#1_1) || 0 != 0;
-  >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(12,4)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> MarkAsFullyVerified
 Processing command (at Snapshots5.v1.dfy(13,38)) assert (forall b#1: bool :: true ==> b#1 || !b#1) || 3 != 3;
   >>> MarkAsFullyVerified

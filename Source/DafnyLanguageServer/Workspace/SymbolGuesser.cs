@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -123,7 +122,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private string[] GetMemberAccessChainEndingAt(Position position) {
-        var text = document.Text.Text;
+        var text = document.TextDocumentItem.Text;
         var absolutePosition = position.ToAbsolutePosition(text, cancellationToken);
         return new MemberAccessChainResolver(text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }

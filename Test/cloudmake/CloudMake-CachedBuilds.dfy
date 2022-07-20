@@ -1300,7 +1300,7 @@ abstract module M0 {
   {
     reveal Combine();
   }
-  ghost method Combine_Representative(p: Path, sts: set<State>, useCache: bool) returns (stRepr: State)
+  lemma Combine_Representative(p: Path, sts: set<State>, useCache: bool) returns (stRepr: State)
     requires sts != {} && p in DomSt(Combine(sts, useCache));
     ensures stRepr in sts && p in DomSt(stRepr) && GetSt(p, stRepr) == GetSt(p, Combine(sts, useCache));
   {

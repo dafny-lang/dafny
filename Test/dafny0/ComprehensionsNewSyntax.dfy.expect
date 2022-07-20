@@ -1,0 +1,23 @@
+ComprehensionsNewSyntax.dfy(6,17): Warning: /!\ No terms found to trigger on.
+ComprehensionsNewSyntax.dfy(22,11): Warning: /!\ No terms found to trigger on.
+ComprehensionsNewSyntax.dfy(24,7): Warning: /!\ No terms found to trigger on.
+ComprehensionsNewSyntax.dfy(25,11): Warning: /!\ No terms found to trigger on.
+ComprehensionsNewSyntax.dfy(32,11): Warning: /!\ No trigger covering all quantified variables found.
+ComprehensionsNewSyntax.dfy(54,11): Warning: /!\ No terms found to trigger on.
+ComprehensionsNewSyntax.dfy(99,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
+ComprehensionsNewSyntax.dfy(107,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
+ComprehensionsNewSyntax.dfy(115,40): Error: insufficient reads clause to read field
+ComprehensionsNewSyntax.dfy(118,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
+ComprehensionsNewSyntax.dfy(126,4): Error: all sequence indices must be in the domain of the initialization function
+ComprehensionsNewSyntax.dfy(132,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
+ComprehensionsNewSyntax.dfy(148,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
+ComprehensionsNewSyntax.dfy(168,16): Error: value does not satisfy the subset constraints of 'nat'
+ComprehensionsNewSyntax.dfy(171,11): Error: value does not satisfy the subset constraints of 'nat'
+ComprehensionsNewSyntax.dfy(174,4): Error: all sequence indices must be in the domain of the initialization function
+ComprehensionsNewSyntax.dfy(180,38): Error: value does not satisfy the subset constraints of 'nat'
+ComprehensionsNewSyntax.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
+ComprehensionsNewSyntax.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
+ComprehensionsNewSyntax.dfy(12,13): Error: assertion might not hold
+ComprehensionsNewSyntax.dfy(78,22): Error: assertion might not hold
+
+Dafny program verifier finished with 16 verified, 15 errors

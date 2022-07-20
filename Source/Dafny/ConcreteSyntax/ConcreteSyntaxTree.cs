@@ -6,10 +6,16 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
-  public enum BraceStyle { Nothing, Space, Newline }
+  public enum BlockStyle {
+    Nothing,
+    Space,
+    Newline,
+    Brace,
+    SpaceBrace,
+    NewlineBrace
+  }
 
   public class ConcreteSyntaxTree : ICanRender {
-
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
     }
@@ -24,6 +30,12 @@ namespace Microsoft.Dafny {
       var result = new ConcreteSyntaxTree(relativeIndent);
       _nodes.Add(result);
       return result;
+    }
+
+    public void Clear() {
+      while (_nodes.Any()) {
+        _nodes.RemoveAt(0);
+      }
     }
 
     public T Prepend<T>(T node)
@@ -73,6 +85,7 @@ namespace Microsoft.Dafny {
     }
 
     static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
+
     public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorValues = new List<ConcreteSyntaxTree>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
@@ -96,6 +109,7 @@ namespace Microsoft.Dafny {
         Write(split[0]);
         Append(anchorValues[argIndex]);
       }
+
       if (anchorString != "") {
         Write(anchorString);
       }
@@ -119,10 +133,11 @@ namespace Microsoft.Dafny {
     }
 
     public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
-      BraceStyle open = BraceStyle.Space,
-      BraceStyle close = BraceStyle.Newline) {
+      BlockStyle open = BlockStyle.SpaceBrace,
+      BlockStyle close = BlockStyle.NewlineBrace) {
       Contract.Requires(header != null);
-      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header, footer, open, close));
+      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header: header, footer: footer, open: open,
+        close: close));
       return result;
     }
 
@@ -138,8 +153,8 @@ namespace Microsoft.Dafny {
       return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
     }
 
-    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string/*?*/ footer = "") {
-      return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
+    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string /*?*/ footer = "") {
+      return NewBlock(header, footer, BlockStyle.SpaceBrace, BlockStyle.Brace);
     }
 
     public ConcreteSyntaxTree NewFile(string filename) {
@@ -159,13 +174,13 @@ namespace Microsoft.Dafny {
         sw.WriteLine("#file {0}", ftw.Filename);
         ftw.Render(sw, 0, new WriterState(), files);
       }
+
       return sw.ToString();
     }
 
-    public void Render(TextWriter writer, int indentation, WriterState writerState,
-      Queue<FileSyntax> files) {
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {
       foreach (var node in _nodes) {
-        node.Render(writer, indentation + RelativeIndentLevel * 2, writerState, files);
+        node.Render(writer, indentation + RelativeIndentLevel * indentSize, writerState, files, indentSize);
       }
     }
   }

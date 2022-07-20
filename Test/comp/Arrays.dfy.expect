@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 42 verified, 0 errors
+Dafny program verifier finished with 43 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -51,6 +51,14 @@ D D D
 D D r (D, D, r)
 D D r
 [19, 18, 9, 8]
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {def, abc}
+  [abc, def]
+  []
+  []
+  [aaaaa]
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -102,6 +110,14 @@ D D D
 D D r (D, D, r)
 D D r
 [19, 18, 9, 8]
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -153,6 +169,14 @@ D D D
 D D r (D, D, r)
 D D r
 [19, 18, 9, 8]
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -204,3 +228,11 @@ D D D
 D D r (D, D, r)
 D D r
 [19, 18, 9, 8]
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]

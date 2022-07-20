@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Cycle {
@@ -358,6 +358,17 @@ module LongerCycle1 {
   type G2 = G3<int>
   type G3<X> = (X, G4)
   newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency
+  predicate P(r: G5)
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(set<G0>)
+}
+
+module LongerCycle2 {
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = (X, G4)
+  newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency / illegally uses a reference type
   predicate P(r: G5)
   datatype G5 = G5(G6)
   codatatype G6 = G6(array<G0>)

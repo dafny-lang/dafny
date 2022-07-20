@@ -21,9 +21,9 @@ jobs:
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.7.2
+      uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: '5.0.x' # SDK Version to use; x will use the latest version of the 5.0 channel
+        dotnet-version: 6.0.x
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
@@ -79,3 +79,15 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: DafnyRef
+        path: dafny/docs/DafnyRef/DafnyRef.pdf
+    # Building the reference manual may update files,
+    # such as renumbering sections or updating Options.txt.
+    # These changes should have been checked in earlier,
+    # so fail the build if anything changed.
+    - name: Check for modifications
+      run: 'git diff --exit-code || (echo "ERROR: Source changes detected (see above). Build the reference manual locally and commit these changes." && exit 1)'
+      working-directory: dafny

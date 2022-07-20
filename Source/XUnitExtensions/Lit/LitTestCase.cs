@@ -8,7 +8,6 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
-
     private readonly string filePath;
     private readonly IEnumerable<ILitCommand> commands;
     private readonly bool expectFailure;
@@ -22,6 +21,7 @@ namespace XUnitExtensions.Lit {
       if (commands.Length == 0) {
         throw new ArgumentException($"No lit commands found in test file: {filePath}");
       }
+
       var xfail = commands.Any(c => c is XFailCommand);
       foreach (var unsupported in commands.OfType<UnsupportedCommand>()) {
         foreach (var feature in config.Features) {
@@ -30,6 +30,7 @@ namespace XUnitExtensions.Lit {
           }
         }
       }
+
       return new LitTestCase(filePath, commands, xfail);
     }
 
@@ -37,13 +38,17 @@ namespace XUnitExtensions.Lit {
       string fileName = Path.GetFileName(filePath);
       string? directory = Path.GetDirectoryName(filePath);
       if (directory == null) {
-        throw new ArgumentException("Couldn't get directory name for path: {}");
+        throw new ArgumentException($"Couldn't get directory name for path: {filePath}");
       }
-      string fullDirectoryPath = Path.GetFullPath(directory);
+
+      string fullDirectoryPath = Path.GetFullPath(directory).Replace(@"\", "/");
       config = config.WithSubstitutions(new Dictionary<string, string> {
-        { "%s", filePath },
-        { "%S", fullDirectoryPath },
-        { "%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
+        {"%s", filePath.Replace(@"\", "/")},
+        // For class path separators
+        {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
+        {"-java:", "-java" + Path.PathSeparator}, // In Windows path separators are ";"
+        {"%S", fullDirectoryPath},
+        {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
 
       var testCase = Read(filePath, config);
@@ -56,15 +61,17 @@ namespace XUnitExtensions.Lit {
       this.expectFailure = expectFailure;
     }
 
-    public void Execute(ITestOutputHelper outputHelper) {
+    public void Execute(ITestOutputHelper? outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
+      // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
+      List<(string, string)> results = new();
 
       foreach (var command in commands) {
         int exitCode;
         string output;
         string error;
         try {
-          outputHelper.WriteLine($"Executing command: {command}");
+          outputHelper?.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
@@ -72,13 +79,23 @@ namespace XUnitExtensions.Lit {
 
         if (expectFailure) {
           if (exitCode != 0) {
-            throw new SkipException($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+            throw new SkipException(
+              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
           }
         }
 
         if (exitCode != 0) {
-          throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+          outputHelper?.WriteLine("Previous command results:");
+          foreach (var (prevOutput, _) in results) {
+            outputHelper?.WriteLine($"Output:\n{prevOutput}");
+            outputHelper?.WriteLine($"Error:\n{error}");
+          }
+
+          throw new Exception(
+            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
         }
+
+        results.Add((output, error));
       }
 
       if (expectFailure) {

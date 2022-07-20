@@ -38,8 +38,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Task.FromException<CompletionItem>(new InvalidOperationException("method not implemented"));
     }
 
-    public async override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
+    public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
+      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private string GetTriggerCharacter() {
         // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        var documentText = document.Text.Text;
+        var documentText = document.TextDocumentItem.Text;
         int absolutePosition = request.Position.ToAbsolutePosition(documentText, cancellationToken) - 1;
         return documentText[absolutePosition].ToString();
       }
@@ -80,7 +80,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {
-            // TODO This should never happen at this time.
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
           }
         } else {

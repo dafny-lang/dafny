@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Resolution {
@@ -29,9 +29,17 @@ module Resolution {
 module Export {
   module A {
     export
-      provides F, G, H
+      provides F, FP, F2, G, H
 
     function F(): int {
+      5
+    }
+
+    predicate FP() {
+      true
+    }
+
+    twostate function F2(): int {
       5
     }
 
@@ -48,11 +56,13 @@ module Export {
 
   module B {
     import A
-    method M() returns (ghost x: int, y: int) {
+    method M() returns (ghost x: int, y: int, b: bool) {
       x := A.F();
       x := A.G();
       x := A.H();
       y := A.F(); // error: F is ghost
+      b := A.FP(); // error: FP is ghost
+      y := A.F2(); // error: F2 is ghost
       y := A.G();
       y := A.H();
     }

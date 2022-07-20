@@ -48,7 +48,7 @@ namespace XUnitExtensions.Lit {
       commandSymbol = config.ApplySubstitutions(commandSymbol);
 
       return new LitCommandWithRedirection(
-        new ShellLitCommand(config, commandSymbol, arguments, config.PassthroughEnvironmentVariables),
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
         inputFile, outputFile, appendOutput, errorFile);
     }
 
@@ -66,11 +66,15 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;
-      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      var result = command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      inputReader?.Close();
+      outputWriter?.Close();
+      errorWriter?.Close();
+      return result;
     }
 
     public override string ToString() {

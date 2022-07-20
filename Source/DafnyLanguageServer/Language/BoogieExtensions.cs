@@ -1,5 +1,4 @@
-﻿using Microsoft.Boogie;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -19,12 +18,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
-    /// <param name="token">The token to get the range of.</param>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken token) {
+    public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
+      endToken ??= startToken;
+      endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
-        GetLspPosition(token),
-        ToLspPosition(token.line, token.col + token.val.Length)
+        GetLspPosition(startToken),
+        ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
     }
 
@@ -32,9 +34,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// Gets the LSP position of the specified token (i.e., the position of the first character of the token).
     /// </summary>
     /// <param name="token">The token to get the position of.</param>
+    /// <param name="end">Whether to take the ending position of the token instead.</param>
     /// <returns>The LSP position of the token.</returns>
-    public static Position GetLspPosition(this IToken token) {
-      return ToLspPosition(token.line, token.col);
+    public static Position GetLspPosition(this Boogie.IToken token, bool end = false) {
+      return ToLspPosition(token.line, token.col + (end ? token.val.Length : 0));
     }
 
     /// <summary>

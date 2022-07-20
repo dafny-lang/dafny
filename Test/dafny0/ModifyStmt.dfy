@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass {
@@ -181,4 +181,3 @@ class ModifyBody {
     assert xx == x;  // fine, because the modify body trumps the modify frame
   }
 }
-

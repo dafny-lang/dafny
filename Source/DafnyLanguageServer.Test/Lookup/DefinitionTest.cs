@@ -10,16 +10,12 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
-  public class DefinitionTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      client = await InitializeClient();
-    }
+  public class DefinitionTest : ClientBasedLanguageServerTest {
 
     private IRequestProgressObservable<IEnumerable<LocationOrLocationLink>, LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
       return client.RequestDefinition(
@@ -46,6 +42,17 @@ method CallDoIt() returns () {
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionReturnsBeforeVerificationIsComplete() {
+      var documentItem = CreateTestDocument(NeverVerifies);
+      client.OpenDocument(documentItem);
+      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
+      var first = await Task.WhenAny(verificationTask, definitionTask);
+      Assert.IsFalse(verificationTask.IsCompleted);
+      Assert.AreSame(first, definitionTask);
     }
 
     [TestMethod]

@@ -267,7 +267,7 @@ class Node {
     }
   }
 
-  lemma Lemma_AboutCycles(a: int, b: int, k: int, S: set<Node?>)
+  lemma {:induction false} Lemma_AboutCycles(a: int, b: int, k: int, S: set<Node?>)
     requires IsClosed(S)
     requires 0 <= a <= k && 1 <= b && Nexxxt(a, S) != null && Nexxxt(a, S).Nexxxt(b, S) == Nexxxt(a, S)
     ensures Nexxxt(k + b, S) == Nexxxt(k, S)

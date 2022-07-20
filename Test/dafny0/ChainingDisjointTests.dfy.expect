@@ -1,8 +1,8 @@
 ChainingDisjointTests.dfy(49,2): Error: A postcondition might not hold on this return path.
 ChainingDisjointTests.dfy(48,14): Related location: This is the postcondition that might not hold.
 ChainingDisjointTests.dfy(42,22): Related location
-ChainingDisjointTests.dfy(58,13): Error: assertion violation
-ChainingDisjointTests.dfy(58,18): Error: assertion violation
-ChainingDisjointTests.dfy(58,23): Error: assertion violation
+ChainingDisjointTests.dfy(58,13): Error: assertion might not hold
+ChainingDisjointTests.dfy(58,18): Error: assertion might not hold
+ChainingDisjointTests.dfy(58,23): Error: assertion might not hold
 
 Dafny program verifier finished with 4 verified, 4 errors

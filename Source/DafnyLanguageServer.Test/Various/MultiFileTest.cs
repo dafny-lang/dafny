@@ -2,9 +2,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+
   [TestClass]
   public class MultiFileTest : DafnyLanguageServerTestBase {
     private static readonly string TestFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "testFile.dfy");
@@ -28,9 +31,9 @@ method Test() {
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(!document.Diagnostics.Any());
     }
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
@@ -45,9 +48,9 @@ method Test() {
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
+      Assert.AreEqual(1, document.Diagnostics.Count());
     }
   }
 }

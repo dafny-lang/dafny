@@ -10,11 +10,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.languageServer = languageServer;
     }
 
-    public void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status) {
+    public void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status, string? message = null) {
       languageServer.SendNotification(new CompilationStatusParams {
         Uri = textDocument.Uri,
         Version = textDocument.Version,
-        Status = status
+        Status = status,
+        Message = message
       });
     }
   }

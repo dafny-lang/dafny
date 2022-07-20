@@ -9,7 +9,6 @@ namespace Microsoft.Dafny {
   /// "receiverReplacement" and the range of "substMap").
   /// </summary>
   public class AlphaConvertingSubstituter : Substituter {
-    ISet<string> namesToAvoid = new HashSet<string>();
     public AlphaConvertingSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
       : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
       Contract.Requires(substMap != null);

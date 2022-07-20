@@ -14,8 +14,18 @@
     public uint TimeLimit { get; set; } = 0;
 
     /// <summary>
-    /// Gets or sets that may be used for verification. 0 = automatic.
+    /// Gets or sets the number of cores that may be used for verification. 0 = automatic.
     /// </summary>
     public uint VcsCores { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the caching policy.
+    /// </summary>
+    public uint VerifySnapshots { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the display policy of verification result in the gutter.
+    /// </summary>
+    public bool GutterStatus { get; set; } = true;
   }
 }

@@ -8,19 +8,17 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class ShellLitCommand : ILitCommand {
-    private LitTestConfiguration config;
     private string shellCommand;
     private string[] arguments;
     private string[] passthroughEnvironmentVariables;
 
-    public ShellLitCommand(LitTestConfiguration config, string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
-      this.config = config;
+    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
       this.shellCommand = shellCommand;
       this.arguments = arguments.ToArray();
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       using var process = new Process();
 
       process.StartInfo.FileName = shellCommand;
@@ -45,15 +43,16 @@ namespace XUnitExtensions.Lit {
       process.Start();
       if (inputReader != null) {
         string input = inputReader.ReadToEnd();
+        inputReader.Close();
         process.StandardInput.Write(input);
         process.StandardInput.Close();
       }
       string output = process.StandardOutput.ReadToEnd();
       outputWriter?.Write(output);
-      outputWriter?.Flush();
+      outputWriter?.Close();
       string error = process.StandardError.ReadToEnd();
       errorWriter?.Write(error);
-      errorWriter?.Flush();
+      errorWriter?.Close();
       process.WaitForExit();
 
       return (process.ExitCode, output, error);

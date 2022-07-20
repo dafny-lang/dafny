@@ -149,7 +149,7 @@ method M(heap: object)
 -         y#7_0 := LitInt(0);
 +         j#7_0 := LitInt(0);
 ";
-      Assert.Equal(expectedDiff, diff);
+      Assert.Equal(expectedDiff.Replace("\r\n", "\n"), diff.Replace("\r\n", "\n"));
     }
 
     string GetDiff(string before, string after) {

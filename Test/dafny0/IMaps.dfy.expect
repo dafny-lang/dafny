@@ -2,6 +2,6 @@ IMaps.dfy(36,18): Warning: /!\ No terms found to trigger on.
 IMaps.dfy(36,49): Warning: /!\ No terms found to trigger on.
 IMaps.dfy(51,18): Warning: /!\ No terms found to trigger on.
 IMaps.dfy(79,33): Warning: /!\ No terms found to trigger on.
-IMaps.dfy(52,7): Error: element may not be in domain
+IMaps.dfy(52,7): Error: element might not be in domain
 
 Dafny program verifier finished with 14 verified, 1 error

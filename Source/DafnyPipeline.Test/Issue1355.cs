@@ -16,7 +16,7 @@ namespace DafnyPipeline.Test {
     [Fact]
     public void Test() {
       ErrorReporter reporter = new ConsoleErrorReporter();
-      var options = new DafnyOptions(reporter);
+      var options = DafnyOptions.Create();
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
       DafnyOptions.Install(options);
 
@@ -27,9 +27,9 @@ namespace DafnyPipeline.Test {
       Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
       var dafnyProgram = new Program("programName", module, builtIns, reporter);
       Main.Resolve(dafnyProgram, reporter);
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
-        var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true);
+        var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);
         prog.Item2.Emit(tokenWriter);
         var parseErrorCount = Bpl.Parser.Parse(writer.ToString(), "virtualBoogie", out var boogieProgram);
         Assert.Equal(0, parseErrorCount);

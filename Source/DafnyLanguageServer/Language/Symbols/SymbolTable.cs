@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -11,6 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents the symbol table
   /// </summary>
   public class SymbolTable {
+    private readonly ILogger<SymbolTable> logger;
+
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
 
@@ -37,6 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly DafnyLangTypeResolver typeResolver;
 
     public SymbolTable(
+        ILogger<SymbolTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ISymbol, SymbolLocation> locations,
@@ -49,6 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       LookupTree = lookupTree;
       Resolved = symbolsResolved;
       typeResolver = new DafnyLangTypeResolver(declarations);
+      logger = iLogger;
 
       // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
       LookupTree.Query(new Position(0, 0));
@@ -62,7 +67,17 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
     /// <exception cref="System.InvalidOperationException">Thrown if there was one more symbol at the specified position. This should never happen, unless there was an error.</exception>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
-      symbol = LookupTree.Query(position).SingleOrDefault();
+      var symbolsAtPosition = LookupTree.Query(position);
+      symbol = null;
+      // Use case: function f(a: int) {}, and hover over a.
+      foreach (var potentialSymbol in symbolsAtPosition) {
+        if (symbol != null) {
+          logger.Log(LogLevel.Warning, "Two registered symbols as the same position (line {Line}, character {Character})", position.Line, position.Character);
+          break;
+        }
+
+        symbol = potentialSymbol;
+      }
       return symbol != null;
     }
 

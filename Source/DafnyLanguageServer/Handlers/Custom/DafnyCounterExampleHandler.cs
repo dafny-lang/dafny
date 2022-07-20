@@ -1,4 +1,5 @@
-﻿using DafnyServer.CounterExampleGeneration;
+﻿using System;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -22,12 +23,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
-      if (document == null) {
-        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+      try {
+        var document = await documents.GetLastDocumentAsync(request.TextDocument);
+        if (document != null) {
+          return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
+            .GetCounterExamples();
+        }
+
+        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
+          request.TextDocument.Uri);
+        return new CounterExampleList();
+      } catch (TaskCanceledException) {
+        logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
+          request.TextDocument.Uri);
         return new CounterExampleList();
       }
-      return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
     }
 
     private class CounterExampleLoader {
@@ -50,31 +60,27 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if (document.SerializedCounterExamples == null) {
+        if (!document.Counterexamples.Any()) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.SerializedCounterExamples)
+        var counterExamples = GetLanguageSpecificModels(document.Counterexamples)
           .SelectMany(GetCounterExamples)
+          .WithCancellation(cancellationToken)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<DafnyModel> GetLanguageSpecificModels(string serializedCounterExamples) {
-        using var counterExampleReader = new StringReader(serializedCounterExamples);
-        return Model.ParseModels(counterExampleReader)
-          .WithCancellation(cancellationToken)
-          .Select(GetLanguagSpecificModel);
+      private IEnumerable<DafnyModel> GetLanguageSpecificModels(IReadOnlyList<Counterexample> counterExamples) {
+        return counterExamples.Select(c => GetLanguageSpecificModel(c.Model));
       }
 
-      private DafnyModel GetLanguagSpecificModel(Model model) {
+      private DafnyModel GetLanguageSpecificModel(Model model) {
         return new(model);
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
         return model.States
-          .WithCancellation(cancellationToken)
-          .OfType<DafnyModelState>()
           .Where(state => !state.IsInitialState)
           .Select(GetCounterExample);
       }

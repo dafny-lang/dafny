@@ -42,8 +42,8 @@ SubsetTypes.dfy(157,25): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(159,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
 SubsetTypes.dfy(169,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SubsetTypes.dfy(182,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
-SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
-SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
+SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
+SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
 SubsetTypes.dfy(213,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
 SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
 SubsetTypes.dfy(232,11): Error: value does not satisfy the subset constraints of 'seq<Person>'
@@ -74,7 +74,7 @@ SubsetTypes.dfy(375,19): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(377,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(379,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(381,19): Error: value does not satisfy the subset constraints of 'Y'
-SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it may be null
+SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it might be null
 SubsetTypes.dfy(388,29): Error: value does not satisfy the subset constraints of 'int --> int' (possible cause: it may have read effects)
 SubsetTypes.dfy(390,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
 SubsetTypes.dfy(392,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
@@ -83,5 +83,11 @@ SubsetTypes.dfy(396,26): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+SubsetTypes.dfy(427,13): Error: assertion might not hold
+SubsetTypes.dfy(434,15): Error: assertion might not hold
+SubsetTypes.dfy(443,15): Error: assertion might not hold
+SubsetTypes.dfy(450,15): Error: assertion might not hold
+SubsetTypes.dfy(457,15): Error: assertion might not hold
+SubsetTypes.dfy(462,13): Error: assertion might not hold
 
-Dafny program verifier finished with 13 verified, 85 errors
+Dafny program verifier finished with 13 verified, 91 errors

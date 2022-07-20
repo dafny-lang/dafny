@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task GhcMergeSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GHC-MergeSort.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
+      Assert.IsNotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
     [TestMethod]
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task GenericSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GenericSort.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
+      Assert.IsNotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
     [TestMethod]
@@ -55,7 +55,7 @@ method NestedExpression() {
 }";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
+      Assert.IsNotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
   }
 }

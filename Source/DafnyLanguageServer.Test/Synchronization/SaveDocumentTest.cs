@@ -35,10 +35,10 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -54,10 +54,10 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -73,10 +73,10 @@ function GetConstant() int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -92,10 +92,10 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -111,12 +111,11 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
-      Assert.AreNotSame(openedDocument, savedDocument);
     }
 
     [TestMethod]
@@ -131,11 +130,11 @@ method DoIt() {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      Assert.AreEqual(1, document.Diagnostics.Count());
+      var message = document.Diagnostics.First();
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }
 }

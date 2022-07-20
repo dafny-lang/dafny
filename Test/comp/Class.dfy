@@ -1,7 +1,9 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass {
@@ -18,7 +20,7 @@ class MyClass {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 trait MyTrait {
@@ -31,7 +33,7 @@ trait MyTrait {
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
-  static method N() returns (r: int) { return 70; }
+  static method N() returns (r: int) { r := 70; }
 }
 
 class MyTraitInstance extends MyTrait {
@@ -129,6 +131,8 @@ method Main() {
   CallEm(c, t, i);
   DependentStaticConsts.Test();
   NewtypeWithMethods.Test();
+  TestGhostables(70);
+  TestInitializationMethods();
 }
 
 module Module1 {
@@ -177,4 +181,65 @@ newtype NewtypeWithMethods = x | 0 <= x < 42 {
 
     print a, " ", b, " ", a.double(), " ", q, " ", r, "\n";
   }
+}
+
+class Ghostable {
+  var data: int
+  constructor A(x: int) {
+    data := x;
+  }
+  ghost constructor (x: int) {
+    data := x;
+  }
+}
+
+class ConstructorLessGhostable {
+  var data: int
+}
+
+function GInit(index: nat): int {
+  index - 7
+}
+
+method TestGhostables(ghost n: nat) {
+  print "TestGhostables\n";
+
+  var a0 := new Ghostable.A(10);
+  var a1 := new Ghostable(n); // note, a1 is ghost
+
+  var b0 := new ConstructorLessGhostable;
+  ghost var b1 := new ConstructorLessGhostable; // note, b1 is ghost
+
+  var c0 := new int[10];
+  ghost var c1 := new int[n]; // note, c1 is ghost
+  c0 := new int[10](x => x + 2);
+  c1 := new int[n](x => x + n);
+  c1 := new int[100](GInit);
+}
+
+// ---------------------------------------------------
+
+// Additional tests cases for order of evaluation of initialization-method parameters.
+
+class HasInitializationMethod {
+  var data: int
+
+  method Init(x: int)
+    requires x == 15
+    modifies this
+    ensures data == x + 1
+  {
+    print "Init called with x=", x, "\n";
+    data := x + 1;
+  }
+}
+
+method TestInitializationMethods() {
+  var c := new HasInitializationMethod;
+  c.data := 15;
+  print c.data, "\n"; // 15
+
+  c := new HasInitializationMethod.Init(c.data); // should pass in c.data, not (new HasInitializationMethod).data
+  
+  print c.data, "\n"; // 16
 }

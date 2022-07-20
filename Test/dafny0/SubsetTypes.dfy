@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AssignmentToNat {
@@ -410,4 +410,55 @@ module CharSubsetDefault {
   type GoodWitness0 = ch: char | ch < 40 as char witness ' '
   type NeedsWitnessChar1 = ch: char | ch != 'D'  // error: needs manually provided witness
   type GoodWitnessChar1 = ch: char | ch != 'D' witness 'd'
+}
+
+// ----------- regression tests, eagerly assigning the type to the bound variable ----------
+
+module EagerTypeAssignmentOfBoundVariables {
+  // In the following, "MatchPattern" and "MatchIt0" previously ended up inferring the
+  // type of "n - 10" as "nat", which causes an additional (and unwanted) error saying that
+  // the result of "n - 10" is not a "nat". This has now been fixed (but see also Issue #1263).
+
+  datatype Record = Record(nat)
+
+  method MatchPattern(r: Record)
+  {
+    var Record(n) := r;
+    assert 0 == n - 10;  // error: possible assertion failure
+  }
+
+  method MatchIt0(r: Record)
+  {
+    match r
+    case Record(n) =>
+      assert 0 <= n - 10;  // error: possible assertion failure
+  }
+
+  type MyNat = nat
+
+  method MatchIt1(r: Record)
+  {
+    match r
+    case Record(n: nat) =>
+      assert 0 <= n - 10;  // error: possible assertion failure
+  }
+
+  method MatchIt2(r: Record)
+  {
+    match r
+    case Record(n: int) =>
+      assert 0 <= n - 10;  // error: possible assertion failure
+  }
+
+  method MatchIt3(r: Record)
+  {
+    match r
+    case Record(n: MyNat) =>
+      assert 0 <= n - 10;  // error: possible assertion failure
+  }
+
+  method Minus(n: nat)
+  {
+    assert 0 <= n - 10;  // error: possible assertion failure
+  }
 }

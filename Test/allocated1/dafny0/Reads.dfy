@@ -1,4 +1,4 @@
-// RUN: %dafny /verifyAllModules /allocated:1 /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /verifyAllModules /allocated:1 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Checking that the reads clause also is checked over requires
