@@ -1810,7 +1810,7 @@ sometimes less information is better for the solver as it helps the solver focus
 relevant information.
 
 Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
-an extended illustration of this technique.
+an extended illustration of this technique to make all the dependencies of an `assert` explicit.
 
 ### 20.20.3. Revealing function bodies
 
