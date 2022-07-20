@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.Triggers {
               Type = bin.Type
             };
           } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-            expr = new SeqSelectExpr(bin.tok, true, bin.E1, bin.E0, null) {
+            expr = new SeqSelectExpr(bin.tok, true, bin.E1, bin.E0, null, null) {
               Type = bin.Type
             };
             isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
