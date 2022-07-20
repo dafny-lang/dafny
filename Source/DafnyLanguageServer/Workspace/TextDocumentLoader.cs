@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(
         update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update),
         () => {
-          if (dafnyDocument.VerificationTasks!.All(t => t.IsDone)) {
+          if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
             entry.EndVerification();
           }
         });
