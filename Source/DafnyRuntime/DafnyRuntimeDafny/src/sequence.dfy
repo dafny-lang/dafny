@@ -15,6 +15,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
   // TODO: How to deal with variance?
+  // TODO: require Size() > 0
   trait SeqExpr<T> extends Validatable {
    
     ghost predicate Valid()
@@ -273,6 +274,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     ghost predicate Invariant(repr: set<object>, t: T) reads repr
 
+    // TODO: need a feasibility implementation for this somehow, pretty sure it's unsound
     static method {:extern} Put(b: AtomicBox<T>, ghost repr: set<object>, t: T)
       requires b.Invariant(repr, t)
 

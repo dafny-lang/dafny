@@ -179,6 +179,8 @@ module {:options "/functionSyntax:4"} Arrays {
     }
   }
 
+  // TODO: More consistent method names.
+  // This is internal for now but would be great to have in a shared library
   class ResizableArray<T> extends Validatable {
     var storage: Array<T>
     var size: nat
@@ -217,6 +219,7 @@ module {:options "/functionSyntax:4"} Arrays {
       requires Valid()
       requires 0 < size
       reads this, Repr
+      ensures Last() == Value()[size - 1]
     {
       storage.Read(size - 1)
     }
@@ -255,6 +258,8 @@ module {:options "/functionSyntax:4"} Arrays {
       modifies Repr
       ensures ValidAndDisjoint()
       ensures old(Value()) == Value() + [t]
+      ensures Value() == old(Value()[..(size - 1)])
+      ensures t in old(Value())
     {
       t := storage.Read(size - 1);
       size := size - 1;

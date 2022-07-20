@@ -14,8 +14,8 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     requires builder.Valid()
     requires stack.Valid()
     requires builder.Repr !! stack.Repr !! e.Repr;
-    requires forall e <- stack.Value() :: e.Repr !! stack.Repr
-    requires forall expr <- stack.Value() :: builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
+    // requires forall expr <- stack.Value() :: expr.Repr !! stack.Repr
+    requires forall expr <- stack.Value() :: stack.Repr !! builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
     modifies builder.Repr, stack.Repr
     decreases e.Size() + SizeSum(stack.Value())
     ensures builder.Valid()
@@ -32,17 +32,28 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
       var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
-      assert boxed.Size() < lazy.Size();
       ToArrayOptimized(builder, boxed, stack);
     } else {
       var a := e.ToArray();
       assert forall expr <- stack.Value() :: expr.Valid();
       builder.Append(a);
+      assert forall expr <- stack.Value() :: unchanged(expr.Repr);
+      assert forall expr <- stack.Value() :: expr.Valid();
       if 0 < stack.size {
+        ghost var willBeNext := stack.Last();
+        assert willBeNext in stack.Value();
         assert forall expr <- stack.Value() :: expr.Repr !! stack.Repr;
+        assert forall expr <- stack.Value() :: expr.Valid();
+        assert willBeNext.Repr !! stack.Repr;
         var next: SeqExpr<T> := stack.RemoveLast();
+        assert unchanged(next.Repr);
+        assert forall expr <- stack.Value() :: expr in old(stack.Value());
+        assert forall expr <- stack.Value() :: unchanged(expr.Repr);
+        assert willBeNext == next;
         assert next in old(stack.Value());
         assert next.Repr !! stack.Repr;
+        assert forall expr <- stack.Value() :: expr.Valid();
+        assert old(SizeSum(stack.Value())) == next.Size() + SizeSum(stack.Value());
         ToArrayOptimized(builder, next, stack);
       }
     }
