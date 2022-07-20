@@ -1752,7 +1752,7 @@ The `reveal` stastement makes available to the solver information that is otherw
 
 If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
 is not used subsequently.  For example, consider
-```
+```dafny
 method m(i: int) {
   assert x: i == 0; // Fails
   assert i == 0; // Fails also because the x: makes the first assertion opaque
@@ -1762,12 +1762,13 @@ The first assertion fails. Without the label `x:`, the second would succeed beca
 assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
 the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
 
-```
+```dafny
 method m(i: int) {
   assert x: i == 0; // Fails
   reveal x;
   assert i == 0; // Now succeeds
 }
+```
 At the point of the `reveal` statement, the labeled assertion is made visible and can be used in proving the second assertion.
 In this example there is no point to labeling an assertion and then immediately revealing it. More useful are the cases where
 the reveal is in an assert-by block or much later in the method body.
@@ -1780,7 +1781,7 @@ possible where there might be information overload otherwise.
 
 But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
 body of the function can be _revealed_ using the reveal statement. Here is an example:
-```
+```dafny
 function {: opaque} f(i: int): int { i + 1 }
 
 method m(int i) {
