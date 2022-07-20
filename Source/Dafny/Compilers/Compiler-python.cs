@@ -1502,7 +1502,6 @@ namespace Microsoft.Dafny.Compilers {
 
       try {
         using var pythonProcess = Process.Start(psi);
-        Debug.Assert(pythonProcess != null, nameof(pythonProcess) + " != null");
         pythonProcess.StandardInput.Close();
         pythonProcess.WaitForExit();
         return pythonProcess.ExitCode == 0;
