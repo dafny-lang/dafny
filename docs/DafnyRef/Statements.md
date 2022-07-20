@@ -1815,7 +1815,7 @@ an extended illustration of this technique to make all the dependencies of an `a
 ### 20.20.3. Revealing function bodies
 
 Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
-However, sometimes it is helpful to mark a function _opaque_ and treat it as an uninterpreted function, whose properties are
+However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
 just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
 possible where there might be information overload otherwise.
 
