@@ -153,14 +153,6 @@ with git commands and concepts is helpful.
 
 5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
 
-6. Select a new version number `$VER` for the plugin (e.g. "2.4.0") and change the value of the constant `version` in the file `package.json`
-   to `$VER` and commit the changes.
+6. Follow the release process detailed in the plugin's repository:
 
-7. Then tag and push the changes:
-
-       git tag v<$VER>
-       git push origin v<$VER>
-
-8. Create a pull request and, once merged, a GitHub action will automatically run in reaction to the tag being pushed to master, which will create a new release in the VSCode marketplace.
-
-9. Announce the release to the world.
+   <https://github.com/dafny-lang/ide-vscode/blob/master/CONTRIBUTING.md>
