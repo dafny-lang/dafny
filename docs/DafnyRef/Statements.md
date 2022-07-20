@@ -1547,7 +1547,7 @@ As a result, the statements in the block do not clutter or confuse the solver in
 proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
 their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
 
-Examples of this form of assert are given in [Section 20.20](#sec-reveal-statement) and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
+Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 ## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
