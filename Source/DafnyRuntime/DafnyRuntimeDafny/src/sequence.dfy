@@ -14,8 +14,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  // TODO: How to deal with variance?
-  trait SeqExpr<T> extends Validatable {
+  trait SeqExpr<+T> extends Validatable {
    
     ghost predicate Valid()
       reads this, Repr
@@ -266,7 +265,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  trait AtomicBox<T> extends Validatable{
+  trait AtomicBox<T> extends Validatable {
 
     ghost predicate Valid()
       reads this, Repr

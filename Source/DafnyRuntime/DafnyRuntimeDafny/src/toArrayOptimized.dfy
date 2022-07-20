@@ -107,6 +107,8 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
         AppendOptimized(builder, next, stack);
       }
     }
+
+    assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>
