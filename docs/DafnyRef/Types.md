@@ -232,7 +232,14 @@ There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
-Real literals using exponents are not supported in Dafny (at present).
+Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
+```dafny
+// realExp(2.37, 100) computes 2.37e100
+function method realExp(r: real, e: int) {
+  if e == 0 then r
+  else if e < 0 then realExp(r/10, e+1)
+  else realExp(r*10, e)
+}
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -663,7 +670,19 @@ notation | variance | cardinality-preserving
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
-_Cardinality preserving_ has to do with whether the type being defined may be referred to in the type argument.
+_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
+For example
+
+    type T<X> = X -> bool
+
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
+The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+
+To fix it, we use the variance `!`:
+
+    type T<!X> = X -> bool
+
+This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than `E` for any E.
 
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 

@@ -914,15 +914,15 @@ var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
 The `if` expression also permits a binding form.
-In this case the condition of the if is an existential asking
-"does there exist a value satisfying a given predicate?".
+In this case the condition of the `if` is an existential asking
+"does there exist a value satisfying the given predicate?".
 If not, the else branch is evaluated. But if so, then an
 (arbitrary) value that does satisfy the given predicate is
 bound to the given variable and that variable is in scope in 
 the then-branch of the expression.
 
 For example, in the expression
-```
+```dafny
 if x: int :| x*x == s then x else 0
 ```
 if `s` is indeed a square, say `25`, then x is bound to either `5` or `-5`

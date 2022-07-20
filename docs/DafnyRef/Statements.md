@@ -1537,7 +1537,7 @@ much as lemmas might be used in mathematical proofs.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
 
-In the `by` form of the `assert` statement, there is an additional block of statements.
+In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
 Those statements are typically a sequence of [lemmas](#sec-lemmas) or a [calc statement](#sec-calc-statement).
 The intent is that those statements be evaluated in support of proving the `assert` statement.
 For that purpose, they could be simply inserted before the `assert` statement.
