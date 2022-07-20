@@ -41,7 +41,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
         assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
       } else if next is Lazy<T> {
         var lazy := next as Lazy<T>;
-        var boxed := lazy.exprBox.Get();
+        var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
         stack.AddLast(boxed);
         assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
       } else {
