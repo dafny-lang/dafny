@@ -913,7 +913,24 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-TO BE WRITTEN - binding form
+The `if` expression also permits a binding form.
+In this case the condition of the if is an existential asking
+"does there exist a value satisfying a given predicate?".
+If not, the else branch is evaluated. But if so, then an
+(arbitrary) value that does satisfy the given predicate is
+bound to the given variable and that variable is in scope in 
+the then-branch of the expression.
+
+For example, in the expression
+```
+if x: int :| x*x == s then x else 0
+```
+if `s` is indeed a square, say `25`, then x is bound to either `5` or `-5`
+and that value of `x` is the value of the expression; if `s` is not a square
+then `0` is returned. Note that if `x` is declared to be a `nat` in this example, then only
+the value `5` would be permissible.
+
+This binding form of the `if` expression acts in the same way as the binding form of the [`if` statement](#sec-if-statement).
 
 ## 21.33. Case and Extended Patterns {#sec-case-pattern}
 ````grammar
