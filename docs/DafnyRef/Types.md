@@ -235,10 +235,11 @@ For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
-function method realExp(r: real, e: int) {
+function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
   if e == 0 then r
-  else if e < 0 then realExp(r/10, e+1)
-  else realExp(r*10, e)
+  else if e < 0 then realExp(r/10.0, e+1)
+  else realExp(r*10.0, e-1)
+}
 }
 
 For integers (in both decimal and hexadecimal form) and reals,
