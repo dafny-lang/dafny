@@ -9,48 +9,42 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   import opened Frames
   import opened MetaSeq
   
-  method ToArrayOptimized<T>(e: Concat<T>) returns (ret: ResizableArray<T>)
+  method {:tailrecursion} ToArrayOptimized<T>(builder: ResizableArray<T>, e: SeqExpr<T>, stack: ResizableArray<SeqExpr<T>>)
     requires e.Valid()
-    ensures ret.Valid()
-    ensures ret.Value() == e.Value()
+    requires builder.Valid()
+    requires stack.Valid()
+    requires builder.Repr !! stack.Repr !! e.Repr;
+    requires forall e <- stack.Value() :: e.Repr !! stack.Repr
+    requires forall expr <- stack.Value() :: builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
+    modifies builder.Repr, stack.Repr
+    decreases e.Size, SizeSum(stack.Value())
+    ensures builder.Valid()
+    ensures stack.Valid()
+    ensures e.Valid()
+    ensures forall expr <- stack.Value() :: expr.Valid()
+    ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
+
   {
-    var builder := new ResizableArray<T>(e.length);
-    var stack := new ResizableArray<SeqExpr<T>>(10);
-    stack.AddLast(e);
-    assert stack.Value() == [e];
-    LemmaConcatValueOnStackWithTip([], e);
-    assert ConcatValueOnStack(stack.Value()) == e.Value();
-    while 0 < stack.size 
-      invariant stack.Valid()
-      // invariant PairwiseDisjoint({builder as Validatable, stack as Validatable} + (set v: Validatable <- stack.Value()))
-      invariant builder.Valid()
-      invariant builder.Repr !! stack.Repr
-      invariant forall e <- stack.Value() :: e.Valid()
-      invariant builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value()
-      decreases if 0 < stack.size then stack.Last().Size() else 0, SizeSum(stack.Value())
-    {
-      var next: SeqExpr<T> := stack.RemoveLast();
-      if next is Concat<T> {
-        var concat := next as Concat<T>;
-        ghost var stackBefore := stack.Value();
-        stack.AddLast(concat.right);
-        LemmaConcatValueOnStackWithTip(stackBefore, concat.right);
-        ghost var stackInbetween := stack.Value();
-        stack.AddLast(concat.left);
-        LemmaConcatValueOnStackWithTip(stackInbetween, concat.left);
-        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
-      } else if next is Lazy<T> {
-        var lazy := next as Lazy<T>;
-        var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
-        stack.AddLast(boxed);
-        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
-      } else {
-        var a := next.ToArray();
-        builder.Append(a);
-        assert builder.Value() + ConcatValueOnStack(stack.Value()) == e.Value();
+    if e is Concat<T> {
+      var concat := e as Concat<T>;
+      stack.AddLast(concat.right);
+      ToArrayOptimized(builder, concat.left, stack);
+    } else if e is Lazy<T> {
+      var lazy := e as Lazy<T>;
+      var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      ToArrayOptimized(builder, boxed, stack);
+    } else {
+      var a := e.ToArray();
+      assert forall expr <- stack.Value() :: expr.Valid();
+      builder.Append(a);
+      if 0 < stack.size {
+        assert forall expr <- stack.Value() :: expr.Repr !! stack.Repr;
+        var next: SeqExpr<T> := stack.RemoveLast();
+        assert next in old(stack.Value());
+        assert next.Repr !! stack.Repr;
+        ToArrayOptimized(builder, next, stack);
       }
     }
-    return builder;
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>

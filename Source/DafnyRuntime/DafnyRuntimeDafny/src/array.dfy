@@ -254,7 +254,7 @@ module {:options "/functionSyntax:4"} Arrays {
       requires 0 < size
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures Value() == old(Value()[..(size - 1)])
+      ensures old(Value()) == Value() + [t]
     {
       t := storage.Read(size - 1);
       size := size - 1;
