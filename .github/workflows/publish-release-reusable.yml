@@ -124,7 +124,6 @@ jobs:
 
     - name: Make NuGet package available as an artifact
       uses: actions/upload-artifact@v2
-      if: always()
       with:
         name: nuget-packages-${{ matrix.os }}
         path: dafny/Binaries/*.nupkg
