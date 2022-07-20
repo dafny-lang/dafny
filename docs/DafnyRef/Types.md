@@ -682,7 +682,7 @@ To fix it, we use the variance `!`:
 
     type T<!X> = X -> bool
 
-This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than `E` for any E.
+This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than values of type `E` for any `E`.
 
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
