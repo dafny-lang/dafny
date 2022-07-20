@@ -922,7 +922,7 @@ bound to the given variable and that variable is in scope in
 the then-branch of the expression.
 
 For example, in the expression
-```
+```dafny
 if x: int :| x*x == s then x else 0
 ```
 if `s` is indeed a square, say `25`, then x is bound to either `5` or `-5`
