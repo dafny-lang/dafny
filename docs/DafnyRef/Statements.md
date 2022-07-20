@@ -1840,7 +1840,7 @@ method m(int i) {
 ```
 Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
-Note that the psuedo-function-call in the `reveal` statement is written without arguments.
+Note that the pseudo-function-call in the `reveal` statement is written without arguments.
 
 
 ## 20.21. Forall Statement {#sec-forall-statement}
