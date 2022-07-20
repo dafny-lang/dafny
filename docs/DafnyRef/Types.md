@@ -647,7 +647,7 @@ notation | variance | cardinality-preserving
 `*`      | co-variant | not necessarily
 `!`      | non-variant | not necessarily
 
-- _co-variance_ (`A<+T>` or A<*T>) means that if `U` is a subtype of `V` then `A<U>` is a subtype of `A<V>`
+- _co-variance_ (`A<+T>` or `A<*T>`) means that if `U` is a subtype of `V` then `A<U>` is a subtype of `A<V>`
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
