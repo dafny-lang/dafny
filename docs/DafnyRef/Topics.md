@@ -2,9 +2,37 @@
 
 ## 24.1. Type Parameter Completion {#sec-type-parameter-completion}
 
-[http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html)
+Generic types, like `A<T,U>`, consist of a _type constructor_, here `A`, and type parameters, here `T` and `U`.
+Type constructors are not first-class entities in Dafny, they are always used syntactically to construct
+type names; to do so, they must have the requisite number of type parameters, which must be either concrete types, type parameters, or 
+a generic type instance.
 
-TO BE WRITTEN
+However, those type parameters do not always have to be explicit; Dafny can often infer what they ought to be.
+For example, here is a fully parameterized function signature:
+```dafny
+function Elements<T>(list: List<T>): set<T>
+```
+However, Dafny also accepts
+```dafny
+function Elements(list: List): set
+```
+In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
+so it fills in `<T>` (using some unique type parameter name) and then determines the the function itself needs
+a type parameter `<T>` also.
+
+Dafny also accepts
+```dafny
+function Elements<T>(list: List): set
+```
+In this case, the function already has a type parameter list. `List` and `set` are each known to need type parameters,
+so Dafny takes the first `n` parameters from the function signature and applies them to `List` and `set`, where `n` (here `1`) is the
+number needed by those type constructors.
+ 
+It never hurts to simply write in all the type parameters, but that can reduce readability.
+Omitting them in cases where Dafny can intuit them makes a more compact definition.
+
+This process is described in more detail with more examples in this paper:
+[http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html).
 
 ## 24.2. Type Inference {#sec-type-inference}
 
@@ -195,7 +223,7 @@ Dafny will infer that the entire `if` is ghost because the condition uses a ghos
 and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
 
 
-## 24.4. Well-founded Functions and Extreme Predicates
+## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
 TODO: This section needs rewriting
 
