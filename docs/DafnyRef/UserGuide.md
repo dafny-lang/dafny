@@ -1318,7 +1318,68 @@ and what information it produces about the verification process.
   code, regardless of whether errors are found. If `1` (default) then
   use the appropriate exit code. This option is deprecated.
 
-### 25.9.8. Controlling boogie {#sec-controlling-boogie}
+### 25.9.8. Controlling Boogie {#sec-controlling-boogie}
+
+Dafny builds on top of Boogie, a general-purpose intermediate language
+for verification. Options supported by Boogie on its own are also
+supported by Dafny. Some of the Boogie options most relevant to Dafny
+users include the following. We use the term "procedure" below to refer
+to a Dafny function, lemma, method, or predicate, following Boogie
+terminology.
+
+* `-proc:<name>` - verify only the procedure named `<name>`. The name
+  can include `*` to indicate arbitrary sequences of characters.
+
+* `-trace` - print extra information during verification, including
+  timing, resource use, and outcome for each procedure incrementally, as
+  verification finishes.
+
+* `-randomSeed:<n>` - turn on randomization of the input that Boogie
+  passes to the SMT solver and turn on randomization in the SMT solver
+  itself.
+
+  Certain Boogie inputs are unstable in the sense that changes to the
+  input that preserve its meaning may cause the output to change. The
+  `-randomSeed`` option simulates meaning-preserving changes to the
+  input without requiring the user to actually make those changes.
+
+  The `-randomSeed` option is implemented by renaming variables and
+  reordering declarations in the input, and by setting
+  solver options that have similar effects.
+
+* `-randomSeedIterations:<n>` - attempt to prove each VC `<n>` times
+  with `<n>` random seeds. If `-randomSeed` has been provided, each
+  proof attempt will use a new random seed derived from this original
+  seed. If not, it will implicitly use `-randomSeed:0` to ensure a
+  difference between iterations. This option can be very useful for
+  identifying input programs for which verification is unstable. If the
+  verification times or solver resource counts associated with each
+  proof attempt vary widely for a given procedure, small changes to that
+  procedure might be more likely to cause proofs to fail in the future.
+
+* `-vcsSplitOnEveryAssert` - prove each (explicit or implicit) assertion
+  in each procedure separately. See also the attribute
+  [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for
+  restricting this option on specific procedures. By default, Boogie
+  attempts to prove that every assertion in a given procedure holds all
+  at once, in a single query to an SMT solver. This usually performs
+  well, but sometimes causes the solver to take longer. If a proof that
+  you believe should succeed is timing out, using this option can
+  sometimes help.
+
+* `-vcsCores:<n>` - try to verify `<n>` procedures simultaneously.
+  Setting `<n>` to the number of physical cores available tends to be
+  effective at speeding up overall proof time.
+
+* `-timeLimit:<n>` - spend at most `<n>` seconds attempting to prove any
+  single SMT query. This setting can also be set per method using the
+  attribute [`{:timeLimit n}`](#sec-time-limit).
+
+* `-rlimit:<n>` - set the maximum solver resource count to use while
+  proving a single SMT query. This can be a more deterministic approach
+  than setting a time limit. To choose an appropriate value, please
+  refer to the documentation of the attribute [`{:rlimit}`](#sec-rlimit)
+  that can be applied per procedure.
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 
