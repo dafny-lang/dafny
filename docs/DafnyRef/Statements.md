@@ -1773,7 +1773,46 @@ At the point of the `reveal` statement, the labeled assertion is made visible an
 In this example there is no point to labeling an assertion and then immediately revealing it. More useful are the cases where
 the reveal is in an assert-by block or much later in the method body.
 
-### 20.20.2. Revealing function and lemma bodies
+### 20.20.2. Revealing preconditions
+
+In the same way as assertions, preconditions can be labeled.
+Within the body of a method, a precondition is an assumption; if the precondition is labeled then that assumption is not visible in the body of the method.
+A `reveal` statement naming the label of the precondition then makes the assumption visible.
+
+Here is a toy example:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+}
+```
+The above methhod will not verify. In particular, the second postcondition cannot be proved.
+However, if we add a `reveal L;` statement in the body of the method, then the precondition is visible 
+and both postconditions can be proved.
+
+One could also use this style:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+  assert x < z by { reveal L; }
+}
+```
+
+The reason to possibly hide a precondition is the same as the reason to hide assertions: 
+sometimes less information is better for the solver as it helps the solver focus attention on 
+relevant information.
+
+Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
+an extended illustration of this technique.
+
+### 20.20.3. Revealing function bodies
 
 Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
 However, sometimes it is helpful to mark a function _opaque_ and treat it as an uninterpreted function, whose properties are
@@ -1791,11 +1830,8 @@ method m(int i) {
 ```
 Without the `{:opaque}` attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
-Note that the psuedo-function-call in the `reveaql' sstatement is written without arguments.
+Note that the psuedo-function-call in the `reveal' statement is written without arguments.
 
-The same sort of revealing is applicable to lemmas as well.
-
-TODO - other things, like types
 
 ## 20.21. Forall Statement {#sec-forall-statement}
 ````grammar
