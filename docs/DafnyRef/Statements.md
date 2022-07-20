@@ -1822,7 +1822,7 @@ possible where there might be information overload otherwise.
 But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
 body of the function can be _revealed_ using the reveal statement. Here is an example:
 ```dafny
-function {: opaque} f(i: int): int { i + 1 }
+function {:opaque} f(i: int): int { i + 1 }
 
 method m(int i) {
   assert f(i) == i + 1;
