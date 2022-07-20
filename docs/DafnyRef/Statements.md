@@ -1537,7 +1537,14 @@ much as lemmas might be used in mathematical proofs.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
 
-TO BE WRITTEN - assert by statements
+In the `by` form of the `assert` statement, there is an additional block of statements.
+Those statements are typically a sequence of [lemmas]() or a [calc statement](#sec-calc-statement).
+The intent is that those statements be evaluated in support of proving the `assert` statement.
+For that purpose, they could be simply inserted before the `assert` statement.
+But by using the `by` block, the statements in the block are discarded after the assertion is proved.
+As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
+proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
+their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
 
 ## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
