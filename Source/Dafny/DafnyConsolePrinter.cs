@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
-  public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
+  public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines = fsCache.GetOrAdd(filename, key => {
@@ -33,9 +33,14 @@ public class DafnyConsolePrinter : ConsolePrinter {
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
+    var lineStartPos = tok.pos - tok.col + 1;
+    var lineEndPos = lineStartPos + line.Length;
+    var tokEndPos = tok.pos + tok.val.Length;
+    var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
+    string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
     tw.WriteLine($"{lineNumber      } | {line}");
-    tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}^ here");
+    tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
     tw.WriteLine("");
   }
 
