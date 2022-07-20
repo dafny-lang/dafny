@@ -480,6 +480,8 @@ namespace Microsoft.Dafny.Compilers {
         case IntType:
         case BitvectorType:
           return "_dafny.defaults.int";
+        case RealType:
+          return "_dafny.defaults.real";
         case UserDefinedType udt:
           var cl = udt.ResolvedClass;
           if (cl is TypeParameter tp) {
@@ -488,6 +490,13 @@ namespace Microsoft.Dafny.Compilers {
           }
           if (cl is ClassDecl) {
             return "_dafny.defaults.null";
+          }
+          if (cl is TupleTypeDecl tpl) {
+            var w = new ConcreteSyntaxTree();
+            w.Write($"{DafnyRuntimeModule}.defaults.tuple(");
+            EmitTypeDescriptorsActuals(UsedTypeParameters(tpl, udt.TypeArgs), udt.tok, w, true);
+            w.Write(")");
+            return w.ToString();
           }
           Contract.Assert(cl is NewtypeDecl);
           return $"{TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok)}.default";

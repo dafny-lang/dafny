@@ -310,4 +310,6 @@ def AllChars():
 class defaults:
     bool = staticmethod(lambda: False)
     int = staticmethod(lambda: 0)
+    real = staticmethod(BigRational)
     null = staticmethod(lambda: None)
+    tuple = staticmethod(lambda *args: lambda: tuple(a() for a in args))
