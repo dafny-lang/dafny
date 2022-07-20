@@ -232,6 +232,15 @@ There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
+Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
+```dafny
+// realExp(2.37, 100) computes 2.37e100
+function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+  if e == 0 then r
+  else if e < 0 then realExp(r/10.0, e+1)
+  else realExp(r*10.0, e-1)
+}
+}
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -420,7 +429,19 @@ But `11` is not a valid `bv3` literal.
 OrdinalType_ = "ORDINAL"
 ````
 
-TO BE WRITTEN
+Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
+there is an `ORDINAL` value that is larger than any `nat`.
+- a value of type `nat` may be explicitly converted to an `ORDINAL` using `as ORDINAL`
+- a value of type `ORDINAL` may be explicitly converted to a `nat` using `as nat` if it is known to be less than some `nat` value 
+- non-negative numeric literals may be considered `ORDINAL` literals
+- `ORDINAL`s may be compared, using `== != < <= > >=`
+- two `ORDINAL`s may be added and the result is `>=` either one of them
+- two `ORDINAL`s may be subtracted if the LHS is `>=` the RHS (so the result is non-negative) and the RHS value is equal to some `nat` value. That is, for `ORDINAL` `x`, `assert x - x == 0;` fails
+ but `assert x < 1000000000 ==> x-x == 0;` succeeds.
+- `*`, `/` and `%` are not defined for `ORDINAL`s
+- there is no literal in Dafny that represents the `ORDINAL` value that is larger than any `nat` (typically written $\omega$ in mathematics)
+
+In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ## 7.5. Characters {#sec-characters}
 
@@ -633,7 +654,38 @@ Here are some examples:
 
 ## 8.2. Type parameter variance
 
-TO BE WRITTEN: Type parameter variance
+Type parameters have several different variance and cardinality properties.
+These properties of type parameters are designated in a generic type definition.
+For instance, in `type A<+T> = ... `, the `+` indicates that the `T` position
+is co-variant. These properties are indicated by the following notation:
+
+notation | variance | cardinality-preserving
+:-------:|----------|-----------------------
+(nothing) | non-variant | yes
+`+`      | co-variant | yes
+`-`      | contra-variant | not necessarily
+`*`      | co-variant | not necessarily
+`!`      | non-variant | not necessarily
+
+- _co-variance_ (`A<+T>` or `A<*T>`) means that if `U` is a subtype of `V` then `A<U>` is a subtype of `A<V>`
+- _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
+- _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
+
+_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
+For example
+
+    type T<X> = X -> bool
+
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
+The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+
+To fix it, we use the variance `!`:
+
+    type T<!X> = X -> bool
+
+This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than values of type `E` for any `E`.
+
+A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
 # 9. Generic Instantiation
