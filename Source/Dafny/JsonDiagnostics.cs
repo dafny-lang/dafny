@@ -14,6 +14,7 @@ namespace Microsoft.Dafny;
 record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
   private static JsonObject SerializePosition(IToken tok) {
     return new JsonObject {
+      ["pos"] = tok.pos,
       ["line"] = tok.line,
       ["character"] = tok.col - 1
     };

@@ -1004,10 +1004,11 @@ code (which can be helpful for debugging).
         "filename": "xyz.dfy",
         "range": { // Start and (optional) end of diagnostic
           "start": {
+            "pos": 83, // 0-based character offset in input
             "line": 6, // 1-based line number
             "character": 0 // 0-based column number
           },
-          "end": { "line": 6, "character": 3 }
+          "end": { "pos": 86, "line": 6, "character": 3 }
         }
       },
       "severity": 2, // 1: error; 2: warning; 4: info
