@@ -232,6 +232,7 @@ There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
+Real literals using exponents are not supported in Dafny (at present).
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
