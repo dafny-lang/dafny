@@ -17,7 +17,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     requires forall e <- stack.Value() :: e.Repr !! stack.Repr
     requires forall expr <- stack.Value() :: builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
     modifies builder.Repr, stack.Repr
-    decreases e.Size, SizeSum(stack.Value())
+    decreases e.Size() + SizeSum(stack.Value())
     ensures builder.Valid()
     ensures stack.Valid()
     ensures e.Valid()
@@ -32,6 +32,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
       var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      assert boxed.Size() < lazy.Size();
       ToArrayOptimized(builder, boxed, stack);
     } else {
       var a := e.ToArray();

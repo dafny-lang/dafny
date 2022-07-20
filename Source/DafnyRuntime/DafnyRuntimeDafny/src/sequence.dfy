@@ -200,12 +200,15 @@ module {:options "/functionSyntax:4"} MetaSeq {
     {
       && this in Repr
       && ValidComponent(exprBox)
-      && exprBox.value == value
+      && value == exprBox.value
+      && 1 <= exprBox.size
+      && size == exprBox.size + 1
       && length == |value|
     }
 
     constructor(wrapped: SeqExpr<T>) 
       requires wrapped.Valid()
+      requires 1 <= wrapped.Size()
       ensures Valid()
       ensures fresh(Repr - wrapped.Repr)
     {
@@ -285,6 +288,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures Valid()
       ensures fresh(Repr - e.Repr)
       ensures value == e.Value()
+      ensures size == e.Size()
     {
       this.Repr := {this} + e.Repr;
       this.value := e.Value();
@@ -295,6 +299,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && t.Repr <= repr
       && t.Valid()
       && t.Value() == value
+      && t.Size() <= size
     }
   }
 }
