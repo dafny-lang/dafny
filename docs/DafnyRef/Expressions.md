@@ -933,7 +933,7 @@ method main() {
 }
 ```
 `x` is given some value that satisfies `P(x)`, namely either `5` or `-5`.
-That value of `x` is the value of the expression; if there is no value satisfying `P(x)`,
+That value of `x` is the value of the expression in the `then` branch above; if there is no value satisfying `P(x)`,
 then `0` is returned. Note that if `x` is declared to be a `nat` in this example, then only
 the value `5` would be permissible.
 
