@@ -330,7 +330,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void EndVerification() { // TODO. Maybe move this to DafnyDocument. CancelPendingUpdates can await TranslatedDocument.
+      public void EndVerification() {
         verificationCompleted.TrySetResult();
       }
 
