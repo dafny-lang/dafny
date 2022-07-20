@@ -139,10 +139,12 @@ public class Buffer {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
     char[] buf = new char[end - beg];
-    int oldPos = Pos;
-    Pos = beg;
-    while (Pos < end) buf[len++] = (char) Read();
-    Pos = oldPos;
+    if(end != beg) {
+      int oldPos = Pos;
+      Pos = beg;
+      while (Pos < end) buf[len++] = (char) Read();
+      Pos = oldPos;
+    }
     return new String(buf, 0, len);
   }
 
@@ -285,7 +287,15 @@ public class Scanner {
 
   char[]/*!*/ tval = new char[128]; // text of current token
   int tlen;         // length of current token
-
+  
+  // Trivia are whitespaces before and after tokens.
+  int posTrailingStart = -1;     // Position where a trailing trivia starts
+  int posTrailingEndLeadingStart = -1; // Position where a leading trivia starts
+  bool parsingTrivia = false;    // set to true when we are parsing trivia
+  bool triviaTrailing = false;   // The first trivia is always leading
+  int triviaNewlines = 0;        // How many newlines in the trivia so far
+  bool lastWasCr = false;        // if the last newline character was \r
+      
   private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
 
@@ -431,7 +441,7 @@ public class Scanner {
     }
 -->casing1
   }
-
+  
   void AddCh() {
     if (tlen >= tval.Length) {
       char[] newBuf = new char[2 * tval.Length];
@@ -453,15 +463,55 @@ public class Scanner {
 
   Token/*!*/ NextToken() {
     Contract.Ensures(Contract.Result<Token>() != null);
+    if(!parsingTrivia) {
+      posTrailingStart = pos;
+      posTrailingEndLeadingStart = pos;
+      parsingTrivia = true;
+      triviaTrailing = pos > 0;
+      triviaNewlines = 0;
+      lastWasCr = false;
+    } else {
+      // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
+        triviaNewlines--;
+        lastWasCr = (ch == '\r');
+      }
+    }
     while (ch == ' ' ||
 -->scan1
-    ) NextCh();
+    ) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+        if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
+          triviaNewlines++;
+        }
+        lastWasCr = (ch == '\r');
+      }
+      NextCh();
+      if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || !lastWasCr)) {
+        triviaTrailing = false;
+        posTrailingEndLeadingStart = pos;
+      }
+    }
 -->scan2
+    parsingTrivia = false;
+    if(t == null) { // There is no trailing trivia before the first token
+      posTrailingEndLeadingStart = 0;
+    } else {
+      if(triviaTrailing) {
+        triviaTrailing = false;
+        posTrailingEndLeadingStart = pos;
+      }
+      // Extract the trivia from the buffers
+      t.TrailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
+    }
+    
     int recKind = noSym;
     int recEnd = pos;
     t = new Token();
+    t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
+    
     t.pos = pos; t.col = col; t.line = line;
-    t.filename = this.Filename;
+    t.Filename = this.Filename;
     int state;
     if (start.ContainsKey(ch)) {
       Contract.Assert(start[ch] != null);
@@ -495,10 +545,10 @@ public class Scanner {
   // get the next token (possibly a token already seen during peeking)
   public Token/*!*/ Scan () {
    Contract.Ensures(Contract.Result<Token>() != null);
-    if (tokens.next == null) {
+    if (tokens.peekedTokens == null) {
       return NextToken();
     } else {
-      pt = tokens = tokens.next;
+      pt = tokens = tokens.peekedTokens;
       return tokens;
     }
   }
@@ -507,10 +557,10 @@ public class Scanner {
   public Token/*!*/ Peek () {
     Contract.Ensures(Contract.Result<Token>() != null);
     do {
-      if (pt.next == null) {
-        pt.next = NextToken();
+      if (pt.peekedTokens == null) {
+        pt.peekedTokens = NextToken();
       }
-      pt = pt.next;
+      pt = pt.peekedTokens;
     } while (pt.kind > maxT); // skip pragmas
 
     return pt;
