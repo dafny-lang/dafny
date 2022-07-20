@@ -921,16 +921,27 @@ If not, the else branch is evaluated. But if so, then an
 bound to the given variable and that variable is in scope in 
 the then-branch of the expression.
 
-For example, in the expression
+For example, in the code
 ```dafny
-if x: int :| x*x == s then x else 0
+predicate P(x: int) {
+  x == 5 || x == -5
+}
+method main() {
+  assert P(5);
+  var y := if x: int :| P(x) then x else 0;
+  assert y == 5 || y == -5;
+}
 ```
-if `s` is indeed a square, say `25`, then x is bound to either `5` or `-5`
-and that value of `x` is the value of the expression; if `s` is not a square
+`x` is given some value that satisfies `P(x)`, namely either `5` or `-5`.
+That value of `x` is the value of the expression; if there is no value satisfying `P(x)`,
 then `0` is returned. Note that if `x` is declared to be a `nat` in this example, then only
 the value `5` would be permissible.
 
 This binding form of the `if` expression acts in the same way as the binding form of the [`if` statement](#sec-if-statement).
+
+In the example given, the binder for `x` has no constraining range, so the expression is `ghost`;
+if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
+then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
 
 ## 21.33. Case and Extended Patterns {#sec-case-pattern}
 ````grammar

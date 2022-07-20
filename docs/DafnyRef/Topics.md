@@ -223,7 +223,7 @@ Dafny will infer that the entire `if` is ghost because the condition uses a ghos
 and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
 
 
-## 24.4. Well-founded Functions and Extreme Predicates
+## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
 TODO: This section needs rewriting
 

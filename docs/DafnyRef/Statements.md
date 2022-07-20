@@ -1538,13 +1538,16 @@ much as lemmas might be used in mathematical proofs.
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
 
 In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
-Those statements are typically a sequence of [lemmas](#sec-lemmas) or a [calc statement](#sec-calc-statement).
+Those statements are often a sequence of [lemmas](#sec-lemmas) or [calc statements](#sec-calc-statement) or [`reveal` statements](#sec-reveal-statements)
+combined with ghost update statements and ghost control flow.
 The intent is that those statements be evaluated in support of proving the `assert` statement.
 For that purpose, they could be simply inserted before the `assert` statement.
 But by using the `by` block, the statements in the block are discarded after the assertion is proved.
 As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
 proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
 their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
+
+Examples of this form of assert are given in [Section 20.20](#sec-reveal-statement) and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 ## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
@@ -1746,7 +1749,7 @@ RevealStmt =
     ";"
 ````
 
-The `reveal` stastement makes available to the solver information that is otherwise opaque (that is, not visible).
+The `reveal` statement makes available to the solver information that is otherwise not visible, as described in the following subsections.
 
 ### 20.20.1. Revealing assertions
 
@@ -1767,6 +1770,13 @@ method m(i: int) {
   assert x: i == 0; // Fails
   reveal x;
   assert i == 0; // Now succeeds
+}
+```
+or
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0 by { reveal x; } // Now succeeds
 }
 ```
 At the point of the `reveal` statement, the labeled assertion is made visible and can be used in proving the second assertion.
@@ -1830,7 +1840,7 @@ method m(int i) {
 ```
 Without the `{:opaque}` attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
-Note that the psuedo-function-call in the `reveal' statement is written without arguments.
+Note that the psuedo-function-call in the `reveal` statement is written without arguments.
 
 
 ## 20.21. Forall Statement {#sec-forall-statement}

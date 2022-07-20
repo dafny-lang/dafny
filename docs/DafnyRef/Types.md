@@ -440,7 +440,7 @@ there is an `ORDINAL` value that is larger than any `nat`.
 - `*`, `/` and `%` are not defined for `ORDINAL`s
 - there is no literal in Dafny that represents the `ORDINAL` value that is larger than any `nat` (typically written $\omega$ in mathematics)
 
-In Dafny, `ORDINAL`s are used primarily in conjunction with extreme functions and lemmas.
+In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ## 7.5. Characters {#sec-characters}
 
