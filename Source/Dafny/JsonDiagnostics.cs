@@ -74,7 +74,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
     var auxRelated = related?.SelectMany(SerializeAuxInfo) ?? Enumerable.Empty<JsonNode>();
     var innerRelated = SerializeInnerTokens(tok);
     return new JsonObject {
-      ["range"] = SerializeToken(tok),
+      ["location"] = SerializeToken(tok),
       ["severity"] = SerializeErrorLevel(level),
       ["message"] = SerializeMessage(category, message),
       ["source"] = source.ToString(),
