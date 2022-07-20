@@ -308,6 +308,6 @@ def AllChars():
     return (chr(i) for i in range(0x10000))
 
 class defaults:
-    bool = staticmethod(lambda x: False)
-    int = staticmethod(lambda x: 0)
-    null = staticmethod(lambda x: None)
+    bool = staticmethod(lambda: False)
+    int = staticmethod(lambda: 0)
+    null = staticmethod(lambda: None)

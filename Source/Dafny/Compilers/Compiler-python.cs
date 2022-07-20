@@ -292,8 +292,7 @@ namespace Microsoft.Dafny.Compilers {
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
-      w.WriteLine("@staticmethod");
-      w.NewBlockPy("def default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
+      w.WriteLine($"default = staticmethod(lambda: {d})");
 
       return cw;
     }
@@ -479,6 +478,7 @@ namespace Microsoft.Dafny.Compilers {
         case TypeProxy:
           return "_dafny.defaults.bool";
         case IntType:
+        case BitvectorType:
           return "_dafny.defaults.int";
         case UserDefinedType udt:
           var cl = udt.ResolvedClass;
@@ -489,9 +489,10 @@ namespace Microsoft.Dafny.Compilers {
           if (cl is ClassDecl) {
             return "_dafny.defaults.null";
           }
-          return "None";
+          Contract.Assert(cl is NewtypeDecl);
+          return $"{TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok)}.default";
         default:
-          return "None";
+          throw new cce.UnreachableException();
       }
     }
 
@@ -596,8 +597,8 @@ namespace Microsoft.Dafny.Compilers {
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
                 return $"{constructor}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
 
-              case TypeParameter:
-                return "None";
+              case TypeParameter tp:
+                return $"{tp.CompileName}()";
             }
             break;
           }
