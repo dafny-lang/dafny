@@ -24,7 +24,7 @@ Dafny also accepts
 ```dafny
 function Elements<T>(list: List): set
 ```
-In this case, the function already has a type parameter list. `List and `set` are each known to need type parameters,
+In this case, the function already has a type parameter list. `List` and `set` are each known to need type parameters,
 so Dafny takes the first `n` parameters from the function signature and applies them to `List` and `set`, where `n` (here `1`) is the
 number needed by those type constructors.
  
