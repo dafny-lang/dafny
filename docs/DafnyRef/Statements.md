@@ -1539,7 +1539,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
 Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
-combined with ghost update statements and ghost control flow.
+combined with ghost control flow, ghost variable declarations and ghost update statements of variables declared in the `by` block.
 The intent is that those statements be evaluated in support of proving the `assert` statement.
 For that purpose, they could be simply inserted before the `assert` statement.
 But by using the `by` block, the statements in the block are discarded after the assertion is proved.
