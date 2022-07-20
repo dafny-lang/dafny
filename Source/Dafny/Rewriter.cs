@@ -1,44 +1,124 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Bpl = Microsoft.Boogie;
-using IToken = Microsoft.Boogie.IToken;
 
-namespace Microsoft.Dafny
-{
-  public abstract class IRewriter
-  {
-    protected readonly ErrorReporter reporter;
+namespace Microsoft.Dafny {
+  /// <summary>
+  /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
+  ///
+  /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
+  /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
+  /// as the first and only argument.
+  /// </summary>
+  public abstract class IRewriter {
+    /// <summary>
+    /// Used to report errors and warnings, with positional information.
+    /// </summary>
+    protected readonly ErrorReporter Reporter;
 
-    public IRewriter(ErrorReporter reporter) {
+    /// <summary>
+    /// Constructor that accepts an ErrorReporter
+    /// You can obtain an ErrorReporter two following ways:
+    /// * Extend a PluginConfiguration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
+    /// * Have no PluginConfiguration  class, and an ErrorReporter will be provided to your class's constructor.
+    /// 
+    /// Then you can use the protected field "reporter" like the following:
+    /// 
+    ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
+    ///
+    /// The token is usually obtained on expressions and statements in the field `tok`
+    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// </summary>
+    /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
+    internal IRewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
-      this.reporter = reporter;
+      this.Reporter = reporter;
     }
 
-    internal virtual void PreResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    /// <summary>
+    /// Phase 1/7
+    /// Override this method to obtain the initial program after parsing and built-in pre-resolvers.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="program">The entire program</param>
+    internal virtual void PreResolve(Program program) {
+      Contract.Requires(program != null);
     }
 
-    internal virtual void PostResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    /// <summary>
+    /// Phase 2/7
+    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers.
+    /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
+    /// This is a good place to perform AST rewritings, if necessary
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition before is resolved</param>
+    internal virtual void PreResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
     }
 
-    // After SCC/Cyclicity/Recursivity analysis:
-    internal virtual void PostCyclicityResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    /// <summary>
+    /// Phase 3/7
+    /// Override this method to obtain a module definition after bare resolution, if no error were thrown.
+    /// You can then report errors using reporter.Error (see above)
+    /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
+    internal virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
     }
 
-    // After SCC/Cyclicity/Recursivity analysis and after application of default decreases:
-    internal virtual void PostDecreasesResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    /// <summary>
+    /// Phase 4/7
+    /// Override this method to obtain the module definition after resolution and
+    /// SCC/Cyclicity/Recursivity analysis.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/7
+    /// Override this method to obtain the module definition after the phase decreasesResolve
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity and decreasesResolve checks have been performed</param>
+    internal virtual void PostDecreasesResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 6/7
+    /// Override this method to obtain a module definition after the entire resolution pipeline
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    internal virtual void PostResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 7/7
+    /// Override this method to obtain the final program after the entire resolution pipeline
+    /// after the individual PostResolve on every module
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="program">The entire program after it is fully resolved</param>
+    internal virtual void PostResolve(Program program) {
+      Contract.Requires(program != null);
     }
   }
 
-  public class AutoGeneratedToken : TokenWrapper
-  {
-    public AutoGeneratedToken(Boogie.IToken wrappedToken)
-      : base(wrappedToken)
-    {
+  public class AutoGeneratedToken : TokenWrapper {
+    public AutoGeneratedToken(IToken wrappedToken)
+      : base(wrappedToken) {
       Contract.Requires(wrappedToken != null);
     }
   }
@@ -49,7 +129,7 @@ namespace Microsoft.Dafny
     }
 
     internal override void PostCyclicityResolve(ModuleDefinition m) {
-      var finder = new Triggers.QuantifierCollector(reporter);
+      var finder = new Triggers.QuantifierCollector(Reporter);
 
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         finder.Visit(decl, null);
@@ -68,7 +148,7 @@ namespace Microsoft.Dafny
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         splitter.Visit(decl);
@@ -78,14 +158,13 @@ namespace Microsoft.Dafny
   }
 
   // write out the quantifier for ForallStmt
-  public class ForallStmtRewriter : IRewriter
-  {
+  public class ForallStmtRewriter : IRewriter {
     public ForallStmtRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
-      var forallvisiter = new ForAllStmtVisitor(reporter);
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
+      var forallvisiter = new ForAllStmtVisitor(Reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
         if (decl is ExtremeLemma) {
@@ -98,8 +177,7 @@ namespace Microsoft.Dafny
 
     }
 
-    internal class ForAllStmtVisitor : TopDownVisitor<bool>
-    {
+    internal class ForAllStmtVisitor : TopDownVisitor<bool> {
       readonly ErrorReporter reporter;
       public ForAllStmtVisitor(ErrorReporter reporter) {
         Contract.Requires(reporter != null);
@@ -114,7 +192,7 @@ namespace Microsoft.Dafny
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
             }
             List<Expression> exprList = new List<Expression>();
-            ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
+            ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             expr.Bounds = s.Bounds;
             exprList.Add(expr);
@@ -143,16 +221,17 @@ namespace Microsoft.Dafny
                       l.TypeApplication_AtEnclosingClass = ll.TypeApplication_AtEnclosingClass;
                       l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
                       l.Type = ll.Type;
-                      return l; };
+                      return l;
+                    };
                   } else if (lhs is SeqSelectExpr) {
                     var ll = (SeqSelectExpr)lhs;
                     Contract.Assert(ll.SelectOne);
-                    if (!Translator.ContainsFreeVariable(ll.Seq, false, i)) {
+                    if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
                       Fi = ll.E0;
-                      lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null); l.Type = ll.Type; return l; };
-                    } else if (!Translator.ContainsFreeVariable(ll.E0, false, i)) {
+                      lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null, ll.CloseParen); l.Type = ll.Type; return l; };
+                    } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
                       Fi = ll.Seq;
-                      lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null); l.Type = ll.Type; return l; };
+                      lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null, ll.CloseParen); l.Type = ll.Type; return l; };
                     }
                   }
                 }
@@ -190,7 +269,7 @@ namespace Microsoft.Dafny
                         Printer.ExprToString(newRhs));
                       reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                      var expr = new ForallExpr(s.Tok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
+                      var expr = new ForallExpr(s.Tok, s.EndTok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                       expr.Type = Type.Bool; //resolve here
                       exprList.Add(expr);
                     }
@@ -198,7 +277,7 @@ namespace Microsoft.Dafny
                   }
                 }
                 if (!usedInversion) {
-                  var expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
+                  var expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                   expr.Type = Type.Bool; // resolve here
                   expr.Bounds = s.Bounds;
                   exprList.Add(expr);
@@ -213,7 +292,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var substituter = new AlphaConvertingSubstituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
@@ -229,7 +308,7 @@ namespace Microsoft.Dafny
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
             }
             List<Expression> exprList = new List<Expression>();
-            ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
+            ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             expr.Bounds = s.Bounds;
             exprList.Add(expr);
@@ -241,8 +320,7 @@ namespace Microsoft.Dafny
         return true;  //visit the sub-parts with the same "st"
       }
 
-      internal class ForallStmtTranslationValues
-      {
+      internal class ForallStmtTranslationValues {
         public readonly Expression Range;
         public readonly Expression FInverse;
         public ForallStmtTranslationValues(Expression range, Expression fInverse) {
@@ -257,7 +335,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+          Substituter sub = new Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -297,7 +375,7 @@ namespace Microsoft.Dafny
         Contract.Requires(R != null);
         Contract.Requires(F != null);
         F = F.Resolved;
-        if (!Translator.ContainsFreeVariable(F, false, i)) {
+        if (!FreeVariablesUtil.ContainsFreeVariable(F, false, i)) {
           // We're looking at R(i) && j == K.
           // We cannot invert j == K, but if we're lucky, R(i) contains a conjunct i==G.
           Expression r = Expression.CreateBoolLiteral(R.tok, true);
@@ -335,7 +413,7 @@ namespace Microsoft.Dafny
         } else if (F is BinaryExpr) {
           var bin = (BinaryExpr)F;
           if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
-            if (!Translator.ContainsFreeVariable(bin.E1, false, i)) {
+            if (!FreeVariablesUtil.ContainsFreeVariable(bin.E1, false, i)) {
               // We're looking at:  R(i) && j == f(i) + K.
               // By a recursive call, we'll ask to invert:  R(i) && j' == f(i).
               // For each P_0(j') && f-1_0(j') == i we get back, we yield:
@@ -344,7 +422,7 @@ namespace Microsoft.Dafny
               foreach (var val in InvertExpression(i, j, R, bin.E0)) {
                 yield return val.Subst(j, jMinusK);
               }
-            } else if (!Translator.ContainsFreeVariable(bin.E0, false, i)) {
+            } else if (!FreeVariablesUtil.ContainsFreeVariable(bin.E0, false, i)) {
               // We're looking at:  R(i) && j == K + f(i)
               // Do as in previous case, but with operands reversed.
               var jMinusK = Expression.CreateSubtract(Expression.CreateIdentExpr(j), bin.E0);
@@ -353,14 +431,14 @@ namespace Microsoft.Dafny
               }
             }
           } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
-            if (!Translator.ContainsFreeVariable(bin.E1, false, i)) {
+            if (!FreeVariablesUtil.ContainsFreeVariable(bin.E1, false, i)) {
               // We're looking at:  R(i) && j == f(i) - K
               // Recurse on f(i) and then replace j := j + K
               var jPlusK = Expression.CreateAdd(Expression.CreateIdentExpr(j), bin.E1);
               foreach (var val in InvertExpression(i, j, R, bin.E0)) {
                 yield return val.Subst(j, jPlusK);
               }
-            } else if (!Translator.ContainsFreeVariable(bin.E0, false, i)) {
+            } else if (!FreeVariablesUtil.ContainsFreeVariable(bin.E0, false, i)) {
               // We're looking at:  R(i) && j == K - f(i)
               // Recurse on f(i) and then replace j := K - j
               var kMinusJ = Expression.CreateSubtract(bin.E0, Expression.CreateIdentExpr(j));
@@ -392,7 +470,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+        Substituter sub = new Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -450,8 +528,7 @@ namespace Microsoft.Dafny
   ///    requires Valid()
   ///    reads Repr
   /// </summary>
-  public class AutoContractsRewriter : IRewriter
-  {
+  public class AutoContractsRewriter : IRewriter {
     readonly BuiltIns builtIns;
     public AutoContractsRewriter(ErrorReporter reporter, BuiltIns builtIns)
       : base(reporter) {
@@ -483,7 +560,7 @@ namespace Microsoft.Dafny
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
         var valid = new Predicate(cl.tok, "Valid", false, true, new List<TypeParameter>(), new List<Formal>(),
           new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-          null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
+          null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
         cl.Members.Add(valid);
         // It will be added to hover text later
       }
@@ -498,7 +575,7 @@ namespace Microsoft.Dafny
           // member is inherited from a module where it was already processed
           continue;
         }
-        Boogie.IToken tok = new AutoGeneratedToken(member.tok);
+        IToken tok = new AutoGeneratedToken(member.tok);
         if (member is Function && member.Name == "Valid" && !member.IsStatic) {
           var valid = (Function)member;
           // reads this, Repr
@@ -508,7 +585,7 @@ namespace Microsoft.Dafny
           valid.Reads.Add(new FrameExpression(tok, r1, null));
           // ensures Valid() ==> this in Repr
           var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
-            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, tok, new List<ActualBinding>()),
             new BinaryExpr(tok, BinaryExpr.Opcode.In,
               new ThisExpr(tok),
                new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
@@ -517,12 +594,12 @@ namespace Microsoft.Dafny
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
+            AddHoverText(member.tok, "reads {0}, {1}\nensures {2}", r0, r1, post);
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
           // requires Valid()
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, tok, new List<ActualBinding>());
           f.Req.Insert(0, new AttributedExpression(valid));
           var format = "requires {0}";
           var repr = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
@@ -535,10 +612,10 @@ namespace Microsoft.Dafny
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           // ensures Valid();
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, tok, new List<ActualBinding>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
           // ensures fresh(Repr);
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+          var freshness = new FreshExpr(tok,
             new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
@@ -547,7 +624,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -602,7 +679,7 @@ namespace Microsoft.Dafny
       }
       Contract.Assert(ReprField != null);  // we expect there to be a "Repr" field, since we added one in PreResolve
 
-      Boogie.IToken clTok = new AutoGeneratedToken(cl.tok);
+      IToken clTok = new AutoGeneratedToken(cl.tok);
       Type ty = Resolver.GetThisType(clTok, cl);
       var self = new ThisExpr(clTok);
       self.Type = ty;
@@ -615,7 +692,7 @@ namespace Microsoft.Dafny
         if (Attributes.ContainsBool(member.Attributes, "autocontracts", ref sayYes) && !sayYes) {
           continue;
         }
-        Boogie.IToken tok = new AutoGeneratedToken(member.tok);
+        IToken tok = new AutoGeneratedToken(member.tok);
         if (member is Function && member.Name == "Valid" && !member.IsStatic) {
           var valid = (Function)member;
           var validConjuncts = new List<Expression>();
@@ -662,7 +739,7 @@ namespace Microsoft.Dafny
                 sep = "\n";
               }
             }
-            for (int i = validConjuncts.Count; 0 <= --i; ) {
+            for (int i = validConjuncts.Count; 0 <= --i;) {
               var c = validConjuncts[i];
               valid.Body = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c, valid.Body);
               hoverText = Printer.ExprToString(c) + sep + hoverText;
@@ -721,7 +798,7 @@ namespace Microsoft.Dafny
             var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0);
             e1.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference;
             e1.Type = Repr.Type;
-            var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, e1);
+            var freshness = new FreshExpr(tok, e1);
             freshness.Type = Type.Bool;
             m.Ens.Insert(1, new AttributedExpression(freshness));
             AddHoverText(m.tok, format + "\nensures {0} && {2}", valid, Repr, freshness);
@@ -842,9 +919,7 @@ namespace Microsoft.Dafny
     /// </summary>
     static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
-      if (expr is OldExpr || expr is UnchangedExpr) {
-        return true;
-      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
+      if (expr is OldExpr || expr is UnchangedExpr || expr is FreshExpr) {
         return true;
       }
       foreach (var ee in expr.SubExpressions) {
@@ -865,16 +940,16 @@ namespace Microsoft.Dafny
       Contract.Requires(callingContext != null);
       Contract.Requires(receiver.Type.NormalizeExpand() is UserDefinedType && ((UserDefinedType)receiver.Type.NormalizeExpand()).ResolvedClass == Valid.EnclosingClass);
       Contract.Requires(receiver.Type.NormalizeExpand().TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
-      var call = new FunctionCallExpr(tok, Valid.Name, receiver, tok, new List<Expression>());
+      var call = new FunctionCallExpr(tok, Valid.Name, receiver, tok, tok, new List<Expression>());
       call.Function = Valid;
       call.Type = Type.Bool;
       call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
       call.TypeApplication_JustFunction = new List<Type>();
-      callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
+      callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
       return call;
     }
 
-    public static BinaryExpr BinBoolExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
+    public static BinaryExpr BinBoolExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
       var p = new BinaryExpr(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1);
       p.ResolvedOp = rop;  // resolve here
       p.Type = Type.Bool;  // resolve here
@@ -891,7 +966,7 @@ namespace Microsoft.Dafny
         }
       }
       var s = "autocontracts:\n" + string.Format(format, args);
-      reporter.Info(MessageSource.Rewriter, tok, s.Replace("\n", "\n  "));
+      Reporter.Info(MessageSource.Rewriter, tok, s.Replace("\n", "\n  "));
     }
   }
 
@@ -903,17 +978,13 @@ namespace Microsoft.Dafny
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
-    protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
-    protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
-    protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
+    protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
     public OpaqueFunctionRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
 
-      fullVersion = new Dictionary<Function, Function>();
-      original = new Dictionary<Function, Function>();
-      revealOriginal = new Dictionary<Lemma, Function>();
+      revealOriginal = new Dictionary<Method, Function>();
     }
 
     internal override void PreResolve(ModuleDefinition m) {
@@ -924,10 +995,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        if (decl is Lemma) {
-          var lem = (Lemma)decl;
+        if (decl is Lemma || decl is TwoStateLemma) {
+          var lem = (Method)decl;
           if (revealOriginal.ContainsKey(lem)) {
             Function fn = revealOriginal[lem];
             AnnotateRevealFunction(lem, fn);
@@ -936,7 +1007,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected void AnnotateRevealFunction(Lemma lemma, Function f) {
+    protected void AnnotateRevealFunction(Method lemma, Function f) {
+      Contract.Requires(lemma is Lemma || lemma is TwoStateLemma);
       Expression receiver;
       if (f.IsStatic) {
         receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
@@ -975,13 +1047,11 @@ namespace Microsoft.Dafny
       Contract.Requires(c != null);
       List<MemberDecl> newDecls = new List<MemberDecl>();
       foreach (MemberDecl member in c.Members) {
-        if (member is Function) {
-          var f = (Function)member;
-
-          if (!Attributes.Contains(f.Attributes, "opaque")) {
+        if (member is Function function) {
+          if (!Attributes.Contains(function.Attributes, "opaque")) {
             // Nothing to do
-          } else if (!RefinementToken.IsInherited(f.tok, c.EnclosingModuleDefinition)) {
-            RewriteOpaqueFunctionUseFuel(f, newDecls);
+          } else if (!RefinementToken.IsInherited(function.tok, c.EnclosingModuleDefinition)) {
+            RewriteOpaqueFunctionUseFuel(function, newDecls);
           }
         }
       }
@@ -989,7 +1059,7 @@ namespace Microsoft.Dafny
     }
 
     private void RewriteOpaqueFunctionUseFuel(Function f, List<MemberDecl> newDecls) {
-      // mark the opaque function with {:fuel, 0, 0}
+      // mark the opaque function with {:fuel 0, 0}
       LiteralExpr amount = new LiteralExpr(f.tok, 0);
       f.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, f.Attributes);
 
@@ -1002,7 +1072,9 @@ namespace Microsoft.Dafny
       // We produce:
       //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
       //
-      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters approriately
+      // If "foo" is a two-state function, then "reveal_foo" will be declared as a two-state lemma.
+      //
+      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters appropriately
 
       var cloner = new Cloner();
 
@@ -1019,19 +1091,20 @@ namespace Microsoft.Dafny
       Attributes lemma_attrs = BuiltIns.AxiomAttribute();
       lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
-      lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(f.tok, false)}, lemma_attrs);
-      var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-                              new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
-                              new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(f.tok, false) }, lemma_attrs);
+      Method reveal;
+      if (f is TwoStateFunction) {
+        reveal = new TwoStateLemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      } else {
+        reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      }
       newDecls.Add(reveal);
       revealOriginal[reveal] = f;
       reveal.InheritVisibility(f, true);
-    }
-
-    class OpaqueFunctionVisitor : TopDownVisitor<bool> {
-      protected override bool VisitOneExpr(Expression expr, ref bool context) {
-        return true;
-      }
     }
   }
 
@@ -1049,7 +1122,7 @@ namespace Microsoft.Dafny
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       var components = m.CallGraph.TopologicallySortedComponents();
 
       foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
@@ -1080,44 +1153,24 @@ namespace Microsoft.Dafny
               addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
             }
           }
-        }
-        else if (scComponent is Method)
-        {
-            Method method = (Method)scComponent;
-            if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq"))
-            {
-                parentFunction = null;
-                containsMatch = false; // Assume no match statements are involved
+        } else if (scComponent is Method) {
+          Method method = (Method)scComponent;
+          if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq")) {
+            parentFunction = null;
+            containsMatch = false; // Assume no match statements are involved
 
-                List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
-                foreach (AttributedExpression req in method.Req)
-                {
-                    List<Expression> local_auto_reqs = generateAutoReqs(req.E);
-                    foreach (Expression local_auto_req in local_auto_reqs)
-                    {
-                        auto_reqs.Add(new AttributedExpression(local_auto_req));
-                    }
-                }
-                method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-                addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+            List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+            foreach (AttributedExpression req in method.Req) {
+              List<Expression> local_auto_reqs = generateAutoReqs(req.E);
+              foreach (Expression local_auto_req in local_auto_reqs) {
+                auto_reqs.Add(new AttributedExpression(local_auto_req));
+              }
             }
+            method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+            addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+          }
         }
       }
-    }
-
-    Expression subVars(List<Formal> formals, List<Expression> values, Expression e, Expression f_this) {
-      Contract.Assert(formals != null);
-      Contract.Assert(values != null);
-      Contract.Assert(formals.Count == values.Count);
-      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
-
-      for (int i = 0; i < formals.Count; i++) {
-        substMap.Add(formals[i], values[i]);
-      }
-
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
-      return sub.Substitute(e);
     }
 
     public void addAutoReqToolTipInfoToFunction(string label, Function f, List<AttributedExpression> reqs) {
@@ -1135,7 +1188,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        reporter.Info(MessageSource.Rewriter, f.tok, tip);
+        Reporter.Info(MessageSource.Rewriter, f.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(f.Name);
@@ -1159,7 +1212,7 @@ namespace Microsoft.Dafny
       }
 
       if (!tip.Equals("")) {
-        reporter.Info(MessageSource.Rewriter, method.tok, tip);
+        Reporter.Info(MessageSource.Rewriter, method.tok, tip);
         if (DafnyOptions.O.AutoReqPrintFile != null) {
           using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
             writer.WriteLine(method.Name);
@@ -1170,7 +1223,7 @@ namespace Microsoft.Dafny
     }
 
     // Stitch a list of expressions together with logical ands
-    Expression andify(Bpl.IToken tok, List<Expression> exprs) {
+    Expression andify(IToken tok, List<Expression> exprs) {
       Expression ret = Expression.CreateBoolLiteral(tok, true);
 
       foreach (var expr in exprs) {
@@ -1184,15 +1237,15 @@ namespace Microsoft.Dafny
       List<Expression> translated_f_reqs = new List<Expression>();
 
       if (f.Req.Count > 0) {
-        Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable,Expression>();
-        Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter,Type>();
+        Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+        Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
 
         for (int i = 0; i < f.Formals.Count; i++) {
           substMap.Add(f.Formals[i], args[i]);
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+          Substituter sub = new Substituter(f_this, substMap, typeMap);
           translated_f_reqs.Add(sub.Substitute(req.E));
         }
       }
@@ -1357,10 +1410,10 @@ namespace Microsoft.Dafny
 
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-            Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
-            Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
-            e.UpdateTerm(allReqsSatisfiedAndTerm);
-            reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
+          Expression allReqsSatisfied = andify(e.Term.tok, auto_reqs);
+          Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
+          e.UpdateTerm(allReqsSatisfiedAndTerm);
+          Reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -1370,7 +1423,7 @@ namespace Microsoft.Dafny
         //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -1383,7 +1436,7 @@ namespace Microsoft.Dafny
         }
         auto_reqs.AddRange(generateAutoReqs(e.Term));
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
@@ -1476,8 +1529,7 @@ namespace Microsoft.Dafny
   /// Replace all occurrences of attribute {:timeLimitMultiplier X} with {:timeLimit Y}
   /// where Y = X*default-time-limit or Y = X*command-line-time-limit
   /// </summary>
-  public class TimeLimitRewriter : IRewriter
-  {
+  public class TimeLimitRewriter : IRewriter {
     public TimeLimitRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
@@ -1485,9 +1537,8 @@ namespace Microsoft.Dafny
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
-        if (d is ClassDecl) {
-          var c = (ClassDecl)d;
-          foreach (MemberDecl member in c.Members)  {
+        if (d is TopLevelDeclWithMembers tld) {
+          foreach (MemberDecl member in tld.Members) {
             if (member is Function || member is Method) {
               // Check for the timeLimitMultiplier attribute
               if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
@@ -1498,9 +1549,22 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
-                        attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
-                        attr.Name = "timeLimit";
+                        uint current_limit = 0;
+                        string name = "";
+                        if (DafnyOptions.O.ResourceLimit > 0) {
+                          // Interpret this as multiplying the resource limit
+                          current_limit = DafnyOptions.O.ResourceLimit;
+                          name = "rlimit";
+                        } else {
+                          // Interpret this as multiplying the time limit
+                          current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
+                          name = "timeLimit";
+                        }
+                        Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                        member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
+                        if (Attributes.Contains(attrs, name)) {
+                          Reporter.Warning(MessageSource.Rewriter, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
+                        }
                       }
                     }
                   }
@@ -1514,8 +1578,7 @@ namespace Microsoft.Dafny
   }
 
 
-  class MatchCaseExprSubstituteCloner : Cloner
-  {
+  class MatchCaseExprSubstituteCloner : Cloner {
     private List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst;
     private BoundVar oldvar;
     private BoundVar var;
@@ -1568,7 +1631,7 @@ namespace Microsoft.Dafny
         }
         return new NameSegment(new AutoGeneratedToken(e.tok), bv.Name, null);
       } else {
-        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), Tok(e.CloseParen));
       }
     }
 
@@ -1615,8 +1678,7 @@ namespace Microsoft.Dafny
   // MatchCaseToken is used to record BoundVars that are consolidated due to rewrite of
   // nested match patterns. We want to record the original BoundVars that are consolidated
   // so that they will show up in the IDE correctly.
-  public class MatchCaseToken : AutoGeneratedToken
-  {
+  public class MatchCaseToken : AutoGeneratedToken {
     public readonly List<Tuple<IToken, BoundVar, bool>> varList;
     public MatchCaseToken(IToken tok)
       : base(tok) {
@@ -1629,8 +1691,7 @@ namespace Microsoft.Dafny
   }
 
   // A cloner that replace the original token with AutoGeneratedToken.
-  class AutoGeneratedTokenCloner : Cloner
-  {
+  class AutoGeneratedTokenCloner : Cloner {
     public override IToken Tok(IToken tok) {
       return new AutoGeneratedToken(tok);
     }
@@ -1667,6 +1728,9 @@ namespace Microsoft.Dafny
               } else if (member is Function) {
                 var function = (Function)member;
                 ProcessFunctionExpressions(function);
+                if (function.ByMethodDecl != null) {
+                  ProcessMethodExpressions(function.ByMethodDecl);
+                }
               }
             }
           }
@@ -1755,7 +1819,7 @@ namespace Microsoft.Dafny
               continue;
             }
             if (0 <= j) {
-              reporter.Warning(MessageSource.Rewriter, arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
+              Reporter.Warning(MessageSource.Rewriter, arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
                 lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
               return;
             }
@@ -1766,10 +1830,10 @@ namespace Microsoft.Dafny
               i = 0;
               continue;
             }
-            reporter.Warning(MessageSource.Rewriter, arg.tok, "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
+            Reporter.Warning(MessageSource.Rewriter, arg.tok, "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
             return;
           }
-          reporter.Warning(MessageSource.Rewriter, arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
+          Reporter.Warning(MessageSource.Rewriter, arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
             i == 0 ? "'false' or 'true' or " : "",
             lemma != null ? "lemma parameter" : "bound variable");
           return;
@@ -1782,12 +1846,12 @@ namespace Microsoft.Dafny
       // Okay, here we go, coming up with good induction setting for the given situation
       var inductionVariables = new List<Expression>();
       if (lemma != null && !lemma.IsStatic) {
-        if (args != null || searchExprs.Exists(expr => Translator.ContainsFreeVariable(expr, true, null))) {
+        if (args != null || searchExprs.Exists(expr => FreeVariablesUtil.ContainsFreeVariable(expr, true, null))) {
           inductionVariables.Add(new ThisExpr(lemma));
         }
       }
       foreach (IVariable n in boundVars) {
-        if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+        if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }
@@ -1799,11 +1863,10 @@ namespace Microsoft.Dafny
         if (lemma is PrefixLemma) {
           s = lemma.Name + " " + s;
         }
-        reporter.Info(MessageSource.Rewriter, tok, s);
+        Reporter.Info(MessageSource.Rewriter, tok, s);
       }
     }
-    class Induction_Visitor : BottomUpVisitor
-    {
+    class Induction_Visitor : BottomUpVisitor {
       readonly InductionRewriter IndRewriter;
       public Induction_Visitor(InductionRewriter inductionRewriter) {
         Contract.Requires(inductionRewriter != null);
@@ -1813,18 +1876,6 @@ namespace Microsoft.Dafny
         var q = expr as QuantifierExpr;
         if (q != null && q.SplitQuantifier == null) {
           IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, null, ref q.Attributes);
-        }
-      }
-      void VisitInductionStmt(Statement stmt) {
-        Contract.Requires(stmt != null);
-        // visit a selection of subexpressions
-        if (stmt is AssertStmt) {
-          var s = (AssertStmt)stmt;
-          Visit(s.Expr);
-        }
-        // recursively visit all substatements
-        foreach (var s in stmt.SubStatements) {
-          VisitInductionStmt(s);
         }
       }
     }
@@ -1845,7 +1896,7 @@ namespace Microsoft.Dafny
     public static bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n) {
       switch (DafnyOptions.O.InductionHeuristic) {
         case 0: return true;
-        case 1: return Translator.ContainsFreeVariable(expr, false, n);
+        case 1: return FreeVariablesUtil.ContainsFreeVariable(expr, false, n);
         default: return VarOccursInArgumentToRecursiveFunction(expr, n, false);
       }
     }
@@ -1889,7 +1940,7 @@ namespace Microsoft.Dafny
           // The receiver is considered to be "variant" if the function is recursive and the receiver participates
           // in the effective decreases clause of the function.  The receiver participates if it's a free variable
           // of a term in the explicit decreases clause.
-          variantArgument = rec && decr.Exists(ee => Translator.ContainsFreeVariable(ee, true, null));
+          variantArgument = rec && decr.Exists(ee => FreeVariablesUtil.ContainsFreeVariable(ee, true, null));
         }
         if (VarOccursInArgumentToRecursiveFunction(e.Receiver, n, variantArgument || subExprIsProminent)) {
           return true;
@@ -1906,7 +1957,7 @@ namespace Microsoft.Dafny
             if (f is ImplicitFormal) {
               // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix lemma, or
               variantArgument = true;
-            } else if (decr.Exists(ee => Translator.ContainsFreeVariable(ee, false, f))) {
+            } else if (decr.Exists(ee => FreeVariablesUtil.ContainsFreeVariable(ee, false, f))) {
               // ... it participates in the effective decreases clause of the function, which happens when it is
               // a free variable of a term in the explicit decreases clause, or
               variantArgument = true;
@@ -1998,6 +2049,20 @@ namespace Microsoft.Dafny
       }
     }
   }
+
+  class PluginRewriter : IRewriter {
+    private Plugins.Rewriter internalRewriter;
+
+    public PluginRewriter(ErrorReporter reporter, Plugins.Rewriter internalRewriter) : base(reporter) {
+      this.internalRewriter = internalRewriter;
+    }
+
+    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      internalRewriter.PostResolve(moduleDefinition);
+    }
+
+    internal override void PostResolve(Program program) {
+      internalRewriter.PostResolve(program);
+    }
+  }
 }
-
-

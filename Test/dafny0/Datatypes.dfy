@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(T, List<T>)
@@ -89,7 +89,7 @@ method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode
         case Nil =>
         case Cons(y, more) =>
           var o: object := y;
-          assert p != null ==> p != o;  // follows from well-typedness
+          assert p != o;  // follows from well-typedness
       }
   }
 }

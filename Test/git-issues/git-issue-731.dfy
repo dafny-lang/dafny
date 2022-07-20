@@ -8,10 +8,10 @@
 trait Trait<Y> {
   const y: Y
   const k: Y := y
-  const l: Y 
+  const l: Y
 }
 
-class ClassB extends Trait<array<bv8>> { 
+class ClassB extends Trait<array<bv8>> {
   var m: array<bv8>
   constructor () { m := new bv8[42]; }
 }

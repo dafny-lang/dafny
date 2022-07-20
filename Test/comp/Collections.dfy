@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
@@ -14,6 +14,7 @@ method Main() {
   Maps();
   MultiSetForming();
   TestExplosiveUnion();
+  Regressions.Test();
 }
 
 // -------------------------------------------------------------------------------------------
@@ -35,6 +36,8 @@ method Sets() {
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
+  print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
 
   var cl := new Class;
@@ -66,17 +69,39 @@ method MultiSets() {
   var a := multiset{};
   var b : IntMultiSet := multiset{17, 82, 17, 82};
   var c := multiset{12, 17};
+  var d := multiset{12, 12, 17};
   print "Multisets: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  union: ", a + b, " ", b + c, "\n";
   print "  intersection: ", a * b, " ", b * c, "\n";
   print "  difference: ", a - b, " ", b - c, "\n";
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
-  print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
-  print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  subset: ", a <= b, " ", b <= c, " ", c <= c, " ", c <= d, "\n";
+  print "  proper subset: ", a < b, " ", b < c, " ", c < c, " ", c < d, "\n";
+  print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
+  print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
+
+  zeroMultiplicity();
+}
+
+method zeroMultiplicity() {
+  var a := multiset{12}[12 := 0];
+  var b := multiset{42};
+  var c := multiset{1, 2}[1 := 0][2 := 0];
+  var d := multiset{12};
+  var e := multiset{null}[null := 0];
+  var f := multiset{null};
+  print "Test zero multiplicity:\n";
+  print "  printing: ", multiset{a, multiset{42}}, " ", a + d, "\n";
+  print "  union: ", |a + d|, " ", |d + a|, " ", |e + f|, " ", |f + e|, "\n";
+  print "  membership: ", 12 in a, " ", null in e, "\n";
+  print "  equality: ", a == b, " ", e == f, "\n";
+  print "  subset: ", a <= b, " ", a <= c, " ", c <= a, " ", e <= f, " ", f <= e, "\n";
+  print "  strict subset: ", a < b, " ", a < c, " ", c < a, " ", e < f, " ", f < e, "\n";
+  print "  disjoint: ", a !! d, " ", d !! a, " ", e !! f, " ", f !! e, "\n";
 }
 
 // -------------------------------------------------------------------------------------------
@@ -290,7 +315,7 @@ method TestNullsAmongKeys() {
   var m := map[a := 0, b := 1, c := 2, d := 3];
   var n := map[a := 0, b := 10, c := 20, e := 4];
   var o := map[b := 199, a := 198];
-  
+
   var o' := map[b := 199, c := 55, a := 198];
   var o'' := map[b := 199, c := 56, a := 198];
   var o3 := map[c := 3, d := 16];
@@ -339,7 +364,7 @@ method TestNullsAmongValues() {
   var m: map<int, MyClass?> := map[0 := a, 1 := b, 2 := null, 3 := null];
   var n: map<int, MyClass?> := map[0 := d, 10 := b, 20 := null, 4 := e];
   var o: map<int, MyClass?> := map[199 := null, 198 := a];
-  
+
   var o': map<int, MyClass?> := map[199 := b, 55 := null, 198 := a];
   var o'': map<int, MyClass?> := map[199 := b, 56 := null, 198 := a];
   var o3: map<int, MyClass?> := map[3 := null, 16 := d];
@@ -403,4 +428,63 @@ method TestExplosiveUnion() {
   TestExplosiveUnion1(multiset{58}, 100, 58);  // this requires BigInteger multiplicities in multisets
   var m: multiset<MyClass?> := multiset{null};
   TestExplosiveUnion1(m, 100, null);  // also test null, since the C# implementation does something different for null
+}
+
+// -------------------------------------------------------------------------------------------
+
+module Regressions {
+  newtype uint32 = i:int | 0 <= i < 0x1_0000_0000
+
+  method Test() {
+    TestMap();
+    TestSeq();
+    TestMultiset();
+  }
+
+  method TestMap() {
+    print "Map===\n";
+    var s: map<uint32, uint32> := map[1 := 123];
+    var u := s[1 := 40];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 1 1
+    print "s[1]=", s[1], " u[1]=", u[1], "\n";  // 123 40
+
+    var S: map<int, uint32> := map[1 := 123];
+    var U := S[1 := 41];
+    print "|S|=", |S|, " |U|=", |U|, "\n";  // 1 1
+    print "S[1]=", S[1], " U[1]=", U[1], "\n";  // 123 41
+  }
+
+  method TestSeq() {
+    print "Seq===\n";
+    var s: seq<uint32> := [14, 123];
+    var u := s[1 := 42];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 42
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 42
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 42
+
+    u := s[1 as uint32 := 43];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 43
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 43
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 43
+
+    u := s[1 as bv3 := 44];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 44
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 44
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 44
+  }
+
+  method TestMultiset() {
+    print "Multiset===\n";
+    var s: multiset<uint32> := multiset{14, 123};
+    var u := s[123 := 3];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 4
+    print s[123], " ", u[123], "\n";  // 1 3
+
+    u := s[123 := 3 /*as uint32*/];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 4
+    print s[123], " ", u[123], "\n";  // 1 3
+  }
 }

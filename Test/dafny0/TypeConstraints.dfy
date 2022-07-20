@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {
@@ -515,4 +515,15 @@ module PrettyPrintingBindingPowers {
     e := e + (e + e);
     m := m + (m + m);
   }
+}
+
+module SameSCC {
+  // all of these should be in the same SCC
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = (X, G4)
+  type G4 = G5
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
 }

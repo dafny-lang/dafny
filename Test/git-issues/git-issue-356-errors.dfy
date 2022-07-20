@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
@@ -33,14 +33,14 @@ method Test1OK(n: int)
 method Test2(n: int) {
   var o: ORDINAL := n as ORDINAL;  // ERROR
 }
-  
+
 method Test2OK(n: int)
   requires n >= 0
 {
   var o: ORDINAL := n as ORDINAL;
 }
 
-// real to ORDINAL  
+// real to ORDINAL
 method Test3(r: real)
   requires r.Floor as real == r
 {

@@ -24,8 +24,8 @@ method Main()
   print params, " + ", final, " == ", procedure, "\n";
 }
 
-method catch(for: int) returns (finally: int) {
-  finally := for;
+method catch(do: int) returns (finally: int) {
+  finally := do;
 }
 
 module enum {
@@ -33,7 +33,7 @@ module enum {
   function method do(): goto {
     switch
   }
-  method catch(for: int) returns (finally: int) {
-    finally := for;
+  method catch(do: int) returns (finally: int) {
+    finally := do;
   }
 }

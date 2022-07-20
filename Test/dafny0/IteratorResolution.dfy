@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module SimplestIter {
@@ -68,7 +68,7 @@ module Mx {
 
       assert g2.u == 200;  // error: the type parameter of g2 is unknown
 
-      var h0 := new GenericIteratorResult._ctor();
+      var h0 := new GenericIteratorResult();
       // so far, the instantiated type of h0 is unknown
       var k := h0.t;
       assert k < 87;
@@ -83,7 +83,7 @@ module Mx {
 
       var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
 
-      var h3 := new GenericIterator._ctor(30);  // see two lines down
+      var h3 := new GenericIterator(30);  // see two lines down
       if h3.t == h3.u {
         assert !h3.t;  // error: type mismatch (here or two lines ago)
       }

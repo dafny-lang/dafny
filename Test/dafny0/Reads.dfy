@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Checking that the reads clause also is checked over requires
@@ -144,7 +144,7 @@ class DynamicFramesIdiom {
 
 class ReadsTestsInsideLetSuchThat {
   var y: int
-    
+
   function F(): int {
     var yy :| yy == this.y;  // error: F does not have permission to read this.y
     yy

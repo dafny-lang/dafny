@@ -20,14 +20,6 @@ class C {
 
 // ----------
 
-newtype MyInt = int
-
-method TypeConversionSyntax(x: int) returns (y: MyInt) {
-  y := MyInt(x);  // deprecation warning: the current syntax is "x as MyInt"
-}
-
-// ----------
-
 inductive predicate InductivePredicate()  // deprecation warning: "inductive predicate" has been renamed to "least predicate"
 { true }
 

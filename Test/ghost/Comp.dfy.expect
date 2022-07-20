@@ -1,0 +1,82 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (0)
+Test2: (0, 0)
+Test3: ((), (0))
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+100 200
+(0, 0) (0, 0) (0) (0)
+9 25
+5 25
+()
+5 9
+25 36
+5
+25
+() 14 61 5 25
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (0)
+Test2: (0, 0)
+Test3: ((), (0))
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+100 200
+(0, 0) (0, 0) (0) (0)
+9 25
+5 25
+()
+5 9
+25 36
+5
+25
+() 14 61 5 25
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (0)
+Test2: (0, 0)
+Test3: ((), (0))
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+100 200
+(0, 0) (0, 0) (0) (0)
+9 25
+5 25
+()
+5 9
+25 36
+5
+25
+() 14 61 5 25
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (0)
+Test2: (0, 0)
+Test3: ((), (0))
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+100 200
+(0, 0) (0, 0) (0) (0)
+9 25
+5 25
+()
+5 9
+25 36
+5
+25
+() 14 61 5 25

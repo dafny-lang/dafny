@@ -1,4 +1,6 @@
 
+Dafny program verifier finished with 29 verified, 0 errors
+
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
@@ -8,6 +10,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -19,11 +23,21 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -96,6 +110,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
@@ -106,6 +137,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -117,11 +150,21 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -194,6 +237,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
@@ -204,6 +264,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -215,11 +277,21 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -292,6 +364,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {17, 12}
@@ -302,6 +391,8 @@ Sets: {} {17, 82} {17, 12}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -313,11 +404,21 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{17, 12}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{17, 17, 12}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -390,3 +491,20 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3

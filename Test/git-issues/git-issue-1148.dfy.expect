@@ -1,0 +1,23 @@
+git-issue-1148.dfy(9,17): Error: static non-ghost const field 'Static' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(10,10): Error: non-ghost const field 'Instance' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(22,17): Error: static non-ghost const field 'StaticField' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(21,8): Error: class 'Class' with fields without known initializers, like 'InstanceField' of type 'Y', must declare a constructor
+git-issue-1148.dfy(27,17): Error: static non-ghost const field 'StaticField' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(31,8): Error: class 'TraitImpl' with fields without known initializers, like 'InstanceField' of type 'Y', must declare a constructor
+git-issue-1148.dfy(36,17): Error: static non-ghost const field 'Static' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(37,10): Error: non-ghost const field 'Instance' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(42,17): Error: static non-ghost const field 'Static' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(43,10): Error: non-ghost const field 'Instance' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(19,8): Error: static non-ghost const field 'Global' of type 'Y' (which does not have a default compiled value) must give a defining value
+git-issue-1148.dfy(52,23): Error: static ghost const field 'Static' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(53,16): Error: ghost const field 'Instance' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(59,23): Error: static ghost const field 'StaticField' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(58,8): Error: class 'Class' with fields without known initializers, like 'InstanceField' of type 'Y', must declare a constructor
+git-issue-1148.dfy(64,23): Error: static ghost const field 'StaticField' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(68,8): Error: class 'TraitImpl' with fields without known initializers, like 'InstanceField' of type 'Y', must declare a constructor
+git-issue-1148.dfy(73,23): Error: static ghost const field 'Static' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(74,16): Error: ghost const field 'Instance' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(79,23): Error: static ghost const field 'Static' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(80,16): Error: ghost const field 'Instance' of type 'Y' (which may be empty) must give a defining value
+git-issue-1148.dfy(56,14): Error: static ghost const field 'Global' of type 'Y' (which may be empty) must give a defining value
+22 resolution/type errors detected in git-issue-1148.dfy

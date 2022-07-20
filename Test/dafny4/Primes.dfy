@@ -201,7 +201,7 @@ lemma LargestElementExists(s: set<int>)
   var s' := s;
   while true
     invariant s' != {} && s' <= s
-    invariant forall x,y {:nowarn} :: x in s' && y in s - s' ==> y <= x
+    invariant forall x,y :: x in s' && y in s && y !in s' ==> y <= x
     decreases s'
   {
     var x :| x in s';  // pick something

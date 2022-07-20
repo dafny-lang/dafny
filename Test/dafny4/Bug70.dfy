@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  /ironDafny "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M1
@@ -11,8 +11,9 @@ module M3 { import opened M1 }
 
 module M4
 {
-  import opened M2
-  import opened M3
+  import opened M1  // this is required to access D() unqualified below
+  import opened M2  // this causes no name conflict
+  import opened M3  // this causes no name conflict
   method Main()
   {
     var x := D();

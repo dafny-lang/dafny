@@ -37,7 +37,7 @@ method LinearSearch(a: array<uint32>, len:uint32, key: uint32) returns (n: uint3
   }
 }
 
-method PrintArray<A>(a:array?<A>, len:uint32) 
+method PrintArray<A>(a:array?<A>, len:uint32)
   requires a != null ==> len as int == a.Length
 {
   if (a == null) {
@@ -72,7 +72,7 @@ method Main() {
   print s, "\n";
   s := a[..8];
   print s, "\n";
-  
+
   // Conversion to sequence should copy elements (sequences are immutable!)
   a[0] := 42;
   print s, "\n";

@@ -1,14 +1,8 @@
 Matrix-OOB.dfy(11,10): Info: Selected triggers: {m[i, j]}
 Matrix-OOB.dfy(11,26): Error: index 0 out of range
-Execution trace:
-    (0,0): anon0
 Matrix-OOB.dfy(11,26): Error: index 1 out of range
-Execution trace:
-    (0,0): anon0
 Matrix-OOB.dfy(12,0): Error: A postcondition might not hold on this return path.
 Matrix-OOB.dfy(11,10): Related location: This is the postcondition that might not hold.
 Matrix-OOB.dfy(11,33): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 3 errors

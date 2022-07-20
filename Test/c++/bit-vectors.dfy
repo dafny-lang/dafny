@@ -25,7 +25,7 @@ lemma {:axiom} as_int_as_bv64(a: bv64)
   ensures (a as int) as bv64 == a
   ensures (a as int) < 0x10000000000000000
 
-method Casts(u0:uint64) 
+method Casts(u0:uint64)
 {
   var r0:bv64 := u0 as bv64 << 1;
   as_int_as_bv64(u0 as bv64 << 1);

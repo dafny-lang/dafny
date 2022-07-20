@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using Microsoft.Boogie;
 using System;
 using System.Collections.Generic;
@@ -5,10 +8,8 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 
-namespace Microsoft.Dafny.Triggers
-{
-  class QuantifierSplitter : BottomUpVisitor
-  {
+namespace Microsoft.Dafny.Triggers {
+  class QuantifierSplitter : BottomUpVisitor {
     /// This cache was introduced because some statements (notably calc) return the same SubExpression multiple times.
     /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier
     /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these
@@ -74,8 +75,8 @@ namespace Microsoft.Dafny.Triggers
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
         foreach (var e in stream) {
-          var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ForallExpr(tok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var tok = new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
+          yield return new ForallExpr(tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -85,8 +86,8 @@ namespace Microsoft.Dafny.Triggers
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
         foreach (var e in stream) {
-          var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ExistsExpr(tok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
+          yield return new ExistsExpr(tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
         yield return quantifier;
@@ -130,13 +131,11 @@ namespace Microsoft.Dafny.Triggers
     }
   }
 
-  class MatchingLoopRewriter
-  {
+  class MatchingLoopRewriter {
     TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
     List<Tuple<Expression, IdentifierExpr>> substMap;
 
-    public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q)
-    {
+    public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q) {
       // rewrite quantifier to avoid matching loops
       // before:
       //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
@@ -154,23 +153,23 @@ namespace Microsoft.Dafny.Triggers
                 var ie = new IdentifierExpr(sub.tok, newBv.Name);
                 ie.Var = newBv;
                 ie.Type = newBv.Type;
-                substMap.Add(new Tuple<Expression,IdentifierExpr>(sub, ie));
+                substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
               }
             }
           }
         }
       }
 
-      var expr = (QuantifierExpr) q.quantifier;
+      var expr = (QuantifierExpr)q.quantifier;
       if (substMap.Count > 0) {
-        var s = new Translator.ExprSubstituter(substMap);
+        var s = new ExprSubstituter(substMap);
         expr = s.Substitute(q.quantifier) as QuantifierExpr;
       } else {
         // make a copy of the expr
         if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ForallExpr(expr.tok, expr.BodyEndTok, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         } else {
-          expr = new ExistsExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ExistsExpr(expr.tok, expr.BodyEndTok, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         }
       }
       return expr;

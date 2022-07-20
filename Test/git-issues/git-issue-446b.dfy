@@ -53,7 +53,7 @@ method m1(i: int) returns (r: Result<int>)
   return Success(i);
 }
 
-method mexp() returns (r: Result<int>, k: int) 
+method mexp() returns (r: Result<int>, k: int)
   ensures r.IsFailure() && k == 100;
 {
   k :- Result<int>.Failure("always"), 100;
@@ -61,7 +61,7 @@ method mexp() returns (r: Result<int>, k: int)
   return Success(0), k;
 }
 
-method mstar() returns (r: Result<int>, k: int) 
+method mstar() returns (r: Result<int>, k: int)
   ensures r.IsFailure();
 {
   k :- Result<int>.Failure("always"), *;

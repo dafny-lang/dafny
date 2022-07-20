@@ -1,5 +1,3 @@
 Regression10.dfy(11,20): Error: value does not satisfy the subset constraints of 'EvenSet<int>'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 1 verified, 1 error

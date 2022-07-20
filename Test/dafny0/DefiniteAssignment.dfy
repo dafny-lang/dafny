@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass<G> {
@@ -386,4 +386,69 @@ module NonEmpty {
       y := g;
     }  // error: x was never assigned
   }
+}
+
+module Regression {
+  class Class { }
+
+  // The resolver didn't always compute the smallest set of used type parameters. That made
+  // it pick "Large" as the grounding constructor instead of "Small".
+  datatype D<X, Y> = Small(X, X, X, X) | Large(X, Y)
+
+  // The following method detects if Large is picked as the grounding constructor. If it
+  // is (and it once was), then a definite-assignment error would be generated. However,
+  // if it properly picks Small as the ground constructor, then there is no error.
+  method M() returns (d: D<int, Class>) {
+  }
+
+  // Similarly, the following should pick "Little" as the ground constructor, because it
+  // does not make use of any type parameters.
+  type Opaque(0)
+  datatype E<Z> = Little(Opaque, Opaque, Opaque) | Big(Z)
+
+  // If Big is picked as the grounding constructor, then a definite-assignment error
+  // would be generated for the following method. This was once the case. But if the
+  // grounding constructor is picked to be Little (as it should be), then there is no
+  // error in method N.
+  method N() returns (e: E<Class>) {
+  }
+}
+
+module AdditionalTests {
+  type GGG(00)
+
+  method DefiniteAssignmentLocal0() returns (r: GGG) {
+    var g: GGG;
+    r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+  }
+
+  method DefiniteAssignmentLocal1(a: bool, ghost b: bool) returns (ghost r: GGG, r': GGG) {
+    var g: GGG;
+    if a {
+      r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      r' := g; // this is an error, but it is masked by the error on the previous line
+    } else {
+      if b {
+        var h: GGG;
+        h := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      }
+    }
+  } // error: r' may not have been assigned
+
+  ghost method DefiniteAssignmentLocal2() returns (r: GGG) {
+    var g: GGG; // no initialization needed, since we're in a ghost context
+    r := g;
+  }
+
+  method DefiniteAssignmentOut0() returns (r: GGG) {
+  } // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+
+  method DefiniteAssignmentOut1() returns (ghost r: GGG) {
+  } // no initialization needed, since the out-parameter is ghost
+
+  ghost method DefiniteAssignmentOut2() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
+
+  lemma DefiniteAssignmentOut3() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
 }

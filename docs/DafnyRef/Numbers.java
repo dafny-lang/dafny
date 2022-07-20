@@ -1,5 +1,5 @@
 // This program inserts section numbers into a .md document (replacing
-// any that are there). It also puts in the section numbers in 
+// any that are there). It also puts in the section numbers in
 // cross-reference links.
 // A heading line consists of: one or more #, a dotted section number,
 // the section title, and the reference {#sec-name}
@@ -53,7 +53,7 @@ public static String num() {
 
 public static void process(String file, boolean replace) {
   if (verbose) System.out.println("Opening " + file);
-  try (FileReader f = new FileReader(file); 
+  try (FileReader f = new FileReader(file);
        BufferedReader r = new BufferedReader(f)) {
     PrintWriter w = null;
     if (replace) w = new PrintWriter(new BufferedWriter(new FileWriter(file + ".tmp")));
@@ -124,7 +124,7 @@ public static void process(String file, boolean replace) {
       }
       if (replace) w.println(out);
     }
-    if (w != null) { 
+    if (w != null) {
       w.close();
       Path a = FileSystems.getDefault().getPath(file + ".tmp");
       Path b = FileSystems.getDefault().getPath(file);

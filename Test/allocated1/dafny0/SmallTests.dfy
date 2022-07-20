@@ -1,4 +1,4 @@
-// RUN: %dafny /verifyAllModules /allocated:1 /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
+// RUN: %dafny_0 /verifyAllModules /allocated:1 /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
 // RUN: %dafny /verifyAllModules /allocated:1 /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -751,10 +751,10 @@ class GT {
   {
     if (*) {
       P0();
-      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // error: method P2 may have allocated stuff
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // error: method P0 may have allocated stuff
     } else {
       P1();
-      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // fine, because the ghost method does not allocate anything
+      assert forall x: GT {:nowarn} :: allocated(x) ==> old(allocated(x));  // error: ghost method P1 may have allocated stuff
     }
   }
 }

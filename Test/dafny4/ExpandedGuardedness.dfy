@@ -184,7 +184,8 @@ greatest lemma OnlyDsTotal_Nat[nat]()
 
 // ---------------------------------------------------
 
-codatatype IMLang<S> = IML(nullable: bool, deriv: imap<S, IMLang<S>>)
+// S should be specified as a non-strict covariant
+codatatype IMLang<!S> = IML(nullable: bool, deriv: imap<S, IMLang<S>>)
 
 function IMNothing<S(!new)>(): IMLang
 {

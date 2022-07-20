@@ -1,8 +1,5 @@
 Bug160.dfy(26,18): Error: A postcondition might not hold on this return path.
 Bug160.dfy(27,13): Related location: This is the postcondition that might not hold.
 Bug160.dfy(27,29): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 2 verified, 1 error

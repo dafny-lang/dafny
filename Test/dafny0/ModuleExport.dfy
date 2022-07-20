@@ -1,4 +1,4 @@
-// RUN: %dafny /env:0 /dprint:"%t.dprint" /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /env:0 /dprint:"%t.dprint" /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -266,4 +266,20 @@ module ModuleName8 {
   export X reveals e  // error: duplicate name of export set
   const pi: int
   const e: int
+}
+
+module ExportCycle0 {
+  export extends A // error: export cycle
+  export A extends B
+  export B extends ExportCycle0
+}
+
+module ExportCycle1 {
+  export A extends B // error: export cycle
+    provides X
+  export B extends C
+    reveals X
+  export C extends A
+    provides X
+  type X = int
 }

@@ -35,6 +35,20 @@ module Outer.D {
   const d := 3
 }
 
+module Outer.E {
+  export
+    provides F
+
+  module F {
+    export G
+  }
+}
+
+module Outer.H {
+  import E
+  import E.F`G
+}
+
 // ----- Oreo
 
 module XY.X {

@@ -1,7 +1,7 @@
 EqualityTypes.dfy(34,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 EqualityTypes.dfy(35,11): Error: type 'Y', which does not support equality, is used to refine an opaque type with equality support
-EqualityTypes.dfy(40,11): Error: type 'X' is declared with a different number of type parameters (1 instead of 0) than the corresponding type in the module it refines
-EqualityTypes.dfy(41,8): Error: type 'Y' is declared with a different number of type parameters (1 instead of 0) than the corresponding type in the module it refines
+EqualityTypes.dfy(40,11): Error: datatype 'X' is declared with a different number of type parameters (1 instead of 0) than the corresponding datatype in the module it refines
+EqualityTypes.dfy(41,8): Error: class 'Y' is declared with a different number of type parameters (1 instead of 0) than the corresponding class in the module it refines
 EqualityTypes.dfy(45,11): Error: type 'X', which does not support equality, is used to refine an opaque type with equality support
 EqualityTypes.dfy(46,11): Error: type 'Y', which does not support equality, is used to refine an opaque type with equality support
 EqualityTypes.dfy(66,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)
@@ -66,9 +66,9 @@ EqualityTypes.dfy(331,31): Error: set argument type must support equality (got S
 EqualityTypes.dfy(334,7): Error: == can only be applied to expressions of types that support equality (got seq<int -> int>)
 EqualityTypes.dfy(337,14): Error: in can only be applied to expressions of sequence types that support equality (got seq<int -> int>)
 EqualityTypes.dfy(340,16): Error: in can only be applied to expressions of sequence types that support equality (got seq<int -> int>)
-EqualityTypes.dfy(359,11): Error: type parameter (A) passed to type JustOpaque must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypes.dfy(360,11): Error: type parameter (A) passed to type Synonym must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypes.dfy(361,11): Error: type parameter (A) passed to type Subset must support equality (got ABC) (perhaps try declaring type parameter 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(359,11): Error: type parameter (A) passed to type JustOpaque must support equality (got ABC) (perhaps try declaring opaque type 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(360,11): Error: type parameter (A) passed to type Synonym must support equality (got ABC) (perhaps try declaring opaque type 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypes.dfy(361,11): Error: type parameter (A) passed to type Subset must support equality (got ABC) (perhaps try declaring opaque type 'ABC' on line 354 as 'ABC(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypes.dfy(376,9): Error: == can only be applied to expressions of types that support equality (got List<A>)
 EqualityTypes.dfy(378,9): Error: == can only be applied to expressions of types that support equality (got List<A>)
 EqualityTypes.dfy(381,9): Error: == can only be applied to expressions of types that support equality (got List<A>)

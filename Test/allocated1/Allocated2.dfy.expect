@@ -1,4 +1,4 @@
-Allocated2.dfy(3,8): Error: the included file AllocatedCommon.dfyi contains error(s)
+Allocated2.dfy(4,8): Error: the included file AllocatedCommon.dfyi contains error(s)
 AllocatedCommon.dfyi(23,26): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(24,26): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(25,26): Error: a function definition is not allowed to depend on the set of allocated references

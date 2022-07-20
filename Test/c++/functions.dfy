@@ -29,7 +29,7 @@ module Test {
     x as uint64 + 1
   }
 
-  function method Seqs<T>(s:seq<T>, x:uint32, default_val:T) : T 
+  function method Seqs<T>(s:seq<T>, x:uint32, default_val:T) : T
     requires |s| < 1000
   {
     if |s| as uint32 > x then s[x] else default_val

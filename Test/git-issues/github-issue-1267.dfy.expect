@@ -1,0 +1,10 @@
+// github-issue-1267.dfy
+
+method Test()
+{
+  var tuple0 := (1 := 300, 0 := 10);
+  var tuple1 := (10, 300);
+  assert tuple0 == tuple1;
+}
+
+Dafny program verifier finished with 1 verified, 0 errors

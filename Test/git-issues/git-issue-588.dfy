@@ -14,7 +14,7 @@ module myclass {
     }
   }
 
-  method Main() { 
+  method Main() {
     var c_obj := new MyClass(2);
   }
 }

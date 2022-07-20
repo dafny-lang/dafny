@@ -1,15 +1,8 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3  # Use the ref you want to point at
+-   repo: local
     hooks:
-    -   id: trailing-whitespace
-        exclude: >  # exclude generated files, third-party files, and .expect files
-            (?x)^(
-                Source/Dafny/Parser\.cs|
-                Source/Dafny/Scanner\.cs|
-                Docs/DafnyRef/madoko\.css|
-                Docs/DafnyRef/css\.sty|
-                Docs/DafnyRef/out/DafnyRef\.html|
-                third_party/Coco/.*|
-                Test/.*\.expect
-            )$
+    -   id: dotnet-format
+        name: dotnet-format
+        language: system
+        entry: dotnet tool run dotnet-format --folder -w --include
+        types_or: ["c#"]

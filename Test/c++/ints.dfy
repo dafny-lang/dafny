@@ -14,7 +14,7 @@ newtype nat16 = i:int | 0 <= i < 0x8000
 newtype nat32 = i:int | 0 <= i < 0x80000000
 newtype nat64 = i:int | 0 <= i < 0x8000000000000000
 
-method Division(a:int64) 
+method Division(a:int64)
   requires 0 <= a < 0x1_0000_0000
 {
   var z := a / 2;
@@ -25,6 +25,6 @@ method Main() {
   var x:uint32 := 40;
   var y:uint32 := 2;
   var z := x + y;
-  
+
   print "Result is z = ", z, "\n";
 }

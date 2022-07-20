@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype VoidOutcome =
@@ -24,6 +24,6 @@ predicate MyPredicate() {
 
 method Main() returns (r: VoidOutcome) {
   // Verifies, but then fails to compile because MyPredicate isn't compiled
-  r := Require(MyPredicate()); 
+  r := Require(MyPredicate());
 }
 

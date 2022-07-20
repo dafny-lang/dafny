@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.math.BigInteger;
@@ -55,7 +58,11 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return DafnySequence.fromArray(TypeDescriptor.CHAR, Array.wrap(elements));
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySequence<T> empty(TypeDescriptor<T> type) {
+        if (type == TypeDescriptor.CHAR) {
+            return (DafnySequence<T>) asString("");
+        }
         return ArrayDafnySequence.<T> empty(type);
     }
 
@@ -63,7 +70,11 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return fromRawArray(type, elements.unwrap());
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySequence<T> fromRawArray(TypeDescriptor<T> type, Object elements) {
+        if (type == TypeDescriptor.CHAR) {
+            return (DafnySequence<T>) asString(new String((char[]) elements));
+        }
         return new ArrayDafnySequence<>(Array.wrap(type, elements).copy());
     }
 
@@ -114,7 +125,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         for(int i = 0; i < len; i++) {
             values.set(i, init.apply(BigInteger.valueOf(i)));
         }
-        return new ArrayDafnySequence<>(values);
+        return fromArray(type, values);
     }
 
     @SuppressWarnings("unchecked")
@@ -395,6 +406,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return builder.toString();
     }
 
+    public Iterable<T> Elements() {
+        return this;
+    }
+
     public HashSet<T> UniqueElements() {
         return new HashSet<>(asList());
     }
@@ -664,6 +679,11 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
 
     @Override
     public String verbatimString() {
+        return string;
+    }
+
+    @Override
+    public String toString() {
         return string;
     }
 }

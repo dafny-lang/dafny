@@ -1,0 +1,38 @@
+ForLoops-Resolution.dfy(6,18): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(11,13): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(32,8): Error: RHS (of type Nat) not assignable to LHS (of type nat)
+ForLoops-Resolution.dfy(38,8): Error: RHS (of type int) not assignable to LHS (of type Nat)
+ForLoops-Resolution.dfy(78,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
+ForLoops-Resolution.dfy(86,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
+ForLoops-Resolution.dfy(95,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+ForLoops-Resolution.dfy(133,13): Error: lower bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(133,20): Error: upper bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(138,8): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(143,8): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(143,19): Error: lower bound (of type int) not assignable to index variable (of type real)
+ForLoops-Resolution.dfy(148,8): Error: index variable is expected to be of an integer type (got bv8)
+ForLoops-Resolution.dfy(153,8): Error: index variable is expected to be of an integer type (got ORDINAL)
+ForLoops-Resolution.dfy(158,8): Error: index variable is expected to be of an integer type (got char)
+ForLoops-Resolution.dfy(167,6): Error: LHS of assignment must denote a mutable variable
+ForLoops-Resolution.dfy(199,4): Warning: note, this loop has no body (loop frame: i)
+ForLoops-Resolution.dfy(204,4): Warning: note, this loop has no body (loop frame: i, y)
+ForLoops-Resolution.dfy(210,4): Warning: note, this loop has no body (loop frame: i, $Heap)
+ForLoops-Resolution.dfy(243,8): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
+ForLoops-Resolution.dfy(256,10): Error: a 'break break break' statement is allowed only in contexts with 3 enclosing loops, but the current context only has 2
+ForLoops-Resolution.dfy(297,16): Error: break label is undefined or not in scope: D
+ForLoops-Resolution.dfy(299,16): Error: break label is undefined or not in scope: XYZ
+ForLoops-Resolution.dfy(321,18): Error: break label is undefined or not in scope: D
+ForLoops-Resolution.dfy(332,11): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(353,24): Error: break label is undefined or not in scope: A
+ForLoops-Resolution.dfy(355,18): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
+ForLoops-Resolution.dfy(390,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(412,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(434,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(446,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(457,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(479,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(503,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(510,4): Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause
+ForLoops-Resolution.dfy(517,4): Error: 'decreases *' is not allowed on ghost loops
+34 resolution/type errors detected in ForLoops-Resolution.dfy

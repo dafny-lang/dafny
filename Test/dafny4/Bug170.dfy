@@ -57,3 +57,20 @@ module CoThings {
     assert A(x+1);  // this one should be replaced by A#[_k-1] (which will happen, provided that BB is listed as also being specialized for A)
   }
 }
+
+module SingleThings {
+  predicate P(x: int)
+
+  least predicate A(x: int)
+  {
+    P(x) || A(x+1)
+  }
+
+  least lemma AA(x: int)  // should be specialized just for A
+    requires A(x)
+  {
+    if A(x+1) {  // this one should be replaced by B#[_k-1](x+1)
+      AA(x+1);
+    }
+  }
+}

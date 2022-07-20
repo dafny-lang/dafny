@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -40,11 +40,15 @@ class C {
   method New()
   {
     var c: C := new C;
+    label PostAlloc:
     if
     case true =>  assert unchanged(this);
-    case true =>  assert unchanged(c);  // error: 'alloc' changed
-    case true =>  assert unchanged(c`f);  // error: 'alloc' changed
-    case true =>  assert unchanged(this, c);  // error: 'alloc' changed for 'c'
-    case true =>  assert unchanged(c, this);  // error: 'alloc' changed for 'c'
+    case true =>  assert unchanged(c);  // error: object must be allocated in old state
+    case true =>  assert unchanged(c`f);  // error: object must be allocated in old state
+    case true =>  assert unchanged(this, c);  // error: object must be allocated in old state
+    case true =>  assert unchanged(c, this);  // error: object must be allocated in old state
+    case true =>  assert unchanged@PostAlloc(this);
+    case true =>  assert unchanged@PostAlloc(c);
+    case true =>  assert unchanged@PostAlloc(c`f);
   }
 }

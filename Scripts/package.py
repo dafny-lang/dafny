@@ -10,7 +10,9 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
+from urllib import request
+from http.client import IncompleteRead
+from urllib.error import HTTPError
 import zipfile
 import shutil
 import ntpath
@@ -24,6 +26,8 @@ import ntpath
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
 Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+## How many times we allow ourselves to try to download Z3
+Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
 ## Allowed Dafny release names
 DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
@@ -47,8 +51,6 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
-
 # Constants
 
 THIS_FILE = path.realpath(__file__)
@@ -58,7 +60,7 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out" ] ) ## Other files to include in zip
+OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out", "Scripts/allow_on_mac.sh" ] ) ## Other files to include in zip
 OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
 z3ToDotNetOSMapping = {
@@ -108,15 +110,46 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with urllib.request.urlopen(self.url) as reader:
-                with open(self.z3_zip, mode="wb") as writer:
-                    writer.write(reader.read())
-            flush("done!")
+            for currentAttempt in range(Z3_MAX_DOWNLOAD_ATTEMPTS):
+                try:
+                    with request.urlopen(self.url) as reader:
+                        with open(self.z3_zip, mode="wb") as writer:
+                            writer.write(reader.read())
+                    flush("done!")
+                    break
+                except (IncompleteRead, HTTPError):
+                    if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
+                        raise
+
 
     @staticmethod
     def zipify_path(fpath):
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
+
+    def run_publish(self, project):
+        env = dict(os.environ)
+        env["RUNTIME_IDENTIFIER"] = self.target
+        flush("   + Publishing " + project)
+        remaining = 3
+        exitStatus = 1
+        while 0 < remaining and exitStatus != 0:
+            remaining -= 1
+            exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
+                "--nologo",
+                "-f", "net6.0",
+                "-o", self.buildDirectory,
+                "-r", self.target,
+                "--self-contained",
+                "-c", "Release"], env=env)
+            if exitStatus != 0:
+                if remaining == 0:
+                    flush("failed! (Is Dafny or the Dafny server running?)")
+                    sys.exit(1)
+                else:
+                    flush("failed! (Retrying another %s)" %
+                        ("time" if remaining == 1 else f"{remaining} times"))
+        flush("done!")
 
     def build(self):
         os.chdir(ROOT_DIRECTORY)
@@ -125,19 +158,9 @@ class Release:
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
-        run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
+        self.run_publish("DafnyLanguageServer")
+        self.run_publish("DafnyServer")
+        self.run_publish("DafnyDriver")
 
     def pack(self):
         try:
@@ -160,9 +183,8 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
-            for fpath in paths:
-                if os.path.isdir(fpath):
+            for fpath in pathsInDirectory(self.buildDirectory) + OTHERS:
+                if os.path.isdir(fpath) or fpath.endswith(".pdb"):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
@@ -185,7 +207,9 @@ class Release:
 
 def discover(args):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
+    options = {"Authorization": "Bearer " + args.github_secret} if args.github_secret else {}
+    req = request.Request(Z3_RELEASES_URL, None, options)
+    with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
@@ -201,7 +225,7 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
 
 def pathsInDirectory(directory):
-    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+    return [path.join(directory, file) for file in os.listdir(directory)]
 
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
@@ -225,17 +249,18 @@ def pack(args, releases):
         release.build()
         release.pack()
     if not args.skip_manual:
-        run(["make", "--quiet", "refman-release"])
+        run(["make", "--quiet", "refman"])
 
 def check_version_cs(args):
     # Checking version.cs
     fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
     lines = fp.readlines()
-    qstart = lines[2].index('"')
-    qend = lines[2].index('"', qstart+1)
-    lastdot = lines[2].rindex('.',qstart)
-    v1 = lines[2][qstart+1:lastdot]
-    v2 = lines[2][lastdot+1:qend]
+    verline = lines[5]
+    qstart = verline.index('"')
+    qend = verline.index('"', qstart+1)
+    lastdot = verline.rindex('.',qstart)
+    v1 = verline[qstart+1:lastdot]
+    v2 = verline[lastdot+1:qend]
     now = time.localtime()
     year = now[0]
     month = now[1]
@@ -249,10 +274,10 @@ def check_version_cs(args):
         hy = args.version
     if hy != v1:
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1) and not args.trial:
+    if (v2 != v3 or hy != v1):
         return False
     fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
     return True
 
 def parse_arguments():
@@ -261,18 +286,20 @@ def parse_arguments():
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
     parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
     parser.add_argument("--out", help="output zip file")
     return parser.parse_args()
 
 def main():
     args = parse_arguments()
-    if not DAFNY_RELEASE_REGEX.match(args.version):
-        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-        return
-    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+    if not args.trial:
+        if not DAFNY_RELEASE_REGEX.match(args.version):
+            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+            return
+        if not check_version_cs(args):
+            return
 
-    if not check_version_cs(args):
-        return
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
     flush("* Finding and downloading Z3 releases")

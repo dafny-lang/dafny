@@ -30,6 +30,10 @@ method Main() {
   AutoAccumulatorTests();
 
   Regression.Test();
+
+  // In the following, 2_000_000 is too large an argument without tail-calls
+  x := FunctionByMethodTailRecursion(2_000_000);
+  print x, "\n";  // 2_000_000
 }
 
 method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
@@ -346,5 +350,15 @@ module Regression {
         r := next.RecM'(n - 1, f);
       }
     }
+  }
+}
+
+function FunctionByMethodTailRecursion(x: int, y: int := 0): (r: int) {
+  x + y
+} by method {
+  if x < 8 || x == 77 {
+    return x + y;
+  } else {
+    r := FunctionByMethodTailRecursion(x - 1, y + 1);
   }
 }

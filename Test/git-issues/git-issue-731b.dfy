@@ -12,7 +12,7 @@ trait Tr2<W, Y> {
   const y: Y
 }
 
-class ClassA<Q> extends Tr2<Q, array<bv8>> { 
+class ClassA<Q> extends Tr2<Q, array<bv8>> {
   constructor (q: Q) { w := q; }
 }
 

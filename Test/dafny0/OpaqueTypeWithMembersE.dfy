@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type FailureCompatible {
+type FailureCompatible(0) {
   const c: int
   predicate method IsFailure() { c < 10 }
   function method PropagateFailure(): int

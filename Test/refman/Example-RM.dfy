@@ -1,4 +1,2 @@
-// RUN: %dafny /verifyAllModules /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 "%refmanexamples/Example-RM.dfy" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
-include "../../docs/DafnyRef/examples/Example-RM.dfy"

@@ -1,0 +1,76 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+Test1
+
+Dafny program verifier did not attempt verification
+Test1
+
+Dafny program verifier did not attempt verification
+Test1
+
+Dafny program verifier did not attempt verification
+Test1
+
+Dafny program verifier did not attempt verification
+Test2
+
+Dafny program verifier did not attempt verification
+Test2
+
+Dafny program verifier did not attempt verification
+Test2
+
+Dafny program verifier did not attempt verification
+Test2
+
+Dafny program verifier did not attempt verification
+Test3
+
+Dafny program verifier did not attempt verification
+Test3
+
+Dafny program verifier did not attempt verification
+Test3
+
+Dafny program verifier did not attempt verification
+Test3
+
+Dafny program verifier did not attempt verification
+Test4
+
+Dafny program verifier did not attempt verification
+Test4
+
+Dafny program verifier did not attempt verification
+Test4
+
+Dafny program verifier did not attempt verification
+Test4
+
+Dafny program verifier did not attempt verification
+Test5
+
+Dafny program verifier did not attempt verification
+Test5
+
+Dafny program verifier did not attempt verification
+Test5
+
+Dafny program verifier did not attempt verification
+Test5
+
+Dafny program verifier did not attempt verification
+(0,-1): Error: Could not find the method named by the -Main option: X
+
+Dafny program verifier did not attempt verification
+(0,-1): Error: Could not find the method named by the -Main option: X
+
+Dafny program verifier did not attempt verification
+(0,-1): Error: Could not find the method named by the -Main option: X
+Wrote textual form of partial target program to git-issue-Main4-go/src/git-issue-Main4.go
+
+Dafny program verifier did not attempt verification
+(0,-1): Error: Could not find the method named by the -Main option: X
+Wrote textual form of partial target program to git-issue-Main4-java/git_issue_Main4.java

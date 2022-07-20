@@ -18,4 +18,6 @@ ModuleExport.dfy(252,8): Error: duplicate declaration for name X
 ModuleExport.dfy(259,13): Error: no default export set declared in module: ModuleName4
 ModuleExport.dfy(262,25): Error: no export set 'Y' in module 'ModuleName4'
 ModuleExport.dfy(266,9): Error: duplicate name of export set: X
-19 resolution/type errors detected in ModuleExport.dfy
+ModuleExport.dfy(272,2): Error: module export contains a cycle: ExportCycle0 -> A -> B -> ExportCycle0
+ModuleExport.dfy(278,9): Error: module export contains a cycle: A -> B -> C -> A
+21 resolution/type errors detected in ModuleExport.dfy

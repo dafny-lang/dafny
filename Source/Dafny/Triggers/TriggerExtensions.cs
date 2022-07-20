@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #define THROW_UNSUPPORTED_COMPARISONS
 
 using Microsoft.Dafny;
@@ -111,7 +114,7 @@ namespace Microsoft.Dafny.Triggers {
         if (expr2 is IdentifierExpr) {
           return true;
         } else {
-          var freeInE2 = Translator.ComputeFreeVariables(expr2);
+          var freeInE2 = FreeVariablesUtil.ComputeFreeVariables(expr2);
           freeInE2.IntersectWith(boundVars);
           return !freeInE2.Any();
         }
@@ -317,8 +320,7 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq_Top(expr1.SplitQuantifierExpression, expr2.SplitQuantifierExpression);
       }
 
-      if (expr1.TypeArgs.Count != expr2.TypeArgs.Count ||
-          !TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
+      if (!TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
         return false;
       }
 
@@ -334,8 +336,8 @@ namespace Microsoft.Dafny.Triggers {
     private static bool ShallowEq(ComprehensionExpr expr1, ComprehensionExpr expr2) {
       if (!TriggerUtils.SameLists(expr1.BoundVars, expr2.BoundVars, SameBoundVar) ||
           !ShallowSameAttributes(expr1.Attributes, expr2.Attributes) ||
-        // Filled in during resolution: !SameLists(expr1.Bounds, expr2.Bounds, ReferenceCompare) ||
-        //                              !SameLists(expr1.MissingBounds, expr2.MissingBounds, SameBoundVar) ||
+          // Filled in during resolution: !SameLists(expr1.Bounds, expr2.Bounds, ReferenceCompare) ||
+          //                              !SameLists(expr1.MissingBounds, expr2.MissingBounds, SameBoundVar) ||
           !TriggerUtils.SameNullity(expr1.Range, expr2.Range)) { //TODO Check
         return false;
       }
@@ -363,22 +365,26 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(BinaryExpr expr1, BinaryExpr expr2) {
-      Contract.Requires(expr1.ResolvedOp != BinaryExpr.ResolvedOpcode.YetUndetermined);
-      Contract.Requires(expr2.ResolvedOp != BinaryExpr.ResolvedOpcode.YetUndetermined);
       return expr1.ResolvedOp == expr2.ResolvedOp;
     }
 
     private static bool ShallowEq(ConversionExpr expr1, ConversionExpr expr2) {
-      return expr1.Type == expr2.Type; //TODO equality on types?
+      return Type.Equal_Improved(expr1.Type, expr2.Type);
+    }
+
+    private static bool ShallowEq(TypeTestExpr expr1, TypeTestExpr expr2) {
+      return Type.Equal_Improved(expr1.Type, expr2.Type);
     }
 
     private static bool ShallowEq(UnaryOpExpr expr1, UnaryOpExpr expr2) {
-      return expr1.Op == expr2.Op;
+      return expr1.ResolvedOp == expr2.ResolvedOp;
     }
 
     private static bool ShallowEq(UnaryExpr expr1, UnaryExpr expr2) {
       if (expr1 is ConversionExpr && expr2 is ConversionExpr) {
         return ShallowEq((ConversionExpr)expr1, (ConversionExpr)expr2);
+      } else if (expr1 is TypeTestExpr && expr2 is TypeTestExpr) {
+        return ShallowEq((TypeTestExpr)expr1, (TypeTestExpr)expr2);
       } else if (expr1 is UnaryOpExpr && expr2 is UnaryOpExpr) {
         return ShallowEq((UnaryOpExpr)expr1, (UnaryOpExpr)expr2);
       } else {
@@ -409,9 +415,6 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(SeqUpdateExpr expr1, SeqUpdateExpr expr2) {
-      if (expr1.ResolvedUpdateExpr == null) {
-        Contract.Assert(expr2.ResolvedUpdateExpr == null);
-      }
       return true;
     }
 
@@ -496,9 +499,9 @@ namespace Microsoft.Dafny.Triggers {
 
     private static bool ShallowEq(DatatypeValue expr1, DatatypeValue expr2) {
       return // Implied by Ctor equality: expr1.DatatypeName == expr2.DatatypeName &&
-        // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
+             // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
              expr1.Ctor == expr2.Ctor &&
-        // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
+             // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
              TriggerUtils.SameLists(expr1.InferredTypeArgs, expr2.InferredTypeArgs, TypeEq);
     }
 

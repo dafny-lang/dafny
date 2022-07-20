@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Misc {
@@ -481,12 +481,12 @@ module MiscAgain {
     }
     method Test() {
       var i := new Y(5);
-      i := new Y._ctor(7);  // but, in fact, it is also possible to use the underlying name
+      i := new Y(7);
       i := new Y;  // error: the class has a constructor, so one must be used
       var s := new Luci.Init(5);
       s := new Luci.FromArray(null);
       s := new Luci(false);
-      s := new Luci._ctor(false);
+      s := new Luci(true);
       s := new Luci.M();  // error: there is a constructor, so one must be called
       s := new Luci;  // error: there is a constructor, so one must be called
       var l := new Lamb;
@@ -613,16 +613,16 @@ module NonInferredType {
   }
 }
 
-// ------------ Here are some tests that ghost contexts don't allocate objects -------------
+// ------------ Here are some tests that lemma contexts don't allocate objects -------------
 
 module GhostAllocationTests {
   class G { }
   iterator GIter() { }
-
-  ghost method GhostNew0()
+  class H { constructor () }
+  lemma GhostNew0()
     ensures exists o: G :: fresh(o);
   {
-    var p := new G;  // error: ghost context is not allowed to allocate state
+    var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
   }
 
@@ -632,7 +632,7 @@ module GhostAllocationTests {
       z, t := 5, new G;  // fine
     }
     if n < g {
-      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+      var tt := new H();  // error: 'new' not allowed in ghost contexts
     }
   }
 
@@ -642,37 +642,37 @@ module GhostAllocationTests {
       var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
     }
   }
-
-  method GhostNew3(n: nat)
-  {
+}
+module MoreGhostAllocationTests {
+  class G { }
+  method GhostNew3(n: nat) {
     var g := new G;
     calc {
       5;
-      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      { var y := new G; }  // error: 'new' not allowed in lemma contexts
       2 + 3;
     }
   }
-
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 }
 
-module NewForall {
+module NewForallAssign {
   class G { }
-  method NewForallTest(n: nat)
-  {
+  method NewForallTest(n: nat) {
     var a := new G[n];
     forall i | 0 <= i < n {
       a[i] := new G;  // error: 'new' is currently not supported in forall statements
-    }
-    forall i | 0 <= i < n
-      ensures true;  // this makes the whole 'forall' statement into a ghost statement
-    {
-      a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
-    }
-  }
+  } }
+}
+module NewForallProof {
+  class G { }
+  method NewForallTest(n: nat) { var a := new G[n];
+    forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
+      a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
+  } }
 }
 
 // ------------------------- underspecified types ------------------------------
@@ -780,20 +780,20 @@ module StatementsInExpressions {
       }
       5;
     }
+  }
+}
 
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
+module StmtExprOutParams {
 
-    function UseLemma(): int
-    {
-      MyLemma();
-      MyGhostMethod();   // error: modifi2es state
-      OutParamMethod();  // error: has out-parameters
-      10
-    }
+  lemma MyLemma()
+
+  lemma OutParamLemma() returns (y: int)
+
+  function UseLemma(): int
+  {
+    MyLemma();
+    OutParamLemma(); // error: has out-parameters
+    10
   }
 }
 
@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j; j := var tb := F(); 5;  // tb is ghost, j is not
+    var j; j := var tb := F(); 5;  // fine (tb is ghost, j is not, but RHS body doesn't depend on tb)
     assert h == j;
   }
 
@@ -833,7 +833,7 @@ module GhostLetExpr {
     if e then
       G(5, F())
     else
-      var xyz := F();  // error: 'xyz' needs to be declared ghost to allow this
+      var xyz := F();  // fine, because 'xyz' becomes ghost automatically
       G(5, xyz)
   }
 }
@@ -930,22 +930,22 @@ module LhsLvalue {
     var c := new MyRecord[29];
 
     mySeq[0] := 5;  // error: cannot assign to a sequence element
-    mySeq[0] := MyLemma();  // error: ditto
+    mySeq[0] := MyMethod();  // error: ditto
     a[0] := 5;
-    a[0] := MyLemma();
+    a[0] := MyMethod();
     b[20, 18] := 5;
-    b[20, 18] := MyLemma();
+    b[20, 18] := MyMethod();
     c[25].x := 5;  // error: cannot assign to a destructor
-    c[25].x := MyLemma();  // error: ditto
+    c[25].x := MyMethod();  // error: ditto
     mySeq[0..4] := 5;  // error: cannot assign to a range
-    mySeq[0..4] := MyLemma();  // error: ditto
+    mySeq[0..4] := MyMethod();  // error: ditto
     a[0..4] := 5;  // error: cannot assign to a range
-    a[0..4] := MyLemma();  // error: ditto
+    a[0..4] := MyMethod();  // error: ditto
   }
 
   datatype MyRecord = Make(x: int, y: int)
 
-  method MyLemma() returns (w: int)
+  method MyMethod() returns (w: int)
 }
 
 // ------------------- dirty loops -------------------
@@ -1069,7 +1069,7 @@ module CycleError5 {
   datatype Dt<T> = Make(T)
 }
 module CycleError6 {
-  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  type A = Dt<Dt<A>>  // error: cycle A -> A
   datatype Dt<T> = Make(T)
 }
 
@@ -1503,7 +1503,7 @@ module GhostTests {
         { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1532,7 +1532,7 @@ module GhostTests {
         { M(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1547,16 +1547,16 @@ module GhostTests {
       }
       5;
     }
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
-
+  }
+}
+module CallsInStmtExpr {
+  class MyClass {
+    lemma MyLemma()
+    ghost method MyEffectlessGhostMethod()
     function UseLemma(): int
     {
+      MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
       MyLemma();
-      OrdinaryMethod();  // error: not a ghost
       10
     }
   }
@@ -1778,10 +1778,10 @@ module TypeConversions {
     n := x as nat;  // yes, this is allowed now
     o := j;
     j := o;  // OK for type resolution, but must be proved
-    j := o as J;  // error: not allowed to convert to 'J'
+    j := o as J;  // yes, this is allowed now
     j := c;
     c := j;  // OK for type resolution, but must be proved
-    c := j as C;  // error: not allowed to convert to 'C'
+    c := j as C;  // yes, this is allowed now
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }
 }
@@ -2254,7 +2254,7 @@ module UninterpretedModuleLevelConst {
 
   class MyClass { }
   const Y: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
-  ghost const Y': MyClass  // fine, Y' is ghost
+  ghost const Y': MyClass  // error: the type of a ghost static const must be known to be nonempty
 
   class AnotherClass {  // fine, the class itself is not required to have a constructor, because the bad fields are static
     static const k := 18
@@ -2280,10 +2280,10 @@ module UninterpretedModuleLevelConst {
   }
 
   trait GhostTr {
-    ghost const w: MyClass  // ghost, so no prob
+    ghost const w: MyClass  // the responsibility to initialize "w" lies with any class that implements "GhostTr"
   }
-  class GhostCl extends GhostTr {
-    ghost const z: MyClass  // ghost, so no prob
+  class GhostCl extends GhostTr {  // error: w and z need initialization, so GhostCl must have a constructor
+    ghost const z: MyClass
   }
 }
 
@@ -2609,20 +2609,40 @@ module LabelDomination {
   class MyClass {
     var x: int
     method LabelNotInScope_Old(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
       assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
+      assert old(x) == old@GoodLabel(x);
+      assert old(x) == old@FutureLabel(x);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
     method LabelNotInScope_Unchanged(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert unchanged@Treasure(`x);  // error: no label Treasure in scope
       assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
+      assert unchanged@GoodLabel(this);
+      assert unchanged@FutureLabel(this);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
+    }
+    method LabelNotInScope_Fresh(y: int, c: MyClass) {
+      label GoodLabel:
+      if y < 5 {
+        label Treasure:
+        assert true;
+      }
+      assert fresh@Treasure(c);  // error: no label Treasure in scope
+      assert fresh@WonderfulLabel(c);  // error: no label WonderfulLabel in scope
+      assert fresh@GoodLabel(c);
+      assert fresh@FutureLabel(c);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
   }
 }
@@ -3001,5 +3021,830 @@ module MoreAutoInitAndNonempty {
     u := FQ(z);  // error: auto-init mismatch
     u := FP(z);  // error: auto-init mismatch
     u := FR(z);
+  }
+}
+
+// --------------- ghost function error messages ------------------------------
+
+module GhostFunctionErrorMessages {
+  function GhostFunction(): int
+  predicate GhostPredicate()
+  least predicate LeastPredicate()
+  greatest predicate GreatestPredicate()
+  twostate function TwoFunction(): int
+  twostate predicate TwoPredicate()
+
+  method GhostsUsedInCompiledContexts() {
+    var x, b;
+    x := GhostFunction(); // error
+    b := GhostPredicate(); // error
+    b := LeastPredicate(); // error
+    b := GreatestPredicate(); // error
+    x := TwoFunction(); // error
+    b := TwoPredicate(); // error
+  }
+}
+
+module TypeParameterCount {
+  function F0(): int
+  function F1<A>(): int
+  function F2<A, B>(): int
+  method M0()
+  method M1<A>()
+  method M2<A, B>()
+
+  method TestFunction() {
+    var x;
+    x := F0();
+    x := F1();  // type argument inferred
+    x := F2();  // type arguments inferred
+    x := F0<int>();  // error: wrong number of type parameters
+    x := F1<int>();
+    x := F2<int>();  // error: wrong number of type parameters
+    x := F0<int, real>();  // error: wrong number of type parameters
+    x := F1<int, real>();  // error: wrong number of type parameters
+    x := F2<int, real>();
+  }
+
+  method TestMethods() {
+    M0();
+    M1();  // type argument inferred
+    M2();  // type arguments inferred
+    M0<int>();  // error: wrong number of type parameters
+    M1<int>();
+    M2<int>();  // error: wrong number of type parameters
+    M0<int, real>();  // error: wrong number of type parameters
+    M1<int, real>();  // error: wrong number of type parameters
+    M2<int, real>();
+  }
+}
+
+module AutoGhostRegressions {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method Test() {
+    var q := Quad(20, 30, 40, 50);
+    print q, "\n";
+
+    var Quad(a, b, c, d) := q;
+    print c, "\n";  // error: c is ghost (this was once not handled correctly)
+
+    match q {
+      case Quad(r, s, t, u) =>
+        print t, "\n";  // error: t is ghost
+    }
+
+    ghost var p := Quad(20, 30, 40, 50);
+    var Quad(a', b', c', d') := p;
+    print a', "\n";  // error: a' is ghost
+    print c', "\n";  // error: c' is ghost
+  }
+
+  datatype NoEquality = NoEquality(ghost u: int)
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+}
+
+module TypeCharacteristicsInGhostCode {
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method TestCompiled<Z>()
+  {
+    var w;
+
+    w := MustBeNonempty<PossiblyEmpty>();  // error
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+    w := MustBeNonempty<Z>();  // error (a hint is given)
+
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // error
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+    w := MustBeAutoInit<Z>();  // error (a hint is given)
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();  // error
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+    w := MustSupportEquality<Z>();  // error (a hint is given)
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+    w := NoReferences<Class?>();  // error
+    w := NoReferences<Good>();
+    w := NoReferences<Z>();  // error (a hint is given)
+  }
+
+  method TestGhost()
+  {
+    ghost var w;
+
+    w := MustBeNonempty<PossiblyEmpty>();  // error
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // fine, because the call appears in a ghost context
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+    w := NoReferences<Class?>();  // error
+    w := NoReferences<Good>();
+  }
+
+  function method FF(a: bool, ghost b: bool): int { 5 }
+  method MM(a: bool, ghost b: bool) { }
+  function method GetInt<T(==)>(): int { 2 }
+  method GhostContexts<T>(x: T, y: T) {
+    var r;
+    r := FF(x == y, true);  // error: T must support equality
+    r := FF(true, x == y);  // no problem, since this is a ghost context
+    MM(x == y, true);  // error: T must support equality
+    MM(true, x == y);  // no problem, since this is a ghost context
+
+    r := FF(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    r := FF(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+    MM(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    MM(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+
+    var q0 := Quad(GetInt<NoEquality>() == 0, true, true, true);  // error: type argument must support equality
+    var q1 := Quad(true, true, GetInt<NoEquality>() == 0, true);  // fine, since in a ghost context
+  }
+
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+  datatype QuadEq<T(==), U(==)> = QuadEq(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method VarDecls<T>(x: T, y: T) {
+    var a := x == y;  // error: this requires T to support equality
+    ghost var b := x == y;  // fine
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    var c := k == l;  // error: this requires T to support equality
+    var d := m == n;  // fine, since d is implicitly ghost
+    d, c, d := m == n, k == l, m == n;  // error: "k == l" requires T to support equality
+
+    var q' := QuadEq([x], [x], [0], [0]);  // error: seq<T> requires T to support equality
+    var q'' := QuadEq([0], [0], [x], [x]); // error: seq<T> requires T to support equality
+  }
+
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+
+  method LetVarDecls<T>(x: T, y: T) {
+    var lhs;
+    lhs :=
+      var a := x == y;  // error: this requires T to support equality
+      0;
+    lhs :=
+      ghost var b := x == y;  // fine
+      0;
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    lhs :=
+      var c := k == l;  // error: this requires T to support equality
+      0;
+    lhs :=
+      var d := m == n;  // fine, since d is implicitly ghost
+      0;
+
+    ghost var ghostLhs;
+    ghostLhs :=
+      var a := x == y;  // fine
+      0;
+    ghostLhs :=
+      ghost var b := x == y;  // fine
+      0;
+  }
+
+  datatype DatatypeHasMembersToo = Abc | Def {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
+
+  newtype NewtypeHasMembersToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
+  {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
+
+  type SubsetTypeHasExpressionToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
+
+  newtype NT_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  newtype NT_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+  type ST_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  type ST_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+
+  trait
+    {:MyAttribute MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()}  // error: about MustBeNonempty (no prob with (==))
+    MyTrait
+  {
+    const x := (CallMyLemma(MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()); 23)  // error: about MustBeNonempty (no prob with (==))
+  }
+  lemma CallMyLemma(x: int, y: int)
+}
+
+module MoreAutoGhostTests {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method SomeLetVarsAreGhost0(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      k + l;
+  }
+
+  method SomeLetVarsAreGhost1(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      m;  // error: m is ghost
+  }
+
+  method AssignSuchThat(ghost m: int) {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+  }
+
+  function method LetSuchThat(ghost m: int): int {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+    0
+  }
+}
+
+module RelaxedAutoInitChecking {
+  // In a ghost context, the (==) is never relevant. Therefore, checking of adherence to (==) for
+  // type arguments is suppressed in ghost contexts.
+  // Similarly, in a ghost context, there's no difference between (0) and (00). Therefore, a
+  // formal parameter that expects (0) can take either a (0) or a (00) in a ghost context.
+
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method M(compiledValue: int, ghost ghostValue: int)
+
+  method TestCompiled()
+  {
+    M(MustBeNonempty<PossiblyEmpty>(), 0);  // error
+    M(MustBeNonempty<Nonempty>(), 0);
+    M(MustBeNonempty<NoEquality>(), 0);
+    M(MustBeNonempty<Class?>(), 0);
+    M(MustBeNonempty<Good>(), 0);
+
+    M(MustBeAutoInit<PossiblyEmpty>(), 0);  // error
+    M(MustBeAutoInit<Nonempty>(), 0);  // error
+    M(MustBeAutoInit<NoEquality>(), 0);
+    M(MustBeAutoInit<Class?>(), 0);
+    M(MustBeAutoInit<Good>(), 0);
+
+    M(MustSupportEquality<PossiblyEmpty>(), 0);
+    M(MustSupportEquality<Nonempty>(), 0);
+    M(MustSupportEquality<NoEquality>(), 0);  // error
+    M(MustSupportEquality<Class?>(), 0);
+    M(MustSupportEquality<Good>(), 0);
+
+    M(NoReferences<PossiblyEmpty>(), 0);
+    M(NoReferences<Nonempty>(), 0);
+    M(NoReferences<NoEquality>(), 0);
+    M(NoReferences<Class?>(), 0);  // error
+    M(NoReferences<Good>(), 0);
+  }
+
+  method TestGhost()
+  {
+    M(0, MustBeNonempty<PossiblyEmpty>());  // error
+    M(0, MustBeNonempty<Nonempty>());
+    M(0, MustBeNonempty<NoEquality>());
+    M(0, MustBeNonempty<Class?>());
+    M(0, MustBeNonempty<Good>());
+
+    M(0, MustBeAutoInit<PossiblyEmpty>());  // error
+    M(0, MustBeAutoInit<Nonempty>());  // this is fine in a ghost context
+    M(0, MustBeAutoInit<NoEquality>());
+    M(0, MustBeAutoInit<Class?>());
+    M(0, MustBeAutoInit<Good>());
+
+    M(0, MustSupportEquality<PossiblyEmpty>());
+    M(0, MustSupportEquality<Nonempty>());
+    M(0, MustSupportEquality<NoEquality>());  // this is fine in a ghost context
+    M(0, MustSupportEquality<Class?>());
+    M(0, MustSupportEquality<Good>());
+
+    M(0, NoReferences<PossiblyEmpty>());
+    M(0, NoReferences<Nonempty>());
+    M(0, NoReferences<NoEquality>());
+    M(0, NoReferences<Class?>());  // error
+    M(0, NoReferences<Good>());
+  }
+}
+
+// --------------- let-such-that ghost regressions ------------------------------
+
+module LetSuchThatGhost {
+  predicate True<T>(t: T) { true }
+
+  function method F<T>(s: set<T>): int
+    requires s != {}
+  {
+    // once, the RHS for p was (bogusly) considered ghost, which made p ghost,
+    // which made this body illegal
+    var p :=
+      var e :| e in s;
+      true;
+    if p then 6 else 8
+  }
+
+  function method G<T>(s: set<T>): int
+    requires s != {}
+  {
+    // again, e and p are both non-ghost
+    var p :=
+      var e :| e in s;
+      e == e;
+    if p then 6 else 8
+  }
+
+  function method H<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, but p is still not
+    var p :=
+      var e :| e in s && True(e);
+      true;
+    if p then 6 else 8
+  }
+
+  function method I<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, and therefore so is p
+    var p :=
+      var e :| e in s && True(e);
+      e == e;
+    if p then 6 else 8  // error: p is ghost
+  }
+}
+
+// --------------- hint restrictions in non-while loops ------------------------------
+
+module HintRestrictionsOtherLoops {
+  class C {
+    function F(): int
+    {
+      calc {
+        6;
+        { var x := 8;
+          while
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+            case x != 0 => x := x - 1;
+          }
+        }
+        6;
+        { for i := 0 to 8
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+          }
+        }
+        6;
+      }
+      5
+    }
+  }
+}
+
+// --------------- regressions: types of arguments to fresh, unchanged, modifies, reads ------------------------------
+
+module FrameTypes {
+  // ----- fresh takes an expression as its argument
+
+  method FreshArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := fresh(o);
+    b := fresh(s);
+    b := fresh(ss);
+    b := fresh(q);
+    b := fresh(ms); // error: wrong argument type for fresh
+    b := fresh(mp); // error: wrong argument type for fresh
+    b := fresh(mp2); // error: wrong argument type for fresh
+    b := fresh(im); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := fresh(x); // error: wrong argument type for fresh
+    b := fresh(s); // error: wrong argument type for fresh
+    b := fresh(ss); // error: wrong argument type for fresh
+    b := fresh(q); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType2(f: int -> int, g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int) {
+    ghost var b;
+    b := fresh(f); // error: wrong argument type for fresh
+    b := fresh(g); // error: wrong argument type for fresh
+    b := fresh(h); // error: wrong argument type for fresh
+    b := fresh(j); // error: wrong argument type for fresh
+    b := fresh(k); // error: wrong argument type for fresh
+  }
+
+  // ----- unchanged, modifies, and reads take frame expressions as their arguments
+
+  method UnchangedArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := unchanged(o);
+    b := unchanged(s);
+    b := unchanged(ss);
+    b := unchanged(q);
+    b := unchanged(ms);
+    b := unchanged(mp); // error: wrong argument type for unchanged
+    b := unchanged(mp2); // error: wrong argument type for unchanged
+    b := unchanged(im); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := unchanged(x); // error: wrong argument type for unchanged
+    b := unchanged(s); // error: wrong argument type for unchanged
+    b := unchanged(ss); // error: wrong argument type for unchanged
+    b := unchanged(q); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+  {
+    ghost var b;
+    b := unchanged(f); // error: wrong argument type for unchanged
+    b := unchanged(g); // error: wrong argument type for unchanged
+    b := unchanged(h); // error: wrong argument type for unchanged
+    b := unchanged(i); // error: wrong argument type for unchanged
+    b := unchanged(j); // error: wrong argument type for unchanged
+    b := unchanged(k); // error: wrong argument type for unchanged
+    b := unchanged(l); // error: wrong argument type for unchanged
+    b := unchanged(m); // error: wrong argument type for unchanged
+  }
+
+  method ModifiesArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    modifies o
+    modifies s
+    modifies ss
+    modifies q
+    modifies ms
+    modifies mp // error: wrong argument type for modifies
+    modifies mp2 // error: wrong argument type for modifies
+    modifies im // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    modifies x // error: wrong argument type for modifies
+    modifies s // error: wrong argument type for modifies
+    modifies ss // error: wrong argument type for modifies
+    modifies q // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    modifies f // error: wrong argument type for modifies
+    modifies g // error: wrong argument type for modifies
+    modifies h // error: wrong argument type for modifies
+    modifies i // error: wrong argument type for modifies
+    modifies j // error: wrong argument type for modifies
+    modifies k // error: wrong argument type for modifies
+    modifies l // error: wrong argument type for modifies
+    modifies m // error: wrong argument type for modifies
+  {
+  }
+
+  predicate ReadsArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    reads o
+    reads s
+    reads ss
+    reads q
+    reads ms
+    reads mp // error: wrong argument type for reads
+    reads mp2 // error: wrong argument type for reads
+    reads im // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    reads x // error: wrong argument type for reads
+    reads s // error: wrong argument type for reads
+    reads ss // error: wrong argument type for reads
+    reads q // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    reads f // error: wrong argument type for reads
+    reads g // error: a function must be to a collection of references
+    reads h
+    reads i
+    reads j
+    reads k // error: wrong argument type for reads
+    reads l
+    reads m // error: wrong argument type for reads
+  {
+    true
+  }
+}
+
+module Continue0 {
+  method BadTargetsLevels(a: int, b: int, c: int) {
+    for i := 0 to 100 {
+      for j := 0 to 100 {
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue;
+          case k == b =>
+            break continue;
+          case k == c =>
+            break break continue;
+          case k == a + b + c =>
+            break break break continue; // error: too many levels
+        }
+      }
+    }
+  }
+
+  method BadTargetsLabels(a: int, b: int, c: int) {
+    label A:
+    for i := 0 to 100 {
+      label B0: label B1:
+      for j := 0 to 100 {
+        label C:
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue C;
+          case k == b =>
+            continue B0;
+          case k == b =>
+            continue B1;
+          case k == c =>
+            continue A;
+        }
+      }
+    }
+  }
+
+  method NonLoopLabels(a: int, b: int, c: int) {
+    // the following labels are attached to BlockStmt's, not loops
+    label X: {
+      for i := 0 to 100 {
+        label Y0: label Y1: {
+          for j := 0 to 100 {
+            label Z: {
+              for k := 0 to 100 {
+                if
+                case k == a =>
+                  continue X; // error: X is not a loop label
+                case k == b =>
+                  continue Y0; // error: Y0 is not a loop label
+                case k == b =>
+                  continue Y1; // error: Y1 is not a loop label
+                case k == c =>
+                  continue Z; // error: Z is not a loop label
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  method SimpleBadJumps0() {
+    break; // error: cannot "break" from here
+  }
+
+  method SimpleBadJumps1() {
+    continue; // error: cannot "continue" from here
+  }
+
+  method SimpleBadJumps2() {
+    label X: {
+      if
+      case true => break; // error: cannot "break" from here
+      case true => continue; // error: cannot "continue" from here
+      case true => break X;
+      case true => continue X; // error: X is not a loop label
+    }
+  }
+
+  method GhostContinueAssertBy(ghost t: int, ghost u: nat)
+  {
+    label L:
+    for i := 0 to 100 {
+      assert true by {
+        for j := 0 to 100 {
+          if j == t {
+            break;
+          } else if j == u {
+            continue;
+          }
+        }
+        if
+        case true => break; // error: cannot jump outside the assert-by
+        case true => continue; // error: cannot jump outside the assert-by
+        case true => break L; // error: cannot jump outside the assert-by
+        case true => continue L; // error: cannot jump outside the assert-by
+      }
+    }
+  }
+}
+
+module Continue1 {
+  method GhostContinueLevels(ghost t: int, ghost u: nat)
+  {
+    var m := 0;
+    for i := 0 to 100 {
+      if i == t {
+        // The following "continue" would pass the increment to m
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      m := m + 1;
+      // The following "break" would potentially pass both increments to m
+      if i == t {
+        break; // error: break from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      if i == t {
+        // Even though there's no statement in the loop body after this ghost if, the continue violates the rule
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          continue; // fine
+        }
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          break continue; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+
+    for i := 0 to 100 + u {
+      for j := 0 to u {
+        if i == t {
+          break continue; // fine
+        }
+      }
+    }
+  }
+
+  method GhostContinueLabels(ghost t: int, ghost u: nat)
+  {
+    label Outer:
+    for i := 0 to 100 {
+      label Inner:
+      for j := 0 to u {
+        if j == t {
+          continue Inner; // fine
+        } else if j == 20 + t {
+          continue Outer; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+  }
+}
+
+module LabelRegressions {
+  // The cases of if-case, while-case, and match statements are List<Statement>'s, which are essentially
+  // a BlockStmt but without the curly braces. Each Statement in such a List can have labels, so
+  // it's important to ResolveStatementWithLabels, not ResolveStatement. Alas, that was once not the
+  // case (pun intended).
+  // There's also something analogous going on in the Verifier, where lists of statements should call
+  // TrStmtList, not just call TrStmt on every Statement in the List. (See method LabelRegressions()
+  // in Test/comp/ForLoops-Compilation.dfy.)
+  method IfCaseRegression() {
+    if
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method WhileCaseRegression() {
+    while
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method Match() {
+    match (0, 0)
+    case (_, _) =>
+      label Loop:
+      for k := 0 to 10 {
+        break Loop;
+        continue Loop;
+      }
   }
 }

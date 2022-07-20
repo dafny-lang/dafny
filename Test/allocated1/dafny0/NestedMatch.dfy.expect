@@ -1,11 +1,3 @@
 NestedMatch.dfy(173,14): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon142_Then
-    (0,0): anon143_Else
-    (0,0): anon144_Then
-    (0,0): anon94
-    (0,0): anon145_Then
-    (0,0): anon96
 
 Dafny program verifier finished with 12 verified, 1 error

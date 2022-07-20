@@ -12,34 +12,11 @@ and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
 Main() method. If a legal Main() method is found, the compiler will emit
-a `.EXE`; otherwise, it will emit a `.DLL`.
-
- (If there is more than one Main(), Dafny will try to emit an .EXE, but
- the compiler may complain. One could imagine improving
- this functionality so that Dafny will produce a polite error message in
- this case.)
-
-In order to be a legal Main() method, the following must be true:
-
-* The method takes no parameters
-* The method is not a ghost method
-* The method has no requires clause
-* The method has no modifies clause
-* If the method is an instance (that is, non-static) method in a class,
-  then the enclosing class must not declare any constructor
-
-Note, however, that the following are allowed:
-
-* The method is allowed to be an instance method as long as the enclosing
-  class does not declare any constructor. In this case, the runtime
-  system will allocate an object of the enclosing class and will invoke
-  Main() on it.
-* The method is allowed to have `ensures` clauses
-* The method is allowed to have `decreases` clauses, including a
-  `decreases *`. (If Main() has a `decreases *`, then its execution may
-  go on forever, but in the absence of a `decreases *` on Main(), Dafny
-  will have verified that the entire execution will eventually
-  terminate.)
+an executable appropriate to the target language; otherwise it will emit
+a library or individual files.
+The conditions for a legal Main() method are described in the User Guide
+([Section 25.8.1](#sec-user-guide-main)).
+If there is more than one Main(), Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
@@ -70,7 +47,7 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 
 ## 3.2. Top Level Declarations
 ````grammar
-TopDecl = {
+TopDecl =
   { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
@@ -81,12 +58,13 @@ TopDecl = {
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
   )
-  }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
 or within a ``SubModuleDecl``. A top-level declaration is one of
 various kinds of declarations described later. Top-level declarations are
 implicitly members of a default (unnamed) top-level module.
+
+Declarations within a module or at the top-level all begin with reserved keywords and do not end with semicolons.
 
 The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
 ``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
@@ -113,7 +91,7 @@ Abstract modules are not compiled.
 The `ghost` modifier is used to mark entities as being used for
 specification only, not for compilation to code.
 
-The `static` modifier is used for class members that that
+The `static` modifier is used for class members that
 are associated with the class as a whole rather than with
 an instance of the class.
 
@@ -135,15 +113,15 @@ implicitly ghost (non-ghost).
  synonym types            | -
  iterators                | -
  method                   | ghost static
- lemma, colemma, comethod | already-ghost static
- inductive lemma          | already-ghost static
+ lemma                    | already-ghost static
+ least lemma              | already-ghost static
+ greatest lemma           | already-ghost static
  constructor              | -
  function (non-method)    | already-ghost static
  function method          | already-non-ghost static
  predicate (non-method)   | already-ghost static
  predicate method         | already-non-ghost static
- inductive predicate      | already-ghost static
- copredicate              | already-ghost static
-
+ least predicate          | already-ghost static
+ greatest predicate       | already-ghost static
 
 

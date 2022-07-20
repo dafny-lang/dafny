@@ -575,7 +575,7 @@ identifier refers to, the rest of the identifier is looked up in the appropriate
 
 * Local variables, parameters and bound variables. These are things like `x`, `y`, and `i` in `var x;`, `... returns (y: int)`, and `forall i :: ...`.
 * Classes, datatypes, and module names (provided this is not the only part of the identifier). Classes allow their static members to be accessed in this way,
-    and datatypes allow their constructors to be accessed. Modules allow any of their members to be referred to like this
+    and datatypes allow their constructors to be accessed. Modules allow any of their members to be referred to like this.
 * Constructor names (if unambiguous). Any datatypes that don't need qualification (so the datatype name itself doesn't
     need a prefix), and also have a uniquely named constructor, can be referred to just by its name. So if `datatype List = Cons(List) | Nil`
     is the only datatype that declares `Cons` and `Nil` constructors, then you can write `Cons(Cons(Nil))`.
@@ -583,7 +583,7 @@ identifier refers to, the rest of the identifier is looked up in the appropriate
     This is done per constructor, not per datatype.
 * Fields, functions, and methods of the current class (if in a static context, then only static methods and functions are allowed).
     You can refer to fields of the current class either as `this.f` or `f`,
-    assuming of course that `f` hasn't be hidden by one of the above. You can always prefix `this` if needed, which cannot be hidden. (Note, a field whose name is a string of digits must always have some prefix.)
+    assuming of course that `f` hasn't been hidden by one of the above. You can always prefix `this` if needed, which cannot be hidden. (Note, a field whose name is a string of digits must always have some prefix.)
 * Static functions and methods in the enclosing module. Note, this refers only to functions and methods declared at the
   module level, not static members of a named class.
 

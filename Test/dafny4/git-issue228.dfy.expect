@@ -54,11 +54,7 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
   var d1 := x * x * z;
 }
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-Execution trace:
-    (0,0): anon0
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 8 verified, 2 errors
 // git-issue228.dfy
@@ -66,7 +62,7 @@ Dafny program verifier finished with 8 verified, 2 errors
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -157,27 +153,27 @@ module _System {
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use: bv0 bv19
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 9:
+ * SCC at height 0:
  *   Sets
- * SCC at height 8:
+ * SCC at height 0:
  *   Sequences
- * SCC at height 7:
+ * SCC at height 1:
  *   SubsetTypes
- * SCC at height 6:
+ * SCC at height 0:
  *   Subset_Byte
- * SCC at height 5:
+ * SCC at height 0:
  *   Subset_NegIsOdd
- * SCC at height 4:
+ * SCC at height 1:
  *   ConstrainedIntermediateExpressions
- * SCC at height 3:
+ * SCC at height 0:
  *   Byte
- * SCC at height 2:
+ * SCC at height 0:
  *   NegIsOdd
  * SCC at height 1:
  *   Numerics
@@ -242,10 +238,6 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
   var d1: int := x * x * z;
 }
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-Execution trace:
-    (0,0): anon0
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 8 verified, 2 errors

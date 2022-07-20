@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" CSharpStyling2.cs > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" %S/CSharpStyling2.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

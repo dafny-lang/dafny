@@ -1,8 +1,11 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass {
   ghost const repr: object
+  constructor (ghost r: object) {
+    repr := r;
+  }
 }
 
 datatype D1 = D1(o: MyClass)
@@ -11,8 +14,8 @@ datatype D1 = D1(o: MyClass)
 
   function getObjs(): set<object>
     reads o
-  { 
-    {o, o.repr} 
+  {
+    {o, o.repr}
   }
 }
 

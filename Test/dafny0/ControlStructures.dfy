@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = Green | Blue | Red | Purple
@@ -341,4 +341,222 @@ method TheBreaker_AllGood_DigitsLabels(M: int, N: int, O: int)
     i := i + 1;
   }
   assert M <= i || b == 12 || e == 37;
+}
+
+// --------------- continues ---------------
+
+method ContinueM0(n: nat, p: nat) {
+  var i := 0;
+  while i < n { // error: cannot prove termination
+    if i == 7 {
+      break;
+    } else if i == p {
+      continue;
+    }
+    i := i + 1;
+  }
+  assert i == 7 || n <= i;
+}
+
+method ContinueM1(n: nat, p: nat) {
+  var i := 0;
+  while i < n
+    invariant (i <= 7 && i <= p) || i == 7 || p < 7
+  {
+    if i == 7 {
+      break;
+    } else if i == p {
+      i := 8;
+      continue;
+    }
+    i := i + 1;
+  }
+  assert i == 7 || n <= i;
+}
+
+method ContinueK0(n: nat, p: nat) returns (k: nat)
+  ensures k == 25
+{
+  k := 0;
+  while k < 25 { // error: cannot prove termination
+    var i := 0;
+    while i < n
+      invariant (i <= 7 && i <= p) || i == 7 || p < 7
+    {
+      if i == 7 {
+        break;
+      } else if i == p {
+        i := 8;
+        break continue; // this may skip the update of k
+      }
+      i := i + 1;
+    }
+    k := k + 1;
+  }
+}
+
+method ContinueK1(n: nat, p: nat) returns (k: nat)
+  ensures k == 25
+{
+  k := 0;
+  while k < 25 {
+    k := k + 1;
+    var i := 0;
+    while i < n
+      invariant (i <= 7 && i <= p) || i == 7 || p < 7
+    {
+      if i == 7 {
+        break;
+      } else if i == p {
+        i := 8;
+        break continue;
+      }
+      i := i + 1;
+    }
+  }
+}
+
+method ContinueK2(n: nat, p: nat) returns (k: nat)
+  ensures k == 25
+{
+  k := 0;
+  for kk := 0 to 25
+    invariant k == kk
+  {
+    k := k + 1;
+    var i := 0;
+    while i < n
+      invariant (i <= 7 && i <= p) || i == 7 || p < 7
+    {
+      if i == 7 {
+        break;
+      } else if i == p {
+        i := 8;
+        break continue;
+      }
+      i := i + 1;
+    }
+  }
+}
+
+method ContinueK3(n: nat, p: nat) returns (k: nat)
+  ensures k == 25
+{
+  k := 0;
+  label Outer:
+  for kk := 0 to 25
+    invariant k == kk // error: invariant may not be maintained
+  {
+    var i := 0;
+    label Inner:
+    while i < n
+      invariant (i <= 7 && i <= p) || i == 7 || p < 7
+    {
+      if i == 7 {
+        break;
+      } else if i == p {
+        i := 8;
+        continue Outer; // this may skip the update of k
+      }
+      i := i + 1;
+    }
+    k := k + 1;
+  }
+}
+
+method ContinueK4(n: nat, p: nat) returns (k: nat)
+  ensures k == 25
+{
+  k := 0;
+  label Outer:
+  for kk := 0 to 25
+    invariant k == kk
+  {
+    var i := 0;
+    label Inner:
+    while i < n
+      invariant (i <= 7 && i <= p) || i == 7 || p < 7
+    {
+      if i == 7 {
+        break;
+      } else if i == p {
+        i := 8;
+        k := k + 1;
+        continue Outer;
+      }
+      i := i + 1;
+    }
+    k := k + 1;
+  }
+}
+
+method ContinueL0(n: nat, k: nat, m: nat, p: nat)
+  requires m != p
+{
+  for i := 0 to n {
+    label A: {
+      label B: label C: {
+        for j := 0 to k
+          invariant j <= p
+        {
+          label D: {
+            if j == m {
+              continue;
+            } else if j == p {
+              break continue;
+            }
+          }
+          assert j != m && j != p;
+        }
+        assert k <= p;
+      }
+    }
+    assert k <= p;
+  }
+}
+
+method ContinueL1(n: nat, k: nat, m: nat, p: nat) {
+  label Outer:
+  for i := 0 to n {
+    label Inner:
+    for j := 0 to k {
+      if j == m {
+        continue Inner;
+      } else if j == p {
+        continue Outer;
+      }
+      assert j != m && j != p;
+    }
+  }
+}
+
+method ContinueA0(n: nat, k: nat, m: nat, p: nat) {
+  label Outer:
+  for i := 0 to n {
+    var j: int := k;
+    while
+      invariant k == 0 ==> j == 0
+      invariant k != 0 ==> j != 0
+      decreases j < 0, if j < 0 then -j else j
+    {
+      case j < 0 =>
+        if {
+          case j % 17 == 0 => break Outer;
+          case j % 17 == 1 => break break;
+          case j % 17 == 2 => continue Outer;
+          case j % 17 == 3 => j := 3; break continue;
+          case 4 <= j % 17 => j := 58; continue;
+        }
+        j := 0;
+        break;
+      case 2 <= j =>
+        if j == 2 {
+          continue Outer;
+        }
+        j := j - 2;
+      case j == 8 =>
+        j := 5;
+    }
+    assert j == 1 || j == k == 0;
+  }
 }

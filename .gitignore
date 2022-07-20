@@ -36,6 +36,9 @@ Source/packages
 Source/Dafny/Parser.cs.old
 Source/Dafny/Scanner.cs.old
 
+Source/DafnyRuntime/MSBuild_Logs/
+TestResults/
+
 Docs/OnlineTutorial/DocumentationTransducer.exe
 Docs/OnlineTutorial/DocumentationTransducer.pdb
 Docs/OnlineTutorial/DocumentationTransducer/obj
@@ -58,3 +61,7 @@ Source/.vs
 /Source/DafnyRuntime/DafnyRuntimeJava/.gradle
 /Source/DafnyRuntime/DafnyRuntimeJava/build
 *.class
+
+node_modules/
+package.json
+package-lock.json

@@ -69,6 +69,10 @@ method Main() {
   Coercions();
 
   CharValues();
+
+  TypeSynonym.Test();
+
+  PrintString();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -312,6 +316,13 @@ class Cell<T> {
   {
     x, y := arr, arr;
   }
+  method UArray(x: T)
+    modifies arr
+  {
+    if arr.Length > 0 {
+      arr[0] := x;
+    }
+  }
 }
 
 type ychar = ch | '\0' <= ch <= 'z'
@@ -343,4 +354,37 @@ method CharValues() {
   var mx := new ychar[3, 3];
   var my := new zchar[3, 3];
   print mm[1, 2], " ", mx[1, 2], " ", my[1, 2], "\n";  // D D r
+}
+
+module TypeSynonym {
+  export
+    provides Test
+
+  newtype uint8 = i:int | 0 <= i < 0x100
+
+  type buffer<T> = a: array<T> | a.Length < 0x1_0000_0000 witness *
+  type buffer_t = buffer<uint8>
+
+  method BufferTest(b: buffer_t) {
+    var t := b[..];
+    print t, "\n";
+  }
+
+  method Test() {
+    var b := new uint8[] [19, 18, 9, 8];
+    BufferTest(b);
+  }
+}
+
+method PrintString() {
+  print "Strings in collections:\n";
+  print "  ", ["abc", "def"], "\n";
+  print "  ", [["abc", "def"]], "\n";
+  print "  ", {"abc", "def"}, "\n";
+  print "  ", [['a', 'b', 'c'], ['d', 'e', 'f']], "\n";
+  var a : seq<seq<char>> := [[]];
+  print "  ", a, "\n";
+  var b : seq<char>;
+  print "  ", [b], "\n";
+  print "  ", [seq(5, x => 'a')], "\n";
 }

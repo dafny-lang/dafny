@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /ironDafny "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NativeTypes {

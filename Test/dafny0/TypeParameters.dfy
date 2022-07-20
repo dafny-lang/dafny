@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C<U(==)> {
@@ -247,7 +247,7 @@ predicate Subset<T(!new)>(xs: List, ys: List)
 {
   forall x :: InList(x, xs) ==> InList(x, ys)
 }
-ghost method ListLemma_T(xs: List, ys: List)
+ghost method ListLemma_T<T(!new)>(xs: List, ys: List)
   requires forall x :: InList(x, xs) ==> InList(x, ys)
 {
   assert Subset(xs, ys);

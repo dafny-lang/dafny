@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Basic {
@@ -114,7 +114,7 @@ module M0 {
 
   trait Tr {
     twostate function G(c: C?, new d: C): int
-      requires unchanged(c)
+      requires c == null || unchanged(c)
       reads c, d
       ensures c != null ==> old(c.data) <= G(c, d)
     twostate lemma L(c: C, new d: C)
