@@ -428,9 +428,9 @@ there is an `ORDINAL` value that is larger than any `nat`.
 - non-negative numeric literals may be considered `ORDINAL` literals
 - `ORDINAL`s may be compared, using `== != < <= > >=`
 - two `ORDINAL`s may be added and the result is `>=` either one of them
-- two `ORDINAL`s may be subtracted if the LHS is '>=' the RHS (so the result is non-negative) and the RHS value is equal to some `nat` value. That is, for `ORDINAL` `x`, `assert x - x == 0;` fails
+- two `ORDINAL`s may be subtracted if the LHS is `>=` the RHS (so the result is non-negative) and the RHS value is equal to some `nat` value. That is, for `ORDINAL` `x`, `assert x - x == 0;` fails
  but `assert x < 1000000000 ==> x-x == 0;` succeeds.
-- '*', '/' and '%' are not defined for `ORDINAL`s
+- `*`, `/` and `%` are not defined for `ORDINAL`s
 - there is no literal in Dafny that represents the `ORDINAL` value that is larger than any `nat`
 
 ## 7.5. Characters {#sec-characters}
