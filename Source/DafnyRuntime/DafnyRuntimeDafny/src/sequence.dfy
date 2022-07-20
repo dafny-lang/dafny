@@ -169,10 +169,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       decreases Repr, 2
       ensures |Value()| == Length()
     {
-      var result := left.Value() + right.Value();
-      assert |result| == length;
-      assert length == Length();
-      result
+      left.Value() + right.Value()
     }
 
     method ToArray() returns (ret: ResizableArray<T>)
@@ -217,7 +214,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       this.value := wrapped.Value();
       this.size := 1 + wrapped.Size();
       new;
-      assert this.length == |value|;
       Repr := {this} + exprBox.Repr;
     }
 
@@ -243,7 +239,6 @@ module {:options "/functionSyntax:4"} MetaSeq {
       decreases Repr, 2
       ensures |Value()| == Length()
     {
-      assert |value| == Length();
       value
     }
 
@@ -255,16 +250,11 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures ret.Value() == Value()
     {
       var expr := AtomicBox.Get(exprBox);
-      assert expr.Value() == value;
       var a := expr.ToArray();
-      assert a.Value() == value;
       var direct: Direct<T> := new Direct(a);
-      assert && direct.Value() == value;
-      assert direct in direct.Repr;
-      assert  && direct.Repr <= direct.Repr;
-      assert && direct.Valid();
 
       AtomicBox.Put(exprBox as AtomicBox<SeqExpr<T>>, direct.Repr, direct);
+
       return a;
     }
   }
@@ -280,11 +270,8 @@ module {:options "/functionSyntax:4"} MetaSeq {
 
     ghost predicate Invariant(repr: set<object>, t: T) reads repr
 
-    // TODO: Figure out how to do a feasibility implementation.
-    // This is missing a modifies!
     static method {:extern} Put(b: AtomicBox<T>, ghost repr: set<object>, t: T)
       requires b.Invariant(repr, t)
-      ensures b.Repr == repr
 
     static method {:extern} Get(b: AtomicBox<T>) returns (t: T)
       ensures b.Invariant(b.Repr, t)
@@ -293,7 +280,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   class SeqExprBox<T> extends AtomicBox<SeqExpr<T>> {
     ghost const value: seq<T>
     ghost const size: nat
-    constructor(e: SeqExpr<T>) 
+    constructor(e: SeqExpr<T>)
       requires e.Valid()
       ensures Valid()
       ensures fresh(Repr - e.Repr)
