@@ -1828,7 +1828,7 @@ method m(int i) {
   assert f(i) == i + 1;
 }
 ```
-Without the `{:opaque}` attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
 Note that the psuedo-function-call in the `reveal' statement is written without arguments.
 
