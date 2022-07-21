@@ -181,9 +181,9 @@ module Test {
 }
 
 method topLevel(
-  x: int,
-  y: int
-) returns (z: int)
+    x: int,
+    y: int
+  ) returns (z: int)
   ensures z > 10
   ensures
     && (forall j: int :: j < z || j == x)
