@@ -877,7 +877,7 @@ rule that succeeds.
 TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
-If a ambiguous name is found or  name of the wrong kind (e.g. a module
+If an ambiguous name is found or a name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing
 down the list.
 
