@@ -77,6 +77,11 @@ public abstract class Compiler {
   /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
 
+  /// <summary>
+  /// Dafny features this compiler is known to not support.
+  /// </summary>
+  public virtual IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature>();
+
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;
