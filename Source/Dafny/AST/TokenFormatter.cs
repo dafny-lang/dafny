@@ -186,6 +186,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       posToIndentAfter[member.EndToken.pos] = indent;
     }
     void SetDeclIndentation(TopLevelDecl topLevelDecl) {
+      var initIndent = indent;
       if (topLevelDecl.StartToken.line > 0) {
         SetBeforeAfter(topLevelDecl.BodyStartTok, indent, indent, indent + 2);
         indent += 2;
@@ -200,8 +201,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
       }
       if (topLevelDecl.StartToken.line > 0) {
-        indent -= 2;
-        SetBeforeAfter(topLevelDecl.BodyStartTok, indent + 2, indent, indent);
+        SetBeforeAfter(topLevelDecl.EndToken, indent, initIndent, initIndent);
+        indent = initIndent;
       }
     }
     foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
