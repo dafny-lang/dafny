@@ -25,7 +25,7 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant2(): int {
@@ -35,7 +35,7 @@ function GetConstant2(): int {
 function GetConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -57,7 +57,7 @@ function GetConstant2(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
@@ -67,7 +67,7 @@ function GetConstant(): int {
 function GetConstant2(): int {
   2
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -93,7 +93,7 @@ function GetConstant2(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
@@ -107,7 +107,7 @@ function GetConstant2(): int {
 function GetConstant3(): int {
   3
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -124,13 +124,13 @@ function GetConstant(): int {
         new Range((0, 12), (0, 12)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetAnotherConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -151,7 +151,7 @@ function Some";
         new Range((0, 12), (0, 12)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 function GetIt(): string {
@@ -161,7 +161,7 @@ function GetIt(): string {
 function SomeConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -192,13 +192,13 @@ function SomeConstant(): int {
           Text = "}"
         }
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = @"
 class Test {
   function GetConstant(): int { 1 }
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
   }
 }

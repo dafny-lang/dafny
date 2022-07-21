@@ -149,10 +149,9 @@ namespace Microsoft.Dafny {
           if (unary != null) {
             var ide = unary.E.Resolved as IdentifierExpr;
             if (ide != null && ide.Var == (IVariable)bv) {
-              if (unary.Op == UnaryOpExpr.Opcode.Not) {
-                Contract.Assert(bv.Type.IsBoolType);
+              if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
                 bounds.Add(new ComprehensionExpr.ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, false)));
-              } else if (unary.Op == UnaryOpExpr.Opcode.Allocated) {
+              } else if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.Allocated) {
                 bounds.Add(new ComprehensionExpr.ExplicitAllocatedBoundedPool());
               }
             }
@@ -193,8 +192,8 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
-            if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, e1.Type.AsSeqType.Arg));
+            if (whereIsBv == 0 && e1.Type.AsSeqType is { } seqType) {
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, seqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:

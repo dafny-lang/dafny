@@ -53,7 +53,7 @@ public class PluginsTest {
 
   [Fact]
   public void EnsurePluginIsExecuted() {
-    var library = GetLibrary("simplePlugin");
+    var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
     var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
@@ -74,7 +74,7 @@ public class PluginsTest {
 
   [Fact]
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
-    var library = GetLibrary("secondPlugin");
+    var library = GetLibrary("rewriterPreventingVerification");
 
     var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
@@ -84,8 +84,24 @@ public class PluginsTest {
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
-    Assert.Equal(1, reporter.Count(ErrorLevel.Error));
+    Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
+  }
+
+  [Fact]
+  public void EnsurePluginIsExecutedAndAllowsVerification() {
+    var library = GetLibrary("rewriterAllowingVerification");
+
+    var reporter = new CollectionErrorReporter();
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
+    DafnyOptions.Install(options);
+
+    var programString = "function test(): int { 1 }";
+    var dafnyProgram = CreateProgram(programString, reporter);
+    Main.Resolve(dafnyProgram, reporter);
+    Assert.Equal(0, reporter.ErrorCountUntilResolver);
+    Assert.Equal(1, reporter.ErrorCount);
   }
 
   private static Program CreateProgram(string programString, CollectionErrorReporter reporter) {

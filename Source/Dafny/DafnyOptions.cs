@@ -26,6 +26,7 @@ namespace Microsoft.Dafny {
 
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -107,6 +108,8 @@ namespace Microsoft.Dafny {
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+    public HashSet<string> LibraryFiles { get; } = new();
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -114,6 +117,11 @@ namespace Microsoft.Dafny {
       ExperimentalTreatUnspecifiedAsGhost,
       ExperimentalTreatUnspecifiedAsCompiled,
       ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
+
+    public enum QuantifierSyntaxOptions {
+      Version3,
       Version4,
     }
 
@@ -172,6 +180,12 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+        case "library":
+          if (ps.ConfirmArgumentCount(1)) {
+            LibraryFiles.Add(args[ps.i]);
+          }
+
+          return true;
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
@@ -453,6 +467,18 @@ namespace Microsoft.Dafny {
           }
           return true;
 
+        case "quantifierSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version4;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
             if (ps.GetIntArgument(ref countErrors, 2)) {
@@ -663,10 +689,15 @@ namespace Microsoft.Dafny {
       TODO
 
     {:compile}
-      TODO
+      The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
+      If that argument is false, then that declaration will not be compiled at all.
+      
+      The difference with {:extern} is that {:extern} will still emit declaration code if necessary,
+      whereas {:compile false} will just ignore the declaration for compilation purposes.
 
     {:main}
-      TODO
+      When executing a program, Dafny will first look for a method annotated with {:main}, and otherwise
+      will look for `method Main()`, and then execute the first of these two methods found.
 
     {:axiom}
       Ordinarily, the compiler gives an error for every function or
@@ -1009,6 +1040,16 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
         Ghost functions are written `ghost function`. Predicates are always ghost
         and are written `predicate`.
+/quantifierSyntax:<version>
+    The syntax for quantification domains is changing from Dafny version 3 to version 4,
+    more specifically where quantifier ranges (| <Range>) are allowed.
+    This switch gives early access to the new syntax.
+    3 (default) - Ranges are only allowed after all quantified variables are declared.
+        (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y)
+    4 - Ranges are allowed after each quantified variable declaration.
+        (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
+    Note that quantifier variable domains (<- <Domain>) are available
+    in both syntax versions.
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
     or type definitions during translation.
@@ -1237,6 +1278,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /useRuntimeLib
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
+/library:<file>
+    The contents of this file and any files it includes can be referenced from other files as if they were included. 
+    However, these contents are skipped during code generation and verification.
+    This option is useful in a diamond dependency situation, 
+    to prevent code from the bottom dependency from being generated more than once.
 
 ----------------------------------------------------------------------------
 
@@ -1250,9 +1296,9 @@ program.
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private Bpl.IToken token;
+  private IToken token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
@@ -1270,11 +1316,12 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
   public static readonly HashSet<string> KnownOptions = new() {
-    "functionSyntax"
+    "functionSyntax",
+    "quantifierSyntax"
   };
 
   private readonly Errors errors;
-  public Bpl.IToken Token { get; set; }
+  public IToken Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;
@@ -1282,7 +1329,7 @@ class DafnyAttributeOptions : DafnyOptions {
   }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
-    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Microsoft.Dafny.Token.NoToken);
   }
 
   private void Unsupported(string name, Bpl.CommandLineParseState ps) {

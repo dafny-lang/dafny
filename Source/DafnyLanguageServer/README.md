@@ -66,6 +66,10 @@ Options provided through the command line have higher priority than the options 
 # Set the caching policy (like /verifySnapshots for Dafny.exe)
 # Default: 0 (no caching).
 --verifier:verifysnapshots=0
+
+# Set whether or not to compute and report verification gutter statuses
+# Default: 0 (no gutter status reported).
+--verifier:gutterStatus=true
 ```
 
 ### Ghost Diagnostics

@@ -5,6 +5,8 @@ on:
     inputs:
       sha:
         type: string
+      branch:
+        type: string
 
 jobs:
   check-deep-tests:
@@ -19,4 +21,7 @@ jobs:
       with:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
-          console.log(script({github, context, core}, workflowID = 'deep-tests.yml', branch = 'master', sha = '${{ inputs.sha }}'))
+          console.log(script({github, context, core,
+                              workflow_id: 'deep-tests.yml',
+                              ...('${{ inputs.sha }}' ? {sha: '${{ inputs.sha }}'} : {}),
+                              ...('${{ inputs.branch }}' ? {branch: '${{ inputs.branch }}'} : {})}))

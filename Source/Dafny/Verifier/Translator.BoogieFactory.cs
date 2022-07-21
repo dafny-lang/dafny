@@ -867,5 +867,27 @@ namespace Microsoft.Dafny {
       fvars.Add(BplFormalVar(name, ty, incoming, out var e));
       return e;
     }
+
+    public static IToken ToDafnyToken(Bpl.IToken exprTok) {
+      if (exprTok == null) {
+        return null;
+      } else if (exprTok is IToken t) {
+        return t;
+      } else if (exprTok == Boogie.Token.NoToken) {
+        return Token.NoToken;
+      } else {
+        // This is defensive programming but we aren't expecting to hit this case
+        return new Token {
+          col = exprTok.col,
+          Filename = exprTok.filename,
+          kind = exprTok.kind,
+          LeadingTrivia = "",
+          line = exprTok.line,
+          pos = exprTok.pos,
+          TrailingTrivia = "",
+          val = exprTok.val
+        };
+      }
+    }
   }
 }

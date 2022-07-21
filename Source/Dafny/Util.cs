@@ -3,17 +3,25 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
-
 
 namespace Microsoft.Dafny {
   public static class Util {
+
+    public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
+      return Select(task, f).Unwrap();
+    }
+
+    public static Task<U> Select<T, U>(this Task<T> task, Func<T, U> f) {
+      return task.ContinueWith(completedTask => f(completedTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
 
     public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
@@ -436,12 +444,12 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.includerFilename == null ? "roots" : include.includerFilename;
+      string key = include.IncluderFilename ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.canonicalPath);
+        existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
+        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
       }
     }
 
@@ -851,7 +859,7 @@ namespace Microsoft.Dafny {
           // function is okay, so check all NON-ghost arguments
           isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
           for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
-            if (!callExpr.Function.Formals[i].IsGhost) {
+            if (!callExpr.Function.Formals[i].IsGhost && i < callExpr.Args.Count) {
               isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
             }
           }
@@ -1109,7 +1117,7 @@ namespace Microsoft.Dafny {
         return true;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        if (e is UnaryOpExpr unaryOpExpr && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+        if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
           return true;
         }
         if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {

@@ -1,7 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -12,23 +17,46 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
   public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
-    verifier = DafnyProgramVerifier.Create(logger, options);
+    verifier = new DafnyProgramVerifier(logger, options);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public Task<VerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
+
+    var tasks = await verifier.GetVerificationTasksAsync(document, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      var source = new TaskCompletionSource<VerificationResult>();
-      cancellationToken.Register(() => {
-        source.SetCanceled(cancellationToken);
-      });
-      return source.Task;
+      tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
-    return verifier.VerifyAsync(program, progressReporter, cancellationToken);
+    return tasks;
+  }
+
+  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
+
+  class NeverVerifiesImplementationTask : IImplementationTask {
+    private readonly IImplementationTask original;
+    private readonly Subject<IVerificationStatus> source;
+
+    public NeverVerifiesImplementationTask(IImplementationTask original) {
+      this.original = original;
+      source = new();
+    }
+
+    public IVerificationStatus CacheStatus => new Stale();
+    public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
+    public Implementation Implementation => original.Implementation;
+
+    public IObservable<IVerificationStatus> TryRun() {
+      return source;
+    }
+
+    public void Cancel() {
+      source.OnError(new TaskCanceledException());
+    }
   }
 }

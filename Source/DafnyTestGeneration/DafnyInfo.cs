@@ -55,6 +55,8 @@ namespace DafnyTestGeneration {
           Visit(moduleDecl);
         } else if (d is ClassDecl classDecl) {
           Visit(classDecl);
+        } else if (d is IndDatatypeDecl datatypeDecl) {
+          Visit(datatypeDecl);
         }
       }
 
@@ -66,6 +68,12 @@ namespace DafnyTestGeneration {
         path.Add(d.Name);
         info.ToImport.Add(string.Join(".", path));
         d.ModuleDef.TopLevelDecls.ForEach(Visit);
+        path.RemoveAt(path.Count - 1);
+      }
+
+      private void Visit(IndDatatypeDecl d) {
+        path.Add(d.Name);
+        d.Members.ForEach(Visit);
         path.RemoveAt(path.Count - 1);
       }
 
@@ -85,6 +93,8 @@ namespace DafnyTestGeneration {
       private void Visit(MemberDecl d) {
         if (d is Method method) {
           Visit(method);
+        } else if (d is Function function) {
+          Visit(function);
         }
       }
 
@@ -97,6 +107,18 @@ namespace DafnyTestGeneration {
           info.isStatic.Add(methodName);
         }
         var returnTypes = m.Outs.Select(arg => arg.Type.ToString()).ToList();
+        info.returnTypes[methodName] = returnTypes;
+      }
+
+      private new void Visit(Function f) {
+        var methodName = f.Name;
+        if (path.Count != 0) {
+          methodName = $"{string.Join(".", path)}.{methodName}";
+        }
+        if (f.HasStaticKeyword || !insideAClass) {
+          info.isStatic.Add(methodName);
+        }
+        var returnTypes = new List<string> { f.ResultType.ToString() };
         info.returnTypes[methodName] = returnTypes;
       }
     }

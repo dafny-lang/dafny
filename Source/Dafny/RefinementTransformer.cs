@@ -20,7 +20,6 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Plugins;
-using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper {
@@ -46,8 +45,8 @@ namespace Microsoft.Dafny {
       var rtok = tok as RefinementToken;
       return rtok != null && rtok.InheritingModule == m;
     }
-    public override string filename {
-      get { return WrappedToken.filename + "[" + InheritingModule.Name + "]"; }
+    public override string Filename {
+      get { return WrappedToken.Filename + "[" + InheritingModule.Name + "]"; }
       set { throw new NotSupportedException(); }
     }
   }
@@ -153,7 +152,7 @@ namespace Microsoft.Dafny {
     }
 
     public RefinementTransformer(Program p)
-      : this(p.reporter) {
+      : this(p.Reporter) {
       Contract.Requires(p != null);
       program = p;
     }
