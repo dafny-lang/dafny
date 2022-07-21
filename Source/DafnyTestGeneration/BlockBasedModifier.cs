@@ -11,45 +11,48 @@ namespace DafnyTestGeneration {
     
     private Implementation? implementation; // the implementation currently traversed
     private Program? program; // the original program
-    private List<ProgramModification> modifications = new();
 
-    protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      modifications = new List<ProgramModification>();
-      VisitProgram(p);
-      return modifications;
+    protected override IAsyncEnumerable<ProgramModification> GetModifications(Program p) {
+      return VisitProgram(p);
     }
 
-    public override Block VisitBlock(Block node) {
+    private ProgramModification? VisitBlock(Block node) {
       if (program == null || implementation == null) {
-        return node;
+        return null;
       }
       base.VisitBlock(node);
       if (node.cmds.Count == 0) { // ignore blocks with zero commands
-        return node;
+        return null;
       }
       node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
       var record = new BlockBasedModification(program,
           ImplementationToTarget?.VerboseName ?? implementation.VerboseName,
           node.UniqueId, ExtractCapturedStates(node));
-      modifications.Add(record);
-      
+
       node.cmds.RemoveAt(node.cmds.Count - 1);
-      return node;
+      return record;
     }
 
-    public override Implementation VisitImplementation(Implementation node) {
+    private async IAsyncEnumerable<ProgramModification> VisitImplementation(Implementation node) {
       implementation = node;
       if (ImplementationIsToBeTested(node) && 
           dafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
-        VisitBlockList(node.Blocks);
+        for (int i = node.Blocks.Count - 1; i >= 0; i--) {
+          var modification = VisitBlock(node.Blocks[i]);
+          if (modification != null) {
+            yield return modification;
+          }
+        }
       }
-      return node;
     }
 
-    public override Program VisitProgram(Program node) {
+    private async IAsyncEnumerable<ProgramModification> VisitProgram(Program node) {
       program = node;
-      node.Implementations.Iter(i => VisitImplementation(i));
-      return node;
+      foreach (var implementation in node.Implementations) {
+        await foreach (var modification in VisitImplementation(implementation)) {
+          yield return modification;
+        }
+      }
     }
 
     /// <summary>

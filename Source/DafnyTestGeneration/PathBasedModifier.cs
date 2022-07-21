@@ -14,18 +14,16 @@ namespace DafnyTestGeneration {
     private const string BlockVarNamePrefix = "notYetVisited";
     private List<Path> paths = new();
 
-    protected override IEnumerable<ProgramModification> GetModifications(Program p) {
+    protected override async IAsyncEnumerable<ProgramModification> GetModifications(Program p) {
       paths = new List<Path>();
-      var result = new List<ProgramModification>();
       p = VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
         var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
-        result.Add(new ProgramModification(p,name, 
-          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})" ));
+        yield return new ProgramModification(p,name, 
+          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})" );
         path.NoAssertPath();
       }
-      return result;
     }
 
     /// <summary>

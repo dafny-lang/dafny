@@ -38,11 +38,11 @@ module C {
         m.DafnyInfo.IsStatic("C.compareStringLengthToOne")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "[]"));
+      Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "\"\""));
       Assert.IsTrue(methods.Exists(m =>
-        Regex.IsMatch(m.ValueCreation[0].value, "\\['.'\\]")));
+        Regex.IsMatch(m.ValueCreation[0].value, "\".\"")));
       Assert.IsTrue(methods.Exists(m =>
-        Regex.IsMatch(m.ValueCreation[0].value, "\\['.'(, '.')+\\]")));
+        Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
     [TestMethod]
@@ -85,20 +85,19 @@ module SimpleTest {
           "SimpleTest.compareStringToSeqOfChars")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
       Assert.IsTrue(methods.All(m =>
-        Regex.IsMatch(m.ValueCreation[0].value, "\\['.'(, '.')*\\]") ||
-        m.ValueCreation[0].value == "[]"));
+        Regex.IsMatch(m.ValueCreation[0].value, "\".*\"")));
       Assert.IsTrue(methods.All(m =>
         Regex.IsMatch(m.ValueCreation[1].value,
           "\\[(v[0-9]+|null)(, (v[0-9]+|null))*\\]") ||
         m.ValueCreation[1].value == "[]"));
 
       Assert.IsTrue(methods.Exists(m =>
-        m.ValueCreation[0].value.Split(",").Length !=
+        m.ValueCreation[0].value.Length - 2 !=
         m.ValueCreation[1].value.Split(",").Length));
 
       Assert.IsTrue(methods.Exists(m =>
-        m.ValueCreation[0].value.Split(",").Length < 2 &&
-        m.ValueCreation[0].value.Split(",").Length ==
+        m.ValueCreation[0].value.Length < 4 &&
+        m.ValueCreation[0].value.Length - 2 ==
         m.ValueCreation[1].value.Split(",").Length));
     }
 

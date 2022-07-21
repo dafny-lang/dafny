@@ -49,7 +49,7 @@ namespace DafnyTestGeneration {
       dafnyModel = DafnyModel.ExtractModel(log);
       MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
-      NOfTypeArgs = dafnyInfo.GetNOfTypeArgs(MethodName);
+      NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
 
@@ -102,9 +102,24 @@ namespace DafnyTestGeneration {
           continue; // this means that this parameter is a type variable
         }
         parameterIndex++;
+        Type type;
+        if (parameterIndex >= 0) {
+          type = Utils.UseFullName(
+            DafnyInfo.GetFormalsTypes(MethodName)[parameterIndex]);
+          type = Utils.CopyWithReplacements(type,
+            DafnyInfo.GetTypeArgs(MethodName).ConvertAll(arg => arg.ToString()),
+            Enumerable.Repeat(defaultType, NOfTypeArgs).ToList());
+          type = Utils.ReplaceType(type,
+            _ => true, 
+            type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ? 
+              new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) : 
+              new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+        } else {
+          type = null;
+        }
         if (printOutput[i] == "") {
           getDefaultValueParams = new();
-          result.Add(GetDefaultValue(DafnyInfo.GetFormalsTypes(MethodName)[parameterIndex]));
+          result.Add(GetDefaultValue(type, type));
           continue;
         }
         if (!printOutput[i].StartsWith("T@")) {
@@ -115,27 +130,14 @@ namespace DafnyTestGeneration {
           } else {
             baseValue = printOutput[i];
           }
-
-          var type = DafnyModelTypeUtils.ReplaceTypeVariables(
-            DafnyInfo.GetFormalsTypes(MethodName)[parameterIndex],
-            defaultType);
-          if (type is IntType or RealType or BoolType or BitvectorType) {
-            result.Add(baseValue);
-          } else {
-            var typeString = type.ToString();
-            // TODO: find a more elegant solution
-            if (typeString.StartsWith("_System.")) {
-              typeString = typeString[8..];
-            }
-            result.Add($"({baseValue} as {typeString})");
-          }
+          result.Add(GetPrimitiveAsType(baseValue, type));
           continue;
         }
         foreach (var variable in vars) {
           if ((variable.Element as Model.Uninterpreted)?.Name != printOutput[i]) {
             continue;
           }
-          result.Add(ExtractVariable(variable));
+          result.Add(ExtractVariable(variable, type));
           break;
         }
       }
@@ -148,7 +150,7 @@ namespace DafnyTestGeneration {
     }
 
     private string GetFunctionOfType(ArrowType type) {
-      type = (ArrowType) DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
+      type = (ArrowType) Utils.ReplaceTypeVariables(type, defaultType);
       getDefaultValueParams = new();
       var lambda = 
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
@@ -175,7 +177,21 @@ namespace DafnyTestGeneration {
     /// Extract the value of a variable. This can have side-effects on
     /// assignments, reservedValues, reservedValuesMap, and objectsToMock.
     /// </summary>
-    private string ExtractVariable(DafnyModelVariable variable, Type? asType=null) {
+    private string ExtractVariable(DafnyModelVariable variable, Type? asType) {
+      if (variable == null) {
+        if (asType != null) {
+          return GetDefaultValue(asType);
+        } else {
+          errorMessages.Add("// Failed: variable and type are null");
+          return "";
+        }
+      }
+      if (asType != null) {
+        asType = Utils.ReplaceType(asType,
+          type => DafnyInfo.GetSupersetType(type) != null &&
+                  type.Name.StartsWith("_System"),
+          type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+      }
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
       }
@@ -192,7 +208,11 @@ namespace DafnyTestGeneration {
       
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
-        DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
+        Utils.ReplaceTypeVariables(variable.Type, defaultType));
+      variableType = Utils.ReplaceType(variableType,
+        type => DafnyInfo.GetSupersetType(type) != null &&
+                type.Name.StartsWith("_System"),
+        type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
       if (variableType.ToString() == defaultType.ToString() && 
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
@@ -203,14 +223,16 @@ namespace DafnyTestGeneration {
         case BoolType:
         case CharType:
         case BitvectorType:
-          return variable.Value;
+          return GetPrimitiveAsType(variable.Value, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
           string seqName;
           var seqVar = variable as SeqVariable;
           if (seqVar?.GetLength() == null) {
             seqName = "d" + ValueCreation.Count;
-            ValueCreation.Add((seqName, asType ?? variableType, "[]"));
+            ValueCreation.Add(seqType.Arg is CharType
+              ? (seqName, asType ?? variableType, "\"\"")
+              : (seqName, asType ?? variableType, "[]"));
             return seqName;
           }
           for (var i = 0; i < seqVar.GetLength(); i++) {
@@ -220,20 +242,22 @@ namespace DafnyTestGeneration {
               elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type?)null)));
               continue;
             }
-            elements.Add(ExtractVariable(element));
+            elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type?)null)));
           }
           seqName = "d" + ValueCreation.Count;
-          ValueCreation.Add((seqName, asType ?? variableType, $"[{string.Join(", ", elements)}]"));
+          ValueCreation.Add(seqType.Arg is CharType
+            ? (seqName, asType ?? variableType, $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"")
+            : (seqName, asType ?? variableType, $"[{string.Join(", ", elements)}]"));
           return seqName;
         case SetType:
           var asBasicSetType = GetBasicType(asType, type => type is SetType) as SetType;
           string setName;
-          if (!variable.children.ContainsKey("true")) {
+          if (!variable.Children.ContainsKey("true")) {
             setName = "d" + ValueCreation.Count;
             ValueCreation.Add((setName, asType ?? variableType, "{}"));
             return setName;
           }
-          foreach (var element in variable.children["true"]) {
+          foreach (var element in variable.Children["true"]) {
             elements.Add(ExtractVariable(element, asBasicSetType?.TypeArgs?.FirstOrDefault((Type?)null)));
           }
           setName = "d" + ValueCreation.Count;
@@ -255,9 +279,9 @@ namespace DafnyTestGeneration {
           errorMessages.Add("// Failed - temporary disable datatype support");
           var tupleName = "d" + ValueCreation.Count;
           // TODO: specify type
-          ValueCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
-            string.Join(",", variable.children.Values
-            .Select(v => ExtractVariable(v.First()))) +")"));
+          ValueCreation.Add((tupleName, DafnyModel.UnknownType, "(" + 
+            string.Join(",", variable.Children.Values
+            .Select(v => ExtractVariable(v.First(), null))) +")"));
           return tupleName;
         case DafnyModelTypeUtils.DatatypeType dataType:
           if (variable.CanonicalName() == "") {
@@ -283,11 +307,11 @@ namespace DafnyTestGeneration {
           List<string> fields = new();
           for (int i = 0; i < ctor.Destructors.Count; i++) {
             var fieldName = ctor.Destructors[i].Name;
-            if (!variable.children.ContainsKey(fieldName)) {
+            if (!variable.Children.ContainsKey(fieldName)) {
               fieldName = $"[{i}]";
             }
 
-            if (!variable.children.ContainsKey(fieldName)) {
+            if (!variable.Children.ContainsKey(fieldName)) {
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
                                 $"{variable.CanonicalName()} for datatype " +
@@ -295,16 +319,16 @@ namespace DafnyTestGeneration {
               return basicType.ToString();
             }
 
-            var destructorType = DafnyModelTypeUtils.CopyWithReplacements(
-              DafnyModelTypeUtils.UseFullName(ctor.Destructors[i].Type),
+            var destructorType = Utils.CopyWithReplacements(
+              Utils.UseFullName(ctor.Destructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
-            destructorType = DafnyModelTypeUtils.ReplaceType(destructorType,
+            destructorType = Utils.ReplaceType(destructorType,
               _ => true,
               t => DafnyInfo.Datatypes.ContainsKey(t.Name)
                 ? new DafnyModelTypeUtils.DatatypeType(t)
                 : new UserDefinedType(t.tok, t.Name, t.TypeArgs));
             fields.Add(ctor.Destructors[i].Name + ":=" +
-                       ExtractVariable(variable.children[fieldName].First(), destructorType));
+                       ExtractVariable(variable.Children[fieldName].First(), destructorType));
           }
 
           var value = basicType.ToString();
@@ -320,7 +344,7 @@ namespace DafnyTestGeneration {
         case ArrowType arrowType:
           var asBasicArrowType = GetBasicType(asType, type => type is ArrowType) as ArrowType;
           return GetFunctionOfType(asBasicArrowType ?? arrowType);
-        case UserDefinedType undefined when undefined.Name == DafnyModel.UndefinedType.Name:
+        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
           errorMessages.Add($"// Failed to determine a variable type (element {variable.Element})");
           return "null";
         case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
@@ -330,20 +354,33 @@ namespace DafnyTestGeneration {
           return "null";
         default:
           var varId = $"v{ObjectsToMock.Count}";
-          var dafnyType = DafnyModelTypeUtils.GetNonNullable(asType ?? variableType);
+          var dafnyType = Utils.GetNonNullable(asType ?? variableType);
           ObjectsToMock.Add(new(varId, dafnyType));
           TypesToSynthesize.Add(dafnyType.ToString());
           mockedVarId[variable] = varId;
-          foreach (var fieldName in variable.children.Keys) {
-            if (variable.children[fieldName].Count != 1) {
+          foreach (var fieldName in variable.Children.Keys) {
+            if (variable.Children[fieldName].Count != 1) {
               continue;
             }
-            Assignments.Add(new(varId, fieldName, ExtractVariable(variable.children[fieldName].First())));
+            // TODO: Specify asType
+            Assignments.Add(new(varId, fieldName, ExtractVariable(variable.Children[fieldName].First(), null)));
           }
           return varId;
       }
       errorMessages.Add($"// Failed because variable has unknown type {variableType} (element {variable.Element})");
       return "null";
+    }
+
+    private static string GetPrimitiveAsType(string value, Type? asType) {
+      if (asType is null or IntType or RealType or BoolType or CharType
+          or BitvectorType) {
+        return value;
+      }
+      var typeString = asType.ToString();
+      if (typeString.StartsWith("_System.")) {
+        typeString = typeString[8..];
+      }
+      return $"({value} as {typeString})";
     }
 
     /// <summary>
@@ -353,32 +390,38 @@ namespace DafnyTestGeneration {
     /// an element (e.g. T@U!val!25).
     /// </summary>
     private string GetDefaultValue(Type type, Type? asType=null) {
+      if (type == null) {
+        errorMessages.Add("// Failed - cannot determine type");
+        return "";
+      }
       if (type.ToString().Contains("_System.Tuple") ||
           (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        errorMessages.Add("// Failed - temporary disable datatype support");
+        errorMessages.Add("// Failed - temporary disable tuple support");
         return "";
       }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
-      type = DafnyModelTypeUtils.ReplaceType(type,
+      type = Utils.ReplaceType(type,
         _ => true,
         t => DafnyInfo.Datatypes.ContainsKey(t.Name) ? 
           new DafnyModelTypeUtils.DatatypeType(t) : 
           new UserDefinedType(t.tok, t.Name, t.TypeArgs));
-      type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
+      type = Utils.ReplaceTypeVariables(type, defaultType);
       switch (type) {
         case IntType:
-          return "0";
+          return GetPrimitiveAsType("0", asType);
         case RealType:
-          return "0.0";
+          return GetPrimitiveAsType("0.0", asType);
         case BoolType:
-          return "false";
+          return GetPrimitiveAsType("false", asType);
         case CharType:
-          return "\'a\'";
+          return GetPrimitiveAsType("\'a\'", asType);
         case BitvectorType bitvectorType:
-          return $"(0 as bv{bitvectorType.Width})";
-        case SeqType:
+          return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", asType);
+        case SeqType seqType:
           var seqName = "d" + ValueCreation.Count;
-          ValueCreation.Add((seqName, asType ?? type, "[]"));
+          ValueCreation.Add(seqType.Arg is CharType
+            ? (seqName, asType ?? type, "\"\"")
+            : (seqName, asType ?? type, "[]"));
           return seqName;
         case SetType:
           var setName = "d" + ValueCreation.Count;
@@ -392,7 +435,7 @@ namespace DafnyTestGeneration {
           errorMessages.Add("// Failed - temporary disable datatype support");
           // TODO: specify type
           var tupleName = "d" + ValueCreation.Count;
-          ValueCreation.Add((tupleName, DafnyModel.UndefinedType, "(" + 
+          ValueCreation.Add((tupleName, DafnyModel.UnknownType, "(" + 
             string.Join(",", tupleType.TypeArgs.Select(arg => GetDefaultValue(arg))) + ")"));
           return tupleName;
         case DafnyModelTypeUtils.DatatypeType datatypeType:
@@ -412,9 +455,9 @@ namespace DafnyTestGeneration {
           } else {
             var assignemnets = ctor.Destructors.Select(destructor =>
               destructor.Name + ":=" + GetDefaultValue(
-                DafnyModelTypeUtils.CopyWithReplacements(DafnyModelTypeUtils.UseFullName(destructor.Type),
+                Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
                     ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), datatypeType.TypeArgs),
-                DafnyModelTypeUtils.CopyWithReplacements(DafnyModelTypeUtils.UseFullName(destructor.Type),
+                Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
                   ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), datatypeType.TypeArgs)));
             value = datatypeType + "." + ctor.Name + "(" +
                    string.Join(",", assignemnets) + ")";
@@ -426,7 +469,7 @@ namespace DafnyTestGeneration {
           
         case ArrowType arrowType:
           return GetFunctionOfType(arrowType);
-        case UserDefinedType unDefinedType when unDefinedType.Name == DafnyModel.UndefinedType.Name:
+        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
           errorMessages.Add($"// Failed to determine type of a default value");
           return "null";
         case UserDefinedType userDefinedType when userDefinedType.Name.EndsWith("?"):

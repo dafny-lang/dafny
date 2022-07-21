@@ -1,5 +1,7 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
@@ -9,13 +11,20 @@ using Type = Microsoft.Dafny.Type;
 
 namespace DafnyServer.CounterexampleGeneration {
 
-  public class DafnyModelTypeUtils {
+  /// <summary>
+  /// This class stores various transformations that could be useful to perform
+  /// on types extracted from DafnyModel (e.g. to convert Boogie type names
+  /// back to the original Dafny names)
+  /// </summary>
+  public static class DafnyModelTypeUtils {
     
     private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
-    private static readonly Regex SystemRegex = new("^_System.(nat|string|object)");
+    private static readonly Regex UnderscoreRemovalRegex = new("__");
 
+    // Used to distinguish between class types and algebraic datatypes
     public class DatatypeType : UserDefinedType {
-      public DatatypeType(UserDefinedType type) : base(new Token(), type.Name, type.TypeArgs) { }
+      public DatatypeType(UserDefinedType type) 
+        : base(new Token(), type.Name, type.TypeArgs) { }
     }
 
     public static Type GetInDafnyFormat(Type type) {
@@ -27,9 +36,7 @@ namespace DafnyServer.CounterexampleGeneration {
       // strip everything after @, this is done for type variables:
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
-      newName = DafnyModel.UnderscoreRemovalRegex.Replace(newName, "_");
-      // Remove _System. prefix
-      newName = SystemRegex.Replace(newName, "$1");
+      newName = UnderscoreRemovalRegex.Replace(newName, "_");
       var newType = new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
       if (type is DatatypeType) {
@@ -38,61 +45,10 @@ namespace DafnyServer.CounterexampleGeneration {
       return newType;
     }
 
-    public static Type GetNonNullable(Type type) {
-      if (type is not UserDefinedType userType) {
-        return type;
-      }
-
-      var newType = new UserDefinedType(new Token(), 
-        userType.Name.TrimEnd('?'), userType.TypeArgs);
-      if (type is DatatypeType) {
-        return new DatatypeType(newType);
-      }
-      return newType;
-    }
-
-    public static Type ReplaceTypeVariables(Type type, Type with) {
-      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
-    }
-    
-    public static Type UseFullName(Type type) {
-      return ReplaceType(type, _ => true, type => 
-        new UserDefinedType(new Token(), type?.ResolvedClass?.FullName ?? type.Name, type.TypeArgs));
-    }
-
-    public static Type CopyWithReplacements(Type type, List<string> from, List<Type> to) {
-      if (from.Count != to.Count) {
-        return type;
-      }
-      Dictionary<string, Type> replacements = new();
-      for (int i = 0; i < from.Count; i++) {
-        replacements[from[i]] = to[i];
-      }
-      replacements["_System.string"] =
-        new UserDefinedType(new Token(), "string", new List<Type>());
-      replacements["_System.nat"] =
-        new UserDefinedType(new Token(), "nat", new List<Type>());
-      replacements["_System.object"] =
-        new UserDefinedType(new Token(), "object", new List<Type>());
-      return ReplaceType(type, _ => true,
-        type => replacements.ContainsKey(type.Name) ? 
-          replacements[type.Name] :
-          new UserDefinedType(type.tok, type.Name, type.TypeArgs));
-    }
-    
-    public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
-      Func<UserDefinedType, Type> replacement) {
-      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
-        return TransformType(type, t => ReplaceType(t, condition, replacement));
-      }
-      var newType = condition(userType) ? replacement(userType) : type;
-      // TODO: What if ReplaceTypeVariable is used to replace type with something that has type variables?
-      newType.TypeArgs = newType.TypeArgs.ConvertAll(t => 
-          TransformType(t, t => ReplaceType(t, condition, replacement)));
-      return newType;
-    }
-
-    private static Type TransformType(Type type, Func<Type, Type> transform) {
+    /// <summary>
+    /// Recursively transform all UserDefinedType objects within a given type
+    /// </summary>
+    public static Type TransformType(Type type, Func<UserDefinedType, Type> transform) {
       switch (type) {
         case Microsoft.Dafny.BasicType:
           return type;
@@ -110,8 +66,8 @@ namespace DafnyServer.CounterexampleGeneration {
           return new ArrowType(new Token(),
             arrowType.Args.Select(t => TransformType(t, transform)).ToList(),
             TransformType(arrowType.Result, transform));
-        case UserDefinedType:
-          return transform(type);
+        case UserDefinedType userDefinedType:
+          return transform(userDefinedType);
       }
       return type;
     }

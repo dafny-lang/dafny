@@ -1,16 +1,76 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
 using Function = Microsoft.Dafny.Function;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
+using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
 
   public static class Utils {
+    
+    public static Type GetNonNullable(Type type) {
+      if (type is not UserDefinedType userType) {
+        return type;
+      }
+
+      var newType = new UserDefinedType(new Token(), 
+        userType.Name.TrimEnd('?'), userType.TypeArgs);
+      if (type is DafnyModelTypeUtils.DatatypeType) {
+        return new DafnyModelTypeUtils.DatatypeType(newType);
+      }
+      return newType;
+    }
+
+    public static Type ReplaceTypeVariables(Type type, Type with) {
+      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
+    }
+    
+    public static Type UseFullName(Type type) {
+      return ReplaceType(type, _ => true, type => 
+        new UserDefinedType(new Token(), type?.ResolvedClass?.FullName ?? type.Name, type.TypeArgs));
+    }
+
+    public static Type CopyWithReplacements(Type type, List<string> from, List<Type> to) {
+      if (from.Count != to.Count) {
+        return type;
+      }
+      Dictionary<string, Type> replacements = new();
+      for (int i = 0; i < from.Count; i++) {
+        replacements[from[i]] = to[i];
+      }
+      replacements["_System.string"] =
+        new UserDefinedType(new Token(), "string", new List<Type>());
+      replacements["_System.nat"] =
+        new UserDefinedType(new Token(), "nat", new List<Type>());
+      replacements["_System.object"] =
+        new UserDefinedType(new Token(), "object", new List<Type>());
+      return ReplaceType(type, _ => true,
+        type => replacements.ContainsKey(type.Name) ? 
+          replacements[type.Name] :
+          new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+    }
+    
+    /// <summary>
+    /// Recursively replace all types within <param>type</param> that satisfy
+    /// <param>condition</param>
+    /// </summary>
+    public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
+      Func<UserDefinedType, Type> replacement) {
+      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
+        return DafnyModelTypeUtils.TransformType(type, t => ReplaceType(t, condition, replacement));
+      }
+      var newType = condition(userType) ? replacement(userType) : type;
+      newType.TypeArgs = newType.TypeArgs.ConvertAll(t => 
+          DafnyModelTypeUtils.TransformType(t, t => ReplaceType(t, condition, replacement)));
+      return newType;
+    }
 
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program

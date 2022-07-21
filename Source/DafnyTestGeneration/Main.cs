@@ -19,7 +19,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
       
-      var modifications = GetModifications(program).ToList();
+      var modifications = GetModifications(program).ToEnumerable().ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -57,7 +57,7 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Program program) {
+    private static IAsyncEnumerable<ProgramModification> GetModifications(Program program) {
       var dafnyInfo = new DafnyInfo(program);
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
@@ -82,30 +82,29 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
       
       var dafnyInfo = new DafnyInfo(program);
-      var modifications = GetModifications(program).ToList();
 
       // Generate tests based on counterexamples produced from modifications
       var testMethodToUniqueId = new ConcurrentDictionary<TestMethod, string>();
-      for (var i = modifications.Count - 1; i >= 0; i--) {
-        var log = await modifications[i].GetCounterExampleLog();
+      await foreach (var modification in GetModifications(program)) {
+        var log = await modification.GetCounterExampleLog();
         if (log == null) {
           continue;
         }
 
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.WriteLine(
-            $"// Extracting the test for {modifications[i].uniqueId} from the counterexample...");
+            $"// Extracting the test for {modification.uniqueId} from the counterexample...");
         }
 
         var testMethod = new TestMethod(dafnyInfo, log);
         if (testMethodToUniqueId.ContainsKey(testMethod) && testMethod.IsValid) {
           if (DafnyOptions.O.TestGenOptions.Verbose) {
             Console.WriteLine(
-              $"// Test for {modifications[i].uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
+              $"// Test for {modification.uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
           }
           continue;
         }
-        testMethodToUniqueId[testMethod] = modifications[i].uniqueId;
+        testMethodToUniqueId[testMethod] = modification.uniqueId;
         yield return testMethod;
       }
     }

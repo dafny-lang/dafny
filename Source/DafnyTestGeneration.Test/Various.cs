@@ -68,7 +68,7 @@ module M {
 ".TrimStart();
       var program = Utils.Parse(source);
       DafnyOptions.O.TestGenOptions.TargetMethod = "M.Inlining.a";
-      DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
+      DafnyOptions.O.TestGenOptions.TestInlineDepth = 2;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "M.Inlining.a"));
@@ -335,10 +335,10 @@ module Math {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
+      DafnyOptions.O.TestGenOptions.TestInlineDepth = 2;
       DafnyOptions.O.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(2, methods.Count);
+      Assert.IsTrue(2 <= methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "Math.Min"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Math.Min")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));

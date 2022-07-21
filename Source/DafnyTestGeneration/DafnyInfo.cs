@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
@@ -48,21 +47,21 @@ namespace DafnyTestGeneration {
     public IList<Type> GetReturnTypes(string callable) {
       if (methods.ContainsKey(callable)) {
         return methods[callable].Outs.Select(arg => 
-          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+          Utils.UseFullName(arg.Type)).ToList();;
       } 
       if (functions.ContainsKey(callable)) {
         return new List<Type>
-          { DafnyModelTypeUtils.UseFullName(functions[callable].ResultType) };
+          { Utils.UseFullName(functions[callable].ResultType) };
       }
       throw new Exception("Cannot identify callable " + callable);
     }
 
-    public int GetNOfTypeArgs(string callable) {
+    public List<TypeParameter> GetTypeArgs(string callable) {
       if (methods.ContainsKey(callable)) {
-        return methods[callable].TypeArgs.Count;
+        return methods[callable].TypeArgs;
       } 
       if (functions.ContainsKey(callable)) {
-        return functions[callable].TypeArgs.Count;
+        return functions[callable].TypeArgs;
       }
       throw new Exception("Cannot identify callable " + callable);
     }
@@ -70,11 +69,11 @@ namespace DafnyTestGeneration {
     public IList<Type> GetFormalsTypes(string callable) {
       if (methods.ContainsKey(callable)) {
         return methods[callable].Ins.Select(arg => 
-          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+          Utils.UseFullName(arg.Type)).ToList();;
       } 
       if (functions.ContainsKey(callable)) {
         return functions[callable].Formals.Select(arg => 
-          DafnyModelTypeUtils.UseFullName(arg.Type)).ToList();;
+          Utils.UseFullName(arg.Type)).ToList();;
       }
       throw new Exception("Cannot identify callable " + callable);
     }
@@ -115,7 +114,7 @@ namespace DafnyTestGeneration {
         return null;
       }
       var superSetType = subsetTypeToSuperset[userDefinedType.Name];
-      superSetType = DafnyModelTypeUtils.CopyWithReplacements(superSetType,
+      superSetType = Utils.CopyWithReplacements(superSetType,
         superSetType.TypeArgs.ConvertAll(arg =>
           (arg as UserDefinedType)?.Name ?? ""), type.TypeArgs);
       if ((superSetType is UserDefinedType tmp) &&
@@ -190,7 +189,7 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
-        type = DafnyModelTypeUtils.UseFullName(type);
+        type = Utils.UseFullName(type);
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
                                 $"assigned a default value of type {type}, " +
@@ -198,7 +197,7 @@ namespace DafnyTestGeneration {
                                 $"condition");
         }
 
-        info.subsetTypeToSuperset[name] = type;
+        info.subsetTypeToSuperset[name] = Utils.UseFullName(type);
       }
 
       private void Visit(TypeSynonymDeclBase newType) {
@@ -207,14 +206,14 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
-        type = DafnyModelTypeUtils.UseFullName(type);
+        type = Utils.UseFullName(type);
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
                                 $"assigned a default value of type {type}, " +
                                 $"which may or may not match the associated " +
                                 $"condition");
         }
-        info.subsetTypeToSuperset[name] = type;
+        info.subsetTypeToSuperset[name] =  Utils.UseFullName(type);
       }
       private void Visit(LiteralModuleDecl d) {
         if (d.ModuleDef.IsAbstract) {

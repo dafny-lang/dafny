@@ -7,6 +7,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Declaration = Microsoft.Boogie.Declaration;
 using Formal = Microsoft.Boogie.Formal;
+using Function = Microsoft.Boogie.Function;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using LiteralExpr = Microsoft.Boogie.LiteralExpr;
 using LocalVariable = Microsoft.Boogie.LocalVariable;
@@ -35,7 +36,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Create tests and return the list of bpl test files
     /// </summary>
-    public IEnumerable<ProgramModification> GetModifications(IEnumerable<Program> programs, DafnyInfo dafnyInfo) {
+    public IAsyncEnumerable<ProgramModification> GetModifications(IEnumerable<Program> programs, DafnyInfo dafnyInfo) {
       this.dafnyInfo = dafnyInfo;
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine("// Merging boogie files...");
@@ -58,12 +59,19 @@ namespace DafnyTestGeneration {
       }
       var engine = ExecutionEngine.CreateWithoutSharedCache(DafnyOptions.O);
       engine.CoalesceBlocks(program);
-      var annotator = new AnnotationVisitor();
-      program = annotator.VisitProgram(program);
-      ImplementationToTarget = annotator.ImplementationToTarget;
+      if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
+        ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
+          i.Name.StartsWith("Impl$$")
+          && i.VerboseName.StartsWith(
+            DafnyOptions.O.TestGenOptions.TargetMethod));
+      } else {
+        ImplementationToTarget = null;
+      }
       var callGraphVisitor = new CallGraphVisitor();
       callGraphVisitor.VisitProgram(program);
-      toModify = callGraphVisitor.GetCallees(ImplementationToTarget?.Name);
+      toModify = callGraphVisitor.GetCallees(ImplementationToTarget?.Name, DafnyOptions.O.TestGenOptions.TestInlineDepth);
+      var annotator = new AnnotationVisitor(this);
+      program = annotator.VisitProgram(program);
       AddAxioms(program);
       if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl, 
@@ -75,7 +83,7 @@ namespace DafnyTestGeneration {
       return GetModifications(program);
     }
 
-    protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
+    protected abstract IAsyncEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
       (ImplementationToTarget == null || toModify.Contains(impl.Name)) &&
@@ -266,21 +274,24 @@ namespace DafnyTestGeneration {
       /// Return the set of implementations that might be called as a result
       /// of calling the given implementation
       /// </summary>
-      public HashSet<string> GetCallees(string? caller) {
+      public HashSet<string> GetCallees(string? caller, uint depth) {
         var result = new HashSet<string>();
         if (caller == null) {
           return result;
         }
-        GetCalleesRecursively(caller, result);
+        GetCalleesRecursively(caller, result, depth);
         return result;
       }
 
-      private void GetCalleesRecursively(string caller, ISet<string> recorded) {
+      private void GetCalleesRecursively(string caller, ISet<string> recorded, uint depth) {
         recorded.Add(caller);
+        if (depth == 0) {
+          return;
+        }
         foreach (var callee in calls.GetValueOrDefault(caller,
           new List<string>())) {
           if (!recorded.Contains(callee)) {
-            GetCalleesRecursively(callee, recorded);
+            GetCalleesRecursively(callee, recorded, depth - 1);
           }
         }
       }
@@ -300,7 +311,11 @@ namespace DafnyTestGeneration {
     private class AnnotationVisitor : StandardVisitor {
 
       private Implementation? implementation;
-      public Implementation? ImplementationToTarget;
+      private readonly ProgramModifier modifier;
+
+      public AnnotationVisitor(ProgramModifier modifier) {
+        this.modifier = modifier;
+      }
 
       public override Block VisitBlock(Block node) {
         if (node.cmds.Count == 0) {
@@ -325,19 +340,17 @@ namespace DafnyTestGeneration {
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
         var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
-        var depth = DafnyOptions.O.TestGenOptions.TestInlineDepth;
         if (toTest == null) {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (node.Name.StartsWith("Impl$$")
-                   && node.VerboseName.StartsWith(toTest)) {
+        } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-          ImplementationToTarget = node;
-        } else if (depth != 0) {
+        } else if ((DafnyOptions.O.TestGenOptions.TestInlineDepth > 0) && 
+                   (modifier.toModify.Contains(node.Name))) {
           // This method is inlined
           var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(depth));
+            new LiteralExpr(new Token(), BigNum.FromInt(1));
           var attribute = new QKeyValue(new Token(), "inline", 
             new List<object>(){depthExpression}, null);
           attribute.Next = node.Attributes;
@@ -367,6 +380,7 @@ namespace DafnyTestGeneration {
       // commands are inserted in that block at specified positions
       private List<(Cmd cmd, Cmd before)>? commandsToInsert;
       private readonly ProgramModifier modifier;
+      private Dictionary<string, Function> functionMap;
 
       /// <summary>
       /// Attempt to convert a function call expression to a method call
@@ -453,12 +467,8 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        if (!modifier.ImplementationIsToBeTested(node)) {
-          return node;
-        }
-        Microsoft.Boogie.Function? findFunction = currProgram.Functions
-          .Where(f => f.Name == node.Name[6..])
-          .FirstOrDefault((Microsoft.Boogie.Function) null);
+        Function? findFunction =
+          functionMap.GetValueOrDefault(node.Name[6..], null);
         if (!node.Name.StartsWith("Impl$$") ||
             findFunction == null) {
           return node; // this implementation is potentially side-effecting
@@ -470,7 +480,12 @@ namespace DafnyTestGeneration {
       public override Program VisitProgram(Program node) {
         node = new RemoveFunctionsFromShortCircuitRewriter(modifier).VisitProgram(node);
         currProgram = node;
-        node.Implementations.Iter(i => VisitImplementation(i));
+        functionMap = new();
+        node.Functions.Iter(i => functionMap[i.Name] = i);
+        node.TopLevelDeclarations
+          .OfType<Implementation>()
+          .Where(i => modifier.ImplementationIsToBeTested(i))
+          .Iter(i => VisitImplementation(i));
         node = Utils.DeepCloneProgram(node);
         node.Resolve(DafnyOptions.O);
         node.Typecheck(DafnyOptions.O);
@@ -479,6 +494,7 @@ namespace DafnyTestGeneration {
 
       public FunctionToMethodCallRewriter(ProgramModifier modifier) {
         this.modifier = modifier;
+        functionMap = new();
       }
 
     }
@@ -505,18 +521,27 @@ namespace DafnyTestGeneration {
       // new commands to insert in the currently traversed block
       private List<(Cmd cmd, Cmd after)>? commandsToInsert;
       private readonly ProgramModifier modifier;
+      private Dictionary<string, Function> functionMap;
+      private Dictionary<string, Procedure> procedureMap;
+      private Dictionary<string, Implementation> implementationMap;
+
+      public RemoveFunctionsFromShortCircuitRewriter(ProgramModifier modifier) {
+        this.modifier = modifier;
+        functionMap = new();
+        procedureMap = new();
+        implementationMap = new();
+      }
 
       /// <summary>
       /// Replace a function call with a variable identifier that points to
       /// the result of that function call
       /// </summary>
       public override Expr VisitNAryExpr(NAryExpr node) {
-        Microsoft.Boogie.Function? findFunction = currProgram.Functions
-          .Where(f => f.Name == node.Fun.FunctionName + CanCallSuffix)
-          .FirstOrDefault((Microsoft.Boogie.Function) null);
-        Procedure? findProcedure = currProgram.Procedures
-          .Where(f => f.Name == "Impl$$" + node.Fun.FunctionName)
-          .FirstOrDefault((Procedure) null);
+        Function? findFunction =
+          functionMap.GetValueOrDefault(node.Fun.FunctionName + CanCallSuffix, null);
+        Procedure? findProcedure =
+          procedureMap.GetValueOrDefault("Impl$$" + node.Fun.FunctionName,
+            null);
         if (currAssignCmd == null || 
             findFunction == null || 
             findProcedure == null) {
@@ -557,9 +582,10 @@ namespace DafnyTestGeneration {
         if (node.Expr is not NAryExpr expr || (!expr.Fun.FunctionName.EndsWith(CanCallSuffix))) {
           return node;
         }
-        Implementation? findImplementation = currProgram?.Implementations
-          .Where(f => f.Name == "Impl$$" + expr.Fun.FunctionName[..^CanCallSuffix.Length])
-          .FirstOrDefault((Implementation) null);
+
+        Implementation? findImplementation =
+          implementationMap.GetValueOrDefault(
+            "Impl$$" + expr.Fun.FunctionName[..^CanCallSuffix.Length], null);
         if (findImplementation == null) {
           return node;
         }
@@ -606,12 +632,7 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        if (!modifier.ImplementationIsToBeTested(node)) {
-          return node;
-        }
-        var findFunction = currProgram.Functions
-          .Where(f => f.Name == node.Name[6..])
-          .FirstOrDefault((Microsoft.Boogie.Function) null);
+        var findFunction = functionMap.GetValueOrDefault(node.Name[6..], null);
         if (!node.Name.StartsWith("Impl$$") || findFunction == null) {
           return node; // this implementation is potentially side-effecting
         }
@@ -622,13 +643,18 @@ namespace DafnyTestGeneration {
 
       public override Program VisitProgram(Program node) {
         currProgram = node;
-        node.Implementations.Iter(i => VisitImplementation(i));
+        functionMap = new();
+        procedureMap = new();
+        implementationMap = new();
+        node.Implementations.Iter(i => implementationMap[i.Name] = i);
+        node.Functions.Iter(i => functionMap[i.Name] = i);
+        node.Procedures.Iter(i => procedureMap[i.Name] = i);
+        node.TopLevelDeclarations
+          .OfType<Implementation>()
+          .Where(i => modifier.ImplementationIsToBeTested(i))
+          .Iter(i => VisitImplementation(i));
         node.Resolve(DafnyOptions.O);
         return node;
-      }
-
-      public RemoveFunctionsFromShortCircuitRewriter(ProgramModifier modifier) {
-        this.modifier = modifier;
       }
 
     }
