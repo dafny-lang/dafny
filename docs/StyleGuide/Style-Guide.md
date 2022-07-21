@@ -21,13 +21,6 @@ method FindIndex(arr: seq<int>, k: int)
   ...
 ```
 
-The **lemma** keyword indicates a ghost method used for proof purposes. Any **lemma** names should be prefixed with `Lemma`.
-
-    lemma LemmaValueIsInIndex(arr: seq<int>, k: int)
-      ...
-
-
-
 Any static or global **constants** are named with `UPPERCASE_WITH_UNDERSCORES` (a.k.a. SCREAMING_SNAKE_CASE).
 ```dafny
 static const MONTHS_IN_A_YEAR := 12
@@ -35,15 +28,11 @@ static const MONTHS_IN_A_YEAR := 12
 
 ### Method Prefix
 Avoid redundant names when variables or methods are in a class/module.
+In the following example, name the method `ToString` so that the call is just `Integer.ToString(i)`
+rather than `Integer.IntegerToString(i)`; this avoids redundancy with both the module name and the
+formal argument type.
 ```dafny
 class Integer {
-
-  // The following method converts the given integer
-  // to a string.
-  //
-  // this method name can be simplified to ToString()
-  // so that the method call is Integer.ToString(i)
-  // instead of Integer.IntegerToString(i).
 
   // YES
   method ToString(i: int) returns (s: string)
@@ -385,6 +374,15 @@ lemma MyLemma <A,B> ( x : seq<seq<A>> , y :B){
 }
 ```
 
+#### Attributes
+Omit white space between the `:` and the attribute name.
+```dafny
+// YES
+method {:extern} m() { ... }
+
+// NO
+method {: extern } m() { ... }
+```
 
 ## Recommendations
 This section describes a few recommendations that can help make code more readable and easy to follow, although not
