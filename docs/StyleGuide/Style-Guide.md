@@ -23,8 +23,8 @@ method FindIndex(arr: seq<int>, k: int)
 
 The **lemma** keyword indicates a ghost method used for proof purposes. Any **lemma** names should be prefixed with `Lemma`.
 
-  lemma LemmaValueIsInIndex(arr: seq<int>, k: int)
-    ...
+    lemma LemmaValueIsInIndex(arr: seq<int>, k: int)
+      ...
 
 
 
