@@ -4889,7 +4889,8 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Opaque:
           break;  // more elaborate work below
         case TypeProxy.Family.Unknown:
-        default:  // just in case the family is mentioned explicitly as one of the cases
+          return null;
+        default:
           Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
           return null;  // please compiler
       }
