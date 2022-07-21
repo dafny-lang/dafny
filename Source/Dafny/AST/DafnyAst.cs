@@ -12440,7 +12440,7 @@ namespace Microsoft.Dafny {
     public LiteralExpr ResolvedLit; // null if just an identifier
 
     public bool IsWildcardPattern =>
-      Arguments == null && !Id.StartsWith("_");
+      Arguments == null && Id.StartsWith("_");
 
     public void MakeAConstructor() {
       this.Arguments = new List<ExtendedPattern>();

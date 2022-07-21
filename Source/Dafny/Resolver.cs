@@ -12500,7 +12500,7 @@ namespace Microsoft.Dafny {
         case LitPattern:
           return pat;
         case IdPattern p:
-          if (inDisjunctivePattern && p.IsWildcardPattern) {
+          if (inDisjunctivePattern && p.Arguments == null && !p.IsWildcardPattern) {
             reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
             return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
           }
