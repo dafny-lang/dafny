@@ -3,7 +3,7 @@ include "../../../../Test/libraries/src/Math.dfy"
 include "array.dfy"
 include "frames.dfy"
 
-module {:options "/functionSyntax:4"} MetaSeq {
+module {:options "/functionSyntax:4"} Sequences {
 
   import Math
 
@@ -14,7 +14,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  trait SeqExpr<+T> extends Validatable {
+  trait Sequence<+T> extends Validatable {
    
     ghost predicate Valid()
       reads this, Repr
@@ -46,7 +46,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures ret.Value() == Value()
   }
 
-  method Concatenate<T>(left: SeqExpr<T>, right: SeqExpr<T>) returns (ret: SeqExpr<T>)
+  method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
     requires left.Valid()
     requires right.Valid()
     requires left.Repr !! right.Repr
@@ -56,7 +56,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
     ret := new Lazy(c);
   }
 
-  class Direct<T> extends SeqExpr<T> {
+  class Direct<T> extends Sequence<T> {
     const value: ResizableArray<T>
 
     ghost predicate Valid()
@@ -117,9 +117,9 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  class Concat<T> extends SeqExpr<T> {
-    const left: SeqExpr<T>
-    const right: SeqExpr<T>
+  class Concat<T> extends Sequence<T> {
+    const left: Sequence<T>
+    const right: Sequence<T>
     const length: nat
 
     ghost predicate Valid() 
@@ -134,7 +134,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && length == left.Length() + right.Length()
     }
 
-    constructor(left: SeqExpr<T>, right: SeqExpr<T>) 
+    constructor(left: Sequence<T>, right: Sequence<T>) 
       requires left.Valid()
       requires right.Valid()
       requires left.Repr !! right.Repr
@@ -189,10 +189,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
     }
   }
 
-  class Lazy<T> extends SeqExpr<T> {
+  class Lazy<T> extends Sequence<T> {
     ghost const value: seq<T>
     ghost const size: nat
-    const exprBox: SeqExprBox<T>
+    const exprBox: SequenceBox<T>
     const length: nat
 
     ghost predicate Valid() 
@@ -208,13 +208,13 @@ module {:options "/functionSyntax:4"} MetaSeq {
       && length == |value|
     }
 
-    constructor(wrapped: SeqExpr<T>) 
+    constructor(wrapped: Sequence<T>) 
       requires wrapped.Valid()
       requires 1 <= wrapped.Size()
       ensures Valid()
       ensures fresh(Repr - wrapped.Repr)
     {
-      this.exprBox := new SeqExprBox(wrapped);
+      this.exprBox := new SequenceBox(wrapped);
       this.length := wrapped.Length();
       this.value := wrapped.Value();
       this.size := 1 + wrapped.Size();
@@ -259,7 +259,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       var a := expr.ToArray();
       var direct: Direct<T> := new Direct(a);
 
-      AtomicBox.Put(exprBox as AtomicBox<SeqExpr<T>>, direct.Repr, direct);
+      AtomicBox.Put(exprBox as AtomicBox<Sequence<T>>, direct.Repr, direct);
 
       return a;
     }
@@ -284,10 +284,10 @@ module {:options "/functionSyntax:4"} MetaSeq {
       ensures b.Invariant(b.Repr, t)
   }
 
-  class SeqExprBox<T> extends AtomicBox<SeqExpr<T>> {
+  class SequenceBox<T> extends AtomicBox<Sequence<T>> {
     ghost const value: seq<T>
     ghost const size: nat
-    constructor(e: SeqExpr<T>)
+    constructor(e: Sequence<T>)
       requires e.Valid()
       ensures Valid()
       ensures fresh(Repr - e.Repr)
@@ -298,7 +298,7 @@ module {:options "/functionSyntax:4"} MetaSeq {
       this.value := e.Value();
       this.size := e.Size();
     }
-    ghost predicate Invariant(repr: set<object>, t: SeqExpr<T>) reads repr {
+    ghost predicate Invariant(repr: set<object>, t: Sequence<T>) reads repr {
       && t in repr
       && t.Repr <= repr
       && t.Valid()

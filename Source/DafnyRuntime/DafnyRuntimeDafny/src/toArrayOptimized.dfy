@@ -7,9 +7,9 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
 
   import opened Arrays
   import opened Frames
-  import opened MetaSeq
+  import opened Sequences
   
-  // ghost predicate AllDisjoint<T>(builder: ResizableArray<T>, e: SeqExpr<T>, stack: ResizableArray<SeqExpr<T>>)
+  // ghost predicate AllDisjoint<T>(builder: ResizableArray<T>, e: Sequence<T>, stack: ResizableArray<Sequence<T>>)
   //   requires stack.Valid()
   //   reads builder, builder.Repr, e, e.Repr, stack, stack.Repr, set expr <- stack.Value() :: {expr} + expr.Repr
   // {
@@ -17,7 +17,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   //   PairwiseDisjoint(allValidatables)
   // }
 
-  method AppendRecursive<T>(builder: ResizableArray<T>, e: SeqExpr<T>)
+  method AppendRecursive<T>(builder: ResizableArray<T>, e: Sequence<T>)
     requires e.Valid()
     requires builder.Valid()
     requires builder.Repr !! e.Repr;
@@ -34,7 +34,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       AppendRecursive(builder, concat.right);
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
-      var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      var boxed := AtomicBox<Sequence<T>>.Get(lazy.exprBox);
       AppendRecursive(builder, boxed);
     } else {
       var a := e.ToArray();
@@ -42,7 +42,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     }
   }
 
-  method {:tailrecursion} AppendOptimized<T>(builder: ResizableArray<T>, e: SeqExpr<T>, stack: ResizableArray<SeqExpr<T>>)
+  method {:tailrecursion} AppendOptimized<T>(builder: ResizableArray<T>, e: Sequence<T>, stack: ResizableArray<Sequence<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
@@ -67,7 +67,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       AppendOptimized(builder, concat.left, stack);
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
-      var boxed := AtomicBox<SeqExpr<T>>.Get(lazy.exprBox);
+      var boxed := AtomicBox<Sequence<T>>.Get(lazy.exprBox);
       AppendOptimized(builder, boxed, stack);
     } else {
       var a := e.ToArray();
@@ -83,7 +83,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
         assert willBeNext.Repr !! stack.Repr;
         assert forall expr <- stack.Value()[..(stack.size - 1)] :: willBeNext != expr && willBeNext.Repr !! expr.Repr;
         assert forall expr <- stack.Value(), expr' <- stack.Value() | expr != expr' :: expr.Repr !! expr'.Repr;
-        var next: SeqExpr<T> := stack.RemoveLast();
+        var next: Sequence<T> := stack.RemoveLast();
         LemmaConcatValueOnStackWithTip(stack.Value(), next);
         assert next == willBeNext;
         assert stack.Value() == old(stack.Value()[..(stack.size - 1)]);
@@ -111,7 +111,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   }
 
-  ghost function ConcatValueOnStack<T>(s: seq<SeqExpr<T>>): seq<T>
+  ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
     reads (set e <- s, o <- e.Repr :: o)
     requires (forall e <- s :: e.Valid())
   {
@@ -121,12 +121,12 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
   }
 
-  lemma LemmaConcatValueOnStackWithTip<T>(s: seq<SeqExpr<T>>, x: SeqExpr<T>) 
+  lemma LemmaConcatValueOnStackWithTip<T>(s: seq<Sequence<T>>, x: Sequence<T>) 
     requires (forall e <- s :: e.Valid())
     requires x.Valid()
     ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
   {
-    // var valueFn := (e: SeqExpr<T>) reads e, e.Repr requires e.Valid() => e.Value();
+    // var valueFn := (e: Sequence<T>) reads e, e.Repr requires e.Valid() => e.Value();
     // calc {
     //   ConcatValueOnStack(s + [x]);
     //   Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
@@ -139,7 +139,7 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     // }
   }
 
-  ghost function SizeSum<T>(s: seq<SeqExpr<T>>): nat 
+  ghost function SizeSum<T>(s: seq<Sequence<T>>): nat 
     reads set e <- s, o <- e.Repr :: o
     requires forall e <- s :: e.Valid()
   {

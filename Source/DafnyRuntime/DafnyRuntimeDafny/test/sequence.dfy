@@ -16,8 +16,8 @@ module MetaSeqTests {
     var values := new ResizableArray<Bar>(5);
     var bar := new Bar();
     values.AddLast(bar);
-    var barSeq: SeqExpr<Bar> := new Direct<Bar>(values);
-    var fooSeq: SeqExpr<Foo> := barSeq;
+    var barSeq: Sequence<Bar> := new Direct<Bar>(values);
+    var fooSeq: Sequence<Foo> := barSeq;
 
   }
 
