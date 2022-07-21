@@ -728,11 +728,10 @@ likely have significantly lower limits on other stability metrics).
 
 #### 25.7.5.2. Improving stability
 
-Improving stability is typically closely related to improving performance
-overall. As such, techniques for debugging slow verification
-[^sec-verification-debugging-slow] are typically useful for debugging
-unstable verification, as well.
-
+Improving stability is typically closely related to improving
+performance overall. As such, [techniques for debugging slow
+verification](#sec-verification-debugging-slow) are typically useful for
+debugging unstable verification, as well.
 
 ## 25.8. Compilation {#sec-compilation}
 
