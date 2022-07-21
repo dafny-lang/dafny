@@ -20,9 +20,8 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   method AppendRecursive<T>(builder: ResizableArray<T>, e: Sequence<T>)
     requires e.Valid()
     requires builder.Valid()
-    requires builder.Repr !! e.Repr;
     modifies builder.Repr
-    decreases e.Size()
+    decreases e.size
     ensures builder.ValidAndDisjoint()
     ensures e.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value();
@@ -34,11 +33,11 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       AppendRecursive(builder, concat.right);
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
-      var boxed := AtomicBox<Sequence<T>>.Get(lazy.exprBox);
+      var boxed := lazy.exprBox.Get();
       AppendRecursive(builder, boxed);
     } else {
-      var a := e.ToArray();
-      builder.Append(a);
+      var a: Direct<T> := e.ToArray();
+      builder.Append(a.value);
     }
   }
 
@@ -46,14 +45,10 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
-    requires builder.Repr !! stack.Repr !! e.Repr;
-    requires forall i, j | 0 <= i < j < stack.size :: 
-      var first := stack.Value()[i];
-      var second := stack.Value()[j];
-      first != second && first.Repr !! second.Repr
-    requires forall expr <- stack.Value() :: stack.Repr !! builder.Repr !! expr.Repr !! e.Repr && expr.Valid()
+    requires builder.Repr !! stack.Repr;
+    requires forall expr <- stack.Value() :: expr.Valid()
     modifies builder.Repr, stack.Repr
-    decreases e.Size() + SizeSum(stack.Value())
+    decreases e.size + SizeSum(stack.Value())
     ensures builder.Valid()
     ensures stack.Valid()
     ensures e.Valid()
@@ -67,42 +62,28 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       AppendOptimized(builder, concat.left, stack);
     } else if e is Lazy<T> {
       var lazy := e as Lazy<T>;
-      var boxed := AtomicBox<Sequence<T>>.Get(lazy.exprBox);
+      var boxed := lazy.exprBox.Get();
       AppendOptimized(builder, boxed, stack);
     } else {
-      var a := e.ToArray();
+      var a: Direct<T> := e.ToArray();
       assert forall expr <- stack.Value() :: expr.Valid();
-      builder.Append(a);
-      assert forall expr <- stack.Value() :: unchanged(expr.Repr);
+      builder.Append(a.value);
       assert forall expr <- stack.Value() :: expr.Valid();
       if 0 < stack.size {
         ghost var willBeNext := stack.Last();
         assert willBeNext in stack.Value();
-        assert forall expr <- stack.Value() :: expr.Repr !! stack.Repr;
         assert forall expr <- stack.Value() :: expr.Valid();
-        assert willBeNext.Repr !! stack.Repr;
-        assert forall expr <- stack.Value()[..(stack.size - 1)] :: willBeNext != expr && willBeNext.Repr !! expr.Repr;
-        assert forall expr <- stack.Value(), expr' <- stack.Value() | expr != expr' :: expr.Repr !! expr'.Repr;
         var next: Sequence<T> := stack.RemoveLast();
         LemmaConcatValueOnStackWithTip(stack.Value(), next);
         assert next == willBeNext;
         assert stack.Value() == old(stack.Value()[..(stack.size - 1)]);
-        assert forall expr <- stack.Value() :: next != expr && next.Repr !! expr.Repr;
-        assert unchanged(next.Repr);
         assert forall expr <- stack.Value() :: expr in old(stack.Value());
-        assert forall expr <- stack.Value() :: unchanged(expr.Repr);
         assert willBeNext == next;
         assert next in old(stack.Value());
-        assert next.Repr !! stack.Repr;
         assert forall expr <- stack.Value() :: expr.Valid();
-        assert old(SizeSum(stack.Value())) == next.Size() + SizeSum(stack.Value());
-        assert stack.Repr !! builder.Repr !! next.Repr;
-        assert forall expr <- stack.Value() :: builder.Repr !! expr.Repr;
-        
-        assert forall expr <- stack.Value() :: stack.Repr !! expr.Repr;
 
-        assert next.Size() + SizeSum(stack.Value()) == old(SizeSum(stack.Value()));
-        assert next.Size() + SizeSum(stack.Value()) < e.Size() + old(SizeSum(stack.Value()));
+        assert next.size + SizeSum(stack.Value()) == old(SizeSum(stack.Value()));
+        assert next.size + SizeSum(stack.Value()) < e.size + old(SizeSum(stack.Value()));
 
         AppendOptimized(builder, next, stack);
       }
@@ -112,7 +93,6 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
-    reads (set e <- s, o <- e.Repr :: o)
     requires (forall e <- s :: e.Valid())
   {
     if |s| == 0 then
@@ -140,13 +120,12 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   }
 
   ghost function SizeSum<T>(s: seq<Sequence<T>>): nat 
-    reads set e <- s, o <- e.Repr :: o
     requires forall e <- s :: e.Valid()
   {
     if |s| == 0 then 
       0 
     else
       var last := |s| - 1;
-      SizeSum(s[..last]) + s[last].Size()
+      SizeSum(s[..last]) + s[last].size
   }
 }

@@ -9,7 +9,7 @@ module {:options "/functionSyntax:4"} Arrays {
   import opened Frames
   import opened Math
 
-  //
+  // 
   // We use this instead of the built-in Dafny array<T> type for two reasons:
   // 
   // 1. Every element of an array<T> must be initialized.
@@ -64,123 +64,52 @@ module {:options "/functionSyntax:4"} Arrays {
         seq(|from|, i requires 0 <= i < |from| => Set(from[i])) + 
         old(values)[(start + |from|)..]
 
-    method WriteRangeArray(start: nat, from: Array<T>, fromStart: nat, fromEnd: nat)
+    // TODO: Might want a copy that takes a ResizeableArray as well
+    method WriteRangeArray(start: nat, other: ImmutableArray<T>)
       requires Valid()
-      requires from.Valid()
+      requires other.Valid()
       requires start <= Length()
-      requires fromStart <= fromEnd <= from.Length()
-      requires start + (fromEnd - fromStart) <= Length()
-      requires forall i | fromStart <= i < fromEnd :: from.values[i].Set?
-      requires Repr !! from.Repr
+      requires start + other.Length() <= Length()
       modifies Repr
       ensures Valid()
       ensures Repr == old(Repr)
       ensures values == 
         old(values)[..start] + 
-        from.values[fromStart..fromEnd] + 
-        old(values)[(start + (fromEnd - fromStart))..]
+        other.CellValues() +
+        old(values)[(start + other.Length())..]
+
+    method Freeze(size: nat) returns (ret: ImmutableArray<T>)
+      requires Valid()
+      requires size <= Length()
+      requires forall i | 0 <= i < size :: values[i].Set?
+      ensures ret.Valid()
+      ensures |ret.values| == size
+      ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
+      // Explicitly doesn't ensure Valid()!
   }
 
-  // Feasibility implementation
-  class DafnyArray<T> extends Array<T> {
-    var valuesArray: array<ArrayCell<T>>
+  trait {:extern} ImmutableArray<T> {
+
+    ghost const values: seq<T>
 
     ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-    {
-      && Repr == {this, valuesArray}
-      && valuesArray[..] == values
+
+    ghost function CellValues(): seq<ArrayCell<T>> {
+      seq(|values|, i requires 0 <= i < |values| => Set(values[i]))
     }
 
-    constructor(length: nat) 
-      ensures Valid()
-      ensures fresh(Repr)
-      ensures values == seq(length, i => Unset)
-    {
-      valuesArray := new ArrayCell<T>[length](i => Unset);
-      new;
-      values := valuesArray[..];
-      Repr := {this, valuesArray};
-    }
-
-    function Length(): nat
+    function Length(): nat 
       requires Valid()
-      reads Repr
       ensures Length() == |values|
-    {
-      valuesArray.Length
-    }
 
-    function Read(i: nat): (ret: T)
+    function At(index: nat): T 
       requires Valid()
-      requires i < Length()
-      requires values[i].Set?
-      reads this, Repr
-      ensures ret == values[i].value
-    {
-      valuesArray[i].value
-    }
-
-    method Write(i: nat, t: T)
-      requires Valid()
-      requires i < Length()
-      modifies Repr
-      ensures Valid()
-      ensures Repr == old(Repr)
-      ensures Length() == old(Length())
-      ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
-      ensures Read(i) == t
-    {
-      valuesArray[i] := Set(t);
-
-      values := valuesArray[..];
-    }
-
-    method WriteRange(start: nat, from: seq<T>)
-      requires Valid()
-      requires start <= Length()
-      requires start + |from| <= Length()
-      modifies Repr
-      ensures Valid()
-      ensures Repr == old(Repr)
-      ensures values == 
-        old(values)[..start] + 
-        seq(|from|, i requires 0 <= i < |from| => Set(from[i])) + 
-        old(values)[(start + |from|)..]
-    {
-      forall i | 0 <= i < |from| {
-        valuesArray[start + i] := Set(from[i]);
-      }
-      values := valuesArray[..];
-    }
-
-    method WriteRangeArray(start: nat, from: Array<T>, fromStart: nat, fromEnd: nat)
-      requires Valid()
-      requires from.Valid()
-      requires start <= Length()
-      requires fromStart <= fromEnd <= from.Length()
-      requires start + (fromEnd - fromStart) <= Length()
-      requires forall i | fromStart <= i < fromEnd :: from.values[i].Set?
-      requires Repr !! from.Repr
-      modifies Repr
-      ensures Valid()
-      ensures Repr == old(Repr)
-      ensures values == 
-        old(values)[..start] + 
-        from.values[fromStart..fromEnd] + 
-        old(values)[(start + (fromEnd - fromStart))..]
-    {
-      var n := fromEnd - fromStart;
-      forall i | 0 <= i < n {
-        valuesArray[start + i] := Set(from.Read(fromStart + i));
-      }
-      values := valuesArray[..];
-    }
+      requires index < |values|
+      ensures At(index) == values[index]
   }
 
   // TODO: More consistent method names.
-  // This is internal for now but would be great to have in a shared library
+  // This is internal for now but would be great to have in a shared library.
   class ResizableArray<T> extends Validatable {
     var storage: Array<T>
     var size: nat
@@ -255,7 +184,8 @@ module {:options "/functionSyntax:4"} Arrays {
       ensures Value() == old(Value())
     {
       var newStorage := new DafnyArray<T>(newCapacity);
-      newStorage.WriteRangeArray(0, storage, 0, size);
+      var values := storage.Freeze(size);
+      newStorage.WriteRangeArray(0, values);
       storage := newStorage;
 
       Repr := {this} + storage.Repr;
@@ -274,19 +204,186 @@ module {:options "/functionSyntax:4"} Arrays {
       size := size - 1;
     }
 
-    method Append(other: ResizableArray<T>) 
+    method Append(other: ImmutableArray<T>) 
       requires Valid()
       requires other.Valid()
-      requires Repr !! other.Repr
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures Value() == old(Value()) + other.Value()
+      ensures Value() == old(Value()) + other.values
     {
-      if storage.Length() < size + other.size {
-        Reallocate(Math.Max(size + other.size, storage.Length() * 2));
+      if storage.Length() < size + other.Length() {
+        Reallocate(Math.Max(size + other.Length(), storage.Length() * 2));
       }
-      storage.WriteRangeArray(size, other.storage, 0, other.size);
-      size := size + other.size;
+      storage.WriteRangeArray(size, other);
+      size := size + other.Length();
+    }
+
+    method Freeze() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      ensures ret.Valid()
+      ensures ret.values == Value()
+      // Explicitly doesn't ensure Valid()!
+    {
+      ret := storage.Freeze(size);
+    }
+  }
+
+  ///
+  // Feasibility implementation
+  ///
+
+  class DafnyArray<T> extends Array<T> {
+    const valuesArray: array<ArrayCell<T>>
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+    {
+      && Repr == {this, valuesArray}
+      && valuesArray[..] == values
+    }
+
+    constructor(length: nat) 
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures values == seq(length, i => Unset)
+    {
+      valuesArray := new ArrayCell<T>[length](i => Unset);
+      new;
+      values := valuesArray[..];
+      Repr := {this, valuesArray};
+    }
+
+    function Length(): nat
+      requires Valid()
+      reads Repr
+      ensures Length() == |values|
+    {
+      valuesArray.Length
+    }
+
+    function Read(i: nat): (ret: T)
+      requires Valid()
+      requires i < Length()
+      requires values[i].Set?
+      reads this, Repr
+      ensures ret == values[i].value
+    {
+      valuesArray[i].value
+    }
+
+    method Write(i: nat, t: T)
+      requires Valid()
+      requires i < Length()
+      modifies Repr
+      ensures Valid()
+      ensures Repr == old(Repr)
+      ensures Length() == old(Length())
+      ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
+      ensures Read(i) == t
+    {
+      valuesArray[i] := Set(t);
+
+      values := valuesArray[..];
+    }
+
+    method WriteRange(start: nat, from: seq<T>)
+      requires Valid()
+      requires start <= Length()
+      requires start + |from| <= Length()
+      modifies Repr
+      ensures Valid()
+      ensures Repr == old(Repr)
+      ensures values == 
+        old(values)[..start] + 
+        seq(|from|, i requires 0 <= i < |from| => Set(from[i])) + 
+        old(values)[(start + |from|)..]
+    {
+      forall i | 0 <= i < |from| {
+        valuesArray[start + i] := Set(from[i]);
+      }
+      values := valuesArray[..];
+    }
+
+    method WriteRangeArray(start: nat, other: ImmutableArray<T>)
+      requires Valid()
+      requires other.Valid()
+      requires start <= Length()
+      requires start + other.Length() <= Length()
+      modifies Repr
+      ensures Valid()
+      ensures Repr == old(Repr)
+      ensures values == 
+        old(values)[..start] + 
+        other.CellValues() +
+        old(values)[(start + other.Length())..]
+    {
+      forall i | 0 <= i < other.Length() {
+        valuesArray[start + i] := Set(other.At(i));
+      }
+      values := valuesArray[..];
+    }
+
+    method Freeze(size: nat) returns (ret: ImmutableArray<T>)
+      requires Valid()
+      requires size <= Length()
+      requires forall i | 0 <= i < size :: values[i].Set?
+      ensures ret.Valid()
+      ensures |ret.values| == size
+      ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
+    {
+      ret := new DafnyImmutableArray(this, size);
+    }
+  }
+
+  class DafnyImmutableArray<T> extends ImmutableArray<T> {
+
+    const valuesSeq: seq<T>
+
+    ghost predicate Valid() {
+      values == valuesSeq
+    }
+
+    constructor(a: Array<T>, size: nat)
+      requires a.Valid()
+      requires size <= a.Length()
+      requires forall i | 0 <= i < size :: a.values[i].Set?
+      ensures Valid()
+      ensures |values| == size
+      ensures forall i | 0 <= i < size :: values[i] == a.values[i].value
+    {
+      var valuesSeq := ValuesFromArray(a, size);
+      this.values := valuesSeq;
+      this.valuesSeq := valuesSeq;
+    }
+
+    static function ValuesFromArray(a: Array<T>, size: nat): (ret: seq<T>)
+      requires a.Valid()
+      requires size <= a.Length()
+      requires forall i | 0 <= i < size :: a.values[i].Set?
+      reads a, a.Repr
+      ensures |ret| == size
+      ensures forall i | 0 <= i < size :: ret[i] == a.values[i].value
+    {
+      if size == 0 then
+        []
+      else
+        ValuesFromArray(a, size - 1) + [a.Read(size - 1)]
+    }
+
+    function Length(): nat 
+      requires Valid()
+      ensures Length() == |values|
+    {
+      |valuesSeq|
+    }
+
+    function At(index: nat): T
+      requires Valid()
+      requires index < |values|
+      ensures At(index) == values[index]
+    {
+      valuesSeq[index]
     }
   }
 }

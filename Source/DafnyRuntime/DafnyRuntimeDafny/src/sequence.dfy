@@ -1,6 +1,7 @@
 include "../../../../Test/libraries/src/Math.dfy"
 
 include "array.dfy"
+include "atomicBox.dfy"
 include "frames.dfy"
 
 module {:options "/functionSyntax:4"} Sequences {
@@ -9,33 +10,27 @@ module {:options "/functionSyntax:4"} Sequences {
 
   import opened Frames
   import opened Arrays
+  import opened AtomicBoxes
 
   // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  trait Sequence<+T> extends Validatable {
+  trait Sequence<+T> {
    
-    ghost predicate Valid()
-      reads this, Repr
-      decreases Repr, 0
-      ensures Valid() ==> this in Repr
-    
-    ghost function Size(): nat
-      requires Valid()
-      reads this, Repr
-      decreases Repr, 1
-      ensures 0 < Size()
+    const size: nat
 
+    ghost predicate Valid()
+      decreases size, 0
+      ensures Valid() ==> 0 < size
+    
     function Length(): nat 
       requires Valid() 
-      reads Repr
-      decreases Repr, 1
+      decreases size, 1
 
     ghost function Value(): seq<T> 
       requires Valid()
-      reads this, Repr
-      decreases Repr, 2
+      decreases size, 2
       ensures |Value()| == Length()
 
     method Select(index: nat) returns (ret: T)
@@ -43,22 +38,21 @@ module {:options "/functionSyntax:4"} Sequences {
       requires index < Length()
       ensures ret == Value()[index]
     {
-      var a := ToArray();
-      return a.At(index);
+      var a: Direct<T> := ToArray();
+      return a.value.At(index);
     }
 
-    method ToArray() returns (ret: ResizableArray<T>)
+    method ToArray() returns (ret: Sequence<T>)
       requires Valid()
-      decreases Repr, 2
+      decreases size, 2
       ensures ret.Valid()
-      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
+      ensures ret is Direct<T>
   }
 
   method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
     requires left.Valid()
     requires right.Valid()
-    requires left.Repr !! right.Repr
     ensures ret.Valid()
   {
     var c := new Concat(left, right);
@@ -66,63 +60,48 @@ module {:options "/functionSyntax:4"} Sequences {
   }
 
   class Direct<T> extends Sequence<T> {
-    const value: ResizableArray<T>
+    const value: ImmutableArray<T>
 
     ghost predicate Valid()
-      reads this, Repr
-      decreases Repr, 0
-      ensures Valid() ==> this in Repr
+      decreases size, 0
+      ensures Valid() ==> 0 < size
     {
-      && this in Repr
-      && ValidComponent(value)
       && value.Valid()
+      && size == 1
     }
 
-    constructor(value: ResizableArray<T>) 
+    constructor(value: ImmutableArray<T>) 
       requires value.Valid()
       ensures Valid()
-      ensures fresh(Repr - value.Repr)
       ensures this.value == value
     {
       this.value := value;
-
-      Repr := {this} + value.Repr;
-    }
-
-    ghost function Size(): nat 
-      requires Valid()
-      reads this, Repr
-      decreases Repr, 1
-      ensures 0 < Size()
-    {
-      1
+      this.size := 1;
     }
 
     function Length(): nat 
       requires Valid() 
-      reads Repr 
-      decreases Repr, 1
+      decreases size, 1
     {
-      value.size
+      value.Length()
     }
 
     ghost function Value(): seq<T> 
       requires Valid()
-      reads this, Repr
-      decreases Repr, 2
+      decreases size, 2
       ensures |Value()| == Length()
     {
-      value.Value()
+      value.values
     }
 
-    method ToArray() returns (ret: ResizableArray<T>)
+    method ToArray() returns (ret: Sequence<T>)
       requires Valid()
-      decreases Repr, 2
+      decreases size, 2
       ensures ret.Valid()
-      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
+      ensures ret is Direct<T>
     {
-      return value;
+      return this;
     }
   }
 
@@ -132,187 +111,156 @@ module {:options "/functionSyntax:4"} Sequences {
     const length: nat
 
     ghost predicate Valid() 
-      reads this, Repr
-      decreases Repr, 0
-      ensures Valid() ==> this in Repr
+      decreases size, 0
+      ensures Valid() ==> 0 < size
     {
-      && this in Repr
-      && ValidComponent(left)
-      && ValidComponent(right)
-      && left.Repr !! right.Repr
+      && size == 1 + left.size + right.size
+      && left.Valid()
+      && right.Valid()
       && length == left.Length() + right.Length()
     }
 
     constructor(left: Sequence<T>, right: Sequence<T>) 
       requires left.Valid()
       requires right.Valid()
-      requires left.Repr !! right.Repr
       ensures Valid()
-      ensures fresh(Repr - left.Repr - right.Repr)
     {
       this.left := left;
       this.right := right;
       this.length := left.Length() + right.Length();
-
-      Repr := {this} + left.Repr + right.Repr;
-    }
-
-    ghost function Size(): nat
-      requires Valid()
-      reads this, Repr
-      decreases Repr, 1
-      ensures 0 < Size()
-    {
-      1 + left.Size() + right.Size()
+      this.size := 1 + left.size + right.size;
     }
 
     function Length(): nat 
       requires Valid() 
-      reads Repr 
-      decreases Repr, 1
+      decreases size, 1
     {
       length
     }
 
     ghost function Value(): seq<T> 
       requires Valid()
-      reads this, Repr
-      decreases Repr, 2
+      decreases size, 2
       ensures |Value()| == Length()
     {
       left.Value() + right.Value()
     }
 
-    method ToArray() returns (ret: ResizableArray<T>)
+    method ToArray() returns (ret: Sequence<T>)
       requires Valid()
-      decreases Repr, 2
+      decreases size, 2
       ensures ret.Valid()
-      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
+      ensures ret is Direct<T>
     {
-      ret := new ResizableArray<T>(length);
-      var leftArray := left.ToArray();
-      ret.Append(leftArray);
-      var rightArray := right.ToArray();
-      ret.Append(rightArray);
+      var a := new ResizableArray<T>(length);
+      var leftArray: Direct<T> := left.ToArray();
+      a.Append(leftArray.value);
+      var rightArray: Direct<T> := right.ToArray();
+      a.Append(rightArray.value);
+      var frozen := a.Freeze();
+      ret := new Direct(frozen);
     }
   }
 
   class Lazy<T> extends Sequence<T> {
     ghost const value: seq<T>
-    ghost const size: nat
     const exprBox: SequenceBox<T>
     const length: nat
 
     ghost predicate Valid() 
-      reads this, Repr
-      decreases Repr, 0
-      ensures Valid() ==> this in Repr
+      decreases size, 0
+      ensures Valid() ==> 0 < size
     {
-      && this in Repr
-      && ValidComponent(exprBox)
+      && size == exprBox.size + 1
+      && exprBox.Valid()
       && value == exprBox.value
       && 1 <= exprBox.size
-      && size == exprBox.size + 1
       && length == |value|
     }
 
     constructor(wrapped: Sequence<T>) 
       requires wrapped.Valid()
-      requires 1 <= wrapped.Size()
+      requires 1 <= wrapped.size
       ensures Valid()
-      ensures fresh(Repr - wrapped.Repr)
     {
       this.exprBox := new SequenceBox(wrapped);
       this.length := wrapped.Length();
       this.value := wrapped.Value();
-      this.size := 1 + wrapped.Size();
-      new;
-      Repr := {this} + exprBox.Repr;
-    }
-
-    ghost function Size(): nat 
-      requires Valid()
-      reads this, Repr
-      decreases Repr, 1
-      ensures 0 < Size()
-    {
-      size
+      this.size := 1 + wrapped.size;
     }
 
     function Length(): nat 
       requires Valid() 
-      reads Repr
-      decreases Repr, 1
+      decreases size, 1
     {
       length
     }
     
     ghost function Value(): seq<T> 
       requires Valid()
-      reads this, Repr
-      decreases Repr, 2
+      decreases size, 2
       ensures |Value()| == Length()
     {
       value
     }
 
-    method ToArray() returns (ret: ResizableArray<T>)
+    method ToArray() returns (ret: Sequence<T>)
       requires Valid()
-      decreases Repr, 2
+      decreases size, 2
       ensures ret.Valid()
-      ensures fresh(ret.Repr - Repr)
       ensures ret.Value() == Value()
+      ensures ret is Direct<T>
     {
-      var expr := AtomicBox.Get(exprBox);
-      var a := expr.ToArray();
-      var direct: Direct<T> := new Direct(a);
+      var expr := exprBox.Get();
+      ret := expr.ToArray();
 
-      AtomicBox.Put(exprBox as AtomicBox<Sequence<T>>, direct.Repr, direct);
-
-      return a;
+      exprBox.Put(ret);
     }
-  }
-
-  trait AtomicBox<T> extends Validatable {
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-    {
-      this in Repr
-    }
-
-    ghost predicate Invariant(repr: set<object>, t: T) reads repr
-
-    // TODO: need a feasibility implementation for this somehow, pretty sure it's unsound
-    static method {:extern} Put(b: AtomicBox<T>, ghost repr: set<object>, t: T)
-      requires b.Invariant(repr, t)
-
-    static method {:extern} Get(b: AtomicBox<T>) returns (t: T)
-      ensures b.Invariant(b.Repr, t)
   }
 
   class SequenceBox<T> extends AtomicBox<Sequence<T>> {
     ghost const value: seq<T>
     ghost const size: nat
+    
+    ghost predicate Valid() 
+      reads this, Repr
+      ensures Valid() ==> Repr == {}
+    {
+      && Repr == {}
+      && inv == (e: Sequence<T>) => 
+        && e.size <= size
+        && e.Valid()
+        && e.Value() == value
+    }
+
     constructor(e: Sequence<T>)
       requires e.Valid()
       ensures Valid()
-      ensures fresh(Repr - e.Repr)
       ensures value == e.Value()
-      ensures size == e.Size()
+      ensures size == e.size
     {
-      this.Repr := {this} + e.Repr;
-      this.value := e.Value();
-      this.size := e.Size();
+      this.Repr := {this};
+      var value := e.Value();
+      var size := e.size;
+
+      this.inv := (e: Sequence<T>) => 
+        && e.Valid()
+        && e.size <= size
+        && e.Value() == value;
+      this.value := value;
+      this.size := size;
+      new;
+      Put(e);
     }
-    ghost predicate Invariant(repr: set<object>, t: Sequence<T>) reads repr {
-      && t in repr
-      && t.Repr <= repr
-      && t.Valid()
-      && t.Value() == value
-      && t.Size() <= size
-    }
+
+    // Need to repeat the extern declarations to satisfy the resolver.
+    // See https://github.com/dafny-lang/dafny/issues/2212.
+
+    method {:extern} Put(t: Sequence<T>)
+      requires inv(t)
+
+    method {:extern} Get() returns (t: Sequence<T>)
+      ensures inv(t)
   }
 }
