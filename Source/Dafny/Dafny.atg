@@ -1927,6 +1927,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
      m.StartToken = dmod.FirstToken;
+     m.EndToken = t;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
      m.OwnedTokens = ownedTokens;
  .)

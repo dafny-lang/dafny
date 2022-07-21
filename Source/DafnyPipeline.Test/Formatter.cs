@@ -106,15 +106,54 @@ module Test {
     , b: int
     )
   
-  least lemma l1<T>[
-    nat](a: T)
+  method r1() returns (a: int, b: int) {}
   
-  least lemma l2<T>[nat
-    ](a: T)
+  method r2()
+    returns (a: int, b: int) {}
+  
+  method r3() returns
+    (a: int, b: int) {}
+  
+  method r4()
+    returns
+    (a: int, b: int) {}
+  
+  method r5()
+    returns (
+      a: int,
+      b: int) {}
+  
+  method r6()
+    returns 
+    (   a: int,
+        b: int) {}
+  
+  method r7()
+    returns 
+    (   a: int
+    ,   b: int) {}
+  
+  method r8()
+    returns 
+    (   a: int
+    ,   b: int
+    ) {}
+  
+  method r9()
+    returns 
+    (   
+      a: int,
+      b: int) {}
+  
+  least lemma l1<T>[
+      nat](a: T)
   
   least lemma l3<T>
     [nat]
     (a: T)
+  
+  least lemma l2<T>[nat
+    ](a: T)
   
   /** A comment
     * Followed by newline

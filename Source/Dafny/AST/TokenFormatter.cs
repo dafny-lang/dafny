@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny.Helpers;
 
 public class HelperString {
+  // If we ever decide that blank lines shouldn't have spaces, we can set this to true. 
+  public const bool BlankNewlinesWithoutSpaces = false;
+
   public static readonly Regex NewlineRegex =
     new(@"(?<=\r?\n)(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)");
 
@@ -14,11 +17,11 @@ public class HelperString {
     // Invariant: Relative indentation inside a multi-line comment should be unchanged
 
     return NewlineRegex.Replace(input,
-      (Match match) => {
-        var v = match.Groups["commentType"].Value;
-        if (v.Length > 0) {
-          if (v.StartsWith("/*")) {
-            var doubleStar = v.StartsWith("/**");
+      match => {
+        var commentType = match.Groups["commentType"].Value;
+        if (commentType.Length > 0) {
+          if (commentType.StartsWith("/*")) {
+            var doubleStar = commentType.StartsWith("/**");
             var originalComment = match.Groups["commentType"].Value;
             var currentIndentation = match.Groups["currentIndent"].Value;
             var result = new Regex($@"(?<=\r?\n){currentIndentation}(?<star>\s*\*)?").Replace(
@@ -36,11 +39,11 @@ public class HelperString {
             return indentationBefore + result;
           }
 
-          if (v.StartsWith("//")) {
+          if (commentType.StartsWith("//")) {
             return indentationBefore + match.Groups["commentType"].Value;
           }
-          if (v.StartsWith("\r") || v.StartsWith("\n")) {
-            return indentationBefore + match.Groups["commentType"].Value; ;
+          if (commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
+            return (BlankNewlinesWithoutSpaces ? "" : indentationBefore) + match.Groups["commentType"].Value;
           }
         }
         // Last line
@@ -51,6 +54,7 @@ public class HelperString {
 }
 
 public class IndentationFormatter : TokenFormatter.ITokenIndentations {
+
   public Dictionary<int, int> TokenToIndentBefore;
   public Dictionary<int, int> TokenToIndentLineBefore;
   public Dictionary<int, int> TokenToIndentAfter;
@@ -161,14 +165,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             indent -= extraIndent;
             SetBeforeAfter(token, indent + extraIndent, indent, indent);
           }
-          if (token.val == "returns") {
-            indent += 2;
-            SetBeforeAfter(token, indent - 2, indent - 2, indent);
-          }
         }
+        // TODO: Frame expressions here
 
         indent = initialIndent;
-        // TODO: Frame expressions here
       }
 
       if (member.BodyStartTok.line > 0) {
@@ -183,6 +183,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
       indent -= 2;
       SetBeforeAfter(member.BodyEndTok, indent + 2, indent, indent);
+      posToIndentAfter[member.EndToken.pos] = indent;
     }
     void SetDeclIndentation(TopLevelDecl topLevelDecl) {
       if (topLevelDecl.StartToken.line > 0) {
