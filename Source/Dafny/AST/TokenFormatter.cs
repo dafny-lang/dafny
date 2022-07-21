@@ -85,9 +85,21 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
     var indent = 0;
 
+    // Given a token, finds the indentation that was expected before it.
+    // Used for frame expressions to initially copy the indentation of "reads", "requires", etc.
+    int GetIndentAfter(IToken token) {
+      if (token == null) {
+        return 0;
+      }
+      if (posToIndentAfter.TryGetValue(token.pos, out var indentation)) {
+        return indentation;
+      }
+      return GetIndentAfter(token.Prev);
+    }
+
     // Get the precise column this token will be at after reformatting.
     // Requires all tokens before to have been formatted.
-    int GetTokenCol(IToken token) {
+    int GetTokenCol(IToken token, int indent) {
       var previousTrivia = token.Prev != null ? token.Prev.TrailingTrivia : "";
       previousTrivia += token.LeadingTrivia;
       var lastNL = previousTrivia.LastIndexOf('\n');
@@ -102,11 +114,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         if (posToIndentSameLineBefore.TryGetValue(token.pos, out var indentation)) {
           return indentation + 1;
         }
+        if (token.Prev != null &&
+            posToIndentAfter.TryGetValue(token.Prev.pos, out var indentation2)) {
+          return indentation2 + 1;
+        }
         return indent + 1;
       }
       // No newline, so no re-indentation.
       if (token.Prev != null) {
-        return GetTokenCol(token.Prev) + token.Prev.val.Length + previousTrivia.Length;
+        return GetTokenCol(token.Prev, indent) + token.Prev.val.Length + previousTrivia.Length;
       }
 
       return token.col;
@@ -144,8 +160,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               c++;
             }
 
-            extraIndent = GetTokenCol(token) + c - indent;
-            commaIndent = GetTokenCol(token) - 1;
+            extraIndent = GetTokenCol(token, indent) + c - indent;
+            commaIndent = GetTokenCol(token, indent) - 1;
           }
 
           SetBeforeAfter(token, indent, indent, indent + extraIndent);
@@ -170,23 +186,70 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    void SetMemberIndentation(MemberDecl member) {
-      if (member is Method method) {
-        MarkMethodLikeIndent(method.StartToken, method.OwnedTokens, indent);
-      }
+    void SetTypeIndentation(IToken token, Type type) {
+      indent = GetIndentAfter(token.Prev);
+      // TODO
+    }
 
+    void SetAttributedExpressionIndentation(AttributedExpression attrExpression) {
+
+    }
+
+    void SetFrameExpressionIndentation(FrameExpression frameExpression) {
+
+    }
+
+    void SetExpressionIndentation(Expression expression) {
+
+    }
+
+    void SetStatementIndentation(Statement statement) {
+
+    }
+
+    void SetMemberIndentation(MemberDecl member) {
+      var savedIndent = indent;
+      MarkMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
       if (member.BodyStartTok.line > 0) {
         SetBeforeAfter(member.BodyStartTok, indent + 2, indent, indent + 2);
       }
-      // TODO: Body here
 
+      if (member is Method method) {
+        foreach (var formal in method.Ins) {
+          SetTypeIndentation(formal.tok, formal.SyntacticType);
+        }
+        foreach (var formal in method.Outs) {
+          SetTypeIndentation(formal.tok, formal.SyntacticType);
+        }
+        foreach (var req in method.Req) {
+          SetAttributedExpressionIndentation(req);
+        }
+        foreach (var mod in method.Mod.Expressions) {
+          SetFrameExpressionIndentation(mod);
+        }
+        foreach (var ens in method.Ens) {
+          SetAttributedExpressionIndentation(ens);
+        }
+        foreach (var dec in method.Decreases.Expressions) {
+          SetExpressionIndentation(dec);
+        }
+        SetStatementIndentation(method.Body);
+      }
+      if (member is Function function) {
+        SetExpressionIndentation(function.Body);
+      }
+
+      // TODO: Body here
+      indent = savedIndent;
       indent += 2;
       if (member is Method) {
 
       }
-
       indent -= 2;
-      SetBeforeAfter(member.BodyEndTok, indent + 2, indent, indent);
+      if (member.BodyEndTok.line > 0) {
+        SetBeforeAfter(member.BodyEndTok, indent + 2, indent, indent);
+      }
+
       posToIndentAfter[member.EndToken.pos] = indent;
     }
     void SetDeclIndentation(TopLevelDecl topLevelDecl) {
