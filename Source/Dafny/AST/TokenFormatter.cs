@@ -2,15 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny.Helpers;
 
 public class HelperString {
   // If we ever decide that blank lines shouldn't have spaces, we can set this to true. 
-  public const bool BlankNewlinesWithoutSpaces = false;
+  public static bool BlankNewlinesWithoutSpaces = false;
+
+  // If we remove whitespace (tabs or space) at the end of lines. 
+  public static bool RemoveTrailingWhitespace = true;
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=\r?\n)(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)");
+    new(@"(?<=\r?\n)(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)|(?<trailingWhitespace>[ \t]+)(?=\r?\n)");
 
   public static string Reindent(string input, string indentationBefore, string lastIndentation) {
     var commentExtra = "";
@@ -18,36 +22,42 @@ public class HelperString {
 
     return NewlineRegex.Replace(input,
       match => {
-        var commentType = match.Groups["commentType"].Value;
-        if (commentType.Length > 0) {
-          if (commentType.StartsWith("/*")) {
-            var doubleStar = commentType.StartsWith("/**");
-            var originalComment = match.Groups["commentType"].Value;
-            var currentIndentation = match.Groups["currentIndent"].Value;
-            var result = new Regex($@"(?<=\r?\n){currentIndentation}(?<star>\s*\*)?").Replace(
-              originalComment, match1 => {
-                if (match1.Groups["star"].Success) {
-                  if (doubleStar) {
-                    return indentationBefore + "  *";
+        if (match.Groups["trailingWhitespace"].Success) {
+          return RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
+        } else {
+          var commentType = match.Groups["commentType"].Value;
+          if (commentType.Length > 0) {
+            if (commentType.StartsWith("/*")) {
+              var doubleStar = commentType.StartsWith("/**");
+              var originalComment = match.Groups["commentType"].Value;
+              var currentIndentation = match.Groups["currentIndent"].Value;
+              var result = new Regex($@"(?<=\r?\n){currentIndentation}(?<star>\s*\*)?").Replace(
+                originalComment, match1 => {
+                  if (match1.Groups["star"].Success) {
+                    if (doubleStar) {
+                      return indentationBefore + "  *";
+                    } else {
+                      return indentationBefore + " *";
+                    }
                   } else {
-                    return indentationBefore + " *";
+                    return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
                   }
-                } else {
-                  return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
-                }
-              });
-            return indentationBefore + result;
+                });
+              return indentationBefore + result;
+            }
+
+            if (commentType.StartsWith("//")) {
+              return indentationBefore + match.Groups["commentType"].Value;
+            }
+
+            if (commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
+              return (BlankNewlinesWithoutSpaces ? "" : indentationBefore) + match.Groups["commentType"].Value;
+            }
           }
 
-          if (commentType.StartsWith("//")) {
-            return indentationBefore + match.Groups["commentType"].Value;
-          }
-          if (commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
-            return (BlankNewlinesWithoutSpaces ? "" : indentationBefore) + match.Groups["commentType"].Value;
-          }
+          // Last line
+          return lastIndentation;
         }
-        // Last line
-        return lastIndentation;
       }
     );
   }
