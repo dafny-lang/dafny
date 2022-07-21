@@ -9,14 +9,6 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
   import opened Frames
   import opened Sequences
   
-  // ghost predicate AllDisjoint<T>(builder: ResizableArray<T>, e: Sequence<T>, stack: ResizableArray<Sequence<T>>)
-  //   requires stack.Valid()
-  //   reads builder, builder.Repr, e, e.Repr, stack, stack.Repr, set expr <- stack.Value() :: {expr} + expr.Repr
-  // {
-  //   var allValidatables := {builder, e, stack} + set expr <- stack.Value();
-  //   PairwiseDisjoint(allValidatables)
-  // }
-
   method AppendRecursive<T>(builder: ResizableArray<T>, e: Sequence<T>)
     requires e.Valid()
     requires builder.Valid()
@@ -27,17 +19,17 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     ensures builder.Value() == old(builder.Value()) + e.Value();
 
   {
-    if e is Concat<T> {
-      var concat := e as Concat<T>;
+    if e is ConcatSequence<T> {
+      var concat := e as ConcatSequence<T>;
       AppendRecursive(builder, concat.left);
       AppendRecursive(builder, concat.right);
-    } else if e is Lazy<T> {
-      var lazy := e as Lazy<T>;
-      var boxed := lazy.exprBox.Get();
+    } else if e is LazySequence<T> {
+      var lazy := e as LazySequence<T>;
+      var boxed := lazy.box.Get();
       AppendRecursive(builder, boxed);
     } else {
-      var a: Direct<T> := e.ToArray();
-      builder.Append(a.value);
+      var a: ImmutableArray<T> := e.ToArray();
+      builder.Append(a);
     }
   }
 
@@ -55,41 +47,22 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
     ensures forall expr <- stack.Value() :: expr.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   {
-    if e is Concat<T> {
-      var concat := e as Concat<T>;
-      LemmaConcatValueOnStackWithTip(stack.Value(), concat.right);
+    if e is ConcatSequence<T> {
+      var concat := e as ConcatSequence<T>;
       stack.AddLast(concat.right);
       AppendOptimized(builder, concat.left, stack);
-    } else if e is Lazy<T> {
-      var lazy := e as Lazy<T>;
-      var boxed := lazy.exprBox.Get();
+    } else if e is LazySequence<T> {
+      var lazy := e as LazySequence<T>;
+      var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
     } else {
-      var a: Direct<T> := e.ToArray();
-      assert forall expr <- stack.Value() :: expr.Valid();
-      builder.Append(a.value);
-      assert forall expr <- stack.Value() :: expr.Valid();
+      var a := e.ToArray();
+      builder.Append(a);
       if 0 < stack.size {
-        ghost var willBeNext := stack.Last();
-        assert willBeNext in stack.Value();
-        assert forall expr <- stack.Value() :: expr.Valid();
         var next: Sequence<T> := stack.RemoveLast();
-        LemmaConcatValueOnStackWithTip(stack.Value(), next);
-        assert next == willBeNext;
-        assert stack.Value() == old(stack.Value()[..(stack.size - 1)]);
-        assert forall expr <- stack.Value() :: expr in old(stack.Value());
-        assert willBeNext == next;
-        assert next in old(stack.Value());
-        assert forall expr <- stack.Value() :: expr.Valid();
-
-        assert next.size + SizeSum(stack.Value()) == old(SizeSum(stack.Value()));
-        assert next.size + SizeSum(stack.Value()) < e.size + old(SizeSum(stack.Value()));
-
         AppendOptimized(builder, next, stack);
       }
     }
-
-    assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
@@ -99,24 +72,6 @@ module {:options "/functionSyntax:4"} ToArrayOptimized {
       []
     else
       s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
-  }
-
-  lemma LemmaConcatValueOnStackWithTip<T>(s: seq<Sequence<T>>, x: Sequence<T>) 
-    requires (forall e <- s :: e.Valid())
-    requires x.Valid()
-    ensures ConcatValueOnStack(s + [x]) == x.Value() + ConcatValueOnStack(s)
-  {
-    // var valueFn := (e: Sequence<T>) reads e, e.Repr requires e.Valid() => e.Value();
-    // calc {
-    //   ConcatValueOnStack(s + [x]);
-    //   Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s + [x])));
-    //   { reveal Seq.Reverse(); }
-    //   Seq.Flatten(Seq.Map(valueFn, [x] + Seq.Reverse(s)));
-    //   { reveal Seq.Map(); }
-    //   Seq.Flatten([x.Value()] + Seq.Map(valueFn, Seq.Reverse(s)));
-    //   x.Value() + Seq.Flatten(Seq.Map(valueFn, Seq.Reverse(s)));
-    //   x.Value() + ConcatValueOnStack(s);
-    // }
   }
 
   ghost function SizeSum<T>(s: seq<Sequence<T>>): nat 

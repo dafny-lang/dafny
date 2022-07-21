@@ -18,7 +18,7 @@ module {:options "/functionSyntax:4"} Sequences {
   // TODO: Align terminology between length/size/etc.
   trait Sequence<+T> {
    
-    const size: nat
+    ghost const size: nat
 
     ghost predicate Valid()
       decreases size, 0
@@ -38,16 +38,16 @@ module {:options "/functionSyntax:4"} Sequences {
       requires index < Length()
       ensures ret == Value()[index]
     {
-      var a: Direct<T> := ToArray();
-      return a.value.At(index);
+      var a := ToArray();
+      return a.At(index);
     }
 
-    method ToArray() returns (ret: Sequence<T>)
+    method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Value() == Value()
-      ensures ret is Direct<T>
+      ensures ret.Length() == Length()
+      ensures ret.values == Value()
   }
 
   method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
@@ -55,11 +55,11 @@ module {:options "/functionSyntax:4"} Sequences {
     requires right.Valid()
     ensures ret.Valid()
   {
-    var c := new Concat(left, right);
-    ret := new Lazy(c);
+    var c := new ConcatSequence(left, right);
+    ret := new LazySequence(c);
   }
 
-  class Direct<T> extends Sequence<T> {
+  class ArraySequence<T> extends Sequence<T> {
     const value: ImmutableArray<T>
 
     ghost predicate Valid()
@@ -94,18 +94,18 @@ module {:options "/functionSyntax:4"} Sequences {
       value.values
     }
 
-    method ToArray() returns (ret: Sequence<T>)
+    method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Value() == Value()
-      ensures ret is Direct<T>
+      ensures ret.Length() == Length()
+      ensures ret.values == Value()
     {
-      return this;
+      return value;
     }
   }
 
-  class Concat<T> extends Sequence<T> {
+  class ConcatSequence<T> extends Sequence<T> {
     const left: Sequence<T>
     const right: Sequence<T>
     const length: nat
@@ -143,40 +143,48 @@ module {:options "/functionSyntax:4"} Sequences {
       decreases size, 2
       ensures |Value()| == Length()
     {
-      left.Value() + right.Value()
+      var ret := left.Value() + right.Value();
+      assert |ret| == Length();
+      ret
     }
 
-    method ToArray() returns (ret: Sequence<T>)
+    method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Value() == Value()
-      ensures ret is Direct<T>
+      ensures ret.Length() == Length()
+      ensures ret.values == Value()
     {
       var a := new ResizableArray<T>(length);
-      var leftArray: Direct<T> := left.ToArray();
-      a.Append(leftArray.value);
-      var rightArray: Direct<T> := right.ToArray();
-      a.Append(rightArray.value);
-      var frozen := a.Freeze();
-      ret := new Direct(frozen);
+      var leftArray := left.ToArray();
+      a.Append(leftArray);
+      var rightArray := right.ToArray();
+      a.Append(rightArray);
+      ret := a.Freeze();
     }
   }
 
-  class Lazy<T> extends Sequence<T> {
+  class LazySequence<T> extends Sequence<T> {
     ghost const value: seq<T>
-    const exprBox: SequenceBox<T>
+    const box: AtomicBox<Sequence<T>>
     const length: nat
 
     ghost predicate Valid() 
       decreases size, 0
       ensures Valid() ==> 0 < size
     {
-      && size == exprBox.size + 1
-      && exprBox.Valid()
-      && value == exprBox.value
-      && 1 <= exprBox.size
+      && 0 < size
       && length == |value|
+      && box.inv == (s: Sequence<T>) =>
+        && s.size < size
+        && s.Valid()
+        && s.Value() == value
+    }
+
+    ghost predicate Call(s: Sequence<T>) {
+      && s.size < size
+      && s.Valid()
+      && s.Value() == value
     }
 
     constructor(wrapped: Sequence<T>) 
@@ -184,10 +192,18 @@ module {:options "/functionSyntax:4"} Sequences {
       requires 1 <= wrapped.size
       ensures Valid()
     {
-      this.exprBox := new SequenceBox(wrapped);
+      var value := wrapped.Value();
+      var size := 1 + wrapped.size;
+      var inv := (s: Sequence<T>) =>
+        && s.size < size
+        && s.Valid()
+        && s.Value() == value;
+      var box := AtomicBox.Make(inv, wrapped);
+
+      this.box := box;
       this.length := wrapped.Length();
-      this.value := wrapped.Value();
-      this.size := 1 + wrapped.size;
+      this.value := value;
+      this.size := size;
     }
 
     function Length(): nat 
@@ -202,65 +218,22 @@ module {:options "/functionSyntax:4"} Sequences {
       decreases size, 2
       ensures |Value()| == Length()
     {
+      assert |value| == Length();
       value
     }
 
-    method ToArray() returns (ret: Sequence<T>)
+    method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Value() == Value()
-      ensures ret is Direct<T>
+      ensures ret.Length() == Length()
+      ensures ret.values == Value()
     {
-      var expr := exprBox.Get();
+      var expr := box.Get();
       ret := expr.ToArray();
 
-      exprBox.Put(ret);
+      var arraySeq := new ArraySequence(ret);
+      box.Put(arraySeq);
     }
-  }
-
-  class SequenceBox<T> extends AtomicBox<Sequence<T>> {
-    ghost const value: seq<T>
-    ghost const size: nat
-    
-    ghost predicate Valid() 
-      reads this, Repr
-      ensures Valid() ==> Repr == {}
-    {
-      && Repr == {}
-      && inv == (e: Sequence<T>) => 
-        && e.size <= size
-        && e.Valid()
-        && e.Value() == value
-    }
-
-    constructor(e: Sequence<T>)
-      requires e.Valid()
-      ensures Valid()
-      ensures value == e.Value()
-      ensures size == e.size
-    {
-      this.Repr := {this};
-      var value := e.Value();
-      var size := e.size;
-
-      this.inv := (e: Sequence<T>) => 
-        && e.Valid()
-        && e.size <= size
-        && e.Value() == value;
-      this.value := value;
-      this.size := size;
-      new;
-      Put(e);
-    }
-
-    // Need to repeat the extern declarations to satisfy the resolver.
-    // See https://github.com/dafny-lang/dafny/issues/2212.
-
-    method {:extern} Put(t: Sequence<T>)
-      requires inv(t)
-
-    method {:extern} Get() returns (t: Sequence<T>)
-      ensures inv(t)
   }
 }
