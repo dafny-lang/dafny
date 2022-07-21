@@ -21,6 +21,17 @@ datatype Enum = One | Two | Three {
   lemma EvenOk() ensures Even() == Even'() == Even''() {}
 }
 
+module Constants {
+  const ONE := 1
+  const TWO := 2
+
+  method M(i: int) {
+    match i
+      case ONE | TWO => return; // `ONE` and `TWO` are not variables here
+      case _ => // Not redundant
+  }
+}
+
 module Lists {
   datatype List<T> = Nil | Cons(car: T, cdr: List<T>) {
     function {:fuel 5} Length(): nat {
