@@ -209,29 +209,6 @@ method Bar() { assert false; }";
     await WaitForStatus(barRange, PublishedVerificationStatus.Error, CancellationToken);
   }
 
-  /// <summary>
-  /// This is important for VSCode since once it marks a test item during a run as 'skipped' (which we use for stale),
-  /// the state can not be changed. This means we should only emit stale if that state will no longer change.
-  /// </summary>
-  [TestMethod]
-  public async Task OnceFirstIsRunningSecondShouldBeQueued() {
-    var source = @"method Foo() { assert false; }
-method Bar() { assert false; }";
-
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() }
-    });
-    var documentItem = CreateTestDocument(source);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
-    FileVerificationStatus status;
-    do {
-      status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Running));
-
-    Assert.IsTrue(status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Stale), string.Join(", ", status.NamedVerifiables));
-  }
-
   [TestMethod]
   public async Task WhenUsingOnSaveMethodStaysStaleUntilSave() {
     var source = @"method Foo() { assert false; }
