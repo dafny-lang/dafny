@@ -993,10 +993,10 @@ code (which can be helpful for debugging).
   messages.  `<fmt>` may be one of the following:
 
   * `text` (default): Report diagnostics in human-readable format.
-  * `json`: Report diagnostics in JSON format, one object per message, one
-    message per line.  Info-level messages are only included with
-    `-printTooltips`.  Diagnostics are the following format (but without
-    newlines):
+  * `json`: Report diagnostics in JSON format, one object per diagnostic, one
+    diagnostic per line.  Info-level messages are only included with
+    `-printTooltips`.  End positions are only included with `-showSnippets:1`.
+    Diagnostics are the following format (but without newlines):
 
     ```json
     {
@@ -1014,7 +1014,7 @@ code (which can be helpful for debugging).
       "severity": 2, // 1: error; 2: warning; 4: info
       "message": "module-level const declarations are always non-instance ...",
       "source": "Parser",
-      "relatedInformation": [ // Optional
+      "relatedInformation": [ // Additional messages, if any
         {
           "location": { ... }, // Like above
           "message": "...",
