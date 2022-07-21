@@ -103,7 +103,7 @@ method MyMethod() {
 }
 ```
 
-In this case, if you want to shorten the module name, import it with a shorthand name.
+In this case, if you want to shorten the module name, import the module with a shorthand name.
 ```dafny
 import M = MyModuleWithACumbersomeName
 import Y = YourModuleWithACumbersomeName
