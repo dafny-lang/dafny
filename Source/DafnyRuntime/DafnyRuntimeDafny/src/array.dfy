@@ -93,7 +93,7 @@ module {:options "/functionSyntax:4"} Arrays {
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
-  trait {:extern} ImmutableArray<T> {
+  trait {:extern} ImmutableArray<+T> {
 
     ghost const values: seq<T>
 
@@ -235,6 +235,8 @@ module {:options "/functionSyntax:4"} Arrays {
 
   ///
   // Feasibility implementation
+  // TODO: Move this to test/ or examples/,
+  // especially since we don't want to compile any seq<T> values
   ///
 
   class DafnyArray<T> extends Array<T> {

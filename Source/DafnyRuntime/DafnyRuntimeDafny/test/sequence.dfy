@@ -16,7 +16,9 @@ module MetaSeqTests {
     var values := new ResizableArray<Bar>(5);
     var bar := new Bar();
     values.AddLast(bar);
-    var barSeq: Sequence<Bar> := new Direct<Bar>(values);
+    var frozenValues := values.Freeze();
+
+    var barSeq: Sequence<Bar> := new ArraySequence<Bar>(frozenValues);
     var fooSeq: Sequence<Foo> := barSeq;
   }
 
