@@ -63,7 +63,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
-        // databaseEntry.Observer.Dispose();
         databaseEntry.CancelPendingUpdates();
         try {
           await databaseEntry.LastDocument;

@@ -45,26 +45,14 @@ function fib(n: nat): nat {
     var m3 = new Position(6, 7);
     var m4 = new Position(9, 7);
     var m5 = new Position(12, 7);
-    var _1 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m1, CancellationToken);
-    var _2 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m2, CancellationToken);
-    var _3 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m3, CancellationToken);
-    var _4 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m4, CancellationToken);
-    var _5 = client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), m5, CancellationToken);
+    var fib = new Position(15, 9);
+    var textDocumentIdentifier = new TextDocumentIdentifier(documentItem.Uri);
+    foreach (var position in new List<Position>() { m1, m2, m3, m4, m5, fib }) {
+      var _ = client.RunSymbolVerification(textDocumentIdentifier, position, CancellationToken);
+    }
 
-    var s1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-
-
-    var s2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-
-    var s3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s4 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s5 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s6 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s7 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s8 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s9 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s10 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var s11 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var finalStatus = await WaitUntilAllStatusAreCompleted(documentItem);
+    Assert.IsTrue(finalStatus.NamedVerifiables.All(s => s.Status >= PublishedVerificationStatus.Error));
   }
 
   [TestMethod]
@@ -258,7 +246,7 @@ method Bar() { assert true; }";
     Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
   }
 
-  private async Task WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
+  private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
     var lastDocument = await Documents.GetLastDocumentAsync(documentId);
     var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
@@ -266,6 +254,8 @@ method Bar() { assert true; }";
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
              beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
+
+    return beforeChangeStatus;
   }
 
   [TestMethod]
