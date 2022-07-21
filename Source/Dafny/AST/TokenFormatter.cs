@@ -118,22 +118,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
     void SetMemberIndentation(MemberDecl member) {
       if (member is Method method) {
-        // Owned tokens ("method" can also be "lemma" or "ghost method"
-        // "<FIRST>">2 "[">2 "]"<2 "<">Align <$","*>$ ">">Align "(">Align <$",">$ ")">Align
-        // 
-        // method Id [ nat ] < , > ( , , ) returns ( , , )
-        //
-        // method Id [ nat ] < , >
-        //   (x: int, // indentation after ( = indentation before + 1 + length of space if no newline
-        //    y: int  // indentation is copied from the first (
-        // , , ) // indentation after ) is the indentation before (
-        // returns ( , , )
-        // method {:fuel xxxx} Id<VeryLongTypeParameters>(
-        //     x: int,
-        //     y: int)
         var initialIndent = indent;
         SetBeforeAfter(method.StartToken, indent, indent, indent + 2);
         indent += 2;
+        var specIndent = indent;
         var firstParenthesis = true;
         var extraIndent = 0;
         var commaIndent = 0;
@@ -165,7 +153,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             indent -= extraIndent;
             SetBeforeAfter(token, indent + extraIndent, indent, indent);
           }
+          if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures") {
+            indent = specIndent;
+            SetBeforeAfter(token, indent, indent, indent + 2);
+            indent += 2;
+            commaIndent = indent;
+            // TODO: corresponding spec and frame expressions there.
+          }
         }
+
         // TODO: Frame expressions here
 
         indent = initialIndent;

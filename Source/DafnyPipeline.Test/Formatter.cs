@@ -191,6 +191,21 @@ method topLevel(
                         && forall j: int :: j < z || j == y
 {
   z := 0;
+  if z == 0 {
+    z := 1;
+  } else {
+    z := 0;
+  }
+  match
+    z {
+  case 0 =>
+  case
+    1 =>
+  case 2
+    =>
+  case 3
+    =>
+  }
 }";
         programString = AdjustNewlines(programString);
         var programNotIndented = indentRegex.Replace(programString, "");

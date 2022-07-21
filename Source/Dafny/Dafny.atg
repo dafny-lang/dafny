@@ -1724,7 +1724,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     ]
   | ellipsis                (. signatureEllipsis = t; ownedTokens.Add(t); .)
   )
-  IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs>
+  IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs, ownedTokens>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
@@ -1896,7 +1896,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   | ellipsis                                    (. signatureEllipsis = t; ownedTokens.Add(t); .)
   )                                             (. tokenWithTrailingDocString = t; .)
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
-             req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
+             req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor, ownedTokens>
   [ IF(isConstructor)
     (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
@@ -1943,23 +1943,26 @@ KType<.ref ExtremePredicate.KType kType, List<IToken> ownedTokens.>
   .
 
 /*------------------------------------------------------------------------*/
-RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
+RequiresClause<.List<AttributedExpression> req, bool allowLabel, List<IToken> ownedTokens.>
 = "requires"    (. IToken lbl = null;
+                   IToken first = t;
                    Attributes attrs = null;
                    Expression e;
+                   ownedTokens.Add(t);
                  .)
   { Attribute<ref attrs> }
   [ IF(IsLabel(allowLabel))
-    LabelName<out lbl> ":"
+    LabelName<out lbl> ":" (. ownedTokens.Add(lbl); ownedTokens.Add(t); .)
   ]
   Expression<out e, false, false>
   OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
-EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
+EnsuresClause<.List<AttributedExpression> ens, bool allowLambda, List<IToken> ownedTokens.>
 = "ensures"     (. Expression e;
                    Attributes attrs = null;
+                   ownedTokens.Add(t);
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
@@ -1968,21 +1971,23 @@ EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 
 /*------------------------------------------------------------------------*/
 ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs,
-                bool allowLambda, bool performThisDeprecatedCheck.>
+                bool allowLambda, bool performThisDeprecatedCheck, List<IToken> ownedTokens.>
 = "modifies"                                    (. FrameExpression fe;
                                                    mod = mod ?? new List<FrameExpression>();
+                                                   ownedTokens.Add(t);
                                                 .)
   { Attribute<ref attrs> }
   FrameExpression<out fe, false, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-  { "," FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  { "," (. ownedTokens.Add(t); .) 
+    FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   }
   OldSemi
   .
 
 /*------------------------------------------------------------------------*/
 DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
-                 bool allowWildcard, bool allowLambda.>
-= "decreases"
+                 bool allowWildcard, bool allowLambda, List<IToken> ownedTokens.>
+= "decreases"               (. ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   DecreasesList<decreases, allowWildcard, allowLambda>
   OldSemi
@@ -1990,11 +1995,13 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
 
 /*------------------------------------------------------------------------*/
 ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
-                  bool allowLemma, bool allowLambda, bool allowWild.>
+                  bool allowLemma, bool allowLambda, bool allowWild,
+                  List<IToken> ownedTokens.>
 = "reads"
-  (. FrameExpression fe; .)
+  (. FrameExpression fe; ownedTokens.Add(t); .)
   PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
-  { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
+  { "," (. ownedTokens.Add(t); .)
+    PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
        SemErr(fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
@@ -2003,10 +2010,11 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   OldSemi
   .
 
-/*------------------------------------------------------------------------*/
-InvariantClause<. List<AttributedExpression> invariants.> =
+/*-----------------------------------------------------pp-------------------*/
+InvariantClause<. List<AttributedExpression> invariants, List<IToken> ownedTokens.> =
   "invariant"                                   (. Attributes attrs = null;
                                                    Expression e;
+                                                   ownedTokens.Add(t);
                                                 .)
   { Attribute<ref attrs> }
   Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
@@ -2015,17 +2023,18 @@ InvariantClause<. List<AttributedExpression> invariants.> =
 
 /*------------------------------------------------------------------------*/
 MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
-            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
+            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption,
+            bool performThisDeprecatedCheck, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
   .)
   SYNC
-  { ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
-  | RequiresClause<req, true>
-  | EnsuresClause<ens, false>
-  | DecreasesClause<decreases, ref decAttrs, !isGhost, false>
+  { ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck, ownedTokens>
+  | RequiresClause<req, true, ownedTokens>
+  | EnsuresClause<ens, false, ownedTokens>
+  | DecreasesClause<decreases, ref decAttrs, !isGhost, false, ownedTokens>
   }
   .
 
@@ -2033,18 +2042,18 @@ MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> 
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
-              ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
+              ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs, List<IToken> ownedTokens.>
 =
   SYNC
-  { ReadsClause<reads, false, false, false>
-  | ModifiesClause<ref mod, ref modAttrs, false, false>
+  { ReadsClause<reads, false, false, false, ownedTokens>
+  | ModifiesClause<ref mod, ref modAttrs, false, false, ownedTokens>
   | (. bool isYield = false; .)
-    [ "yield"                                                (. isYield = true; .)
+    [ "yield"                                                (. isYield = true; ownedTokens.Add(t); .)
     ]
-    ( RequiresClause<(isYield?yieldReq:req), !isYield>
-    | EnsuresClause<(isYield?yieldEns:ens), false>
+    ( RequiresClause<(isYield?yieldReq:req), !isYield, ownedTokens>
+    | EnsuresClause<(isYield?yieldEns:ens), false, ownedTokens>
     )
-  | DecreasesClause<decreases, ref decrAttrs, false, false>
+  | DecreasesClause<decreases, ref decrAttrs, false, false, ownedTokens>
   }
   .
 
@@ -2426,7 +2435,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>();
      tokenWithTrailingDocString = t;
   .)
-  FunctionSpec<reqs, reads, ens, decreases, ref decAttrs>
+  FunctionSpec<reqs, reads, ens, decreases, ref decAttrs, ownedTokens>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
   [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody> ]
 
@@ -2608,21 +2617,21 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs.>
+FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
   .)
   SYNC
-  { RequiresClause<reqs, true>
-  | ReadsClause<reads, false, false, true>
-  | EnsuresClause<ens, false>
+  { RequiresClause<reqs, true, ownedTokens>
+  | ReadsClause<reads, false, false, true, ownedTokens>
+  | EnsuresClause<ens, false, ownedTokens>
   | (. if (decreases == null) {
          SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
          decreases = new List<Expression/*!*/>();
        }
     .)
-    DecreasesClause<decreases, ref decAttrs, false, false>
+    DecreasesClause<decreases, ref decAttrs, false, false, ownedTokens>
   }
   .
 
@@ -3162,6 +3171,7 @@ WhileStmt<out Statement stmt>
      Attributes attrs = null;
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
+     var ownedTokens = new List<IToken>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression> mod = null;
@@ -3172,22 +3182,22 @@ WhileStmt<out Statement stmt>
      bool isDirtyLoop = true;
      bool usesOptionalBraces;
   .)
-  "while"                    (. x = t; .)
+  "while"                    (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   (
     IF(IsLoopSpec() || IsAlternative())
-    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | ellipsis                   (. guardEllipsis = t; .)
+    | ellipsis                   (. guardEllipsis = t; ownedTokens.Add(t); .)
     )
-    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; ownedTokens.Add(t); .)
     | /* go body-less */
     )
     (.
@@ -3207,6 +3217,7 @@ WhileStmt<out Statement stmt>
         }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
       }
+      //stmt.OwnedTokens = ownedTokens;
     .)
   )
   .
@@ -3223,6 +3234,7 @@ ForLoopStmt<out Statement stmt>
 
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
+     var ownedTokens = new List<IToken>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression> mod = null;
@@ -3241,7 +3253,7 @@ ForLoopStmt<out Statement stmt>
   ( Expression<out end, false, false>
   | "*"
   )
-  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
     BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
   | /* go body-less */
@@ -3268,13 +3280,13 @@ ForLoopDirection<out bool goingUp>
   .
 
 /*------------------------------------------------------------------------*/
-LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
+LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs, List<IToken> ownedTokens.>
 = { SYNC
-    InvariantClause<invariants>
+    InvariantClause<invariants, ownedTokens>
   | SYNC
-    DecreasesClause<decreases, ref decAttrs, true, true>
+    DecreasesClause<decreases, ref decAttrs, true, true, ownedTokens>
   | SYNC
-    ModifiesClause<ref mod, ref modAttrs, true, false>
+    ModifiesClause<ref mod, ref modAttrs, true, false, ownedTokens>
   }
   .
 
@@ -3502,6 +3514,7 @@ ForallStmt<out Statement/*!*/ s>
      Attributes qattrs = null;
      Expression range = null;
      var ens = new List<AttributedExpression/*!*/>();
+     var ownedTokens = new List<IToken>();
      BlockStmt block = null;
      IToken bodyStart, bodyEnd;
      IToken tok = Token.NoToken;
@@ -3519,7 +3532,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    EnsuresClause<ens, true>
+    EnsuresClause<ens, true, ownedTokens>
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
     BlockStmt<out block, out bodyStart, out bodyEnd>
@@ -4146,6 +4159,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
      var reads = new List<FrameExpression>();
+     var ownedTokens = new List<IToken>();
      Expression req = null;
      Expression body = null;
   .)
@@ -4158,7 +4172,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
       ]
     ")"
   )
-  LambdaSpec<ref reads, ref req>
+  LambdaSpec<ref reads, ref req, ownedTokens>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, t, bvs, req, reads, body);
@@ -4167,9 +4181,9 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   .
 
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
-LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
-= { ReadsClause<reads, true, false, true>
-  | "requires"                             (. Expression ee; .)
+LambdaSpec<.ref List<FrameExpression> reads, ref Expression req, List<IToken> ownedTokens.>
+= { ReadsClause<reads, true, false, true, ownedTokens>
+  | "requires"                             (. Expression ee; ownedTokens.Add(t); .)
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
   }
   .
