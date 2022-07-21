@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
     public ConstructorWarningVisitor(ErrorReporter reporter) {
       this.reporter = reporter;
     }
-    // Implements warning for constructors in match and ensures constructor name has a set parenthesis at the end 
+    // Implements warning for constructors in match which ensures constructor name has parenthesis at the end and Begins with an uppercase letter. 
     protected override bool VisitOneExpr(Expression expr, ref Unit st) {
       if (expr is NestedMatchExpr matchExpr) {
         var matchExprCases = matchExpr.Cases;

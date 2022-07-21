@@ -445,7 +445,10 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
-      rewriters.Add(new ConstructorWarning(reporter));
+
+      if (DafnyOptions.O.DisallowConstructorCaseWithoutParenthesis) {
+        rewriters.Add(new ConstructorWarning(reporter));
+      }
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));

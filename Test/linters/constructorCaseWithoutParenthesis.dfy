@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module WithWarning {
-    datatype Color = Red | Green | ShadesOfGray(nat)
+    datatype Color = Red | Green | ShadesOfGray(nat) 
     
     method MonochromaticMethod(c: Color) returns (x: bool) {
           
@@ -16,7 +16,7 @@ module WithWarning {
                 case Green => true
                 case anythingElse => false;
         }
-
+    
     function method MonochromaticFunction(c: Color) : bool {
         match c
             case ShadesOfGray => true
@@ -37,7 +37,7 @@ module WithWarning {
 }
 
 module WithoutWarning {
-     datatype Color = Red | Green | ShadesOfGray(nat)
+     datatype Color = Red | Green | ShadesOfGray(nat) | MixColors(nat, nat) 
     
     method MonochromaticMethod(c: Color) returns (x: bool) {
           return match c
@@ -45,6 +45,14 @@ module WithoutWarning {
             case Green() => true
             case anythingElse => false;
     }
+    
+    method TestMethod(c: Color) returns (x: bool) {
+                  
+                  return match c
+                    case MixColors(cat, dog) => true
+                    case anythingElse => false;
+            }    
+    
     method MonoMethod(c: Color) returns (x: bool) {
                   
                   return match c
