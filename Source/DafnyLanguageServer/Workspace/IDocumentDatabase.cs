@@ -58,17 +58,4 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents { get; }
   }
-
-  public interface IDocumentEntry {
-    Task<DafnyDocument> ResolvedDocument { get; }
-    Task<DafnyDocument> TranslatedDocument { get; }
-    DafnyDocument LastPublishedDocument { get; }
-    Task<DafnyDocument> LastDocument { get; }
-    void Observe(IObservable<DafnyDocument> updates);
-    public bool Idle { get; }
-    void RestartVerification();
-
-    void EndVerification();
-
-  }
 }
