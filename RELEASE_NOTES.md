@@ -1,6 +1,9 @@
-# 3.7.3
+# Upcoming
 
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line). (https://github.com/dafny-lang/dafny/pull/2363)
+
+# 3.7.3
+
 - feat: *Less code navigation when verifying code*: In the IDE, failing postconditions and preconditions error messages now immediately display the sub-conditions that Dafny could not prove. Both on hover and in the Problems window. (https://github.com/dafny-lang/dafny/pull/2434)
 - feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
 - fix: NuGet packages no longer depend on specific patch releases of the .NET frameworks.
