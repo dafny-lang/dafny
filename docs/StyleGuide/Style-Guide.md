@@ -381,7 +381,7 @@ Omit white space between the `:` and the attribute name.
 method {:extern} m() { ... }
 
 // NO
-method {: extern } m() { ... }
+method {: extern} m() { ... }
 ```
 
 ## Recommendations
