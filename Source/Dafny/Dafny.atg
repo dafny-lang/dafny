@@ -3788,7 +3788,8 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          // be a boolean, we conjoin "true" to its left.
          e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
        }
-       e0.OwnedTokens.AddRange(ownedTokens);
+       ownedTokens.AddRange(e0.OwnedTokens);
+       e0.OwnedTokens = ownedTokens;
     .)
   | OrOp                                                        (. x = t; ownedTokens.Add(t); .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
@@ -3803,7 +3804,8 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          // be a boolean, we disjoin [sic] "false" to its left.
          e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
        }
-       e0.OwnedTokens.AddRange(ownedTokens);
+       ownedTokens.AddRange(e0.OwnedTokens);
+       e0.OwnedTokens = ownedTokens;
     .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */

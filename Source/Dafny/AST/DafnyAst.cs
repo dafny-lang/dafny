@@ -13202,6 +13202,8 @@ namespace Microsoft.Dafny {
           var e = (StmtExpr)expr;
           Visit(e.S, st);
         }
+
+        VisitOneExprUp(expr, ref st);
       }
     }
     public void Visit(Statement stmt, State st) {
@@ -13264,6 +13266,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       return true;  // by default, visit the sub-parts with the same "st"
     }
+
+    /// Visit one expression after its sub-expressions have been visited
+    protected virtual void VisitOneExprUp(Expression expr, ref State st) {
+      return;
+    }
+
     /// <summary>
     /// Visit one statement proper.  For the rest of the description of what this method
     /// does, see VisitOneExpr.

@@ -169,9 +169,22 @@ module Test {
     method Weird()
       returns (x: int)
       // One in the docstring
-      ensures x > 0
+      ensures &&  x > 1
+              && 
+                  x > 2
+              &&  x > 3 &&
+                  x > 4
+      ensures
+        && x > 5
+        && x > 6
+      ensures
+        x > 7
+        && x > 8
+      ensures
+        x > 9 &&
+        x > 10
     {
-      x := 2;
+      x := 11;
     }
     class A {
       static method f() {
@@ -189,7 +202,7 @@ method topLevel(
   ensures z > 10
   ensures
     && (forall j: int :: j < z || j == x)
-    && forall j: int :: j < z
+    && forall w: int :: w < z
                         && forall j: int :: j < z || j == y
 {
   z := 0;

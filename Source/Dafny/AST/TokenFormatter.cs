@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Triggers;
@@ -88,6 +89,16 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
     if (PosToIndentAfter.TryGetValue(token.pos, out var indentation)) {
       return indentation;
+    }
+    return GetIndentAfter(token.Prev);
+  }
+
+  private int GetIndentBefore(IToken token) {
+    if (PosToIndentLineBefore.TryGetValue(token.pos, out var indentation)) {
+      return indentation;
+    }
+    if (PosToIndentBefore.TryGetValue(token.pos, out var indentation2)) {
+      return indentation2;
     }
     return GetIndentAfter(token.Prev);
   }
@@ -182,7 +193,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void SetTypeIndentation(IToken token, Type type) {
-    var indent = GetIndentAfter(token.Prev);
+    var indent = GetIndentBefore(token);
     // TODO
   }
 
@@ -200,8 +211,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void SetExpressionIndentation(Expression expression) {
-    var visitor = new FormatterVisitor();
-    visitor.Visit(expression);
+    var visitor = new FormatterVisitor(this);
+    visitor.Visit(expression, GetIndentBefore(expression.StartToken));
   }
 
   void SetStatementIndentation(Statement statement) {
@@ -287,8 +298,55 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return indentationFormatter;
   }
 
-  class FormatterVisitor : BottomUpVisitor {
+  class FormatterVisitor : TopDownVisitor<int> {
+    private IndentationFormatter formatter;
+    private int binOpIndent = -1;
+    private int binOpArgIndent = -1;
 
+    public FormatterVisitor(IndentationFormatter formatter) {
+      this.formatter = formatter;
+    }
+
+    protected override void VisitOneExprUp(Expression expr, ref int indent) {
+
+    }
+
+    protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
+      if (expr is BinaryExpr binaryExpr) {
+        if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) { // Alignment required.
+          if (binaryExpr.OwnedTokens.Count == 2) {
+            var firstToken = binaryExpr.OwnedTokens[0];
+            var secondToken = binaryExpr.OwnedTokens[1];
+            var newIndent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
+            var c = 0;
+            while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
+              c++;
+            }
+            var conjunctExtraIndent = c + 2;
+            binOpIndent = newIndent;
+            binOpArgIndent = newIndent + conjunctExtraIndent;
+            formatter.SetBeforeAfter(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
+            formatter.SetBeforeAfter(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
+          } else {
+            if (binOpIndent > 0) {
+              formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
+            } else {
+              var startToken = binaryExpr.StartToken;
+              var newIndent = formatter.GetTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
+              formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
+            }
+          }
+          if (binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
+            binOpIndent = -1;
+            binOpArgIndent = -1;
+          }
+        }
+      } else if (expr is QuantifierExpr) {
+
+      } // TODO
+
+      return true;
+    }
   }
 
   public void GetIndentation(IToken token, string currentIndentation, out string indentationBefore, out string lastIndentation,
