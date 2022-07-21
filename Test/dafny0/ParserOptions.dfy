@@ -29,6 +29,20 @@ module BackToDefault {
   function GhostFunction() : int { 1 }
 }
 
+module {:options "/noNLarith"} Math__div_def_i {
+  function my_div_pos(x:int, d:int) : int
+    requires d >  0;
+    decreases if x < 0 then (d - x) else x;
+  {
+    if x < 0 then
+      -1 + my_div_pos(x+d, d)
+    else if x < d then
+      0
+    else
+      1 + my_div_pos(x-d, d)
+  }
+}
+
 // Sanity check
 method Main() {
   print FunctionMethodSyntax.CompiledFunction()

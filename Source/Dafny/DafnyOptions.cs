@@ -1299,6 +1299,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 class DafnyAttributeOptions : DafnyOptions {
   public static readonly HashSet<string> KnownOptions = new() {
     "functionSyntax",
+    "noNLarith",
     "quantifierSyntax"
   };
 
