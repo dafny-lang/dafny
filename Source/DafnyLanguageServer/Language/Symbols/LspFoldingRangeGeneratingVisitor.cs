@@ -33,8 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public IEnumerable<FoldingRange> Visit(ModuleSymbol moduleSymbol) {
-      return CreateFoldingRangesOfEntryDocument(moduleSymbol, moduleSymbol.
-                                                .tok);
+      return CreateFoldingRangesOfEntryDocument(moduleSymbol, moduleSymbol.Declaration.tok);
     }
 
     public IEnumerable<FoldingRange> Visit(ClassSymbol classSymbol) {
