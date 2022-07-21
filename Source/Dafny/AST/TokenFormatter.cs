@@ -142,13 +142,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    void MarkMethodLikeIndent(IToken startToken1, List<IToken> tokens, int indent) {
-      SetBeforeAfter(startToken1, indent, indent, indent + 2);
+    void MarkMethodLikeIndent(IToken startToken, List<IToken> ownedTokens, int indent) {
+      SetBeforeAfter(startToken, indent, indent, indent + 2);
+      indent += 2;
       var specIndent = indent;
       var firstParenthesis = true;
       var extraIndent = 0;
       var commaIndent = 0;
-      foreach (var token in tokens) {
+      foreach (var token in ownedTokens) {
         if (token.val is "<" or "[" or "(") {
           if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
             extraIndent = 2;
@@ -167,11 +168,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           SetBeforeAfter(token, indent, indent, indent + extraIndent);
           indent += extraIndent;
         }
-
         if (token.val is ",") {
           SetBeforeAfter(token, indent, commaIndent, indent);
         }
-
         if (token.val is ">" or "]" or ")") {
           indent -= extraIndent;
           SetBeforeAfter(token, indent + extraIndent, indent, indent);
