@@ -23,10 +23,13 @@ module {:options "/functionSyntax:4"} Arrays {
   // 2. The array<T> type does not support any bulk-assignment
   //    operations, which are important to optimize as much as possible
   //    in this performance-sensitive code.
+  //    I don't think it's a safe assumption that every target language
+  //    will optimize a loop over a range of array indices into an
+  //    equivalent memory copy, especially since the 
+  //    Dafny compilation process is hardly guaranteed to produce
+  //    code amenable to such optimizations. :)
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
-  datatype ArrayCell<T> = Set(value: T) | Unset
-
   trait {:extern} Array<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
@@ -87,6 +90,8 @@ module {:options "/functionSyntax:4"} Arrays {
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
       // Explicitly doesn't ensure Valid()!
   }
+
+  datatype ArrayCell<T> = Set(value: T) | Unset
 
   trait {:extern} ImmutableArray<T> {
 
