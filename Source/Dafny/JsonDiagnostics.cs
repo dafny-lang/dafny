@@ -11,8 +11,8 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
-  private static JsonObject SerializePosition(IToken tok) {
+record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
+  private static JsonObject SerializePosition(Boogie.IToken tok) {
     return new JsonObject {
       ["pos"] = tok.pos,
       ["line"] = tok.line,
@@ -20,7 +20,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
     };
   }
 
-  private static JsonObject SerializeRange(IToken tok) {
+  private static JsonObject SerializeRange(Boogie.IToken tok) {
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
@@ -30,7 +30,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
     return range;
   }
 
-  private static JsonObject SerializeToken(IToken tok) {
+  private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
       ["range"] = SerializeRange(tok)
@@ -50,14 +50,14 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(IToken tok, string? category, string message) {
+  private static JsonObject SerializeRelated(Boogie.IToken tok, string? category, string message) {
     return new JsonObject {
       ["location"] = SerializeToken(tok),
       ["message"] = SerializeMessage(category, message),
     };
   }
 
-  private static IEnumerable<JsonNode> SerializeInnerTokens(IToken tok) {
+  private static IEnumerable<JsonNode> SerializeInnerTokens(Boogie.IToken tok) {
     while (tok is NestedToken ntok) {
       tok = ntok.Inner;
       yield return SerializeRelated(tok, null, "Related location");
@@ -89,7 +89,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, IToken tok,
 }
 
 public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
-  public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string? category = null) {
+  public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string? category = null) {
     var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
     new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message, null).WriteJsonTo(tw);
   }
@@ -104,7 +104,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+  public override bool Message(MessageSource source, ErrorLevel level, Dafny.IToken tok, string msg) {
     if (base.Message(source, level, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
       new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
       return true;
