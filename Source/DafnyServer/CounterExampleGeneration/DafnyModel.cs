@@ -316,7 +316,7 @@ namespace DafnyServer.CounterexampleGeneration {
         if (funcTuple.Func.Arity != 0) {
           continue;
         }
-        if ((name == null) || (name.Contains("$"))) { // 2nd case is type param
+        if ((name == null) || name.Contains("$")) { // 2nd case is type param
           name = funcTuple.Func.Name;
         } else if (!funcTuple.Func.Name.Contains("$")) {
           return null;
