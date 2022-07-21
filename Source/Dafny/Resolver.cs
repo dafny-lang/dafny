@@ -12494,18 +12494,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private ExtendedPattern RemoveDisjunctivePatterns(ExtendedPattern pat, bool allowVariables) {
+    private ExtendedPattern RemoveIllegalSubpatterns(ExtendedPattern pat, bool inDisjunctivePattern) {
       switch (pat) {
         case LitPattern:
           return pat;
         case IdPattern p:
-          if (p.Arguments == null && !p.Id.StartsWith("_") && !allowVariables) {
-            reporter.Error(MessageSource.Resolver, pat.Tok, "Or-patterns may not bind variables");
+          if (inDisjunctivePattern && p.Arguments == null && !p.Id.StartsWith("_")) {
+            reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
             return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
           }
-          return new IdPattern(p.Tok, p.Id, p.Arguments?.ConvertAll(a => RemoveDisjunctivePatterns(a, allowVariables)));
+          return new IdPattern(p.Tok, p.Id, p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern)));
         case DisjunctivePattern p:
-          reporter.Error(MessageSource.Resolver, pat.Tok, "Or-patterns are not allowed inside other patterns");
+          reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
           return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
         default:
           Contract.Assert(false);
@@ -12518,8 +12518,8 @@ namespace Microsoft.Dafny {
       // For now, we handle top-level disjunctive patterns by duplicating the corresponding cases here, and disjunctive
       // sub-patterns are unsupported.
       return pat is DisjunctivePattern p
-        ? p.Alternatives.ConvertAll(a => RemoveDisjunctivePatterns(a, allowVariables: false))
-        : Enumerable.Repeat(RemoveDisjunctivePatterns(pat, allowVariables: true), 1);
+        ? p.Alternatives.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern: true))
+        : Enumerable.Repeat(RemoveIllegalSubpatterns(pat, inDisjunctivePattern: false), 1);
     }
 
     private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
