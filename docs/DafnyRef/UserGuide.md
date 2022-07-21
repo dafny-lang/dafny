@@ -1066,6 +1066,40 @@ code (which can be helpful for debugging).
 * `-titrace` - print debugging information during the type inference
   process.
 
+* `-diagnosticsFormat:<text|json>` - control how to report errors, warnings, and info
+  messages.  `<fmt>` may be one of the following:
+
+  * `text` (default): Report diagnostics in human-readable format.
+  * `json`: Report diagnostics in JSON format, one object per diagnostic, one
+    diagnostic per line.  Info-level messages are only included with
+    `-printTooltips`.  End positions are only included with `-showSnippets:1`.
+    Diagnostics are the following format (but without newlines):
+
+    ```json
+    {
+      "location": {
+        "filename": "xyz.dfy",
+        "range": { // Start and (optional) end of diagnostic
+          "start": {
+            "pos": 83, // 0-based character offset in input
+            "line": 6, // 1-based line number
+            "character": 0 // 0-based column number
+          },
+          "end": { "pos": 86, "line": 6, "character": 3 }
+        }
+      },
+      "severity": 2, // 1: error; 2: warning; 4: info
+      "message": "module-level const declarations are always non-instance ...",
+      "source": "Parser",
+      "relatedInformation": [ // Additional messages, if any
+        {
+          "location": { ... }, // Like above
+          "message": "...",
+        }
+      ]
+    }
+    ```
+
 ### 25.9.5. Controlling language features {#sec-controlling-language}
 
 These options allow some Dafny language features to be enabled or
