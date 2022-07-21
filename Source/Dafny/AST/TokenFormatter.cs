@@ -50,12 +50,12 @@ public class HelperString {
   }
 }
 
-public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
+public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   public Dictionary<int, int> TokenToIndentBefore;
   public Dictionary<int, int> TokenToIndentLineBefore;
   public Dictionary<int, int> TokenToIndentAfter;
 
-  private WhitespaceFormatter(
+  private IndentationFormatter(
     Dictionary<int, int> tokenToIndentBefore,
     Dictionary<int, int> tokenToIndentLineBefore,
     Dictionary<int, int> tokenToIndentAfter) {
@@ -64,20 +64,39 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
     TokenToIndentAfter = tokenToIndentAfter;
   }
 
-
-  class TokenNode {
-
-  }
-  class TokenStackMachine {
-
-  }
-
-  public static WhitespaceFormatter ForProgram(Program program) {
+  public static IndentationFormatter ForProgram(Program program) {
     Dictionary<int, int> posToindentLinesBefore = new();
     Dictionary<int, int> posToIndentSameLineBefore = new();
     Dictionary<int, int> posToIndentAfter = new();
 
     var indent = 0;
+
+    // Get the precise column this token will be at after reformatting.
+    // Requires all tokens before to have been formatted.
+    int GetTokenCol(IToken token) {
+      var previousTrivia = token.Prev != null ? token.Prev.TrailingTrivia : "";
+      previousTrivia += token.LeadingTrivia;
+      var lastNL = previousTrivia.LastIndexOf('\n');
+      var lastCR = previousTrivia.LastIndexOf('\r');
+      if (lastNL >= 0 || lastCR >= 0) {
+        // If the leading trivia contains an inline comment after the last newline, it can change the position.
+        var lastCharacterAfterNewline = Math.Max(lastNL, lastCR) + 1;
+        var lastTrivia = previousTrivia.Substring(lastCharacterAfterNewline);
+        if (lastTrivia.IndexOf("*/", StringComparison.Ordinal) >= 0) {
+          return lastTrivia.Length + 1;
+        }
+        if (posToIndentSameLineBefore.TryGetValue(token.pos, out var indentation)) {
+          return indentation + 1;
+        }
+        return indent;
+      }
+      // No newline, so no re-indentation.
+      if (token.Prev != null) {
+        return GetTokenCol(token.Prev) + token.Prev.val.Length + previousTrivia.Length;
+      }
+
+      return token.col;
+    }
 
     void SetBeforeAfter(IToken token, int before, int sameLineBefore, int after) {
       if (before >= 0) {
@@ -124,8 +143,8 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
               while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
                 c++;
               }
-              extraIndent = token.col + c;
-              commaIndent = indent + token.col - 1;
+              extraIndent = GetTokenCol(token) + c;
+              commaIndent = indent + GetTokenCol(token) - 1;
             }
             SetBeforeAfter(token, indent, indent, indent + extraIndent);
             indent += extraIndent;
@@ -188,7 +207,7 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
       SetDeclIndentation(decl);
     }
 
-    var formatter = new WhitespaceFormatter(posToindentLinesBefore, posToIndentSameLineBefore, posToIndentAfter);
+    var formatter = new IndentationFormatter(posToindentLinesBefore, posToIndentSameLineBefore, posToIndentAfter);
     return formatter;
   }
 

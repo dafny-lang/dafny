@@ -56,6 +56,7 @@ namespace Microsoft.Dafny {
     string TrailingTrivia { get; set; }
     string LeadingTrivia { get; set; }
     IToken Next { get; set; } // The next token
+    IToken Prev { get; set; } // The previous token
   }
 
   public record Token : IToken {
@@ -91,6 +92,8 @@ namespace Microsoft.Dafny {
     public bool IsValid => this.Filename != null;
 
     public IToken Next { get; set; } // The next token
+
+    public IToken Prev { get; set; } // The previous token
   }
 
 
@@ -8799,6 +8802,11 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.Next; }
       set { throw new NotSupportedException(); }
     }
+    public virtual IToken Prev {
+      get { return WrappedToken.Prev; }
+      set { throw new NotSupportedException(); }
+    }
+
   }
 
   public class RangeToken : TokenWrapper {
