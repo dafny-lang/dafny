@@ -93,18 +93,18 @@ module Test {
     ,   b: int)
   
   method g7(
-    a: int,
-    b: int)
+      a: int,
+      b: int)
   
   method g8(
-    a: int,
-    b: int
-  )
+      a: int,
+      b: int
+    )
   
   method g9(
-    a: int
-  , b: int
-  )
+      a: int
+    , b: int
+    )
   
   least lemma l1<T>[
     nat](a: T)
