@@ -2870,12 +2870,12 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           break;
-        case DisjunctivePattern dp:
-          var psep = "";
-          foreach (var arg in dp.Alternatives) {
-            wr.Write(psep);
+        case DisjunctivePattern dPat:
+          var patSep = "";
+          foreach (var arg in dPat.Alternatives) {
+            wr.Write(patSep);
             PrintExtendedPattern(arg);
-            psep = " | ";
+            patSep = " | ";
           }
           break;
         case LitPattern litPat:
@@ -2883,7 +2883,6 @@ namespace Microsoft.Dafny {
           break;
       }
     }
-
 
     private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {
       Contract.Requires(boundVars != null);
