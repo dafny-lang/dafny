@@ -88,7 +88,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         if (posToIndentSameLineBefore.TryGetValue(token.pos, out var indentation)) {
           return indentation + 1;
         }
-        return indent;
+        return indent + 1;
       }
       // No newline, so no re-indentation.
       if (token.Prev != null) {
@@ -143,8 +143,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
                 c++;
               }
-              extraIndent = GetTokenCol(token) + c;
-              commaIndent = indent + GetTokenCol(token) - 1;
+              extraIndent = GetTokenCol(token) + c - indent;
+              commaIndent = GetTokenCol(token) - 1;
             }
             SetBeforeAfter(token, indent, indent, indent + extraIndent);
             indent += extraIndent;
