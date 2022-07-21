@@ -12078,7 +12078,7 @@ namespace Microsoft.Dafny {
     // If cp is not a wildcard, replace branch.Body with let cp = expr in branch.Body
     // Otherwise do nothing
     private void LetBindNonWildCard(RBranch branch, IdPattern var, Expression expr) {
-      if (!var.Id.StartsWith("_")) {
+      if (!var.IsWildcardPattern) {
         LetBind(branch, var, expr);
       }
     }
@@ -12500,7 +12500,7 @@ namespace Microsoft.Dafny {
         case LitPattern:
           return pat;
         case IdPattern p:
-          if (inDisjunctivePattern && p.Arguments == null && !p.Id.StartsWith("_")) {
+          if (inDisjunctivePattern && p.IsWildcardPattern) {
             reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
             return new IdPattern(p.Tok, FreshTempVarName("_", null), null);
           }
@@ -12652,7 +12652,7 @@ namespace Microsoft.Dafny {
 
       if (scope.FindInCurrentScope(pat.Id) != null) {
         reporter.Error(MessageSource.Resolver, pat.Tok, "Duplicate parameter name: {0}", pat.Id);
-      } else if (pat.Id.StartsWith("_")) {
+      } else if (pat.IsWildcardPattern) {
         // Wildcard, ignore
         return;
       } else {

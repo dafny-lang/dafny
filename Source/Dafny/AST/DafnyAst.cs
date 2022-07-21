@@ -12439,6 +12439,9 @@ namespace Microsoft.Dafny {
     public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
     public LiteralExpr ResolvedLit; // null if just an identifier
 
+    public bool IsWildcardPattern =>
+      Arguments == null && !Id.StartsWith("_");
+
     public void MakeAConstructor() {
       this.Arguments = new List<ExtendedPattern>();
     }
