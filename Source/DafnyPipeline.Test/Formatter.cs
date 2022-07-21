@@ -17,6 +17,8 @@ namespace DafnyPipeline.Test {
 
     private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
+    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S)[ \t]+(?=\r?\n)");
+
     private Newlines currentNewlines;
     [Fact]
     public void FormatterWorks() {
@@ -209,6 +211,7 @@ method topLevel(
 }";
         programString = AdjustNewlines(programString);
         var programNotIndented = indentRegex.Replace(programString, "");
+        var expectedProgram = removeTrailingNewlineRegex.Replace(programString, "");
 
         ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
         Microsoft.Dafny.Type.ResetScopes();
@@ -218,7 +221,7 @@ method topLevel(
         Assert.Equal(0, reporter.ErrorCount);
         var reprinted = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
           IndentationFormatter.ForProgram(dafnyProgram));
-        Assert.Equal(programString, reprinted);
+        Assert.Equal(expectedProgram, reprinted);
 
         // Verify that the formatting is stable.
         module = new LiteralModuleDecl(new DefaultModuleDecl(), null);

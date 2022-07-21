@@ -14,7 +14,7 @@ public class HelperString {
   public static bool RemoveTrailingWhitespace = true;
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=\r?\n)(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)|(?<trailingWhitespace>[ \t]+)(?=\r?\n)");
+    new(@"(?<=\r?\n)(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n)");
 
   public static string Reindent(string input, string indentationBefore, string lastIndentation) {
     var commentExtra = "";
