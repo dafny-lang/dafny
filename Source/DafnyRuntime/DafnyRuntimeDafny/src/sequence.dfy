@@ -38,6 +38,15 @@ module {:options "/functionSyntax:4"} Sequences {
       decreases Repr, 2
       ensures |Value()| == Length()
 
+    method Select(index: nat) returns (ret: T)
+      requires Valid()
+      requires index < Length()
+      ensures ret == Value()[index]
+    {
+      var a := ToArray();
+      return a.At(index);
+    }
+
     method ToArray() returns (ret: ResizableArray<T>)
       requires Valid()
       decreases Repr, 2

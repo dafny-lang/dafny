@@ -215,6 +215,15 @@ module {:options "/functionSyntax:4"} Arrays {
       seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
     }
 
+    function At(index: nat): T 
+      requires Valid()
+      requires index < size
+      reads this, Repr
+      ensures At(index) == Value()[index]
+    {
+      storage.Read(index)
+    }
+
     function Last(): T 
       requires Valid()
       requires 0 < size
