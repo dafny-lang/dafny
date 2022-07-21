@@ -15,7 +15,7 @@ namespace DafnyPipeline.Test {
   public class Formatter {
     enum Newlines { LF, CR, CRLF };
 
-    private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))\s*");
+    private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
     private Newlines currentNewlines;
     [Fact]
@@ -25,8 +25,97 @@ namespace DafnyPipeline.Test {
       DafnyOptions.Install(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
+        // This formatting test will remove all the spaces at the beginning of the line
+        // and then recompute it. The result should be the same string.
         var programString = @"
 module Test {
+  method f1<T, U>(a: T, b: U)
+  
+  method
+    f2<T, U>(a: T, b: U)
+  
+  method f3
+    <T, U>(a: T, b: U)
+  
+  method f4
+    <  T
+    ,  U>(a: T, b: U)
+  
+  method f5
+    <   T,
+        U>(a: T, b: U)
+  
+  method f6
+    <    T,
+         U
+    >(a: T, b: U)
+  
+  method f7
+    <
+      T(00),
+      U>(a: T, b: U)
+  
+  method f8
+    <
+      T(00),
+      U
+    >(a: T, b: U)
+  
+  method f9<
+      T, U>(a: T, b: U)
+  
+  method f10< T
+            , U>(a: T, b: U)
+  
+  method g0(a: int, b: int)
+  
+  method g1
+    (a: int, b: int)
+  
+  method g2
+    (a: int, b: int)
+  
+  method g3
+    (
+      a: int, b: int)
+  
+  method g4
+    (
+      a: int,
+      b: int)
+  
+  method g5
+    (  a: int,
+       b: int)
+  
+  method g6
+    (   a: int
+    ,   b: int)
+  
+  method g7(
+    a: int,
+    b: int)
+  
+  method g8(
+    a: int,
+    b: int
+  )
+  
+  method g9(
+    a: int
+  , b: int
+  )
+  
+  least lemma l1<T>[
+    nat](a: T)
+  
+  least lemma l2<T>[nat
+    ](a: T)
+  
+  least lemma l3<T>
+    [nat]
+    (a: T)
+  
   /** A comment
     * Followed by newline
     * This is the end */

@@ -3187,6 +3187,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
     public List<IToken> OwnedTokens = new();
     public readonly string Name;
@@ -3530,6 +3531,7 @@ namespace Microsoft.Dafny {
       : base(module.tok, module.Name, parent, false, false) {
       ModuleDef = module;
       StartToken = module.StartToken;
+      EndToken = module.EndToken;
       TokenWithTrailingDocString = module.TokenWithTrailingDocString;
       BodyStartTok = module.BodyStartTok;
       BodyEndTok = module.BodyEndTok;
@@ -3770,6 +3772,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name

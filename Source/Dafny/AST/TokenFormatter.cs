@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Helpers;
@@ -50,55 +51,123 @@ public class HelperString {
 }
 
 public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
-  public Dictionary<int, int> TokenToMinIndentationBefore;
-  public Dictionary<int, int> TokenToMinIndentationAfter;
+  public Dictionary<int, int> TokenToIndentBefore;
+  public Dictionary<int, int> TokenToIndentLineBefore;
+  public Dictionary<int, int> TokenToIndentAfter;
 
-  private WhitespaceFormatter(Dictionary<int, int> tokenToMinIndentationBefore, Dictionary<int, int> tokenToMinIndentationAfter) {
-    TokenToMinIndentationBefore = tokenToMinIndentationBefore;
-    TokenToMinIndentationAfter = tokenToMinIndentationAfter;
+  private WhitespaceFormatter(
+    Dictionary<int, int> tokenToIndentBefore,
+    Dictionary<int, int> tokenToIndentLineBefore,
+    Dictionary<int, int> tokenToIndentAfter) {
+    TokenToIndentBefore = tokenToIndentBefore;
+    TokenToIndentLineBefore = tokenToIndentLineBefore;
+    TokenToIndentAfter = tokenToIndentAfter;
+  }
+
+
+  class TokenNode {
+
+  }
+  class TokenStackMachine {
+
   }
 
   public static WhitespaceFormatter ForProgram(Program program) {
-    Dictionary<int, int> posToMinIndentationBefore = new();
-    Dictionary<int, int> posToMinIndentationAfter = new();
+    Dictionary<int, int> posToindentLinesBefore = new();
+    Dictionary<int, int> posToIndentSameLineBefore = new();
+    Dictionary<int, int> posToIndentAfter = new();
 
     var indent = 0;
 
-    void SetBeforeAfter(IToken token, int before, int after) {
-      posToMinIndentationBefore.TryAdd(token.pos, before);
-      posToMinIndentationAfter.TryAdd(token.pos, after);
+    void SetBeforeAfter(IToken token, int before, int sameLineBefore, int after) {
+      if (before >= 0) {
+        posToindentLinesBefore[token.pos] = before;
+      }
+
+      if (sameLineBefore >= 0) {
+        posToIndentSameLineBefore[token.pos] = sameLineBefore;
+      }
+
+      if (after >= 0) {
+        posToIndentAfter[token.pos] = after;
+      }
     }
 
     void SetMemberIndentation(MemberDecl member) {
       if (member is Method method) {
+        // Owned tokens ("method" can also be "lemma" or "ghost method"
+        // "<FIRST>">2 "[">2 "]"<2 "<">Align <$","*>$ ">">Align "(">Align <$",">$ ")">Align
+        // 
+        // method Id [ nat ] < , > ( , , ) returns ( , , )
+        //
+        // method Id [ nat ] < , >
+        //   (x: int, // indentation after ( = indentation before + 1 + length of space if no newline
+        //    y: int  // indentation is copied from the first (
+        // , , ) // indentation after ) is the indentation before (
+        // returns ( , , )
+        // method {:fuel xxxx} Id<VeryLongTypeParameters>(
+        //     x: int,
+        //     y: int)
+        var initialIndent = indent;
+        SetBeforeAfter(method.StartToken, indent, indent, indent + 2);
+        indent += 2;
+        var firstParenthesis = true;
+        var extraIndent = 0;
+        var commaIndent = 0;
         foreach (var token in method.OwnedTokens) {
-          if (token.val == "(" || token.val == "<" || token.val == "[") {
-            SetBeforeAfter(token, indent, indent + 2);
-            indent += 2;
+          if (token.val is "<" or "[" or "(") {
+            if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
+              extraIndent = 2;
+              commaIndent = indent;
+            } else { // Align capabilities
+              var c = 0;
+              while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
+                c++;
+              }
+              extraIndent = token.col + c;
+              commaIndent = indent + token.col - 1;
+            }
+            SetBeforeAfter(token, indent, indent, indent + extraIndent);
+            indent += extraIndent;
+            if (token.val is "<") {
+              // TODO: Type parameters here
+            } else if (token.val is "(") {
+              // TODO: Formals here
+            }
           }
-          if (token.val == ")" || token.val == ">" || token.val == "]") {
-            indent -= 2;
-            SetBeforeAfter(token, indent + 2, indent);
+          if (token.val is ",") {
+            SetBeforeAfter(token, indent, commaIndent, indent);
           }
-
+          if (token.val is ">" or "]" or ")") {
+            indent -= extraIndent;
+            SetBeforeAfter(token, indent + extraIndent, indent, indent);
+          }
           if (token.val == "returns") {
-            SetBeforeAfter(token, indent + 2, indent + 2);
+            indent += 2;
+            SetBeforeAfter(token, indent - 2, indent - 2, indent);
           }
         }
+
+        indent = initialIndent;
+        // TODO: Frame expressions here
       }
 
-      SetBeforeAfter(member.BodyStartTok, indent, indent + 2);
+      if (member.BodyStartTok.line > 0) {
+        SetBeforeAfter(member.BodyStartTok, indent + 2, indent, indent + 2);
+      }
+      // TODO: Body here
+
       indent += 2;
       if (member is Method) {
 
       }
 
       indent -= 2;
-      SetBeforeAfter(member.BodyEndTok, indent + 2, indent);
+      SetBeforeAfter(member.BodyEndTok, indent + 2, indent, indent);
     }
     void SetDeclIndentation(TopLevelDecl topLevelDecl) {
       if (topLevelDecl.StartToken.line > 0) {
-        SetBeforeAfter(topLevelDecl.BodyStartTok, indent, indent + 2);
+        SetBeforeAfter(topLevelDecl.BodyStartTok, indent, indent, indent + 2);
         indent += 2;
       }
       if (topLevelDecl is LiteralModuleDecl moduleDecl) {
@@ -112,14 +181,14 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
       }
       if (topLevelDecl.StartToken.line > 0) {
         indent -= 2;
-        SetBeforeAfter(topLevelDecl.BodyStartTok, indent + 2, indent);
+        SetBeforeAfter(topLevelDecl.BodyStartTok, indent + 2, indent, indent);
       }
     }
     foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
       SetDeclIndentation(decl);
     }
 
-    var formatter = new WhitespaceFormatter(posToMinIndentationBefore, posToMinIndentationAfter);
+    var formatter = new WhitespaceFormatter(posToindentLinesBefore, posToIndentSameLineBefore, posToIndentAfter);
     return formatter;
   }
 
@@ -133,15 +202,19 @@ public class WhitespaceFormatter : TokenFormatter.ITokenIndentations {
     lastIndentation = currentIndentation;
     indentationAfter = currentIndentation;
     wasSet = false;
-    if (TokenToMinIndentationBefore.TryGetValue(token.pos, out var preIndentation)) {
+    if (TokenToIndentBefore.TryGetValue(token.pos, out var preIndentation)) {
       indentationBefore = new string(' ', preIndentation);
       lastIndentation = lastIndentation;
       indentationAfter = indentationBefore;
       wasSet = true;
     }
-    if (TokenToMinIndentationAfter.TryGetValue(token.pos, out var postIndentation)) {
-      lastIndentation = new string(' ', postIndentation);
+    if (TokenToIndentLineBefore.TryGetValue(token.pos, out var sameLineIndentation)) {
+      lastIndentation = new string(' ', sameLineIndentation);
       indentationAfter = lastIndentation;
+      wasSet = true;
+    }
+    if (TokenToIndentAfter.TryGetValue(token.pos, out var postIndentation)) {
+      indentationAfter = new string(' ', postIndentation);
       wasSet = true;
     }
   }

@@ -1074,6 +1074,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    "}"
     (.
 	  module.StartToken = dmod.FirstToken;
+      module.EndToken = t;
       module.BodyEndTok = t;
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
@@ -1240,6 +1241,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
      c.StartToken = dmodClass.FirstToken;
+     c.EndToken = t;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
      c.OwnedTokens = ownedTokens;
   .)
@@ -1283,6 +1285,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
      trait.StartToken = dmodIn.FirstToken;
+     trait.EndToken = t;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
      trait.OwnedTokens = ownedTokens;
     .)
@@ -1360,6 +1363,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
      dt.StartToken = dmod.FirstToken;
+     dt.EndToken = t;
      dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
@@ -1411,8 +1415,8 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; .)
-  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; .)
+  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t; .)
+  { "," FIdentType<out id, out ty>                  (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t; .)
   }
   OldSemi
   .
@@ -1445,7 +1449,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 c.StartToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+  OldSemi                                    (. c.TokenWithTrailingDocString = t; c.EndToken = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1496,9 +1500,10 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
-       td.StartToken = dmod.FirstToken;        
     .)
-  )             (. td.TokenWithTrailingDocString = t; .)
+  )             (. td.TokenWithTrailingDocString = t; 
+                   td.StartToken = dmod.FirstToken;
+                   td.EndToken = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1564,6 +1569,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      }
      td.BodyEndTok = t;
      td.StartToken = dmod.FirstToken;
+     td.EndToken = t;
      td.TokenWithTrailingDocString = t;
      td.OwnedTokens = ownedTokens;
   .)
@@ -2589,6 +2595,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      f.StartToken = dmod.FirstToken;
+     f.EndToken = t;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      f.OwnedTokens = ownedTokens;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);

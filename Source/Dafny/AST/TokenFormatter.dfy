@@ -5,13 +5,20 @@ module {:extern @"Microsoft.Dafny.Helpers"} {:options "-functionSyntax:4"} Helpe
   }
 }
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
-  type {:extern "String"} CsString(!new) {
-    function Length(): int
+  trait {:extern " Collections.Generic.IEnumerator"} {:compile false} IEnumerator<T> {
+    method MoveNext() returns (r: bool)
+    function Current(): T reads this
+  }
+  type {:extern "Int32"} Int32(==)
+  ghost function {:extern} GEq(left: Int32, right: Int32): (b: bool)
+    ensures left == right ==> b
+  type {:extern "String"} CsString(!new,==) {
+    function Length(): Int32
   }
   class {:extern "String"} {:compile false} String {
     static function Concat(s1: CsString, s2: CsString): (r: CsString)
-      ensures r.Length() >= s1.Length()
-      ensures r.Length() >= s2.Length()
+      ensures GEq(r.Length(), s1.Length())
+      ensures GEq(r.Length(), s2.Length())
   }
 }
 module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
@@ -87,7 +94,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         while(token != null)
         decreases if token == null then 0 else token.remainingTokens + 1
         invariant token == null || token.Valid()
-        invariant sLengthPrev <= s.Length();
+        invariant GEq(s.Length(), sLengthPrev);
         {
           sLengthPrev := s.Length();
           var indentationBefore, lastIndentation, indentationAfter, wasSet := reindent.GetIndentation(token, currentIndent);
@@ -111,6 +118,39 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         }
         s := String.Concat(s, previousTrailingTrivia);
       }
+
+      datatype State = Indent(i: Int32)
+
+      /** Design of a Domain-specific language to specify the pre-indentation and post-indentation of tokens */
+      /*trait TokenTriviaStateMachine {
+        var initState: State
+        var currentState: State
+
+        function transitionMap(state: State, str: CsString): State
+
+        method Transition(token: IToken) modifies this`currentState {
+          var newState := transitionMap(currentState, token.val);
+          currentState := newState;
+        }
+
+        method SetBeforeAfter(token: IToken, before: Int32, after: Int32)
+
+        method Walkthrough(tokens: IEnumerator<IToken>)
+          decreases *
+          modifies this`currentState
+        {
+          currentState := initState;
+          while true
+            decreases * {
+            var hasNext := tokens.MoveNext();
+            if(!hasNext) {
+              break;
+            }
+            var currentToken := tokens.Current();
+            Transition(currentToken);
+          }
+        }
+      }*/
     }
   }
 }
