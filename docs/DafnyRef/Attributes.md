@@ -420,16 +420,16 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
-### 23.2.15. `{:timeLimit N}`
+### 23.2.15. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 
 ### 23.2.16. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
-specified a `{:timelimit Y}` attributed is passed on to Boogie
+specified a `{:timeLimit Y}` attribute is passed on to Boogie
 where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
-Boogie `timelimit` command-line option.
+Boogie `-timeLimit` command-line option.
 
 ### 23.2.17. `{:verify false}` {#sec-verify}
      
