@@ -8912,6 +8912,8 @@ namespace Microsoft.Dafny {
   [DebuggerDisplay("{Printer.ExprToString(this)}")]
   public abstract class Expression {
     public readonly IToken tok;
+    public List<IToken> OwnedTokens = new();
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);

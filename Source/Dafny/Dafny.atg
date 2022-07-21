@@ -3772,13 +3772,15 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
      Expression first;
+     var ownedTokens = new List<IToken>();
      e0 = dummyExpr; /* mute the warning */
   .)
-  ( AndOp                                                       (. x = t; .)
+  ( AndOp                                                       (. x = t; ownedTokens.Add(t); .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
-      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
+         (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>() {x}; .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
@@ -3786,12 +3788,14 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          // be a boolean, we conjoin "true" to its left.
          e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
        }
+       e0.OwnedTokens.AddRange(ownedTokens);
     .)
-  | OrOp                                                        (. x = t; .)
+  | OrOp                                                        (. x = t; ownedTokens.Add(t); .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
     { IF(IsOrOp())  /* read a disjunction as far as possible */
       OrOp                                                      (. x = t; .)
-      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
+         (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>() {x}; .)
     }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
@@ -3799,21 +3803,22 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          // be a boolean, we disjoin [sic] "false" to its left.
          e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
        }
+       e0.OwnedTokens.AddRange(ownedTokens);
     .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens.Add(x); .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens.Add(x); .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens.Add(x); .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens.Add(x); .)
         }
         [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
