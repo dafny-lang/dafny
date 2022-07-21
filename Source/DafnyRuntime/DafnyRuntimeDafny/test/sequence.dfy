@@ -4,7 +4,7 @@ include "../src/array.dfy"
 module MetaSeqTests {
 
   import opened Arrays
-  import opened MetaSeq
+  import opened Sequences
 
   trait Foo {}
 
@@ -18,7 +18,6 @@ module MetaSeqTests {
     values.AddLast(bar);
     var barSeq: Sequence<Bar> := new Direct<Bar>(values);
     var fooSeq: Sequence<Foo> := barSeq;
-
   }
 
 }
