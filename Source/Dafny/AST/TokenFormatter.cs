@@ -126,55 +126,53 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    void SetMemberIndentation(MemberDecl member) {
-      if (member is Method method) {
-        var initialIndent = indent;
-        SetBeforeAfter(method.StartToken, indent, indent, indent + 2);
-        indent += 2;
-        var specIndent = indent;
-        var firstParenthesis = true;
-        var extraIndent = 0;
-        var commaIndent = 0;
-        foreach (var token in method.OwnedTokens) {
-          if (token.val is "<" or "[" or "(") {
-            if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
-              extraIndent = 2;
-              commaIndent = indent;
-            } else { // Align capabilities
-              var c = 0;
-              while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
-                c++;
-              }
-              extraIndent = GetTokenCol(token) + c - indent;
-              commaIndent = GetTokenCol(token) - 1;
-            }
-            SetBeforeAfter(token, indent, indent, indent + extraIndent);
-            indent += extraIndent;
-            if (token.val is "<") {
-              // TODO: Type parameters here
-            } else if (token.val is "(") {
-              // TODO: Formals here
-            }
-          }
-          if (token.val is ",") {
-            SetBeforeAfter(token, indent, commaIndent, indent);
-          }
-          if (token.val is ">" or "]" or ")") {
-            indent -= extraIndent;
-            SetBeforeAfter(token, indent + extraIndent, indent, indent);
-          }
-          if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures") {
-            indent = specIndent;
-            SetBeforeAfter(token, indent, indent, indent + 2);
-            indent += 2;
+    void MarkMethodLikeIndent(IToken startToken1, List<IToken> tokens, int indent) {
+      SetBeforeAfter(startToken1, indent, indent, indent + 2);
+      var specIndent = indent;
+      var firstParenthesis = true;
+      var extraIndent = 0;
+      var commaIndent = 0;
+      foreach (var token in tokens) {
+        if (token.val is "<" or "[" or "(") {
+          if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
+            extraIndent = 2;
             commaIndent = indent;
-            // TODO: corresponding spec and frame expressions there.
+          } else {
+            // Align capabilities
+            var c = 0;
+            while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
+              c++;
+            }
+
+            extraIndent = GetTokenCol(token) + c - indent;
+            commaIndent = GetTokenCol(token) - 1;
           }
+
+          SetBeforeAfter(token, indent, indent, indent + extraIndent);
+          indent += extraIndent;
         }
 
-        // TODO: Frame expressions here
+        if (token.val is ",") {
+          SetBeforeAfter(token, indent, commaIndent, indent);
+        }
 
-        indent = initialIndent;
+        if (token.val is ">" or "]" or ")") {
+          indent -= extraIndent;
+          SetBeforeAfter(token, indent + extraIndent, indent, indent);
+        }
+
+        if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
+          indent = specIndent;
+          SetBeforeAfter(token, indent, indent, indent + 2);
+          indent += 2;
+          commaIndent = indent;
+        }
+      }
+    }
+
+    void SetMemberIndentation(MemberDecl member) {
+      if (member is Method method) {
+        MarkMethodLikeIndent(method.StartToken, method.OwnedTokens, indent);
       }
 
       if (member.BodyStartTok.line > 0) {
