@@ -133,9 +133,9 @@ with git commands and concepts is helpful.
 
         brew reinstall dafny
 
-   and then execute `dafny` on a sample file to see if it has the
-   correct version number. Even better is to try this step on a
-   different machine than the one on which the `dafny.rb` file was edited
+   and then execute `dafny /version` see if it has the correct version
+   number. Even better is to try this step on a different machine than
+   the one on which the `dafny.rb` file was edited
 
 ## Updating and releasing a new version of VSCode plugin
 
