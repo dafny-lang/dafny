@@ -18,6 +18,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 
 # FAQs
 
+- ["Where do I put the reads clause?"](FAQReadsClause)
 
 
 # Errors, examples and corrections
