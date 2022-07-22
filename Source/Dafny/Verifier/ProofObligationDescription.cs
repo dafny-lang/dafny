@@ -378,20 +378,22 @@ public class YieldEnsures : ProofObligationDescription {
 public class TraitFrame : ProofObligationDescription {
   public override string SuccessDescription =>
     isModify
-      ? "expression abides by trait context's modifies clause"
-      : "expression abides by trait context's reads clause";
+      ? $"{whatKind} abides by trait context's modifies clause"
+      : $"{whatKind} abides by trait context's reads clause";
 
   public override string FailureDescription =>
     isModify
-      ? "expression might read an object not in the parent trait context's reads clause"
-      : "expression might modify an object not in the parent trait context's modifies clause";
+      ? $"{whatKind} might modify an object not in the parent trait context's modifies clause"
+      : $"{whatKind} might read an object not in the parent trait context's reads clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
 
+  private readonly string whatKind;
   private bool isModify;
 
-  public TraitFrame(bool isModify) {
+  public TraitFrame(string whatKind, bool isModify) {
+    this.whatKind = whatKind;
     this.isModify = isModify;
   }
 }
