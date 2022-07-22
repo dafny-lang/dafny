@@ -268,6 +268,10 @@ method topLevel(
       z
     := x,
        1;
+  var y
+    , z :=
+      x
+    , 1;
   var
     y,
     z
