@@ -69,6 +69,6 @@ class DocumentObserver : IObserver<DafnyDocument> {
     }
 
     notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document.Snapshot(); // Snapshot before storing TODO remove duplication of snapshot.
+    LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
   }
 }

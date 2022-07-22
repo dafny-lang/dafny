@@ -95,7 +95,7 @@ public class CompilationManager {
       resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
       resolvedDocument.VerificationTree = migratedVerificationTree ?? resolvedDocument.VerificationTree;
       documentLoader.PublishGutterIcons(resolvedDocument, false);
-      documentUpdates.OnNext(resolvedDocument.Snapshot());
+      documentUpdates.OnNext(resolvedDocument);
       return resolvedDocument;
     } catch (Exception e) {
       documentUpdates.OnError(e);
@@ -107,7 +107,7 @@ public class CompilationManager {
     try {
       var resolvedDocument = await ResolvedDocument;
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
-      documentUpdates.OnNext(translatedDocument.Snapshot());
+      documentUpdates.OnNext(translatedDocument);
       return translatedDocument;
     } catch (Exception e) {
       documentUpdates.OnError(e);
@@ -257,7 +257,7 @@ public class CompilationManager {
         (_, previousView) => previousView with { Status = status });
     }
 
-    documentUpdates.OnNext(document.Snapshot());
+    documentUpdates.OnNext(document);
   }
 
   private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
