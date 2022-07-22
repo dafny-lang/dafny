@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
         IncludeToken includeToken = (IncludeToken)tok;
         Include include = includeToken.Include;
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.filename + " contains error(s)");
+          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.Filename + " contains error(s)");
           include.ErrorReported = true;
         }
       }
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
     // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
-      tok.filename = filename;
+      tok.Filename = filename;
       Error(source, tok, msg);
     }
 
@@ -148,7 +148,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string TokenToString(IToken tok) {
-      return String.Format("{0}({1},{2})", tok.filename, tok.line, tok.col - 1);
+      return String.Format("{0}({1},{2})", tok.Filename, tok.line, tok.col - 1);
     }
   }
 
@@ -198,7 +198,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg) && ((DafnyOptions.O != null && DafnyOptions.O.PrintTooltips) || level != ErrorLevel.Info)) {
+      if (base.Message(source, level, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny {
         var errorLine = ErrorToString(level, tok, msg);
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
-          if (tok.filename == nestedToken.filename &&
+          if (tok.Filename == nestedToken.Filename &&
               tok.line == nestedToken.line &&
               tok.col == nestedToken.col) {
             continue;
