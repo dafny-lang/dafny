@@ -20,22 +20,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 [TestClass]
 public class ExceptionTests : ClientBasedLanguageServerTest {
 
-  private CrashingLoader loader;
-  private CrashingVerifier verifier;
+  public bool CrashOnPrepareVerification { get; set; }
+  public bool CrashOnLoad { get; set; }
 
   protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
     return serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
-      loader = new CrashingLoader(
+      return new CrashingLoader(this,
         LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)
       );
-      return loader;
     }).AddSingleton<IProgramVerifier>(serviceProvider => {
-      verifier = new CrashingVerifier(
+      return new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
           serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
       );
-      return verifier;
     });
   }
 
@@ -43,13 +41,13 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public async Task LoadCrashOnOpenRecovery() {
     var source = @"method Foo() { assert true; }";
 
-    loader.CrashOnLoad = true;
+    CrashOnLoad = true;
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, crashDiagnostics.Length);
     Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
-    loader.CrashOnLoad = false;
+    CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(0, recoveredDiagnostics.Length);
@@ -63,12 +61,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     client.OpenDocument(documentItem);
     var openDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, openDiagnostics.Length);
-    loader.CrashOnLoad = true;
+    CrashOnLoad = true;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, crashDiagnostics.Length);
     Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
-    loader.CrashOnLoad = false;
+    CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(0, recoveredDiagnostics.Length);
@@ -78,7 +76,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public async Task PrepareVerificationCrashRecover() {
     var source = @"method Foo() { assert false; }";
 
-    verifier.CrashOnPrepareVerification = true;
+    CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -86,7 +84,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, translationCrashDiagnostics.Length);
     Assert.IsTrue(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
-    verifier.CrashOnPrepareVerification = false;
+    CrashOnPrepareVerification = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, recoveredDiagnostics.Length);
@@ -94,17 +92,17 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   }
 
   class CrashingVerifier : IProgramVerifier {
+    private readonly ExceptionTests tests;
     private readonly IProgramVerifier verifier;
 
-    public CrashingVerifier(IProgramVerifier verifier) {
+    public CrashingVerifier(ExceptionTests tests, IProgramVerifier verifier) {
+      this.tests = tests;
       this.verifier = verifier;
     }
 
-    public bool CrashOnPrepareVerification { get; set; }
-
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
 
-      if (CrashOnPrepareVerification) {
+      if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
       return verifier.GetVerificationTasksAsync(document, cancellationToken);
@@ -114,10 +112,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   }
 
   class CrashingLoader : ITextDocumentLoader {
+    private readonly ExceptionTests tests;
     private readonly ITextDocumentLoader loader;
-    public bool CrashOnLoad { get; set; }
 
-    public CrashingLoader(ITextDocumentLoader loader) {
+    public CrashingLoader(ExceptionTests tests, ITextDocumentLoader loader) {
+      this.tests = tests;
       this.loader = loader;
     }
 
@@ -126,7 +125,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      if (CrashOnLoad) {
+      if (tests.CrashOnLoad) {
         throw new Exception("crash");
       }
       return loader.LoadAsync(textDocument, cancellationToken);

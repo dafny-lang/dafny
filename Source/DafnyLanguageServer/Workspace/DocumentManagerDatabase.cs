@@ -31,10 +31,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.documentOptions = documentOptions;
       VerifierOptions = verifierOptions;
 
-      // Initialises DafnyOptions.O
       // TODO improve
+      // Initialises DafnyOptions.O
       services.GetRequiredService<IDafnyParser>();
-      services.GetRequiredService<ITextDocumentLoader>();
 
       DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
     }
