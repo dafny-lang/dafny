@@ -3328,7 +3328,7 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. List<ExtendedPattern> branches = null;
      ExtendedPattern branch = null; .)
-  SingleExtendedPattern<out branch>
+  [ "|" ] SingleExtendedPattern<out branch>
   { "|"                                    (. branches ??= new() { branch }; .)
     SingleExtendedPattern<out branch>      (. branches.Add(branch); .)
   }
