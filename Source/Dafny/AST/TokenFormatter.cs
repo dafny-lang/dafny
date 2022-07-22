@@ -150,6 +150,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void MarkMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
+    var initIndent = indent;
     if (startToken.val != "{") {
       SetBeforeAfter(startToken, -1, indent, indent + 2);
       indent += 2;
@@ -163,7 +164,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var commaIndent = 0;
     foreach (var token in ownedTokens) {
       if (token.val is "{") {
-        SetBeforeAfter(token, indent, indent - 2, indent);
+        SetBeforeAfter(token, initIndent + 2, initIndent, initIndent + 2);
+        indent += 2;
       }
       if (token.val is "<" or "[" or "(") {
         if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
@@ -190,10 +192,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         indent -= extraIndent;
         SetBeforeAfter(token, indent + extraIndent, indent, indent);
       }
-      if (token.val is "}") {
-        SetBeforeAfter(token, indent, indent - 2, indent - 2);
+      if (token.val is "}" && !PosToIndentLineBefore.ContainsKey(token.pos)) {
+        indent -= 2;
+        SetBeforeAfter(token, indent + 2, indent, indent);
       }
-
       if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
         indent = firstIndent;
         SetBeforeAfter(token, indent, indent, indent + 2);
@@ -332,8 +334,24 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;*/
       var firstToken = stmt.Tok;
       var indent = formatter.GetIndentBefore(firstToken);
-      formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
-      formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);
+      if (stmt is IfStmt ifStmt) {
+        if (ifStmt.OwnedTokens.Count > 0) {
+          formatter.SetBeforeAfter(ifStmt.OwnedTokens[0], indent, indent, indent + 2);
+        }
+        formatter.SetBeforeAfter(ifStmt.Thn.Tok, indent + 2, indent, indent + 2);
+        formatter.SetBeforeAfter(ifStmt.Thn.EndTok, indent + 2, indent, indent);
+        if (ifStmt.OwnedTokens.Count > 1) { // "else"
+          formatter.SetBeforeAfter(ifStmt.OwnedTokens[1], indent, indent, indent);
+        }
+        if (ifStmt.Els != null) {
+          formatter.SetBeforeAfter(ifStmt.Els.Tok, indent, indent, indent + 2);
+          formatter.SetBeforeAfter(ifStmt.Els.EndTok, indent + 2, indent, indent);
+        }
+      } else {
+        formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
+        formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);
+      }
+
       return true;
     }
 
