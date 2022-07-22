@@ -351,29 +351,24 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           formatter.SetClosingIndentedRegion(ifStmt.Els.EndTok, indent);
         }
       } else if (stmt is ForallStmt forallStmt) {
-        if (forallStmt.OwnedTokens.Count > 0) {
-          formatter.SetOpeningIndentedRegion(forallStmt.OwnedTokens[0], indent);
-        }
-        for (var i = 1; i < forallStmt.OwnedTokens.Count; i++) {
-          formatter.SetSpecification(forallStmt.OwnedTokens[i], indent);
-        }
-        formatter.SetDelimiterIndentedRegions(forallStmt.Body.Tok, indent);
-        formatter.SetClosingIndentedRegion(forallStmt.Body.EndTok, indent);
+        FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
       } else if (stmt is WhileStmt whileStmt) {
-        if (whileStmt.OwnedTokens.Count > 0) {
-          formatter.SetOpeningIndentedRegion(whileStmt.OwnedTokens[0], indent);
-        }
-        for (var i = 1; i < whileStmt.OwnedTokens.Count; i++) {
-          formatter.SetSpecification(whileStmt.OwnedTokens[i], indent);
-        }
-        formatter.SetDelimiterIndentedRegions(whileStmt.Body.Tok, indent);
-        formatter.SetClosingIndentedRegion(whileStmt.Body.EndTok, indent);
+        FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
       } else if (stmt is ForLoopStmt forLoopStmt) {
-        if (forLoopStmt.OwnedTokens.Count > 0) {
-          formatter.SetOpeningIndentedRegion(forLoopStmt.OwnedTokens[0], indent);
+        var ownedTokens = forLoopStmt.OwnedTokens;
+        if (ownedTokens.Count > 0) {
+          formatter.SetOpeningIndentedRegion(ownedTokens[0], indent);
         }
-        for (var i = 1; i < forLoopStmt.OwnedTokens.Count; i++) {
-          formatter.SetSpecification(forLoopStmt.OwnedTokens[i], indent);
+
+        var specification = false;
+        for (var i = 1; i < ownedTokens.Count; i++) {
+          if (specification) {
+            formatter.SetSpecification(ownedTokens[i], indent);
+          }
+
+          if (ownedTokens[i].val == "to") {
+            specification = true;
+          }
         }
         formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
         formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
@@ -383,6 +378,19 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       return true;
+    }
+
+    private void FormatLikeLoop(List<IToken> ownedTokens, Statement body, int indent) {
+      if (ownedTokens.Count > 0) {
+        formatter.SetOpeningIndentedRegion(ownedTokens[0], indent);
+      }
+
+      for (var i = 1; i < ownedTokens.Count; i++) {
+        formatter.SetSpecification(ownedTokens[i], indent);
+      }
+
+      formatter.SetDelimiterIndentedRegions(body.Tok, indent);
+      formatter.SetClosingIndentedRegion(body.EndTok, indent);
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
