@@ -1,6 +1,9 @@
 # Upcoming
 
-- feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line). (https://github.com/dafny-lang/dafny/pull/2363)
+- feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
+  (https://github.com/dafny-lang/dafny/pull/2363)
+- feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.
+  (https://github.com/dafny-lang/dafny/pull/2448)
 
 # 3.7.3
 
