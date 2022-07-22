@@ -13,6 +13,7 @@
 
       <PackAsTool>true</PackAsTool>
       <ToolCommandName>dafny</ToolCommandName>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">

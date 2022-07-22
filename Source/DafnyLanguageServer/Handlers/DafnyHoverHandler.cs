@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                    failureDescription == new EnsuresDescription().FailureDescription)) {
               failureDescription = "This postcondition might not hold on a return path.";
             }
-            return $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
+            return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;
           case GutterVerificationStatus.Inconclusive:
             return $"{obsolescence}**Ignored or could not reach conclusion**";
@@ -244,7 +244,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       // Not the main error displayed in diagnostics
       if (currentlyHoveringPostcondition) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
-          ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 

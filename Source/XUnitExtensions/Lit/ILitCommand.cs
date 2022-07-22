@@ -36,9 +36,9 @@ namespace XUnitExtensions.Lit {
       var hasGlobCharacters = false;
       for (int i = 0; i < line.Length; i++) {
         var c = line[i];
-        if (c == '\'') {
+        if (c == '\'' && !doubleQuoted) {
           singleQuoted = !singleQuoted;
-        } else if (c == '"') {
+        } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
           if (argument.Length != 0) {
