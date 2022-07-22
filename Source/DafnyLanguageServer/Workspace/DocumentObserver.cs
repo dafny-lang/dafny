@@ -17,9 +17,6 @@ class DocumentObserver : IObserver<DafnyDocument> {
     get; private set;
   }
 
-  private readonly ReplaySubject<DafnyDocument> lastAndUpcomingPublishedDocuments = new(1);
-  public IObservable<DafnyDocument> LastAndUpcomingPublishedDocuments => lastAndUpcomingPublishedDocuments;
-
   public DocumentObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
@@ -50,7 +47,6 @@ class DocumentObserver : IObserver<DafnyDocument> {
     }
 
     notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document.Snapshot(); // Snapshot before storing
-    lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
+    LastPublishedDocument = document.Snapshot(); // Snapshot before storing TODO remove duplication of snapshot.
   }
 }
