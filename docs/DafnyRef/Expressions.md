@@ -957,7 +957,7 @@ SingleExtendedPattern =
   )
 
 ExtendedPattern =
-  ( SingleExtendedPattern { "|" SingleExtendedPattern } )
+  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
 
 PossiblyNegatedLiteralExpression =
   ( "-" ( Nat | Dec )
