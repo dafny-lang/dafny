@@ -23,7 +23,7 @@ layout: page
 
 Dafny is a **verification-ready programming language**.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
-When you're done, Dafny can **compile your code to C#, Java, JavaScript, Python, C++ or Go** (more to come!), so it can integrate with your existing workflow.
+When you're done, Dafny can **compile your code to C#, Java, JavaScript, C++ or Go** (more to come!), so it can integrate with your existing workflow.
 
 Dafny will give you **assurance that your code meets the specifications you write**, while letting you write both code and specifications in the Dafny programming language itself.
 Since verification is an integral part of development, it will thus **reduce the risk of costly late-stage bugs** that are typically missed by testing.
