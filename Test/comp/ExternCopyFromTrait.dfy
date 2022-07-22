@@ -41,7 +41,7 @@ module {:extern "M"} M {
 /// because the feature below is not flexible enough to accommodate abstract
 /// classes, as it does not add the `override` keyword on implementations.
 /// Hence, the only use of this feature in C# is interfaces with explicit
-/// implementations.  The same problem means that this feature is not very
+/// implementations. The same problem means that this feature is not very
 /// useful for Java either: Dafny translates the `extends` keywords to Java's
 /// `implements`, not `extends`, and so `Asker` below must be an interface in
 /// Java.
