@@ -171,7 +171,10 @@ public class DocumentManager {
     }
   }
 
-  public async Task<DafnyDocument?> GetBestResolvedDocumentAsync() {
+  /// <summary>
+  /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
+  /// </summary>
+  public async Task<DafnyDocument?> GetResolvedDocumentAsync() {
     try {
       await CompilationManager.ResolvedDocument;
     } catch (OperationCanceledException) {

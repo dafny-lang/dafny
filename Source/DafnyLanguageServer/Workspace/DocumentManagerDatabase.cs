@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<DafnyDocument?> GetBestResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetBestResolvedDocumentAsync();
+        return state.GetResolvedDocumentAsync();
       }
       return Task.FromResult<DafnyDocument?>(null);
     }
