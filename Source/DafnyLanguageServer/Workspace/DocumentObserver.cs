@@ -63,9 +63,9 @@ class DocumentObserver : IObserver<DafnyDocument> {
     }
   }
 
-  private readonly object myLock = new();
+  private readonly object lastPublishedDocumentLock = new();
   public void OnNext(DafnyDocument document) {
-    lock (myLock) {
+    lock (lastPublishedDocumentLock) {
       if (document.Version < LastPublishedDocument.Version) {
         return;
       }

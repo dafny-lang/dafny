@@ -173,9 +173,13 @@ public class DocumentManager {
   /// </summary>
   public async Task<DafnyDocument?> GetResolvedDocumentAsync() {
     try {
-      await CompilationManager.ResolvedDocument;
+      var resolvedDocument = await CompilationManager.ResolvedDocument;
+      Console.WriteLine("resolvedDocument v " + resolvedDocument.Version);
     } catch (OperationCanceledException) {
     }
-    return observer.LastPublishedDocument;
+
+    var result = observer.LastPublishedDocument;
+    Console.WriteLine("last published document v " + result.Version);
+    return result;
   }
 }
