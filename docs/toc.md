@@ -33,7 +33,7 @@ layout: page
    * [Modules](OnlineTutorial/Modules)
    * [Termination](OnlineTutorial/Termination)
 
-* Forums for Q&amp;A
+* Forums for Q&amp;A (#discussion)
    * [Problem reports](https://github.com/dafny-lang/dafny/issues) and [discussions](https://github.com/dafny-lang/dafny/discussions) on GitHub
    * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)
 
