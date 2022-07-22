@@ -149,11 +149,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
   }
 
-  void MarkMethodLikeIndent(IToken startToken, List<IToken> ownedTokens, int indent) {
-    SetBeforeAfter(startToken, indent, indent, indent + 2);
-    indent += 2;
-    var specIndent = indent;
-    var firstParenthesis = true;
+  void MarkMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
+    if (startToken.val != "{") { // method, while loop, etc.
+      SetBeforeAfter(startToken, -1, indent, indent + 2);
+      indent += 2;
+    }
+
+    var originalIndent = indent;
     var extraIndent = 0;
     var commaIndent = 0;
     foreach (var token in ownedTokens) {
@@ -184,7 +186,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
-        indent = specIndent;
+        indent = originalIndent;
         SetBeforeAfter(token, indent, indent, indent + 2);
         indent += 2;
         commaIndent = indent;
@@ -216,7 +218,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void SetStatementIndentation(Statement statement) {
-    // TODO
+    var visitor = new FormatterVisitor(this);
+    visitor.Visit(statement, GetIndentBefore(statement.Tok));
   }
 
   void SetMemberIndentation(MemberDecl member, int indent) {
@@ -245,7 +248,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       foreach (var dec in method.Decreases.Expressions) {
         SetExpressionIndentation(dec);
       }
-      SetStatementIndentation(method.Body);
+
+      if (method.Body != null) {
+        SetStatementIndentation(method.Body);
+      }
     }
     if (member is Function function) {
       SetExpressionIndentation(function.Body);
@@ -305,10 +311,20 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
     public FormatterVisitor(IndentationFormatter formatter) {
       this.formatter = formatter;
+      this.preResolve = true;
     }
 
-    protected override void VisitOneExprUp(Expression expr, ref int indent) {
-
+    protected override bool VisitOneStmt(Statement stmt, ref int unusedIndent) {
+      /*if (stmt.OwnedTokens.Count > 0) {
+        var firstToken = stmt.OwnedTokens[0];
+        var indent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
+        
+      }
+      return true;*/
+      var firstToken = stmt.Tok;
+      var indent = formatter.GetIndentBefore(firstToken);
+      formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
+      return false;
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {

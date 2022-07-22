@@ -207,10 +207,68 @@ method topLevel(
 {
   z := 0;
   if z == 0 {
-    z := 1;
+    if
+      z == 1
+    {
+      z := z / 0;
+    }
+    else
+    {
+      z := 1;
+    }
   } else {
     z := 0;
   }
+  forall z <- [0]
+    ensures true {
+    assert true;
+  }
+  forall z <- [0]
+    ensures true
+  {
+    assert true;
+  }
+  while z != 0
+    invariant true {
+    z := 0;
+  }
+  while
+    z != 0
+    invariant true {
+    z := 0;
+  }
+  while
+    z != 0
+    invariant true
+  {
+    z := 0;
+  }
+  for i := 0 to 1 {
+    assert true;
+  }
+  for i :=
+    0 to 1 {
+    assert true;
+  }
+  for i := 0 to 1
+    invariant true
+  {
+    assert true;
+  }
+  var x :=
+    2;
+  var y,
+      z
+    := x,
+       1;
+  var
+    y,
+    z
+    :=
+    x
+    ,1;
+  var w :|
+    true;
   match
     z {
   case 0 =>

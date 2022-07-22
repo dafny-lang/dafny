@@ -6689,6 +6689,7 @@ namespace Microsoft.Dafny {
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     public LList<Label> Labels;  // mutable during resolution
+    public List<IToken> OwnedTokens;
 
     private Attributes attributes;
     public Attributes Attributes {
@@ -6728,6 +6729,11 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Statement> SubStatements {
       get { yield break; }
     }
+
+    /// <summary>
+    /// Returns the non-null substatements of the Statements, before resolution occurs
+    /// </summary>
+    public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
@@ -6991,6 +6997,8 @@ namespace Microsoft.Dafny {
       get { return ResolvedStatements; }
     }
 
+    public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Exprs != null);
@@ -7085,6 +7093,18 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements {
+      get {
+        if (rhss != null) {
+          foreach (var rhs in rhss) {
+            foreach (var s in rhs.PreResolveSubStatements) {
+              yield return s;
+            }
+          }
+        }
+      }
+    }
   }
 
   public class ReturnStmt : ProduceStmt {
@@ -7142,6 +7162,8 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Statement> SubStatements {
       get { yield break; }
     }
+
+    public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
   }
 
   public class ExprRhs : AssignmentRhs {
@@ -7300,6 +7322,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
   }
 
   public class HavocRhs : AssignmentRhs {
@@ -7439,6 +7463,8 @@ namespace Microsoft.Dafny {
       get { return ResolvedStatements; }
     }
 
+    public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
@@ -7474,6 +7500,8 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -7520,6 +7548,13 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Statement> SubStatements {
       get {
         foreach (var s in Rhs.SubStatements) {
+          yield return s;
+        }
+      }
+    }
+    public override IEnumerable<Statement> PreResolveSubStatements {
+      get {
+        foreach (var s in Rhs.PreResolveSubStatements) {
           yield return s;
         }
       }
@@ -12767,6 +12802,8 @@ namespace Microsoft.Dafny {
         yield return ResolvedStatement;
       }
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
   }
   public class ParensExpression : ConcreteSyntaxExpression {
     public readonly Expression E;
@@ -13203,6 +13240,8 @@ namespace Microsoft.Dafny {
     }
   }
   public class TopDownVisitor<State> {
+    protected bool preResolve = false;
+
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
@@ -13213,8 +13252,6 @@ namespace Microsoft.Dafny {
           var e = (StmtExpr)expr;
           Visit(e.S, st);
         }
-
-        VisitOneExprUp(expr, ref st);
       }
     }
     public void Visit(Statement stmt, State st) {
@@ -13222,7 +13259,11 @@ namespace Microsoft.Dafny {
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
         stmt.SubExpressions.Iter(e => Visit(e, st));
-        stmt.SubStatements.Iter(s => Visit(s, st));
+        if (preResolve) {
+          stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
+        } else {
+          stmt.SubStatements.Iter(s => Visit(s, st));
+        }
       }
     }
     public void Visit(IEnumerable<Expression> exprs, State st) {
@@ -13276,11 +13317,6 @@ namespace Microsoft.Dafny {
     protected virtual bool VisitOneExpr(Expression expr, ref State st) {
       Contract.Requires(expr != null);
       return true;  // by default, visit the sub-parts with the same "st"
-    }
-
-    /// Visit one expression after its sub-expressions have been visited
-    protected virtual void VisitOneExprUp(Expression expr, ref State st) {
-      return;
     }
 
     /// <summary>
