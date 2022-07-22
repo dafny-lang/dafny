@@ -136,4 +136,13 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ][I][S][S][ ]:}
             [I][S][S][ ]:");
   }
+
+  [TestMethod]
+  public async Task EnsureMultilineAssertIsCorreclyHandled() {
+    await VerifyTrace(@"
+ .  S [S][ ]:method x() {
+ .  S [=][=]:  assert false
+ .  S [=][=]:    || false;
+ .  S [S][ ]:}");
+  }
 }

@@ -1,17 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
-using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -22,128 +17,179 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 /// </summary>
 [TestClass]
 public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
-  private ListeningTextDocumentLoader textDocumentLoader;
   private const int MaxTestExecutionTimeMs = 10000;
-
-  [TestInitialize]
-  public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    verificationStatusGutterReceiver = new();
-    client = await InitializeClient(options =>
-        options
-          .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-            NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
-      , serverOptions => {
-        serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
-          textDocumentLoader = new ListeningTextDocumentLoader(
-            serviceProvider.GetRequiredService<ILoggerFactory>(), serviceProvider.GetRequiredService<IDafnyParser>(),
-            serviceProvider.GetRequiredService<ISymbolResolver>(),
-            serviceProvider.GetRequiredService<IProgramVerifier>(),
-            serviceProvider.GetRequiredService<ISymbolTableFactory>(),
-            serviceProvider.GetRequiredService<IGhostStateDiagnosticCollector>(),
-            serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-            serviceProvider.GetRequiredService<IDiagnosticPublisher>(),
-            serviceProvider.GetRequiredService<IOptions<VerifierOptions>>().Value
-          );
-          return textDocumentLoader;
-        });
-      });
-  }
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() {
-  assert 1 == 0;//Next2:  assert 2 == 0;
+  assert fib(10) == 0;//Next2:  assert fib(10) == 0;
 }
-
 method m2() {
-  assert 1 == 0;//Next1:  assert 2 == 0;
-}",
-      expectedPriorities:
-      " 1, 1 " +
-      " 1,10 " +
-      "10, 9");
+  assert fib(10) == 0;//Next1:  assert fib(10) == 0;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+",
+        "m1 m2 fib\n" +
+        "m2 m1 fib\n" +
+        "m1 m2 fib"
+        );
+    });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    await TestPriorities(@"
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
 method m1() {
-  assert true;//Next7:  assert  true;//Next8:  assert true;
+  assert fib(10) == 55;//Next7:  assert  fib(10) == 55;//Next8:  assert fib(10) == 55;
 }
 method m2() {
-  assert true;//Next5:  assert  true;
+  assert fib(10) == 55;//Next5:  assert  fib(10) == 55;
 }
 method m3() {
-  assert true;//Next2:  assert  true;//Next9:  assert true;
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;//Next9:  assert fib(10) == 55;
 }
 method m4() {
-  assert true;//Next3:  assert  true;//Next4:  assert true;
+  assert fib(10) == 55;//Next3:  assert  fib(10) == 55;//Next4:  assert fib(10) == 55;
 }
 method m5() {
-  assert true;//Next1:  assert  true;//Next6:  assert true;//Next10:  assert  true;
-}", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1, 1,10 " +
-      " 1, 1,10, 1, 9 " +
-      " 1, 1, 9,10, 8 " +
-      " 1, 1, 9,10, 8 " +
-      " 1,10, 8, 9, 7 " +
-      " 1, 9, 7, 8,10 " +
-      "10, 8, 6, 7, 9 " +
-      "10, 8, 6, 7, 9 " +
-      " 9, 7,10, 6, 8 " +
-      " 8, 7, 9, 6,10");
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;//Next6:  assert fib(10) == 55;//Next10:  assert  fib(10) == 55;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+", "m1 m2 m3 m4 m5 fib\n" +
+          "m5 m1 m2 m3 m4 fib\n" +
+          "m3 m5 m1 m2 m4 fib\n" +
+          "m4 m3 m5 m1 m2 fib\n" +
+          "m4 m3 m5 m1 m2 fib\n" +
+          "m2 m4 m3 m5 m1 fib\n" +
+          "m5 m2 m4 m3 m1 fib\n" +
+          "m1 m5 m2 m4 m3 fib\n" +
+          "m1 m5 m2 m4 m3 fib\n" +
+          "m3 m1 m5 m2 m4 fib\n" +
+          "m5 m3 m1 m2 m4 fib"
+        );
+    });
   }
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
-    await TestPriorities(@"
-method m1() { assert true; }
-method m2() { assert true; }
-method m3() { assert true; } //Remove3:
-method m4() {
-  assert true;//Next1:  assert  true;
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
+method m1() { assert fib(10) == 55; }
+method m2() { assert fib(10) == 55; }
+method m3() {
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
 } 
-method m5() {
-  assert true;//Next2:  assert  true;
+method m4() {
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
 }
-", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1,10, 1 " +
-      " 1, 1, 1, 9,10 " +
-      " 1, 1, 9,10");
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+method m5() { assert fib(10) == 55; } //Remove3:
+",
+        "m1 m2 m3 m4 fib m5\n" +
+        "m3 m1 m2 m4 fib m5\n" +
+        "m4 m3 m1 m2 fib m5\n" +
+        "m1 m2 m3 m4 fib");
+    });
   }
 
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-    await TestPriorities(@"
-method m1() { assert true; }
+    await WithNoopSolver(async () => {
+      await TestPriorities(@"
+method m1() { assert fib(10) == 55; }
 method m2() {
-  assert true;//Next3:  typo//Next5:  assert true;
+  assert fib(10) == 55;//Next3:  typo//Next5:  assert fib(10) == 55;
 }
-method m3() { assert true; } //Remove4:
-method m4() {
-  assert true;//Next1:  assert  true;
+method m3() {
+  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
 } 
-method m5() {
-  assert true;//Next2:  assert  true;
+method m4() {
+  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
 }
-", expectedPriorities:
-      " 1, 1, 1, 1, 1 " +
-      " 1, 1, 1,10, 1 " +
-      " 1, 1, 1, 9,10 " +// No priorities set for the two edits when there is a parse error.
-      " 1,10, 8, 9");
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}
+method m5() { assert fib(10) == 55; } //Remove4:
+",
+          "m1 m2 m3 m4 fib m5\n" +
+          "m3 m1 m2 m4 fib m5\n" +
+          "m4 m3 m1 m2 fib m5\n" +
+          "null\n" +
+          "m1 m2 m3 m4 fib\n" +
+          "m2 m4 m3 m1 fib"
+      );
+    });
   }
 
-  private async Task TestPriorities(string code, string expectedPriorities) {
-    textDocumentLoader.LinearPriorities = new List<List<int>>();
-    await VerifyTrace(code, testTrace: false);
-    var priorities = string.Join(" ", textDocumentLoader.LinearPriorities.Select(priorities =>
-      string.Join(",", priorities.Select(priority => priority.ToString().PadLeft(2)))));
-    Assert.AreEqual(expectedPriorities, priorities);
+  private Position GetPositionOf(string code, string symbol) {
+    var regex = new Regex($"(function|method) (?<name>{symbol})");
+    var match = regex.Match(code);
+    if (!match.Success) {
+      throw new Exception("Could not find '" + symbol + "' in:\n" + code);
+    }
+
+    var pos = match.Groups["name"].Index;
+    var line = code.Take(pos).Count(c => c == '\n');
+    var character = 0;
+    while (character <= pos && code[pos - character] != '\n') {
+      character++;
+    }
+
+    character--;
+
+    return (line, character);
+  }
+
+  private IList<Position> GetPositions(string code, IList<string> symbols) {
+    return symbols.Select(symbol => GetPositionOf(code, symbol)).ToList();
+  }
+
+  // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
+  private async Task TestPriorities(string codeAndChanges, string symbolsString) {
+    var symbols = ExtractSymbols(symbolsString);
+    await SetUp(new Dictionary<string, string> {
+    { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
+    });
+
+    var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
+    var documentItem = CreateTestDocument(code);
+    client.OpenDocument(documentItem);
+
+    var initialOrder = await GetFlattenedPositionOrder(CancellationToken);
+    var initialPositions = GetPositions(code, symbols.First());
+    Assert.IsTrue(initialPositions.SequenceEqual(initialOrder),
+      $"Expected {string.Join(", ", initialPositions)} but got {string.Join(", ", initialOrder)}");
+    foreach (var (change, expectedSymbols) in Enumerable.Zip(changes, symbols.Skip(1))) {
+      ApplyChange(ref documentItem, change.changeRange, change.changeValue);
+      var expectedPositions = expectedSymbols == null ? null : GetPositions(code, expectedSymbols);
+      if (expectedPositions != null) {
+        var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
+        Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
+          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}." +
+          $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
+      }
+    }
+  }
+
+  private static List<List<string>> ExtractSymbols(string symbolsString) {
+    return symbolsString.Split("\n")
+      .Select(array => array == "null" ? null : array.Split(" ").ToList()).ToList();
+  }
+
+  private async Task<List<Position>> GetFlattenedPositionOrder(CancellationToken cancellationToken) {
+    return (await GetRunningOrder(cancellationToken).ToListAsync(cancellationToken)).
+      SelectMany(r => r).
+      Select(r => r.Start).ToList();
   }
 
   [TestCleanup]

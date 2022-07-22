@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -29,7 +28,7 @@ namespace DafnyServer.CounterexampleGeneration {
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int,
-      fMapDomain, fMapElements, fMapBuild;
+      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox;
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
@@ -70,6 +69,8 @@ namespace DafnyServer.CounterexampleGeneration {
       fMapDomain = model.MkFunc("Map#Domain", 1);
       fMapElements = model.MkFunc("Map#Elements", 1);
       fMapBuild = model.MkFunc("Map#Build", 3);
+      fIs = model.MkFunc("$Is", 2);
+      fIsBox = model.MkFunc("$IsBox", 2);
       fBox = model.MkFunc("$Box", 1);
       fDim = model.MkFunc("FDim", 1);
       fIndexField = model.MkFunc("IndexField", 1);
@@ -292,7 +293,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// with the element
     /// </summary>
     private string GetBoogieType(Model.Element element) {
-      var typeElement = Model.GetFunc("type").OptEval(element);
+      var typeElement = fType.OptEval(element);
       if (typeElement == null) {
         return null;
       }
@@ -338,7 +339,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private List<Model.Element> GetIsResults(Model.Element element) {
       List<Model.Element> result = new();
-      foreach (var tuple in Model.GetFunc("$Is").AppsWithArg(0, element)) {
+      foreach (var tuple in fIs.AppsWithArg(0, element)) {
         if (((Model.Boolean)tuple.Result).Value) {
           result.Add(tuple.Args[1]);
         }
@@ -443,6 +444,14 @@ namespace DafnyServer.CounterexampleGeneration {
           return new DafnyModelType("?");
         case var bv when bvTypeRegex.IsMatch(bv):
           return new DafnyModelType(bv.Substring(0, bv.Length - 4));
+        case "BoxType":
+          var unboxedTypes = fIsBox.AppsWithArg(0, element)
+            .Where(tuple => ((Model.Boolean)tuple.Result).Value)
+            .Select(tuple => tuple.Args[1]).ToList();
+          if (unboxedTypes.Count == 1) {
+            return ReconstructType(unboxedTypes[0]);
+          }
+          return new DafnyModelType("?");
         default:
           return new DafnyModelType("?");
       }
@@ -456,7 +465,7 @@ namespace DafnyServer.CounterexampleGeneration {
         return new DafnyModelType("?");
       }
       var fullName = GetTrueName(typeElement);
-      if (fullName != null && fullName.Length > 7) {
+      if (fullName != null && fullName.Length > 7 && fullName.Substring(0, 7).Equals("Tclass.")) {
         return new DafnyModelType(fullName.Substring(7));
       }
       if (fullName is "TInt" or "TReal" or "TChar" or "TBool") {
@@ -464,6 +473,9 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       if (fBv.AppWithResult(typeElement) != null) {
         return new DafnyModelType("bv" + ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+      }
+      if (fullName != null) { // this means this is a type variable
+        return new DafnyModelType(fullName);
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {
@@ -606,7 +618,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// any other value of that type in the entire model.
     /// Reserve that value for given element
     /// </summary>
-    private string GetUnreservedNumericValue(Model.Element element, Type numericType) {
+    public string GetUnreservedNumericValue(Model.Element element, Type numericType) {
       if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
         return reservedValue;
       }

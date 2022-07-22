@@ -41,7 +41,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken);
+    IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken);
+
+    IObservable<DafnyDocument> Verify(DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken);
 
     /// <summary>
     /// Publishes the verification diagnostics (VerificationTree) for the given document

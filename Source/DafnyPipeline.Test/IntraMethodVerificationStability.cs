@@ -167,7 +167,7 @@ module SomeModule {
     [Fact]
     public async void EqualProverLogWhenReorderingProgram() {
       var options = DafnyOptions.Create();
-      options.ProcsToCheck.Add("*SomeMethod");
+      options.ProcsToCheck.Add("SomeMethod*");
       DafnyOptions.Install(options);
 
       var reorderedProverLog = await GetProverLogForProgram(options, GetBoogie(reorderedProgram));
@@ -190,7 +190,7 @@ module SomeModule {
     public async void EqualProverLogWhenAddingUnrelatedProgram() {
 
       var options = DafnyOptions.Create();
-      options.ProcsToCheck.Add("*SomeMethod");
+      options.ProcsToCheck.Add("*SomeMethod *");
       DafnyOptions.Install(options);
 
       var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));

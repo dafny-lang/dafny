@@ -21,11 +21,12 @@ public class IntegrationTests {
     startInfo.ArgumentList.Add("../AutoExtern.dll");
 
     startInfo.ArgumentList.Add("Library.csproj"); // Project file
-    startInfo.ArgumentList.Add("Library.cs"); // Source file
     startInfo.ArgumentList.Add("NS"); // Namespace
     startInfo.ArgumentList.Add("Library.dfy.template"); // Template
     startInfo.ArgumentList.Add("CSharpModel.dfy"); // Target for CSharpModel.dfy
     startInfo.ArgumentList.Add("Library.dfy"); // Target file
+    startInfo.ArgumentList.Add("Library1.cs"); // Source file
+    startInfo.ArgumentList.Add("Library2.cs"); // Source file
 
     var dotnet = Process.Start(startInfo);
 
