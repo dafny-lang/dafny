@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <remarks>
   /// Only delta updates are supported and the API is not thread-safe.
   /// </remarks>
-  public class DocumentDatabase : IDocumentDatabase {
+  public class DocumentManagerDatabase : IDocumentDatabase {
 
     private readonly IServiceProvider services;
 
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
 
-    public DocumentDatabase(
+    public DocumentManagerDatabase(
       IServiceProvider services,
       DocumentOptions documentOptions,
       VerifierOptions verifierOptions) {

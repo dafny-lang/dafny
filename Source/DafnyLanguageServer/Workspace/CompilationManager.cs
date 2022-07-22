@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -27,11 +28,13 @@ public class CompilationManager {
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly ITextDocumentLoader documentLoader;
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
+  private readonly IProgramVerifier verifier;
 
   private DafnyOptions Options => DafnyOptions.O;
   private VerifierOptions VerifierOptions { get; }
 
   public DocumentTextBuffer TextBuffer { get; }
+  private readonly IServiceProvider services;
   private readonly ImmutableList<Position> lastTouchedMethodPositions;
   private bool shouldVerify;
 
@@ -51,9 +54,11 @@ public class CompilationManager {
     telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
     TextBuffer = textBuffer;
+    this.services = services;
     this.lastTouchedMethodPositions = lastTouchedMethodPositions;
     this.shouldVerify = shouldVerify;
     cancellationSource = new();
@@ -125,7 +130,7 @@ public class CompilationManager {
 
     try {
       var resolvedDocument = await ResolvedDocument;
-      var translatedDocument = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
+      var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
       documentUpdates.OnNext(translatedDocument.Snapshot());
       return translatedDocument;
     } catch (OperationCanceledException) {
@@ -134,6 +139,69 @@ public class CompilationManager {
       PublishUnhandledException(exception);
       throw;
     }
+  }
+
+  public async Task<DafnyDocument> PrepareVerificationTasksAsync(
+    DafnyDocument loaded,
+    CancellationToken cancellationToken) {
+    if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+          d.Severity == DiagnosticSeverity.Error &&
+          d.Source != MessageSource.Compiler.ToString() &&
+          d.Source != MessageSource.Verifier.ToString())) {
+      throw new TaskCanceledException();
+    }
+
+    var progressReporter = CreateVerificationProgressReporter(loaded);
+    progressReporter.RecomputeVerificationTree();
+    progressReporter.UpdateLastTouchedMethodPositions();
+
+    var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+    if (VerifierOptions.GutterStatus) {
+      progressReporter.ReportRealtimeDiagnostics(false, loaded);
+      progressReporter.ReportImplementationsBeforeVerification(
+        verificationTasks.Select(t => t.Implementation).ToArray());
+    }
+
+    var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
+    foreach (var task in verificationTasks) {
+      var status = StatusFromBoogieStatus(task.CacheStatus);
+      var id = GetImplementationId(task.Implementation);
+      if (task.CacheStatus is Completed completed) {
+        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
+        initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+      } else {
+        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+        initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+      }
+    }
+
+    loaded.ImplementationIdToView = initialViews;
+    loaded.Counterexamples = new();
+    loaded.VerificationTasks = verificationTasks;
+    var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
+
+    var subscription = verifier.BatchCompletions.Where(c =>
+      implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+    cancellationToken.Register(() => subscription.Dispose());
+    loaded.GutterProgressReporter = progressReporter;
+    return loaded;
+  }
+
+  protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+    return new VerificationProgressReporter(
+      services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
+      document, statusPublisher, this.services.GetRequiredService<INotificationPublisher>());
+  }
+
+  private static ImplementationId GetImplementationId(Implementation implementation) {
+    var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
+
+    // Refining declarations get the token of what they're refining, so to distinguish them we need to
+    // add the refining module name to the prefix.
+    if (implementation.tok is RefinementToken refinementToken) {
+      prefix += "." + refinementToken.InheritingModule.Name;
+    }
+    return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
   }
 
   private async Task VerifyAsync() {
@@ -190,7 +258,7 @@ public class CompilationManager {
   }
 
   private void HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var id = TextDocumentLoader.GetImplementationId(implementationTask.Implementation);
+    var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     if (boogieStatus is Running) {
@@ -234,7 +302,7 @@ public class CompilationManager {
     return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
   }
 
-  private PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
+  private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
     switch (verificationStatus) {
       case Stale:
         return PublishedVerificationStatus.Stale;

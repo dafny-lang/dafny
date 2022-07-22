@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,6 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 public class ExceptionTests : ClientBasedLanguageServerTest {
 
   private CrashingLoader loader;
+  private CrashingVerifier verifier;
 
   protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
     return serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
@@ -24,6 +27,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
         LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)
       );
       return loader;
+    }).AddSingleton<IProgramVerifier>(serviceProvider => {
+      verifier = new CrashingVerifier(
+        serviceProvider.GetRequiredService<DafnyProgramVerifier>()
+      );
+      return verifier;
     });
   }
 
@@ -66,7 +74,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public async Task PrepareVerificationCrashRecover() {
     var source = @"method Foo() { assert false; }";
 
-    loader.CrashOnPrepareVerification = true;
+    verifier.CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -74,16 +82,35 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, translationCrashDiagnostics.Length);
     Assert.IsTrue(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
-    loader.CrashOnPrepareVerification = false;
+    verifier.CrashOnPrepareVerification = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, recoveredDiagnostics.Length);
     Assert.IsTrue(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
   }
 
+  class CrashingVerifier : IProgramVerifier {
+    private readonly IProgramVerifier verifier;
+
+    public CrashingVerifier(IProgramVerifier verifier) {
+      this.verifier = verifier;
+    }
+
+    public bool CrashOnPrepareVerification { get; set; }
+
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+
+      if (CrashOnPrepareVerification) {
+        throw new Exception("crash");
+      }
+      return verifier.GetVerificationTasksAsync(document, cancellationToken);
+    }
+
+    public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
+  }
+
   class CrashingLoader : ITextDocumentLoader {
     private readonly ITextDocumentLoader loader;
-    public bool CrashOnPrepareVerification { get; set; }
     public bool CrashOnLoad { get; set; }
 
     public CrashingLoader(ITextDocumentLoader loader) {
@@ -99,13 +126,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
         throw new Exception("crash");
       }
       return loader.LoadAsync(textDocument, cancellationToken);
-    }
-
-    public Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
-      if (CrashOnPrepareVerification) {
-        throw new Exception("crash");
-      }
-      return loader.PrepareVerificationTasksAsync(loaded, cancellationToken);
     }
 
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {

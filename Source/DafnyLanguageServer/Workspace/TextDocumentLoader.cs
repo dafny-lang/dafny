@@ -4,15 +4,11 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -24,55 +20,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    private VerifierOptions VerifierOptions { get; }
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
-    private DafnyOptions Options => DafnyOptions.O;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
-    private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
     protected readonly ILoggerFactory loggerFactory;
-    private readonly ILogger<TextDocumentLoader> logger;
     protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
       ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
-      INotificationPublisher notificationPublisher,
-      VerifierOptions verifierOptions) {
-      VerifierOptions = verifierOptions;
+      INotificationPublisher notificationPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
-      this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
       this.loggerFactory = loggerFactory;
-      logger = loggerFactory.CreateLogger<TextDocumentLoader>();
       NotificationPublisher = notificationPublisher;
     }
 
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
       ILoggerFactory loggerFactory,
-      INotificationPublisher notificationPublisher,
-      VerifierOptions verifierOptions
+      INotificationPublisher notificationPublisher
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher, verifierOptions);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
     public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -90,52 +75,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         wasResolved: false,
         loadCanceled: true
       );
-    }
-
-    public async Task<DafnyDocument> PrepareVerificationTasksAsync(
-      DafnyDocument loaded,
-      CancellationToken cancellationToken) {
-      if (loaded.ParseAndResolutionDiagnostics.Any(d =>
-            d.Severity == DiagnosticSeverity.Error &&
-            d.Source != MessageSource.Compiler.ToString() &&
-            d.Source != MessageSource.Verifier.ToString())) {
-        throw new TaskCanceledException();
-      }
-
-      var progressReporter = CreateVerificationProgressReporter(loaded);
-      progressReporter.RecomputeVerificationTree();
-      progressReporter.UpdateLastTouchedMethodPositions();
-
-      var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
-      if (VerifierOptions.GutterStatus) {
-        progressReporter.ReportRealtimeDiagnostics(false, loaded);
-        progressReporter.ReportImplementationsBeforeVerification(
-          verificationTasks.Select(t => t.Implementation).ToArray());
-      }
-
-      var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
-      foreach (var task in verificationTasks) {
-        var status = StatusFromBoogieStatus(task.CacheStatus);
-        var id = GetImplementationId(task.Implementation);
-        if (task.CacheStatus is Completed completed) {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
-          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
-        } else {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
-          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
-        }
-      }
-
-      loaded.ImplementationIdToView = initialViews;
-      loaded.Counterexamples = new();
-      loaded.VerificationTasks = verificationTasks;
-      var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
-
-      var subscription = verifier.BatchCompletions.Where(c =>
-        implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
-      cancellationToken.Register(() => subscription.Dispose());
-      loaded.GutterProgressReporter = progressReporter;
-      return loaded;
     }
 
     public async Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -212,58 +151,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-
-    private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
-      var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
-      foreach (var counterExample in result.Errors) {
-        errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
-      }
-
-      var outcomeError = result.GetOutcomeError(Options);
-      if (outcomeError != null) {
-        errorReporter.ReportBoogieError(outcomeError);
-      }
-
-      return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
-    }
-
-    private PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
-      switch (verificationStatus) {
-        case Stale:
-          return PublishedVerificationStatus.Stale;
-        case Queued:
-          return PublishedVerificationStatus.Queued;
-        case Running:
-          return PublishedVerificationStatus.Running;
-        case Completed completed:
-          return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
-            ? PublishedVerificationStatus.Correct
-            : PublishedVerificationStatus.Error;
-        default:
-          throw new ArgumentOutOfRangeException();
-      }
-    }
-
-    protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
-      return new VerificationProgressReporter(
-        loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, statusPublisher, NotificationPublisher);
-    }
-
     // Called only in the case there is a parsing or resolution error on the document
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
       NotificationPublisher.PublishGutterIcons(document, verificationStarted);
-    }
-
-    public static ImplementationId GetImplementationId(Implementation implementation) {
-      var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
-
-      // Refining declarations get the token of what they're refining, so to distinguish them we need to
-      // add the refining module name to the prefix.
-      if (implementation.tok is RefinementToken refinementToken) {
-        prefix += "." + refinementToken.InheritingModule.Name;
-      }
-      return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
     }
   }
 }
