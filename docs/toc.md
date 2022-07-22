@@ -34,7 +34,7 @@ layout: page
    * [Termination](OnlineTutorial/Termination)
 
 * Forums for Q&amp;A
-   * Problem reports on [GitHub](https://gitnub.com/dafny-lang/dafny/Issues)
+   * [Problem reports](https://github.com/dafny-lang/dafny/issues) and [discussions](https://github.com/dafny-lang/dafny/discussions) on GitHub
    * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)
 
 There are also publications and lecture notes:
