@@ -115,8 +115,10 @@ public class DocumentManager {
     IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews)
   {
     if (!document.SymbolTable.Resolved) {
-      document.SymbolTable =
-        relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None);
+      document = document with {
+        SymbolTable =
+        relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None)
+      };
     }
 
     var migratedViews = document.ImplementationIdToView?.Select(kv =>

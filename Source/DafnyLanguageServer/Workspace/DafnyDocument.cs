@@ -33,6 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    SymbolTable SymbolTable,
     bool CanDoVerification,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
@@ -40,7 +41,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public SymbolTable SymbolTable { get; set; }
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
@@ -77,17 +77,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public ConcurrentStack<Counterexample>? Counterexamples { get; set; } = null;
-    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationIdToView { get; set; } = null;
+    public List<Counterexample>? Counterexamples { get; set; }
+    public Dictionary<ImplementationId, ImplementationView>? ImplementationIdToView { get; set; }
 
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
     public DafnyDocument Snapshot() {
-      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
+      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, SymbolTable, CanDoVerification, GhostDiagnostics,
         Program, WasResolved, LoadCanceled)
       {
-        SymbolTable = SymbolTable,
         VerificationTree = VerificationTree,
         Counterexamples = Counterexamples == null ? null : new(Counterexamples),
         ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),

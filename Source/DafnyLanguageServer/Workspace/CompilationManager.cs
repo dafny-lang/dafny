@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -136,15 +135,15 @@ public class CompilationManager {
         verificationTasks.Select(t => t.Implementation).ToArray());
     }
 
-    var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
+    var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
       var status = StatusFromBoogieStatus(task.CacheStatus);
       if (task.CacheStatus is Completed completed) {
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
-        initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+        initialViews.Add(GetImplementationId(task.Implementation), view);
       } else {
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
-        initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+        initialViews.Add(GetImplementationId(task.Implementation), view);
       }
     }
 
@@ -242,19 +241,19 @@ public class CompilationManager {
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
-        document.Counterexamples!.Push(counterExample);
+        document.Counterexamples!.Add(counterExample);
       }
 
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);
-      document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
+      document.ImplementationIdToView![id] = view;
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
       }
     } else {
-      document.ImplementationIdToView!.AddOrUpdate(id,
-        _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
-        (_, previousView) => previousView with { Status = status });
+      var existingView = document.ImplementationIdToView!.GetValueOrDefault(id) ??
+                         new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
+      document.ImplementationIdToView![id] = existingView with { Status = status };
     }
 
     documentUpdates.OnNext(document);

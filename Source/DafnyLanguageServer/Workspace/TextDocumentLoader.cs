@@ -107,10 +107,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return new DafnyDocument(textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        symbolTable,
         canDoVerification,
-        ghostDiagnostics, program, WasResolved: true) {
-        SymbolTable = symbolTable
-      };
+        ghostDiagnostics, program, WasResolved: true);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -130,14 +129,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         diagnostics,
+        CreateEmptySymbolTable(program, logger),
         false,
         Array.Empty<Diagnostic>(),
         program,
         wasResolved,
         loadCanceled
-      ) {
-        SymbolTable = CreateEmptySymbolTable(program, logger),
-      };
+      );
     }
 
     private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
