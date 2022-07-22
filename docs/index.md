@@ -1,4 +1,5 @@
 ---
+title: The Dafny Language and Software Verification System
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
@@ -13,11 +14,8 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-<font size="+4"><p style="text-align: center;">The Dafny Language and Software Verification System</p></font>
-
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
-- [Tips and Tricks and FAQs](HowToFAQ)
 - [Index to Dafny Resources for Users](toc)
 - [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
 
@@ -25,10 +23,10 @@ layout: page
 
 Dafny is a **verification-ready programming language**.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
-When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript, Python, C++ or Go</strong> (more to come!), so it can integrate with your existing workflow.
+When you're done, Dafny can **compile your code to C#, Java, JavaScript, Python, C++ or Go** (more to come!), so it can integrate with your existing workflow.
 
-Dafny will give you <strong>assurance that your code meets the specifications you write</strong>, while letting you write both code and specifications in the Dafny programming language itself.
-Since verification is an integral part of development, it will thus <strong>reduce the risk of costly late-stage bugs</strong> that are typically missed by testing.
+Dafny will give you **assurance that your code meets the specifications you write**, while letting you write both code and specifications in the Dafny programming language itself.
+Since verification is an integral part of development, it will thus **reduce the risk of costly late-stage bugs** that are typically missed by testing.
 
 Dafny has support for common programming concepts such as 
 - mathematical iand bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance

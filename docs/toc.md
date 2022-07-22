@@ -1,4 +1,5 @@
 ---
+title: The Dafny Language and Software Verification System
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
@@ -13,8 +14,6 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-<font size="+4"><p style="text-align: center;">The Dafny Language and Software Verification System</p></font>
-
 # Dafny Resources {#resources}
 
 * Quick start material:
@@ -25,7 +24,6 @@ layout: page
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
-   * [**Tips and Tricks and FAQs**](HowToFAQ)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
