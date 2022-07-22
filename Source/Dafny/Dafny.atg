@@ -3534,10 +3534,11 @@ ForallStmt<out Statement/*!*/ s>
      IToken bodyStart, bodyEnd;
      IToken tok = Token.NoToken;
   .)
-  "forall"                                  (. x = t; tok = x; .)
+  "forall"                                  (. x = t; tok = x; ownedTokens.Add(t); .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "(" [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ] ")"
+    "("                                     (. ownedTokens.Add(t); .) 
+    [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ] ")" (. ownedTokens.Add(t); .) 
   |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
           QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
@@ -3560,6 +3561,7 @@ ForallStmt<out Statement/*!*/ s>
         tok = block.EndTok;
      }
      s = new ForallStmt(x, tok, bvars, qattrs, range, ens, block);
+     s.OwnedTokens = ownedTokens;
   .)
   .
 

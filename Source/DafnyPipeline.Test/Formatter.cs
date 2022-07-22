@@ -220,11 +220,11 @@ method topLevel(
     z := 0;
   }
   forall z <- [0]
-    ensures true {
+    ensures 1 == 1 {
     assert true;
   }
   forall z <- [0]
-    ensures true
+    ensures 0 == 0
   {
     assert true;
   }

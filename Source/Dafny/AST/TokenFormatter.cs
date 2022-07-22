@@ -135,6 +135,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return token.col;
   }
 
+  // 'before' is the hypothetical indentation of a comment before that token, and of the previous token if it does not have a set indentation
+  // 'sameLineBefore' is the hypothetical indentation of this token if it was on its own line
+  // 'after' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   private void SetBeforeAfter(IToken token, int before, int sameLineBefore, int after) {
     if (before >= 0) {
       PosToIndentLineBefore[token.pos] = before;
@@ -336,17 +339,23 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var indent = formatter.GetIndentBefore(firstToken);
       if (stmt is IfStmt ifStmt) {
         if (ifStmt.OwnedTokens.Count > 0) {
-          formatter.SetBeforeAfter(ifStmt.OwnedTokens[0], indent, indent, indent + 2);
+          formatter.SetOpeningIndentedRegion(ifStmt.OwnedTokens[0], indent);
         }
-        formatter.SetBeforeAfter(ifStmt.Thn.Tok, indent + 2, indent, indent + 2);
-        formatter.SetBeforeAfter(ifStmt.Thn.EndTok, indent + 2, indent, indent);
+        formatter.SetDelimiterIndentedRegions(ifStmt.Thn.Tok, indent);
+        formatter.SetClosingIndentedRegion(ifStmt.Thn.EndTok, indent);
         if (ifStmt.OwnedTokens.Count > 1) { // "else"
-          formatter.SetBeforeAfter(ifStmt.OwnedTokens[1], indent, indent, indent);
+          formatter.SetKeywordWithoutSurroundingIndentation(ifStmt.OwnedTokens[1], indent);
         }
         if (ifStmt.Els != null) {
-          formatter.SetBeforeAfter(ifStmt.Els.Tok, indent, indent, indent + 2);
-          formatter.SetBeforeAfter(ifStmt.Els.EndTok, indent + 2, indent, indent);
+          formatter.SetOpeningIndentedRegion(ifStmt.Els.Tok, indent);
+          formatter.SetClosingIndentedRegion(ifStmt.Els.EndTok, indent);
         }
+      } else if (stmt is ForallStmt forallStmt) {
+        if (forallStmt.OwnedTokens.Count > 0) {
+          formatter.SetOpeningIndentedRegion(forallStmt.OwnedTokens[0], indent);
+        }
+        formatter.SetDelimiterIndentedRegions(forallStmt.Body.Tok, indent);
+        formatter.SetClosingIndentedRegion(forallStmt.Body.EndTok, indent);
       } else {
         formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
         formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);
@@ -391,6 +400,26 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
       return true;
     }
+  }
+
+  private void SetOpeningIndentedRegion(IToken token, int indent) {
+    SetBeforeAfter(token, indent, indent, indent + 2);
+  }
+
+  private void SetSpecification(IToken token, int indent) {
+    SetBeforeAfter(token, indent + 2, indent + 2, indent + 4);
+  }
+
+  private void SetDelimiterIndentedRegions(IToken token, int indent) {
+    SetBeforeAfter(token, indent + 2, indent, indent + 2);
+  }
+
+
+  private void SetClosingIndentedRegion(IToken token, int indent) {
+    SetBeforeAfter(token, indent + 2, indent, indent);
+  }
+  private void SetKeywordWithoutSurroundingIndentation(IToken token, int indent) {
+    SetBeforeAfter(token, indent, indent, indent);
   }
 
   public void GetIndentation(IToken token, string currentIndentation, out string indentationBefore, out string lastIndentation,
