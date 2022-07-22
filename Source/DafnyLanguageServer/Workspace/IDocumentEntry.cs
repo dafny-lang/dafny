@@ -8,8 +8,8 @@ public interface IDocumentEntry {
   DafnyDocument LastPublishedDocument { get; }
   Task<DafnyDocument> LastDocument { get; }
   public bool Idle { get; }
-  void RestartVerification();
+  void MarkVerificationStarted();
 
-  void EndVerification();
+  void MarkVerificationFinished();
 
 }

@@ -6,11 +6,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -21,11 +19,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Only delta updates are supported and the API is not thread-safe.
   /// </remarks>
   public class DocumentDatabase : IDocumentDatabase {
+
+    record DocumentState(DocumentObserver Observer, CompilationManager CompilationManager,
+      IDisposable ObserverSubscription);
+
+    private readonly IServiceProvider services;
     private readonly ILogger logger;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
     private readonly DocumentOptions options;
-    private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
+    private readonly Dictionary<DocumentUri, DocumentState> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
@@ -35,6 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private bool VerifyOnSave => options.Verify == AutoVerification.OnSave;
 
     public DocumentDatabase(
+      IServiceProvider services,
       ILogger<DocumentDatabase> logger,
       ITelemetryPublisher telemetryPublisher,
       INotificationPublisher notificationPublisher,
@@ -60,119 +64,75 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ).ToList();
     }
 
-    public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
-      if (documents.Remove(documentId.Uri, out var databaseEntry)) {
-        databaseEntry.CancelPendingUpdates();
-        try {
-          await databaseEntry.LastDocument;
-        } catch (TaskCanceledException) {
-        }
-        return true;
-      }
-      return false;
-    }
-
     public void OpenDocument(DocumentTextBuffer document) {
-      var cancellationSource = new CancellationTokenSource();
-      var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
-
-      var observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
-      var translatedDocument = LoadVerificationTasksAsync(observer, resolvedDocumentTask, cancellationSource.Token);
-
-      var documentEntry = new DocumentEntry(
-        document.Version,
-        document,
-        translatedDocument,
-        cancellationSource,
-        observer
-      );
-
-      documents.Add(document.Uri, documentEntry);
-
-      documentEntry.Observe(
-        ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
-        Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
-
-      if (VerifyOnOpen) {
-        Verify(documentEntry, cancellationSource.Token);
-      } else {
-        documentEntry.EndVerification();
-      }
-
-    }
-
-    private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      try {
-        var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        documentLoader.PublishGutterIcons(newDocument, false);
-        return newDocument;
-      } catch (OperationCanceledException) {
-        // We do not allow canceling the load of the placeholder document. Otherwise, other components
-        // start to have to check for nullability in later stages such as change request processors.
-        return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
-      }
-    }
-
-    private void Verify(IDocumentEntry entry, CancellationToken cancellationToken) {
-      var _ = entry.TranslatedDocument.ContinueWith(task => {
-
-        if (task.IsCanceled || task.IsFaulted) {
-          return;
-        }
-
-        var document = task.Result;
-
-        if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
-          entry.EndVerification();
-          return;
-        }
-
-        var _ = documentLoader.VerifyAllTasks(entry, document, cancellationToken);
-      }, TaskScheduler.Current);
+      var observer = new DocumentObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
+      var compilationManager = new CompilationManager(services, document, VerifyOnOpen);
+      var subscription = compilationManager.DocumentUpdates.Subscribe(observer);
+      documents.Add(document.Uri, new DocumentState(observer, compilationManager, subscription));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
-      if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
+      if (!documents.TryGetValue(documentUri, out var state)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
+      var previousCompilationManager = state.CompilationManager;
+
       // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
       // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-      var oldVer = databaseEntry.Version;
+      var oldVer = previousCompilationManager.TextBuffer.Version;
       var newVer = documentChange.TextDocument.Version;
       if (oldVer >= newVer) {
         throw new InvalidOperationException(
           $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
       }
 
-      databaseEntry.CancelPendingUpdates();
-      var cancellationSource = new CancellationTokenSource();
-      var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
-      var resolvedDocumentTask = GetResolvedDocumentAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
-      var translatedDocument = LoadVerificationTasksAsync(databaseEntry.Observer, resolvedDocumentTask, cancellationSource.Token);
-      var entry = new DocumentEntry(
-        documentChange.TextDocument.Version,
-        updatedText,
-        translatedDocument,
-        cancellationSource,
-        databaseEntry.Observer
-      );
-      documents[documentUri] = entry;
-      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
-        .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
+      previousCompilationManager.CancelPendingUpdates();
+      var updatedText = textChangeProcessor.ApplyChange(previousCompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
-      if (VerifyOnChange) {
-        Verify(entry, cancellationSource.Token);
-      } else {
-        entry.EndVerification();
-      }
+      var newCompilationManager = new CompilationManager(
+        services,
+        updatedText,
+        VerifyOnChange
+      );
+
+      state.ObserverSubscription.Dispose();
+
+      var newSubscription = newCompilationManager.DocumentUpdates.Select(d => {
+        // TODO merge this document with the latest published document before the change, to implement migration.
+        return d;
+      }).Subscribe(state.Observer);
+
+      documents[documentUri] = new DocumentState(state.Observer, newCompilationManager, newSubscription);
     }
 
-    private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, DocumentEntry documentEntry,
+    public void SaveDocument(TextDocumentIdentifier documentId) {
+      if (!documents.TryGetValue(documentId.Uri, out var documentState)) {
+        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
+      }
+      if (!VerifyOnSave) {
+        return;
+      }
+
+      documentState.CompilationManager.Verify();
+    }
+
+    public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
+      if (documents.Remove(documentId.Uri, out var state)) {
+        state.CompilationManager.CancelPendingUpdates();
+        try {
+          await state.CompilationManager.LastDocument;
+        } catch (TaskCanceledException) {
+        }
+        return true;
+      }
+      return false;
+    }
+    private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, CompilationManager compilationManager,
       DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 
-      var oldDocument = documentEntry.LastPublishedDocument;
+      var oldDocument = compilationManager.LastPublishedDocument;
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var oldVerificationDiagnostics = oldDocument.ImplementationIdToView;
@@ -241,77 +201,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    private async Task<DafnyDocument> LoadVerificationTasksAsync(DiagnosticsObserver observer, Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
-#pragma warning disable VSTHRD003
-      var resolvedDocument = await resolvedDocumentTask;
-#pragma warning restore VSTHRD003
-      await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-      resolvedDocument.VerificationUpdates.Subscribe(observer);
-      return resolvedDocument;
-    }
-
-    public void SaveDocument(TextDocumentIdentifier documentId) {
-      if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
-      }
-      if (!VerifyOnSave) {
-        return;
-      }
-
-      var cancellationSource = new CancellationTokenSource();
-      databaseEntry.RestartVerification();
-      Verify(databaseEntry, cancellationSource.Token);
-    }
-
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
     public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.ResolvedDocument!;
+        // TODO use migrated resolved state in case resolution failed.
+        return databaseEntry.CompilationManager.ResolvedDocument!;
       }
       return Task.FromResult<DafnyDocument?>(null);
     }
 
     public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.LastDocument!;
+        return databaseEntry.CompilationManager.LastDocument!;
       }
       return Task.FromResult<DafnyDocument?>(null);
     }
 
-    public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
-      documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
-
-    public IObservable<DafnyDocument> ToObservableSkipCancelledAndPublishExceptions(IDocumentEntry entry, Task<DafnyDocument> task) {
-      return Observable.Create<DafnyDocument>(observer => {
-        var _ = task.ContinueWith(t => {
-          if (t.IsCompletedSuccessfully) {
-            observer?.OnNext(t.Result);
-          } else if (t.Exception != null) {
-            var lastPublishedDocument = entry.LastPublishedDocument;
-            var previousDiagnostics = lastPublishedDocument.LoadCanceled
-              ? new Diagnostic[] { }
-              : lastPublishedDocument.ParseAndResolutionDiagnostics;
-            observer?.OnNext(lastPublishedDocument with {
-              LoadCanceled = false,
-              ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
-                new() {
-                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
-                  Severity = DiagnosticSeverity.Error,
-                  Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
-                  Source = "Crash"
-                }
-              }).ToList()
-            });
-            telemetryPublisher.PublishUnhandledException(t.Exception);
-          }
-          observer?.OnCompleted();
-        }, TaskScheduler.Current);
-        return Disposable.Create(() => observer = null);
-      });
-    }
+    public IReadOnlyDictionary<DocumentUri, CompilationManager> Documents =>
+      documents.ToDictionary(k => k.Key, v => v.Value.CompilationManager);
 
   }
 }

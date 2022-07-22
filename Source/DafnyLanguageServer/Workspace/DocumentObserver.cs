@@ -8,20 +8,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DiagnosticsObserver : IObserver<DafnyDocument> {
+class DocumentObserver : IObserver<DafnyDocument> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
   public DafnyDocument LastPublishedDocument {
     get; private set;
-
   }
 
   private readonly ReplaySubject<DafnyDocument> lastAndUpcomingPublishedDocuments = new(1);
   public IObservable<DafnyDocument> LastAndUpcomingPublishedDocuments => lastAndUpcomingPublishedDocuments;
 
-  public DiagnosticsObserver(ILogger logger,
+  public DocumentObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
@@ -46,14 +45,12 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   }
 
   public void OnNext(DafnyDocument document) {
-    lock (this) { // TODO do we need this lock?
-      if (document.Version < LastPublishedDocument.Version) {
-        return;
-      }
-
-      notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-      LastPublishedDocument = document.Snapshot(); // Snapshot before storing
-      lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
+    if (document.Version < LastPublishedDocument.Version) {
+      return;
     }
+
+    notificationPublisher.PublishNotifications(LastPublishedDocument, document);
+    LastPublishedDocument = document.Snapshot(); // Snapshot before storing
+    lastAndUpcomingPublishedDocuments.OnNext(LastPublishedDocument);
   }
 }

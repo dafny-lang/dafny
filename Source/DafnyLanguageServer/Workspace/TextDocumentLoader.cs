@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
       if (loaded.ParseAndResolutionDiagnostics.Any(d =>
             d.Severity == DiagnosticSeverity.Error &&
             d.Source != MessageSource.Compiler.ToString() &&
@@ -136,6 +136,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
       loaded.GutterProgressReporter = progressReporter;
+      return loaded;
     }
 
     public async Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -209,90 +210,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task VerifyAllTasks(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
-      statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
-
-      var implementationTasks = document.VerificationTasks!;
-
-      foreach (var implementationTask in implementationTasks) {
-        Verify(entry, document, implementationTask, cancellationToken);
-      }
-
-      if (!implementationTasks.Any()) {
-        entry.EndVerification();
-      }
-
-      var lastDocument = await entry.LastDocument;
-
-      if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
-      }
-
-      NotifyStatusAsync(document.TextDocumentItem, lastDocument, cancellationToken);
-    }
-
-    public bool Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
-      CancellationToken cancellationToken) {
-
-      var statusUpdates = implementationTask.TryRun();
-      if (statusUpdates == null) {
-
-        if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
-          foreach (var result in completedCache.Result.VCResults) {
-            dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(
-              new AssertionBatchResult(implementationTask.Implementation, result));
-          }
-
-          dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation,
-            completedCache.Result);
-        }
-
-        return false;
-      }
-
-      entry.RestartVerification();
-      statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(
-        update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update),
-        () => {
-          if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
-            entry.EndVerification();
-          }
-        });
-
-      return true;
-    }
-
-    private void HandleStatusUpdate(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-      var id = GetImplementationId(implementationTask.Implementation);
-      var status = StatusFromBoogieStatus(boogieStatus);
-      var implementationRange = implementationTask.Implementation.tok.GetLspRange();
-      if (boogieStatus is Running) {
-        if (VerifierOptions.GutterStatus) {
-          document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
-        }
-      }
-
-      if (boogieStatus is Completed completed) {
-        var verificationResult = completed.Result;
-        foreach (var counterExample in verificationResult.Errors) {
-          document.Counterexamples!.Push(counterExample);
-        }
-
-        var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
-        var view = new ImplementationView(implementationRange, status, diagnostics);
-        document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
-        if (VerifierOptions.GutterStatus) {
-          document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
-        }
-      } else {
-        document.ImplementationIdToView!.AddOrUpdate(id,
-          _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
-          (_, previousView) => previousView with { Status = status });
-      }
-
-      // TODO something against publishing stale state
-      document.VerificationUpdates.OnNext(document);
-    }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
       var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
@@ -331,29 +248,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document, statusPublisher, NotificationPublisher);
     }
 
-    private void NotifyStatusAsync(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
-      var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
-      logger.LogDebug($"Finished verification with {errorCount} errors.");
-      var verified = errorCount == 0;
-      var compilationStatusAfterVerification = verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      statusPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
-        cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
-    }
-
     // Called only in the case there is a parsing or resolution error on the document
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
       NotificationPublisher.PublishGutterIcons(document, verificationStarted);
     }
 
-    private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
-      foreach (var tree in document.VerificationTree.Children) {
-        tree.SetVerifiedIfPending();
-      }
-    }
-
-    static ImplementationId GetImplementationId(Implementation implementation) {
+    public static ImplementationId GetImplementationId(Implementation implementation) {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
       // Refining declarations get the token of what they're refining, so to distinguish them we need to

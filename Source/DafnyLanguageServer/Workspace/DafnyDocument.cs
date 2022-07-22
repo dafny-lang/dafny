@@ -40,8 +40,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool WasResolved,
     bool LoadCanceled = false
   ) {
-    public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
-    public Subject<DafnyDocument> VerificationUpdates { get; } = new();
 
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
