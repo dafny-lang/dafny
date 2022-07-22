@@ -124,6 +124,7 @@ public class CompilationManager {
     try {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
+      resolvedDocument.VerificationTree = migratedVerificationTree ?? resolvedDocument.VerificationTree;
       documentLoader.PublishGutterIcons(resolvedDocument, false);
       documentUpdates.OnNext(resolvedDocument.Snapshot());
       return resolvedDocument;
@@ -158,10 +159,6 @@ public class CompilationManager {
           d.Source != MessageSource.Compiler.ToString() &&
           d.Source != MessageSource.Verifier.ToString())) {
       throw new TaskCanceledException();
-    }
-
-    if (migratedVerificationTree != null) {
-      loaded.VerificationTree = migratedVerificationTree;
     }
 
     var progressReporter = CreateVerificationProgressReporter(loaded);
