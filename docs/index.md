@@ -23,7 +23,7 @@ layout: page
 
 ![Dafny Banner](./banner.png "Dafny")
 
-Dafny is a <strong>verification-ready programming language</strong>.
+Dafny is a **verification-ready programming language**.
 As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
 When you're done, Dafny can <strong>compile your code to C#, Java, JavaScript, Python, C++ or Go</strong> (more to come!), so it can integrate with your existing workflow.
 
