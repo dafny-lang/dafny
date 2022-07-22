@@ -144,7 +144,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function f
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithoutAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
