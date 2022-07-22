@@ -17,9 +17,15 @@ If you have questions that are not addressed here, be sure to communicate them t
 # Pitfalls
 
 # FAQs
+## Dafny language
 
 - ["Where do I put the reads clause?"](FAQReadsClause)
 
+-["I heard a rumor of datatypes extending traits coming in the pipeline. How will that work? Will we be able to use is and as with such types?"](FAQTraitsForDatatypes)
+
+## Dafny Infrastructure
+
+- ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."]()
 
 # Errors, examples and corrections
 
