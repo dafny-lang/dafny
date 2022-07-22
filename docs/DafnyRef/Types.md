@@ -430,16 +430,30 @@ OrdinalType_ = "ORDINAL"
 ````
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
-there is an `ORDINAL` value that is larger than any `nat`.
-- a value of type `nat` may be explicitly converted to an `ORDINAL` using `as ORDINAL`
-- a value of type `ORDINAL` may be explicitly converted to a `nat` using `as nat` if it is known to be less than some `nat` value 
-- non-negative numeric literals may be considered `ORDINAL` literals
+there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
+represented as $\omega$ in mathematics, though there is no literal expression in Dafny that represents this value.
+
+The natural numbers are ordinals.
+Any ordinal has a successor ordinal (equivalent to adding `1`).
+Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+the natural number `0` and  $\omega$ are limit ordinals.
+
+The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
+
+The Dafny type `ORDINAL` has these member functions:
+- `o.IsLimit` -- true if `o` is a limit ordinal (including `0`)
+- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==> !o.IsLimit`
+- `o.IsNat` -- true if `o` represents a `nat` value, so for `n` a `nat`, `(n as ORDINAL).IsNat` is true
+and if `o.IsNat` is true then `(o as nat)` is well-defined
+- `o.Offset` -- is the `nat` value giving the offset of the ordinal
+
+In addition, 
+- non-negative numeric literals may be considered `ORDINAL` literals, so `o + 1` is allowed
 - `ORDINAL`s may be compared, using `== != < <= > >=`
-- two `ORDINAL`s may be added and the result is `>=` either one of them
-- two `ORDINAL`s may be subtracted if the LHS is `>=` the RHS (so the result is non-negative) and the RHS value is equal to some `nat` value. That is, for `ORDINAL` `x`, `assert x - x == 0;` fails
- but `assert x < 1000000000 ==> x-x == 0;` succeeds.
+- two `ORDINAL`s may be added and the result is `>=` either one of them; addition is associative but not commutative
 - `*`, `/` and `%` are not defined for `ORDINAL`s
-- there is no literal in Dafny that represents the `ORDINAL` value that is larger than any `nat` (typically written $\omega$ in mathematics)
+- two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
+
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
