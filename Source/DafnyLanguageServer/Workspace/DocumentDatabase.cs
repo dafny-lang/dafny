@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (VerifyOnOpen) {
         Verify(documentEntry, cancellationSource.Token);
       } else {
-        documentEntry.EndVerification();
+        documentEntry.MarkVerificationFinished();
       }
 
     }
@@ -123,11 +123,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var document = task.Result;
 
         if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
-          entry.EndVerification();
+          entry.MarkVerificationFinished();
           return;
         }
 
-        var _ = documentLoader.VerifyAllTasks(entry, document, cancellationToken);
+        var _ = documentLoader.VerifyAllTasksAsync(entry, document, cancellationToken);
       }, TaskScheduler.Current);
     }
 
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (VerifyOnChange) {
         Verify(entry, cancellationSource.Token);
       } else {
-        entry.EndVerification();
+        entry.MarkVerificationFinished();
       }
     }
 
@@ -191,7 +191,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
-            ImplementationIdToView = new (migratedImplementationViews),
+            ImplementationIdToView = migratedImplementationViews,
             VerificationTree = migratedVerificationTree,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationIdToView = new (migratedImplementationViews),
+          ImplementationIdToView = migratedImplementationViews,
           VerificationTree = migratedVerificationTree,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
@@ -218,7 +218,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationIdToView = new (migratedImplementationViews),
+          ImplementationIdToView = migratedImplementationViews,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
@@ -259,7 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      databaseEntry.RestartVerification();
+      databaseEntry.MarkVerificationStarted();
       Verify(databaseEntry, cancellationSource.Token);
     }
 

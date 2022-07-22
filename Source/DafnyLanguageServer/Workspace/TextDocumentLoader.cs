@@ -112,19 +112,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           verificationTasks.Select(t => t.Implementation).ToArray());
       }
 
-      var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
+      var initialViews = new Dictionary<ImplementationId, ImplementationView>();
       foreach (var task in verificationTasks) {
         var status = StatusFromBoogieStatus(task.CacheStatus);
         var id = GetImplementationId(task.Implementation);
         if (task.CacheStatus is Completed completed) {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
-          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+          initialViews.Add(GetImplementationId(task.Implementation), view);
         } else if (loaded.ImplementationIdToView.TryGetValue(id, out var existingView)) {
           var view = existingView with { Status = status };
-          initialViews.TryAdd(id, view);
+          initialViews.Add(id, view);
         } else {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
-          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+          initialViews.Add(GetImplementationId(task.Implementation), view);
         }
       }
 
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task VerifyAllTasks(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task VerifyAllTasksAsync(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
       statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var implementationTasks = document.VerificationTasks!;
@@ -219,7 +219,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (!implementationTasks.Any()) {
-        entry.EndVerification();
+        entry.MarkVerificationFinished();
       }
 
       var lastDocument = await entry.LastDocument;
@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
       }
 
-      NotifyStatusAsync(document.TextDocumentItem, lastDocument, cancellationToken);
+      NotifyStatus(document.TextDocumentItem, lastDocument, cancellationToken);
     }
 
     public bool Verify(IDocumentEntry entry, DafnyDocument dafnyDocument, IImplementationTask implementationTask,
@@ -250,12 +250,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return false;
       }
 
-      entry.RestartVerification();
+      entry.MarkVerificationStarted();
       statusUpdates.ObserveOn(dafnyDocument.UpdateScheduler).Subscribe(
         update => HandleStatusUpdate(entry, dafnyDocument, implementationTask, update),
         () => {
           if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
-            entry.EndVerification();
+            entry.MarkVerificationFinished();
           }
         });
 
@@ -275,22 +275,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {
-          document.Counterexamples!.Push(counterExample);
+          document.Counterexamples!.Add(counterExample);
         }
 
         var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
         var view = new ImplementationView(implementationRange, status, diagnostics);
-        document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
+        document.ImplementationIdToView[id] = view;
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
         }
       } else {
-        document.ImplementationIdToView!.AddOrUpdate(id,
-          _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
-          (_, previousView) => previousView with { Status = status });
+        var previousView = document.ImplementationIdToView.GetValueOrDefault(id) ?? new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
+        document.ImplementationIdToView[id] = previousView with { Status = status };
       }
 
-      // TODO something against publishing stale state
       document.VerificationUpdates.OnNext(document);
     }
 
@@ -331,7 +329,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document, statusPublisher, NotificationPublisher);
     }
 
-    private void NotifyStatusAsync(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
+    private void NotifyStatus(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
       var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
       logger.LogDebug($"Finished verification with {errorCount} errors.");
       var verified = errorCount == 0;

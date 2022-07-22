@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -79,8 +77,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public ConcurrentStack<Counterexample> Counterexamples { get; set; } = new();
-    public ConcurrentDictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; } = new();
+    public List<Counterexample> Counterexamples { get; set; } = new();
+    public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; } = new();
 
     /// <summary>
     /// Creates a clone of the DafnyDocument
@@ -90,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Program, SymbolTable, WasResolved, LoadCanceled)
       {
         VerificationTree = VerificationTree,
-        Counterexamples = new(Counterexamples),
+        Counterexamples = Counterexamples.ToList(),
         ImplementationIdToView = new(ImplementationIdToView),
         LastTouchedMethodPositions = LastTouchedMethodPositions,
       };

@@ -15,19 +15,21 @@ class DocumentEntry : IDocumentEntry {
   public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
 
   private TaskCompletionSource verificationCompleted = new();
-  public void RestartVerification() {
+  public void MarkVerificationStarted() {
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
-  public void EndVerification() {
+  public void MarkVerificationFinished() {
     verificationCompleted.TrySetResult();
   }
 
   public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
     if (t.IsCompletedSuccessfully) {
+#pragma warning disable VSTHRD003
       return verificationCompleted.Task.ContinueWith(_ => t, TaskScheduler.Current).Unwrap();
+#pragma warning restore VSTHRD003
     }
 
     return ResolvedDocument;
@@ -49,7 +51,7 @@ class DocumentEntry : IDocumentEntry {
   }
 
   public void CancelPendingUpdates() {
-    EndVerification();
+    MarkVerificationFinished();
     cancellationSource.Cancel();
   }
 
