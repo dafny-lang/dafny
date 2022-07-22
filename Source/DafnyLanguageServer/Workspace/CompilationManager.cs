@@ -40,9 +40,9 @@ public class CompilationManager {
   private readonly VerificationTree? migratedVerificationTree;
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
+  private readonly CancellationTokenSource cancellationSource;
   private readonly ReplaySubject<DafnyDocument> documentUpdates = new();
   public IObservable<DafnyDocument> DocumentUpdates => documentUpdates;
-  private readonly CancellationTokenSource cancellationSource;
 
   public Task<DafnyDocument> ResolvedDocument { get; }
   public Task<DafnyDocument> TranslatedDocument { get; }
