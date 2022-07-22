@@ -442,7 +442,7 @@ The _offset_ of an ordinal is the number of successor operations it takes to rea
 
 The Dafny type `ORDINAL` has these member functions:
 - `o.IsLimit` -- true if `o` is a limit ordinal (including `0`)
-- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==< !o.IsLimit`
+- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==> !o.IsLimit`
 - `o.IsNat` -- true if `o` represents a `nat` value, so for `n` a `nat`, `(n as ORDINAL).IsNat` is true
 and if `o.IsNat` is true then `(o as nat)` is well-defined
 - `o.Offset` -- is the `nat` value giving the offset of the ordinal
