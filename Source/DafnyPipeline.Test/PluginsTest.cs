@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -54,11 +53,11 @@ public class PluginsTest {
 
   [Fact]
   public void EnsurePluginIsExecuted() {
-    var library = GetLibrary("simplePlugin");
+    var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions();
-    options.Plugins.Add(Plugin.Load(library, new string[] { "because whatever" }));
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
@@ -75,18 +74,34 @@ public class PluginsTest {
 
   [Fact]
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
-    var library = GetLibrary("secondPlugin");
+    var library = GetLibrary("rewriterPreventingVerification");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions();
-    options.Plugins.Add(Plugin.Load(library, new string[] { "ignored arguments" }));
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
-    Assert.Equal(1, reporter.Count(ErrorLevel.Error));
+    Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
+  }
+
+  [Fact]
+  public void EnsurePluginIsExecutedAndAllowsVerification() {
+    var library = GetLibrary("rewriterAllowingVerification");
+
+    var reporter = new CollectionErrorReporter();
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
+    DafnyOptions.Install(options);
+
+    var programString = "function test(): int { 1 }";
+    var dafnyProgram = CreateProgram(programString, reporter);
+    Main.Resolve(dafnyProgram, reporter);
+    Assert.Equal(0, reporter.ErrorCountUntilResolver);
+    Assert.Equal(1, reporter.ErrorCount);
   }
 
   private static Program CreateProgram(string programString, CollectionErrorReporter reporter) {

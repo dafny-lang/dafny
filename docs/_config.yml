@@ -41,10 +41,8 @@ kramdown:
 header_pages:
     - about.md
 
-gems:
-    - jekyll-numbered-headings
-
 plugins:
+    - jekyll-numbered-headings
 
 # Exclude from processing.
 # The following items will not be processed, by default.

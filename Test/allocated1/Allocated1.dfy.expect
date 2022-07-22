@@ -1,7 +1,7 @@
 AllocatedCommon.dfyi(23,26): Error: assertion might not hold
 AllocatedCommon.dfyi(24,26): Error: assertion might not hold
 AllocatedCommon.dfyi(25,26): Error: assertion might not hold
-AllocatedCommon.dfyi(26,30): Error: target object may not be allocated
+AllocatedCommon.dfyi(26,30): Error: target object might not be allocated
 AllocatedCommon.dfyi(27,26): Error: assertion might not hold
 AllocatedCommon.dfyi(28,26): Error: assertion might not hold
 AllocatedCommon.dfyi(29,55): Error: assertion might not hold
@@ -15,7 +15,7 @@ AllocatedCommon.dfyi(36,26): Error: assertion might not hold
 AllocatedCommon.dfyi(45,26): Error: assertion might not hold
 AllocatedCommon.dfyi(46,26): Error: assertion might not hold
 AllocatedCommon.dfyi(47,26): Error: assertion might not hold
-AllocatedCommon.dfyi(48,30): Error: target object may not be allocated
+AllocatedCommon.dfyi(48,30): Error: target object might not be allocated
 AllocatedCommon.dfyi(49,26): Error: assertion might not hold
 AllocatedCommon.dfyi(50,26): Error: assertion might not hold
 AllocatedCommon.dfyi(51,55): Error: assertion might not hold
@@ -29,7 +29,7 @@ AllocatedCommon.dfyi(58,26): Error: assertion might not hold
 AllocatedCommon.dfyi(80,26): Error: assertion might not hold
 AllocatedCommon.dfyi(81,26): Error: assertion might not hold
 AllocatedCommon.dfyi(82,26): Error: assertion might not hold
-AllocatedCommon.dfyi(83,30): Error: target object may not be allocated
+AllocatedCommon.dfyi(83,30): Error: target object might not be allocated
 AllocatedCommon.dfyi(84,26): Error: assertion might not hold
 AllocatedCommon.dfyi(85,26): Error: assertion might not hold
 AllocatedCommon.dfyi(86,55): Error: assertion might not hold
@@ -48,7 +48,7 @@ AllocatedCommon.dfyi(98,23): Error: assertion might not hold
 AllocatedCommon.dfyi(116,26): Error: assertion might not hold
 AllocatedCommon.dfyi(117,26): Error: assertion might not hold
 AllocatedCommon.dfyi(118,26): Error: assertion might not hold
-AllocatedCommon.dfyi(119,30): Error: target object may not be allocated
+AllocatedCommon.dfyi(119,30): Error: target object might not be allocated
 AllocatedCommon.dfyi(120,26): Error: assertion might not hold
 AllocatedCommon.dfyi(121,26): Error: assertion might not hold
 AllocatedCommon.dfyi(122,55): Error: assertion might not hold
@@ -67,7 +67,7 @@ AllocatedCommon.dfyi(134,23): Error: assertion might not hold
 AllocatedCommon.dfyi(177,26): Error: assertion might not hold
 AllocatedCommon.dfyi(178,26): Error: assertion might not hold
 AllocatedCommon.dfyi(179,26): Error: assertion might not hold
-AllocatedCommon.dfyi(180,31): Error: target object may not be allocated
+AllocatedCommon.dfyi(180,31): Error: target object might not be allocated
 AllocatedCommon.dfyi(181,26): Error: assertion might not hold
 AllocatedCommon.dfyi(182,26): Error: assertion might not hold
 AllocatedCommon.dfyi(183,26): Error: assertion might not hold
@@ -90,7 +90,7 @@ AllocatedCommon.dfyi(199,24): Error: assertion might not hold
 AllocatedCommon.dfyi(200,27): Error: assertion might not hold
 AllocatedCommon.dfyi(216,5): Error: insufficient reads clause to read field
 AllocatedCommon.dfyi(223,5): Error: insufficient reads clause to read field
-AllocatedCommon.dfyi(282,9): Error: possible violation of function precondition
+AllocatedCommon.dfyi(282,9): Error: function precondition might not hold
 AllocatedCommon.dfyi(282,15): Error: assertion might not hold
 AllocatedCommon.dfyi(299,26): Error: assertion might not hold
 AllocatedCommon.dfyi(300,26): Error: assertion might not hold

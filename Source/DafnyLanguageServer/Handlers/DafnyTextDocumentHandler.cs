@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,16 +36,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
     private readonly ITelemetryPublisher telemetryPublisher;
-    private readonly IDiagnosticPublisher diagnosticPublisher;
+    private readonly INotificationPublisher notificationPublisher;
 
     public DafnyTextDocumentHandler(
       ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents,
-      ITelemetryPublisher telemetryPublisher, IDiagnosticPublisher diagnosticPublisher
+      ITelemetryPublisher telemetryPublisher, INotificationPublisher notificationPublisher
     ) {
       this.logger = logger;
       this.documents = documents;
       this.telemetryPublisher = telemetryPublisher;
-      this.diagnosticPublisher = diagnosticPublisher;
+      this.notificationPublisher = notificationPublisher;
     }
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
@@ -60,68 +61,54 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      ForwardDiagnostics(documents.OpenDocument(notification.TextDocument));
+      try {
+        documents.OpenDocument(DocumentTextBuffer.From(notification.TextDocument));
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
-      CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+      try {
+        CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      ForwardDiagnostics(documents.UpdateDocument(notification));
+      try {
+        documents.UpdateDocument(notification);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      ForwardDiagnostics(documents.SaveDocument(notification.TextDocument));
+      try {
+        documents.SaveDocument(notification.TextDocument);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
+
       return Unit.Task;
-    }
-
-    private void ForwardDiagnostics(IObservable<DafnyDocument> obs) {
-      obs.Subscribe(new DiagnosticsObserver(logger, telemetryPublisher, diagnosticPublisher));
-    }
-
-    private class DiagnosticsObserver : IObserver<DafnyDocument> {
-      private readonly ILogger logger;
-      private readonly ITelemetryPublisher telemetryPublisher;
-      private readonly IDiagnosticPublisher diagnosticPublisher;
-
-      public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher, IDiagnosticPublisher diagnosticPublisher) {
-        this.logger = logger;
-        this.telemetryPublisher = telemetryPublisher;
-        this.diagnosticPublisher = diagnosticPublisher;
-      }
-
-      public void OnCompleted() {
-        telemetryPublisher.PublishUpdateComplete();
-      }
-
-      public void OnError(Exception e) {
-        if (e is TaskCanceledException) {
-          OnCompleted();
-        } else {
-          logger.LogError(e, "error while handling document event");
-          telemetryPublisher.PublishUnhandledException(e);
-        }
-      }
-
-      public void OnNext(DafnyDocument document) {
-        diagnosticPublisher.PublishDiagnostics(document);
-      }
     }
 
     private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
       try {
         await documents.CloseDocumentAsync(documentId);
+        notificationPublisher.HideDiagnostics(documentId);
       } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
         logger.LogError(e, "error while closing the document");
       }
-      diagnosticPublisher.HideDiagnostics(documentId);
+
     }
   }
 }

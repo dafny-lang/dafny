@@ -12,7 +12,7 @@
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
     /// <param name="token">The token associated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, Boogie.IToken token);
+    public abstract void VisitUnknown(object node, IToken token);
 
     public virtual void Visit(Dafny.Program program) {
       foreach (var module in program.Modules()) {
@@ -406,7 +406,7 @@
       Visit(binding.Actual);
     }
 
-    public virtual void Visit(Expression expression) {
+    public virtual void Visit(Expression? expression) {
       switch (expression) {
         case LiteralExpr literalExpression:
           Visit(literalExpression);
@@ -489,7 +489,10 @@
           Visit(letExpression);
           break;
         default:
-          VisitUnknown(expression, expression.tok);
+          if (expression != null) {
+            VisitUnknown(expression, expression.tok);
+          }
+
           break;
       }
     }

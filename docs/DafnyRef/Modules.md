@@ -104,7 +104,7 @@ of a single implicit unnamed global module.
 
 As described in the previous section, module declarations can be nested.
 It is also permitted to declare a nested module _outside_ of its
-"enclosing" module. So instead of
+"containing" module. So instead of
 ```dafny
 module A {
   module B {
@@ -198,9 +198,10 @@ sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a
-sibling module of the importing module, or with a submodule of the
-importing module. There is no way to refer to the parent module, only
+The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a submodule of the
+importing module, with a
+sibling module of the importing module, or with a sibling module of some containing module. 
+There is no way to refer to a containing module, only
 sibling modules (and their submodules).
 
 Import statements may occur at the top-level of a program
@@ -289,9 +290,9 @@ ModuleExport =
   [ ExportId ]
   [ "..." ]
   {
-    "provides" ( ExportSignature { "," ExportSignature } | "*" )
+    "extends"  ExportId { "," ExportId }
+  | "provides" ( ExportSignature { "," ExportSignature } | "*" )
   | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
-  | "extends"  ExportId { "," ExportId }
   }
 
 ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
@@ -384,7 +385,7 @@ However, in the above example,
 then the import in module `B` is invalid because `A` has no default
 export set;
 * if `A` has one export set `export Y reveals a` and `B` has ``import Z = A`Y``
-then B's import is OK. So is the use of `Z.a` in the assert because `B`
+then `B`'s import is OK. So is the use of `Z.a` in the assert because `B`
 declares `Z` and `C` brings in `Z` through the `import opened` and
 `Z` contains `a` by virtue of its declaration. (The alias `Z` is not able to
 have export sets; all of its names are visible.)
@@ -419,34 +420,203 @@ its value is known and the assertion can be proved.
 {% include_relative examples/Example-ExportSet2.dfy %}
 ```
 
-The following list presents the difference between _provides_ and _reveals_ for each kind of declaration.
+The following table shows which parts of a declaration are exported by an
+export set that `provides` or `reveals` the declaration.
 
-* const: type always known, but value not known when only provided
-* function, predicate: signature always known, but body not known when not revealed
-* method: TODO
-* lemma: TODO
-* iterator: TODO
-* class, trait: TODO
-* opaque type: TODO
-* subset type, newtype: TODO
-* datatype: TODO
-* module: module names may only be provided
-* export set: names of export sets are always visible and are not subject to export set rules, that is, export set names may not be put in the provides or
-reveals lists in export set declarations.
+```
+ declaration         | what is exported    | what is exported
+                     | with provides       | with reveals
+---------------------|---------------------|---------------------
+ const x: X := E     | const x: X          | const x: X := E
+---------------------|---------------------|---------------------
+ var x: X            | var x: X            | not allowed
+---------------------|---------------------|---------------------
+ function F(x: X): Y | function F(x: X): Y | function F(x: X): Y
+   specification...  |   specification...  |   specification...
+ {                   |                     | {
+   Body              |                     |   Body
+ }                   |                     | }
+---------------------|---------------------|---------------------
+ method M(x: X)      | method M(x: X)      | not allowed
+   returns (y: Y)    |   returns (y: Y)    |
+   specification...  |   specification...  |
+ {                   |                     |
+   Body;             |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ type Opaque         | type Opaque         | type Opaque
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ type Synonym = T    | type Synonym        | type Synonym = T
+---------------------|---------------------|---------------------
+ type S = x: X       | type S              | type S = x: X
+   | P witness E     |                     |   | P witness E
+---------------------|---------------------|---------------------
+ newtype N = x: X    | type N              | newtype N = x: X
+   | P witness E     |                     |   | P witness E
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+```
+```
+---------------------|---------------------|---------------------
+ datatype D =        | type D              | datatype D =
+     Ctor0(x0: X0)   |                     |    Ctor0(x0: X0)
+   | Ctor1(x1: X1)   |                     |  | Ctor1(x1: X1)
+   | ...             |                     |  | ...
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ class Cl            | type Cl             | class Cl
+   extends T0, ...   |                     |   extends T0, ...
+ {                   |                     | {
+   constructor ()    |                     |   constructor ()
+     spec...         |                     |     spec...
+   {                 |                     |
+     Body;           |                     |
+   }                 |                     |
+   // members...     |                     |
+ }                   |                     | }
+---------------------|---------------------|---------------------
+ trait Tr            | type Tr             | trait Tr
+   extends T0, ...   |                     |   extends T0, ...
+ {                   |                     |
+   // members...     |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ iterator Iter(x: X) | type Iter           | iterator Iter(x: X)
+   yields (y: Y)     |                     |   yields (y: Y)
+   specification...  |                     |   specification...
+ {                   |                     |
+   Body;             |                     |
+ }                   |                     |
+---------------------|---------------------|---------------------
+ module SubModule    | module SubModule    | not allowed
+   ...               |   ...               |
+ {                   | {                   |
+   export SubModule  |   export SubModule  |
+     ...             |     ...             |
+   export A ...      |                     |
+   // decls...       |   // decls...       |
+ }                   | }                   |
+---------------------|---------------------|---------------------
+ import L = MS       | import L = MS       | not allowed
+---------------------|---------------------|---------------------
+ ```
+
+Variations of functions (e.g., `predicate`, `twostate function`) are
+handled like `function` above, and variations of methods (e.g.,
+`lemma` and `twostate lemma`) are treated like `method` above. Since
+the whole signature is exported, a function or method is exported to
+be of the same kind, even through `provides`. For example, an exported
+`twostate lemma` is exported as a `twostate lemma` (and thus is known
+by importers to have two implicit heap parameters), and an exported
+`least predicate P` is exported as a `least predicate P` (and thus
+importers can use both `P` and its prefix predicate `P#`).
+
+If `C` is a `class`, `trait`, or `iterator`, then `provides C` exports
+the non-null reference type `C` as an opaque type. This does not reveal
+that `C` is a reference type, nor does it export the nullable type `C?`.
+
+In most cases, exporting a `class`, `trait`, `datatype`, `codatatype`, or
+opaque type does not automatically export its members. Instead, any member
+to be exported must be listed explicitly. For example, consider the type
+declaration
+
+```dafny
+trait Tr {
+  function F(x: int): int { 10 }
+  function G(x: int): int { 12 }
+  function H(x: int): int { 14 }
+}
+```
+
+An export set that contains only `reveals Tr` has the effect of exporting
+
+```dafny
+trait Tr {
+}
+```
+
+and an export set that contains only `provides Tr, Tr.F reveals Tr.H` has
+the effect of exporting
+
+```dafny
+type Tr {
+  function F(x: int): int
+  function H(x: int): int { 14 }
+}
+```
+
+There is no syntax (for example, `Tr.*`) to export all members of a type.
+
+Some members are exported automatically when the type is revealed.
+Specifically:
+- Revealing a `datatype` or `codatatype` automatically exports the type's
+  discriminators and destructors.
+- Revealing an `iterator` automatically exports the iterator's members.
+- Revealing a class automatically exports the class's anonymous constructor, if any.
+
+For a `class`, a `constructor` member can be exported only if the class is revealed.
+For a `class` or `trait`, a `var` member can be exported only if the class or trait is revealed
+(but a `const` member can be exported even if the enclosing class or trait is only provided).
+
+When exporting a sub-module, only the sub-module's eponymous export set is exported.
+There is no way for a parent module to export any other export set of a sub-module, unless
+it is done via an `import` declaration of the parent module.
+
+The effect of declaring an import as `opened` is confined to the importing module. That
+is, the ability of use such imported names as unqualified is not passed on to further
+imports, as the following example illustrates:
+
+```dafny
+module Library {
+  const xyz := 16
+}
+
+module M {
+  export
+    provides Lib
+    provides xyz // error: 'xyz' is not declared locally
+
+  import opened Lib = Library
+
+  const k0 := Lib.xyz
+  const k1 := xyz
+}
+
+module Client {
+  import opened M
+
+  const a0 := M.Lib.xyz
+  const a1 := Lib.xyz
+  const a2 := M.xyz // error: M does not have a declaration 'xyz'
+  const a3 := xyz // error: unresolved identifier 'xyz'
+}
+```
+
+As highlighted in this example, module `M` can use `xyz` as if it were a local
+name (see declaration `k1`), but the unqualified name `xyz` is not made available
+to importers of `M` (see declarations `a2` and `a3`), nor is it possible for
+`M` to export the name `xyz`.
 
 A few other notes:
 
-* Using a `*` instead of a list of names means that all local names
-(except export set names) in the
-module are exported.
+* A `provides` list can mention `*`, which means that all local names
+  (except export set names) in the module are exported as `provides`.
+* A `reveals` list can mention `*`, which means that all local names
+  (except export set names) in the module are exported as `reveals`, if
+  the declaration is allowed to appear in a `reveals` clause, or as
+  `provides`, if the declaration is not allowed to appear in a `reveals`
+  clause.
 * If no export sets are declared, then the implicit
-export set is `export reveals *`
-* A module acquires all the export sets from its refinement parent.
+  export set is `export reveals *`.
+* A refinement module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
-export lists. (These are local names just like those declared directly.)
-* Names acquired by a module via an `import opened` declaration are not
-re-exportable, though the new module alias name (such as the `C` in `import C = A.B`)
-is a local name.
+  export lists. (These are local names just like those declared directly.)
 
 ### 4.5.2. Extends list
 An export set declaration may include an _extends_ list, which is a list of
@@ -462,10 +632,11 @@ module M {
   const c := 10;
   export A reveals a
   export B reveals b
-  export C reveals c extends A, B
+  export C extends A, B
+    reveals c
 }
 ```
-export set C will contain the names `a`, `b`, and `c`.
+export set `C` will contain the names `a`, `b`, and `c`.
 
 ## 4.6. Module Abstraction {#sec-module-abstraction}
 
@@ -619,7 +790,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 0](#sec-modiu;e-refinement)).
+in [Section 22](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
@@ -644,7 +815,7 @@ However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
 2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
-   is resolved as a local or imported  module name within `M`
+   is resolved as a local or imported  module name within `M`.
    The resolution is restricted to the default export set of `M`.
 
 2b. If the resolved module name is a module alias (from an `import` statement)
@@ -670,77 +841,7 @@ use any local names:
 In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
 
-A module is a collection of declarations, each of which has a name.
-These names are held in two namespaces.
-
-* The names of export sets
-* The names of all other declarations, including submodules and aliased modules
-
-In addition names can be classified as _local_ or _imported_.
-
-* Local declarations of a module are the declarations
- that are explicit in the module and the
-local declarations of the refinement parent. This includes, for
-example, the `N` of `import N = ` in the refinement parent, recursively.
-* Imported names of a module are those brought in by `import opened` plus
-the imported names in the refinement parent.
-
-Within each namespace, the local names are unique. Thus a module may
-not reuse a name that a refinement parent has declared (unless it is a
-refining declaration, which replaces both declarations, as described
-in [Section 21](#sec-module-refinement)).
-
-Local names take precedence over imported names. If a name is used more than
-once among imported names (coming from different imports), then it is
-ambiguous to _use_ the name without qualification, unless they refer to the
-same entity or to equal types.
-
-### 4.8.3. Module Id Context Name Resolution
-
-A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
-Such a qualified name is resolved as follows, with respect to its syntactic
-location within a module `Z`:
-
-0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
-is one with a matching name. The target of a `refines` clause does not
-consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
-are not considered in finding `A`.
-
-1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
-   iterating outward to each successive enclosing module until a match is
-found or the default toplevel module is reached without a match.
-No consideration of export sets, default or otherwise, is used in this step.
-However, if at any stage a matching name is found that is not a module
-declaration, the resolution fails. See the examples below.
-
-2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
-   is resolved as a local or imported  module name within `M`
-   The resolution is restricted to the default export set of `M`.
-
-2b. If the resolved module name is a module alias (from an `import` statement)
-   then the target of the alias is resolved as a new qualified name
-   with respect to its syntactic context (independent of any resolutions or
-modules so far). Since `Z` depends on `M`, any such alias target will
-already have been resolved, because modules are resolved in order of
-dependency.
-
-3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
-   resulting in a module that is the final resolution of the complete
-   qualified id.
-
-Ordinarily a module must be _imported_ in order for its constituent
-declarations to be visible inside a given module `M`. However, for the
-resolution of qualified names this is not the case.
-
-Ths example shows that the resolution of the refinement parent does not
-use any local names:
-```dafny
-{% include_relative examples/Example-Refines1.dfy %}
-```
-The `A` in `refines A` refers to the submodule `A`, not the global `A`.
-
-
-### 4.8.4. Expression Context Name Resolution
+### 4.8.3. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -756,7 +857,7 @@ rule that succeeds.
    context, then only static methods and functions are allowed). You can
    refer to fields of the current class either as `this.f` or `f`,
    assuming of course that `f` is not hidden by one of the above. You
-   can always prefix `this` if needed, which cannot be hidden. (Note, a
+   can always prefix `this` if needed, which cannot be hidden. (Note that a
    field whose name is a string of digits must always have some prefix.)
 
 2. If there is no ``Suffix``, then look for a datatype constructor, if
@@ -776,7 +877,7 @@ rule that succeeds.
 TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
-If a ambiguous name is found or  name of the wrong kind (e.g. a module
+If an ambiguous name is found or a name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing
 down the list.
 
@@ -802,7 +903,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### 4.8.5. Type Context Name Resolution
+### 4.8.4. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 

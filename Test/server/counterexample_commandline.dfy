@@ -1,4 +1,5 @@
-// RUN: %dafny /compile:0 /proverOpt:O:model_compress=false /proverOpt:O:model.completion=true /warnShadowing /extractCounterexample /errorTrace:0 /mv:%t.model "%s" > "%t"
+
+// RUN: %dafny_0 /compile:0 /proverOpt:O:model_compress=false /proverOpt:O:model.completion=true /warnShadowing /extractCounterexample /mv:%t.model "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following method performs string equality comparison whereas its 

@@ -5,8 +5,7 @@ namespace DafnyTestGeneration.Test {
   public class Setup {
 
     public static void SetupDafnyOptions(string[] extraArgs = null) {
-      var options = new DafnyOptions();
-      options.Parse(extraArgs ?? System.Array.Empty<string>());
+      var options = DafnyOptions.Create(extraArgs ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;

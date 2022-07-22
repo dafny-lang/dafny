@@ -79,3 +79,15 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: DafnyRef
+        path: dafny/docs/DafnyRef/DafnyRef.pdf
+    # Building the reference manual may update files,
+    # such as renumbering sections or updating Options.txt.
+    # These changes should have been checked in earlier,
+    # so fail the build if anything changed.
+    - name: Check for modifications
+      run: 'git diff --exit-code || (echo "ERROR: Source changes detected (see above). Build the reference manual locally and commit these changes." && exit 1)'
+      working-directory: dafny

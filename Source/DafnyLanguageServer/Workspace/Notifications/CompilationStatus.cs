@@ -7,6 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// </summary>
   [JsonConverter(typeof(StringEnumConverter))]
   public enum CompilationStatus {
+    ResolutionStarted,
     ParsingFailed,
     ResolutionFailed,
     CompilationSucceeded,

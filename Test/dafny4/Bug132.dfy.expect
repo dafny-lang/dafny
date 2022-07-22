@@ -1,6 +1,6 @@
-Bug132.dfy(33,29): Error: receiver argument must be allocated in the state in which the function is invoked
-Bug132.dfy(34,29): Error: receiver argument must be allocated in the state in which the function is invoked
-Bug132.dfy(37,36): Error: argument must be allocated in the state in which the function is invoked
-Bug132.dfy(41,29): Error: receiver argument must be allocated in the state in which the function is invoked
+Bug132.dfy(33,29): Error: receiver argument might not be allocated in the state in which the function is invoked
+Bug132.dfy(34,29): Error: receiver argument might not be allocated in the state in which the function is invoked
+Bug132.dfy(37,36): Error: argument might not be allocated in the state in which the function is invoked
+Bug132.dfy(41,29): Error: receiver argument might not be allocated in the state in which the function is invoked
 
 Dafny program verifier finished with 2 verified, 4 errors

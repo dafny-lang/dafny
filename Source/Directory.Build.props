@@ -5,9 +5,4 @@
     <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
-  <!-- Boogie dependency -->
-  <ItemGroup>
-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.0" />
-  </ItemGroup>
-
 </Project>

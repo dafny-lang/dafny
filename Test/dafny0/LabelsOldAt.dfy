@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -236,7 +236,9 @@ class C {
     && old(c'.x) == 3 // error: c' is not allocated in old state
   }
 
-  twostate function FUnchanged(x: int, c: C, new c': C, s: set<C>, new s': set<C>): bool {
+  twostate function FUnchanged(x: int, c: C, new c': C, s: set<C>, new s': set<C>): bool
+    reads this, c, c', s, s'
+  {
     && unchanged(this)
     && unchanged(c)
     && (x == 7 ==> unchanged(c')) // error: c' is not allocated in old state
@@ -251,28 +253,40 @@ class C {
   }
 }
 
-twostate predicate M0(u: C, s: set<C>, t: seq<C>) {
+twostate predicate M0(u: C, s: set<C>, t: seq<C>)
+  reads u, s, t
+{
   && unchanged(u)
   && unchanged(s)
   && unchanged(t)
 }
-twostate predicate M1(u: C?, s: set<C?>, t: seq<C?>) {
+twostate predicate M1(u: C?, s: set<C?>, t: seq<C?>)
+  reads u, s, t
+{
   && unchanged(u) // error: may be null
   && unchanged(s) // error: may be null
   && unchanged(t) // error: may be null
 }
 
-twostate predicate N0(new u: C, new s: set<C>, new t: seq<C>) {
+twostate predicate N0(new u: C, new s: set<C>, new t: seq<C>)
+  reads u, s, t
+{
   && unchanged(u) // error: may not be allocated in old
   && unchanged(s) // error: may not be allocated in old
   && unchanged(t) // error: may not be allocated in old
 }
-twostate predicate N1(new u: C?, new s: set<C?>, new t: seq<C?>) {
+twostate predicate N1(new u: C?, new s: set<C?>, new t: seq<C?>)
+  reads u
+{
   && unchanged(u) // error (x2): may be null, may not be allocated in old
 }
-twostate predicate N2(new u: C?, new s: set<C?>, new t: seq<C?>) {
+twostate predicate N2(new u: C?, new s: set<C?>, new t: seq<C?>)
+  reads s
+{
   && unchanged(s) // error (x2): may be null, may not be allocated in old
 }
-twostate predicate N3(new u: C?, new s: set<C?>, new t: seq<C?>) {
+twostate predicate N3(new u: C?, new s: set<C?>, new t: seq<C?>)
+  reads t
+{
   && unchanged(t) // error (x2): may be null, may not be allocated in old
 }

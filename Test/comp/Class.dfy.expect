@@ -68,3 +68,20 @@ TestGhostables
 15
 Init called with x=15
 16
+
+Dafny program verifier did not attempt verification
+true true false
+103 103 103 106 106 106
+203 17 0 18 8 9 69 70
+203 17 0 18 8 9 69 70
+203 17 0 18 8 9 69 70
+0 18 9 70
+0 18 9 70
+0 18 9 70
+70
+hi later
+21 4 42 5 1
+TestGhostables
+15
+Init called with x=15
+16

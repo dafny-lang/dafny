@@ -1,11 +1,15 @@
 
-Dafny program verifier finished with 26 verified, 0 errors
+Dafny program verifier finished with 27 verified, 0 errors
+
+Dafny program verifier did not attempt verification
 x=13 y=14
 x=13 y=14 b=yes
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
 map[16 := 12, 17 := 13, 18 := 14]
+false false false false
+true true true true
 XP returned: 0 false
 after: 0 before: 0
 after: 2 before: 2
@@ -57,13 +61,15 @@ false true
 true true
 3
 
-Dafny program verifier finished with 26 verified, 0 errors
+Dafny program verifier did not attempt verification
 x=13 y=14
 x=13 y=14 b=yes
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
 map[16 := 12, 17 := 13, 18 := 14]
+false false false false
+true true true true
 XP returned: 0 false
 after: 0 before: 0
 after: 2 before: 2
@@ -115,13 +121,15 @@ false true
 true true
 3
 
-Dafny program verifier finished with 26 verified, 0 errors
+Dafny program verifier did not attempt verification
 x=13 y=14
 x=13 y=14 b=yes
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
 map[16 := 12, 17 := 13, 18 := 14]
+false false false false
+true true true true
 XP returned: 0 false
 after: 0 before: 0
 after: 2 before: 2
@@ -173,13 +181,15 @@ false true
 true true
 3
 
-Dafny program verifier finished with 26 verified, 0 errors
+Dafny program verifier did not attempt verification
 x=13 y=14
 x=13 y=14 b=yes
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
 map[16 := 12, 17 := 13, 18 := 14]
+false false false false
+true true true true
 XP returned: 0 false
 after: 0 before: 0
 after: 2 before: 2

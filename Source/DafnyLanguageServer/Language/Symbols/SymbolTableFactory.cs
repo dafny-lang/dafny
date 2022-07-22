@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, program, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
-      var symbolsResolved = !program.reporter.HasErrors;
+      var symbolsResolved = !program.Reporter.HasErrorsUntilResolver;
       if (symbolsResolved) {
         designatorVisitor.Visit(program);
         declarationLocationVisitor.Visit(compilationUnit);
@@ -404,7 +404,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private void RegisterLocation(ISymbol symbol, IToken token, Range name, Range declaration) {
-        if (token.filename != null) {
+        if (token.Filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
         }

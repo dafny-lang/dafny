@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AM {

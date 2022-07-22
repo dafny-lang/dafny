@@ -24,8 +24,8 @@ jobs:
             z3: z3-4.8.5-x64-win
             chmod: false
             coverage: false
-          - os: macos-10.15
-            suffix: osx-10.14.1
+          - os: macos-latest
+            suffix: osx
             z3: z3-4.8.5-x64-osx-10.14.2
             chmod: true
             coverage: false
@@ -61,6 +61,8 @@ jobs:
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
+    - name: Run AutoExtern Tests
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/AutoExtern.Test
     - uses: actions/upload-artifact@v2
       if: always()
       with:

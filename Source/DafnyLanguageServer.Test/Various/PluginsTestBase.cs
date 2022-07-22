@@ -35,6 +35,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var standardLibraries = new List<string>()
     {
       "DafnyPipeline",
+      "System.Console",
       "System.Runtime",
       "Boogie.Core",
       "System.Collections"
@@ -66,7 +67,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   }
 
   protected void CleanupPlugin() {
-    DafnyOptions.O.Plugins.RemoveAt(0);
+    DafnyOptions.O.Plugins = new List<Plugin>(DafnyOptions.DefaultPlugins);
   }
 
   protected override IConfiguration CreateConfiguration() {

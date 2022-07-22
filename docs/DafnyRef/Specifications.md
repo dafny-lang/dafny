@@ -21,9 +21,16 @@ This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
 that use them.
 
+Specification clauses typically appear in a sequence. They all begin with a 
+keyword and do not end with semicolons.
+
 ## 5.1. Specification Clauses
 
-### 5.1.1. Requires Clause
+
+Within expressions in specification clauses, you can use
+[specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
+
+### 5.1.1. Requires Clause {#sec-requires-clause}
 
 ````grammar
 RequiresClause(allowLabel) =
@@ -37,7 +44,8 @@ functions, lambda expressions and iterators. Dafny checks
 that the preconditions are met at all call sites. The
 callee may then assume the preconditions hold on entry.
 
-If no `requires` clause is specified it is taken to be `true`.
+If no `requires` clause is specified, then a default implicit
+clause `requires true` is used.
 
 If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
@@ -47,7 +55,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.2. Ensures Clause
+### 5.1.2. Ensures Clause {#sec-ensures-clause}
 
 ````grammar
 EnsuresClause(allowLambda) =
@@ -58,7 +66,8 @@ EnsuresClause(allowLambda) =
 An `ensures` clause specifies the post condition for a
 method, function or iterator.
 
-If no `ensures` clause is specified it is taken to be `true`.
+If no `ensures` clause is specified, then a default implicit
+clause `ensures true` is used.
 
 If more than one `ensures` clause is given, then the
 postcondition is the conjunction of all of the expressions
@@ -69,7 +78,8 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.3. Decreases Clause
+
+### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
@@ -124,9 +134,9 @@ recursive) call to a function or method, Dafny checks that the effective
 
  What does "strictly smaller" mean? Dafny provides a built-in
  well-founded order for every type and, in some cases, between types. For
- example, the Boolean "false" is strictly smaller than "true", the
- integer 78 is strictly smaller than 102, the set `{2,5}` is strictly
- smaller than the set `{2,3,5}`, and for "s" of type `seq<Color>` where
+ example, the Boolean `false` is strictly smaller than `true`, the
+ integer `78` is strictly smaller than `102`, the set `{2,5}` is strictly
+ smaller than (because it is a proper subset of) the set `{2,3,5}`, and for `s` of type `seq<Color>` where
  `Color` is some inductive datatype, the color `s[0]` is strictly less than
  `s` (provided `s` is nonempty).
 
@@ -298,7 +308,10 @@ method Inner(x: nat, y: nat)
 ```
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
-TODO: Should there be user-level syntax to invoke this termination ordering
+Though Dafny fixes a well-founded order that it uses when checking
+termination, Dafny does not surface this ordering directly in
+expressions. That is, syntactically, there is no single operator that
+stands for the well-founded ordering.
 
 ### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
@@ -317,9 +330,8 @@ PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
 
 Frame expressions are used to denote the set of memory locations
 that a Dafny program element may read or write. A frame
-expression is a set expression. The form `{}` (that is, the empty set)
-says that no memory locations may be modified,
-which is also the default if no `modifies` clause is given explicitly.
+expression is a set expression. The form `{}` is the empty set.
+The type of the frame expression is `set<object>`.
 
 Note that framing only applies to the heap, or memory accessed through
 references. Local variables are not stored on the heap, so they cannot be
@@ -329,6 +341,7 @@ value types, and are treated like integers or local variables. Arrays and
 objects are reference types, and they are stored on the heap (though as
 always there is a subtle distinction between the reference itself and the
 value it points to.)
+
 
 The ``FrameField`` construct is used to specify a field of a
 class object. The identifier following the back-quote is the
@@ -350,7 +363,7 @@ elements---one could imagine
 Also, ``FrameField`` is not taken into consideration for
 lambda expressions.
 
-### 5.1.5. Reads Clause
+### 5.1.5. Reads Clause {#sec-reads-clause}
 ````grammar
 ReadsClause(allowLemma, allowLambda, allowWild) =
   "reads"
@@ -384,15 +397,74 @@ If a `reads` clause uses `*`, then the `reads` clause is not allowed to
 mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
-lambda, or iterator may read. If more than one `reads` clause is given
+lambda, or iterator may read. The memory locations are all the fields
+of all of the references given in the set specified in the frame expression
+and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
+For example, in
+```dafny
+class C {
+  var x: int
+  var y: int
+
+  predicate f(c: C) 
+    reads this, c`x
+  {
+    this.x == c.x
+  }
+}
+```
+the `reads` clause allows reading `this.x`, `this,y`, and `c.x` (which may be the same
+memory location as `this.x`).
+}
+
+If more than one `reads` clause is given
 in a specification the effective read set is the union of the sets
 specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
 read.
 
-TO BE WRITTEN: multiset of objects allowed in reads clauses
+If a `reads` clause refers to a sequence or multiset, that collection
+(call it `c`) is converted to a set by adding an implicit set
+comprehension of the form `set o: object | o in c` before computing the
+union of object sets from other `reads` clauses.
 
-### 5.1.6. Modifies Clause
+An expression in a `reads` clause is also allowed to be a function call whose value is 
+a collection of references. Such an expression is converted to a set by taking the
+union of the function's image over all inputs. For example, if `F` is
+a function from `int` to `set<object>`, then `reads F` has the meaning
+
+```dafny
+set x: int, o: object | o in F(x) :: o
+```
+
+This is particularly useful when wanting to specify the reads set of
+another function. For example, function `Sum` adds up the values of
+`f(i)` where `i` ranges from `lo` to `hi`:
+
+```dafny
+function Sum(f: int ~> real, lo: int, hi: int): real
+  requires lo <= hi
+  requires forall i :: lo <= i < hi ==> f.requires(i)
+  reads f.reads
+  decreases hi - lo
+{
+  if lo == hi then 0.0 else
+    f(lo) + Sum(f, lo + 1, hi)
+}
+```
+
+Its `reads` specification says that `Sum(f, lo, hi)` may read anything
+that `f` may read on any input. Note that `f.reads` is itself a
+function, whose type is `int ~> set<object>`. (The specification
+`reads f.reads` gives an overapproximation of what `Sum` will actually
+read. More precise would be to specify that `Sum` reads only what `f`
+reads on the values from `lo` to `hi`, but the larger set denoted by
+`reads f.reads` is easier to write down and is often good enough.)
+
+Note, only `reads` clauses, not `modifies` clauses, are allowed to
+include functions as just described.
+
+### 5.1.6. Modifies Clause {#sec-modifies-clause}
 
 ````grammar
 ModifiesClause(allowLambda) =
@@ -413,13 +485,31 @@ one of the tools that allow Dafny to work on one method at a time,
 because they restrict what would otherwise be arbitrary modifications of
 memory to something that Dafny can reason about.
 
+Just as for a `reads` clause, the memory locations allowed to be modified
+in a method are all the fields of any object reference in the frame expression
+set and any specific field denoted by a [`FrameField`](#sec-frame-expression) in the `modifies` clause.
+For example, in
+```dafny
+class C {
+  var next: C
+  var value: int
+
+  method M() 
+    modifies next
+  { ... }
+}
+```
+method `M` is permitted to modify `this.next.next` and `this.next.value`
+but not `this.next`. To be allowed to modify `this.next`, the modifies clause
+must include `this`, or some expression that evaluates to `this`.
+
 If an object is newly allocated within the body of a method
 or within the scope of a `modifies` statement or a loop's `modifies` clause,
  then the fields of that object may always be modified.
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-`modify` statement (cf. [Section 19.22](#sec-modify-statement)).
+`modify` statement (cf. [Section 20.22](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -441,7 +531,7 @@ interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 
-### 5.1.7. Invariant Clause
+### 5.1.7. Invariant Clause {#sec-invariant-clause}
 ````grammar
 InvariantClause_ =
   "invariant" { Attribute }
@@ -467,7 +557,7 @@ MethodSpec =
   }
 ````
 
-A method specification is zero or more `modifies` `requires`
+A method specification is zero or more `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
@@ -483,7 +573,7 @@ FunctionSpec =
   }
 ````
 
-A function specification is zero or more `reads` `requires`
+A function specification is zero or more `reads`, `requires`,
 `ensures` or `decreases` clauses, in any order. A function
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
@@ -493,16 +583,17 @@ allowed to modify any memory.
 LambdaSpec =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause(allowLabel: false)
+  | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
-// TODO - the above grammar is not quite right for Requires
 
-A lambda specification is zero or more `reads` or `requires` clauses.
+A lambda specification provides a specification for a lambda function expression;
+it consists of zero or more `reads` or `requires` clauses.
+Any `requires` clauses may not have labels or attributes.
 Lambda specifications do not have `ensures` clauses because the body
 is never opaque.
 Lambda specifications do not have `decreases`
-clauses because they do not have names and thus cannot be recursive. A
+clauses because lambda expressions do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
@@ -524,12 +615,13 @@ clauses apply to both of them. For the `requires` and `ensures`
 clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
-TODO: What is the meaning of a `decreases` clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of
-iterators explains these.
-
-TODO: What is the relationship between the post condition and
-the `Valid()` predicate?
+Examples of iterators, including iterator specifications, are given in
+[Section 16](#sec-iterator-types). Briefly
+- a requires clause gives a precondition for creating an iterator
+- a ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
+- a decreases clause is used to show that the iterator will eventually terminate
+- a yield requires clause is a precondition for calling `MoveNext`
+- a yield ensures clause is a postcondition for calling `MoveNext`
 
 ## 5.6. Loop Specification
 ````grammar

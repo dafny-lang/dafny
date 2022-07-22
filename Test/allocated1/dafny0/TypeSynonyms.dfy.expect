@@ -1,22 +1,22 @@
 TypeSynonyms.dfy(78,11): Error: assertion might not hold
-TypeSynonyms.dfy(119,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(119,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(121,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(121,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(123,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(123,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(125,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(125,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(133,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(133,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(135,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(143,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(143,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(145,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(145,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(147,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(155,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(155,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-TypeSynonyms.dfy(157,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
+TypeSynonyms.dfy(119,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(119,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(121,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(121,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(123,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(123,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(125,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(125,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(133,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(133,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(135,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(143,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(143,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(145,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(145,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(147,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(155,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(155,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+TypeSynonyms.dfy(157,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
 
 Dafny program verifier finished with 2 verified, 20 errors

@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:- /env:0 "%s" > "%t"
+// RUN: %dafny_0 /dprint:- /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
   predicate P(n: int)

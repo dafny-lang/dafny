@@ -1,4 +1,4 @@
-RealCompare.dfy(35,5): Error: failure to decrease termination measure
+RealCompare.dfy(35,5): Error: decreases clause might not decrease
 RealCompare.dfy(50,3): Error: decreases expression must be bounded below by 0.0
 RealCompare.dfy(48,12): Related location
 RealCompare.dfy(141,11): Error: assertion might not hold

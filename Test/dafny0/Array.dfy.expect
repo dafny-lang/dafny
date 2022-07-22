@@ -1,9 +1,9 @@
-Array.dfy(13,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Array.dfy(20,15): Error: target object may be null
+Array.dfy(13,7): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(20,15): Error: target object might be null
 Array.dfy(26,5): Error: index out of range
 Array.dfy(50,19): Error: assertion might not hold
-Array.dfy(58,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Array.dfy(65,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(58,7): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(65,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(108,20): Error: upper bound below lower bound or above length of array
 Array.dfy(118,7): Error: insufficient reads clause to read the indicated range of array elements
 Array.dfy(120,7): Error: insufficient reads clause to read the indicated range of array elements
@@ -11,12 +11,12 @@ Array.dfy(121,7): Error: insufficient reads clause to read the indicated range o
 Array.dfy(122,7): Error: insufficient reads clause to read the indicated range of array elements
 Array.dfy(160,5): Error: insufficient reads clause to read array element
 Array.dfy(168,5): Error: insufficient reads clause to read array element
-Array.dfy(184,5): Error: assignment may update an array element not in the enclosing context's modifies clause
-Array.dfy(191,5): Error: assignment may update an array element not in the enclosing context's modifies clause
-Array.dfy(332,4): Error: assignment may update an object not in the enclosing context's modifies clause
-Array.dfy(338,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(184,5): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(191,5): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(332,4): Error: assignment might update an object not in the enclosing context's modifies clause
+Array.dfy(338,5): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(353,17): Error: assertion might not hold
-Array.dfy(358,17): Error: left-hand sides that.x and this.x may refer to the same location
+Array.dfy(358,17): Error: left-hand sides that.x and this.x might refer to the same location
 Array.dfy(216,0): Error: A postcondition might not hold on this return path.
 Array.dfy(215,10): Related location: This is the postcondition that might not hold.
 Array.dfy(240,0): Error: A postcondition might not hold on this return path.

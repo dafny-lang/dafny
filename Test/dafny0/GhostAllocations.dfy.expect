@@ -1,10 +1,10 @@
-GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(180,2): Error: field 'h', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(180,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(28,11): Error: assertion might not hold
 GhostAllocations.dfy(31,11): Error: assertion might not hold
 GhostAllocations.dfy(63,9): Error: assertion might not hold

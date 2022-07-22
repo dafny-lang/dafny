@@ -17,10 +17,10 @@ Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun-java/CompileAndThenRun.java
 Additional target code written to CompileAndThenRun-java/_System/nat.java
 Additional target code written to CompileAndThenRun-java/_System/__default.java
-Additional target code written to CompileAndThenRun-java/dafny/Tuple0.java
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun.cpp
 Additional target code written to CompileAndThenRun.h
+Additional target code written to DafnyRuntime.h
 hello, Dafny
