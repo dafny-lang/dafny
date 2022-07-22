@@ -330,7 +330,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           } else {
             if (binOpIndent > 0) {
               formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
-            } else {
+            } else if (binaryExpr.OwnedTokens.Count > 0) {
               var startToken = binaryExpr.StartToken;
               var newIndent = formatter.GetTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
               formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
