@@ -64,10 +64,6 @@ class DocumentObserver : IObserver<DafnyDocument> {
   }
 
   public void OnNext(DafnyDocument document) {
-    if (document.Version < LastPublishedDocument.Version) {
-      return;
-    }
-
     notificationPublisher.PublishNotifications(LastPublishedDocument, document);
     LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
   }
