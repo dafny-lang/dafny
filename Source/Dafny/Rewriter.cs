@@ -130,6 +130,13 @@ namespace Microsoft.Dafny {
                  ^^^ Warning: Constructor name 'Green' should contain a parenthesis at the end           
             case anythingElse => false;
         }
+        
+    * datatype Color = Red | Green | ShadesOfGray(nat)
+      method MonochromaticMethod(c: Color) returns (x: bool) {
+      return match c
+            case ShadesOfGray => true
+                  ^^^ Warning: Variable name 'ShadesOfGray' on line 129 starts with a capital letter
+            case anythingElse => false;
     }
    */
   class ConstructorWarning : IRewriter {
@@ -159,9 +166,15 @@ namespace Microsoft.Dafny {
         foreach (var caseExpr in matchExprCases) {
           if (caseExpr.Pat is IdPattern idPattern) {
             var isConstructor = idPattern.Arguments != null;
+            var isVariable = idPattern.Arguments == null;
             if (idPattern.HasParenthesis == false && isConstructor) {
               this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
                 $"Constructor name '{idPattern}' should contain a parenthesis at the end");
+            }
+            if (char.IsUpper(idPattern.Id[0]) && isVariable) {
+              var lineNum = idPattern.Tok.line;
+              this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
+                $"Variable name '{idPattern}' on line {lineNum} starts with a capital letter");
             }
           }
         }

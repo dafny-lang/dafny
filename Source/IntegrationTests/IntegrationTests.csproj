@@ -41,12 +41,6 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Update="..\..\Test\linters\constructorCaseWithoutParenthesis.dfy">
-          <Link>TestFiles\LitTests\LitTest\linters\constructorCaseWithoutParenthesis.dfy</Link>
-        </Content>
-        <Content Update="..\..\Test\linters\constructorCaseWithoutParenthesis.dfy.expect">
-          <Link>TestFiles\LitTests\LitTest\linters\constructorCaseWithoutParenthesis.dfy.expect</Link>
-        </Content>
     </ItemGroup>
     
 </Project>

@@ -1,0 +1,11 @@
+constructorCaseWithoutParenthesis.dfy(9,6): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(19,6): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(27,9): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(8,11): Warning: Variable name 'ShadesOfGray' on line 8 starts with a capital letter
+constructorCaseWithoutParenthesis.dfy(13,11): Warning: Constructor name 'Green' should contain a parenthesis at the end
+constructorCaseWithoutParenthesis.dfy(18,11): Warning: Variable name 'ShadesOfGray' on line 18 starts with a capital letter
+constructorCaseWithoutParenthesis.dfy(26,14): Warning: Variable name 'ShadesOfGray' on line 26 starts with a capital letter
+
+Dafny program verifier finished with 3 verified, 0 errors
+
+Process finished with exit code 0.
