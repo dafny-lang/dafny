@@ -68,6 +68,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
+    const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
     protected override string StmtTerminator { get => ""; }
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
@@ -471,37 +472,42 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var xType = type.NormalizeExpandKeepConstraints();
-      switch (xType) {
-        case BoolType:
+      var customName = false;
+      var name = type.NormalizeExpandKeepConstraints() switch {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        case TypeProxy:
-          return "_dafny.defaults.bool";
-        case IntType:
-        case BitvectorType:
-          return "_dafny.defaults.int";
-        case RealType:
-          return "_dafny.defaults.real";
-        case UserDefinedType udt:
-          var cl = udt.ResolvedClass;
-          if (cl is TypeParameter tp) {
-            // (thisContext != null && tp.Parent is ClassDecl and not TraitDecl ? "self." : "")
-            return tp.CompileName;
-          }
-          if (cl is ClassDecl) {
-            return "_dafny.defaults.null";
-          }
-          if (cl is TupleTypeDecl tpl) {
-            var w = new ConcreteSyntaxTree();
-            w.Write($"{DafnyRuntimeModule}.defaults.tuple(");
-            EmitTypeDescriptorsActuals(UsedTypeParameters(tpl, udt.TypeArgs), udt.tok, w, true);
-            w.Write(")");
-            return w.ToString();
-          }
-          Contract.Assert(cl is NewtypeDecl);
-          return $"{TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok)}.default";
-        default:
-          throw new cce.UnreachableException();
+        BoolType or TypeProxy => "bool",
+        IntType or BitvectorType => "int",
+        RealType => "real",
+        UserDefinedType udt => udt.ResolvedClass switch {
+          TypeParameter tp => TypeParameterDescriptor(tp),
+          ClassDecl => "null",
+          TupleTypeDecl tpl => TupleTypeDescriptor(tpl, udt.TypeArgs, udt.tok),
+          NewtypeDecl => NewtypeDescriptor(udt),
+          _ => throw new cce.UnreachableException()
+        },
+        _ => throw new cce.UnreachableException()
+      };
+
+      return (customName ? "" : DafnyDefaults + ".") + name;
+
+      string TypeParameterDescriptor(TypeParameter typeParameter) {
+        //TODO: Support for generic classes
+        Contract.Assert(!(thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl));
+        customName = true;
+        return typeParameter.CompileName;
+      }
+
+      string NewtypeDescriptor(UserDefinedType userDefinedType) {
+        customName = true;
+        return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.tok)}.default";
+      }
+
+      string TupleTypeDescriptor(TupleTypeDecl tuple, List<Type> typeArgs, IToken tok) {
+        var w = new ConcreteSyntaxTree();
+        w.Write("tuple(");
+        EmitTypeDescriptorsActuals(UsedTypeParameters(tuple, typeArgs), tok, w, true);
+        w.Write(")");
+        return w.ToString();
       }
     }
 
