@@ -218,7 +218,6 @@ public class CompilationManager {
     var implementationTasks = translatedDocument.VerificationTasks!;
     if (!implementationTasks.Any()) {
       MarkVerificationFinished();
-      return;
     }
 
     statusPublisher.SendStatusNotification(translatedDocument.TextDocumentItem, CompilationStatus.VerificationStarted);
