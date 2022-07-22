@@ -63,12 +63,15 @@ class DocumentObserver : IObserver<DafnyDocument> {
     }
   }
 
+  private readonly object myLock = new();
   public void OnNext(DafnyDocument document) {
-    if (document.Version < LastPublishedDocument.Version) {
-      return;
-    }
+    lock (myLock) {
+      if (document.Version < LastPublishedDocument.Version) {
+        return;
+      }
 
-    notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-    LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
+      notificationPublisher.PublishNotifications(LastPublishedDocument, document);
+      LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
+    }
   }
 }
