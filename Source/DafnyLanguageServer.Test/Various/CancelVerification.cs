@@ -39,12 +39,12 @@ method {:timeLimit 10} test() {
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
 
        await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-       var document = await Documents.GetBestResolvedDocumentAsync(documentItem.Uri);
+       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
         Assert.IsNotNull(document);
       Assert.IsTrue(!document.Diagnostics.Any());
       ApplyChange(ref documentItem, new Range((12, 9), (12, 13)), "/");
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      document = await Documents.GetBestResolvedDocumentAsync(documentItem.Uri);
+      document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(document.Diagnostics.Any());
     }
