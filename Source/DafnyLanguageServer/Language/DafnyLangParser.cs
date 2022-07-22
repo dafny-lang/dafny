@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           document.Text,
           document.GetFilePath(),
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
-          document.GetFilePath(),
+          document.Uri.ToString(),
           program.DefaultModule,
           program.BuiltIns,
           errorReporter
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
-          filename = document.GetFilePath(),
+          Filename = document.Uri.ToString(),
           line = 1,
           col = 1,
           pos = 0,
@@ -101,8 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
       return new Dafny.Program(
-        // The file system path is used as the program's name to identify the entry document. See PathExtensions
-        document.GetFilePath(),
+        document.Uri.ToString(),
         new LiteralModuleDecl(new DefaultModuleDecl(), null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(),

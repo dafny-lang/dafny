@@ -122,6 +122,15 @@ jobs:
       # NuGet will consider any package with a version-suffix as a prerelease
       run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
 
+    - name: Make NuGet package available as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget-packages-${{ matrix.os }}
+        path: dafny/Binaries/*.nupkg
+
     - name: Upload package to NuGet
       if: ${{ inputs.release_nuget }}
-      run: dotnet nuget push "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+      # Need --skip-duplicate for cases where we release a new Dafny
+      # version but the runtime hasn't changed and is still the old
+      # version.
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
