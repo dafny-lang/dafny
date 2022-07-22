@@ -473,7 +473,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
 
       var customName = false;
-      var name = type.NormalizeExpandKeepConstraints() switch {
+      return (customName ? "" : DafnyDefaults + ".") + type.NormalizeExpandKeepConstraints() switch {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => "bool",
         IntType or BitvectorType => "int",
@@ -487,8 +487,6 @@ namespace Microsoft.Dafny.Compilers {
         },
         _ => throw new cce.UnreachableException()
       };
-
-      return (customName ? "" : DafnyDefaults + ".") + name;
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         //TODO: Support for generic classes
@@ -1242,29 +1240,27 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.Add:
-          if (!resultType.IsCharType) {
-            truncateResult = true;
-            opString = "+";
-          } else {
+          if (resultType.IsCharType) {
             staticCallString = $"{DafnyRuntimeModule}.plus_char";
+          } else {
+            if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
+              truncateResult = true;
+            }
+            opString = "+";
           }
-          break;
-
-        case BinaryExpr.ResolvedOpcode.Concat:
-          opString = "+";
           break;
 
         case BinaryExpr.ResolvedOpcode.Sub:
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
-          if (!resultType.IsCharType) {
+          if (resultType.IsCharType) {
+            staticCallString = $"{DafnyRuntimeModule}.minus_char";
+          } else {
             if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
               truncateResult = true;
             }
             opString = "-";
-          } else {
-            staticCallString = $"{DafnyRuntimeModule}.minus_char";
           }
           break;
 
