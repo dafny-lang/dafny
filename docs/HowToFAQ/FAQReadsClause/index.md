@@ -2,6 +2,8 @@
 title: Where do I put the reads clause?
 ---
 
+## Question:
+
 This example
 ```dafny
 {% include_relative Example.dfy %}
@@ -11,6 +13,8 @@ generates this error:
 {% include_relative out.txt %}
 ```
 but there is no obvious place to put a `reads` clause.
+
+## Answer:
 
 There is no place for the `reads` clause because no such clause should be needed.
 A type definition is not allowed to depend on a mutable field;
