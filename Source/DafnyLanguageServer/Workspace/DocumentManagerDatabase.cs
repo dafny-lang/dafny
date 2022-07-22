@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var state)) {
-        await state.Close();
+        await state.CloseAsync();
         return true;
       }
       return false;
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<DafnyDocument?> GetBestResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetBestResolvedDocument();
+        return state.GetBestResolvedDocumentAsync();
       }
       return Task.FromResult<DafnyDocument?>(null);
     }

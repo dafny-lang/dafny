@@ -37,6 +37,7 @@ public class CompilationManager {
   private readonly IServiceProvider services;
   private readonly ImmutableList<Position> lastTouchedMethodPositions;
   private bool shouldVerify;
+  private readonly VerificationTree? migratedVerificationTree;
 
   private DafnyDocument lastDocumentUpdate;
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -49,7 +50,10 @@ public class CompilationManager {
 
   public CompilationManager(IServiceProvider services,
     VerifierOptions verifierOptions,
-    DocumentTextBuffer textBuffer, ImmutableList<Position> lastTouchedMethodPositions, bool shouldVerify) {
+    DocumentTextBuffer textBuffer,
+    ImmutableList<Position> lastTouchedMethodPositions,
+    bool shouldVerify,
+    VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
     telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
@@ -61,6 +65,7 @@ public class CompilationManager {
     this.services = services;
     this.lastTouchedMethodPositions = lastTouchedMethodPositions;
     this.shouldVerify = shouldVerify;
+    this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
 
     // TODO there is duplication between this and DocumentObserver.LastPublishedDocument
@@ -151,6 +156,10 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
+    if (migratedVerificationTree != null) {
+      loaded.VerificationTree = migratedVerificationTree;
+    }
+
     var progressReporter = CreateVerificationProgressReporter(loaded);
     progressReporter.RecomputeVerificationTree();
     progressReporter.UpdateLastTouchedMethodPositions();
@@ -165,7 +174,6 @@ public class CompilationManager {
     var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
       var status = StatusFromBoogieStatus(task.CacheStatus);
-      var id = GetImplementationId(task.Implementation);
       if (task.CacheStatus is Completed completed) {
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
         initialViews.TryAdd(GetImplementationId(task.Implementation), view);

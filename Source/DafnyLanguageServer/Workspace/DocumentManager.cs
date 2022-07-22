@@ -20,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentManager {
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
+  private readonly INotificationPublisher notificationPublisher;
 
   private readonly IServiceProvider services;
   private readonly DocumentOptions documentOptions;
@@ -42,6 +43,7 @@ public class DocumentManager {
     this.documentOptions = documentOptions;
     this.verifierOptions = verifierOptions;
     this.relocator = services.GetRequiredService<IRelocator>();
+    this.notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
     observer = new DocumentObserver(services.GetRequiredService<ILogger<DocumentObserver>>(),
@@ -49,7 +51,12 @@ public class DocumentManager {
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
-    CompilationManager = new CompilationManager(services, verifierOptions, document, ImmutableList.Create<Position>(), VerifyOnOpen);
+    CompilationManager = new CompilationManager(services,
+      verifierOptions,
+      document,
+      ImmutableList.Create<Position>(),
+      VerifyOnOpen,
+      null);
     observerSubscription = CompilationManager.DocumentUpdates.Subscribe(observer);
   }
 
@@ -84,21 +91,23 @@ public class DocumentManager {
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
-    // TODO use this,
-    // documentLoader.PublishGutterIcons(resolvedDocument, false);
-    // Came from GetResolvedDocumentAsync
-
     CompilationManager = new CompilationManager(
       services,
       verifierOptions,
       updatedText,
+      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedLastTouchedVerifiables,
-      VerifyOnChange
+      VerifyOnChange,
+      migratedVerificationTree
     );
 
     observerSubscription.Dispose();
-    observerSubscription = CompilationManager.DocumentUpdates.Select(document =>
-      FillMissingStateUsingLastPublishedDocument(documentChange, document, lastPublishedDocument, migratedImplementationViews)).Subscribe(observer);
+    var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
+      FillMissingStateUsingLastPublishedDocument(documentChange, document, lastPublishedDocument, migratedImplementationViews));
+    migratedUpdates.Where(document => document.WasResolved).FirstAsync().Subscribe(document => {
+      notificationPublisher.PublishGutterIcons(document, false);
+    });
+    observerSubscription = migratedUpdates.Subscribe(observer);
   }
 
   private DafnyDocument FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
@@ -151,7 +160,7 @@ public class DocumentManager {
     CompilationManager.Verify();
   }
 
-  public async Task Close() {
+  public async Task CloseAsync() {
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
@@ -159,7 +168,7 @@ public class DocumentManager {
     }
   }
 
-  public async Task<DafnyDocument?> GetBestResolvedDocument() {
+  public async Task<DafnyDocument?> GetBestResolvedDocumentAsync() {
     try {
       await CompilationManager.ResolvedDocument;
     } catch (OperationCanceledException) {
