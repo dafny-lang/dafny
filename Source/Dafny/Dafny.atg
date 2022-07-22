@@ -3280,6 +3280,7 @@ ForLoopStmt<out Statement stmt>
     }
     stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
       invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+    stmt.OwnedTokens = ownedTokens;
   .)
   .
 

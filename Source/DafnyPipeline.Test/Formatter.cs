@@ -228,6 +228,13 @@ method topLevel(
   {
     assert true;
   }
+  
+  forall z <- [0]
+    ensures
+      0 == 0
+  {
+    assert true;
+  }
   while z != 0
     invariant true {
     z := 0;
