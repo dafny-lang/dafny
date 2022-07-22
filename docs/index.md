@@ -16,7 +16,7 @@ layout: page
 
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
-- [Index to Dafny Resources for Users](toc)
+- [Index to Dafny Resources for Users](toc) ([installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) [Dafny for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode))
 - [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
 
 ![Dafny Banner](./banner.png "Dafny")
