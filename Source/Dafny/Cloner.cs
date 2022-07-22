@@ -688,15 +688,16 @@ namespace Microsoft.Dafny {
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
-      if (pat is LitPattern) {
-        var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
-      } else if (pat is IdPattern) {
-        var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
-      } else {
-        Contract.Assert(false);
-        return null;
+      switch (pat) {
+        case LitPattern p:
+          return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
+        case IdPattern p:
+          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
+        case DisjunctivePattern p:
+          return new DisjunctivePattern(p.Tok, p.Alternatives.ConvertAll(CloneExtendedPattern), p.IsGhost);
+        default:
+          Contract.Assert(false);
+          return null;
       }
     }
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
