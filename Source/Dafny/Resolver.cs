@@ -12505,7 +12505,7 @@ namespace Microsoft.Dafny {
             return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
           }
           var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
-          return new IdPattern(p.Tok, p.Id, args, p.IsGhost) {ResolvedLit = p.ResolvedLit};
+          return new IdPattern(p.Tok, p.Id, args, p.IsGhost) { ResolvedLit = p.ResolvedLit };
         case DisjunctivePattern p:
           reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
           return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
