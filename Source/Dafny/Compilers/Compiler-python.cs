@@ -473,7 +473,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
 
       var customName = false;
-      return (customName ? "" : DafnyDefaults + ".") + type.NormalizeExpandKeepConstraints() switch {
+      var name = type.NormalizeExpandKeepConstraints() switch {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => "bool",
         IntType or BitvectorType => "int",
@@ -487,6 +487,7 @@ namespace Microsoft.Dafny.Compilers {
         },
         _ => throw new cce.UnreachableException()
       };
+      return (customName ? "" : DafnyDefaults + ".") + name;
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         //TODO: Support for generic classes
@@ -1240,6 +1241,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.Add:
+        case BinaryExpr.ResolvedOpcode.Concat:
           if (resultType.IsCharType) {
             staticCallString = $"{DafnyRuntimeModule}.plus_char";
           } else {
