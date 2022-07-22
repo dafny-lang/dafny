@@ -150,16 +150,22 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void MarkMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
-    if (startToken.val != "{") { // method, while loop, etc.
+    if (startToken.val != "{") {
       SetBeforeAfter(startToken, -1, indent, indent + 2);
       indent += 2;
+    } else {
+      if (PosToIndentLineBefore.TryGetValue(startToken.pos, out var lineIndent)) {
+        indent = lineIndent + 2;
+      }
     }
-
-    var originalIndent = indent;
+    var firstIndent = indent;
     var extraIndent = 0;
     var commaIndent = 0;
     foreach (var token in ownedTokens) {
-      if (token.val is "<" or "[" or "(" or "{") {
+      if (token.val is "{") {
+        SetBeforeAfter(token, indent, indent - 2, indent);
+      }
+      if (token.val is "<" or "[" or "(") {
         if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
           extraIndent = 2;
           commaIndent = indent;
@@ -180,13 +186,16 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       if (token.val is ",") {
         SetBeforeAfter(token, indent, commaIndent, indent);
       }
-      if (token.val is ">" or "]" or ")" or "}") {
+      if (token.val is ">" or "]" or ")") {
         indent -= extraIndent;
         SetBeforeAfter(token, indent + extraIndent, indent, indent);
       }
+      if (token.val is "}") {
+        SetBeforeAfter(token, indent, indent - 2, indent - 2);
+      }
 
       if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
-        indent = originalIndent;
+        indent = firstIndent;
         SetBeforeAfter(token, indent, indent, indent + 2);
         indent += 2;
         commaIndent = indent;
@@ -324,7 +333,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var firstToken = stmt.Tok;
       var indent = formatter.GetIndentBefore(firstToken);
       formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
-      return false;
+      formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);
+      return true;
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {

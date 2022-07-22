@@ -6689,7 +6689,7 @@ namespace Microsoft.Dafny {
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     public LList<Label> Labels;  // mutable during resolution
-    public List<IToken> OwnedTokens;
+    public List<IToken> OwnedTokens = new List<IToken>();
 
     private Attributes attributes;
     public Attributes Attributes {
