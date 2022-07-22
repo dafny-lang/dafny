@@ -9,11 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
-  /// Database that cancels pending document updates when new changes are incoming.
+  /// Contains a collection of DocumentManagers
   /// </summary>
-  /// <remarks>
-  /// Only delta updates are supported and the API is not thread-safe.
-  /// </remarks>
   public class DocumentManagerDatabase : IDocumentDatabase {
 
     private readonly IServiceProvider services;

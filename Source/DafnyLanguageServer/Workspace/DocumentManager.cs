@@ -14,7 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 /// <summary>
-/// Handles multiple versions of a single document.
+/// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
 public class DocumentManager {
@@ -111,7 +111,8 @@ public class DocumentManager {
   }
 
   private DafnyDocument FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
-    DafnyDocument document, DafnyDocument lastPublishedDocument, Dictionary<ImplementationId, ImplementationView>? migratedImplementationViews)
+    DafnyDocument document, DafnyDocument lastPublishedDocument,
+    IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews)
   {
     if (!document.SymbolTable.Resolved) {
       document.SymbolTable =

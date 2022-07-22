@@ -73,7 +73,7 @@ public class CompilationManager {
     TranslatedDocument = TranslateAsync();
 
     if (shouldVerify) {
-      var _ = VerifyAsync();
+      var _ = VerifyEverythingAsync();
     } else {
       MarkVerificationFinished();
     }
@@ -86,7 +86,7 @@ public class CompilationManager {
 
     shouldVerify = true;
     MarkVerificationStarted();
-    var _ = VerifyAsync();
+    var _ = VerifyEverythingAsync();
   }
 
   private async Task<DafnyDocument> ResolveAsync() {
@@ -177,7 +177,7 @@ public class CompilationManager {
     return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
   }
 
-  private async Task VerifyAsync() {
+  private async Task VerifyEverythingAsync() {
     var translatedDocument = await TranslatedDocument;
 
     var implementationTasks = translatedDocument.VerificationTasks!;
@@ -291,7 +291,6 @@ public class CompilationManager {
     }
   }
 
-  // TODO migrate to higher level?
   private void NotifyStatus(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
     var errorCount = document.ImplementationIdToView!.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
     logger.LogDebug($"Finished verification with {errorCount} errors.");
@@ -322,7 +321,6 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  // TODO migrate to higher level?
   public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
     if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD003
