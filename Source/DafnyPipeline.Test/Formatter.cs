@@ -279,7 +279,33 @@ method topLevel(
   case 3
     =>
   }
-}";
+}
+
+function topLevel(
+    x: int,
+    y: int
+): int {
+  if x == 2 then
+    if x > 3
+    then
+      y
+    else x
+  else
+    var z := 1;
+    var w := z + z;
+    assert w != x;
+    match x {
+    case 1 =>
+      17
+    case 3 =>
+      18
+    case y =>
+      19 
+      + 1 
+    }
+}
+// Trailing comments
+";
         programString = AdjustNewlines(programString);
         var programNotIndented = indentRegex.Replace(programString, "");
         var expectedProgram = removeTrailingNewlineRegex.Replace(programString, "");
