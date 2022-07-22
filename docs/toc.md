@@ -1,5 +1,5 @@
 ---
-title: The Dafny Language and Software Verification System
+title: Dafny Resources for Useres
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
@@ -13,8 +13,6 @@ layout: page
 </script>
 
 <link rel="stylesheet" href="assets/main.css">
-
-# Dafny Resources {#resources}
 
 * Quick start material:
    * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) and [Releases](https://github.com/dafny-lang/dafny/releases)
