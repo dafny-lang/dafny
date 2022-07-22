@@ -8,6 +8,8 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Server;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
@@ -29,7 +31,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader;
     }).AddSingleton<IProgramVerifier>(serviceProvider => {
       verifier = new CrashingVerifier(
-        serviceProvider.GetRequiredService<DafnyProgramVerifier>()
+        new DafnyProgramVerifier(
+          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
       );
       return verifier;
     });

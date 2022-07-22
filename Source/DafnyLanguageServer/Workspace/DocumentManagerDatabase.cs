@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -29,6 +30,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.services = services;
       this.documentOptions = documentOptions;
       VerifierOptions = verifierOptions;
+
+      // Initialises DafnyOptions.O
+      // TODO improve
+      services.GetRequiredService<IDafnyParser>();
+      services.GetRequiredService<ITextDocumentLoader>();
+
       DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
     }
 

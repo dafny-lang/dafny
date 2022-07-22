@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -34,8 +35,9 @@ public class CompilationManager {
   private VerifierOptions VerifierOptions { get; }
 
   public DocumentTextBuffer TextBuffer { get; }
+  private readonly Range? lastChange;
   private readonly IServiceProvider services;
-  private readonly ImmutableList<Position> lastTouchedMethodPositions;
+  private readonly ImmutableList<Position> migratedLastTouchedVerifiables;
   private bool shouldVerify;
   private readonly VerificationTree? migratedVerificationTree;
 
@@ -51,8 +53,9 @@ public class CompilationManager {
   public CompilationManager(IServiceProvider services,
     VerifierOptions verifierOptions,
     DocumentTextBuffer textBuffer,
-    ImmutableList<Position> lastTouchedMethodPositions,
+    Range? lastChange,
     bool shouldVerify,
+    ImmutableList<Position> migratedLastTouchedVerifiables,
     VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
     telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
@@ -63,9 +66,10 @@ public class CompilationManager {
 
     TextBuffer = textBuffer;
     this.services = services;
-    this.lastTouchedMethodPositions = lastTouchedMethodPositions;
+    this.migratedLastTouchedVerifiables = migratedLastTouchedVerifiables;
     this.shouldVerify = shouldVerify;
     this.migratedVerificationTree = migratedVerificationTree;
+    this.lastChange = lastChange;
     cancellationSource = new();
 
     // TODO there is duplication between this and DocumentObserver.LastPublishedDocument
@@ -119,7 +123,7 @@ public class CompilationManager {
   private async Task<DafnyDocument> ResolveAsync() {
     try {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
-      resolvedDocument.LastTouchedVerifiables = lastTouchedMethodPositions;
+      resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
       documentLoader.PublishGutterIcons(resolvedDocument, false);
       documentUpdates.OnNext(resolvedDocument.Snapshot());
       return resolvedDocument;
@@ -162,7 +166,7 @@ public class CompilationManager {
 
     var progressReporter = CreateVerificationProgressReporter(loaded);
     progressReporter.RecomputeVerificationTree();
-    progressReporter.UpdateLastTouchedMethodPositions();
+    progressReporter.UpdateLastTouchedMethodPositions(lastChange);
 
     var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
     if (VerifierOptions.GutterStatus) {
@@ -346,6 +350,7 @@ public class CompilationManager {
   public bool Idle => verificationCompleted.Task.IsCompleted;
 
   private TaskCompletionSource verificationCompleted = new();
+
   public void MarkVerificationStarted() {
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();

@@ -54,19 +54,17 @@ public class DocumentManager {
     CompilationManager = new CompilationManager(services,
       verifierOptions,
       document,
-      ImmutableList.Create<Position>(),
+      null,
       VerifyOnOpen,
+      ImmutableList.Create<Position>(),
       null);
     observerSubscription = CompilationManager.DocumentUpdates.Subscribe(observer);
   }
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-
-    var previousCompilationManager = CompilationManager;
-
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-    var oldVer = previousCompilationManager.TextBuffer.Version;
+    var oldVer = CompilationManager.TextBuffer.Version;
     var newVer = documentChange.TextDocument.Version;
     var documentUri = documentChange.TextDocument.Uri;
     if (oldVer >= newVer) {
@@ -74,8 +72,8 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    previousCompilationManager.CancelPendingUpdates();
-    var updatedText = textChangeProcessor.ApplyChange(previousCompilationManager.TextBuffer, documentChange, CancellationToken.None);
+    CompilationManager.CancelPendingUpdates();
+    var updatedText = textChangeProcessor.ApplyChange(CompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
     var lastPublishedDocument = observer.LastPublishedDocument;
     var oldVerificationDiagnostics = lastPublishedDocument.ImplementationIdToView;
@@ -87,17 +85,19 @@ public class DocumentManager {
     var migratedLastTouchedVerifiables =
       relocator.RelocatePositions(lastPublishedDocument.LastTouchedVerifiables, documentChange, CancellationToken.None);
 
-    // TODO use this.
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+
+    var lastChange = documentChange.ContentChanges.Select(contentChange => contentChange.Range).LastOrDefault();
 
     CompilationManager = new CompilationManager(
       services,
       verifierOptions,
       updatedText,
-      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      migratedLastTouchedVerifiables,
+      lastChange,
       VerifyOnChange,
+      migratedLastTouchedVerifiables,
+      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );
 
