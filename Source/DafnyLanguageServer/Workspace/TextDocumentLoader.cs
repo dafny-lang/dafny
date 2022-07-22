@@ -93,7 +93,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> PrepareVerificationTasksAsync(
+      DafnyDocument loaded,
+      CancellationToken cancellationToken) {
       if (loaded.ParseAndResolutionDiagnostics.Any(d =>
             d.Severity == DiagnosticSeverity.Error &&
             d.Source != MessageSource.Compiler.ToString() &&
@@ -119,9 +121,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (task.CacheStatus is Completed completed) {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);
-        } else if (loaded.ImplementationIdToView.TryGetValue(id, out var existingView)) {
-          var view = existingView with { Status = status };
-          initialViews.TryAdd(id, view);
         } else {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
           initialViews.TryAdd(GetImplementationId(task.Implementation), view);

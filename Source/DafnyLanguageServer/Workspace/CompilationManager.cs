@@ -22,10 +22,7 @@ public class CompilationManager {
 
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
-  private readonly INotificationPublisher notificationPublisher;
   private readonly ITextDocumentLoader documentLoader;
-  private readonly ITextChangeProcessor textChangeProcessor;
-  private readonly IRelocator relocator;
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
 
   private DafnyOptions Options => DafnyOptions.O;
@@ -47,13 +44,13 @@ public class CompilationManager {
   public CompilationManager(IServiceProvider services, DocumentTextBuffer textBuffer, bool shouldVerify) {
     telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
     logger = services.GetRequiredService<ILogger>();
-    notificationPublisher = services.GetRequiredService<INotificationPublisher>();
+    services.GetRequiredService<INotificationPublisher>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
-    relocator = services.GetRequiredService<IRelocator>();
+    services.GetRequiredService<ITextChangeProcessor>();
+    services.GetRequiredService<IRelocator>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
-    this.TextBuffer = textBuffer;
+    TextBuffer = textBuffer;
     this.shouldVerify = shouldVerify;
     cancellationSource = new();
 

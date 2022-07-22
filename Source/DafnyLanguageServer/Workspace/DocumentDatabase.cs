@@ -66,7 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void OpenDocument(DocumentTextBuffer document) {
       var observer = new DocumentObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
-      var compilationManager = new CompilationManager(services, document, VerifyOnOpen);
+      var compilationManager = new CompilationManager(services, document,
+        new Dictionary<ImplementationId, ImplementationView>(), VerifyOnOpen);
       var subscription = compilationManager.DocumentUpdates.Subscribe(observer);
       documents.Add(document.Uri, new DocumentState(observer, compilationManager, subscription));
     }
@@ -91,6 +92,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       previousCompilationManager.CancelPendingUpdates();
       var updatedText = textChangeProcessor.ApplyChange(previousCompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
+      Dictionary<ImplementationId, ImplementationView> migratedImplementationViews;
+      if (previousCompilationManager.TranslatedDocument.IsCompletedSuccessfully) {
+        var oldVerificationDiagnostics = previousCompilationManager.TranslatedDocument.Result.ImplementationIdToView;
+        migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
+      } else {
+        migratedImplementationViews = new();
+      }
+
       var newCompilationManager = new CompilationManager(
         services,
         updatedText,
@@ -100,7 +109,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       state.ObserverSubscription.Dispose();
 
       var newSubscription = newCompilationManager.DocumentUpdates.Select(d => {
+        var migratedViews = d.ImplementationIdToView.Select(kv => {
+          var value = kv.Value.Status <= PublishedVerificationStatus.Error
+            ? kv.Value with {
+              Diagnostics = migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
+                ? previousView.Diagnostics
+                : kv.Value.Diagnostics
+            }
+            : kv.Value;
+          return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
+        });
         // TODO merge this document with the latest published document before the change, to implement migration.
+        d.ImplementationIdToView = new(migratedViews);
         return d;
       }).Subscribe(state.Observer);
 
@@ -199,10 +219,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
       return result;
-    }
-
-    private static bool RequiresOnSaveVerification(DafnyDocument document) {
-      return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
     public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
