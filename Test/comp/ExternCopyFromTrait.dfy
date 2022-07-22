@@ -49,7 +49,7 @@ module {:extern "M"} M {
 module {:extern "M1"} M1 {
   trait {:extern "Asker"} {:compile false} Asker {
     method Exclaim() // An abstract method, to be overridden
-    method {:extern} Speak() // A method implemented by the base class
+    method {:extern} Speak() // A method implemented by the trait
   }
 
   trait DoubleAsker extends Asker {
