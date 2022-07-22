@@ -41,10 +41,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
+    public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; } = null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationIdToView? .SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
+      ImplementationIdToView?.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -85,8 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public DafnyDocument Snapshot() {
       var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, SymbolTable, CanDoVerification, GhostDiagnostics,
-        Program, WasResolved, LoadCanceled)
-      {
+        Program, WasResolved, LoadCanceled) {
         VerificationTree = VerificationTree,
         Counterexamples = Counterexamples == null ? null : new(Counterexamples),
         ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),

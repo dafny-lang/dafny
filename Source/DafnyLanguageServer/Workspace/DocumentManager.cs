@@ -112,8 +112,7 @@ public class DocumentManager {
 
   private DafnyDocument FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
     DafnyDocument document, DafnyDocument lastPublishedDocument,
-    IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews)
-  {
+    IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews) {
     if (!document.SymbolTable.Resolved) {
       document = document with {
         SymbolTable =
@@ -121,11 +120,9 @@ public class DocumentManager {
       };
     }
 
-    var migratedViews = document.ImplementationIdToView?.Select(kv =>
-    {
+    var migratedViews = document.ImplementationIdToView?.Select(kv => {
       var value = kv.Value.Status < PublishedVerificationStatus.Error
-        ? kv.Value with
-        {
+        ? kv.Value with {
           Diagnostics = migratedImplementationViews != null &&
                         migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
             ? previousView.Diagnostics
