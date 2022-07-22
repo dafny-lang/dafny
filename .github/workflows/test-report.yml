@@ -3,7 +3,7 @@ name: "Integration Test Report"
 on:
   workflow_run:
     workflows:
-      - Build and Test
+      - Integration Tests (Reusable Workflow)
     types:
       - completed
 

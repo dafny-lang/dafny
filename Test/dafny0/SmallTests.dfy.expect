@@ -1,15 +1,15 @@
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
-SmallTests.dfy(909,14): Error: target object may be null
-SmallTests.dfy(901,14): Error: target object may be null
+SmallTests.dfy(909,14): Error: target object might be null
+SmallTests.dfy(901,14): Error: target object might be null
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
-SmallTests.dfy(67,21): Error: target object may be null
-SmallTests.dfy(86,23): Error: target object may be null
-SmallTests.dfy(120,5): Error: call may violate context's modifies clause
-SmallTests.dfy(132,9): Error: call may violate context's modifies clause
-SmallTests.dfy(134,9): Error: call may violate context's modifies clause
-SmallTests.dfy(174,8): Error: assignment may update an object field not in the enclosing context's modifies clause
+SmallTests.dfy(67,21): Error: target object might be null
+SmallTests.dfy(86,23): Error: target object might be null
+SmallTests.dfy(120,5): Error: call might violate context's modifies clause
+SmallTests.dfy(132,9): Error: call might violate context's modifies clause
+SmallTests.dfy(134,9): Error: call might violate context's modifies clause
+SmallTests.dfy(174,8): Error: assignment might update an object field not in the enclosing context's modifies clause
 SmallTests.dfy(196,25): Error: assertion might not hold
 SmallTests.dfy(197,25): Error: assertion might not hold
 SmallTests.dfy(199,25): Error: assertion might not hold
@@ -42,9 +42,9 @@ SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decrease
 SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(604,11): Error: assertion might not hold
-SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next may refer to the same location
-SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] may refer to the same location
-SmallTests.dfy(627,24): Error: target object may be null
+SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
+SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] might refer to the same location
+SmallTests.dfy(627,24): Error: target object might be null
 SmallTests.dfy(640,9): Error: assertion might not hold
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(687,22): Error: assertion might not hold

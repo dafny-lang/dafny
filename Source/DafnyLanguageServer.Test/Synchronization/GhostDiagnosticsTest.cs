@@ -13,27 +13,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
-  public class GhostDiagnosticsTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-    private TestNotificationReceiver<GhostDiagnosticsParams> diagnosticReceiver;
-    private IDictionary<string, string> configuration;
-
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      diagnosticReceiver = new();
-      client = await InitializeClient(
-        options => options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(diagnosticReceiver.NotificationReceived))
-      );
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-    }
+  public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
@@ -63,9 +43,8 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(0, diagnostics.Length);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoGhostnessIsComing(CancellationToken);
     }
 
     [TestMethod]
@@ -107,7 +86,7 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Ghost statement", diagnostics[0].Message);
@@ -136,7 +115,7 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Ghost statement", diagnostics[0].Message);
@@ -163,7 +142,7 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Ghost statement", diagnostics[0].Message);
@@ -190,7 +169,7 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Ghost statement", diagnostics[0].Message);
@@ -225,7 +204,7 @@ class C {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics
         .OrderBy(diagnostic => diagnostic.Range.Start)
         .ToArray();

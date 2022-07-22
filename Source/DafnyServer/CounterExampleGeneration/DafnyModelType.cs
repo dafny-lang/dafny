@@ -11,7 +11,8 @@ namespace DafnyServer.CounterexampleGeneration {
     public readonly string Name;
     public readonly List<DafnyModelType> TypeArgs;
 
-    private static readonly Regex boogieToDafnyTypeRegex = new("(?<=[^_](__)*)_m");
+    private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
+    private static readonly Regex UnderscoreRemovalRegex = new("__");
 
     public DafnyModelType(string name, IEnumerable<DafnyModelType> typeArgs) {
       Name = name;
@@ -37,26 +38,41 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     public DafnyModelType InDafnyFormat() {
       // The line below converts "_m" used in boogie to separate modules to ".":
-      var tmp = boogieToDafnyTypeRegex.Replace(Name, ".");
+      var newName = ModuleSeparatorRegex.Replace(Name, ".");
+      // strip everything after @, this is done for type variables:
+      newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
-      bool removeNextUnderscore = false;
-      var newName = "";
-      foreach (char c in tmp) {
-        if (c == '_') {
-          if (!removeNextUnderscore) {
-            newName += c;
-          }
-          removeNextUnderscore = !removeNextUnderscore;
-        } else {
-          newName += c;
-        }
-      }
+      newName = UnderscoreRemovalRegex.Replace(newName, "_");
       return new(newName, TypeArgs.ConvertAll(type => type.InDafnyFormat()));
     }
 
     public DafnyModelType GetNonNullable() {
       var newName = Name.Trim('?');
       return new DafnyModelType(newName, TypeArgs);
+    }
+
+    public DafnyModelType ReplaceTypeVariables(DafnyModelType with) {
+      // Assigns the given value to all type variables
+      if (Name.Contains("$")) {
+        return with;
+      }
+      return new(Name, TypeArgs.ConvertAll(type =>
+        type.ReplaceTypeVariables(with)));
+    }
+
+    public override int GetHashCode() {
+      int hash = Name.GetHashCode();
+      foreach (var typ in TypeArgs) {
+        hash = 31 * typ.GetHashCode();
+      }
+      return hash;
+    }
+
+    public override bool Equals(object other) {
+      if (other is not DafnyModelType typ) {
+        return false;
+      }
+      return typ.ToString() == ToString();
     }
 
     /// <summary>

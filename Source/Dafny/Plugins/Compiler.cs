@@ -33,6 +33,10 @@ public abstract class Compiler {
   /// Value passed to the <c>/compileTarget:</c> command line flag to select this compiler (e.g. <c>cs</c> for C#)
   /// </summary>
   public virtual string TargetId => TargetExtension;
+  /// <summary>
+  /// Spaces added by a single indentation level.
+  /// </summary>
+  public virtual int TargetIndentSize => 2;
 
   /// <summary>
   /// Convert a Dafny file name into a file name without extension suitable for the target language (needed in e.g.
@@ -72,6 +76,11 @@ public abstract class Compiler {
   /// Whether generated code can be compiled without being written to disk.
   /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
+
+  /// <summary>
+  /// Dafny features this compiler is known to not support.
+  /// </summary>
+  public virtual IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature>();
 
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;

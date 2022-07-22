@@ -157,7 +157,7 @@ predicate Reachable(source: Node, sink: Node, S: set<Node>)
   exists via :: ReachableVia(source, via, sink, S)
 }
 
-predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {

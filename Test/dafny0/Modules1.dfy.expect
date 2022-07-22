@@ -9,6 +9,6 @@ Modules1.dfy(220,16): Error: assertion might not hold
 Modules1.dfy(221,16): Error: assertion might not hold
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location
-Modules1.dfy(62,8): Error: failure to decrease termination measure
+Modules1.dfy(62,8): Error: decreases clause might not decrease
 
 Dafny program verifier finished with 9 verified, 11 errors

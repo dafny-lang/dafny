@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
     <OutputPath>..\..\Binaries\</OutputPath>
+    <IsPackable>false</IsPackable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
@@ -20,7 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
     <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.5" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="RangeTree" Version="3.0.1" />
     <PackageReference Include="Serilog" Version="2.10.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />

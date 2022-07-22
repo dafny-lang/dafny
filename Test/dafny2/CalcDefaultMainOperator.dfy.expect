@@ -94,7 +94,7 @@ module _System {
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use:
 */
@@ -298,4 +298,4 @@ CalcDefaultMainOperator.dfy(40,4): Error: the calculation step between the previ
 CalcDefaultMainOperator.dfy(49,4): Error: the calculation step between the previous line and this line might not hold
 CalcDefaultMainOperator.dfy(55,4): Error: the calculation step between the previous line and this line might not hold
 
-Dafny program verifier finished with 11 verified, 8 errors
+Dafny program verifier finished with 9 verified, 8 errors

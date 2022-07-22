@@ -7,41 +7,41 @@ Twostate-Verification.dfy(337,23): Error: A precondition for this call might not
 Twostate-Verification.dfy(317,29): Related location: This is the precondition that might not hold.
 Twostate-Verification.dfy(359,18): Error: assertion might not hold
 Twostate-Verification.dfy(361,18): Error: assertion might not hold
-Twostate-Verification.dfy(384,17): Error: receiver argument must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(386,17): Error: receiver argument must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(391,26): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(393,28): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(398,19): Error: receiver argument must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(412,8): Error: receiver argument must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(414,8): Error: receiver argument must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(420,27): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(422,29): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(447,28): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(451,30): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(466,29): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(470,31): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(558,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(561,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(564,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(567,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(579,11): Error: receiver argument must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(582,11): Error: receiver argument must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(593,19): Error: argument 1 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(596,19): Error: parameter 1 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(599,19): Error: argument 1 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(602,19): Error: parameter 1 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(613,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(616,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(619,26): Error: argument 3 ('c') must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(622,26): Error: parameter 3 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(635,25): Error: receiver argument must be allocated in the two-state function's previous state
-Twostate-Verification.dfy(659,29): Error: receiver must be allocated in the state in which its fields are accessed
-Twostate-Verification.dfy(37,26): Error: receiver must be allocated in the state in which its fields are accessed
-Twostate-Verification.dfy(41,32): Error: receiver argument must be allocated in the state in which the function is invoked
-Twostate-Verification.dfy(56,26): Error: receiver must be allocated in the state in which its fields are accessed
-Twostate-Verification.dfy(58,32): Error: receiver argument must be allocated in the state in which the function is invoked
+Twostate-Verification.dfy(384,17): Error: receiver argument might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(386,17): Error: receiver argument might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(391,26): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(393,28): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(398,19): Error: receiver argument might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(412,8): Error: receiver argument might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(414,8): Error: receiver argument might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(420,27): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(422,29): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(447,28): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(451,30): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(466,29): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(470,31): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(558,22): Error: argument at index 2 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(561,22): Error: parameter at index 2 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(564,22): Error: argument at index 2 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(567,22): Error: parameter at index 2 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(579,11): Error: receiver argument might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(582,11): Error: receiver argument might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(593,19): Error: argument at index 1 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(596,19): Error: parameter at index 1 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(599,19): Error: argument at index 1 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(602,19): Error: parameter at index 1 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(613,22): Error: argument at index 2 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(616,22): Error: parameter at index 2 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(619,26): Error: argument at index 3 ('c') might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(622,26): Error: parameter at index 3 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(635,25): Error: receiver argument might not be allocated in the two-state function's previous state
+Twostate-Verification.dfy(659,29): Error: receiver might not be allocated in the state in which its fields are accessed
+Twostate-Verification.dfy(37,26): Error: receiver might not be allocated in the state in which its fields are accessed
+Twostate-Verification.dfy(41,32): Error: receiver argument might not be allocated in the state in which the function is invoked
+Twostate-Verification.dfy(56,26): Error: receiver might not be allocated in the state in which its fields are accessed
+Twostate-Verification.dfy(58,32): Error: receiver argument might not be allocated in the state in which the function is invoked
 Twostate-Verification.dfy(74,15): Error: assertion might not hold
-Twostate-Verification.dfy(6,4): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Twostate-Verification.dfy(12,17): Error: receiver must be allocated in the state in which its fields are accessed
+Twostate-Verification.dfy(6,4): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
+Twostate-Verification.dfy(12,17): Error: receiver might not be allocated in the state in which its fields are accessed
 
 Dafny program verifier finished with 66 verified, 42 errors

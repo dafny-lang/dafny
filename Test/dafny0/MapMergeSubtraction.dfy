@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Simple(m: map<int, real>, n: map<int, real>, s: set<int>) returns (r: map<int, real>)

@@ -139,6 +139,9 @@ namespace DafnyServer.CounterexampleGeneration {
           continue;
         }
         var val = State.TryGet(v);
+        if (val == null) {
+          continue; // This variable has no value in the model, so ignore it.
+        }
         var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate: true);
         if (curVars.ContainsKey(v)) {
           Model.RegisterLocalValue(vn.Name, val);

@@ -1,8 +1,8 @@
-// RUN: %dafny /compile:0 /induction:0 "%s" > "%t"
-// RUN: %dafny /compile:0 /induction:1 "%s" >> "%t"
-// RUN: %dafny /compile:0 /induction:2 "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /induction:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /induction:1 "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /induction:2 "%s" >> "%t"
 // RUN: %dafny /compile:0 /induction:3 "%s" >> "%t"
-// RUN: %dafny /compile:0 /induction:4 "%s" >> "%t"
+// RUN: %dafny_0 /compile:0 /induction:4 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests the various /induction options

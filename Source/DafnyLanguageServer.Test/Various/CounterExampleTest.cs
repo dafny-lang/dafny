@@ -475,7 +475,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("arr:_System.array?<int>"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("arr:_System.array?<int>"), string.Join(", ", counterExamples[0].Variables));
       Assert.AreEqual("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array?<int>"]);
     }
 
@@ -607,7 +607,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_System.array3?<int>"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_System.array3?<int>"), string.Join(", ", counterExamples[0].Variables));
       Assert.AreEqual("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3?<int>"]);
     }
 

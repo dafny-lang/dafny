@@ -212,7 +212,7 @@ namespace Microsoft.Dafny {
       Action<Bpl.Type> AddAxioms = typeOfK => {
         {
           // Add two copies of the type parameter lists!
-          var args = MkTyParamFormals(Concat(GetTypeParams(codecl), GetTypeParams(codecl)), false);
+          var args = MkTyParamFormals(Concat(GetTypeParams(codecl), GetTypeParams(codecl)), false, false);
           if (typeOfK != null) {
             args.Add(BplFormalVar(null, typeOfK, true));
           }
