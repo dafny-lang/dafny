@@ -24,17 +24,14 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public bool CrashOnLoad { get; set; }
 
   protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-    return serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
-      return new CrashingLoader(this,
-        LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)
-      );
-    }).AddSingleton<IProgramVerifier>(serviceProvider => {
-      return new CrashingVerifier(this,
+    return serverOptions.Services
+      .AddSingleton<ITextDocumentLoader>(serviceProvider => new CrashingLoader(this,
+        LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)))
+      .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
           serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
-      );
-    });
+    ));
   }
 
   [TestMethod]

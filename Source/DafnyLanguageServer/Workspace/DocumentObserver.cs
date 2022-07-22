@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -32,12 +36,30 @@ class DocumentObserver : IObserver<DafnyDocument> {
     telemetryPublisher.PublishUpdateComplete();
   }
 
-  public void OnError(Exception e) {
-    if (e is TaskCanceledException) {
+  public void OnError(Exception exception) {
+    if (exception is TaskCanceledException) {
       OnCompleted();
     } else {
-      logger.LogError(e, "error while handling document event");
-      telemetryPublisher.PublishUnhandledException(e);
+      var previousDiagnostics = LastPublishedDocument.LoadCanceled
+        ? new Diagnostic[] { }
+        : LastPublishedDocument.ParseAndResolutionDiagnostics;
+      var internalErrorDiagnostic = new Diagnostic() {
+        Message =
+          "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
+          exception,
+        Severity = DiagnosticSeverity.Error,
+        Range = LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
+        Source = "Crash"
+      };
+      var documentToPublish = LastPublishedDocument with {
+        LoadCanceled = false,
+        ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
+      };
+
+      OnNext(documentToPublish);
+
+      logger.LogError(exception, "error while handling document event");
+      telemetryPublisher.PublishUnhandledException(exception);
     }
   }
 

@@ -26,7 +26,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class CompilationManager {
 
   private readonly ILogger logger;
-  private readonly ITelemetryPublisher telemetryPublisher;
   private readonly ITextDocumentLoader documentLoader;
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly IProgramVerifier verifier;
@@ -41,7 +40,6 @@ public class CompilationManager {
   private bool shouldVerify;
   private readonly VerificationTree? migratedVerificationTree;
 
-  private DafnyDocument lastDocumentUpdate;
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly ReplaySubject<DafnyDocument> documentUpdates = new();
   public IObservable<DafnyDocument> DocumentUpdates => documentUpdates;
@@ -58,7 +56,6 @@ public class CompilationManager {
     ImmutableList<Position> migratedLastTouchedVerifiables,
     VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
-    telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     verifier = services.GetRequiredService<IProgramVerifier>();
@@ -71,10 +68,6 @@ public class CompilationManager {
     this.migratedVerificationTree = migratedVerificationTree;
     this.lastChange = lastChange;
     cancellationSource = new();
-
-    // TODO there is duplication between this and DocumentObserver.LastPublishedDocument
-    lastDocumentUpdate = documentLoader.CreateUnloaded(textBuffer, CancellationToken.None);
-    documentUpdates.Subscribe(next => lastDocumentUpdate = next);
 
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
@@ -96,30 +89,6 @@ public class CompilationManager {
     var _ = VerifyAsync();
   }
 
-  private void PublishUnhandledException(Exception exception)
-  {
-    var previousDiagnostics = lastDocumentUpdate.LoadCanceled
-      ? new Diagnostic[] { }
-      : lastDocumentUpdate.ParseAndResolutionDiagnostics;
-    documentUpdates.OnNext(lastDocumentUpdate with
-    {
-      LoadCanceled = false,
-      ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[]
-      {
-        new()
-        {
-          Message =
-            "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
-            exception,
-          Severity = DiagnosticSeverity.Error,
-          Range = lastDocumentUpdate.Program.GetFirstTopLevelToken().GetLspRange(),
-          Source = "Crash"
-        }
-      }).ToList()
-    });
-    telemetryPublisher.PublishUnhandledException(exception);
-  }
-
   private async Task<DafnyDocument> ResolveAsync() {
     try {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
@@ -128,25 +97,20 @@ public class CompilationManager {
       documentLoader.PublishGutterIcons(resolvedDocument, false);
       documentUpdates.OnNext(resolvedDocument.Snapshot());
       return resolvedDocument;
-    } catch (OperationCanceledException) {
-      throw;
-    } catch (Exception exception) {
-      PublishUnhandledException(exception);
+    } catch (Exception e) {
+      documentUpdates.OnError(e);
       throw;
     }
   }
 
   private async Task<DafnyDocument> TranslateAsync() {
-
     try {
       var resolvedDocument = await ResolvedDocument;
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
       documentUpdates.OnNext(translatedDocument.Snapshot());
       return translatedDocument;
-    } catch (OperationCanceledException) {
-      throw;
-    } catch (Exception exception) {
-      PublishUnhandledException(exception);
+    } catch (Exception e) {
+      documentUpdates.OnError(e);
       throw;
     }
   }
