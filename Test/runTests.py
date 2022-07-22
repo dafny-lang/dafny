@@ -377,9 +377,9 @@ def run_one(args):
     return run_one_internal(*args)
 
 def get_server_path(compiler):
-    REGEXP = r"\bDafny.exe\b.*"
+    REGEXP = r"\bDafny\b.*"
     if re.search(REGEXP, compiler):
-        return re.sub(REGEXP, "DafnyServer.exe", compiler)
+        return re.sub(REGEXP, "DafnyServer", compiler)
     else:
         return None
 
