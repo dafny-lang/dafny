@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var migratedViews = document.ImplementationIdToView?.Select(kv => {
-          var value = kv.Value.Status <= PublishedVerificationStatus.Error
+          var value = kv.Value.Status < PublishedVerificationStatus.Error
             ? kv.Value with {
               Diagnostics = migratedImplementationViews != null && migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
                 ? previousView.Diagnostics
