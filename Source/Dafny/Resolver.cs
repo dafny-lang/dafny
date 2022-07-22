@@ -11958,7 +11958,7 @@ namespace Microsoft.Dafny {
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
-        this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements. 
+        this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements.
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
@@ -12527,14 +12527,14 @@ namespace Microsoft.Dafny {
     private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
       var cloner = new Cloner();
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-        yield return new NestedMatchCaseExpr(c.Tok, pat, cloner.CloneExpr(c.Body), cloner.CloneAttributes(c.Attributes));
+        yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
       }
     }
 
     private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
       var cloner = new Cloner();
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-        yield return new NestedMatchCaseStmt(c.Tok, pat, c.Body.ConvertAll(cloner.CloneStmt), cloner.CloneAttributes(c.Attributes));
+        yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body), c.Attributes);
       }
     }
 
