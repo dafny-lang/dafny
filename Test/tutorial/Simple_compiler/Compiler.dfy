@@ -1,4 +1,5 @@
-// RUN: %dafny /compile:0 /spillTargetCode:3 "%s"
+// RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
+// RUN: %dafny -compile:0 -spillTargetCode:3 "-out:%S/csharp/Compiler.cs" "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
