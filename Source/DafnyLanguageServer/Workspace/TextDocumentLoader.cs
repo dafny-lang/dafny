@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -128,6 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       loaded.ImplementationIdToView = initialViews;
+      loaded.Counterexamples = new();
       loaded.VerificationTasks = verificationTasks;
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
@@ -169,7 +169,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
         canDoVerification,
-        ghostDiagnostics, program, symbolTable, WasResolved: true);
+        ghostDiagnostics, program, WasResolved: true) {
+        SymbolTable = symbolTable
+      };
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -192,10 +194,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         false,
         Array.Empty<Diagnostic>(),
         program,
-        CreateEmptySymbolTable(program, logger),
         wasResolved,
         loadCanceled
-      );
+      ) {
+        SymbolTable = CreateEmptySymbolTable(program, logger),
+      };
     }
 
     private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {

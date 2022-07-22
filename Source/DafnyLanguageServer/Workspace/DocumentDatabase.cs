@@ -5,10 +5,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -20,41 +23,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </remarks>
   public class DocumentDatabase : IDocumentDatabase {
 
-    record DocumentState(DocumentObserver Observer, CompilationManager CompilationManager,
+    record DocumentState(DocumentObserver Observer,
+      CompilationManager CompilationManager,
       IDisposable ObserverSubscription);
 
     private readonly IServiceProvider services;
+    private VerifierOptions VerifierOptions { get; }
     private readonly ILogger logger;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
-    private readonly DocumentOptions options;
+    private readonly DocumentOptions documentOptions;
     private readonly Dictionary<DocumentUri, DocumentState> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
 
-    private bool VerifyOnOpen => options.Verify == AutoVerification.OnChange;
-    private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
-    private bool VerifyOnSave => options.Verify == AutoVerification.OnSave;
+    private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
+    private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
+    private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
 
     public DocumentDatabase(
       IServiceProvider services,
-      ILogger<DocumentDatabase> logger,
-      ITelemetryPublisher telemetryPublisher,
-      INotificationPublisher notificationPublisher,
-      IOptions<DocumentOptions> options,
-      ITextDocumentLoader documentLoader,
-      ITextChangeProcessor textChangeProcessor,
-      IRelocator relocator
-    ) {
-      this.logger = logger;
-      this.telemetryPublisher = telemetryPublisher;
-      this.notificationPublisher = notificationPublisher;
-      this.options = options.Value;
-      this.documentLoader = documentLoader;
-      this.textChangeProcessor = textChangeProcessor;
-      this.relocator = relocator;
-      DafnyOptions.O.ProverOptions = GetProverOptions(this.options);
+      DocumentOptions documentOptions,
+      VerifierOptions verifierOptions) {
+      this.services = services;
+      logger = services.GetRequiredService<ILogger<DocumentDatabase>>();
+      telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
+      notificationPublisher = services.GetRequiredService<INotificationPublisher>();
+      documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+      textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
+      relocator = services.GetRequiredService<IRelocator>();
+      this.documentOptions = documentOptions;
+      VerifierOptions = verifierOptions;
+      DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
     }
 
     private static List<string> GetProverOptions(DocumentOptions options) {
@@ -66,8 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void OpenDocument(DocumentTextBuffer document) {
       var observer = new DocumentObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
-      var compilationManager = new CompilationManager(services, document,
-        new Dictionary<ImplementationId, ImplementationView>(), VerifyOnOpen);
+      var compilationManager = new CompilationManager(services, VerifierOptions, document, ImmutableList.Create<Position>(), VerifyOnOpen);
       var subscription = compilationManager.DocumentUpdates.Subscribe(observer);
       documents.Add(document.Uri, new DocumentState(observer, compilationManager, subscription));
     }
@@ -92,36 +92,51 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       previousCompilationManager.CancelPendingUpdates();
       var updatedText = textChangeProcessor.ApplyChange(previousCompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
-      Dictionary<ImplementationId, ImplementationView> migratedImplementationViews;
-      if (previousCompilationManager.TranslatedDocument.IsCompletedSuccessfully) {
-        var oldVerificationDiagnostics = previousCompilationManager.TranslatedDocument.Result.ImplementationIdToView;
-        migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
-      } else {
-        migratedImplementationViews = new();
-      }
+      var lastPublishedDocument = state.Observer.LastPublishedDocument;
+      var oldVerificationDiagnostics = lastPublishedDocument.ImplementationIdToView;
+      var migratedImplementationViews =
+        oldVerificationDiagnostics == null ? null : MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
+
+      // TODO it would be simpler to store last touched positions at the DocumentState level, and always recompute the lastTouchedVerifiables from that.
+      // Then we don't need to touch lastPublishedDocument.LastTouchedVerifiables which seems unreliable.
+      var migratedLastTouchedVerifiables =
+        relocator.RelocatePositions(lastPublishedDocument.LastTouchedVerifiables, documentChange, CancellationToken.None);
+
+      // TODO use this.
+      var migratedVerificationTree =
+        relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+
+      // TODO use this,
+      // documentLoader.PublishGutterIcons(resolvedDocument, false);
+      // Came from GetResolvedDocumentAsync
 
       var newCompilationManager = new CompilationManager(
         services,
+        VerifierOptions,
         updatedText,
+        migratedLastTouchedVerifiables,
         VerifyOnChange
       );
 
       state.ObserverSubscription.Dispose();
+      var newSubscription = newCompilationManager.DocumentUpdates.Select(document => {
+        if (!document.SymbolTable.Resolved) {
+          document.SymbolTable = relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None);
+        }
 
-      var newSubscription = newCompilationManager.DocumentUpdates.Select(d => {
-        var migratedViews = d.ImplementationIdToView.Select(kv => {
+        var migratedViews = document.ImplementationIdToView?.Select(kv => {
           var value = kv.Value.Status <= PublishedVerificationStatus.Error
             ? kv.Value with {
-              Diagnostics = migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
+              Diagnostics = migratedImplementationViews != null && migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
                 ? previousView.Diagnostics
                 : kv.Value.Diagnostics
             }
             : kv.Value;
           return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
-        });
-        // TODO merge this document with the latest published document before the change, to implement migration.
-        d.ImplementationIdToView = new(migratedViews);
-        return d;
+        }) ?? migratedImplementationViews;
+        document.ImplementationIdToView = migratedViews == null ? null : new(migratedViews);
+
+        return document;
       }).Subscribe(state.Observer);
 
       documents[documentUri] = new DocumentState(state.Observer, newCompilationManager, newSubscription);
@@ -149,60 +164,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       return false;
     }
-    private async Task<DafnyDocument> GetResolvedDocumentAsync(DocumentTextBuffer updatedText, CompilationManager compilationManager,
-      DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
-
-      var oldDocument = compilationManager.LastPublishedDocument;
-
-      // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var oldVerificationDiagnostics = oldDocument.ImplementationIdToView;
-      var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
-      var migratedVerificationTree =
-        relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
-
-      var migratedLastTouchedPositions =
-        relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
-      try {
-        var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
-        var lastChange =
-          documentChange.ContentChanges
-            .Select(contentChange => contentChange.Range)
-            .LastOrDefault(newDocument.LastChange);
-        newDocument = newDocument with { LastChange = lastChange };
-        if (newDocument.SymbolTable.Resolved) {
-          var resolvedDocument = newDocument with {
-            ImplementationIdToView = new (migratedImplementationViews),
-            VerificationTree = migratedVerificationTree,
-            LastTouchedMethodPositions = migratedLastTouchedPositions
-          };
-          documentLoader.PublishGutterIcons(resolvedDocument, false);
-          return resolvedDocument;
-        }
-        // The document loader failed to create a new symbol table. Since we'd still like to provide
-        // features such as code completion and lookup, we re-locate the previously resolved symbols
-        // according to the change.
-        var failedDocument = newDocument with {
-          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationIdToView = new (migratedImplementationViews),
-          VerificationTree = migratedVerificationTree,
-          LastTouchedMethodPositions = migratedLastTouchedPositions
-        };
-        documentLoader.PublishGutterIcons(failedDocument, false);
-        return failedDocument;
-      } catch (OperationCanceledException) {
-        // The document load was canceled before it could complete. We migrate the document
-        // to re-locate symbols that were resolved previously.
-        logger.LogTrace("document loading canceled, applying migration");
-        return oldDocument with {
-          TextDocumentItem = updatedText,
-          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          VerificationTree = migratedVerificationTree,
-          LoadCanceled = true,
-          ImplementationIdToView = new (migratedImplementationViews),
-          LastTouchedMethodPositions = migratedLastTouchedPositions
-        };
-      }
-    }
 
     private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
       IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics) {
@@ -221,12 +182,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        // TODO use migrated resolved state in case resolution failed.
-        return databaseEntry.CompilationManager.ResolvedDocument!;
+    public async Task<DafnyDocument?> GetBestResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+      if (documents.TryGetValue(documentId.Uri, out var state)) {
+        try {
+          await state.CompilationManager.ResolvedDocument;
+        } catch (OperationCanceledException) {
+        }
+        return state.Observer.LastPublishedDocument;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return null;
     }
 
     public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {

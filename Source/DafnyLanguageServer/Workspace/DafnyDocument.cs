@@ -36,15 +36,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool CanDoVerification,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
-    SymbolTable SymbolTable,
     bool WasResolved,
     bool LoadCanceled = false
   ) {
 
+    public SymbolTable SymbolTable { get; set; }
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; }= null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
+      ImplementationIdToView? .SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     );
 
     // List of a few last touched method positions
-    public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
+    public ImmutableList<Position> LastTouchedVerifiables { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; init; } = null;
@@ -77,20 +77,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public ConcurrentStack<Counterexample> Counterexamples { get; set; } = new();
-    public ConcurrentDictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; } = new();
+    public ConcurrentStack<Counterexample>? Counterexamples { get; set; } = null;
+    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationIdToView { get; set; } = null;
 
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
     public DafnyDocument Snapshot() {
       var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
-        Program, SymbolTable, WasResolved, LoadCanceled)
+        Program, WasResolved, LoadCanceled)
       {
+        SymbolTable = SymbolTable,
         VerificationTree = VerificationTree,
-        Counterexamples = new(Counterexamples),
-        ImplementationIdToView = new(ImplementationIdToView),
-        LastTouchedMethodPositions = LastTouchedMethodPositions,
+        Counterexamples = Counterexamples == null ? null : new(Counterexamples),
+        ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),
+        LastTouchedVerifiables = LastTouchedVerifiables,
       };
       return result;
     }

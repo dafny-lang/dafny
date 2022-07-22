@@ -36,17 +36,14 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
+    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var state)) {
       return false;
     }
 
-    var translatedDocument = await documentEntry.TranslatedDocument;
+    var translatedDocument = await state.TranslatedDocument;
     var requestPosition = request.Position;
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
-    var anyAreRunning = tasks.Any(taskToRun =>
-      documentLoader.Verify(documentEntry, translatedDocument, taskToRun, CancellationToken.None));
-
-    return anyAreRunning;
+    return tasks.Any(taskToRun => state.Verify(translatedDocument, taskToRun));
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {

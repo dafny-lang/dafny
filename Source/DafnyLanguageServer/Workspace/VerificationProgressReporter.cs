@@ -148,12 +148,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   }
 
   public void UpdateLastTouchedMethodPositions() {
-    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+    var newLastTouchedMethodPositions = document.LastTouchedVerifiables.ToList();
     var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
       node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
     if (newlyTouchedVerificationTree != null) {
       RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+      document.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
     }
   }
 

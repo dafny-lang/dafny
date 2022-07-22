@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Data;
 using System.Linq;
 using System.Reactive.Concurrency;
@@ -26,10 +27,10 @@ public class CompilationManager {
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
 
   private DafnyOptions Options => DafnyOptions.O;
-  private readonly DocumentOptions options;
   private VerifierOptions VerifierOptions { get; }
 
   public DocumentTextBuffer TextBuffer { get; }
+  private readonly ImmutableList<Position> lastTouchedMethodPositions;
   private bool shouldVerify;
 
   private DafnyDocument lastDocumentUpdate;
@@ -41,19 +42,21 @@ public class CompilationManager {
   public Task<DafnyDocument> ResolvedDocument { get; }
   public Task<DafnyDocument> TranslatedDocument { get; }
 
-  public CompilationManager(IServiceProvider services, DocumentTextBuffer textBuffer, bool shouldVerify) {
+  public CompilationManager(IServiceProvider services,
+    VerifierOptions verifierOptions,
+    DocumentTextBuffer textBuffer, ImmutableList<Position> lastTouchedMethodPositions, bool shouldVerify) {
+    VerifierOptions = verifierOptions;
     telemetryPublisher = services.GetRequiredService<ITelemetryPublisher>();
-    logger = services.GetRequiredService<ILogger>();
-    services.GetRequiredService<INotificationPublisher>();
+    logger = services.GetRequiredService<ILogger<CompilationManager>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    services.GetRequiredService<ITextChangeProcessor>();
-    services.GetRequiredService<IRelocator>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
     TextBuffer = textBuffer;
+    this.lastTouchedMethodPositions = lastTouchedMethodPositions;
     this.shouldVerify = shouldVerify;
     cancellationSource = new();
 
+    // TODO there is duplication between this and DocumentObserver.LastPublishedDocument
     lastDocumentUpdate = documentLoader.CreateUnloaded(textBuffer, CancellationToken.None);
     documentUpdates.Subscribe(next => lastDocumentUpdate = next);
 
@@ -104,6 +107,7 @@ public class CompilationManager {
   private async Task<DafnyDocument> ResolveAsync() {
     try {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      resolvedDocument.LastTouchedVerifiables = lastTouchedMethodPositions;
       documentLoader.PublishGutterIcons(resolvedDocument, false);
       documentUpdates.OnNext(resolvedDocument.Snapshot());
       return resolvedDocument;
@@ -151,7 +155,7 @@ public class CompilationManager {
       translatedDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
     }
 
-    NotifyStatusAsync(translatedDocument.TextDocumentItem, lastDocument, cancellationSource.Token);
+    NotifyStatus(translatedDocument.TextDocumentItem, lastDocument, cancellationSource.Token);
   }
 
     public bool Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask) {
@@ -196,17 +200,17 @@ public class CompilationManager {
       if (boogieStatus is Completed completed) {
         var verificationResult = completed.Result;
         foreach (var counterExample in verificationResult.Errors) {
-          document.Counterexamples.Push(counterExample);
+          document.Counterexamples!.Push(counterExample);
         }
 
         var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
         var view = new ImplementationView(implementationRange, status, diagnostics);
-        document.ImplementationIdToView.AddOrUpdate(id, view, (_, _) => view);
+        document.ImplementationIdToView!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
           document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
         }
       } else {
-        document.ImplementationIdToView.AddOrUpdate(id,
+        document.ImplementationIdToView!.AddOrUpdate(id,
           _ => new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>()),
           (_, previousView) => previousView with { Status = status });
       }
@@ -245,8 +249,8 @@ public class CompilationManager {
       }
     }
 
-  private void NotifyStatusAsync(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
-    var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+  private void NotifyStatus(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
+    var errorCount = document.ImplementationIdToView!.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
     logger.LogDebug($"Finished verification with {errorCount} errors.");
     var verified = errorCount == 0;
     var compilationStatusAfterVerification = verified

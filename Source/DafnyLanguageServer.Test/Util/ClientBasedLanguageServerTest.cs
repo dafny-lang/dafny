@@ -184,7 +184,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
+    var resolutionDiagnostics = (await Documents.GetBestResolvedDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
   }
 }

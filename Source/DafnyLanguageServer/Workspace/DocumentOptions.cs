@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public AutoVerification Verify { get; set; } = AutoVerification.OnChange;
 
-    public string ProverOptions { get; set; } =
+    public string ProverOptions =>
       string.Join(" ", DafnyOptions.O.ProverOptions) +
       " O:model_compress=false" + " O:model.completion=true" +
       " O:model_evaluator.completion=true";
