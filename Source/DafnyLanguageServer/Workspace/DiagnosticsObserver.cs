@@ -45,8 +45,9 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
     }
   }
 
+  private object myLock = new();
   public void OnNext(DafnyDocument document) {
-    lock (this) { // TODO do we need this lock?
+    lock (myLock) {
       if (document.Version < LastPublishedDocument.Version) {
         return;
       }
