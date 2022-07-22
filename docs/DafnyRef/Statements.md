@@ -19,6 +19,8 @@ programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
+Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+
 ## 20.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
@@ -28,7 +30,7 @@ which is the label, followed by a colon and a statement. The label may be
 referenced in a `break` or `continue` statement within the labeled statement
 (see [Section 20.2](#sec-break-continue)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
-The label may also be used in an `old` expression ([Section 21.24](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
@@ -766,6 +768,13 @@ unless its type can be inferred, either from a given initial value, or
 from other uses of the variable. If initial values are given, the number
 of values must match the number of variables declared.
 
+The scope of the declared variable extends to the end of the block in which it is
+declared. However, be aware that if a simple variable declaration is followed
+by an expression (rather than a subsequent statement) then the `var` begins a
+[Let Expression](#sec-let-expression) and the scope of the introduced variables is
+only to the end of the expression. In this case, though, the `var` is in an expression
+context, not a statement context.
+
 Note that the type of each variable must be given individually. The following code
 
 ```dafny
@@ -1467,14 +1476,14 @@ MatchStmt =
 CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-[ `ExtendedPattern` is defined in [Section 21.32](#sec-case-pattern).]
+[ `ExtendedPattern` is defined in [Section 21.33](#sec-case-pattern).]
 
 The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the `CaseBinding_`s is
 the same as for match expressions and is described in
-[Section 21.32](#sec-case-pattern).
+[Section 21.33](#sec-case-pattern).
 
 The code below shows an example of a match statement.
 
@@ -1528,7 +1537,17 @@ much as lemmas might be used in mathematical proofs.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
 
-TO BE WRITTEN - assert by statements
+In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
+Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
+combined with ghost control flow, ghost variable declarations and ghost update statements of variables declared in the `by` block.
+The intent is that those statements be evaluated in support of proving the `assert` statement.
+For that purpose, they could be simply inserted before the `assert` statement.
+But by using the `by` block, the statements in the block are discarded after the assertion is proved.
+As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
+proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
+their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
+
+Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 ## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
@@ -1730,8 +1749,99 @@ RevealStmt =
     ";"
 ````
 
+The `reveal` statement makes available to the solver information that is otherwise not visible, as described in the following subsections.
 
-TODO
+### 20.20.1. Revealing assertions
+
+If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
+is not used subsequently.  For example, consider
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0; // Fails also because the x: makes the first assertion opaque
+}
+```
+The first assertion fails. Without the label `x:`, the second would succeed because after a failing assertion, the 
+assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
+the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
+
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  reveal x;
+  assert i == 0; // Now succeeds
+}
+```
+or
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0 by { reveal x; } // Now succeeds
+}
+```
+At the point of the `reveal` statement, the labeled assertion is made visible and can be used in proving the second assertion.
+In this example there is no point to labeling an assertion and then immediately revealing it. More useful are the cases where
+the reveal is in an assert-by block or much later in the method body.
+
+### 20.20.2. Revealing preconditions
+
+In the same way as assertions, preconditions can be labeled.
+Within the body of a method, a precondition is an assumption; if the precondition is labeled then that assumption is not visible in the body of the method.
+A `reveal` statement naming the label of the precondition then makes the assumption visible.
+
+Here is a toy example:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+}
+```
+The above methhod will not verify. In particular, the second postcondition cannot be proved.
+However, if we add a `reveal L;` statement in the body of the method, then the precondition is visible 
+and both postconditions can be proved.
+
+One could also use this style:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+  assert x < z by { reveal L; }
+}
+```
+
+The reason to possibly hide a precondition is the same as the reason to hide assertions: 
+sometimes less information is better for the solver as it helps the solver focus attention on 
+relevant information.
+
+Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
+an extended illustration of this technique to make all the dependencies of an `assert` explicit.
+
+### 20.20.3. Revealing function bodies
+
+Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
+However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
+just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
+possible where there might be information overload otherwise.
+
+But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
+body of the function can be _revealed_ using the reveal statement. Here is an example:
+```dafny
+function {:opaque} f(i: int): int { i + 1 }
+
+method m(int i) {
+  assert f(i) == i + 1;
+}
+```
+Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
+Note that the pseudo-function-call in the `reveal` statement is written without arguments.
+
 
 ## 20.21. Forall Statement {#sec-forall-statement}
 ````grammar

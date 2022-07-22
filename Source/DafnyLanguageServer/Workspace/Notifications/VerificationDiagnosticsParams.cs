@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
-        if (verificationTree.Filename == uri.GetFileSystemPath() ||
+        if (verificationTree.Filename == uri.ToString() ||
             "untitled:" + verificationTree.Filename == uri) {
           verificationTree.RenderInto(result);
         }

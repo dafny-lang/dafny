@@ -4,51 +4,51 @@ reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
 
- operator                 | description
+ operator                 | precedence | description
+--------------------------|:----------:|-----------------------
+ `;`                      | 0 | That is [LemmaCall; Expression](#sec-top-level-expression)
 --------------------------|------------------------------------
- `;`                      | That is [LemmaCall; Expression](#sec-top-level-expression)
+ `<==>`                   | 1 | [equivalence (if and only if)](#sec-equivalence)
 --------------------------|------------------------------------
- `<==>`                   | [equivalence (if and only if)](#sec-equivalence)
+ `==>`                    | 2 | [implication (implies)](#sec-implication)
+ `<==`                    | 2 | reverse implication (follows from)
 --------------------------|------------------------------------
- `==>`                    | [implication (implies)](#sec-implication)
- `<==`                    | reverse implication (follows from)
+ `&&`, `&`                | 3 | conjunction (and)
+ `||`, `|`                | 3 | disjunction (or)
 --------------------------|------------------------------------
- `&&`, `&`                | conjunction (and)
- `||`, `|`                | disjunction (or)
+ `==`                     | 4 | equality
+ `==#[k]`                 | 4 | prefix equality (co-inductive)
+ `!=`                     | 4 | disequality
+ `!=#[k]`                 | 4 | prefix disequality (co-inductive)
+ `<`                      | 4 | less than
+ `<=`                     | 4 | at most
+ `>=`                     | 4 | at least
+ `>`                      | 4 | greater than
+ `in`                     | 4 | collection membership
+ `!in`                    | 4 | collection non-membership
+ `!!`                     | 4 | disjointness
 --------------------------|------------------------------------
- `==`                     | equality
- `==#[k]`                 | prefix equality (co-inductive)
- `!=`                     | disequality
- `!=#[k]`                 | prefix disequality (co-inductive)
- `<`                      | less than
- `<=`                     | at most
- `>=`                     | at least
- `>`                      | greater than
- `in`                     | collection membership
- `!in`                    | collection non-membership
- `!!`                     | disjointness
+ `<<`                     | 5 | left-shift
+ `>>`                     | 5 | right-shift
 --------------------------|------------------------------------
- `<<`                     | left-shift
- `>>`                     | right-shift
+ `+`                      | 6 | addition (plus)
+ `-`                      | 6 | subtraction (minus)
 --------------------------|------------------------------------
- `+`                      | addition (plus)
- `-`                      | subtraction (minus)
+ `*`                      | 7 | multiplication (times)
+ `/`                      | 7 | division (divided by)
+ `%`                      | 7 | modulus (mod)
 --------------------------|------------------------------------
- `*`                      | multiplication (times)
- `/`                      | division (divided by)
- `%`                      | modulus (mod)
+ `|`                      | 8 | bit-wise or
+ `&`                      | 8 | bit-wise and
+ `^`                      | 8 | bit-wise exclusive-or (not equal)
 --------------------------|------------------------------------
- `|`                      | bit-wise or
- `&`                      | bit-wise and
- `^`                      | bit-wise exclusive-or (not equal)
+ `as` operation           | 9 | [type conversion](#sec-as-expression)
+ `is` operation           | 9 | [type test](#sec-as-expression)
 --------------------------|------------------------------------
- `as` operation           | [type conversion](#sec-as-expression)
- `is` operation           | [type test](#sec-as-expression)
+ `-`                      | 10 | arithmetic negation (unary minus)
+ `!`                      | 10 | logical negation, bit-wise complement
 --------------------------|------------------------------------
- `-`                      | arithmetic negation (unary minus)
- `!`                      | logical negation, bit-wise complement
---------------------------|------------------------------------
- Primary Expressions      |
+ Primary Expressions      | 11 |
 
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
@@ -496,7 +496,7 @@ Right-hand-side expressions appear in the following constructs:
 These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be produced.
 
-## 21.16. Array Allocation
+## 21.16. Array Allocation {#sec-array-allocation}
 ````grammar
 ArrayAllocation_ =
   "new" [ Type ] "[" [ Expressions ] "]"
@@ -505,8 +505,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This allocates a new single or multi-dimensional array as explained in
-section [Section 15](#sec-array-types).
+This expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 ```dafny
@@ -581,11 +580,13 @@ LiteralExpression =
    charToken | stringToken )
 ````
 A literal expression is a boolean literal, a null object reference,
-an integer or real literal, a character or string literal,
-or `this`, which denotes the current object in the context of
-an instance method or function.
+an integer or real literal, a character or string literal.
 
-## 21.21. Fresh Expressions {#sec-fresh-expression}
+## 21.21. `this` Expression
+The `this` token denotes the current object in the context of 
+a constructor, instance method, or instance function.
+
+## 21.22. Fresh Expressions {#sec-fresh-expression}
 
 `fresh(e)` returns a boolean value that is true if
 the objects denoted by expression `e` were all
@@ -626,7 +627,7 @@ FreshExpression_ =
   "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-## 21.22. Allocated Expressions {#sec-allocated-expression}
+## 21.23. Allocated Expressions {#sec-allocated-expression}
 For any expression `e`, the expression `allocated(e)` evaluates to `true`
 in a state if the value of `e` is available in that state, meaning that
 it could in principle have been the value of a variable in that state.
@@ -668,7 +669,7 @@ AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-## 21.23. Unchanged Expressions {#sec-unchanged-expression}
+## 21.24. Unchanged Expressions {#sec-unchanged-expression}
 
 ````grammar
 UnchangedExpression_ =
@@ -702,7 +703,7 @@ c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
 Each reference denoted by the arguments of `unchanged` must be non-null and
 must be allocated in the old-state of the expression.
 
-## 21.24. Old and Old@ Expressions {#sec-old-expression}
+## 21.25. Old and Old@ Expressions {#sec-old-expression}
 
 ````grammar
 OldExpression_ =
@@ -748,7 +749,7 @@ The next example demonstrates the interaction between `old` and array elements.
 {% include_relative examples/Example-Old3.dfy %}
 ```
 
-## 21.25. Cardinality Expressions {#sec-cardinality-expression}
+## 21.26. Cardinality Expressions {#sec-cardinality-expression}
 ````grammar
 CardinalityExpression_ =
   "|" Expression(allowLemma: true, allowLambda: true) "|"
@@ -761,7 +762,7 @@ elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
 For more, see [Section 10](#sec-collection-types).
 
-## 21.26. Parenthesized Expression
+## 21.27. Parenthesized Expression
 ````grammar
 ParensExpression =
   "(" [ Expressions ] ")"
@@ -775,7 +776,7 @@ the value of that expression.
 If there are zero or more than one, the result is a `tuple` value.
 See [Section 18](#sec-tuple-types).
 
-## 21.27. Sequence Display Expression {#sec-seq-comprehension}
+## 21.28. Sequence Display Expression {#sec-seq-comprehension}
 ````grammar
 SeqDisplayExpr =
   ( "[" [ Expressions ] "]"
@@ -802,7 +803,7 @@ second argument (a function) on the indices 0 up to k.
 See [this section](#sec-sequences) for more information on
 sequences.
 
-## 21.28. Set Display Expression
+## 21.29. Set Display Expression
 ````grammar
 SetDisplayExpr =
   ( [ "iset" | "multiset" ] "{" [ Expressions ] "}"
@@ -848,7 +849,7 @@ assert ms == ms2;
 See [Section 10.2](#sec-multisets) for more information on
 multisets.
 
-## 21.29. Map Display Expression {#sec-map-display-expression}
+## 21.30. Map Display Expression {#sec-map-display-expression}
 ````grammar
 MapDisplayExpr =
   ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
@@ -871,7 +872,7 @@ ghost var im := imap[1 := "a", 2 := "b"];
 
 See [Section 10.4](#sec-maps) for more details on maps and imaps.
 
-## 21.30. Endless Expression
+## 21.31. Endless Expression
 ````grammar
 EndlessExpression(allowLemma, allowLambda) =
   ( IfExpression(allowLemma, allowLambda)
@@ -889,7 +890,7 @@ productions have no terminating symbol to end them, but rather they
 all end with an ``Expression`` at the end. The various
 ``EndlessExpression`` alternatives are described below.
 
-## 21.31. If Expression
+## 21.32. If Expression
 ````grammar
 IfExpression(allowLemma, allowLambda) =
     "if" ( BindingGuard(allowLambda: true)
@@ -912,21 +913,51 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-TO BE WRITTEN - binding form
+The `if` expression also permits a binding form.
+In this case the condition of the `if` is an existential asking
+"does there exist a value satisfying the given predicate?".
+If not, the else branch is evaluated. But if so, then an
+(arbitrary) value that does satisfy the given predicate is
+bound to the given variable and that variable is in scope in 
+the then-branch of the expression.
 
-## 21.32. Case and Extended Patterns {#sec-case-pattern}
+For example, in the code
+```dafny
+predicate P(x: int) {
+  x == 5 || x == -5
+}
+method main() {
+  assert P(5);
+  var y := if x: int :| P(x) then x else 0;
+  assert y == 5 || y == -5;
+}
+```
+`x` is given some value that satisfies `P(x)`, namely either `5` or `-5`.
+That value of `x` is the value of the expression in the `then` branch above; if there is no value satisfying `P(x)`,
+then `0` is returned. Note that if `x` is declared to be a `nat` in this example, then only
+the value `5` would be permissible.
+
+This binding form of the `if` expression acts in the same way as the binding form of the [`if` statement](#sec-if-statement).
+
+In the example given, the binder for `x` has no constraining range, so the expression is `ghost`;
+if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
+then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
+
+## 21.33. Case and Extended Patterns {#sec-case-pattern}
 ````grammar
 CasePattern =
-  ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
-  | "(" [ CasePattern { "," CasePattern } ] ")"
+  ( IdentTypeOptional
+  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
+  )
+
+SingleExtendedPattern =
+  ( PossiblyNegatedLiteralExpression
   | IdentTypeOptional
+  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
   )
 
 ExtendedPattern =
-  ( PossiblyNegatedLiteralExpression
-  | IdentTypeOptional
-  | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
-  )
+  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
 
 PossiblyNegatedLiteralExpression =
   ( "-" ( Nat | Dec )
@@ -943,13 +974,14 @@ that is, in `match`
 and [expressions](#sec-match-expression).
 `CasePattern`s are used
 in `LetExpr`s and `VarDeclStatement`s.
-The `ExtendedPattern` differs from `CasePattern` in allowing literals
-and symbolic constants.
+The `ExtendedPattern` differs from `CasePattern` in allowing literals,
+symbolic constants, and disjunctive (“or”) patterns.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
-must correspond to a
+must correspond to one of the following:
 
+* (0) a case disjunction (“or-pattern”)
 * (1) bound variable (a simple identifier),
 * (2) a constructor of the type of the value,
 * (3) a literal of the correct type, or
@@ -957,6 +989,8 @@ must correspond to a
 
 If the extended pattern is
 
+* a sequence of `|`-separated sub-patterns, then the pattern matches values
+  matched by any of the sub-patterns.
 * a parentheses-enclosed possibly-empty list of patterns,
 then the pattern matches a tuple.
 * an identifier followed
@@ -969,6 +1003,9 @@ matches a constructor.
 a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
    * otherwise, the identifier is a new bound variable
 
+Disjunctive patterns may not bind variables, and may not be nested inside other
+patterns.
+
 Any ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
@@ -979,13 +1016,13 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-The `ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
+`ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
 identifiers contained in a `CaseBinding_` or `CasePattern` must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
 
-## 21.33. Match Expression {#sec-match-expression}
+## 21.34. Match Expression {#sec-match-expression}
 
 ````grammar
 MatchExpression(allowLemma, allowLambda) =
@@ -995,7 +1032,7 @@ MatchExpression(allowLemma, allowLambda) =
   )
 
 CaseExpression(allowLemma, allowLambda) =
-  "case" ExtendedPattern "=>" Expression(allowLemma, allowLambda)
+  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
 ````
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
@@ -1006,25 +1043,28 @@ The ``Expression`` following the `match` keyword is called the
 _selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
 the [section on `CaseBinding`s](#sec-case-pattern).
 
-All of the variables in the ``CasePattern``s must be distinct.
+All of the variables in the ``ExtendedPattern``s must be distinct.
 If types for the identifiers are not given then types are inferred
 from the types of the constructor's parameters. If types are
 given then they must agree with the types of the
 corresponding parameters.
 
 A ``MatchExpression`` is evaluated by first evaluating the selector.
-The ``ExtendedPattern``s of each ``CaseClause`` are then compared in order
+The ``ExtendedPattern``s of each match alternative are then compared in order
  with the resulting value until a matching pattern is found.
 If the constructor had
-parameters then the actual values used to construct the selector
+parameters, then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
-The expression to the right of the `=>` in the ``CaseClause`` is then
+The expression to the right of the `=>` in the matched alternative is then
 evaluated in the environment enriched by this binding. The result
 of that evaluation is the result of the ``MatchExpression``.
 
-Note that the braces enclosing the ``CaseClause``s may be omitted.
+Note that the braces enclosing the sequence of match alternatives may be omitted.
+Those braces are required if lemma or lambda expressions are used in the
+body of any match alternative; they may also be needed for disambiguation if
+there are nested match expressions.
 
-## 21.34. Quantifier Expression {#sec-quantifier-expression}
+## 21.35. Quantifier Expression {#sec-quantifier-expression}
 ````grammar
 QuantifierExpression(allowLemma, allowLambda) =
     ( "forall" | "exists" ) QuantifierDomain "::"
@@ -1052,7 +1092,7 @@ attempts to infer their types from the context of the expressions.
 It this is not possible, the program is in error.
 
 
-## 21.35. Set Comprehension Expressions {#sec-set-comprehension-expression}
+## 21.36. Set Comprehension Expressions {#sec-set-comprehension-expression}
 ````grammar
 SetComprehensionExpr(allowLemma, allowLambda) =
   [ "set" | "iset" ]
@@ -1142,7 +1182,7 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-## 21.36. Statements in an Expression {#sec-statement-in-an-expression}
+## 21.37. Statements in an Expression {#sec-statement-in-an-expression}
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
              | RevealStmt | CalcStmt
@@ -1159,7 +1199,7 @@ assume x != 0; 10/x
 
 `Assert`, `assume`, `expect`, `reveal` and `calc` statements can be used in this way.
 
-## 21.37. Let Expression {#sec-let-expression}
+## 21.38. Let Expression {#sec-let-expression}
 
 ````grammar
 LetExpression(allowLemma, allowLambda) =
@@ -1204,9 +1244,9 @@ function GhostF(z: Stuff): int
 
 The syntax using `:-` is discussed in the following subsection.
 
-## 21.38. Let or Fail Expression
+## 21.39. Let or Fail Expression
 
-The Let expression described in [Section 21.37](#sec-let-expression) has a failure variant
+The Let expression described in [Section 21.38](#sec-let-expression) has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
 failure results. However, in statements ([Section 20.7](#sec-update-failure)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
@@ -1244,7 +1284,7 @@ if-then-else expression. Consequently these two expressions must have types that
 the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-failure).
 
-## 21.39. Map Comprehension Expression {#sec-map-comprehension-expression}
+## 21.40. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" )
@@ -1284,7 +1324,7 @@ method test()
 ```
 `m` maps `2` to `3`, `4` to `6`, and so on.
 
-## 21.40. Name Segment {#sec-name-segment}
+## 21.41. Name Segment {#sec-name-segment}
 ````grammar
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
@@ -1303,7 +1343,7 @@ prefix lemma (see [Section 19.3.5.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
-## 21.41. Hash Call {#sec-hash-call}
+## 21.42. Hash Call {#sec-hash-call}
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
@@ -1361,7 +1401,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
 See [Section 19.3.4](#sec-copredicates) and [Section 19.3.5.3](#sec-prefix-lemmas).
 
-## 21.42. Suffix
+## 21.43. Suffix
 ````grammar
 Suffix =
   ( AugmentedDotSuffix_
@@ -1378,7 +1418,7 @@ The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. The several kinds
 of suffixes are described below.
 
-### 21.42.1. Augmented Dot Suffix
+### 21.43.1. Augmented Dot Suffix
 ````grammar
 AugmentedDotSuffix_ = "." DotSuffix
                       [ GenericInstantiation | HashCall ]
@@ -1393,7 +1433,7 @@ selected by the ``DotSuffix`` is generic), or
   or prefix lemma. The result is the result of calling the prefix predicate
   or prefix lemma.
 
-### 21.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
+### 21.43.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 
 ````grammar
 DatatypeUpdateSuffix_ =
@@ -1449,7 +1489,7 @@ method test(datum:MyDataType, x:int)
 
 
 
-### 21.42.3. Subsequence Suffix
+### 21.43.3. Subsequence Suffix
 ````grammar
 SubsequenceSuffix_ =
   "[" [ Expression(allowLemma: true, allowLambda: true) ]
@@ -1462,7 +1502,7 @@ example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.42.4. Slices By Length Suffix
+### 21.43.4. Slices By Length Suffix
 ````grammar
 SlicesByLengthSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true) ":"
@@ -1478,7 +1518,7 @@ Applying a ``SlicesByLengthSuffix_`` to a sequence produces a
 sequence of subsequences of the original sequence.
 See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.42.5. Sequence Update Suffix
+### 21.43.5. Sequence Update Suffix
 ````grammar
 SequenceUpdateSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1496,7 +1536,7 @@ The index `i` can have any integer- or bit-vector-based type
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
-### 21.42.6. Selection Suffix
+### 21.43.6. Selection Suffix
 ````grammar
 SelectionSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1518,7 +1558,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.42.7. Argument List Suffix
+### 21.43.7. Argument List Suffix
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
@@ -1528,7 +1568,7 @@ are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
 
-## 21.43. Expression Lists
+## 21.44. Expression Lists
 ````grammar
 Expressions =
     Expression(allowLemma: true, allowLambda: true)
@@ -1538,7 +1578,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 21.44. Parameter Bindings
+## 21.45. Parameter Bindings
 
 Method calls, object-allocation calls (`new`), function calls, and
 datatype constructors can be called with both positional arguments
@@ -1565,7 +1605,7 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 21.45. Formal Parameters and Default-Value Expressions
+## 21.46. Formal Parameters and Default-Value Expressions
 
 The formal parameters of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
@@ -1590,7 +1630,7 @@ expressions may not read anything. A default-value expression may not be
 involved in any recursive or mutually recursive calls with the enclosing
 declaration.
 
-## 21.46. Compile-Time Constants {#sec-compile-time-constants}
+## 21.47. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -1630,7 +1670,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 21.47. List of specification expressions {#sec-list-of-specification-expressions}
+## 21.48. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 
