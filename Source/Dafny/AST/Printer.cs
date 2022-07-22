@@ -2870,12 +2870,19 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           break;
+        case DisjunctivePattern dPat:
+          var patSep = "";
+          foreach (var arg in dPat.Alternatives) {
+            wr.Write(patSep);
+            PrintExtendedPattern(arg);
+            patSep = " | ";
+          }
+          break;
         case LitPattern litPat:
           wr.Write(litPat.ToString());
           break;
       }
     }
-
 
     private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {
       Contract.Requires(boundVars != null);
