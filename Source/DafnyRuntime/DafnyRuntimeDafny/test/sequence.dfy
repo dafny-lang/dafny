@@ -13,7 +13,7 @@ module MetaSeqTests {
   }
 
   method {:test} Covariance() {
-    var values := new ResizableArray<Bar>(5);
+    var values := new Vector<Bar>(5);
     var bar := new Bar();
     values.AddLast(bar);
     var frozenValues := values.Freeze();
