@@ -57,7 +57,7 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
       ensures Read(i) == t
 
-    // TODO: Might want a copy that takes a ResizeableArray as well
+    // TODO: Might want a copy that takes a Vector as well
     method WriteRangeArray(start: nat, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
@@ -108,6 +108,13 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       requires Valid()
       requires index < |values|
       ensures At(index) == values[index]
+
+    method Slice(start: nat, end: nat) returns (ret: ImmutableArray<T>)
+      requires Valid()
+      requires start <= end <= Length()
+      ensures ret.Valid()
+      ensures ret.Length() == end - start
+      ensures forall i | 0 <= i < ret.Length() :: ret.At(i) == At(start + i)
   }
 
   // TODO: More consistent method names.

@@ -62,7 +62,24 @@ namespace Arrays {
     }
 
     public Arrays.ImmutableArray<T> Freeze(BigInteger size) {
-      return new CsharpArray<T>(values, (int)size);
+      var intSize = (int)size;
+      if (length == intSize) {
+        return this;
+      }
+      return new CsharpArray<T>(values, intSize);
+    }
+    
+    public Arrays.ImmutableArray<T> Slice(BigInteger start, BigInteger end) {
+      if (start == 0) {
+        return new CsharpArray<T>(values, (int)end);
+      }
+
+      var resultLength = (int)end - (int)start;
+      var result = new CsharpArray<T>(resultLength);
+      // TODO: Should probably give CsharpArray a start offset as well, despite the added cost
+      // for indexing.
+      Array.Copy(values, (int)start, result.values, 0, resultLength);
+      return result;
     }
   }
 }

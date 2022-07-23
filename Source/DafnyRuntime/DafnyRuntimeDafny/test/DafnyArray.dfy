@@ -92,8 +92,22 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       ensures |ret.values| == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
     {
-      ret := new DafnyImmutableArray(this, size);
+      ret := new DafnyImmutableArray(ValuesFromArray(this, size));
     }
+  }
+
+  function ValuesFromArray<T>(a: Array<T>, size: nat): (ret: seq<T>)
+    requires a.Valid()
+    requires size <= a.Length()
+    requires forall i | 0 <= i < size :: a.values[i].Set?
+    reads a, a.Repr
+    ensures |ret| == size
+    ensures forall i | 0 <= i < size :: ret[i] == a.values[i].value
+  {
+    if size == 0 then
+      []
+    else
+      ValuesFromArray(a, size - 1) + [a.Read(size - 1)]
   }
 
   class DafnyImmutableArray<T> extends ImmutableArray<T> {
@@ -104,31 +118,12 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       values == valuesSeq
     }
 
-    constructor(a: Array<T>, size: nat)
-      requires a.Valid()
-      requires size <= a.Length()
-      requires forall i | 0 <= i < size :: a.values[i].Set?
+    constructor(valuesSeq: seq<T>)
       ensures Valid()
-      ensures |values| == size
-      ensures forall i | 0 <= i < size :: values[i] == a.values[i].value
+      ensures this.valuesSeq == valuesSeq
     {
-      var valuesSeq := ValuesFromArray(a, size);
       this.values := valuesSeq;
       this.valuesSeq := valuesSeq;
-    }
-
-    static function ValuesFromArray(a: Array<T>, size: nat): (ret: seq<T>)
-      requires a.Valid()
-      requires size <= a.Length()
-      requires forall i | 0 <= i < size :: a.values[i].Set?
-      reads a, a.Repr
-      ensures |ret| == size
-      ensures forall i | 0 <= i < size :: ret[i] == a.values[i].value
-    {
-      if size == 0 then
-        []
-      else
-        ValuesFromArray(a, size - 1) + [a.Read(size - 1)]
     }
 
     function Length(): nat 
@@ -144,6 +139,16 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       ensures At(index) == values[index]
     {
       valuesSeq[index]
+    }
+
+    method Slice(start: nat, end: nat) returns (ret: ImmutableArray<T>)
+      requires Valid()
+      requires start <= end <= Length()
+      ensures ret.Valid()
+      ensures ret.Length() == end - start
+      ensures forall i | 0 <= i < ret.Length() :: ret.At(i) == At(start + i)
+    {
+      return new DafnyImmutableArray(valuesSeq[start..end]);
     }
   }
 }
