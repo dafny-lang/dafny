@@ -104,9 +104,6 @@ public class DocumentManager {
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
       FillMissingStateUsingLastPublishedDocument(documentChange, document, lastPublishedDocument, migratedImplementationViews));
-    migratedUpdates.Where(document => document.WasResolved).FirstAsync().Subscribe(document => {
-      notificationPublisher.PublishGutterIcons(document, false);
-    });
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
 
