@@ -1,12 +1,8 @@
-include "../../../../Test/libraries/src/Math.dfy"
-
 include "array.dfy"
 include "atomicBox.dfy"
 include "frames.dfy"
 
 module {:options "/functionSyntax:4"} Sequences {
-
-  import Math
 
   import opened Frames
   import opened Arrays

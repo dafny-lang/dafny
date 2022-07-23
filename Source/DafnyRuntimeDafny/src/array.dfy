@@ -1,13 +1,9 @@
 
-// TODO: Avoid depending on stdlib
-include "../../../../Test/libraries/src/Math.dfy"
-
 include "frames.dfy"
 
 module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
 
   import opened Frames
-  import opened Math
 
   // 
   // We use this instead of the built-in Dafny array<T> type for two reasons:
@@ -178,10 +174,14 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       ensures Value() == old(Value()) + [t]
     {
       if size == storage.Length() {
-        Reallocate(Math.Max(MIN_SIZE, storage.Length() * 2));
+        Reallocate(Max(MIN_SIZE, storage.Length() * 2));
       }
       storage.Write(size, t);
       size := size + 1;
+    }
+
+    function Max(a: int, b: int): int {
+      if a < b then b else a
     }
 
     method Reallocate(newCapacity: nat) 
@@ -220,8 +220,10 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + other.values
     {
-      if storage.Length() < size + other.Length() {
-        Reallocate(Math.Max(size + other.Length(), storage.Length() * 2));
+      var newSize := size + other.Length();
+      if storage.Length() < newSize {
+
+        Reallocate(Max(newSize, storage.Length() * 2));
       }
       storage.WriteRangeArray(size, other);
       size := size + other.Length();
