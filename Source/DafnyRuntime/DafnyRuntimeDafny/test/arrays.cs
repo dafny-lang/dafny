@@ -1,11 +1,10 @@
-namespace AtomicBoxes_Compile {
+namespace AtomicBoxes {
 
   public class AtomicBox<T> where T : class {
 
     volatile T value;
 
     public static AtomicBox<T> Make(T value) {
-      // TODO: Should need some kind of runtime check that T : class here
       var result = new AtomicBox<T>();
       result.Put(value);
       return result;

@@ -4,7 +4,7 @@ include "../../../../Test/libraries/src/Math.dfy"
 
 include "frames.dfy"
 
-module {:options "/functionSyntax:4"} Arrays {
+module {:extern} {:options "/functionSyntax:4"} Arrays {
 
   import opened Frames
   import opened Math
@@ -115,7 +115,7 @@ module {:options "/functionSyntax:4"} Arrays {
 
   // TODO: More consistent method names.
   // This is internal for now but would be great to have in a shared library.
-  class ResizableArray<T> extends Validatable {
+  class Vector<T> extends Validatable {
     var storage: Array<T>
     var size: nat
 

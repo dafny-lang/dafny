@@ -1,6 +1,6 @@
 
-module AtomicBoxes {
-  class {:extern} AtomicBox<T> {
+module {:extern "AtomicBoxes"} AtomicBoxes {
+  class {:extern} AtomicBox<!T> {
 
     ghost const inv: T -> bool
 

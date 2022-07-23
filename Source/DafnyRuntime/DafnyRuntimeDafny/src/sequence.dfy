@@ -16,7 +16,7 @@ module {:options "/functionSyntax:4"} Sequences {
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  trait Sequence<+T> {
+  trait {:extern} Sequence<+T> {
    
     ghost const size: nat
 
@@ -49,6 +49,14 @@ module {:options "/functionSyntax:4"} Sequences {
       ensures ret.Length() == Length()
       ensures ret.values == Value()
   }
+
+  // TODO: this would be safe(r) if we used a datatype instead, but still not guaranteed.
+  // Is there a decent solution in every target language?
+  lemma {:axiom} SequenceTypeIsClosed<T>(e: Sequence<T>) 
+    ensures
+      || e is ArraySequence<T>
+      || e is ConcatSequence<T>
+      || e is LazySequence<T>
 
   method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
     requires left.Valid()
@@ -155,13 +163,87 @@ module {:options "/functionSyntax:4"} Sequences {
       ensures ret.Length() == Length()
       ensures ret.values == Value()
     {
-      var a := new ResizableArray<T>(length);
-      var leftArray := left.ToArray();
-      a.Append(leftArray);
-      var rightArray := right.ToArray();
-      a.Append(rightArray);
-      ret := a.Freeze();
+      var builder := new Vector<T>(length);
+      var stack := new Vector<Sequence<T>>(10);
+      AppendOptimized(builder, this, stack);
+      ret := builder.Freeze();
     }
+  }
+
+  // Simpler reference implementation of AppendOptimized
+  method AppendRecursive<T>(builder: Vector<T>, e: Sequence<T>)
+    requires e.Valid()
+    requires builder.Valid()
+    modifies builder.Repr
+    decreases e.size
+    ensures builder.ValidAndDisjoint()
+    ensures e.Valid()
+    ensures builder.Value() == old(builder.Value()) + e.Value();
+  {
+    if e is ConcatSequence<T> {
+      var concat := e as ConcatSequence<T>;
+      AppendRecursive(builder, concat.left);
+      AppendRecursive(builder, concat.right);
+    } else if e is LazySequence<T> {
+      var lazy := e as LazySequence<T>;
+      var boxed := lazy.box.Get();
+      AppendRecursive(builder, boxed);
+    } else {
+      var a: ImmutableArray<T> := e.ToArray();
+      builder.Append(a);
+    }
+  }
+
+  method {:tailrecursion} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
+    requires e.Valid()
+    requires builder.Valid()
+    requires stack.Valid()
+    requires builder.Repr !! stack.Repr;
+    requires forall expr <- stack.Value() :: expr.Valid()
+    modifies builder.Repr, stack.Repr
+    decreases e.size + SizeSum(stack.Value())
+    ensures builder.Valid()
+    ensures stack.Valid()
+    ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
+  {
+    if e is ConcatSequence<T> {
+      var concat := e as ConcatSequence<T>;
+      stack.AddLast(concat.right);
+      AppendOptimized(builder, concat.left, stack);
+    } else if e is LazySequence<T> {
+      var lazy := e as LazySequence<T>;
+      var boxed := lazy.box.Get();
+      AppendOptimized(builder, boxed, stack);
+    } else if e is ArraySequence<T> {
+      var a := e as ArraySequence<T>;
+      builder.Append(a.value);
+      if 0 < stack.size {
+        var next: Sequence<T> := stack.RemoveLast();
+        AppendOptimized(builder, next, stack);
+      }
+    } else {
+      SequenceTypeIsClosed(e);
+      assert false;
+    }
+  }
+
+  ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
+    requires (forall e <- s :: e.Valid())
+  {
+    if |s| == 0 then
+      []
+    else
+      s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
+  }
+
+  ghost function SizeSum<T>(s: seq<Sequence<T>>): nat 
+    requires forall e <- s :: e.Valid()
+  {
+    if |s| == 0 then 
+      0 
+    else
+      var last := |s| - 1;
+      SizeSum(s[..last]) + s[last].size
   }
 
   class LazySequence<T> extends Sequence<T> {
