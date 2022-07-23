@@ -40,6 +40,11 @@ class DocumentObserver : IObserver<DafnyDocument> {
     if (exception is TaskCanceledException) {
       OnCompleted();
     } else {
+      if (exception is OperationCanceledException) {
+        logger.LogWarning(exception, "document processing cancelled.");
+        return;
+      }
+
       var previousDiagnostics = LastPublishedDocument.LoadCanceled
         ? new Diagnostic[] { }
         : LastPublishedDocument.ParseAndResolutionDiagnostics;
