@@ -89,6 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         linesCount,
         verificationStarted
       );
+      Console.WriteLine("gutter status stacktrace:\n" + Environment.StackTrace);
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
