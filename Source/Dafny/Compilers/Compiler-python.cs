@@ -459,8 +459,7 @@ namespace Microsoft.Dafny.Compilers {
       if (m.IsStatic) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {IdName(m)}(");
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => tp.CompileName);
-      WriteFormals(m.Ins, m.IsStatic, ref sep, wr);
+      WriteFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), m.Ins, m.IsStatic, ref sep, wr);
       var body = wr.NewBlockPy("):", close: BlockStyle.Newline);
       if (createBody) {
         return body;
@@ -478,11 +477,12 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    private void WriteFormals(List<Formal> formals, bool isStatic, ref string sep, ConcreteSyntaxTree wr) {
+    private void WriteFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams, List<Formal> formals, bool isStatic, ref string sep, ConcreteSyntaxTree wr) {
       if (!isStatic) {
-        wr.Write("self");
+        wr.Write(sep + "self");
         sep = ", ";
       }
+      WriteRuntimeTypeDescriptorsFormals(member, typeParams, wr, ref sep, tp => tp.CompileName);
       WriteFormals(sep, formals, wr);
     }
 
@@ -493,8 +493,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isStatic || NeedsCustomReceiver(member)) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {name}(");
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => tp.CompileName);
-      WriteFormals(formals, isStatic && !NeedsCustomReceiver(member), ref sep, wr);
+      WriteFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), formals, isStatic && !NeedsCustomReceiver(member), ref sep, wr);
       return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
@@ -597,7 +596,7 @@ namespace Microsoft.Dafny.Compilers {
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
-      if (xType.IsObjectQ) {
+      if (usePlaceboValue || xType.IsObjectQ) {
         return "None";
       }
 
@@ -646,7 +645,7 @@ namespace Microsoft.Dafny.Compilers {
                 return $"{constructor}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
 
               case TypeParameter tp:
-                return $"{tp.CompileName}()";
+                return constructTypeParameterDefaultsFromTypeDescriptors ? $"{tp.CompileName}()" : FormatDefaultTypeParameterValue(tp);
 
               case ClassDecl:
                 return "None";
@@ -670,8 +669,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      needsTypeParameter = false;
       needsTypeDescriptor = false;
+      needsTypeParameter = false;
+      switch (cl) {
+        case DatatypeDecl:
+          needsTypeDescriptor = true;
+          break;
+        case TraitDecl:
+          needsTypeDescriptor = isStatic || lookasideBody;
+          break;
+        case ClassDecl:
+          needsTypeDescriptor = isStatic;
+          break;
+      }
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
