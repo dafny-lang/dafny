@@ -52,7 +52,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.IntBoundedPool,
       Feature.NonSequentializableForallStatements,
-      Feature.Codatatypes,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.Multisets,
@@ -227,6 +226,31 @@ namespace Microsoft.Dafny.Compilers {
       btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
         .WriteLine($"return not self.__eq__(__o)");
 
+      if (dt is CoDatatypeDecl) {
+        var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
+        w.NewBlockPy("def __init__(self, c):")
+          .WriteLine("self.c = c")
+          .WriteLine("self.d = None");
+        var get = w.NewBlockPy($"def _get(self):");
+        get.NewBlockPy("if self.c is not None:")
+          .WriteLine("self.d = self.c()")
+          .WriteLine("self.c = None");
+        get.WriteLine("return self.d");
+        w.NewBlockPy("def __str__(self) -> str:")
+          .WriteLine("return str(self._get())");
+        foreach (var destructor in from ctor in dt.Ctors
+                                   let index = 0
+                                   from dtor in ctor.Destructors
+                                   where dtor.EnclosingCtors[0] == ctor
+                                   select dtor.CorrespondingFormals[0] into arg
+                                   where !arg.IsGhost
+                                   select IdProtect(arg.CompileName)) {
+          w.WriteLine("@property");
+          w.NewBlockPy($"def {destructor}(self):")
+            .WriteLine($"return self._get().{destructor}");
+        }
+      }
+
       foreach (var ctor in dt.Ctors) {
         var ctorName = IdProtect(ctor.CompileName);
 
@@ -261,7 +285,7 @@ namespace Microsoft.Dafny.Compilers {
         .Select(f => $"{{self.{IdProtect(f.CompileName)}}}")
         .Comma();
 
-      if (args.Length > 0) {
+      if (args.Length > 0 && dt is not CoDatatypeDecl) {
         fString += $"({args})";
       }
 
@@ -912,13 +936,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (dtv.IsCoCall) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.Codatatypes);
-      } else {
-        if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
-          wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
-        }
-        wr.Write($"({arguments})");
+        wr.Write($"{dtv.Ctor.EnclosingDatatype.FullCompileName}__Lazy(lambda: ");
+        var end = wr.Fork();
+        wr.Write(")");
+        wr = end;
       }
+      if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
+        wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
+      }
+      wr.Write($"({arguments})");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
