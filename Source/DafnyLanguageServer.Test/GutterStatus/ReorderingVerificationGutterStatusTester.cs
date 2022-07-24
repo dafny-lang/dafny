@@ -81,15 +81,12 @@ method m3() {
 method m4() {
   assert false;//Next2:  assert  true;
 }
-function fib(n: nat): nat {
-  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
-}
 method m5() { assert false; } //Remove3:
 ",
-      "m1 m2 m3 m4 fib m5\n" +
-      "m3 m1 m2 m4 fib m5\n" +
-      "m4 m3 m1 m2 fib m5\n" +
-      "m1 m2 m3 m4 fib");
+      "m1 m2 m3 m4 m5\n" +
+      "m3 m1 m2 m4 m5\n" +
+      "m4 m3 m1 m2 m5\n" +
+      "m1 m2 m3 m4");
   }
 
   [TestMethod]
