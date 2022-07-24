@@ -44,21 +44,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
   }
 
-  public async IAsyncEnumerable<List<Range>> GetRunningOrder([EnumeratorCancellation] CancellationToken cancellationToken) {
-    var alreadyReported = new HashSet<Range>();
-    FileVerificationStatus foundStatus;
-    do {
-      foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
-        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
-
-      var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
-        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
-
-      yield return newlyDone.Concat(newlyRunning).ToList();
-    } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
-  }
-
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetLastDocumentAsync(documentItem);
