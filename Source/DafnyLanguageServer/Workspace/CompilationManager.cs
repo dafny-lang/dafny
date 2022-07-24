@@ -193,10 +193,20 @@ public class CompilationManager {
     var lastDocument = await LastDocument;
 
     if (VerifierOptions.GutterStatus) {
+      // All unvisited trees need to set them as "verified"
+      if (!cancellationSource.IsCancellationRequested) {
+        SetAllUnvisitedMethodsAsVerified(lastDocument);
+      }
       translatedDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
     }
 
     NotifyStatus(translatedDocument.TextDocumentItem, lastDocument, cancellationSource.Token);
+  }
+
+  private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+    foreach (var tree in document.VerificationTree.Children) {
+      tree.SetVerifiedIfPending();
+    }
   }
 
   public bool Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask) {
