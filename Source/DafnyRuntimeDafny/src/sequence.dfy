@@ -38,6 +38,41 @@ module {:options "/functionSyntax:4"} Sequences {
       return a.At(index);
     }
 
+    method Drop(lo: nat) returns (ret: Sequence<T>)
+      requires Valid()
+      requires lo <= Length()
+      decreases size, 2
+      ensures ret.Valid()
+      ensures ret.Value() == Value()[lo..]
+    {
+      ret := Subsequence(lo, Length());
+    }
+
+    method Take(hi: nat) returns (ret: Sequence<T>)
+      requires Valid()
+      requires hi <= Length()
+      decreases size, 2
+      ensures ret.Valid()
+      ensures ret.Value() == Value()[..hi]
+    {
+      ret := Subsequence(0, hi);
+    }
+
+    method Subsequence(lo: nat, hi: nat) returns (ret: Sequence<T>)
+      requires Valid()
+      requires lo <= hi <= Length()
+      decreases size, 2
+      ensures ret.Valid()
+      ensures ret.Value() == Value()[lo..hi]
+    {
+      // Probably not worth pushing this into a ToArray(lo, hi) overload
+      // to optimize further, because one x[lo..hi] call is very likely
+      // to be followed by several others anyway.
+      var a := ToArray();
+      var subarray := a.Subarray(lo, hi);
+      ret := new ArraySequence(subarray);
+    }
+
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases size, 2

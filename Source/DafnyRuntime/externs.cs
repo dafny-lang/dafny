@@ -69,7 +69,7 @@ namespace Arrays {
       return new CsharpArray<T>(values, intSize);
     }
     
-    public Arrays.ImmutableArray<T> Slice(BigInteger start, BigInteger end) {
+    public Arrays.ImmutableArray<T> Subarray(BigInteger start, BigInteger end) {
       if (start == 0) {
         return new CsharpArray<T>(values, (int)end);
       }

@@ -8,5 +8,5 @@ import Frames_Compile.*;
 public interface ImmutableArray<T> {
   public java.math.BigInteger Length();
   public T At(java.math.BigInteger index);
-  public ImmutableArray<T> Slice(java.math.BigInteger start, java.math.BigInteger end);
+  public ImmutableArray<T> Subarray(java.math.BigInteger lo, java.math.BigInteger hi);
 }

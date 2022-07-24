@@ -1,3 +1,0 @@
-#! /bin/bash
-
-dafny /compile:0 /spillTargetCode:2 src/array.dfy /compileTarget:java /out:../DafnyRuntime/DafnyRuntimeJava/src/main/generated

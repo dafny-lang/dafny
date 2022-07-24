@@ -28,6 +28,8 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
   //
   // Has {:termination false} just so we can provide a feasibility implementation
   // in a different file.
+  //
+  // TODO: This could be a class instead, since it doesn't require variance
   trait {:extern} {:termination false} Array<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
@@ -71,10 +73,10 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       requires Valid()
       requires size <= Length()
       requires forall i | 0 <= i < size :: values[i].Set?
+      // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
       ensures |ret.values| == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
-      // Explicitly doesn't ensure Valid()!
   }
 
   datatype ArrayCell<T> = Set(value: T) | Unset
@@ -105,12 +107,12 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       requires index < |values|
       ensures At(index) == values[index]
 
-    method Slice(start: nat, end: nat) returns (ret: ImmutableArray<T>)
+    method Subarray(lo: nat, hi: nat) returns (ret: ImmutableArray<T>)
       requires Valid()
-      requires start <= end <= Length()
+      requires lo <= hi <= Length()
       ensures ret.Valid()
-      ensures ret.Length() == end - start
-      ensures forall i | 0 <= i < ret.Length() :: ret.At(i) == At(start + i)
+      ensures ret.Length() == hi - lo
+      ensures ret.values == values[lo..hi]
   }
 
   // TODO: More consistent method names.

@@ -22,7 +22,7 @@ public class JavaArray<T> implements Arrays.Array<T>, ImmutableArray<T> {
   }
 
   @Override
-  public ImmutableArray<T> Slice(BigInteger start, BigInteger end) {
+  public ImmutableArray<T> Subarray(BigInteger start, BigInteger end) {
     dafny.Array<T> newArray = wrapped.copyOfRange(start.intValue(), end.intValue());
     return new JavaArray<T>(newArray, end.intValue() - start.intValue());
   }
