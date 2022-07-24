@@ -171,7 +171,6 @@ method m5() { assert false; } //Remove4:
     FileVerificationStatus foundStatus;
     do {
       foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      Console.WriteLine("foundStatus: " + string.Join(", " , foundStatus.NamedVerifiables));
       var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
         .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
 
