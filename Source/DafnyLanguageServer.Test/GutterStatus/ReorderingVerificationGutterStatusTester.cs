@@ -168,9 +168,17 @@ method m5() { assert false; } //Remove4:
 
   public async IAsyncEnumerable<List<Range>> GetRunningOrder(SemaphoreSlim semaphore, [EnumeratorCancellation] CancellationToken cancellationToken) {
     var alreadyReported = new HashSet<Range>();
-    FileVerificationStatus foundStatus;
+    FileVerificationStatus foundStatus = null;
+    int count = 0;
     do {
-      foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      try {
+        foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+
+      } catch(OperationCanceledException) {
+        Console.WriteLine("count: " + count);
+        Console.WriteLine("foundStatus after timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        throw;
+      }
       var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
         .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
 
@@ -181,6 +189,7 @@ method m5() { assert false; } //Remove4:
         semaphore.Release(1);
       }
 
+      count++;
       yield return newlyDone.Concat(newlyRunning).ToList();
     } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
