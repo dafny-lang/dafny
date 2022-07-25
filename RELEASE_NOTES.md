@@ -1,5 +1,5 @@
 # Upcoming
-- fix: Counterexamples - fix an integer parsing bug and correctly extract datatype and field names 
+- fix: Counterexamples - fix an integer parsing bug and correctly extract datatype and field names (https://github.com/dafny-lang/dafny/pull/2461)
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line). (https://github.com/dafny-lang/dafny/pull/2363)
 
 # 3.7.3
