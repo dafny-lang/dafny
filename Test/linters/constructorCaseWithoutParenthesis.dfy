@@ -66,6 +66,7 @@ module WithoutWarning {
         var x := MonochromaticMethod(Green); 
         print MonochromaticFunction(Green);
         var y := MonochromaticMethodloop(Green);
+        var t := MonoMethod(Green);
       }
 }
 

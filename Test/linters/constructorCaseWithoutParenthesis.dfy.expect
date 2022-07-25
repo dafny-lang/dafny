@@ -7,5 +7,3 @@ constructorCaseWithoutParenthesis.dfy(18,11): Warning: Variable name 'ShadesOfGr
 constructorCaseWithoutParenthesis.dfy(26,14): Warning: Variable name 'ShadesOfGray' on line 26 starts with a capital letter
 
 Dafny program verifier finished with 3 verified, 0 errors
-
-Process finished with exit code 0.
