@@ -45,7 +45,6 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.StaticConstants,
-      Feature.RuntimeTypeDescriptors,
       Feature.TupleInitialization,
       Feature.ContinueStatements,
       Feature.ForLoops,
@@ -465,43 +464,40 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
+    // Unlike the other compilers, we use lambdas to model type descriptors here.
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var customName = false;
-      var name = type.NormalizeExpandKeepConstraints() switch {
+      return type.NormalizeExpandKeepConstraints() switch {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        BoolType or TypeProxy => "bool",
-        IntType or BitvectorType => "int",
-        RealType => "real",
+        BoolType or TypeProxy => $"{DafnyDefaults}.bool",
+        IntType or BitvectorType => $"{DafnyDefaults}.int",
+        RealType => $"{DafnyDefaults}.real",
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl => "null",
+          ClassDecl => $"{DafnyDefaults}.pointer",
           TupleTypeDecl tpl => TupleTypeDescriptor(tpl, udt.TypeArgs, udt.tok),
           NewtypeDecl => NewtypeDescriptor(udt),
           _ => throw new cce.UnreachableException()
         },
         _ => throw new cce.UnreachableException()
       };
-      return (customName ? "" : DafnyDefaults + ".") + name;
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         //TODO: Support for generic classes
         Contract.Assert(!(thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl));
-        customName = true;
         return typeParameter.CompileName;
       }
 
       string NewtypeDescriptor(UserDefinedType userDefinedType) {
-        customName = true;
         return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.tok)}.default";
       }
 
       string TupleTypeDescriptor(TupleTypeDecl tuple, List<Type> typeArgs, IToken tok) {
         var w = new ConcreteSyntaxTree();
-        w.Write("tuple(");
+        w.Write($"{DafnyDefaults}.tuple(");
         EmitTypeDescriptorsActuals(UsedTypeParameters(tuple, typeArgs), tok, w, true);
         w.Write(")");
         return w.ToString();
