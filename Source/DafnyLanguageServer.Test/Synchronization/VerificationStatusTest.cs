@@ -242,7 +242,7 @@ method Bar() { assert true; }";
     await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
-    Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
+    Assert.IsTrue(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
