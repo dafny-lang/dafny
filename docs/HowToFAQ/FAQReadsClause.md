@@ -6,11 +6,11 @@ title: Where do I put the reads clause?
 
 This example
 ```dafny
-{% include_relative Example.dfy %}
+{% include_relative FAQReadsClause.dfy %}
 ```
 generates this error:
 ```text
-{% include_relative out.txt %}
+{% include_relative FAQReadsClause.txt %}
 ```
 but there is no obvious place to put a `reads` clause.
 
