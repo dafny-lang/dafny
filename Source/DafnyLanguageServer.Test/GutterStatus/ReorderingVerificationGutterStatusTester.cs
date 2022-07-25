@@ -174,7 +174,7 @@ method m5() { assert false; } //Remove4:
       try {
         foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
 
-      } catch(OperationCanceledException) {
+      } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
         Console.WriteLine("foundStatus after timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
         throw;
