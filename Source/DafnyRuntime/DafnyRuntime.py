@@ -49,7 +49,12 @@ class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         if __iterable is None:
             __iterable = []
-        self.isStr = isStr or isinstance(__iterable, str) or (isinstance(__iterable, Seq) and __iterable.isStr) or (not isinstance(__iterable, GeneratorType) and all(isinstance(e, str) and len(e) == 1 for e in __iterable) and len(__iterable) > 0)
+        self.isStr = isStr \
+                     or isinstance(__iterable, str) \
+                     or (isinstance(__iterable, Seq) and __iterable.isStr) \
+                     or (not isinstance(__iterable, GeneratorType)
+                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
+                         and len(__iterable) > 0)
 
     @property
     def Elements(self):
@@ -59,10 +64,10 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.isStr:
             return ''.join(self)
-        return '[' + ', '.join(map(repr, self)) + ']'
+        return '[' + ', '.join(map(str, self)) + ']'
 
     def __add__(self, other):
         return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
@@ -131,7 +136,7 @@ class MultiSet(Counter):
 
     @property
     def keys(self):
-        return (key for key in self if self[key] > 0)
+        return Set(key for key in self if self[key] > 0)
 
     def isdisjoint(self, other):
         return frozenset(self.keys).isdisjoint(frozenset(other.keys))
@@ -149,6 +154,9 @@ class MultiSet(Counter):
 
     def __hash__(self):
         return hash(frozenset(self.keys))
+
+    def __eq__(self, other):
+        return all(self[key] == other[key] for key in self.keys | other.keys)
 
     def __setattr__(self, key, value):
         raise TypeError("'Map' object is immutable")

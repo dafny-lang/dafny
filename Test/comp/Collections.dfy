@@ -194,7 +194,7 @@ method zeroMultiplicity() {
   print "  printing: ", multiset{a, multiset{42}}, " ", a + d, "\n";
   print "  union: ", |a + d|, " ", |d + a|, " ", |e + f|, " ", |f + e|, "\n";
   print "  membership: ", 12 in a, " ", null in e, "\n";
-  print "  equality: ", a == b, " ", e == f, "\n";
+  print "  equality: ", a == b, " ", a == c, " ", e == f, "\n";
   print "  subset: ", a <= b, " ", a <= c, " ", c <= a, " ", e <= f, " ", f <= e, "\n";
   print "  strict subset: ", a < b, " ", a < c, " ", c < a, " ", e < f, " ", f < e, "\n";
   print "  disjoint: ", a !! d, " ", d !! a, " ", e !! f, " ", f !! e, "\n";

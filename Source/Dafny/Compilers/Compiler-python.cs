@@ -55,7 +55,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Codatatypes,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
-      Feature.Multisets,
       Feature.SubsetTypeTests,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.ExactBoundedPool,
@@ -1298,6 +1297,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.SeqNeq:
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
           opString = "!="; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
