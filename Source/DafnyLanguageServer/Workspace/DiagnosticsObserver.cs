@@ -33,7 +33,6 @@ class DiagnosticsObserver : IObserver<DafnyDocument> {
   }
 
   public void OnCompleted() {
-    telemetryPublisher.PublishUpdateComplete();
   }
 
   public void OnError(Exception e) {
