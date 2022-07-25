@@ -169,11 +169,6 @@ namespace Microsoft.Dafny {
               this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
                 $"Constructor name '{idPattern}' should contain a parenthesis at the end");
             }
-            if (char.IsUpper(idPattern.Id[0]) && isVariable) {
-              var lineNum = idPattern.Tok.line;
-              this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
-                $"Variable name '{idPattern}' on line {lineNum} starts with a capital letter");
-            }
           }
         }
       }
