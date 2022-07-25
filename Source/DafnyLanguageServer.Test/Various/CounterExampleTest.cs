@@ -1071,6 +1071,5 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         "(c1 := '\\u1023', c2 := '\\u1023')" or
         "(c2 := '\\u1023', c1 := '\\u1023')");
     }
-
   }
 }
