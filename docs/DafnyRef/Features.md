@@ -8,7 +8,7 @@
 | [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [User-defined types with traits as type parameters](#sec-trait-types) |  X  |  X  |  X  |  |  X  |  X  |
 | [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |
-| [Co-inductive datatypes](#sec-co-inductive-datatypes) |  X  |  X  |  X  |  X  |  |  |
+| [Co-inductive datatypes](#sec-co-inductive-datatypes) |  X  |  X  |  X  |  X  |  X  |  |
 | [Multisets](#sec-multisets) |  X  |  X  |  X  |  X  |  |  |
 | [Runtime type descriptors](#) |  X  |  X  |  X  |  X  |  |  |
 | [Multi-dimensional arrays](#sec-multi-dimensional-arrays) |  X  |  X  |  X  |  X  |  X  |  |
