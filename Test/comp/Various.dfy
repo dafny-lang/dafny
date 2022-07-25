@@ -29,8 +29,13 @@ method LetExpr() {
   print (var a := A(0); var A(zero) := a; zero), "\n";
 }
 
+method PrintString() {
+  print [[], [] + "Hallo " + ['W', 'e', 'l', 't', '!']], "\n";
+}
+
 method Main() {
   Match((0,1));
   Countdown(1);
   LetExpr();
+  PrintString();
 }

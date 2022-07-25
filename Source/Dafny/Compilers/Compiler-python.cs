@@ -687,7 +687,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
       if (tok != null) {
-        wr.Write($"{DafnyRuntimeModule}.Seq(\"{Dafny.ErrorReporter.TokenToString(tok)}: \") + ");
+        wr.Write($"{DafnySeqClass}(\"{Dafny.ErrorReporter.TokenToString(tok)}: \") + ");
       }
 
       TrExpr(messageExpr, wr, false, wStmts);
@@ -784,7 +784,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"'{(string)e.Value}'");
           break;
         case StringLiteralExpr str:
-          wr.Write($"{DafnyRuntimeModule}.Seq(");
+          wr.Write($"{DafnySeqClass}(");
           TrStringLiteral(str, wr);
           wr.Write(")");
           break;
@@ -1344,6 +1344,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(open);
       TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
       wr.Write(close);
+      if (ct is SeqType && ct.TypeArgs.TrueForAll(ty => ty.IsCharType)) {
+        wr.Write(", isStr = True");
+      }
       wr.Write(")");
     }
 

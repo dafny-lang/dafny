@@ -39,12 +39,26 @@ def _break(name):
 def _tail_call():
     raise TailCall()
 
+class String(str):
+    def __new__(cls, *args, **kw):
+        return super().__new__(cls, *args, **kw)
+
+    def __repr__(self):
+        return self
+
+    def __add__(self, other):
+        return String(super().__add__(other))
+
 class Seq(list):
-    def __init__(self, __iterable = None, isStr = False):
+    def __new__(cls, __iterable = None, isStr = False):
         if __iterable is None:
             __iterable = []
-        self.isStr = isinstance(__iterable, str) or isStr
-        super().__init__(__iterable)
+        if isinstance(__iterable, str):
+            return String(__iterable)
+        elif isStr:
+            return String(''.join(__iterable))
+        else:
+            return super().__new__(cls, __iterable)
 
     @property
     def Elements(self):
@@ -54,13 +68,8 @@ class Seq(list):
     def UniqueElements(self):
         return set(self)
 
-    def __repr__(self) -> str:
-        if self.isStr:
-          return ''.join(self)
-        return super().__repr__()
-
     def __add__(self, other):
-        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
+        return Seq(super().__add__(other))
 
     def __hash__(self) -> int:
         return hash(tuple(self))
