@@ -38,8 +38,8 @@ method {:timeLimit 10} test() {
       // Cancels the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
 
-       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(!document.Diagnostics.Any());
       ApplyChange(ref documentItem, new Range((12, 9), (12, 13)), "/");

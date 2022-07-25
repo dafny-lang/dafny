@@ -98,7 +98,7 @@ method m5() { assert fib(30) == 55; } //Remove3:
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-      await TestPriorities(@"
+    await TestPriorities(@"
 method m1() { assert fib(30) == 55; }
 method m2() {
   assert fib(30) == 55;//Next3:  typo//Next5:  assert fib(30) == 55;
@@ -114,13 +114,13 @@ function fib(n: nat): nat {
 }
 method m5() { assert fib(30) == 55; } //Remove4:
 ",
-      "m1 m2 m3 m4 fib m5\n" +
-      "m3 m1 m2 m4 fib m5\n" +
-      "m4 m3 m1 m2 fib m5\n" +
-      "null\n" +
-      "m1 m2 m3 m4 fib\n" +
-      "m2 m4 m3 m1 fib"
-    );
+    "m1 m2 m3 m4 fib m5\n" +
+    "m3 m1 m2 m4 fib m5\n" +
+    "m4 m3 m1 m2 fib m5\n" +
+    "null\n" +
+    "m1 m2 m3 m4 fib\n" +
+    "m2 m4 m3 m1 fib"
+  );
   }
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.

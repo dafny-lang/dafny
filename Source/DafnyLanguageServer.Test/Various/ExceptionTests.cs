@@ -114,7 +114,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     public bool Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask,
       CancellationToken cancellationToken) {
-      return loader.Verify(entry ,document, implementationTask, cancellationToken);
+      return loader.Verify(entry, document, implementationTask, cancellationToken);
     }
 
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {

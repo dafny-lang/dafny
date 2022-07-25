@@ -54,7 +54,7 @@ class SlowVerifier : IProgramVerifier {
     public IObservable<IVerificationStatus> TryRun() {
       return source;
     }
-    
+
     public bool IsIdle => false;
 
     public void Cancel() {
