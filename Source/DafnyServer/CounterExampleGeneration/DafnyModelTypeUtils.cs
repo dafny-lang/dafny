@@ -26,6 +26,46 @@ namespace DafnyServer.CounterexampleGeneration {
       public DatatypeType(UserDefinedType type) 
         : base(new Token(), type.Name, type.TypeArgs) { }
     }
+    
+    public static Type GetNonNullable(Type type) {
+      if (type is not UserDefinedType userType) {
+        return type;
+      }
+
+      var newType = new UserDefinedType(new Token(), 
+        userType.Name.TrimEnd('?'), userType.TypeArgs);
+      if (type is DatatypeType) {
+        return new DatatypeType(newType);
+      }
+      return newType;
+    }
+    
+    public static Type ReplaceTypeVariables(Type type, Type with) {
+      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
+    }
+
+    /// <summary>
+    /// Recursively replace all types within <param>type</param> that satisfy
+    /// <param>condition</param>
+    /// </summary>
+    public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
+      Func<UserDefinedType, Type> replacement) {
+      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
+        return TransformType(type, t => ReplaceType(t, condition, replacement));
+      }
+      var newType = condition(userType) ? replacement(userType) : type;
+      newType.TypeArgs = newType.TypeArgs.ConvertAll(t => 
+        TransformType(t, t => ReplaceType(t, condition, replacement)));
+      if (newType is not UserDefinedType newUserType) {
+        return newType;
+      }
+      newUserType = new UserDefinedType(newUserType.tok, newUserType.Name,
+        newUserType.TypeArgs);
+      if (newType is DatatypeType) {
+        return new DatatypeType(newUserType);
+      }
+      return newUserType;
+    }
 
     public static Type GetInDafnyFormat(Type type) {
       if ((type is not UserDefinedType userType) || (type is ArrowType)) {

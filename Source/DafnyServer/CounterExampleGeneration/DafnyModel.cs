@@ -138,9 +138,6 @@ namespace DafnyServer.CounterexampleGeneration {
         } else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
-            if (!datatypeValues.ContainsKey(elt)) {
-              datatypeValues.Add(elt, tpl);
-            }
             datatypeValues[elt] = tpl;
           }
         }

@@ -20,8 +20,8 @@ namespace DafnyTestGeneration {
     public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
-    // TODO: what if it takes type arguments?
-    private readonly Dictionary<string, Type> subsetTypeToSuperset;
+    private readonly Dictionary<string, (List<TypeParameter> args, Type superset)> subsetToSuperset;
+    private readonly Dictionary<string, string> witnessForType;
     // list of top level scopes accessible from the testing module
     private readonly List<VisibilityScope> scopes;
 
@@ -30,12 +30,24 @@ namespace DafnyTestGeneration {
       functions = new Dictionary<string, Function>();
       ToImportAs = new Dictionary<string, string>();
       Datatypes = new Dictionary<string, IndDatatypeDecl>();
-      subsetTypeToSuperset = new Dictionary<string, Type>();
-      subsetTypeToSuperset["_System.string"] = new SeqType(new CharType());
-      subsetTypeToSuperset["string"] = new SeqType(new CharType());
-      subsetTypeToSuperset["_System.nat"] = Type.Int;
-      subsetTypeToSuperset["nat"] = Type.Int;
-      subsetTypeToSuperset["_System.object"] = new UserDefinedType(new Token(), "object", new List<Type>());
+      witnessForType = new Dictionary<string, string>();
+      subsetToSuperset =
+        new Dictionary<string, (List<TypeParameter> args, Type superset)>();
+      subsetToSuperset["_System.string"] = new(
+        new List<TypeParameter>(),
+        new SeqType(new CharType()));
+      subsetToSuperset["string"] = new(
+        new List<TypeParameter>(),
+        new SeqType(new CharType()));
+      subsetToSuperset["_System.nat"] = new(
+        new List<TypeParameter>(),
+        Type.Int);
+      subsetToSuperset["nat"] = new(
+        new List<TypeParameter>(),
+        Type.Int);
+      subsetToSuperset["_System.object"] = new(
+        new List<TypeParameter>(),
+        new UserDefinedType(new Token(), "object", new List<Type>()));
       scopes = program.DefaultModuleDef.TopLevelDecls?
         .OfType<LiteralModuleDecl>()
         .Select(declaration => 
@@ -64,6 +76,22 @@ namespace DafnyTestGeneration {
         return functions[callable].TypeArgs;
       }
       throw new Exception("Cannot identify callable " + callable);
+    }
+
+    public List<TypeParameter> GetTypeArgsWithParents(string callable) {
+      List<TypeParameter> result = new List<TypeParameter>();
+      TopLevelDecl? clazz;
+      if (methods.ContainsKey(callable)) {
+        result.AddRange(methods[callable].TypeArgs);
+        clazz = methods[callable].EnclosingClass;
+      } else if (functions.ContainsKey(callable)) {
+        result.AddRange(functions[callable].TypeArgs);
+        clazz = functions[callable].EnclosingClass;
+      } else {
+        throw new Exception("Cannot identify callable " + callable);
+      }
+      result.AddRange(clazz.TypeArgs);
+      return result;
     }
     
     public IList<Type> GetFormalsTypes(string callable) {
@@ -107,20 +135,28 @@ namespace DafnyTestGeneration {
       }
       return false;
     }
+    
+    public string? GetWitnessForType(Type type) {
+      if (type is not UserDefinedType userDefinedType ||
+          !witnessForType.ContainsKey(userDefinedType.Name)) {
+        return null;
+      }
+      return witnessForType[userDefinedType.Name];
+    }
 
     public Type? GetSupersetType(Type type) {
       if (type is not UserDefinedType userDefinedType ||
-          !subsetTypeToSuperset.ContainsKey(userDefinedType.Name)) {
+          !subsetToSuperset.ContainsKey(userDefinedType.Name)) {
         return null;
       }
-      var superSetType = subsetTypeToSuperset[userDefinedType.Name];
+      var superSetType = subsetToSuperset[userDefinedType.Name].superset;
+      var typeArgs = subsetToSuperset[userDefinedType.Name].args;
       superSetType = Utils.CopyWithReplacements(superSetType,
-        superSetType.TypeArgs.ConvertAll(arg =>
-          (arg as UserDefinedType)?.Name ?? ""), type.TypeArgs);
+        typeArgs.ConvertAll(arg => arg.Name), type.TypeArgs);
       if ((superSetType is UserDefinedType tmp) &&
           (tmp.Name.StartsWith("_System") &&
-           subsetTypeToSuperset.ContainsKey(tmp.Name))) {
-        return subsetTypeToSuperset[tmp.Name];
+           subsetToSuperset.ContainsKey(tmp.Name))) {
+        return subsetToSuperset[tmp.Name].superset;
       }
       return superSetType;
     }
@@ -178,9 +214,40 @@ namespace DafnyTestGeneration {
           Visit(datatypeDecl);
         } else if (d is NewtypeDecl newTypeDecl) {
           Visit(newTypeDecl);
+        } else if (d is SubsetTypeDecl subsetTypeDecl) {
+          Visit(subsetTypeDecl);
         } else if (d is TypeSynonymDeclBase typeSynonymDecl) {
           Visit(typeSynonymDecl);
         }
+      }
+
+      private void VisitUserDefinedTypeDeclaration(string newTypeName, 
+        Type baseType, Expression? witness, List<TypeParameter> typeArgs) {
+        if (witness != null) {
+          info.witnessForType[newTypeName] = Printer.ExprToString(witness);
+          if (DafnyOptions.O.TestGenOptions.Verbose) {
+            Console.Out.WriteLine($"// Values of type {newTypeName} will be " +
+                                  $"assigned the default value of " +
+                                  $"{info.witnessForType[newTypeName]}");
+          }
+        } else if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.Out.WriteLine($"// Warning: Values of type {newTypeName} " +
+                                $"will be assigned a default value of type " +
+                                $"{baseType}, which may or may not match the " +
+                                $"associated condition");
+        } 
+        info.subsetToSuperset[newTypeName] =  (typeArgs, 
+          Utils.UseFullName(baseType));
+      }
+      
+      private new void Visit(SubsetTypeDecl newType) {
+        var name = newType.FullDafnyName;
+        var type = newType.Rhs;
+        while (type is InferredTypeProxy inferred) {
+          type = inferred.T;
+        }
+        VisitUserDefinedTypeDeclaration(name, type, newType.Witness, 
+          newType.TypeArgs);
       }
       
       private new void Visit(NewtypeDecl newType) {
@@ -189,15 +256,8 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
-        type = Utils.UseFullName(type);
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
-          Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
-                                $"assigned a default value of type {type}, " +
-                                $"which may or may not match the associated " +
-                                $"condition");
-        }
-
-        info.subsetTypeToSuperset[name] = Utils.UseFullName(type);
+        VisitUserDefinedTypeDeclaration(name, type, newType.Witness, 
+          newType.TypeArgs);
       }
 
       private void Visit(TypeSynonymDeclBase newType) {
@@ -206,15 +266,9 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
-        type = Utils.UseFullName(type);
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
-          Console.Out.WriteLine($"// Warning: Values of type {name} will be " +
-                                $"assigned a default value of type {type}, " +
-                                $"which may or may not match the associated " +
-                                $"condition");
-        }
-        info.subsetTypeToSuperset[name] =  Utils.UseFullName(type);
+        VisitUserDefinedTypeDeclaration(name, type, null, newType.TypeArgs);
       }
+      
       private void Visit(LiteralModuleDecl d) {
         if (d.ModuleDef.IsAbstract) {
           return;

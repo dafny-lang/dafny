@@ -96,7 +96,7 @@ namespace DafnyTestGeneration {
     private List<string> ExtractInputs(DafnyModelState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(null);
-      var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2; // TODO: this is wrong
+      var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2; 
       for (var i = 0; i < printOutput.Count; i++) {
         if (types[i] == "Ty") {
           continue; // this means that this parameter is a type variable
@@ -107,9 +107,9 @@ namespace DafnyTestGeneration {
           type = Utils.UseFullName(
             DafnyInfo.GetFormalsTypes(MethodName)[parameterIndex]);
           type = Utils.CopyWithReplacements(type,
-            DafnyInfo.GetTypeArgs(MethodName).ConvertAll(arg => arg.ToString()),
-            Enumerable.Repeat(defaultType, NOfTypeArgs).ToList());
-          type = Utils.ReplaceType(type,
+            DafnyInfo.GetTypeArgsWithParents(MethodName).ConvertAll(arg => arg.ToString()),
+            Enumerable.Repeat(defaultType, DafnyInfo.GetTypeArgsWithParents(MethodName).Count).ToList());
+          type = DafnyModelTypeUtils.ReplaceType(type,
             _ => true, 
             type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ? 
               new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) : 
@@ -150,7 +150,7 @@ namespace DafnyTestGeneration {
     }
 
     private string GetFunctionOfType(ArrowType type) {
-      type = (ArrowType) Utils.ReplaceTypeVariables(type, defaultType);
+      type = (ArrowType) DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       getDefaultValueParams = new();
       var lambda = 
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
@@ -187,7 +187,7 @@ namespace DafnyTestGeneration {
         }
       }
       if (asType != null) {
-        asType = Utils.ReplaceType(asType,
+        asType = DafnyModelTypeUtils.ReplaceType(asType,
           type => DafnyInfo.GetSupersetType(type) != null &&
                   type.Name.StartsWith("_System"),
           type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
@@ -208,8 +208,8 @@ namespace DafnyTestGeneration {
       
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
-        Utils.ReplaceTypeVariables(variable.Type, defaultType));
-      variableType = Utils.ReplaceType(variableType,
+        DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
+      variableType = DafnyModelTypeUtils.ReplaceType(variableType,
         type => DafnyInfo.GetSupersetType(type) != null &&
                 type.Name.StartsWith("_System"),
         type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
@@ -322,7 +322,7 @@ namespace DafnyTestGeneration {
             var destructorType = Utils.CopyWithReplacements(
               Utils.UseFullName(ctor.Destructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
-            destructorType = Utils.ReplaceType(destructorType,
+            destructorType = DafnyModelTypeUtils.ReplaceType(destructorType,
               _ => true,
               t => DafnyInfo.Datatypes.ContainsKey(t.Name)
                 ? new DafnyModelTypeUtils.DatatypeType(t)
@@ -354,7 +354,7 @@ namespace DafnyTestGeneration {
           return "null";
         default:
           var varId = $"v{ObjectsToMock.Count}";
-          var dafnyType = Utils.GetNonNullable(asType ?? variableType);
+          var dafnyType = DafnyModelTypeUtils.GetNonNullable(asType ?? variableType);
           ObjectsToMock.Add(new(varId, dafnyType));
           TypesToSynthesize.Add(dafnyType.ToString());
           mockedVarId[variable] = varId;
@@ -400,12 +400,15 @@ namespace DafnyTestGeneration {
         return "";
       }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
-      type = Utils.ReplaceType(type,
+      type = DafnyModelTypeUtils.ReplaceType(type,
         _ => true,
         t => DafnyInfo.Datatypes.ContainsKey(t.Name) ? 
           new DafnyModelTypeUtils.DatatypeType(t) : 
           new UserDefinedType(t.tok, t.Name, t.TypeArgs));
-      type = Utils.ReplaceTypeVariables(type, defaultType);
+      type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
+      if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
+        return DafnyInfo.GetWitnessForType(asType);
+      }
       switch (type) {
         case IntType:
           return GetPrimitiveAsType("0", asType);

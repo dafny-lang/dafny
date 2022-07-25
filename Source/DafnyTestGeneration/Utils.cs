@@ -14,26 +14,9 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyTestGeneration {
 
   public static class Utils {
-    
-    public static Type GetNonNullable(Type type) {
-      if (type is not UserDefinedType userType) {
-        return type;
-      }
 
-      var newType = new UserDefinedType(new Token(), 
-        userType.Name.TrimEnd('?'), userType.TypeArgs);
-      if (type is DafnyModelTypeUtils.DatatypeType) {
-        return new DafnyModelTypeUtils.DatatypeType(newType);
-      }
-      return newType;
-    }
-
-    public static Type ReplaceTypeVariables(Type type, Type with) {
-      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
-    }
-    
     public static Type UseFullName(Type type) {
-      return ReplaceType(type, _ => true, type => 
+      return DafnyModelTypeUtils.ReplaceType(type, _ => true, type => 
         new UserDefinedType(new Token(), type?.ResolvedClass?.FullName ?? type.Name, type.TypeArgs));
     }
 
@@ -51,25 +34,10 @@ namespace DafnyTestGeneration {
         new UserDefinedType(new Token(), "nat", new List<Type>());
       replacements["_System.object"] =
         new UserDefinedType(new Token(), "object", new List<Type>());
-      return ReplaceType(type, _ => true,
+      return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         type => replacements.ContainsKey(type.Name) ? 
           replacements[type.Name] :
           new UserDefinedType(type.tok, type.Name, type.TypeArgs));
-    }
-    
-    /// <summary>
-    /// Recursively replace all types within <param>type</param> that satisfy
-    /// <param>condition</param>
-    /// </summary>
-    public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition, 
-      Func<UserDefinedType, Type> replacement) {
-      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
-        return DafnyModelTypeUtils.TransformType(type, t => ReplaceType(t, condition, replacement));
-      }
-      var newType = condition(userType) ? replacement(userType) : type;
-      newType.TypeArgs = newType.TypeArgs.ConvertAll(t => 
-          DafnyModelTypeUtils.TransformType(t, t => ReplaceType(t, condition, replacement)));
-      return newType;
     }
 
     /// <summary>
