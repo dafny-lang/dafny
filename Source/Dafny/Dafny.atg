@@ -3289,7 +3289,7 @@ BindingGuard<out Expression e, bool allowLambda>
 
 
 /*------------------------------------------------------------------------*/
-ExtendedPattern<.out ExtendedPattern pat.>
+SingleExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments;
     Expression lit; BoundVar bv;
     pat = null;
@@ -3322,6 +3322,17 @@ ExtendedPattern<.out ExtendedPattern pat.>
       pat = new IdPattern(t, "_ParseError", null);
     }
   .)
+  .
+
+/*------------------------------------------------------------------------*/
+ExtendedPattern<.out ExtendedPattern pat.>
+= (. List<ExtendedPattern> branches = null;
+     ExtendedPattern branch = null; .)
+  [ "|" ] SingleExtendedPattern<out branch>
+  { "|"                                    (. branches ??= new() { branch }; .)
+    SingleExtendedPattern<out branch>      (. branches.Add(branch); .)
+  }
+  (. pat = branches == null ? branch : new DisjunctivePattern(branches[0].Tok, branches); .)
   .
 
 /*------------------------------------------------------------------------*/
