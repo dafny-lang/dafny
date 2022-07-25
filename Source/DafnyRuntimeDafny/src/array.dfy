@@ -140,7 +140,6 @@ module {:extern "Arrays"} {:options "/functionSyntax:4"} Arrays {
       var storage := NewArray<T>(length);
       this.storage := storage;
       size := 0;
-      new;
       Repr := {this} + storage.Repr;
     }
 
