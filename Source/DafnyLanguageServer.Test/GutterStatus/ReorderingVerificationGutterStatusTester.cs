@@ -183,9 +183,13 @@ method m5() { assert false; } //Remove4:
         .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
 
       var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
-        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r)).ToList();
 
-      if (foundStatus.NamedVerifiables.Any(s => s.Status == PublishedVerificationStatus.Running)) {
+      if (newlyRunning.Count > 1) {
+        throw new Exception("semaphore throttling should only allow one newly running per notification.");
+      }
+
+      if (!newlyRunning.Any()) {
         semaphore.Release(1);
       }
 
