@@ -1025,18 +1025,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task DatatypeWithPredicate() {
-      var source = $@"
-      module M {{
-        datatype D = C(i:int) {{ 
-          predicate p() {{true}}
-        }}
+      var source = @"
+      module M {
+        datatype D = C(i:int) {
+          predicate p() {true}
+        }
 
-        method test(d: D) {{
-          if (d.p()) {{
+        method test(d: D) {
+          if (d.p()) {
             assert d.i != 123;
-          }}
-        }}
-      }}".TrimStart();
+          }
+        }
+      }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
