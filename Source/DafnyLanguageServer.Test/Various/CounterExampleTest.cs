@@ -1051,17 +1051,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// </summary>
     [TestMethod]
     public async Task EqualFields() {
-      var source = $@"
-      module M {{
-        class C {{ 
+      var source = @"
+      module M {
+        class C { 
           var c1:char;
           var c2:char;
-        }}
+        }
 
-        method test(c: C?) {{
+        method test(c: C?) {
           assert c == null || c.c1 != c.c2 || c.c1 != '\u1023';
-        }}
-      }}".TrimStart();
+        }
+      }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
