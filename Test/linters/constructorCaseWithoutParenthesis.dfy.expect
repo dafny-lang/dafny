@@ -1,9 +1,9 @@
 constructorCaseWithoutParenthesis.dfy(9,6): Warning: this branch is redundant 
-constructorCaseWithoutParenthesis.dfy(10,6): Warning: this branch is redundant
-constructorCaseWithoutParenthesis.dfy(15,6): Warning: this branch is redundant
-constructorCaseWithoutParenthesis.dfy(16,6): Warning: this branch is redundant
-constructorCaseWithoutParenthesis.dfy(24,9): Warning: this branch is redundant
-constructorCaseWithoutParenthesis.dfy(25,9): Warning: this branch is redundant
+constructorCaseWithoutParenthesis.dfy(10,6): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(15,6): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(16,6): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(24,9): Warning: this branch is redundant 
+constructorCaseWithoutParenthesis.dfy(25,9): Warning: this branch is redundant 
 constructorCaseWithoutParenthesis.dfy(9,11): Warning: Constructor name 'Green' should contain a parenthesis at the end
 constructorCaseWithoutParenthesis.dfy(15,11): Warning: Constructor name 'Green' should contain a parenthesis at the end
 constructorCaseWithoutParenthesis.dfy(24,14): Warning: Constructor name 'Green' should contain a parenthesis at the end
