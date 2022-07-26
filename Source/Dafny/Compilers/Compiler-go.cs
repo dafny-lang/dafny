@@ -637,11 +637,17 @@ namespace Microsoft.Dafny.Compilers {
 
       if (dt is IndDatatypeDecl) {
         var wStruct = wr.NewNamedBlock("type {0} struct", name);
-        wStruct.WriteLine(dataName);
+        var fieldName = dataName;
+        if (dt.Ctors.Count == 1) {
+          // only field will be the struct for the only ctor
+          var ctor = dt.Ctors.First();
+          fieldName = name + "_" + ctor.CompileName;
+        }
+        wStruct.WriteLine(fieldName);
 
         wr.WriteLine();
         var wGet = wr.NewNamedBlock("func (_this {0}) Get() {1}", name, dataName);
-        wGet.WriteLine("return _this.{0}", dataName);
+        wGet.WriteLine("return _this.{0}", fieldName);
       } else {
         var wDt = wr.NewNamedBlock("type {0} struct", name);
         wDt.WriteLine(ifaceName);
@@ -764,7 +770,11 @@ namespace Microsoft.Dafny.Compilers {
               var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
+                if (dt.Ctors.Count == 1) {
+                  wDtor.WriteLine("return _this.{0}", DatatypeFieldName(arg));
+                } else {
+                  wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
+                }
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
                 for (int i = 0; i < n - 1; i++) {
