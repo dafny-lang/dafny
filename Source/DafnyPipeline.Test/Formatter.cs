@@ -290,7 +290,7 @@ method topLevel(
     2
     ,
     3
-  ;
+    ;
   var z
     , 
       w
@@ -298,11 +298,15 @@ method topLevel(
       4
     ,
       5
-  ;
+    ;
   var y,
       z
     := x,
        1;
+  var b
+    , c
+    := d
+     , e;
   var y
     , z :=
       x

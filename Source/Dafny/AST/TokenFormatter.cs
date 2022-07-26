@@ -167,22 +167,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var commaIndent = 0;
     foreach (var token in ownedTokens) {
       if (token.val is "{") {
-        SetBeforeAfter(token, initIndent + 2, initIndent, initIndent + 2);
+        SetDelimiterIndentedRegions(token, initIndent);
         indent += 2;
       }
       if (token.val is "<" or "[" or "(") {
-        if (token.TrailingTrivia.Contains('\r') || token.TrailingTrivia.Contains('\n')) {
+        if (IsFollowedByNewline(token)) {
           extraIndent = 2;
           commaIndent = indent;
         } else {
           // Align capabilities
-          var c = 0;
-          while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
-            c++;
-          }
-
-          extraIndent = GetTokenCol(token, indent) + c - indent;
-          commaIndent = GetTokenCol(token, indent) - 1;
+          var rightIndent = GetRightAlignIndentAfter(token, indent);
+          commaIndent = GetRightAlignIndentDelimiter(token, indent);
+          extraIndent = rightIndent - indent;
         }
 
         SetBeforeAfter(token, indent, indent, indent + extraIndent);
@@ -197,15 +193,35 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
       if (token.val is "}" && !PosToIndentLineBefore.ContainsKey(token.pos)) {
         indent -= 2;
-        SetBeforeAfter(token, indent + 2, indent, indent);
+        SetClosingIndentedRegion(token, indent);
       }
       if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
         indent = firstIndent;
-        SetBeforeAfter(token, indent, indent, indent + 2);
+        SetOpeningIndentedRegion(token, indent);
         indent += 2;
         commaIndent = indent;
       }
     }
+  }
+
+  private static int GetTrailingSpace(IToken token) {
+    var c = 0;
+    while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
+      c++;
+    }
+
+    return c;
+  }
+
+  // Given a token such as `var ` immediately followed by another token
+  // returns the indent so that everything after it is aligned with the first token.
+  private int GetRightAlignIndentAfter(IToken token, int indentFallback) {
+    var trailingSpace = GetTrailingSpace(token);
+    return GetTokenCol(token, indentFallback) - 1 + token.val.Length + trailingSpace;
+  }
+
+  private int GetRightAlignIndentDelimiter(IToken token, int indentFallback) {
+    return GetTokenCol(token, indentFallback) - 1 + token.val.Length - 1;
   }
 
   void SetTypeIndentation(IToken token, Type type) {
@@ -318,6 +334,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return indentationFormatter;
   }
 
+  public static bool IsFollowedByNewline(IToken token) {
+    return token.TrailingTrivia.Contains('\n') || token.TrailingTrivia.Contains('\r');
+  }
+
   class FormatterVisitor : TopDownVisitor<int> {
     private IndentationFormatter formatter;
     private int binOpIndent = -1;
@@ -395,29 +415,38 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case VarDeclStmt varDeclStmt: {
             var ownedTokens = varDeclStmt.OwnedTokens;
-            var newlineAfterVar = false;
+            var authorizeFlattening = false;
+            var commaIndent = indent + 2;
             foreach (var token in ownedTokens) {
               switch (token.val) {
                 case "var":
-                  if (token.TrailingTrivia.Contains('\n') || token.TrailingTrivia.Contains('\r')) {
+                  if (IsFollowedByNewline(token)) {
                     formatter.SetOpeningIndentedRegion(token, indent);
-                    newlineAfterVar = true;
+                    authorizeFlattening = true;
                   } else {
-                    formatter.SetBeforeAfter(token, indent, indent, indent + 4);
+                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+                    formatter.SetBeforeAfter(token, indent, indent, rightIndent);
                   }
                   break;
                 case ",":
-                  if (newlineAfterVar) {
+                  if (authorizeFlattening) {
                     formatter.SetDelimiterInsideIndentedRegions(token, indent);
                   } else {
-                    formatter.SetDelimiterIndentedRegions(token, indent + 2);
+                    formatter.SetDelimiterIndentedRegions(token, commaIndent);
                   }
 
                   break;
                 case ":|":
                 case ":-":
                 case ":=":
-                  if (newlineAfterVar) {
+                  if (!IsFollowedByNewline(token)) {
+                    formatter.SetBeforeAfter(token, indent + 2, indent + 2, -1);
+                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+                    formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+                    authorizeFlattening = false;
+                  } else if (authorizeFlattening) {
                     formatter.SetDelimiterInsideIndentedRegions(token, indent);
                   } else {
                     formatter.SetDelimiterIndentedRegions(token, indent + 2);
@@ -434,15 +463,30 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case UpdateStmt updateStmt: {
             var ownedTokens = updateStmt.OwnedTokens;
+            var authorizeFlattening = false;
+            var commaIndent = indent + 2;
             foreach (var token in ownedTokens) {
               switch (token.val) {
                 case ",":
-                  formatter.SetDelimiterIndentedRegions(token, indent + 2);
+                  if (authorizeFlattening) {
+                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                  } else {
+                    formatter.SetDelimiterIndentedRegions(token, commaIndent);
+                  }
                   break;
                 case ":|":
                 case ":-":
                 case ":=":
-                  formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                  if (IsFollowedByNewline(token)) {
+                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                    authorizeFlattening = true;
+                  } else {
+                    formatter.SetBeforeAfter(token, indent + 2, indent + 2, -1);
+                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+                    formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+                  }
+
                   break;
                 case ";":
                   formatter.SetClosingIndentedRegionInside(token, indent);
