@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return Task.FromResult<DafnyDocument?>(null);
     }
 
-    public DocumentManager? GetDocumentDocument(TextDocumentIdentifier documentId) {
+    public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 

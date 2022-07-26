@@ -30,7 +30,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentDocument(request.TextDocument);
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
     if (documentManager == null) {
       return false;
     }
@@ -49,7 +49,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentDocument(request.TextDocument);
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
     if (documentManager == null) {
       return false;
     }
