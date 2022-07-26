@@ -862,21 +862,20 @@ namespace Microsoft.Dafny {
       are used in assertions like `assert P(6);`, Dafny
       will by default try to figure out if it can split the call
       into multiple assertions that are easier for the verifier.
-      Hence, sometimes, if sound to do so (e.g. no `{:opaque}`),
+      Hence, sometimes, if allowed to do so (e.g. no `{:opaque}`),
       Dafny will inline the predicate, resulting in, for example,
       `assert 6 % 2 == 0`.
       
-      Adding the attribute `{:no_inline}` to a function will result
-      in the Dafny verifier to never inline the function in such
-      a function call, but unless the function is `{:opaque}`, its
-      definition will still be available.
+      Adding the attribute `{:no_inline}` to a function will prevent
+      the Dafny verifier from inlining it, but unless the function is
+      `{:opaque}` its definition will still be available.
       
-      This trick can be helpful if for a huge conjunct predicate `P`,
+      This trick can be helpful, for a huge conjunct predicate `P`,
       assuming that `P(x)` already hold, if we don't want `P`
       to be opaque, and we `assert P(x)` again. Inlining might result
       in performance issues because it will have to infer every single
       conjunct. Adding `{:no_inline}` to the predicate can result
-      in such cases in the verifier to be faster.
+      in such cases in the verifier being faster.
 
     {:nowarn}
       TODO
