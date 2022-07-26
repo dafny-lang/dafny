@@ -262,8 +262,23 @@ method topLevel(
   {
     assert true;
   }
-  var x :=
-    2;
+  var
+    x
+    ,
+    y
+    :=
+    2
+    ,
+    3
+  ;
+  var z
+    , 
+      w
+    :=
+      4
+    ,
+      5
+  ;
   var y,
       z
     := x,

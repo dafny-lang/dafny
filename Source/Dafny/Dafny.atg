@@ -3015,10 +3015,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
   "var"                                     (. if (!isGhost) { x = t; } ownedTokens.Add(t); .)
   ( IF(!IsPatternDecl())
     { Attribute<ref attrs> }
-    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
+    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); ownedTokens.Add(t); d.Attributes = attrs; attrs = null; .)
     { ","                                     (. ownedTokens.Add(t); .)
       { Attribute<ref attrs> }
-      LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
+      LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); ownedTokens.Add(t); d.Attributes = attrs; attrs = null; .)
     }
     [ ":="                           (. assignTok = t; ownedTokens.Add(t); .)
       Rhs<out r>                     (. rhss.Add(r); .)
@@ -3036,7 +3036,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
         ("expect"|"assert"|"assume")    (. keywordToken = t; ownedTokens.Add(t);.)
       ]
       Expression<out exceptionExpr, false, false>
-      { "," (. ownedTokens.Add(t); .)
+      { ","                      (. ownedTokens.Add(t); .)
         Rhs<out r>               (. rhss.Add(r); .)
       }
     ]

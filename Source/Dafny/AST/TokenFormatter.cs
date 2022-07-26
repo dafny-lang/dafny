@@ -372,6 +372,39 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
         formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
         formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
+      } else if (stmt is VarDeclStmt varDeclStmt) {
+        var ownedTokens = varDeclStmt.OwnedTokens;
+        var newlineAfterVar = false;
+        for (var i = 0; i < ownedTokens.Count; i++) {
+          var token = ownedTokens[i];
+          switch (token.val) {
+            case "var":
+              if (token.TrailingTrivia.Contains('\n')) {
+                formatter.SetOpeningIndentedRegion(token, indent);
+                newlineAfterVar = true;
+              } else {
+                formatter.SetBeforeAfter(token, indent, indent, indent + 4);
+              }
+              break;
+            case ",":
+              if (newlineAfterVar) {
+                formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              } else {
+                formatter.SetDelimiterIndentedRegions(token, indent + 2);
+              }
+
+              break;
+            case ":|":
+            case ":-":
+            case ":=":
+              formatter.SetDelimiterIndentedRegions(token, indent + 2);
+              break;
+            case ";":
+              formatter.SetClosingIndentedRegion(token, indent);
+              break;
+              // Otherwise, these are identifiers, We don't need to specify their indentation.
+          }
+        }
       } else {
         formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
         formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);
@@ -441,6 +474,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   private void SetDelimiterIndentedRegions(IToken token, int indent) {
     SetBeforeAfter(token, indent + 2, indent, indent + 2);
+  }
+
+  private void SetDelimiterInsideIndentedRegions(IToken token, int indent) {
+    SetBeforeAfter(token, indent + 2, indent + 2, indent + 2);
   }
 
 
