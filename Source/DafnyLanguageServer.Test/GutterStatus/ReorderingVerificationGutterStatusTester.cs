@@ -86,7 +86,7 @@ method m5() { assert false; } //Remove3:
       "m1 m2 m3 m4 m5\n" +
       "m3 m1 m2 m4 m5\n" +
       "m4 m3 m1 m2 m5\n" +
-      "m1 m2 m3 m4");
+      "m4 m3 m1 m2");
   }
 
   [TestMethod]
@@ -108,7 +108,7 @@ method m5() { assert false; } //Remove4:
     "m3 m1 m2 m4 m5\n" +
     "m4 m3 m1 m2 m5\n" +
     "null\n" +
-    "m1 m2 m3 m4\n" +
+    "migrated\n" +
     "m2 m4 m3 m1"
   );
   }
@@ -135,6 +135,11 @@ method m5() { assert false; } //Remove4:
     foreach (var (change, expectedSymbols) in changes.Zip(symbols.Skip(1))) {
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
       if (expectedSymbols != null) {
+        var migrated = expectedSymbols.Count == 0;
+        if (migrated) {
+          await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+          continue;
+        }
         var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
@@ -157,7 +162,13 @@ method m5() { assert false; } //Remove4:
 
   private static List<List<string>> ExtractSymbols(string symbolsString) {
     return symbolsString.Split("\n")
-      .Select(array => array == "null" ? null : array.Split(" ").ToList()).ToList();
+      .Select(array => array switch {
+        "null" => null,
+        "migrated" => new List<string> {
+          Capacity = 0
+        },
+        _ => array.Split(" ").ToList()
+      }).ToList();
   }
 
   private async Task<List<Position>> GetFlattenedPositionOrder(SemaphoreSlim semaphore, CancellationToken cancellationToken) {
@@ -170,6 +181,7 @@ method m5() { assert false; } //Remove4:
     var alreadyReported = new HashSet<Range>();
     FileVerificationStatus foundStatus = null;
     int count = 0;
+    bool started = false;
     do {
       try {
         foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
@@ -178,6 +190,14 @@ method m5() { assert false; } //Remove4:
         Console.WriteLine("count: " + count);
         Console.WriteLine("foundStatus after timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
         throw;
+      }
+
+      if (!started) {
+        if (foundStatus.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Running)) {
+          started = true;
+        } else {
+          continue;
+        }
       }
       var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
         .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
@@ -195,7 +215,7 @@ method m5() { assert false; } //Remove4:
 
       count++;
       yield return newlyDone.Concat(newlyRunning).ToList();
-    } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+    } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
   [TestCleanup]
