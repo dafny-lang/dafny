@@ -228,8 +228,7 @@ public class CompilationManager {
     return true;
   }
 
-  private void FinishedNotifications(DafnyDocument dafnyDocument)
-  {
+  private void FinishedNotifications(DafnyDocument dafnyDocument) {
     MarkVerificationFinished();
     if (VerifierOptions.GutterStatus) {
       // All unvisited trees need to set them as "verified"
