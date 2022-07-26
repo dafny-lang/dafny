@@ -4087,7 +4087,7 @@ namespace Microsoft.Dafny {
         } else if (decl is TopLevelDeclWithMembers declWithMembers) {
           return declWithMembers.Members.Where(
               member => member.tok.line > 0)
-            .Select(member => member.tok);
+            .Select(member => member.StartToken);
         } else {
           return new List<IToken>() { };
         }
@@ -6686,6 +6686,7 @@ namespace Microsoft.Dafny {
   // ------------------------------------------------------------------------------------------------------
 
   public abstract class Statement : IAttributeBearingDeclaration {
+    public IToken StartToken;
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     public LList<Label> Labels;  // mutable during resolution

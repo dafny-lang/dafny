@@ -20,16 +20,33 @@ namespace DafnyPipeline.Test {
     private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S)[ \t]+(?=\r?\n)");
 
     private Newlines currentNewlines;
+
     [Fact]
-    public void FormatterWorks() {
-      ErrorReporter reporter = new ConsoleErrorReporter();
-      var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
-      foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
-        currentNewlines = newLinesType;
-        // This formatting test will remove all the spaces at the beginning of the line
-        // and then recompute it. The result should be the same string.
-        var programString = @"
+    public void FormatterWorksForMethod() {
+      FormatterWorksFor(@"method test() {
+  var
+    x
+    :=
+    1;
+  var y := 3;
+  x := 2;
+  x :=
+    3;
+  x := 4
+    ;
+  x
+    := 4;
+  x
+    :=
+    4;
+  x, y :=
+    2, 3;
+}");
+    }
+
+    [Fact]
+    public void FormatterWorksForModulesClassesSpecsForallWhileForLoopIfWhile() {
+      FormatterWorksFor(@"
 module Test {
   method f1<T, U>(a: T, b: U)
   
@@ -263,6 +280,9 @@ method topLevel(
     assert true;
   }
   var
+    x :=
+    2;
+  var
     x
     ,
     y
@@ -331,7 +351,17 @@ function topLevel(
     }
 }
 // Trailing comments
-";
+");
+    }
+
+    private void FormatterWorksFor(string programString) {
+      ErrorReporter reporter = new ConsoleErrorReporter();
+      var options = DafnyOptions.Create();
+      DafnyOptions.Install(options);
+      foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
+        currentNewlines = newLinesType;
+        // This formatting test will remove all the spaces at the beginning of the line
+        // and then recompute it. The result should be the same string.
         programString = AdjustNewlines(programString);
         var programNotIndented = indentRegex.Replace(programString, "");
         var expectedProgram = removeTrailingNewlineRegex.Replace(programString, "");

@@ -2863,46 +2863,52 @@ UpdateStmt<out Statement/*!*/ s>
      AssignmentRhs r;
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
+     IToken startToken = Token.NoToken;
+     var ownedTokens = new List<IToken>();
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
      IToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
-( Lhs<out e>                       (. x = e.tok; .)
+( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; .)
   ( { Attribute<ref attrs> }
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); ownedTokens.Add(t); .)
   |                                (. lhss.Add(e); .)
-    { "," Lhs<out e>               (. lhss.Add(e); .)
+    { ","                          (. ownedTokens.Add(t); .)
+      Lhs<out e>                   (. lhss.Add(e); .)
     }
-    ( ":="                         (. x = t; .)
+    ( ":="                         (. x = t; ownedTokens.Add(t); .)
       Rhs<out r>                   (. rhss.Add(r); .)
-      { "," Rhs<out r>             (. rhss.Add(r); .)
+      { ","                        (. ownedTokens.Add(t); .)
+        Rhs<out r>                 (. rhss.Add(r); .)
       }
-    | ":|"                         (. x = t; .)
+    | ":|"                         (. x = t; ownedTokens.Add(t); .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                   (. suchThatAssume = t; .)
+        "assume"                   (. suchThatAssume = t; ownedTokens.Add(t); .)
       ]
       Expression<out suchThat, false, true>
-    | ":-"                         (. x = t; .)
+    | ":-"                         (. x = t; ownedTokens.Add(t); .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+        ("expect"|"assert"|"assume")    (. keywordToken = t; ownedTokens.Add(t); .)
       ]
       Expression<out exceptionExpr, false, false>
-      { "," Rhs<out r>             (. rhss.Add(r); .)
+      { ","                    (. ownedTokens.Add(t); .)
+        Rhs<out r>             (. rhss.Add(r); .)
       }
     )
-    ";"                            (. endTok = t; .)
+    ";"                            (. endTok = t; ownedTokens.Add(t); .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
-| ":-"                             (. x = t; .)
+| ":-"                             (. x = t; ownedTokens.Add(t); .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+      ("expect"|"assert"|"assume") (. keywordToken = t; ownedTokens.Add(t); .)
    ]
    Expression<out exceptionExpr, false, false>
-   { "," Rhs<out r>                (. rhss.Add(r); .)
+   { ","                           (. ownedTokens.Add(t); .)
+     Rhs<out r>                    (. rhss.Add(r); .)
    }
-   ";"                             (. endTok = t; .)
+   ";"                             (. endTok = t; ownedTokens.Add(t); .)
 )
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
@@ -2915,6 +2921,8 @@ UpdateStmt<out Statement/*!*/ s>
          s = new UpdateStmt(x, endTok, lhss, rhss);
        }
      }
+     s.StartToken = startToken;
+     s.OwnedTokens = ownedTokens;
   .)
   .
 
