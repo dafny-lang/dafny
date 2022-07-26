@@ -105,6 +105,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
+    readonly ISet<int> generatedBitwidths = new HashSet<int>();
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
@@ -700,6 +701,40 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
+    private void AddBitwidth(int w) {
+      if (generatedBitwidths.Contains(w)) {
+        return;
+      }
+
+      // type axioms
+      AddBitvectorTypeAxioms(w);
+      // bitwise operations
+      AddBitvectorFunction(w, "and_bv", "bvand");
+      AddBitvectorFunction(w, "or_bv", "bvor");
+      AddBitvectorFunction(w, "xor_bv", "bvxor");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+      AddBitvectorFunction(w, "not_bv", "bvnot", false);
+      // arithmetic operations
+      AddBitvectorFunction(w, "add_bv", "bvadd");
+      AddBitvectorFunction(w, "sub_bv", "bvsub");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+      AddBitvectorFunction(w, "mul_bv", "bvmul");
+      AddBitvectorFunction(w, "div_bv", "bvudiv");
+      AddBitvectorFunction(w, "mod_bv", "bvurem");
+      // comparisons
+      AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool, false);
+      AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+      AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+      AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+      // shifts
+      AddBitvectorShiftFunction(w, "LeftShift_bv", "bvshl");
+      AddBitvectorShiftFunction(w, "RightShift_bv", "bvlshr");
+      // rotates
+      AddBitvectorShiftFunction(w, "RotateLeft_bv", "ext_rotate_left");
+      AddBitvectorShiftFunction(w, "RotateRight_bv", "ext_rotate_right");
+      // conversion functions
+      AddBitvectorNatConversionFunction(w);
+      generatedBitwidths.Add(w);
+    }
+
     private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
       program = p;
       Type.EnableScopes();
@@ -708,32 +743,7 @@ namespace Microsoft.Dafny {
       Type.PushScope(this.currentScope);
 
       foreach (var w in program.BuiltIns.Bitwidths) {
-        // type axioms
-        AddBitvectorTypeAxioms(w);
-        // bitwise operations
-        AddBitvectorFunction(w, "and_bv", "bvand");
-        AddBitvectorFunction(w, "or_bv", "bvor");
-        AddBitvectorFunction(w, "xor_bv", "bvxor");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "not_bv", "bvnot", false);
-        // arithmetic operations
-        AddBitvectorFunction(w, "add_bv", "bvadd");
-        AddBitvectorFunction(w, "sub_bv", "bvsub");  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "mul_bv", "bvmul");
-        AddBitvectorFunction(w, "div_bv", "bvudiv");
-        AddBitvectorFunction(w, "mod_bv", "bvurem");
-        // comparisons
-        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool, false);
-        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        // shifts
-        AddBitvectorShiftFunction(w, "LeftShift_bv", "bvshl");
-        AddBitvectorShiftFunction(w, "RightShift_bv", "bvlshr");
-        // rotates
-        AddBitvectorShiftFunction(w, "LeftRotate_bv", "ext_rotate_left");
-        AddBitvectorShiftFunction(w, "RightRotate_bv", "ext_rotate_right");
-        // conversion functions
-        AddBitvectorNatConversionFunction(w);
+        AddBitwidth(w);
       }
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
