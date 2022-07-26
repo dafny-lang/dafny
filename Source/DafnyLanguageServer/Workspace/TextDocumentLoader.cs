@@ -7,10 +7,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using VC;
@@ -132,7 +134,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       loaded.VerificationTasks = verificationTasks;
       var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
-      var subscription = verifier.BatchCompletions.Where(c =>
+      var subscription = verifier.BatchCompletions.ObserveOn(loaded.UpdateScheduler).Where(c =>
         implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
       cancellationToken.Register(() => subscription.Dispose());
       loaded.GutterProgressReporter = progressReporter;
@@ -225,7 +227,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var lastDocument = await entry.LastDocument;
 
       if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
+        lastDocument.UpdateScheduler.Schedule(Unit.Value, (a, b) => {
+          document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
+          return Disposable.Empty;
+        });
       }
 
       NotifyStatus(document.TextDocumentItem, lastDocument, cancellationToken);
