@@ -23,9 +23,9 @@ import ntpath
 ## Get the latest Z3 release like this:
 ## Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
 ## Get a specific Z3 release like this:
-Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
+Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.10.1"
 ## How do we extract info from the name of a Z3 release file?
-Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64|arm64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
@@ -64,6 +64,7 @@ OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out", "Scripts/allow_on
 OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
 z3ToDotNetOSMapping = {
+    "glibc": "linux",
     "ubuntu": "linux",
     "debian": "linux",
     "osx": "osx",
