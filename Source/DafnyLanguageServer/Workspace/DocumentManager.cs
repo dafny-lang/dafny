@@ -143,7 +143,8 @@ public class DocumentManager {
           NamedVerificationTask = relocator.RelocatePosition(entry.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         }, entry.Value with {
           Range = newRange,
-          Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
+          Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None),
+          Status = PublishedVerificationStatus.Stale
         });
       }
     }
