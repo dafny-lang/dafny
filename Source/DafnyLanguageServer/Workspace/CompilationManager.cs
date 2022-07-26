@@ -27,6 +27,7 @@ public class CompilationManager {
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
+  private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
 
   private DafnyOptions Options => DafnyOptions.O;
@@ -57,6 +58,7 @@ public class CompilationManager {
     VerifierOptions = verifierOptions;
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
@@ -93,7 +95,7 @@ public class CompilationManager {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
       resolvedDocument.VerificationTree = migratedVerificationTree ?? resolvedDocument.VerificationTree;
-      documentLoader.PublishGutterIcons(resolvedDocument, false);
+      notificationPublisher.PublishGutterIcons(resolvedDocument, false);
       documentUpdates.OnNext(resolvedDocument);
       return resolvedDocument;
     } catch (Exception e) {
@@ -152,7 +154,7 @@ public class CompilationManager {
     loaded.VerificationTasks = verificationTasks;
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
-    var subscription = verifier.BatchCompletions.Where(c =>
+    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
       implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     loaded.GutterProgressReporter = progressReporter;
@@ -189,18 +191,6 @@ public class CompilationManager {
     foreach (var implementationTask in implementationTasks) {
       Verify(translatedDocument, implementationTask);
     }
-
-    var lastDocument = await LastDocument;
-
-    if (VerifierOptions.GutterStatus) {
-      // All unvisited trees need to set them as "verified"
-      if (!cancellationSource.IsCancellationRequested) {
-        SetAllUnvisitedMethodsAsVerified(lastDocument);
-      }
-      translatedDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, lastDocument);
-    }
-
-    NotifyStatus(translatedDocument.TextDocumentItem, lastDocument, cancellationSource.Token);
   }
 
   private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
@@ -232,6 +222,16 @@ public class CompilationManager {
       () => {
         if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
           MarkVerificationFinished();
+
+          if (VerifierOptions.GutterStatus) {
+            // All unvisited trees need to set them as "verified"
+            if (!cancellationSource.IsCancellationRequested) {
+              SetAllUnvisitedMethodsAsVerified(dafnyDocument);
+            }
+            dafnyDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, dafnyDocument);
+          }
+
+          NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
         }
       });
 

@@ -127,9 +127,5 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       }
       return loader.LoadAsync(textDocument, cancellationToken);
     }
-
-    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      loader.PublishGutterIcons(document, verificationStarted);
-    }
   }
 }

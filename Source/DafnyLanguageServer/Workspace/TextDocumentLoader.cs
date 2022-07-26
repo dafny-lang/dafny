@@ -148,11 +148,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         symbolsResolved: false
       );
     }
-
-    // Called only in the case there is a parsing or resolution error on the document
-    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      NotificationPublisher.PublishGutterIcons(document, verificationStarted);
-    }
   }
 }
 

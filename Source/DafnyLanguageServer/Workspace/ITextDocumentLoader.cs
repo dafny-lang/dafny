@@ -32,11 +32,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Publishes the verification diagnostics (VerificationTree) for the given document
-    /// </summary>
-    /// <param name="document">The document to publish realtime diagnostics for.</param>
-    void PublishGutterIcons(DafnyDocument document, bool verificationStarted);
   }
 }
