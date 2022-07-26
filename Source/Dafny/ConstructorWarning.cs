@@ -9,7 +9,7 @@ using Microsoft.Dafny;
       method MonochromaticMethod(c: Color) returns (x: bool) {
       return match c
             case Green => true
-                 ^^^ Warning: Constructor name 'Green' should contain a parenthesis at the end           
+                 ^^^ Warning: Constructor name 'Green' should be followed by parentheses        
             case anythingElse => false;
         }
    */
@@ -43,7 +43,7 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
           var isConstructor = idPattern.Arguments != null;
           if (!idPattern.HasParenthesis && isConstructor) {
             this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
-              $"Constructor name '{idPattern}' should be followed by parenthesis");
+              $"Constructor name '{idPattern}' should be followed by parentheses");
           }
         }
       }

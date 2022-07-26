@@ -1082,8 +1082,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /warnShadowing  Emits a warning if the name of a declared variable caused another variable
     to be shadowed
-/warnMissingConstructorParenthesis Emits a warning when a constructor name is not followed 
-    by parenthesis 
+/warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
+    is not followed by parentheses
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features
