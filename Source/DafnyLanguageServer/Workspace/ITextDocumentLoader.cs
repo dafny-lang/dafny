@@ -44,11 +44,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task VerifyAllTasksAsync(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken);
 
     bool Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Publishes the verification diagnostics (VerificationTree) for the given document
-    /// </summary>
-    /// <param name="document">The document to publish realtime diagnostics for.</param>
-    void PublishGutterIcons(DafnyDocument document, bool verificationStarted);
   }
 }

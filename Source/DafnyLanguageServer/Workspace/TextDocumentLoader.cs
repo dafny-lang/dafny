@@ -340,11 +340,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
     }
 
-    // Called only in the case there is a parsing or resolution error on the document
-    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      NotificationPublisher.PublishGutterIcons(document, verificationStarted);
-    }
-
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
       foreach (var tree in document.VerificationTree.Children) {
         tree.SetVerifiedIfPending();

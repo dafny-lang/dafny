@@ -104,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        documentLoader.PublishGutterIcons(newDocument, false);
+        notificationPublisher.PublishGutterIcons(newDocument, false);
         return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
@@ -195,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             VerificationTree = migratedVerificationTree,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
-          documentLoader.PublishGutterIcons(resolvedDocument, false);
+          notificationPublisher.PublishGutterIcons(resolvedDocument, false);
           return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           VerificationTree = migratedVerificationTree,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
-        documentLoader.PublishGutterIcons(failedDocument, false);
+        notificationPublisher.PublishGutterIcons(failedDocument, false);
         return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
