@@ -86,7 +86,7 @@ method m5() { assert false; } //Remove3:
       "m1 m2 m3 m4 m5\n" +
       "m3 m1 m2 m4 m5\n" +
       "m4 m3 m1 m2 m5\n" +
-      "m1 m2 m3 m4");
+      "m4 m3 m1 m2");
   }
 
   [TestMethod]
