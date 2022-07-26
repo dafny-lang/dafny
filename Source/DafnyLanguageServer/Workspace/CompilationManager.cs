@@ -154,7 +154,7 @@ public class CompilationManager {
     loaded.VerificationTasks = verificationTasks;
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
-    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
+    var subscription = verifier.BatchCompletions.Where(c =>
       implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     loaded.GutterProgressReporter = progressReporter;
@@ -183,7 +183,7 @@ public class CompilationManager {
 
     var implementationTasks = translatedDocument.VerificationTasks!;
     if (!implementationTasks.Any()) {
-      MarkVerificationFinished();
+      FinishedNotifications(translatedDocument);
     }
 
     statusPublisher.SendStatusNotification(translatedDocument.TextDocumentItem, CompilationStatus.VerificationStarted);
@@ -221,21 +221,26 @@ public class CompilationManager {
       update => HandleStatusUpdate(dafnyDocument, implementationTask, update),
       () => {
         if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
-          MarkVerificationFinished();
-
-          if (VerifierOptions.GutterStatus) {
-            // All unvisited trees need to set them as "verified"
-            if (!cancellationSource.IsCancellationRequested) {
-              SetAllUnvisitedMethodsAsVerified(dafnyDocument);
-            }
-            dafnyDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, dafnyDocument);
-          }
-
-          NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
+          FinishedNotifications(dafnyDocument);
         }
       });
 
     return true;
+  }
+
+  private void FinishedNotifications(DafnyDocument dafnyDocument)
+  {
+    MarkVerificationFinished();
+    if (VerifierOptions.GutterStatus) {
+      // All unvisited trees need to set them as "verified"
+      if (!cancellationSource.IsCancellationRequested) {
+        SetAllUnvisitedMethodsAsVerified(dafnyDocument);
+      }
+
+      dafnyDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, dafnyDocument);
+    }
+
+    NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
   }
 
   private void HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
