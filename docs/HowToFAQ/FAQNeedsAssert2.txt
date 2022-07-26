@@ -1,0 +1,4 @@
+/Users/davidcok/projects/dafny/dafny/docs/HowToFAQ/FAQNeedsAssert2.dfy(4,0): Error: A postcondition might not hold on this return path.
+/Users/davidcok/projects/dafny/dafny/docs/HowToFAQ/FAQNeedsAssert2.dfy(3,10): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 1 verified, 1 error
