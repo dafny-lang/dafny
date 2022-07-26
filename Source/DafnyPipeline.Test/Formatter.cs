@@ -17,12 +17,12 @@ namespace DafnyPipeline.Test {
 
     private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
-    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S)[ \t]+(?=\r?\n)");
+    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S)[ \t]+(?=\r?\n|\r(?!\n))");
 
     private Newlines currentNewlines;
 
     [Fact]
-    public void FormatterWorksForMethod() {
+    public void FormatterWorksForAssignments() {
       FormatterWorksFor(@"method test() {
   var
     x
@@ -321,18 +321,14 @@ method topLevel(
     ,1;
   var w :|
     true;
-  match
-    z {
-  case 0 =>
-  case
-    1 =>
-  case 2
-    =>
-  case 3
-    =>
-  }
 }
+// Trailing comments
+");
+    }
 
+    [Fact]
+    public void FormatterWorksForFunctions() {
+      FormatterWorksFor(@"
 function topLevel(
     x: int,
     y: int
@@ -355,8 +351,49 @@ function topLevel(
       19 
       + 1 
     }
+}");
+    }
+
+    [Fact]
+    public void FormatterworksForMatchStatementsAndExpressions() {
+      FormatterWorksFor(@"
+method Test(z: int) {
+  match
+    z {
+  case 0 =>
+    match z + 1 {
+    case 1 => print ""ok"";
+              print ""second"";
+    case 1 =>
+      print ""ok"";
+      print ""second"";
+    case 2
+      => print ""ok"";
+         print ""second"";
+    }
+  case
+    1 =>
+  case 2
+    =>
+  case 3
+    =>
+  }
+  var x :=match z {
+          case 1 =>
+            var x := 2;
+            x
+          case 3 => var x := 4;
+                    x
+          case 5
+            => var x := 6;
+               x
+          };
+  var x :=
+    match z {
+    case 1 => 2
+    case 3 => 4
+    };
 }
-// Trailing comments
 ");
     }
 
