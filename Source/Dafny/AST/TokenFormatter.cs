@@ -446,10 +446,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                     commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
                     formatter.SetBeforeAfter(token, -1, -1, rightIndent);
                     authorizeFlattening = false;
-                  } else if (authorizeFlattening) {
-                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
                   } else {
-                    formatter.SetDelimiterIndentedRegions(token, indent + 2);
+                    authorizeFlattening = true;
+                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
                   }
                   break;
                 case ";":
@@ -461,8 +460,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
             break;
           }
-        case UpdateStmt updateStmt: {
-            var ownedTokens = updateStmt.OwnedTokens;
+        case AssignSuchThatStmt:
+        case AssignOrReturnStmt:
+        case UpdateStmt: {
+            var ownedTokens = stmt.OwnedTokens;
             var authorizeFlattening = false;
             var commaIndent = indent + 2;
             foreach (var token in ownedTokens) {
@@ -485,6 +486,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                     var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
                     commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
                     formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+                    authorizeFlattening = false;
                   }
 
                   break;
@@ -497,6 +499,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
             break;
           }
+
         default:
           formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
           formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);

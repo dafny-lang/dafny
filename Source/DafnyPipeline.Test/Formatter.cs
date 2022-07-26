@@ -279,6 +279,8 @@ method topLevel(
   {
     assert true;
   }
+  var x :=
+    2;
   var
     x :=
     2;
@@ -295,9 +297,9 @@ method topLevel(
     , 
       w
     :=
-      4
+    4
     ,
-      5
+    5
     ;
   var y,
       z
@@ -309,7 +311,7 @@ method topLevel(
      , e;
   var y
     , z :=
-      x
+    x
     , 1;
   var
     y,
