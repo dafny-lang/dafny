@@ -15,6 +15,9 @@ public class HelperString {
   // If we remove whitespace (tabs or space) at the end of lines. 
   public static bool RemoveTrailingWhitespace = true;
 
+  // If set to false, cases inside match statements will be indented.
+  public static bool MatchCaseNoIndent = true;
+
   public static readonly Regex NewlineRegex =
     new(@"(?<=\r?\n|\r(?!\n))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 
@@ -499,7 +502,62 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
             break;
           }
+        case NestedMatchStmt: {
+            var ownedTokens = stmt.OwnedTokens;
+            var authorizeFlattening = false;
+            var afterArrowIndent = HelperString.MatchCaseNoIndent ? indent + 2 : indent + 4;
+            foreach (var token in ownedTokens) {
+              switch (token.val) {
+                case "match":
+                  formatter.SetOpeningIndentedRegion(token, indent);
+                  break;
+                case "{":
+                  if (HelperString.MatchCaseNoIndent) {
+                    formatter.SetClosingIndentedRegion(token, indent);
+                  } else {
+                    formatter.SetDelimiterIndentedRegions(token, indent);
+                  }
+                  break;
+                case "}":
+                  formatter.SetClosingIndentedRegion(token, indent);
+                  break;
+                case "case":
+                  if (HelperString.MatchCaseNoIndent) {
+                    formatter.SetDelimiterIndentedRegions(token, indent);
+                  } else {
+                    formatter.SetDelimiterIndentedRegions(token, indent + 2);
+                  }
 
+                  break;
+                case "=>":
+                  if (IsFollowedByNewline(token)) {
+                    formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
+                  } else {
+                    formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, -1);
+                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                    formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+                  }
+                  break;
+              }
+            }
+
+            break;
+          }
+        case PrintStmt: {
+            var ownedTokens = stmt.OwnedTokens;
+            foreach (var token in ownedTokens) {
+              switch (token.val) {
+                case "print":
+                  formatter.SetOpeningIndentedRegion(token, indent);
+                  break;
+                case ";":
+                  formatter.SetClosingIndentedRegion(token, indent);
+                  break;
+              }
+            }
+
+            break;
+          }
         default:
           formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
           formatter.SetBeforeAfter(stmt.EndTok, -1, -1, indent);

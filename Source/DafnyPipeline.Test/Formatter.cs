@@ -362,14 +362,14 @@ method Test(z: int) {
     z {
   case 0 =>
     match z + 1 {
-    case 1 => print ""ok"";
-              print ""second"";
-    case 1 =>
-      print ""ok"";
-      print ""second"";
-    case 2
-      => print ""ok"";
-         print ""second"";
+    case 1 => print ""1"";
+              print ""1bis"";
+    case 2 =>
+      print ""2"";
+      print ""2bis"";
+    case 3
+      => print ""3"";
+         print ""3bis"";
     }
   case
     1 =>

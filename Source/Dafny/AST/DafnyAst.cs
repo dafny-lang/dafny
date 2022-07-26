@@ -12618,6 +12618,12 @@ namespace Microsoft.Dafny {
       this.UsesOptionalBraces = usesOptionalBraces;
       InitializeAttributes();
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements {
+      get {
+        return this.Cases.SelectMany(oneCase => oneCase.Body);
+      }
+    }
   }
 
   public class NestedMatchExpr : ConcreteSyntaxExpression {

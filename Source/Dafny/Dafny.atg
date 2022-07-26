@@ -3395,34 +3395,37 @@ MatchStmt<out Statement/*!*/ s>
      IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
+     var ownedTokens = new List<IToken>();
      Attributes attrs = null;
   .)
-  "match"                     (. x = t; .)
+  "match"                     (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" (. usesOptionalBraces = true; .)
-        { CaseStmt<out c> (. cases.Add(c); .) }
-    "}"
+    "{" (. usesOptionalBraces = true; ownedTokens.Add(t); .)
+        { CaseStmt<out c, ownedTokens> (. cases.Add(c); .) }
+    "}" (. ownedTokens.Add(t); .)
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-          CaseStmt<out c> (. cases.Add(c); .)
+          CaseStmt<out c, ownedTokens> (. cases.Add(c); .)
         }
   )
-  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces, attrs); .)
+  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces, attrs);
+     s.OwnedTokens = ownedTokens;
+  .)
   .
 
 /*------------------------------------------------------------------------*/
-CaseStmt<out NestedMatchCaseStmt/*!*/ c>
+CaseStmt<.out NestedMatchCaseStmt/*!*/ c, List<IToken> ownedTokens.>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      var body = new List<Statement/*!*/>();
      Attributes attrs = null;
   .)
-  "case"                      (. x = t; .)
+  "case"                      (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   ExtendedPattern<out pat>    (. .)
-  "=>"
+  "=>"                        (. ownedTokens.Add(t); .)
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
            * to follow the CaseStatement.
