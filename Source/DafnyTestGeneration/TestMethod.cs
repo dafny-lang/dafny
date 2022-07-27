@@ -153,8 +153,8 @@ namespace DafnyTestGeneration {
           if (seqVar?.GetLength() == -1) {
             return "[]";
           }
-          for (var i = 0; i < seqVar.GetLength(); i++) {
-            var element = seqVar[i];
+          for (var i = 0; i < seqVar?.GetLength(); i++) {
+            var element = seqVar?[i];
             if (element == null) {
               elements.Add(GetDefaultValue(variableType.TypeArgs.First()));
               continue;
