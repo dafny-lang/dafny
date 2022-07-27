@@ -189,6 +189,7 @@ method m5() { assert false; } //Remove4:
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
         Console.WriteLine("foundStatus after timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        Console.WriteLine($"History was: {string.Join("\n", verificationStatusReceiver.History)}");
         throw;
       }
 
