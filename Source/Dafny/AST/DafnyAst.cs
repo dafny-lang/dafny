@@ -237,7 +237,7 @@ namespace Microsoft.Dafny {
     /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
     /// attribute.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static Attributes/*?*/ Find(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
       return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
       foreach (var attr in attrs.AsEnumerable()) {
@@ -498,9 +498,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string ToString() {
       return TypeName(null, false);
     }
@@ -542,7 +542,7 @@ namespace Microsoft.Dafny {
     ///
     /// For more documentation, see method Normalize(). 
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public Type NormalizeExpand(bool keepConstraints = false) {
       Contract.Ensures(Contract.Result<Type>() != null);
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
@@ -616,7 +616,7 @@ namespace Microsoft.Dafny {
     ///
     /// For more documentation, see method Normalize(). 
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public Type NormalizeExpandKeepConstraints() {
       return NormalizeExpand(true);
     }
@@ -651,7 +651,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public abstract bool Equals(Type that, bool keepConstraints = false);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
@@ -666,7 +666,7 @@ namespace Microsoft.Dafny {
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
     public enum NumericPersuasion { Int, Real }
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public bool IsNumericBased(NumericPersuasion p) {
       Type t = this;
       while (true) {
@@ -2136,7 +2136,7 @@ namespace Microsoft.Dafny {
   /// or a bitvector type.
   /// </summary>
   public class IntVarietiesSupertype : ArtificialType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
@@ -2145,7 +2145,7 @@ namespace Microsoft.Dafny {
     }
   }
   public class RealVarietiesSupertype : ArtificialType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
@@ -2167,7 +2167,7 @@ namespace Microsoft.Dafny {
   }
 
   public class BoolType : BasicType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bool";
     }
@@ -2179,7 +2179,7 @@ namespace Microsoft.Dafny {
   public class CharType : BasicType {
     public const char DefaultValue = 'D';
     public const string DefaultValueAsString = "'D'";
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
     }
@@ -2189,7 +2189,7 @@ namespace Microsoft.Dafny {
   }
 
   public class IntType : BasicType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
@@ -2205,7 +2205,7 @@ namespace Microsoft.Dafny {
   }
 
   public class RealType : BasicType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
@@ -2221,7 +2221,7 @@ namespace Microsoft.Dafny {
   }
 
   public class BigOrdinalType : BasicType {
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "ORDINAL";
     }
@@ -2251,7 +2251,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bv" + Width;
     }
@@ -2274,7 +2274,7 @@ namespace Microsoft.Dafny {
       TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "selftype";
     }
@@ -2338,7 +2338,7 @@ namespace Microsoft.Dafny {
       return "_#Func" + arity;
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool IsArrowTypeName(string s) {
       return s.StartsWith("_#Func");
     }
@@ -2347,7 +2347,7 @@ namespace Microsoft.Dafny {
       return "_#PartialFunc" + arity;
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool IsPartialArrowTypeName(string s) {
       return s.StartsWith("_#PartialFunc");
     }
@@ -2356,7 +2356,7 @@ namespace Microsoft.Dafny {
       return "_#TotalFunc" + arity;
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool IsTotalArrowTypeName(string s) {
       return s.StartsWith("_#TotalFunc");
     }
@@ -2483,7 +2483,7 @@ namespace Microsoft.Dafny {
       this.finite = finite;
     }
     public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override bool Equals(Type that, bool keepConstraints = false) {
       var t = that.NormalizeExpand(keepConstraints) as SetType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
@@ -2551,7 +2551,7 @@ namespace Microsoft.Dafny {
       get { return Arg; }
     }
     public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
@@ -2803,7 +2803,7 @@ namespace Microsoft.Dafny {
       return udt.TypeArgs[0];
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
@@ -3057,7 +3057,7 @@ namespace Microsoft.Dafny {
     static int _id = 0;
     int id = _id++;
 #endif
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
@@ -3093,7 +3093,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     internal static bool IsSupertypeOfLiteral(Type t) {
       Contract.Requires(t != null);
       return t is ArtificialType;
@@ -3295,7 +3295,7 @@ namespace Microsoft.Dafny {
       this.IsRefining = isRefining;
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public override string ToString() {
       Contract.Ensures(Contract.Result<string>() != null);
       return Name;
@@ -4882,7 +4882,7 @@ namespace Microsoft.Dafny {
     /// not the usual (\lambda x,y :: x LESS y AND 0 ATMOST y).
     /// </summary>
     public class EverIncreasingType : BasicType {
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public override string TypeName(ModuleDefinition context, bool parseAble) {
         Contract.Assert(parseAble == false);
 
@@ -6175,7 +6175,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
     public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
   }
@@ -8384,13 +8384,13 @@ namespace Microsoft.Dafny {
       /// Resulting operator "x op z" if "x this y" and "y other z".
       /// Returns null if this and other are incompatible.
       /// </summary>
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public abstract CalcOp ResultOp(CalcOp other);
 
       /// <summary>
       /// Returns an expression "line0 this line1".
       /// </summary>
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public abstract Expression StepExpr(Expression line0, Expression line1);
     }
 
@@ -8405,7 +8405,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Is op a valid calculation operator?
       /// </summary>
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public static bool ValidOp(BinaryExpr.Opcode op) {
         return
              op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq
@@ -8417,7 +8417,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Is op a valid operator only for Boolean lines?
       /// </summary>
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public static bool LogicOp(BinaryExpr.Opcode op) {
         return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
       }
@@ -8996,7 +8996,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
     }
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public bool WasResolved() {
       return Type != null;
     }
@@ -9885,7 +9885,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public readonly object Value;
 
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool IsTrue(Expression e) {
       Contract.Requires(e != null);
       if (e is LiteralExpr) {
@@ -10140,7 +10140,7 @@ namespace Microsoft.Dafny {
       }
     }
     public class ResolverType_Module : ResolverType {
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public override string TypeName(ModuleDefinition context, bool parseAble) {
         Contract.Assert(parseAble == false);
         return "#module";
@@ -10150,7 +10150,7 @@ namespace Microsoft.Dafny {
       }
     }
     public class ResolverType_Type : ResolverType {
-      [System.Diagnostics.Contracts.Pure]
+      [Pure]
       public override string TypeName(ModuleDefinition context, bool parseAble) {
         Contract.Assert(parseAble == false);
         return "#type";
