@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from fractions import Fraction
 from collections import Counter
 from functools import reduce
-from types import GeneratorType
+from types import GeneratorType, FunctionType
 from itertools import chain, combinations
 import copy
 
@@ -18,6 +18,8 @@ def print(value):
         builtins.print("null", end="")
     elif isinstance(value, bool):
         builtins.print("true" if value else "false", end="")
+    elif isinstance(value, FunctionType):
+        builtins.print("Function", end="")
     else:
         builtins.print(value, end="")
 

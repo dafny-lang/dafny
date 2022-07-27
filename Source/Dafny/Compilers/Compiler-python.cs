@@ -182,7 +182,12 @@ namespace Microsoft.Dafny.Compilers {
                              && decl.Members.Any(m => !m.IsGhost && ((m is Field && !m.IsStatic) || m is Constructor));
       ConcreteSyntaxTree constructorWriter = null;
       if (needsConstructor) {
-        var block = methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline);
+        var args = typeParameters.Where(NeedsTypeDescriptor).Comma(tp => tp.CompileName);
+        if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
+        var block = methodWriter.NewBlockPy(header: $"def  __init__(self{args}):", close: BlockStyle.Newline);
+        foreach (var tp in typeParameters.Where(NeedsTypeDescriptor)) {
+          block.WriteLine("self.{0} = {0}", tp.CompileName);
+        }
         constructorWriter = block.Fork();
         block.WriteLine("pass");
       }
@@ -225,7 +230,11 @@ namespace Microsoft.Dafny.Compilers {
       btw.WriteLine($"@classmethod");
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var arguments = dt.GetGroundingCtor().Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
-      wDefault.WriteLine($"return {DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})");
+      var constructorCall = $"{DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})";
+      if (dt is CoDatatypeDecl) {
+        constructorCall = $"{dt.CompileName}__Lazy(lambda: {constructorCall})";
+      }
+      wDefault.WriteLine($"return lambda: {constructorCall}");
 
       // Ensures the string representation from the constructor is chosen
       btw.NewBlockPy("def __repr__(self) -> str:")
@@ -322,10 +331,15 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
-      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
-
-      w.WriteLine($"default = staticmethod(lambda: {d})");
-
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        w.WriteLine("@staticmethod");
+        var block = w.NewBlockPy("def default():");
+        var wStmts = block.Fork();
+        block.Write("return ");
+        TrExpr(nt.Witness, block, false, wStmts);
+      } else {
+        w.WriteLine($"default = staticmethod(lambda: {TypeInitializationValue(udt, wr, nt.tok, false, false)})");
+      }
       return cw;
     }
 
@@ -333,10 +347,15 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
-
-      w.WriteLine("@staticmethod");
-      w.NewBlockPy("def default():").WriteLine($"return {d}");
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        w.WriteLine("@staticmethod");
+        var block = w.NewBlockPy("def default():");
+        var wStmts = block.Fork();
+        block.Write("return ");
+        TrExpr(sst.Witness, block, false, wStmts);
+      } else {
+        w.WriteLine($"default = staticmethod(lambda: {TypeInitializationValue(udt, wr, sst.tok, false, false)})");
+      }
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -482,7 +501,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(sep + "self");
         sep = ", ";
       }
-      WriteRuntimeTypeDescriptorsFormals(member, typeParams, wr, ref sep, tp => tp.CompileName);
+      WriteRuntimeTypeDescriptorsFormals(member, typeParams, wr, ref sep, FormatDefaultTypeParameterValue);
       WriteFormals(sep, formals, wr);
     }
 
@@ -504,37 +523,54 @@ namespace Microsoft.Dafny.Compilers {
 
       var customName = false;
       var name = type.NormalizeExpandKeepConstraints() switch {
+        var x when x.IsBuiltinArrowType => "null",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => "bool",
         IntType or BitvectorType => "int",
         RealType => "real",
+        SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl => "null",
-          TupleTypeDecl tpl => TupleTypeDescriptor(tpl, udt.TypeArgs, udt.tok),
-          NewtypeDecl => NewtypeDescriptor(udt),
+          ClassDecl or NonNullTypeDecl => "null",
+          DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
+          NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
         },
         _ => throw new cce.UnreachableException()
       };
       return (customName ? "" : DafnyDefaults + ".") + name;
 
-      string TypeParameterDescriptor(TypeParameter typeParameter) {
-        //TODO: Support for generic classes
-        Contract.Assert(!(thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl));
+      string CollectionTypeDescriptor() {
         customName = true;
-        return typeParameter.CompileName;
+        return TypeHelperName(type.NormalizeExpandKeepConstraints());
       }
 
-      string NewtypeDescriptor(UserDefinedType userDefinedType) {
+      string TypeParameterDescriptor(TypeParameter typeParameter) {
+        customName = true;
+        if (thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl) {
+          return $"self.{typeParameter.CompileName}";
+        }
+        if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(typeParameter, out var instantiatedTypeParameter)) {
+          return TypeDescriptor(instantiatedTypeParameter, wr, tok);
+        }
+        return FormatDefaultTypeParameterValue(type.AsTypeParameter);
+      }
+
+      string CustomDescriptor(UserDefinedType userDefinedType) {
         customName = true;
         return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.tok)}.default";
       }
 
-      string TupleTypeDescriptor(TupleTypeDecl tuple, List<Type> typeArgs, IToken tok) {
+      string DatatypeDescriptor(UserDefinedType udt, List<Type> typeArgs, IToken tok) {
+        var dt = (DatatypeDecl)udt.ResolvedClass;
         var w = new ConcreteSyntaxTree();
-        w.Write("tuple(");
-        EmitTypeDescriptorsActuals(UsedTypeParameters(tuple, typeArgs), tok, w, true);
+        if (dt is TupleTypeDecl) {
+          w.Write("tuple(");
+        } else {
+          customName = true;
+          w.Write($"{TypeName_UDT(FullTypeName(udt), udt, wr, tok)}.default(");
+        }
+        EmitTypeDescriptorsActuals(UsedTypeParameters(dt, typeArgs), tok, w, true);
         w.Write(")");
         return w.ToString();
       }
@@ -617,10 +653,13 @@ namespace Microsoft.Dafny.Compilers {
             switch (cl) {
               case SubsetTypeDecl td:
                 switch (td.WitnessKind) {
+                  case SubsetTypeDecl.WKind.Compiled:
+                    return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
                   case SubsetTypeDecl.WKind.Special:
-                    Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-                    if (td is NonNullTypeDecl) { return "None"; }
-                    Contract.Assert(udt.TypeArgs.Any());
+                    if (ArrowType.IsPartialArrowTypeName(td.Name) || td is NonNullTypeDecl) {
+                      return "None";
+                    }
+                    Contract.Assert(udt.TypeArgs.Any() && ArrowType.IsTotalArrowTypeName(td.Name));
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
                     var arguments = udt.TypeArgs.Comma((_, i) => $"x{i}");
@@ -632,20 +671,21 @@ namespace Microsoft.Dafny.Compilers {
 
               case NewtypeDecl td:
                 if (td.Witness != null) {
-                  var wrWitness = new ConcreteSyntaxTree();
-                  TrExpr(td.Witness, wrWitness, false, wrWitness);
-                  return $"int({wrWitness})";
+                  return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
                 } else {
                   return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                 }
 
               case DatatypeDecl dt:
-                var constructor = dt is TupleTypeDecl ? "" : DtCtorDeclarationName(dt.GetGroundingCtor()) + ".default";
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-                return $"{constructor}({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
+                return dt is TupleTypeDecl
+                  ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})"
+                  : $"{DtCtorDeclarationName(dt.GetGroundingCtor())}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
 
               case TypeParameter tp:
-                return constructTypeParameterDefaultsFromTypeDescriptors ? $"{tp.CompileName}()" : FormatDefaultTypeParameterValue(tp);
+                return constructTypeParameterDefaultsFromTypeDescriptors
+                  ? $"{TypeDescriptor(udt, wr, tok)}()"
+                  : $"{FormatDefaultTypeParameterValue(tp)}()";
 
               case ClassDecl:
                 return "None";
@@ -842,8 +882,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       var ctor = (Constructor)initCall?.Method;  // correctness of cast follows from precondition of "EmitNew"
-      wr.Write($"{TypeName(type, wr, tok)}({ConstructorArguments(initCall, wStmts, ctor)})");
+      var sep = "";
+      wr.Write($"{TypeName(type, wr, tok)}(");
+      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr, ref sep);
+      wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
+      wr.Write(")");
     }
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
