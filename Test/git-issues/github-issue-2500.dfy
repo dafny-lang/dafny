@@ -1,6 +1,8 @@
+// RUN: %testDafnyForEachCompiler "%s"
+
 module A {
   trait {:termination false} Trait {
-    function TotallyNotZero() : (ret: int)
+    function method TotallyNotZero() : (ret: int)
       ensures ret != 0
   }
 }
@@ -11,7 +13,7 @@ module B {
 
   class Class extends Trait {
     constructor() {}
-    function TotallyNotZero() : (ret: int)
+    function method TotallyNotZero() : (ret: int)
       // Missing: ensures ret != 0
     { 
       0 
@@ -23,5 +25,6 @@ module B {
     var asTrait: Trait := asClass;
     assert asClass.TotallyNotZero() == asTrait.TotallyNotZero();
     assert false;
+    print 1 / asClass.TotallyNotZero(), "\n";
   }
 }
