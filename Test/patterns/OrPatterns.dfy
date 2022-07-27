@@ -27,8 +27,8 @@ module Constants {
 
   method M(i: int) {
     match i
-      case ONE | TWO => return; // `ONE` and `TWO` are not variables here
-      case _ => // Not redundant
+      case | ONE | TWO => return; // `ONE` and `TWO` are not variables here
+      case | _ => // Not redundant
   }
 }
 
