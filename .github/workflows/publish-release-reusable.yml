@@ -116,8 +116,6 @@ jobs:
     # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
     # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
     # a platform-specific directory), we build Dafny once here.
-    - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
