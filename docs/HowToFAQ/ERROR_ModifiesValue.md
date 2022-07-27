@@ -1,5 +1,5 @@
 ---
-title: Error --- a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)
+title: "Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"
 ---
 
 ## Question

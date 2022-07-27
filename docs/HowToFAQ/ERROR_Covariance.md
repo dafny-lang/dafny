@@ -1,5 +1,5 @@
 ---
-title: Error - value does not satisfy subset constraints of T
+title: "Error: value does not satisfy subset constraints of T"
 ---
 
 The error "value does not satisfy subset constraints of T"

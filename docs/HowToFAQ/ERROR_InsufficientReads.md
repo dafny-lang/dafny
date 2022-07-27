@@ -1,5 +1,5 @@
 ---
-title: Error - insufficient reads clause to invoke function
+title: "Error: insufficient reads clause to invoke function"
 ---
 
 Example: This code
@@ -12,3 +12,5 @@ produces this output:
 ```
 
 This error message indicates that a nested call of a function needs a bigger `reads` set than its enclosing function provides.
+
+TODO - needs completion
