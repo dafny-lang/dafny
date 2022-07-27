@@ -1,5 +1,5 @@
 ---
-title: "z3" cannot be opened because the developer cannot be verified.
+title: "z3" cannot be opened because the developer cannot be verified
 ---
 
 This error occurs on a Mac after a new installation of Dafny, with Z3.

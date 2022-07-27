@@ -6,8 +6,17 @@ title: Error -- closeparen expected
 
 What causes the error "Error: closeparen expected" as in
 
+```dafny
 {% include_relative ERROR_CloseParen.dfy %}
+```
+producing
+```text
+{% include_relative ERROR_CloseParen.txt %}
+```
 
 ## Answer
 
-You are writing a Java/C declaration. In Dafny declarations have the form `name: type`
+You are writing a Java/C declaration. In Dafny declarations have the form `name: type`, so
+```dafny
+method test(i: int) { ... }
+```

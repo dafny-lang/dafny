@@ -107,7 +107,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 
 # Common error messages
 
-- ["'z3' cannot be opened because the developer cannot be verified.](ERROR_Z3)
+- ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
 
 - ["rbrace expected"](ERROR_Rbrace)
 
