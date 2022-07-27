@@ -1,0 +1,2 @@
+/Users/davidcok/projects/dafny/dafny/docs/HowToFAQ/ERROR_OpenDatatype.dfy(9,19): Error: name of datatype (String) is used as a function
+1 resolution/type errors detected in ERROR_OpenDatatype.dfy

@@ -1,0 +1,15 @@
+---
+title: Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the later you can use in expressions, but otherwise.  Is there anything the former can do that the later can’t, for example?
+---
+
+## Question
+
+Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the later you can use in expressions, but otherwise.  Is there anything the former can do that the later can’t, for example?
+
+## Answer
+
+Compared to a function, a method can
+- allocate objects and arrays (`new`)
+- use non-determinism
+- use loops
+- have multiple outputs
