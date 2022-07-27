@@ -2,6 +2,7 @@
 
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
   (https://github.com/dafny-lang/dafny/pull/2416)
+- fix: Language server now reports resolution errors (https://github.com/dafny-lang/dafny/pull/2499)
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
   (https://github.com/dafny-lang/dafny/pull/2363)
 - feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.
