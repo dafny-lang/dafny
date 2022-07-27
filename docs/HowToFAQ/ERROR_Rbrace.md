@@ -1,5 +1,5 @@
 ---
-title: Why am I getting an error saying "rbrace expected"?
+title: Error: rbrace expected
 ---
 
 ## Question

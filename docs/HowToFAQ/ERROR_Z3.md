@@ -9,3 +9,4 @@ You can fix the result by running the shell script `allow_on_mac.sh`
 that is part of the release.
 
 The problem can arise with other components of Dafny as well.
+
