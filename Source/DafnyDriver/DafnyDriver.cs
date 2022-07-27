@@ -108,8 +108,6 @@ namespace Microsoft.Dafny {
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      ErrorReporter reporter = new ConsoleErrorReporter();
-
       var dafnyOptions = new DafnyOptions();
       var action = DriverAction.Run;
       if (args[0] == "format") {
@@ -121,6 +119,12 @@ namespace Microsoft.Dafny {
       var driver = new DafnyDriver(dafnyOptions, action);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
+
+      ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
+        _ => throw new ArgumentOutOfRangeException()
+      };
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:

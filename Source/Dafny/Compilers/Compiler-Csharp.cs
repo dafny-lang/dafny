@@ -86,6 +86,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
+      wr.WriteLine("#nullable disable");
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
@@ -2852,19 +2853,19 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mul:
           opString = "*"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
           } else {
-            opString = "/";  // for reals
+            opString = "/";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
           } else {
-            opString = "%";  // for reals
+            opString = "%";
           }
           break;
 
