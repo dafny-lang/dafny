@@ -1,5 +1,5 @@
 ---
-title: Error: rbrace expected
+title: "Error: rbrace expected"
 ---
 
 ## Question
