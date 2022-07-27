@@ -119,7 +119,7 @@ method m5() { assert false; } //Remove4:
     var semaphoreSlim = new SemaphoreSlim(0);
     var original = DafnyOptions.O.CreateSolver;
     DafnyOptions.O.CreateSolver = (_, _) =>
-      new UnsatSolver();
+      new UnsatSolver(semaphoreSlim);
     await SetUp(new Dictionary<string, string> {
     { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
     });
