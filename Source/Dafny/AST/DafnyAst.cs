@@ -7366,6 +7366,12 @@ namespace Microsoft.Dafny {
             yield return e;
           }
         }
+
+        if (this.Update != null) {
+          foreach (var e in this.Update.NonSpecificationSubExpressions) {
+            yield return e;
+          }
+        }
       }
     }
   }
@@ -7412,6 +7418,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(lhss));
       Lhss = lhss;
     }
+
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+      get {
+        foreach (var e in base.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+
+        foreach (var lhs in Lhss) {
+          yield return lhs;
+        }
+      }
+    }
   }
 
   public class AssignSuchThatStmt : ConcreteUpdateStatement {
@@ -7447,9 +7465,6 @@ namespace Microsoft.Dafny {
       get {
         foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Expr;
-        foreach (var lhs in Lhss) {
-          yield return lhs;
-        }
       }
     }
   }
@@ -7491,6 +7506,17 @@ namespace Microsoft.Dafny {
       Rhss = rhss;
       CanMutateKnownState = mutate;
     }
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+      get {
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+
+        foreach (var rhs in Rhss) {
+          foreach (var e in rhs.SubExpressions) {
+            yield return e;
+          }
+        }
+      }
+    }
   }
 
   public class AssignOrReturnStmt : ConcreteUpdateStatement {
@@ -7524,6 +7550,21 @@ namespace Microsoft.Dafny {
       Rhs = rhs;
       Rhss = rhss;
       KeywordToken = keywordToken;
+    }
+
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+      get {
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+
+        if (Rhs != null) {
+          yield return Rhs;
+        }
+        foreach (var rhs in Rhss) {
+          foreach (var e in rhs.SubExpressions) {
+            yield return e;
+          }
+        }
+      }
     }
   }
 

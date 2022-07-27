@@ -418,48 +418,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case VarDeclStmt varDeclStmt: {
             var ownedTokens = varDeclStmt.OwnedTokens;
-            var authorizeFlattening = false;
-            var commaIndent = indent + 2;
-            foreach (var token in ownedTokens) {
-              switch (token.val) {
-                case "var":
-                  if (IsFollowedByNewline(token)) {
-                    formatter.SetOpeningIndentedRegion(token, indent);
-                    authorizeFlattening = true;
-                  } else {
-                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
-                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
-                    formatter.SetBeforeAfter(token, indent, indent, rightIndent);
-                  }
-                  break;
-                case ",":
-                  if (authorizeFlattening) {
-                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
-                  } else {
-                    formatter.SetDelimiterIndentedRegions(token, commaIndent);
-                  }
-
-                  break;
-                case ":|":
-                case ":-":
-                case ":=":
-                  if (!IsFollowedByNewline(token)) {
-                    formatter.SetBeforeAfter(token, indent + 2, indent + 2, -1);
-                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
-                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
-                    formatter.SetBeforeAfter(token, -1, -1, rightIndent);
-                    authorizeFlattening = false;
-                  } else {
-                    authorizeFlattening = true;
-                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
-                  }
-                  break;
-                case ";":
-                  formatter.SetClosingIndentedRegionInside(token, indent);
-                  break;
-                  // Otherwise, these are identifiers, We don't need to specify their indentation.
-              }
-            }
+            ApplyVarAssignFormatting(indent, ownedTokens);
 
             break;
           }
@@ -567,6 +526,53 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;
     }
 
+    private void ApplyVarAssignFormatting(int indent, List<IToken> ownedTokens) {
+      var authorizeFlattening = false;
+      var commaIndent = indent + 2;
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "var":
+            if (IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              authorizeFlattening = true;
+            } else {
+              var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+              commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+              formatter.SetBeforeAfter(token, indent, indent, rightIndent);
+            }
+
+            break;
+          case ",":
+            if (authorizeFlattening) {
+              formatter.SetDelimiterInsideIndentedRegions(token, indent);
+            } else {
+              formatter.SetDelimiterIndentedRegions(token, commaIndent);
+            }
+
+            break;
+          case ":|":
+          case ":-":
+          case ":=":
+            if (!IsFollowedByNewline(token)) {
+              formatter.SetBeforeAfter(token, indent + 2, indent + 2, -1);
+              var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+              commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+              formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+              authorizeFlattening = false;
+            } else {
+              authorizeFlattening = true;
+              formatter.SetDelimiterInsideIndentedRegions(token, indent);
+            }
+
+            break;
+          case ";":
+            formatter.SetClosingIndentedRegionInside(token, indent);
+            break;
+            // Otherwise, these are identifiers, We don't need to specify their indentation.
+        }
+      }
+    }
+
     private void FormatLikeLoop(List<IToken> ownedTokens, Statement body, int indent) {
       if (ownedTokens.Count > 0) {
         formatter.SetOpeningIndentedRegion(ownedTokens[0], indent);
@@ -610,6 +616,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             binOpArgIndent = -1;
           }
         }
+      } else if (expr is LetExpr letExpr) {
+        var firstToken = letExpr.StartToken;
+        var indent = formatter.GetIndentBefore(firstToken);
+        ApplyVarAssignFormatting(indent, expr.OwnedTokens);
       } else if (expr is QuantifierExpr) {
 
       } // TODO

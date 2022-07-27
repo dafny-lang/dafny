@@ -3076,7 +3076,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        Expression e = dummyExpr;
        IToken id = t;
     .)
-    CasePatternLocal<out pat, isGhost>
+    CasePatternLocal<out pat, isGhost, ownedTokens>
     ( ":="                          (. ownedTokens.Add(t); .)
     | { Attribute<ref attrs> }
       ":|"                          (.  SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
@@ -4445,36 +4445,39 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
      var letLHSs = new List<CasePattern<BoundVar>>();
      var letRHSs = new List<Expression>();
      CasePattern<BoundVar> pat;
+     var ownedTokens = new List<IToken>();
      bool exact = true;
      bool isLetOrFail = false;
      Attributes attrs = null;
      e = dummyExpr;
   .)
-    [ "ghost"                       (. isGhost = true;  x = t; .)
+    [ "ghost"                       (. isGhost = true;  x = t; ownedTokens.Add(t); .)
     ]
-    "var"                           (. if (!isGhost) { x = t; } .)
-    CasePattern<out pat>            (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+    "var"                           (. if (!isGhost) { x = t; } ownedTokens.Add(t); .)
+    CasePattern<out pat, ownedTokens>            (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
                                     .)
-    { "," CasePattern<out pat>      (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
-                                       letLHSs.Add(pat);
-                                    .)
+    { ","                               (. ownedTokens.Add(t); .)
+      CasePattern<out pat, ownedTokens> (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+                                           letLHSs.Add(pat);
+                                        .)
     }
-    ( ":="
+    ( ":="                          (. ownedTokens.Add(t); .)
     | { Attribute<ref attrs> }
-      ":|"                          (. exact = false;
+      ":|"                          (. exact = false; ownedTokens.Add(t);
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
                                            SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
                                          }
                                        }
                                     .)
-    | ":-"                          (. isLetOrFail = true; .)
+    | ":-"                          (. isLetOrFail = true; ownedTokens.Add(t); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
-    { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
+    { ","                           (. ownedTokens.Add(t); .)
+      Expression<out e, false, true>  (. letRHSs.Add(e); .)
     }
-    ";"
+    ";"                             (. ownedTokens.Add(t); .)
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
   (.
     if (isLetOrFail) {
@@ -4496,6 +4499,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     } else {
       e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
     }
+    e.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -4548,29 +4552,32 @@ CaseExpression<.out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, bo
 .
 
 /*------------------------------------------------------------------------*/
-CasePattern<.out CasePattern<BoundVar> pat.>
+CasePattern<.out CasePattern<BoundVar> pat, List<IToken> ownedTokens.>
 = (. IToken id;  List<CasePattern<BoundVar>> arguments;
      BoundVar bv;
      pat = null;
   .)
   ( IF(IsIdentParen())
     Ident<out id>
-    "("                                (. arguments = new List<CasePattern<BoundVar>>(); .)
-      [ CasePattern<out pat>           (. arguments.Add(pat); .)
-        { "," CasePattern<out pat>     (. arguments.Add(pat); .)
+    "("                                   (. arguments = new List<CasePattern<BoundVar>>(); ownedTokens.Add(t); .)
+      [ CasePattern<out pat, ownedTokens> (. arguments.Add(pat); .)
+        { ","                             (.  ownedTokens.Add(t); .)
+          CasePattern<out pat, ownedTokens>  (. arguments.Add(pat); .)
         }
       ]
-    ")"                                (. pat = new CasePattern<BoundVar>(id, id.val, arguments); .)
-  | "("                                (. id = t;
+    ")"                                (. pat = new CasePattern<BoundVar>(id, id.val, arguments);  ownedTokens.Add(t); .)
+  | "("                                (. id = t;  ownedTokens.Add(t);
                                           arguments = new List<CasePattern<BoundVar>>();
                                        .)
-      [ CasePattern<out pat>           (. arguments.Add(pat); .)
-        { "," CasePattern<out pat>     (. arguments.Add(pat); .)
+      [ CasePattern<out pat, ownedTokens>   (. arguments.Add(pat); .)
+        { ","                               (. ownedTokens.Add(t); .)
+          CasePattern<out pat, ownedTokens> (. arguments.Add(pat); .)
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
                                           string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);  //use the TupleTypeCtors
                                           pat = new CasePattern<BoundVar>(id, ctor, arguments);
+                                          ownedTokens.Add(t);
                                        .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
                                           // Nevertheless, we do put the "bv" into the CasePattern here (even though it will get thrown out
@@ -4578,6 +4585,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
                                           // (in particular, bv.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
                                           pat = new CasePattern<BoundVar>(bv.tok, bv);
+                                          ownedTokens.Add(t);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -4591,29 +4599,32 @@ CasePattern<.out CasePattern<BoundVar> pat.>
 /* CasePatternLocal is identical to CasePattern, except that it uses LocalVariable instead of BoundVar. Coco does
  * not have a way to make the patterns take a bounded type parameter.
  */
-CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
+CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost, List<IToken> ownedTokens.>
 = (. IToken id; List<CasePattern<LocalVariable>> arguments;
      LocalVariable local;
      pat = null;
   .)
   ( IF(IsIdentParen())
     Ident<out id>
-    "("                                          (. arguments = new List<CasePattern<LocalVariable>>(); .)
-      [ CasePatternLocal<out pat, isGhost>       (. arguments.Add(pat); .)
-        { "," CasePatternLocal<out pat, isGhost> (. arguments.Add(pat); .)
+    "("                                          (. arguments = new List<CasePattern<LocalVariable>>(); ownedTokens.Add(t); .)
+      [ CasePatternLocal<out pat, isGhost, ownedTokens>   (. arguments.Add(pat); .)
+        { ","                                             (. ownedTokens.Add(t); .)
+          CasePatternLocal<out pat, isGhost, ownedTokens> (. arguments.Add(pat); .)
         }
       ]
-    ")"                                          (. pat = new CasePattern<LocalVariable>(id, id.val, arguments); .)
-  | "("                                          (. id = t;
+    ")"                                          (. pat = new CasePattern<LocalVariable>(id, id.val, arguments); ownedTokens.Add(t); .)
+  | "("                                          (. id = t; ownedTokens.Add(t);
                                                     arguments = new List<CasePattern<LocalVariable>>();
                                                  .)
-      [ CasePatternLocal<out pat, isGhost>       (. arguments.Add(pat); .)
-        { "," CasePatternLocal<out pat, isGhost> (. arguments.Add(pat); .)
+      [ CasePatternLocal<out pat, isGhost, ownedTokens>   (. arguments.Add(pat); .)
+        { ","                                             (. ownedTokens.Add(t); .)
+          CasePatternLocal<out pat, isGhost, ownedTokens> (. arguments.Add(pat); .)
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
                                           string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);  //use the TupleTypeCtors
                                           pat = new CasePattern<LocalVariable>(id, ctor, arguments);
+                                          ownedTokens.Add(t);
                                        .)
   | LocalIdentTypeOptional<out local, isGhost>
                                        (. // This could be a LocalVariable of a parameter-less constructor and we may not know until resolution.
@@ -4622,6 +4633,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
                                           // (in particular, local.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
                                           pat = new CasePattern<LocalVariable>(local.Tok, local);
+                                          ownedTokens.Add(t);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
