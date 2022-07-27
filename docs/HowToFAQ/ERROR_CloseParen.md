@@ -1,5 +1,5 @@
 ---
-title: Error: closeparen expected
+title: Error - closeparen expected
 ---
 
 ## Question
