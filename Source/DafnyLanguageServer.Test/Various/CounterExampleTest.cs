@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Handlers.Custom;
+﻿using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -7,16 +8,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyServer.CounterexampleGeneration;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
-  public class CounterExampleTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      client = await InitializeClient();
-    }
+  public class CounterExampleTest : ClientBasedLanguageServerTest {
 
     private Task<CounterExampleList> RequestCounterExamples(DocumentUri documentUri) {
       return client.SendRequest(
@@ -25,6 +22,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         },
         CancellationToken
       );
+    }
+
+    [TestMethod]
+    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
+      await SetUp(new Dictionary<string, string> {
+        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+      });
+      var source = @"
+      method Abs(x: int) returns (y: int)
+        ensures y > 0
+      {
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual((2, 6), counterExamples[0].Position);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
     [TestMethod]
