@@ -702,7 +702,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddBitwidth(int w) {
-      if (generatedBitwidths.Contains(w)) {
+      if (!generatedBitwidths.Add(w)) {
         return;
       }
 
@@ -732,7 +732,6 @@ namespace Microsoft.Dafny {
       AddBitvectorShiftFunction(w, "RotateRight_bv", "ext_rotate_right");
       // conversion functions
       AddBitvectorNatConversionFunction(w);
-      generatedBitwidths.Add(w);
     }
 
     private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
