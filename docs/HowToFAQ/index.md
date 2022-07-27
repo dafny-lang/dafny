@@ -125,7 +125,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 
 - ["type ? does not have a member IsFailure"] - TODO
 
-- ["value does not satisfy subset constraints of ?"] - TODO
+- ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
 
 - ["function precondition might not hold"](ERROR_SeqComp)
 

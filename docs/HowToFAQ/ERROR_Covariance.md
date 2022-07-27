@@ -6,7 +6,7 @@ The error "value does not satisfy subset constraints of T"
 for some type name `T` arises when a value is trying to be converted to a `T`, which is a subset type,
 and the value cannot be proved to satisfy the predicate that defines the subset type.
 
-This is pretty clear when one is trying to assign, say an `int` to a nat, but is more complex when using generic types,
+This is pretty clear when one is trying to assign, say an `int` to a `nat`, but is more complex when using generic types.
 
 This example
 ```dafny
@@ -27,6 +27,6 @@ What is wanted here is for `formula` to be _covariant_, so that
 `formula<T>` is a subtype of `formula<U>` when `T` is a subtype of `U`.
 For that, use the declaration `formula<+T>`.
 
-To declare `formula` as _contravaraiant_ use `formula<-T>`
+To declare `formula` as _contravariant_ use `formula<-T>`.
 
 
