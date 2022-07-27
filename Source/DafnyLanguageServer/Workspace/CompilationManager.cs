@@ -154,7 +154,7 @@ public class CompilationManager {
     loaded.VerificationTasks = verificationTasks;
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
-    var subscription = verifier.BatchCompletions.Where(c =>
+    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
       implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     loaded.GutterProgressReporter = progressReporter;
