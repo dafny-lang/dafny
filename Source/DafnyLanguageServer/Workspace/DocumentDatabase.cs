@@ -23,6 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Only delta updates are supported and the API is not thread-safe.
   /// </remarks>
   public class DocumentDatabase : IDocumentDatabase {
+    public const string DafnyInternalErrorHelper = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n";
     private readonly ILogger logger;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
@@ -302,7 +303,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               LoadCanceled = false,
               ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
                 new() {
-                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
+                  Message = DafnyInternalErrorHelper + t.Exception,
                   Severity = DiagnosticSeverity.Error,
                   Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
                   Source = "Crash"
