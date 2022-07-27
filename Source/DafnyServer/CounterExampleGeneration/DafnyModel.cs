@@ -1,6 +1,5 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -880,7 +879,7 @@ namespace DafnyServer.CounterexampleGeneration {
       if (elt == null) {
         return new List<string>();
       }
-      int? dims = fDim.OptEval(elt)?.AsInt();
+      var dims = fDim.OptEval(elt)?.AsInt();
       if (dims is null or 0) { // meaning elt is not an array index
         return elt.Names.Where(tuple =>
           tuple.Func.Arity == 0 && !tuple.Func.Name.Contains("$"))

@@ -87,7 +87,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     private List<string> ExtractInputs(DafnyModelState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
-      var vars = state.ExpandedVariableSet(null);
+      var vars = state.ExpandedVariableSet(-1);
       for (var i = NOfTypeParams; i < printOutput.Count; i++) {
         if (printOutput[i] == "") {
           var formalIndex = DafnyInfo.IsStatic(MethodName) ?
@@ -150,7 +150,7 @@ namespace DafnyTestGeneration {
           return variable.Value;
         case SeqType:
           var seqVar = variable as SeqVariable;
-          if (seqVar?.GetLength() == null) {
+          if (seqVar?.GetLength() == -1) {
             return "[]";
           }
           for (var i = 0; i < seqVar.GetLength(); i++) {

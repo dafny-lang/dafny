@@ -1,6 +1,5 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -195,8 +194,8 @@ namespace DafnyServer.CounterexampleGeneration {
 
     public override string Value {
       get {
-        int? length = GetLength();
-        if (length == null || seqElements.Count != length) {
+        var length = GetLength();
+        if (length == -1 || seqElements.Count != length) {
           return base.Value;
         }
         List<string> result = new();
@@ -213,12 +212,12 @@ namespace DafnyServer.CounterexampleGeneration {
       }
     }
 
-    public int? GetLength() {
+    public int GetLength() {
       if (int.TryParse((seqLength?.Element as Model.Integer)?.Numeral,
             out var value)) {
         return value;
       }
-      return null;
+      return -1;
     }
 
     public DafnyModelVariable this[int index] => seqElements.GetValueOrDefault(index.ToString(), null);
@@ -227,7 +226,7 @@ namespace DafnyServer.CounterexampleGeneration {
       this.seqLength = seqLength;
     }
 
-    public void AddAtIndex(DafnyModelVariable e, string? index) {
+    public void AddAtIndex(DafnyModelVariable e, string index) {
       if (index == null) {
         return;
       }

@@ -1,11 +1,9 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-#nullable enable
 
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
 using MapType = Microsoft.Dafny.MapType;
 using Token = Microsoft.Dafny.Token;
