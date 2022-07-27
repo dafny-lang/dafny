@@ -311,6 +311,7 @@ def AllChars():
 
 class defaults:
     bool = staticmethod(lambda: False)
+    char = staticmethod(lambda: 'D')
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     null = staticmethod(lambda: None)

@@ -273,7 +273,8 @@ namespace Microsoft.Dafny.Compilers {
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
-        var argList = ctor.Destructors.Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+        var argList = ctor.Destructors.Where(d => !d.IsGhost)
+          .Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
         var namedtuple = $"NamedTuple(\'{ctorName}\', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -526,6 +527,7 @@ namespace Microsoft.Dafny.Compilers {
         var x when x.IsBuiltinArrowType => "null",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => "bool",
+        CharType => "char",
         IntType or BitvectorType => "int",
         RealType => "real",
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
