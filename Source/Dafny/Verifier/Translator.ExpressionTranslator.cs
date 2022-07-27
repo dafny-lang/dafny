@@ -1423,11 +1423,11 @@ namespace Microsoft.Dafny {
       }
 
       // If the LHS has type Bitvector(w), cast the RHS to the number of bits
-      // required to represent w - 1 and then to Bitvector(w), to result in
+      // required to represent w and then to Bitvector(w), to result in
       // an easier SMT problem. This is always valid because the value of the
-      // RHS must be less than w.
+      // RHS must be no more than w (as Dafny checks elsewhere).
       private Expr TrShiftRotateExpr(string fnName, Expression expr, Expr lhs, Expr rhs, Type rhsType, int w, bool liftLit) {
-        var intermediateBvWidth = (int)(new BigInteger(w - 1)).GetBitLength();
+        var intermediateBvWidth = (int)(new BigInteger(w)).GetBitLength();
         translator.AddBitwidth(intermediateBvWidth);
         var tok = GetToken(expr);
         var rhsConvertedType = new BitvectorType(intermediateBvWidth);
