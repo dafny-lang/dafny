@@ -2,8 +2,9 @@
 title: Error - value does not satisfy subset constraints of T
 ---
 
+<!--
 The error "value does not satisfy subset constraints of T"
-for some type name `T` arises when a value is trying to be converted to a `T`, which is a subset type,
+for some type name `T` arises when a value is trying to be converted to a subset type `T`,
 and the value cannot be proved to satisfy the predicate that defines the subset type.
 
 This is pretty clear when one is trying to assign, say an `int` to a `nat`, but is more complex when using generic types.
@@ -29,4 +30,4 @@ For that, use the declaration `formula<+T>`.
 
 To declare `formula` as _contravariant_ use `formula<-T>`.
 
-
+-->
