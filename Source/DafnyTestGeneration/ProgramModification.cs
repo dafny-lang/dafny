@@ -128,7 +128,9 @@ namespace DafnyTestGeneration {
           CounterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          Console.WriteLine($"// Test {UniqueId} covers block {blockId}");
+          if (DafnyOptions.O.TestGenOptions.Verbose) {
+            Console.WriteLine($"// Test {UniqueId} covers block {blockId}");
+          }
         }
       }
       if (DafnyOptions.O.TestGenOptions.Verbose && counterexampleLog == null) {
