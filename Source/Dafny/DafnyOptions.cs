@@ -523,7 +523,6 @@ namespace Microsoft.Dafny {
           DisallowConstructorCaseWithoutParenthesis = true;
           return true;
 
-
         case "autoTriggers": {
             int autoTriggers = 0;
             if (ps.GetIntArgument(ref autoTriggers, 2)) {
