@@ -18,6 +18,7 @@ using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
@@ -6753,6 +6754,11 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Same as SubExpressions but returns all the SubExpressions before resolution
+    /// </summary>
+    public virtual IEnumerable<Expression> PreResolveSubExpressions => SubExpressions;
+
+    /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// Filters only expressions that are always part of specifications
     /// </summary>
@@ -7506,10 +7512,11 @@ namespace Microsoft.Dafny {
       Rhss = rhss;
       CanMutateKnownState = mutate;
     }
-    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+    public override IEnumerable<Expression> PreResolveSubExpressions {
       get {
-        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-
+        foreach (var lhs in Lhss) {
+          yield return lhs;
+        }
         foreach (var rhs in Rhss) {
           foreach (var e in rhs.SubExpressions) {
             yield return e;
@@ -7552,7 +7559,7 @@ namespace Microsoft.Dafny {
       KeywordToken = keywordToken;
     }
 
-    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+    public override IEnumerable<Expression> PreResolveSubExpressions {
       get {
         foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
 
@@ -13318,10 +13325,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
-        stmt.SubExpressions.Iter(e => Visit(e, st));
         if (preResolve) {
+          stmt.PreResolveSubExpressions.Iter(e => Visit(e, st));
           stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
         } else {
+          stmt.SubExpressions.Iter(e => Visit(e, st));
           stmt.SubStatements.Iter(s => Visit(s, st));
         }
       }

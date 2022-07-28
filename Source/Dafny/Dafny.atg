@@ -4410,6 +4410,8 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
 /*------------------------------------------------------------------------*/
 IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = "if"   (. IToken x = t; Expression e0; Expression e1;
+            var ownedTokens = new List<IToken>();
+            ownedTokens.Add(t);
             bool isBindingGuard = false;
             e = dummyExpr;
          .)
@@ -4417,8 +4419,10 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
         BindingGuard<out e, true>  (. isBindingGuard = true; .)
       | Expression<out e, true, true>
       )
-      "then" Expression<out e0, true, true, true>
-      "else" Expression<out e1, allowLemma, allowLambda, allowBitwiseOps>
+      "then" (. ownedTokens.Add(t); .)
+        Expression<out e0, true, true, true>
+      "else"  (. ownedTokens.Add(t); .)
+        Expression<out e1, allowLemma, allowLambda, allowBitwiseOps>
                 (. if (isBindingGuard) {
                      var exists = (ExistsExpr) e;
                      var LHSs = new List<CasePattern<BoundVar>>();
@@ -4429,6 +4433,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                        exists.Term }, e0, false);
                      }
                      e = new ITEExpr(x, isBindingGuard, e, e0, e1);
+                     e.OwnedTokens = ownedTokens;
                 .)
   .
 /*------------------------------------------------------------------------*/

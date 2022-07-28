@@ -58,6 +58,7 @@ module Test {
   
   method f4
     <  T
+       // The definition of T
     ,  U>(a: T, b: U)
   
   method f5
