@@ -2,7 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 module WithWarning {
-  datatype Color = Red | Green | ShadesOfGray(nat) 
+  datatype Color = Red | Green | ShadesOfGray(nat)
+  datatype Identity<T> = Identity(value: T)
+  datatype Colors = Yellow | Blue
+  function method Foo(value: Identity<Colors>): bool {
+    match value {
+      case Identity(Yellow()) => true
+      case Identity(Blue) => false
+    }
+  }
   method MonochromaticMethod(c: Color) returns (x: bool) {
     return match c
       case ShadesOfGray => true
@@ -31,6 +39,14 @@ module WithWarning {
 
 module WithoutWarning {
   datatype Color = Red | Green | ShadesOfGray(nat)
+  datatype Identity<T> = Identity(value: T)
+  datatype Colors = Yellow | Blue
+  function method Foo(value: Identity<Colors>): bool {
+    match value {
+      case Identity(Yellow()) => true
+      case Identity(Blue()) => false
+    }
+  }
   method MonochromaticMethod(c: Color) returns (x: bool) {
         return match c
           case ShadesOfGray(_) => true
@@ -56,6 +72,7 @@ module WithoutWarning {
         var x := MonochromaticMethod(Green); 
         print MonochromaticFunction(Green);
         var y := MonochromaticMethodloop(Green);
+        print Foo(Identity(Blue));
       }
 }
 

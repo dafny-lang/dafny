@@ -39,15 +39,25 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
     if (expr is NestedMatchExpr matchExpr) {
       var matchExprCases = matchExpr.Cases;
       foreach (var caseExpr in matchExprCases) {
-        if (caseExpr.Pat is IdPattern idPattern) {
-          var isConstructor = idPattern.Arguments != null;
-          if (!idPattern.HasParenthesis && isConstructor) {
-            this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
-              $"Constructor name '{idPattern}' should be followed by parentheses");
-          }
-        }
+        CheckPattern(caseExpr.Pat);
       }
     }
     return base.VisitOneExpr(expr, ref st);
   }
+  private void CheckPattern(ExtendedPattern pattern) {
+    if (pattern is IdPattern idPattern) {
+      var isConstructor = idPattern.Arguments != null;
+      if (isConstructor) {
+        foreach (var nestedPattern in idPattern.Arguments) {
+          CheckPattern(nestedPattern);
+        }
+        if (!idPattern.HasParenthesis) {
+          this.reporter.Warning(MessageSource.Rewriter, idPattern.Tok,
+            $"Constructor name '{idPattern}' should be followed by parentheses");
+        }
+      }
+
+    }
+  }
+
 }
