@@ -25,6 +25,15 @@ namespace IntegrationTests {
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
+    private static readonly string[] DefaultBoogieArguments = new[] {
+      "/infer:j",
+      "/proverOpt:O:auto_config=false",
+      "/proverOpt:O:type_check=true",
+      "/proverOpt:O:smt.case_split=3",
+      "/proverOpt:O:smt.qi.eager_threshold=100",
+      "/proverOpt:O:smt.delay_units=true",
+      "/proverOpt:O:smt.arith.solver=2"
+    };
 
     private static readonly LitTestConfiguration Config;
 
@@ -67,6 +76,11 @@ namespace IntegrationTests {
         }, {
           "%server", (args, config) =>
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+        }, {
+          "%boogie", (args, config) => 
+            new DotnetToolCommand("boogie", 
+              args.Concat(DefaultBoogieArguments), 
+              config.PassthroughEnvironmentVariables)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
         }, {
@@ -117,6 +131,10 @@ namespace IntegrationTests {
             InvokeMainMethodsDirectly);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
+        commands["%boogie"] = (args, config) => 
+          new DotnetToolCommand("boogie", 
+            args.Concat(DefaultBoogieArguments), 
+            config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
 
