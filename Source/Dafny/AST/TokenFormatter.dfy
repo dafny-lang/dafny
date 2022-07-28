@@ -171,53 +171,53 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           if |x| == 1 then true
           else first.end < x[1].start && IsScriptForward(x[1..], sLength)
       }
-     /* lemma IsScriptEqualsIsScriptForward_Step0(x: seq<StringEdit>, sLength: nat, i: nat)
-        requires i < |x|
-        requires IsScript(x, sLength)
-        ensures var first := x[i];
-          0 <= first.start <= first.end <= sLength
-          && (i + 1 < |x| ==> first.end < x[i+1].start)
-      {
-        if x == [] {
-        } else {
-          var last := x[|x|-1];
-          if |x| == 1 {
-          } else {
-            if i == |x| - 1 {
-            } else {
-              assert IsScript(x[..|x|-1], last.start);
-              IsScriptEqualsIsScriptForward_Step0(x[..|x|-1], last.start, i);
-            }
-          }
-        }
-      }
-      lemma IsScriptEqualsIsScriptForward_Step1(x: seq<StringEdit>, sLength: nat, i: nat)
-        decreases |x|
-        requires i < |x|
-        requires IsScript(x, sLength)
-        ensures IsScriptForward(x[i..], sLength)
-      {
-        if x == [] {
-        } else {
-          var last := x[|x|-1];
-          if |x| == 1 {
-          } else {
-            if i == |x| - 1 {
-            } else {
-              assert IsScript(x[..|x|-1], last.start);
-              IsScriptEqualsIsScriptForward_Step0(x, sLength, 0);
-              IsScriptEqualsIsScriptForward_Step0(x[..|x|-1], last.start, i);
-              var first := x[i];
-              assert 0 <= first.start <= first.end <= sLength;
-              assert first.end < x[i + 1].start;
-              
-              IsScriptEqualsIsScriptForward_Step1(x[i..], sLength, 0);
-              
-              assert IsScriptForward(x[i..], sLength);
-            }
-          }
-        }
-      }*/
+      /* lemma IsScriptEqualsIsScriptForward_Step0(x: seq<StringEdit>, sLength: nat, i: nat)
+         requires i < |x|
+         requires IsScript(x, sLength)
+         ensures var first := x[i];
+           0 <= first.start <= first.end <= sLength
+           && (i + 1 < |x| ==> first.end < x[i+1].start)
+       {
+         if x == [] {
+         } else {
+           var last := x[|x|-1];
+           if |x| == 1 {
+           } else {
+             if i == |x| - 1 {
+             } else {
+               assert IsScript(x[..|x|-1], last.start);
+               IsScriptEqualsIsScriptForward_Step0(x[..|x|-1], last.start, i);
+             }
+           }
+         }
+       }
+       lemma IsScriptEqualsIsScriptForward_Step1(x: seq<StringEdit>, sLength: nat, i: nat)
+         decreases |x|
+         requires i < |x|
+         requires IsScript(x, sLength)
+         ensures IsScriptForward(x[i..], sLength)
+       {
+         if x == [] {
+         } else {
+           var last := x[|x|-1];
+           if |x| == 1 {
+           } else {
+             if i == |x| - 1 {
+             } else {
+               assert IsScript(x[..|x|-1], last.start);
+               IsScriptEqualsIsScriptForward_Step0(x, sLength, 0);
+               IsScriptEqualsIsScriptForward_Step0(x[..|x|-1], last.start, i);
+               var first := x[i];
+               assert 0 <= first.start <= first.end <= sLength;
+               assert first.end < x[i + 1].start;
+               
+               IsScriptEqualsIsScriptForward_Step1(x[i..], sLength, 0);
+               
+               assert IsScriptForward(x[i..], sLength);
+             }
+           }
+         }
+       }*/
       
       lemma lastStep(x: seq<StringEdit>, sLength: nat)
         requires |x| > 0
@@ -241,7 +241,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           assert IsScriptForward(x[1..], sLength);
           assert IsScriptForward(x, sLength);
         }
-
+        
       }
       
       lemma IsScriptEqualsIsScriptForward(x: seq<StringEdit>, sLength: nat)
