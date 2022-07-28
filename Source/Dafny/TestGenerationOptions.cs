@@ -138,7 +138,10 @@ namespace Microsoft.Dafny {
 /generateTestPrintBpl:<fileName>
     Print the Boogie code after all transformations to a specified file
 /generateTestVerbose
-    Print various info as comments for debugging";
+    Print various info as comments for debugging
+/generateTestMinimization:<Random|Topological|Optimal>
+    Use a given test minimization strategy. 
+    Reported statistics might be off if this is used alongside inlining.";
 
   }
 }
