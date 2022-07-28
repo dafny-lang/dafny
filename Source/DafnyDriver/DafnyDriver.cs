@@ -336,7 +336,7 @@ namespace Microsoft.Dafny {
         } else {
           var firstToken = dafnyProgram.GetFirstTopLevelToken();
           var result = TokenFormatter.__default.printSourceReindent(firstToken, new DummyTokenIndentation());
-          Console.WriteLine(result);
+          WriteFile(dafnyFiles[0].FilePath, result);
         }
         return exitValue;
       }
