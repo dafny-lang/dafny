@@ -913,21 +913,51 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-TO BE WRITTEN - binding form
+The `if` expression also permits a binding form.
+In this case the condition of the `if` is an existential asking
+"does there exist a value satisfying the given predicate?".
+If not, the else branch is evaluated. But if so, then an
+(arbitrary) value that does satisfy the given predicate is
+bound to the given variable and that variable is in scope in 
+the then-branch of the expression.
+
+For example, in the code
+```dafny
+predicate P(x: int) {
+  x == 5 || x == -5
+}
+method main() {
+  assert P(5);
+  var y := if x: int :| P(x) then x else 0;
+  assert y == 5 || y == -5;
+}
+```
+`x` is given some value that satisfies `P(x)`, namely either `5` or `-5`.
+That value of `x` is the value of the expression in the `then` branch above; if there is no value satisfying `P(x)`,
+then `0` is returned. Note that if `x` is declared to be a `nat` in this example, then only
+the value `5` would be permissible.
+
+This binding form of the `if` expression acts in the same way as the binding form of the [`if` statement](#sec-if-statement).
+
+In the example given, the binder for `x` has no constraining range, so the expression is `ghost`;
+if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
+then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
 
 ## 21.33. Case and Extended Patterns {#sec-case-pattern}
 ````grammar
 CasePattern =
-  ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
-  | "(" [ CasePattern { "," CasePattern } ] ")"
+  ( IdentTypeOptional
+  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
+  )
+
+SingleExtendedPattern =
+  ( PossiblyNegatedLiteralExpression
   | IdentTypeOptional
+  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
   )
 
 ExtendedPattern =
-  ( PossiblyNegatedLiteralExpression
-  | IdentTypeOptional
-  | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
-  )
+  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
 
 PossiblyNegatedLiteralExpression =
   ( "-" ( Nat | Dec )
@@ -944,13 +974,14 @@ that is, in `match`
 and [expressions](#sec-match-expression).
 `CasePattern`s are used
 in `LetExpr`s and `VarDeclStatement`s.
-The `ExtendedPattern` differs from `CasePattern` in allowing literals
-and symbolic constants.
+The `ExtendedPattern` differs from `CasePattern` in allowing literals,
+symbolic constants, and disjunctive (“or”) patterns.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
-must correspond to a
+must correspond to one of the following:
 
+* (0) a case disjunction (“or-pattern”)
 * (1) bound variable (a simple identifier),
 * (2) a constructor of the type of the value,
 * (3) a literal of the correct type, or
@@ -958,6 +989,8 @@ must correspond to a
 
 If the extended pattern is
 
+* a sequence of `|`-separated sub-patterns, then the pattern matches values
+  matched by any of the sub-patterns.
 * a parentheses-enclosed possibly-empty list of patterns,
 then the pattern matches a tuple.
 * an identifier followed
@@ -970,6 +1003,9 @@ matches a constructor.
 a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
    * otherwise, the identifier is a new bound variable
 
+Disjunctive patterns may not bind variables, and may not be nested inside other
+patterns.
+
 Any ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
@@ -980,7 +1016,7 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-The `ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
+`ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
 identifiers contained in a `CaseBinding_` or `CasePattern` must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to

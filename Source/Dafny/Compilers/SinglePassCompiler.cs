@@ -1786,13 +1786,17 @@ namespace Microsoft.Dafny.Compilers {
               EmitSetterParameter(sw);
             }
           } else if (member is Function fn) {
-            Contract.Assert(fn.Body != null);
-            var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
-            EmitCallToInheritedFunction(fn, w);
+            if (!Attributes.Contains(fn.Attributes, "extern")) {
+              Contract.Assert(fn.Body != null);
+              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
+              EmitCallToInheritedFunction(fn, w);
+            }
           } else if (member is Method method) {
-            Contract.Assert(method.Body != null);
-            var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
-            EmitCallToInheritedMethod(method, w);
+            if (!Attributes.Contains(method.Attributes, "extern")) {
+              Contract.Assert(method.Body != null);
+              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
+              EmitCallToInheritedMethod(method, w);
+            }
           } else {
             Contract.Assert(false);  // unexpected member
           }
@@ -2712,6 +2716,15 @@ namespace Microsoft.Dafny.Compilers {
         return typ.AsBitVectorType.NativeType;
       }
       return null;
+    }
+
+    protected bool NeedsEuclideanDivision(Type typ) {
+      if (AsNativeType(typ) is { LowerBound: var lb }) {
+        // Dafny's division differs from '/' only on negative numbers
+        return lb < BigInteger.Zero;
+      }
+      // IsNumericBased drills past newtypes, unlike IsIntegerType
+      return typ.IsNumericBased(Type.NumericPersuasion.Int);
     }
 
     /// <summary>

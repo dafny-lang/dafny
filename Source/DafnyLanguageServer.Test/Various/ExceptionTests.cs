@@ -101,23 +101,20 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.LoadAsync(textDocument, cancellationToken);
     }
 
-    public Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
+    public Task PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
       if (CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
       return loader.PrepareVerificationTasksAsync(loaded, cancellationToken);
     }
 
-    public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
-      return loader.VerifyAllTasks(document, cancellationToken);
+    public Task VerifyAllTasksAsync(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken) {
+      return loader.VerifyAllTasksAsync(entry, document, cancellationToken);
     }
 
-    public IObservable<DafnyDocument> Verify(DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken) {
-      return loader.Verify(document, implementationTask, cancellationToken);
-    }
-
-    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      loader.PublishGutterIcons(document, verificationStarted);
+    public bool Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask,
+      CancellationToken cancellationToken) {
+      return loader.Verify(entry, document, implementationTask, cancellationToken);
     }
   }
 }
