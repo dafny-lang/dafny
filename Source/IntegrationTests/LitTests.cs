@@ -77,9 +77,9 @@ namespace IntegrationTests {
           "%server", (args, config) =>
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
-          "%boogie", (args, config) => 
-            new DotnetToolCommand("boogie", 
-              args.Concat(DefaultBoogieArguments), 
+          "%boogie", (args, config) =>
+            new DotnetToolCommand("boogie",
+              args.Concat(DefaultBoogieArguments),
               config.PassthroughEnvironmentVariables)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
@@ -131,9 +131,9 @@ namespace IntegrationTests {
             InvokeMainMethodsDirectly);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
-        commands["%boogie"] = (args, config) => 
-          new DotnetToolCommand("boogie", 
-            args.Concat(DefaultBoogieArguments), 
+        commands["%boogie"] = (args, config) =>
+          new DotnetToolCommand("boogie",
+            args.Concat(DefaultBoogieArguments),
             config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
