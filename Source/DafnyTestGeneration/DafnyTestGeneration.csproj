@@ -21,4 +21,8 @@
         <Compile Include="..\version.cs" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Google.OrTools" Version="9.3.10497" />
+    </ItemGroup>
+
 </Project>

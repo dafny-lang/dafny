@@ -49,7 +49,7 @@ namespace DafnyTestGeneration {
     /// Modify implementation by adding variables indicating whether or not
     /// certain blocks were visited.
     /// </summary>
-    private static Dictionary<Block, Variable> InitBlockVars(Implementation node) {
+    internal static Dictionary<Block, Variable> InitBlockVars(Implementation node) {
       var blockToVariable = new Dictionary<Block, Variable>();
       foreach (var block in node.Blocks) {
         var varName = BlockVarNamePrefix + block.UniqueId;
@@ -100,23 +100,29 @@ namespace DafnyTestGeneration {
       currSet.Remove(blockToVariable[block]);
     }
 
-    private class Path {
+    internal class Path {
 
       public readonly Implementation Impl;
       public readonly List<Variable> path; // flags for the blocks along the path
-      private readonly Block returnBlock; // block where the path ends
+      private readonly List<Block> returnBlocks; // block(s) where the path ends
 
-      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlock) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlocks)
+        :this(impl, path, new List<Block>() {returnBlocks}) {
+      }
+      
+      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks) {
         Impl = impl;
         this.path = new();
         this.path.AddRange(path); // deepcopy is necessary here
-        this.returnBlock = returnBlock;
+        this.returnBlocks = returnBlocks;
       }
 
       internal void AssertPath() {
-        if (path.Count == 0) {
-          returnBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
-          return;
+        foreach (var returnBlock in returnBlocks) {
+          if (path.Count == 0) {
+            returnBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+            return;
+          }
         }
 
         Expr condition = new IdentifierExpr(new Token(), path[0]);
@@ -126,11 +132,16 @@ namespace DafnyTestGeneration {
             new List<Expr>()
               { condition, new IdentifierExpr(new Token(), path[i]) });
         }
-        returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
+        
+        foreach (var returnBlock in returnBlocks) {
+          returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
+        }
       }
 
       internal void NoAssertPath() {
-        returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+        foreach (var returnBlock in returnBlocks) {
+          returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+        }
       }
     }
   }

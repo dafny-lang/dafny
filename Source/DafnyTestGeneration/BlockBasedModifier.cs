@@ -70,7 +70,84 @@ namespace DafnyTestGeneration {
             }
           }
           break;
+        // case TestGenerationOptions.Minimizations.Greedy:
+          /*var currentOrdering = GreedyOrderBlock(implementation);
+          while (currentOrdering.Count != 0) {
+            foreach (var block in currentOrdering) {
+              var modification = VisitBlock(block);
+              if (modification != null) {
+                yield return modification;
+                break;
+              }
+            }
+            currentOrdering = GreedyOrderBlock(implementation);
+          }
+          break;*/
         case TestGenerationOptions.Minimizations.Optimal:
+          var variables = PathBasedModifier.InitBlockVars(node);
+          var allPathsFeasible = false;
+          int bestResult = 0;
+          int minPaths = 1;
+          var returnBlocks = node.Blocks
+            .Where(block => block.TransferCmd is ReturnCmd).ToList();
+          List<ProgramModification> bestResultPaths = new();
+          List<ProgramModification> currentAttempt = new();
+          List<HashSet<Block>> infeasiblePaths = new();
+          HashSet<ProgramModification> allPaths = new();
+          while (!allPathsFeasible) {
+            currentAttempt.ForEach(modification => modification.ToBeIgnored = true);
+            var newPaths = MinCover.GetMinCover(node, infeasiblePaths, minPaths);
+            if (newPaths.Count == 0) {
+              break;
+            }
+            minPaths = newPaths.Count;
+            allPathsFeasible = true;
+            foreach (var pathDescription in newPaths.OrderBy(p => p.Count)) {
+              ProgramModification modification;
+              var blockIds = pathDescription.Select(block => block.UniqueId).ToHashSet();
+              var substitution = allPaths
+                .Where(path =>
+                  path.CounterexampleStatus ==
+                  ProgramModification.Status.Success &&
+                  path.coversBlocks.IsSupersetOf(blockIds))
+                .FirstOrDefault((ProgramModification) null);
+              if (substitution == null) {
+                var path = new PathBasedModifier.Path(node,
+                  pathDescription.Select(block => variables[block]),
+                  returnBlocks);
+                path.AssertPath();
+                var name = ImplementationToTarget?.VerboseName ??
+                           path.Impl.VerboseName;
+                modification = ProgramModification.GetProgramModification(
+                  program, path.Impl,
+                  blockIds, new HashSet<string>(), name,
+                  $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
+                modification.ToBeIgnored = false;
+                path.NoAssertPath();
+              } else {
+                modification = substitution;
+                modification.ToBeIgnored = false;
+              }
+              currentAttempt.Add(modification);
+              allPaths.Add(modification);
+              if (allPathsFeasible) {
+                await modification.GetCounterExampleLog();
+              }
+              if (!modification.IsCovered) {
+                infeasiblePaths.Add(pathDescription);
+                allPathsFeasible = false;
+              }
+            }
+            if (ProgramModification.NumberOfBlocksCovered(node) > bestResult) {
+              bestResultPaths = new List<ProgramModification>();
+              bestResultPaths.AddRange(currentAttempt);
+            }
+          }
+          currentAttempt.ForEach(modification => modification.ToBeIgnored = true);
+          bestResultPaths.ForEach(modification => modification.ToBeIgnored = false);
+          foreach (var modification in bestResultPaths) {
+            yield return modification;
+          }
           break;
       }
     }

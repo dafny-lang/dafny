@@ -32,7 +32,7 @@ namespace DafnyTestGeneration {
 
     private readonly string procedure; // procedure to start verification from
     private Program? program;
-    private readonly HashSet<int> coversBlocks;
+    internal readonly HashSet<int> coversBlocks;
     private string? counterexampleLog;
     private TestMethod testMethod;
 
@@ -198,6 +198,15 @@ namespace DafnyTestGeneration {
     public static bool ImplementationIsCovered(Implementation implementation) {
       return BlocksAreCovered(implementation,
         implementation.Blocks.Where(block => block.Cmds.Count != 0).Select(block => block.UniqueId).ToHashSet());
+    }
+    
+    public static int NumberOfBlocksCovered(Implementation implementation) {
+      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
+        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success);
+      var blockIds = implementation.Blocks.Where(block => block.Cmds.Count != 0)
+        .Select(block => block.UniqueId).ToHashSet();
+      return blockIds.Count(blockId =>
+        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
     }
 
     public static int ModificationsWithStatus(Implementation implementation, Status status) =>
