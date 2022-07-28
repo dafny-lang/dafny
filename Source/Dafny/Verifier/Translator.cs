@@ -3518,7 +3518,7 @@ namespace Microsoft.Dafny {
       if (ModeledAsBoxType(f.OverriddenFunction.ResultType)) {
         funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
       }
-      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
+      // builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
 
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
