@@ -94,8 +94,10 @@ namespace DafnyTestGeneration {
           List<ProgramModification> currentAttempt = new();
           List<HashSet<Block>> infeasiblePaths = new();
           HashSet<ProgramModification> allPaths = new();
+          node.ComputePredecessorsForBlocks();
           while (!allPathsFeasible) {
             currentAttempt.ForEach(modification => modification.ToBeIgnored = true);
+            currentAttempt = new List<ProgramModification>();
             var newPaths = MinCover.GetMinCover(node, infeasiblePaths, minPaths);
             if (newPaths.Count == 0) {
               break;
@@ -121,21 +123,20 @@ namespace DafnyTestGeneration {
                 modification = ProgramModification.GetProgramModification(
                   program, path.Impl,
                   blockIds, new HashSet<string>(), name,
-                  $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
-                modification.ToBeIgnored = false;
+                  $"{name.Split(" ")[0]}(path through {string.Join(",", blockIds)})");
                 path.NoAssertPath();
               } else {
                 modification = substitution;
-                modification.ToBeIgnored = false;
               }
+              modification.ToBeIgnored = false;
               currentAttempt.Add(modification);
               allPaths.Add(modification);
               if (allPathsFeasible) {
                 await modification.GetCounterExampleLog();
-              }
-              if (!modification.IsCovered) {
-                infeasiblePaths.Add(pathDescription);
-                allPathsFeasible = false;
+                if (!modification.IsCovered) {
+                  infeasiblePaths.Add(pathDescription);
+                  allPathsFeasible = false;
+                }
               }
             }
             if (ProgramModification.NumberOfBlocksCovered(node) > bestResult) {

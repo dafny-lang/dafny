@@ -37,7 +37,7 @@ public static class MinCover {
 
     // Initializing the problem
     CpModel model = new CpModel();
-    var vars = new Dictionary<Block, BoolVar>[implementation.Blocks.Count];
+    var vars = new Dictionary<Block, BoolVar>[minPaths];
     for (int i = 0; i < vars.Length; i++) {
       vars[i] = new Dictionary<Block, BoolVar>();
       foreach (var block in implementation.Blocks) {
@@ -72,7 +72,7 @@ public static class MinCover {
           model.AddBoolOr(gotoCmd.labelTargets.Select(p => path[p])
             .Append(path[block].Not()));
         } else {
-          model.AddExactlyOne(gotoCmd.labelTargets.Select(p => path[p])).OnlyEnforceIf(path[block]);
+          model.Add(LinearExpr.Sum(gotoCmd.labelTargets.Select(p => path[p])) == 1).OnlyEnforceIf(path[block]);
         }
       }
     }
@@ -103,6 +103,9 @@ public static class MinCover {
       if (minPaths >= implementation.Blocks.Count) {
         return new HashSet<HashSet<Block>>();
       }
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine("// Increasing minimum to " + (minPaths + 1));
+      }
       return GetMinCover(implementation, infeasiblePaths, minPaths + 1);
     }
     
@@ -118,7 +121,7 @@ public static class MinCover {
           solutionPath.Add(block);
         }
       }
-      if (solutionPath.Count == 0) {
+      if (solutionPath.Count == 0 && DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine("// Invalid SAT solution");
       }
       solution.Add(solutionPath);
