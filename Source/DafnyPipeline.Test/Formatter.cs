@@ -328,12 +328,12 @@ method topLevel(
     }
 
     [Fact]
-    public void FormatterWorksForFunctions() {
+    public void FormatterWorksForFunctionsIfExprAndMatchCases() {
       FormatterWorksFor(@"
 function topLevel(
     x: int,
     y: int
-): int {
+  ): int {
   if x == 2 then
     if x > 3
     then
@@ -344,13 +344,18 @@ function topLevel(
     var w := z + z;
     assert w != x;
     match x {
-    case 1 =>
-      17
-    case 3 =>
-      18
-    case y =>
-      19 
-      + 1 
+      case 1 =>
+        17
+      case 3 =>
+        18
+      case y =>
+        19 
+        +
+        match x
+        case 17 =>
+          12
+        case 15 =>
+          16 
     }
 }");
     }
@@ -361,25 +366,25 @@ function topLevel(
 method Test(z: int) {
   match
     z {
-  case 0 =>
-    match z + 1 {
-    case 1 => print ""1"";
-              print ""1bis"";
-    case 2 =>
-      print ""2"";
-      print ""2bis"";
+    case 0 =>
+      match z + 1 {
+        case 1 => print ""1"";
+                  print ""1bis"";
+        case 2 =>
+          print ""2"";
+          print ""2bis"";
+        case 3
+          => print ""3"";
+             print ""3bis"";
+      }
+    case
+      1 =>
+    case 2
+      =>
     case 3
-      => print ""3"";
-         print ""3bis"";
-    }
-  case
-    1 =>
-  case 2
-    =>
-  case 3
-    =>
+      =>
   }
-  var x :=match z {
+  var x :=match z
           case 1 =>
             var x := 2;
             x
@@ -388,11 +393,11 @@ method Test(z: int) {
           case 5
             => var x := 6;
                x
-          };
+    ;
   var x :=
     match z {
-    case 1 => 2
-    case 3 => 4
+      case 1 => 2
+      case 3 => 4
     };
 }
 ");

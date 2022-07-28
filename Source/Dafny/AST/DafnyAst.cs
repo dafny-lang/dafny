@@ -9104,19 +9104,17 @@ namespace Microsoft.Dafny {
               }
             }
 
-            if (FormatTokens != null) {
-              foreach (var token in FormatTokens) {
-                if (token.Filename != tok.Filename) {
-                  continue;
-                }
+            foreach (var token in Enumerable.Concat(FormatTokens ?? Enumerable.Empty<IToken>(), OwnedTokens)) {
+              if (token.Filename != tok.Filename) {
+                continue;
+              }
 
-                if (token.pos < startTok.pos) {
-                  startTok = token;
-                }
+              if (token.pos < startTok.pos) {
+                startTok = token;
+              }
 
-                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-                  endTok = token;
-                }
+              if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+                endTok = token;
               }
             }
 
@@ -11433,6 +11431,13 @@ namespace Microsoft.Dafny {
       Rhs = rhs;
       Body = body;
     }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return Rhs;
+        yield return Body;
+      }
+    }
   }
 
   /// <summary>
@@ -12700,6 +12705,15 @@ namespace Microsoft.Dafny {
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Attributes = attrs;
     }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return Source;
+        foreach (var oneCase in Cases) {
+          yield return oneCase.Body;
+        }
+      }
+    }
   }
 
   public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -12848,6 +12862,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+
     public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
   }
 
@@ -12877,6 +12893,12 @@ namespace Microsoft.Dafny {
     public ParensExpression(IToken tok, Expression e)
       : base(tok) {
       E = e;
+    }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return E;
+      }
     }
   }
 
@@ -12914,14 +12936,22 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (ResolvedExpression == null) {
-          yield return Root;
-          foreach (var update in Updates) {
-            yield return update.Item3;
+          foreach (var preResolved in PreResolveSubExpressions) {
+            yield return preResolved;
           }
         } else {
           foreach (var e in base.SubExpressions) {
             yield return e;
           }
+        }
+      }
+    }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return Root;
+        foreach (var update in Updates) {
+          yield return update.Item3;
         }
       }
     }
@@ -13018,6 +13048,12 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return E;
+      }
+    }
   }
 
   public class ChainingExpression : ConcreteSyntaxExpression {
@@ -13076,6 +13112,30 @@ namespace Microsoft.Dafny {
       }
       E = desugaring;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (Resolved == null) {
+          foreach (var sub in PreResolveSubExpressions) {
+            yield return sub;
+          }
+        } else {
+          yield return Resolved;
+        }
+      }
+    }
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        foreach (var sub in Operands) {
+          yield return sub;
+        }
+        foreach (var sub in PrefixLimits) {
+          if (sub != null) {
+            yield return sub;
+          }
+        }
+      }
+    }
   }
 
   /// <summary>
@@ -13117,6 +13177,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Lhs = lhs;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (Resolved == null) {
+          foreach (var sub in PreResolveSubExpressions) {
+            yield return sub;
+          }
+        } else {
+          yield return Resolved;
+        }
+      }
+    }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return Lhs;
+      }
     }
   }
 
@@ -13312,8 +13390,12 @@ namespace Microsoft.Dafny {
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
-        // recursively visit all subexpressions and all substatements
-        expr.SubExpressions.Iter(e => Visit(e, st));
+        if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+          concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else {
+          // recursively visit all subexpressions and all substatements
+          expr.SubExpressions.Iter(e => Visit(e, st));
+        }
         if (expr is StmtExpr) {
           // a StmtExpr also has a sub-statement
           var e = (StmtExpr)expr;

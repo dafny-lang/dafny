@@ -16,9 +16,6 @@ public class HelperString {
   // If we remove whitespace (tabs or space) at the end of lines. 
   public static bool RemoveTrailingWhitespace = true;
 
-  // If set to false, cases inside match statements will be indented.
-  public static bool MatchCaseNoIndent = true;
-
   public static readonly Regex NewlineRegex =
     new(@"(?<=\r?\n|\r(?!\n))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 
@@ -250,7 +247,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var savedIndent = indent;
     MarkMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
     if (member.BodyStartTok.line > 0) {
-      SetBeforeAfter(member.BodyStartTok, indent + 2, indent, indent + 2);
+      SetDelimiterIndentedRegions(member.BodyStartTok, indent);
     }
 
     if (member is Method method) {
@@ -278,6 +275,28 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
     if (member is Function function) {
+      foreach (var formal in function.Formals) {
+        SetTypeIndentation(formal.tok, formal.SyntacticType);
+      }
+      if (function.Result is { } outFormal) {
+        SetTypeIndentation(outFormal.tok, outFormal.SyntacticType);
+      }
+      foreach (var req in function.Req) {
+        SetAttributedExpressionIndentation(req);
+      }
+      foreach (var frame in function.Reads) {
+        SetFrameExpressionIndentation(frame);
+      }
+      foreach (var ens in function.Ens) {
+        SetAttributedExpressionIndentation(ens);
+      }
+      foreach (var dec in function.Decreases.Expressions) {
+        SetExpressionIndentation(dec);
+      }
+      if (function.ByMethodBody is { } byMethodBody) {
+        SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
+        SetClosingIndentedRegion(byMethodBody.EndTok, indent);
+      }
       SetExpressionIndentation(function.Body);
     }
 
@@ -396,7 +415,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             var specification = false;
             for (var i = 1; i < ownedTokens.Count; i++) {
               if (specification) {
-                formatter.SetSpecification(ownedTokens[i], indent);
+                formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + 2);
               }
 
               if (ownedTokens[i].val == "to") {
@@ -454,43 +473,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case NestedMatchStmt: {
             var ownedTokens = stmt.OwnedTokens;
-            var authorizeFlattening = false;
-            var afterArrowIndent = HelperString.MatchCaseNoIndent ? indent + 2 : indent + 4;
-            foreach (var token in ownedTokens) {
-              switch (token.val) {
-                case "match":
-                  formatter.SetOpeningIndentedRegion(token, indent);
-                  break;
-                case "{":
-                  if (HelperString.MatchCaseNoIndent) {
-                    formatter.SetClosingIndentedRegion(token, indent);
-                  } else {
-                    formatter.SetDelimiterIndentedRegions(token, indent);
-                  }
-                  break;
-                case "}":
-                  formatter.SetClosingIndentedRegion(token, indent);
-                  break;
-                case "case":
-                  if (HelperString.MatchCaseNoIndent) {
-                    formatter.SetDelimiterIndentedRegions(token, indent);
-                  } else {
-                    formatter.SetDelimiterIndentedRegions(token, indent + 2);
-                  }
-
-                  break;
-                case "=>":
-                  if (IsFollowedByNewline(token)) {
-                    formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
-                  } else {
-                    formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, -1);
-                    var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
-                    formatter.SetBeforeAfter(token, -1, -1, rightIndent);
-                  }
-                  break;
-              }
-            }
-
+            ApplyMatchFormatting(indent, ownedTokens);
             break;
           }
         case PrintStmt: {
@@ -515,6 +498,41 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       return true;
+    }
+
+    private void ApplyMatchFormatting(int indent, List<IToken> ownedTokens) {
+      var authorizeFlattening = false;
+      var matchCaseNoIndent = false;
+      var caseIndent = indent;
+      var afterArrowIndent = indent + 2;
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "match":
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+          case "{":
+            caseIndent = indent + 2;
+            afterArrowIndent = indent + 4;
+            formatter.SetDelimiterIndentedRegions(token, indent);
+            break;
+          case "}":
+            formatter.SetClosingIndentedRegion(token, indent);
+            break;
+          case "case":
+            formatter.SetDelimiterIndentedRegions(token, caseIndent);
+            break;
+          case "=>":
+            if (IsFollowedByNewline(token)) {
+              formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
+            } else {
+              formatter.SetBeforeAfter(token, afterArrowIndent, afterArrowIndent, -1);
+              var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+              formatter.SetBeforeAfter(token, -1, -1, rightIndent);
+            }
+
+            break;
+        }
+      }
     }
 
     private bool ApplyITEFormatting(int indent, List<IToken> ownedTokens) {
@@ -599,7 +617,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       for (var i = 1; i < ownedTokens.Count; i++) {
-        formatter.SetSpecification(ownedTokens[i], indent);
+        formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + 2);
       }
 
       formatter.SetDelimiterIndentedRegions(body.Tok, indent);
@@ -607,74 +625,132 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
-      if (expr is BinaryExpr binaryExpr) {
-        if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) { // Alignment required.
-          if (binaryExpr.OwnedTokens.Count == 2) {
-            var firstToken = binaryExpr.OwnedTokens[0];
-            var secondToken = binaryExpr.OwnedTokens[1];
-            var newIndent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
-            var c = 0;
-            while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
-              c++;
-            }
-            var conjunctExtraIndent = c + 2;
-            binOpIndent = newIndent;
-            binOpArgIndent = newIndent + conjunctExtraIndent;
-            formatter.SetBeforeAfter(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
-            formatter.SetBeforeAfter(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
-          } else {
-            if (binOpIndent > 0) {
-              formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
-            } else if (binaryExpr.OwnedTokens.Count > 0) {
-              var startToken = binaryExpr.StartToken;
-              var newIndent = formatter.GetTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
-              formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
-            }
+      var firstToken = expr.StartToken;
+      var indent = formatter.GetIndentBefore(firstToken);
+      switch (expr) {
+        case BinaryExpr binaryExpr: {
+            ApplyBinaryExprFormatting(binaryExpr);
+            break;
           }
-          if (binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
-            binOpIndent = -1;
-            binOpArgIndent = -1;
+        case LetExpr: {
+            ApplyVarAssignFormatting(indent, expr.OwnedTokens);
+            break;
           }
-        }
-      } else if (expr is LetExpr letExpr) {
-        var firstToken = letExpr.StartToken;
-        var indent = formatter.GetIndentBefore(firstToken);
-        ApplyVarAssignFormatting(indent, expr.OwnedTokens);
-      } else if (expr is ITEExpr iteExpr) {
-        var firstToken = iteExpr.StartToken;
-        var indent = formatter.GetIndentBefore(firstToken);
-        ApplyITEFormatting(indent, expr.OwnedTokens);
-      } else if (expr is QuantifierExpr) {
-
-      } // TODO
+        case ITEExpr: {
+            ApplyITEFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case NestedMatchExpr: {
+            ApplyMatchFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case QuantifierExpr:
+          break; // TODO
+      }
 
       return true;
     }
+
+    private void ApplyBinaryExprFormatting(BinaryExpr binaryExpr) {
+      int indent;
+      if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
+        // Alignment required.
+        if (binaryExpr.OwnedTokens.Count == 2) {
+          var firstToken = binaryExpr.OwnedTokens[0];
+          var secondToken = binaryExpr.OwnedTokens[1];
+          indent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
+          var c = 0;
+          while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
+            c++;
+          }
+
+          var conjunctExtraIndent = c + 2;
+          binOpIndent = indent;
+          binOpArgIndent = indent + conjunctExtraIndent;
+          formatter.SetBeforeAfter(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
+          formatter.SetBeforeAfter(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
+        } else {
+          if (binOpIndent > 0) {
+            formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
+          } else if (binaryExpr.OwnedTokens.Count > 0) {
+            var startToken = binaryExpr.StartToken;
+            var newIndent = formatter.GetTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
+            formatter.SetBeforeAfter(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
+          }
+        }
+
+        if (binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
+          binOpIndent = -1;
+          binOpArgIndent = -1;
+        }
+      }
+    }
   }
 
+
+  /// For example, the "if" keyword in the context of a statement
+  ///
+  /// // Not indented
+  /// if       // line not indented
+  ///   x == 2 // Line indented
   private void SetOpeningIndentedRegion(IToken token, int indent) {
     SetBeforeAfter(token, indent, indent, indent + 2);
   }
 
-  private void SetSpecification(IToken token, int indent) {
-    SetBeforeAfter(token, indent + 2, indent + 2, indent + 4);
-  }
-
+  /// For example, a "else" keyword in an expression
+  ///
+  /// if true then
+  ///   1
+  ///   // indented
+  /// else     // line not indented
+  ///   x == 2 // Line indented
   private void SetDelimiterIndentedRegions(IToken token, int indent) {
     SetBeforeAfter(token, indent + 2, indent, indent + 2);
   }
 
+  /// For example, a ":=" token in an update statement
+  ///
+  /// x, y
+  ///   // indented
+  ///   := // indented
+  ///   // indented
+  ///   1, 2
+  /// 
   private void SetDelimiterInsideIndentedRegions(IToken token, int indent) {
     SetBeforeAfter(token, indent + 2, indent + 2, indent + 2);
   }
 
-
+  /// For example, a closing brace
+  ///
+  /// if true {
+  ///   // indented
+  /// } // not indented
+  /// // not indented
   private void SetClosingIndentedRegion(IToken token, int indent) {
     SetBeforeAfter(token, indent + 2, indent, indent);
   }
+
+  /// For example, a semicolon
+  ///
+  /// var x := 2
+  ///   // indented
+  ///   ; // indented
+  /// // not indented
   private void SetClosingIndentedRegionInside(IToken token, int indent) {
     SetBeforeAfter(token, indent + 2, indent + 2, indent);
   }
+
+
+  /// For example, a "else" keyword for a statement
+  ///
+  /// if x == 2 {
+  /// }
+  /// // not indented
+  /// else // not indented
+  /// // not indented
+  /// {
+  /// }
+  /// // not indented
   private void SetKeywordWithoutSurroundingIndentation(IToken token, int indent) {
     SetBeforeAfter(token, indent, indent, indent);
   }
