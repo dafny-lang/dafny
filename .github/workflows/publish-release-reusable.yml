@@ -105,6 +105,10 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+    - name: Reuild Dafny
+      run: |
+        dotnet clean dafny/Source/Dafny.sln
+        dotnet build dafny/Source/Dafny.sln
     # First we build the ZIPs (which do not include the refman)
     - name: Package release files (release)
       if: ${{ !inputs.prerelease }}
