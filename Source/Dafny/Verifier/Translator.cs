@@ -3475,53 +3475,29 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
       }
 
-      //generating assume J.F(ins) == C.F(ins)
-      Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-      Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
-      List<Bpl.Expr> argsC = new List<Bpl.Expr>();
-      List<Bpl.Expr> argsT = new List<Bpl.Expr>();
-      // add type arguments
-      argsT.AddRange(GetTypeArguments(f.OverriddenFunction, f).ConvertAll(TypeToTy));
-      argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
-      // add fuel arguments
-      if (f.IsFuelAware()) {
-        argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
-      }
-      if (f.OverriddenFunction.IsFuelAware()) {
-        argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
-      }
-      // add heap arguments
-      if (f is TwoStateFunction) {
-        argsC.Add(etran.Old.HeapExpr);
-        argsT.Add(etran.Old.HeapExpr);
-      }
-      if (AlwaysUseHeap || f.ReadsHeap) {
-        argsC.Add(etran.HeapExpr);
-      }
-      if (AlwaysUseHeap || f.OverriddenFunction.ReadsHeap) {
-        argsT.Add(etran.HeapExpr);
-      }
-      // add "ordinary" parameters (including "this", if any)
-      var prefixCount = implInParams.Count - f.Formals.Count;
-      for (var i = 0; i < implInParams.Count; i++) {
-        Bpl.Expr cParam = new Bpl.IdentifierExpr(f.tok, implInParams[i]);
-        Bpl.Expr tParam = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, implInParams[i]);
-        if (prefixCount <= i && ModeledAsBoxType(f.OverriddenFunction.Formals[i - prefixCount].Type)) {
-          tParam = BoxIfNecessary(f.tok, tParam, f.Formals[i - prefixCount].Type);
-        }
-        argsC.Add(cParam);
-        argsT.Add(tParam);
-      }
-      Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
-      Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
-      var funcExpCPossiblyBoxed = funcExpC;
-      if (ModeledAsBoxType(f.OverriddenFunction.ResultType)) {
-        funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
-      }
-      // builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
-
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
+        Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+        // add type arguments
+        argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+        // add fuel arguments
+        if (f.IsFuelAware()) {
+          argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+        // add heap arguments
+        if (f is TwoStateFunction) {
+          argsC.Add(etran.Old.HeapExpr);
+        }
+        if (AlwaysUseHeap || f.ReadsHeap) {
+          argsC.Add(etran.HeapExpr);
+        }
+        // add "ordinary" parameters (including "this", if any)
+        for (var i = 0; i < implInParams.Count; i++) {
+          argsC.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
+        }
+        Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
