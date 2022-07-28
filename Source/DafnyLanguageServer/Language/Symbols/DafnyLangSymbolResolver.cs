@@ -5,7 +5,6 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -37,10 +36,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           canDoVerification = false;
           return new CompilationUnit(program);
         }
-      } catch (Exception e) {
-        program.Reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), $"Dafny encountered an error.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
-        canDoVerification = false;
-        return new CompilationUnit(program);
       }
       finally {
         resolverMutex.Release();
@@ -280,7 +275,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(bodyExpression);
       }
 
-      public override void VisitUnknown(object node, Boogie.IToken token) {
+      public override void VisitUnknown(object node, IToken token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }

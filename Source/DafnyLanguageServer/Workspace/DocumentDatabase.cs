@@ -6,11 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -62,7 +62,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
-        databaseEntry.Observer.Dispose();
         databaseEntry.CancelPendingUpdates();
         try {
           await databaseEntry.LastDocument;
@@ -77,30 +76,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
-      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
+      var observer = new DiagnosticsObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document);
+      var translatedDocument = LoadVerificationTasksAsync(observer, resolvedDocumentTask, cancellationSource.Token);
 
       var documentEntry = new DocumentEntry(
         document.Version,
         document,
         translatedDocument,
         cancellationSource,
-        new RequestUpdatesOnUriObserver(logger, telemetryPublisher, notificationPublisher, documentLoader, document)
+        observer
       );
+
       documents.Add(document.Uri, documentEntry);
 
       documentEntry.Observe(
-        resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
-        Concat(translatedDocument.ToObservableSkipCancelled()));
+        ToObservableSkipCancelledAndPublishExceptions(documentEntry, resolvedDocumentTask).Where(d => !d.LoadCanceled).
+        Concat(ToObservableSkipCancelledAndPublishExceptions(documentEntry, translatedDocument)));
 
       if (VerifyOnOpen) {
         Verify(documentEntry, cancellationSource.Token);
+      } else {
+        documentEntry.MarkVerificationFinished();
       }
+
     }
 
     private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        documentLoader.PublishGutterIcons(newDocument, false);
+        notificationPublisher.PublishGutterIcons(newDocument, false);
         return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
@@ -109,22 +113,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void Verify(IDocumentEntry documentEntry, CancellationToken cancellationToken) {
-      var withVerificationTasks = documentEntry.TranslatedDocument;
+    private void Verify(IDocumentEntry entry, CancellationToken cancellationToken) {
+      var _ = entry.TranslatedDocument.ContinueWith(task => {
 
-      var updates = withVerificationTasks.ContinueWith(task => {
-        if (task.IsCanceled) {
-          return Observable.Empty<DafnyDocument>();
+        if (task.IsCanceled || task.IsFaulted) {
+          return;
         }
 
         var document = task.Result;
+
         if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
-          return Observable.Empty<DafnyDocument>();
+          entry.MarkVerificationFinished();
+          return;
         }
 
-        return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservableSkipCancelled().Merge();
-      documentEntry.Observe(updates);
+        var _ = documentLoader.VerifyAllTasksAsync(entry, document, cancellationToken);
+      }, TaskScheduler.Current);
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -146,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedText = textChangeProcessor.ApplyChange(databaseEntry.TextBuffer, documentChange, CancellationToken.None);
       var resolvedDocumentTask = GetResolvedDocumentAsync(updatedText, databaseEntry, documentChange, cancellationSource.Token);
-      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
+      var translatedDocument = LoadVerificationTasksAsync(databaseEntry.Observer, resolvedDocumentTask, cancellationSource.Token);
       var entry = new DocumentEntry(
         documentChange.TextDocument.Version,
         updatedText,
@@ -155,11 +159,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         databaseEntry.Observer
       );
       documents[documentUri] = entry;
-      entry.Observe(resolvedDocumentTask.ToObservableSkipCancelled()
-        .Concat(translatedDocument.ToObservableSkipCancelled()));
+      entry.Observe(ToObservableSkipCancelledAndPublishExceptions(entry, resolvedDocumentTask)
+        .Concat(ToObservableSkipCancelledAndPublishExceptions(entry, translatedDocument)));
 
       if (VerifyOnChange) {
         Verify(entry, cancellationSource.Token);
+      } else {
+        entry.MarkVerificationFinished();
       }
     }
 
@@ -189,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             VerificationTree = migratedVerificationTree,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
-          documentLoader.PublishGutterIcons(resolvedDocument, false);
+          notificationPublisher.PublishGutterIcons(resolvedDocument, false);
           return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -201,7 +207,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           VerificationTree = migratedVerificationTree,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
-        documentLoader.PublishGutterIcons(failedDocument, false);
+        notificationPublisher.PublishGutterIcons(failedDocument, false);
         return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -210,7 +216,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return oldDocument with {
           TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          Counterexamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
           ImplementationIdToView = migratedImplementationViews,
@@ -236,21 +241,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> LoadVerificationTasksAsync(DiagnosticsObserver observer, Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
-      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-
-      return withVerificationTasks with {
-        ImplementationIdToView = withVerificationTasks.ImplementationIdToView.ToDictionary(
-          kv => kv.Key,
-          kv =>
-            kv.Value with {
-              Diagnostics = resolvedDocument.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-            }
-        ),
-      };
+      await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+      resolvedDocument.VerificationUpdates.Subscribe(observer);
+      return resolvedDocument;
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {
@@ -262,6 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
+      databaseEntry.MarkVerificationStarted();
       Verify(databaseEntry, cancellationSource.Token);
     }
 
@@ -269,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
-    public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.ResolvedDocument!;
       }
@@ -286,43 +284,34 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    private class DocumentEntry : IDocumentEntry {
-      private readonly CancellationTokenSource cancellationSource;
-      public int? Version { get; }
-      public DocumentTextBuffer TextBuffer { get; }
-      public Task<DafnyDocument> ResolvedDocument { get; }
-      public Task<DafnyDocument> TranslatedDocument { get; }
-      public DafnyDocument LastPublishedDocument => Observer.LastPublishedDocument;
-      public Task<DafnyDocument> LastDocument => Observer.IdleChangesIncludingLast.Where(idle => idle).
-        Select(_ => Observer.LastPublishedDocument).
-        FirstAsync().ToTask();
-
-      public DocumentEntry(int? version,
-        DocumentTextBuffer textBuffer,
-        Task<DafnyDocument> translatedDocument,
-        CancellationTokenSource cancellationSource,
-        RequestUpdatesOnUriObserver observer) {
-        this.cancellationSource = cancellationSource;
-        Observer = observer;
-        TranslatedDocument = translatedDocument;
-        Version = version;
-        TextBuffer = textBuffer;
-
-        // Ensure ResolveDocument is only completed after LastPublishedDocument has been updated.
-        ResolvedDocument = Observer.LastAndUpcomingPublishedDocuments.Where(d => d.Version == version && d.WasResolved).FirstAsync().ToTask();
-      }
-
-      public void CancelPendingUpdates() {
-        cancellationSource.Cancel();
-      }
-
-      public RequestUpdatesOnUriObserver Observer { get; }
-
-      public void Observe(IObservable<DafnyDocument> updates) {
-        Observer.OnNext(updates);
-      }
-
-      public bool Idle => Observer.Idle;
+    public IObservable<DafnyDocument> ToObservableSkipCancelledAndPublishExceptions(IDocumentEntry entry, Task<DafnyDocument> task) {
+      return Observable.Create<DafnyDocument>(observer => {
+        var _ = task.ContinueWith(t => {
+          if (t.IsCompletedSuccessfully) {
+            observer?.OnNext(t.Result);
+          } else if (t.Exception != null) {
+            var lastPublishedDocument = entry.LastPublishedDocument;
+            var previousDiagnostics = lastPublishedDocument.LoadCanceled
+              ? new Diagnostic[] { }
+              : lastPublishedDocument.ParseAndResolutionDiagnostics;
+            observer?.OnNext(lastPublishedDocument with {
+              LoadCanceled = false,
+              ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new Diagnostic[] {
+                new() {
+                  Message = "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" + t.Exception,
+                  Severity = DiagnosticSeverity.Error,
+                  Range = lastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
+                  Source = "Crash"
+                }
+              }).ToList()
+            });
+            telemetryPublisher.PublishUnhandledException(t.Exception);
+          }
+          observer?.OnCompleted();
+        }, TaskScheduler.Current);
+        return Disposable.Create(() => observer = null);
+      });
     }
+
   }
 }

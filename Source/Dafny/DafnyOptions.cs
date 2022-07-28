@@ -59,7 +59,13 @@ namespace Microsoft.Dafny {
       clo = options;
     }
 
+    public enum DiagnosticsFormats {
+      PlainText,
+      JSON,
+    }
+
     public bool UnicodeOutput = false;
+    public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
@@ -109,6 +115,7 @@ namespace Microsoft.Dafny {
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+    public HashSet<string> LibraryFiles { get; } = new();
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -179,6 +186,12 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+        case "library":
+          if (ps.ConfirmArgumentCount(1)) {
+            LibraryFiles.Add(args[ps.i]);
+          }
+
+          return true;
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
@@ -308,6 +321,26 @@ namespace Microsoft.Dafny {
             int verify = 0;
             if (ps.GetIntArgument(ref verify, 2)) {
               DafnyVerify = verify != 0; // convert to boolean
+            }
+
+            return true;
+          }
+
+        case "diagnosticsFormat": {
+            if (ps.ConfirmArgumentCount(1)) {
+              switch (args[ps.i]) {
+                case "json":
+                  Printer = new DafnyJsonConsolePrinter { Options = this };
+                  DiagnosticsFormat = DiagnosticsFormats.JSON;
+                  break;
+                case "text":
+                  Printer = new DafnyConsolePrinter { Options = this };
+                  DiagnosticsFormat = DiagnosticsFormats.PlainText;
+                  break;
+                case var df:
+                  ps.Error($"Unsupported diagnostic format: '{df}'; expecting one of 'json', 'text'.");
+                  break;
+              }
             }
 
             return true;
@@ -682,10 +715,15 @@ namespace Microsoft.Dafny {
       TODO
 
     {:compile}
-      TODO
+      The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
+      If that argument is false, then that declaration will not be compiled at all.
+      
+      The difference with {:extern} is that {:extern} will still emit declaration code if necessary,
+      whereas {:compile false} will just ignore the declaration for compilation purposes.
 
     {:main}
-      TODO
+      When executing a program, Dafny will first look for a method annotated with {:main}, and otherwise
+      will look for `method Main()`, and then execute the first of these two methods found.
 
     {:axiom}
       Ordinarily, the compiler gives an error for every function or
@@ -846,7 +884,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:no_inline}
-      TODO
+      When predicates such as `predicate P(x: int) { x % 2 == 0 }`
+      are used in assertions like `assert P(6);`, Dafny
+      will by default try to figure out if it can split the call
+      into multiple assertions that are easier for the verifier.
+      Hence, sometimes, if allowed to do so (e.g. no `{:opaque}`),
+      Dafny will inline the predicate, resulting in, for example,
+      `assert 6 % 2 == 0`.
+      
+      Adding the attribute `{:no_inline}` to a function will prevent
+      the Dafny verifier from inlining it, but unless the function is
+      `{:opaque}` its definition will still be available.
+      
+      This trick can be helpful, for a huge conjunct predicate `P`,
+      assuming that `P(x)` already hold, if we don't want `P`
+      to be opaque, and we `assert P(x)` again. Inlining might result
+      in performance issues because it will have to infer every single
+      conjunct. Adding `{:no_inline}` to the predicate can result
+      in such cases in the verifier being faster.
 
     {:nowarn}
       TODO
@@ -978,6 +1033,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /printTooltips
     Dump additional positional information (displayed as mouse-over tooltips by
     the VS plugin) to stdout as 'Info' messages.
+/diagnosticsFormat:<text|json>
+    Choose how to report errors, warnings, and info messages.
+    text (default): Use human readable output
+    json: Print each message as a JSON object, one per line.
 
 ---- Language feature selection --------------------------------------------
 
@@ -1248,6 +1307,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /useRuntimeLib
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
+/library:<file>
+    The contents of this file and any files it includes can be referenced from other files as if they were included. 
+    However, these contents are skipped during code generation and verification.
+    This option is useful in a diamond dependency situation, 
+    to prevent code from the bottom dependency from being generated more than once.
 
 ----------------------------------------------------------------------------
 
@@ -1261,9 +1325,9 @@ program.
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private Bpl.IToken token;
+  private IToken token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
@@ -1286,7 +1350,7 @@ class DafnyAttributeOptions : DafnyOptions {
   };
 
   private readonly Errors errors;
-  public Bpl.IToken Token { get; set; }
+  public IToken Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;
@@ -1294,7 +1358,7 @@ class DafnyAttributeOptions : DafnyOptions {
   }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
-    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Microsoft.Dafny.Token.NoToken);
   }
 
   private void Unsupported(string name, Bpl.CommandLineParseState ps) {

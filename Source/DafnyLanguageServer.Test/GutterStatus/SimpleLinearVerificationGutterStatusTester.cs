@@ -41,7 +41,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  |  |  |  I  I  |  | :  false
  .  |  |  |  I  I  |  | :}");
   }
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [TestMethod]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
     |  |  |  I  I  |  |  |  I  I  |  |  | :
@@ -135,5 +135,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
             [I][S][S][ ]:");
+  }
+
+  [TestMethod]
+  public async Task EnsureMultilineAssertIsCorreclyHandled() {
+    await VerifyTrace(@"
+ .  S [S][ ]:method x() {
+ .  S [=][=]:  assert false
+ .  S [=][=]:    || false;
+ .  S [S][ ]:}");
   }
 }

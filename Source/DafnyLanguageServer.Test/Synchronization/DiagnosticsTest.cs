@@ -200,7 +200,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
+      Assert.AreEqual("This postcondition might not hold: product >= 0", relatedInformation.Message);
       Assert.AreEqual(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -531,9 +531,9 @@ class Test {
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.AreEqual(2, relatedInformation.Length);
-      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
-      Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
-      Assert.AreEqual("Related location", relatedInformation[1].Message);
+      Assert.AreEqual("This postcondition might not hold: Valid()", relatedInformation[0].Message);
+      Assert.AreEqual(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
+      Assert.AreEqual("Could not prove: b < c", relatedInformation[1].Message);
       Assert.AreEqual(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -620,7 +620,7 @@ method test(i: int, j: int) {
       var source = @"
 method test() {
   other(2, 1);
-//     ^^^^^^^
+//^^^^^^^^^^^^
 }
 
 method other(i: int, j: int)
@@ -633,7 +633,7 @@ method other(i: int, j: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 7), (1, 14)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 2), (1, 14)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -642,7 +642,7 @@ method other(i: int, j: int)
       var source = @"
 method test() {
   var x := 1 + other(2, 1);
-//             ^^^^^^^^^^
+//             ^^^^^^^^^^^
 }
 
 function method other(i: int, j: int): int
@@ -656,7 +656,7 @@ function method other(i: int, j: int): int
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 15), (1, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -833,10 +833,9 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
-      Diagnostic[] resolutionDiagnostics3) {
-      Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
-      foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
+      Assert.AreEqual(first.Length, second.Length);
+      foreach (var t in first.Zip(second)) {
         Assert.AreEqual(t.First.Message, t.Second.Message);
       }
     }

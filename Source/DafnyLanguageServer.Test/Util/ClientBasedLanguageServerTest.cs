@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -16,9 +17,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Server;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
@@ -39,6 +42,21 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
         return namedVerifiableStatus;
       }
     }
+  }
+
+  public async IAsyncEnumerable<List<Range>> GetRunningOrder([EnumeratorCancellation] CancellationToken cancellationToken) {
+    var alreadyReported = new HashSet<Range>();
+    FileVerificationStatus foundStatus;
+    do {
+      foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+
+      var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+
+      yield return newlyDone.Concat(newlyRunning).ToList();
+    } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
@@ -68,17 +86,24 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(options => {
-      options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
-      options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
-      options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
-
-    }, serverOptions => {
-      serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
-      ));
+    client = await InitializeClient(InitialiseClientHandler, serverOptions => {
+      ServerOptionsAction(serverOptions);
     });
+  }
+
+  protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
+    options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+    options.AddHandler(DafnyRequestNames.GhostDiagnostics,
+      NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
+    options.AddHandler(DafnyRequestNames.VerificationSymbolStatus,
+      NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
+  }
+
+  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
+    return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+      serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+      serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+    ));
   }
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
@@ -159,7 +184,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Documents.GetDocumentAsync(documentItem))!.Diagnostics;
+    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
   }
 }

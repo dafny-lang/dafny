@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
-    Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
+    Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a verified document with the specified identifier.
@@ -57,14 +57,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
     IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents { get; }
-  }
-
-  public interface IDocumentEntry {
-    Task<DafnyDocument> ResolvedDocument { get; }
-    Task<DafnyDocument> TranslatedDocument { get; }
-    DafnyDocument LastPublishedDocument { get; }
-    Task<DafnyDocument> LastDocument { get; }
-    void Observe(IObservable<DafnyDocument> updates);
-    public bool Idle { get; }
   }
 }

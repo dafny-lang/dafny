@@ -6,26 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
-  public class SaveDocumentTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-    private IDictionary<string, string> configuration;
-
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      client = await InitializeClient();
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-    }
+  public class SaveDocumentTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
     public async Task LeavesDocumentUnchangedIfVerifyOnChange() {
@@ -35,10 +20,10 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -54,10 +39,10 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -73,10 +58,10 @@ function GetConstant() int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -92,10 +77,10 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
     }
@@ -111,7 +96,7 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetLastDocumentAsync(documentItem.Uri);
@@ -129,11 +114,13 @@ method DoIt() {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count());
-      var message = document.Diagnostics.First();
+      var afterSaveDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, afterSaveDiagnostics.Count());
+      var message = afterSaveDiagnostics.First();
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }
