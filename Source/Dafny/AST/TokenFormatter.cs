@@ -476,19 +476,63 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             ApplyMatchFormatting(indent, ownedTokens);
             break;
           }
+        case RevealStmt:
         case PrintStmt: {
             var ownedTokens = stmt.OwnedTokens;
+            var commaIndent = indent + 2;
+            var innerIndent = indent + 2;
             foreach (var token in ownedTokens) {
               switch (token.val) {
+                case "reveal":
                 case "print":
+                  if (IsFollowedByNewline(token)) {
+                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                  } else {
+                    formatter.SetBeforeAfter(token, indent, indent, -1);
+                    innerIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                    commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
+                    formatter.SetBeforeAfter(token, -1, -1, innerIndent);
+                  }
                   formatter.SetOpeningIndentedRegion(token, indent);
                   break;
+                case ",":
+                  formatter.SetBeforeAfter(token, innerIndent, commaIndent, innerIndent);
+                  break;
                 case ";":
-                  formatter.SetClosingIndentedRegion(token, indent);
+                  formatter.SetClosingIndentedRegionInside(token, indent);
                   break;
               }
             }
 
+            break;
+          }
+        case AssumeStmt:
+        case ExpectStmt:
+        case AssertStmt: {
+            var ownedTokens = stmt.OwnedTokens;
+            foreach (var token in ownedTokens) {
+              switch (token.val) {
+                case "assume":
+                case "expect":
+                case "assert":
+                  formatter.SetOpeningIndentedRegion(token, indent);
+                  break;
+                case "}":
+                case "by":
+                  formatter.SetClosingIndentedRegion(token, indent);
+                  break;
+                case ";":
+                  formatter.SetClosingIndentedRegionInside(token, indent);
+                  break;
+                case "{":
+                  formatter.SetOpeningIndentedRegion(token, indent);
+                  break;
+              }
+            }
+
+            if (stmt is AssertStmt { Proof: { StartToken: { } startToken } } assertStmt) {
+              formatter.SetOpeningIndentedRegion(startToken, indent);
+            }
             break;
           }
         default:

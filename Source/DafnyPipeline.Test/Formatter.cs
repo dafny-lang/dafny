@@ -403,6 +403,59 @@ method Test(z: int) {
 ");
     }
 
+    [Fact]
+    public void FormatterworksForAssertAssumeExpectPrintReveal() {
+      FormatterWorksFor(@"
+method Test(z: int) {
+  assert z == 1;
+  assert z == 1
+    ;
+  assert
+    z == 1
+    ;
+  assume z == 1;
+  assume z == 1
+    ;
+  assume
+    z == 1
+    ;
+  expect z == 1;
+  expect z == 1
+    ;
+  expect
+    z == 1,
+    ""error""
+    ;
+  assert z == 1 by {
+    reveal P(), Q(), R();
+  }
+  assert z == 1 by
+  {
+    reveal P1(),
+           Q1(),
+           R1();
+  }
+  assert z == 2
+  by {
+    reveal
+      P2(),
+      Q2(),
+      R2();
+  }
+  
+  assert
+    z == 3
+  by
+  // comment here
+  {
+    reveal  P3()
+         ,  Q3()
+         ,  R3();
+  }
+}
+");
+    }
+
     private void FormatterWorksFor(string programString) {
       ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();

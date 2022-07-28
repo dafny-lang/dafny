@@ -3454,27 +3454,29 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
      BlockStmt proof = null;
+     var ownedTokens = new List<IToken>();
      IToken proofStart, proofEnd;
      IToken lbl = null;
   .)
-  "assert"                                     (. x = t; .)
+  "assert"                                     (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   ( [ IF(IsLabel(!inExprContext))
-      LabelName<out lbl> ":"
+      LabelName<out lbl> ":"                   (. ownedTokens.Add(lbl); ownedTokens.Add(t); .)
     ]
     Expression<out e, false, true>
-    ( "by"
+    ( "by"                                     (. ownedTokens.Add(t); .)
       BlockStmt<out proof, out proofStart, out proofEnd>
-    | ";"
+    | ";"                                      (. ownedTokens.Add(t); .)
     )
-  | ellipsis                                   (. dotdotdot = t; .)
-    ";"
+  | ellipsis                                   (. dotdotdot = t; ownedTokens.Add(t); .)
+    ";"                                        (. ownedTokens.Add(t); .)
   )
   (. if (dotdotdot != null) {
        s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs), dotdotdot, null);
      } else {
        s = new AssertStmt(x, t, e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
      }
+     s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -3483,19 +3485,22 @@ ExpectStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Expression m = null; Attributes attrs = null;
      IToken dotdotdot = null;
+     var ownedTokens = new List<IToken>();
   .)
-  "expect"                                     (. x = t; .)
+  "expect"                                     (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; ownedTokens.Add(t); .)
   )
-  [ "," Expression<out m, false, true> ]
-  ";"
+  [ ","                                        (. ownedTokens.Add(t); .)
+    Expression<out m, false, true>]
+  ";"                                          (. ownedTokens.Add(t); .)
   (. if (dotdotdot != null) {
        s = new SkeletonStatement(new ExpectStmt(x, t, new LiteralExpr(x, true), m, attrs), dotdotdot, null);
      } else {
        s = new ExpectStmt(x, t, e, m, attrs);
      }
+     s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -3504,18 +3509,20 @@ AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
+     var ownedTokens = new List<IToken>();
   .)
-  "assume"                                     (. x = t; .)
+  "assume"                                     (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; ownedTokens.Add(t); .)
   )
-  ";"
+  ";"                                          (. ownedTokens.Add(t); .)
   (. if (dotdotdot != null) {
        s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
      } else {
        s = new AssumeStmt(x, t, e, attrs);
      }
+     s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -3524,24 +3531,34 @@ PrintStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x;  Expression e;
      var args = new List<Expression>();
+     var ownedTokens = new List<IToken>();
   .)
-  "print"                                      (. x = t; .)
+  "print"                                      (. x = t; ownedTokens.Add(t); .)
   Expression<out e, false, true>               (. args.Add(e); .)
-  { "," Expression<out e, false, true>         (. args.Add(e); .)
+  { ","                                        (. ownedTokens.Add(t); .)
+    Expression<out e, false, true>             (. args.Add(e); .)
   }
-  ";"                                          (. s = new PrintStmt(x, t, args); .)
+  ";"                                          (.
+    ownedTokens.Add(t);
+    s = new PrintStmt(x, t, args);
+    s.OwnedTokens.Add(t);
+    .)
   .
 
 /*------------------------------------------------------------------------*/
 RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
+     var ownedTokens = new List<IToken>();
   .)
-  "reveal"                                      (. x = t; .)
+  "reveal"                                      (. x = t; ownedTokens.Add(t); .)
   Expression<out e, false, true>                (. es.Add(e); .)
-  { "," Expression<out e, false, true>          (. es.Add(e); .)
+  { ","                                         (. ownedTokens.Add(t); .)
+    Expression<out e, false, true>          (. es.Add(e); .)
   }
-  ";"                                           (. s = new RevealStmt(x, t, es); .)
+  ";"                                           (. ownedTokens.Add(t);
+    s = new RevealStmt(x, t, es);
+    s.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/
