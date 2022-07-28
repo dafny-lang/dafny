@@ -79,6 +79,11 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: DafnyRef
+        path: dafny/docs/DafnyRef/DafnyRef.pdf
     # Building the reference manual may update files,
     # such as renumbering sections or updating Options.txt.
     # These changes should have been checked in earlier,

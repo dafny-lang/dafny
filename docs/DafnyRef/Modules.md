@@ -104,7 +104,7 @@ of a single implicit unnamed global module.
 
 As described in the previous section, module declarations can be nested.
 It is also permitted to declare a nested module _outside_ of its
-"enclosing" module. So instead of
+"containing" module. So instead of
 ```dafny
 module A {
   module B {
@@ -198,9 +198,10 @@ sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a
-sibling module of the importing module, or with a submodule of the
-importing module. There is no way to refer to the parent module, only
+The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a submodule of the
+importing module, with a
+sibling module of the importing module, or with a sibling module of some containing module. 
+There is no way to refer to a containing module, only
 sibling modules (and their submodules).
 
 Import statements may occur at the top-level of a program
@@ -384,7 +385,7 @@ However, in the above example,
 then the import in module `B` is invalid because `A` has no default
 export set;
 * if `A` has one export set `export Y reveals a` and `B` has ``import Z = A`Y``
-then B's import is OK. So is the use of `Z.a` in the assert because `B`
+then `B`'s import is OK. So is the use of `Z.a` in the assert because `B`
 declares `Z` and `C` brings in `Z` through the `import opened` and
 `Z` contains `a` by virtue of its declaration. (The alias `Z` is not able to
 have export sets; all of its names are visible.)
@@ -612,7 +613,7 @@ A few other notes:
   `provides`, if the declaration is not allowed to appear in a `reveals`
   clause.
 * If no export sets are declared, then the implicit
-  export set is `export reveals *`
+  export set is `export reveals *`.
 * A refinement module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
   export lists. (These are local names just like those declared directly.)
@@ -635,7 +636,7 @@ module M {
     reveals c
 }
 ```
-export set C will contain the names `a`, `b`, and `c`.
+export set `C` will contain the names `a`, `b`, and `c`.
 
 ## 4.6. Module Abstraction {#sec-module-abstraction}
 
@@ -789,7 +790,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 0](#sec-modiu;e-refinement)).
+in [Section 22](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
@@ -814,7 +815,7 @@ However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
 2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
-   is resolved as a local or imported  module name within `M`
+   is resolved as a local or imported  module name within `M`.
    The resolution is restricted to the default export set of `M`.
 
 2b. If the resolved module name is a module alias (from an `import` statement)
@@ -840,77 +841,7 @@ use any local names:
 In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
 
-A module is a collection of declarations, each of which has a name.
-These names are held in two namespaces.
-
-* The names of export sets
-* The names of all other declarations, including submodules and aliased modules
-
-In addition names can be classified as _local_ or _imported_.
-
-* Local declarations of a module are the declarations
- that are explicit in the module and the
-local declarations of the refinement parent. This includes, for
-example, the `N` of `import N = ` in the refinement parent, recursively.
-* Imported names of a module are those brought in by `import opened` plus
-the imported names in the refinement parent.
-
-Within each namespace, the local names are unique. Thus a module may
-not reuse a name that a refinement parent has declared (unless it is a
-refining declaration, which replaces both declarations, as described
-in [Section 21](#sec-module-refinement)).
-
-Local names take precedence over imported names. If a name is used more than
-once among imported names (coming from different imports), then it is
-ambiguous to _use_ the name without qualification, unless they refer to the
-same entity or to equal types.
-
-### 4.8.3. Module Id Context Name Resolution
-
-A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
-Such a qualified name is resolved as follows, with respect to its syntactic
-location within a module `Z`:
-
-0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
-is one with a matching name. The target of a `refines` clause does not
-consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
-are not considered in finding `A`.
-
-1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
-   iterating outward to each successive enclosing module until a match is
-found or the default toplevel module is reached without a match.
-No consideration of export sets, default or otherwise, is used in this step.
-However, if at any stage a matching name is found that is not a module
-declaration, the resolution fails. See the examples below.
-
-2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
-   is resolved as a local or imported  module name within `M`
-   The resolution is restricted to the default export set of `M`.
-
-2b. If the resolved module name is a module alias (from an `import` statement)
-   then the target of the alias is resolved as a new qualified name
-   with respect to its syntactic context (independent of any resolutions or
-modules so far). Since `Z` depends on `M`, any such alias target will
-already have been resolved, because modules are resolved in order of
-dependency.
-
-3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
-   resulting in a module that is the final resolution of the complete
-   qualified id.
-
-Ordinarily a module must be _imported_ in order for its constituent
-declarations to be visible inside a given module `M`. However, for the
-resolution of qualified names this is not the case.
-
-Ths example shows that the resolution of the refinement parent does not
-use any local names:
-```dafny
-{% include_relative examples/Example-Refines1.dfy %}
-```
-The `A` in `refines A` refers to the submodule `A`, not the global `A`.
-
-
-### 4.8.4. Expression Context Name Resolution
+### 4.8.3. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -926,7 +857,7 @@ rule that succeeds.
    context, then only static methods and functions are allowed). You can
    refer to fields of the current class either as `this.f` or `f`,
    assuming of course that `f` is not hidden by one of the above. You
-   can always prefix `this` if needed, which cannot be hidden. (Note, a
+   can always prefix `this` if needed, which cannot be hidden. (Note that a
    field whose name is a string of digits must always have some prefix.)
 
 2. If there is no ``Suffix``, then look for a datatype constructor, if
@@ -946,7 +877,7 @@ rule that succeeds.
 TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
-If a ambiguous name is found or  name of the wrong kind (e.g. a module
+If an ambiguous name is found or a name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing
 down the list.
 
@@ -972,7 +903,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### 4.8.5. Type Context Name Resolution
+### 4.8.4. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 

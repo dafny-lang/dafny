@@ -42,13 +42,11 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
 
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
-    var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
-    foreach (var taskToRun in tasks) {
-      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-      documentEntry.Observe(verifiedDocuments);
-    }
+    var tasks = GetTasksAtPosition(translatedDocument, requestPosition);
+    var anyAreRunning = tasks.Any(taskToRun =>
+      documentLoader.Verify(documentEntry, translatedDocument, taskToRun, CancellationToken.None));
 
-    return !documentEntry.Idle;
+    return anyAreRunning;
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {

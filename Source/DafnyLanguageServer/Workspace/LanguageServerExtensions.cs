@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
     }
 
-    private static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
+    public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),

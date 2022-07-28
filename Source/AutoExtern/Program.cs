@@ -124,7 +124,7 @@ internal class AST : PrettyPrintable {
     this.model = model;
   }
 
-  public static AST FromFile(string projectPath, string filePath, string cSharpRootNS) {
+  public static IEnumerable<AST> FromFiles(string projectPath, IEnumerable<string> sourceFiles, string cSharpRootNS) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
@@ -141,10 +141,12 @@ internal class AST : PrettyPrintable {
     }
 
     var compilation = project.GetCompilationAsync().Result!;
-    var fullPath = Path.GetFullPath(filePath);
-    var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
-    var model = compilation.GetSemanticModel(syntax);
-    return new AST(syntax, new SemanticModel(cSharpRootNS, model));
+    return sourceFiles.Select(filePath => {
+      var fullPath = Path.GetFullPath(filePath);
+      var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
+      var model = compilation.GetSemanticModel(syntax);
+      return new AST(syntax, new SemanticModel(cSharpRootNS, model));
+    });
   }
 
   private CompilationUnitSyntax Root => syntax.GetCompilationUnitRoot();
@@ -398,10 +400,16 @@ public static class Program {
     return template;
   }
 
-  public static string GenerateDafnyCode(string projectPath, string filePath, string cSharpRootNS) {
-    var ast = AST.FromFile(projectPath, filePath, cSharpRootNS);
+  public static string GenerateDafnyCode(string projectPath, IList<string> sourceFiles, string cSharpRootNS) {
     var wr = new StringWriter();
-    ast.Pp(wr, "");
+    var asts = AST.FromFiles(projectPath, sourceFiles, cSharpRootNS).ToList();
+    var last = asts.Last();
+    foreach (var ast in asts) {
+      ast.Pp(wr, "");
+      if (ast != last) {
+        wr.WriteLine();
+      }
+    }
     return wr.ToString();
   }
 
@@ -415,13 +423,14 @@ public static class Program {
 
   public static void Main(string[] args) {
     if (args.Length < 6) {
-      Fail("Usage: AutoExtern {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy} {CSharpModel.dfy} {Output.dfy}");
+      Fail("Usage: AutoExtern {project.csproj} {Root.Namespace} {TemplateFile.dfy} {CSharpModel.dfy} {Output.dfy} {file.cs}*");
     }
 
-    var (projectPath, filePath, cSharpRootNS, templatePath, modelPath, outputPath) =
-      (args[0], args[1], args[2], args[3], args[4], args[5]);
+    var (projectPath, cSharpRootNS, templatePath, modelPath, outputPath) =
+      (args[0], args[1], args[2], args[3], args[4]);
+    var sourceFiles = args.Skip(5).ToList();
 
-    var dafnyCode = GenerateDafnyCode(projectPath, filePath, cSharpRootNS);
+    var dafnyCode = GenerateDafnyCode(projectPath, sourceFiles, cSharpRootNS);
     var template = ReadTemplate(templatePath);
     File.WriteAllText(outputPath, template.Replace(Placeholder, dafnyCode), Encoding.UTF8);
 
