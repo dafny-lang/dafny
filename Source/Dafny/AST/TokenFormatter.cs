@@ -296,6 +296,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       if (function.ByMethodBody is { } byMethodBody) {
         SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
         SetClosingIndentedRegion(byMethodBody.EndTok, indent);
+        SetStatementIndentation(byMethodBody);
       }
       SetExpressionIndentation(function.Body);
     }

@@ -456,6 +456,19 @@ method Test(z: int) {
 ");
     }
 
+    [Fact]
+    public void FormatWorksRandomTest() {
+      FormatterWorksFor(@"
+function Test(): int {
+  1
+} by method {
+  var i: nat := 0;
+  assert IsScriptForward(edits[..0], |s|) by {
+    reveal IsScriptForward();
+  }
+}");
+    }
+
     private void FormatterWorksFor(string programString) {
       ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();
