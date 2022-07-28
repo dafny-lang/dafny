@@ -9091,7 +9091,10 @@ namespace Microsoft.Dafny {
           } else {
             var startTok = tok;
             var endTok = tok;
-            foreach (var e in SubExpressions) {
+            var subExpressions = this is ConcreteSyntaxExpression concreteSyntaxExpression
+              ? concreteSyntaxExpression.PreResolveSubExpressions
+              : SubExpressions;
+            foreach (var e in subExpressions) {
               if (e.tok.Filename != tok.Filename || e.IsImplicit) {
                 // Ignore auto-generated expressions, if any.
                 continue;
