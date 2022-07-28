@@ -6716,6 +6716,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       this.Tok = tok;
       this.EndTok = endTok;
+      this.StartToken = tok;
       this.attributes = attrs;
     }
 
