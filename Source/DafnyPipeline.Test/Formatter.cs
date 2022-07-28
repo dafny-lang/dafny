@@ -469,6 +469,19 @@ function Test(): int {
 }");
     }
 
+    [Fact]
+    public void FormatWorksConstant() {
+      FormatterWorksFor(@"
+class T {
+  const x
+    : int
+    := var y := 17;
+       y + y
+  
+  // Comment
+}");
+    }
+
     private void FormatterWorksFor(string programString) {
       ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();

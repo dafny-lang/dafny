@@ -1426,6 +1426,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
+     var ownedTokens = new List<IToken>();
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
@@ -1434,11 +1435,13 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
-  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ellipsis ]
-  [ ":=" Expression<out e, false, true> ]
+  [ ellipsis                                 (. ownedTokens.Add(t); .)
+  ]
+  [ ":="                                     (. ownedTokens.Add(t); .)
+    Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
@@ -1449,7 +1452,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 c.StartToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; c.EndToken = t; .)
+  OldSemi                                    (. c.TokenWithTrailingDocString = t; c.EndToken = t; c.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/
