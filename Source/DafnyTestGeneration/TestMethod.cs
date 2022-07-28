@@ -372,8 +372,8 @@ namespace DafnyTestGeneration {
     }
 
     private static string GetPrimitiveAsType(string value, Type? asType) {
-      if (asType is null or IntType or RealType or BoolType or CharType
-          or BitvectorType) {
+      if ((asType is null or IntType or RealType or BoolType or CharType
+          or BitvectorType) || value is "[]" or "{}" or "map[]") {
         return value;
       }
       var typeString = asType.ToString();

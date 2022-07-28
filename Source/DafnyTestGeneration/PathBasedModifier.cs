@@ -20,8 +20,9 @@ namespace DafnyTestGeneration {
       foreach (var path in paths) {
         path.AssertPath();
         var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
-        yield return new ProgramModification(p,name, 
-          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})" );
+        yield return ProgramModification.GetProgramModification(p, path.Impl,
+          new HashSet<int>(), new HashSet<string>(), name, 
+          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
         path.NoAssertPath();
       }
     }

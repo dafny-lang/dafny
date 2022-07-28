@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -19,6 +19,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
       
+      ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToEnumerable().ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
@@ -27,7 +28,11 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
         await modifications[i].GetCounterExampleLog();
-        var deadStates = ((BlockBasedModification)modifications[i]).GetKnownDeadStates();
+        var deadStates = new HashSet<string>();
+        if (!modifications[i].IsCovered) {
+          deadStates = modifications[i].CapturedStates;
+        }
+
         if (deadStates.Count != 0) {
           foreach (var capturedState in deadStates) {
             yield return $"Code at {capturedState} is potentially unreachable.";
@@ -35,14 +40,14 @@ namespace DafnyTestGeneration {
           blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
-        allStates.UnionWith(((BlockBasedModification)modifications[i]).GetAllStates());
+        allStates.UnionWith(modifications[i].CapturedStates);
       }
 
       yield return $"Out of {modifications.Count} basic blocks " +
                    $"({allStates.Count} capturedStates), {blocksReached} " +
                    $"({allStates.Count - allDeadStates.Count}) are reachable. " +
-                   $"There might be false negatives if you are not unrolling " +
-                   $"loops. False positives are always possible.";
+                   "There might be false negatives if you are not unrolling " +
+                   "loops. False positives are always possible.";
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
@@ -81,31 +86,59 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
       
+      ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
-
+      HashSet<Implementation> implementations = new();
+      Dictionary<Implementation, int> testCount = new();
+      Dictionary<Implementation, int> failedTestCount = new();
       // Generate tests based on counterexamples produced from modifications
-      var testMethodToUniqueId = new ConcurrentDictionary<TestMethod, string>();
       await foreach (var modification in GetModifications(program)) {
         var log = await modification.GetCounterExampleLog();
+        implementations.Add(modification.Implementation);
         if (log == null) {
           continue;
         }
-
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
-          Console.WriteLine(
-            $"// Extracting the test for {modification.uniqueId} from the counterexample...");
-        }
-
-        var testMethod = new TestMethod(dafnyInfo, log);
-        if (testMethodToUniqueId.ContainsKey(testMethod) && testMethod.IsValid) {
-          if (DafnyOptions.O.TestGenOptions.Verbose) {
-            Console.WriteLine(
-              $"// Test for {modification.uniqueId} matches a test previously generated for {testMethodToUniqueId[testMethod]}.");
-          }
+        var testMethod = await modification.GetTestMethod(dafnyInfo);
+        if (testMethod == null) {
           continue;
         }
-        testMethodToUniqueId[testMethod] = modification.uniqueId;
+        if (!testMethod.IsValid) {
+          failedTestCount[modification.Implementation] =
+            failedTestCount.GetValueOrDefault(modification.Implementation, 0) +
+            1;
+        }
+        testCount[modification.Implementation] =
+          testCount.GetValueOrDefault(modification.Implementation, 0) + 1;
         yield return testMethod;
+      }
+
+
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        foreach (var implementation in implementations) {
+          int blocks = implementation.Blocks.Count;
+          int failedQueries = ProgramModification.ModificationsWithStatus(implementation,
+            ProgramModification.Status.Failure);
+          int queries = failedQueries +
+                        ProgramModification.ModificationsWithStatus(implementation,
+                          ProgramModification.Status.Success);
+          int tests = testCount.GetValueOrDefault(implementation, 0);
+          int failedTests = failedTestCount.GetValueOrDefault(implementation, 0);
+          if (ProgramModification.ImplementationIsCovered(implementation)) {
+            Console.WriteLine(
+              $"// Procedure {implementation} ({blocks} " +
+              $"blocks) is completely covered by " +
+              $"{tests} (failed to extract {failedTests}) " +
+              $"tests generated using {queries} SMT queries " +
+              $"(failed {failedQueries} queries)");
+          } else {
+            Console.WriteLine(
+              $"// Procedure {implementation} ({blocks} " +
+              $"blocks) is not fully covered by " +
+              $"{tests} (failed to extract {failedTests}) " +
+              $"tests generated using {queries} SMT queries " +
+              $"(failed {failedQueries} queries)");
+          }
+        }
       }
     }
 
