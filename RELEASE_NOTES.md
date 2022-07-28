@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: Use the right bitvector comparison in decrease checks
+  (https://github.com/dafny-lang/dafny/pull/2512)
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
   (https://github.com/dafny-lang/dafny/pull/2416)
 - feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.

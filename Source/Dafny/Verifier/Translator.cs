@@ -9287,7 +9287,7 @@ namespace Microsoft.Dafny {
         BitvectorType bv = (BitvectorType)ty0;
         eq = Bpl.Expr.Eq(e0, e1);
         less = FunctionCall(tok, "lt_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
-        atmost = FunctionCall(tok, "ge_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
+        atmost = FunctionCall(tok, "le_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
       } else if (ty0 is BigOrdinalType) {
         eq = Bpl.Expr.Eq(e0, e1);
