@@ -11131,8 +11131,8 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();  // unexpected operator
       }
     }
-    public readonly Expression E0;
-    public readonly Expression E1;
+    public Expression E0;
+    public Expression E1;
     public enum AccumulationOperand { None, Left, Right }
     public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
     [ContractInvariantMethod]
@@ -12743,6 +12743,16 @@ namespace Microsoft.Dafny {
     public ParensExpression(IToken tok, Expression e)
       : base(tok) {
       E = e;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression == null) {
+          yield return E;
+        } else {
+          yield return ResolvedExpression;
+        }
+      }
     }
   }
 

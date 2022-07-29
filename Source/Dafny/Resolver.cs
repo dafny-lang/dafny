@@ -436,6 +436,7 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
+      rewriters.Add(new BitvectorOptimization(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
