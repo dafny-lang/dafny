@@ -29,10 +29,11 @@ namespace DafnyTestGeneration {
         record["failedQueries"] =
           ProgramModification.ModificationsWithStatus(implementation,
             ProgramModification.Status.Failure).ToString();
-        record["queries"] = record["failedQueries"] +
+        record["queries"] = (ProgramModification.ModificationsWithStatus(implementation,
+                              ProgramModification.Status.Failure) +
                             ProgramModification.ModificationsWithStatus(
                               implementation,
-                              ProgramModification.Status.Success);
+                              ProgramModification.Status.Success)).ToString();
         record["tests"] =
           testCount.GetValueOrDefault(implementation, 0).ToString();
         record["failedTests"] = failedTestCount
