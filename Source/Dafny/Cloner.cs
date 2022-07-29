@@ -692,7 +692,7 @@ namespace Microsoft.Dafny {
         case LitPattern p:
           return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
         case IdPattern p:
-          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
+          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern), p.IsGhost, p.HasParenthesis);
         case DisjunctivePattern p:
           return new DisjunctivePattern(p.Tok, p.Alternatives.ConvertAll(CloneExtendedPattern), p.IsGhost);
         default:
