@@ -6,6 +6,8 @@
   (https://github.com/dafny-lang/dafny/pull/2448)
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
   (https://github.com/dafny-lang/dafny/pull/2363)
+- fix: Check extreme predicates and constants in all types, not just classes
+  (https://github.com/dafny-lang/dafny/pull/2515)
 
 # 3.7.3
 
