@@ -1,5 +1,13 @@
 # Upcoming
 
+- fix: Use the right bitvector comparison in decrease checks
+  (https://github.com/dafny-lang/dafny/pull/2512)
+- fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
+  (https://github.com/dafny-lang/dafny/pull/2416)
+- feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.
+  (https://github.com/dafny-lang/dafny/pull/2448)
+- feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
+  (https://github.com/dafny-lang/dafny/pull/2363)
 - fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
 
 # 3.7.3

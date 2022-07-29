@@ -615,12 +615,13 @@ clauses apply to both of them. For the `requires` and `ensures`
 clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
-TODO: What is the meaning of a `decreases` clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of
-iterators explains these.
-
-TODO: What is the relationship between the post condition and
-the `Valid()` predicate?
+Examples of iterators, including iterator specifications, are given in
+[Section 16](#sec-iterator-types). Briefly
+- a requires clause gives a precondition for creating an iterator
+- a ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
+- a decreases clause is used to show that the iterator will eventually terminate
+- a yield requires clause is a precondition for calling `MoveNext`
+- a yield ensures clause is a postcondition for calling `MoveNext`
 
 ## 5.6. Loop Specification
 ````grammar

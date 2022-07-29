@@ -12367,6 +12367,15 @@ namespace Microsoft.Dafny {
       this.IsGhost = isGhost;
     }
   }
+
+  public class DisjunctivePattern : ExtendedPattern {
+    public readonly List<ExtendedPattern> Alternatives;
+    public DisjunctivePattern(IToken tok, List<ExtendedPattern> alternatives, bool isGhost = false) : base(tok, isGhost) {
+      Contract.Requires(alternatives != null && alternatives.Count > 0);
+      this.Alternatives = alternatives;
+    }
+  }
+
   public class LitPattern : ExtendedPattern {
     public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
 
@@ -12425,18 +12434,23 @@ namespace Microsoft.Dafny {
   }
 
   public class IdPattern : ExtendedPattern {
+    public bool HasParenthesis { get; }
     public readonly String Id;
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
     public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
     public LiteralExpr ResolvedLit; // null if just an identifier
 
+    public bool IsWildcardPattern =>
+      Arguments == null && Id.StartsWith("_");
+
     public void MakeAConstructor() {
       this.Arguments = new List<ExtendedPattern>();
     }
 
-    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
+    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
       Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      HasParenthesis = hasParenthesis;
       this.Id = id;
       this.Type = new InferredTypeProxy();
       this.Arguments = arguments;
