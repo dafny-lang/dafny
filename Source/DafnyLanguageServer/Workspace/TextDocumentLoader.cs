@@ -159,14 +159,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           wasResolved: true, loadCanceled: false);
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      if (errorReporter.HasErrors) {
+      CompilationUnit compilationUnit;
+      SymbolTable symbolTable;
+      bool canDoVerification;
+      try {
+        compilationUnit =
+          symbolResolver.ResolveSymbols(textDocument, program, out canDoVerification, cancellationToken);
+        symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+        if (errorReporter.HasErrors) {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
+        } else {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        }
+      } catch (Exception e) {
+        if (e is OperationCanceledException) {
+          throw;
+        }
+
+        errorReporter.Message(MessageSource.Resolver, ErrorLevel.Error, program.GetFirstTopLevelToken(),
+          DocumentDatabase.DafnyInternalErrorHelper + e);
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-      } else {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
+          errorReporter.GetDiagnostics(textDocument.Uri), program,
+          wasResolved: true, loadCanceled: false);
       }
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
+      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken)
+        .ToArray();
 
       return new DafnyDocument(textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
