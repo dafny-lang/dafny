@@ -31,7 +31,7 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
 module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
   import opened System
   trait {:extern "IToken"} {:compile false} IToken {
-    var val: CsString
+    var val : CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
     ghost var remainingTokens: nat
@@ -48,6 +48,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
     ghost function AllTokens(): (r: seq<IToken>) reads *
       requires Valid()
       ensures forall tok <- r :: tok.Valid()
+      //ensures allocated(r)
       decreases remainingTokens
     {
       if Next == null then [this] else
@@ -277,6 +278,11 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         ensures IsScript(x, sLength2)
       {
       }
+
+      lemma IsAllocated<T>(x: T)
+        ensures allocated(x) {
+
+      }
       
       function apply(s: string, edits: seq<StringEdit>): string
         decreases |edits|
@@ -358,12 +364,22 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           invariant GEq(s.Length(), sLengthPrev);
           invariant forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val)
         {
-          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+          var firstTokensUntilI := firstToken.AllTokens()[0..i];
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
           sLengthPrev := s.Length();
-          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+          //IsAllocated(firstTokensUntilI);
+          //assert allocated(firstTokensUntilI);
+          //assert forall t <- firstTokensUntilI :: allocated(t);
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
+          label a:
+          var s0 := s;
           // TODO: Dafny clinic
+          //assert allocated(firstTokensUntilI);
+          IsAllocated(firstTokensUntilI);
+          assert allocated(firstTokensUntilI);
           var indentationBefore, lastIndentation, indentationAfter, wasSet := reindent.GetIndentation(token, currentIndent);
-          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+          //assert forall t <- firstTokensUntilI ::t.val == old@a(t.val);
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
           if(wasSet) {
             currentIndent := indentationBefore;
             currentIndentLast := lastIndentation;
@@ -382,6 +398,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             currentIndent := indentationAfter;
           }
           assert String.Concat(newTrivia, token.val).Contains(token.val);
+          assert allocated(firstToken.AllTokens()[0..i]);
           s.ContainsTransitive(String.Concat(newTrivia, token.val), token.val);
           assert s.Contains(token.val);
           
@@ -396,9 +413,17 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
           assert s.Contains(firstToken.AllTokens()[i].val);
           assert forall t <- firstToken.AllTokens()[0..i + 1] :: s.Contains(t.val);
+          var prevToken := token;
+          var prevI := i;
           token := token.Next;
           i := i + 1;
-          assert token != null ==> token == firstToken.AllTokens()[i];
+          assert prevToken != null;
+          assert prevI < |firstToken.AllTokens()|
+                 && prevToken == firstToken.AllTokens()[prevI];
+          assert prevToken == firstToken.AllTokens()[prevI];
+          if(token == null) {
+            assert i == |firstToken.AllTokens()|;
+          }
           
           
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);

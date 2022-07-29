@@ -1349,9 +1349,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
       $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
   ]
-  [ "|" (. ownedTokens.Add(t); .) ] DatatypeMemberDecl<ctors>
+  [ "|" (. ownedTokens.Add(t); .) ] DatatypeMemberDecl<ctors, ownedTokens>
   { "|" (. ownedTokens.Add(t); .)
-    DatatypeMemberDecl<ctors> }
+    DatatypeMemberDecl<ctors, ownedTokens> }
   | ellipsis                               (. isRefining = true; bodyStart = t; ownedTokens.Add(t); .)
   )
   [ TypeMembers<module, members> ]
@@ -1372,15 +1372,15 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
 /*------------------------------------------------------------------------*/
 DatatypeMemberName<out IToken id> = NoUSIdentOrDigits<out id> .
 
-DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
+DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
      Attributes attrs = null;
      IToken/*!*/ id;
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
   .)
   { Attribute<ref attrs> }
-  DatatypeMemberName<out id>
-  [ FormalsOptionalIds<formals> ]
+  DatatypeMemberName<out id>  (. ownedTokens.Add(id); .)
+  [ FormalsOptionalIds<formals, ownedTokens> ]
   (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
      ctor.BodyEndTok = t; 
      ctors.Add(ctor); .)

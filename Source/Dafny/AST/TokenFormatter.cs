@@ -345,11 +345,6 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
     // TODO: Body here
     indent = savedIndent;
-    indent += 2;
-    if (member is Method) {
-
-    }
-    indent -= 2;
     if (member.BodyEndTok.line > 0) {
       SetBeforeAfter(member.BodyEndTok, indent + 2, indent, indent);
     }
@@ -358,23 +353,62 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    var initIndent = indent;
+    var indent2 = indent + 2;
     if (topLevelDecl.StartToken.line > 0) {
-      SetBeforeAfter(topLevelDecl.BodyStartTok, indent, indent, indent + 2);
-      indent += 2;
+      SetOpeningIndentedRegion(topLevelDecl.BodyStartTok, indent);
     }
     if (topLevelDecl is LiteralModuleDecl moduleDecl) {
       foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
-        SetDeclIndentation(decl2, indent);
+        SetDeclIndentation(decl2, indent2);
       }
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
+      // TODO: Classes, Traits
+      if (declWithMembers is DatatypeDecl datatypeDecl) {
+        SetClosingIndentedRegion(datatypeDecl.EndToken, indent);
+        var verticalBarIndent = indent2;
+        var rightOfVerticalBarIndent = indent2;
+        var commaIndent = indent2;
+        var rightIndent = indent2;
+        foreach (var token in datatypeDecl.OwnedTokens) {
+          switch (token.val) {
+            case "|": {
+                SetBeforeAfter(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
+                break;
+              }
+            case "(": {
+                break;
+              }
+            case ")": {
+                break;
+              }
+            case "=": {
+                if (IsFollowedByNewline(token)) {
+                  SetDelimiterInsideIndentedRegions(token, indent2);
+                } else {
+                  SetBeforeAfter(token, indent2, indent2, -1);
+                  rightOfVerticalBarIndent = GetRightAlignIndentAfter(token, indent);
+                  verticalBarIndent = GetRightAlignIndentDelimiter(token, indent);
+                  SetBeforeAfter(token, -1, -1, rightOfVerticalBarIndent);
+                }
+
+                break;
+              }
+            case ",": {
+                SetBeforeAfter(token, rightIndent, commaIndent, rightIndent);
+                break;
+              }
+            case ";": {
+                break;
+              }
+          }
+        }
+      }
       foreach (var members in declWithMembers.Members) {
-        SetMemberIndentation(members, indent);
+        SetMemberIndentation(members, indent2);
       }
     }
     if (topLevelDecl.StartToken.line > 0) {
-      SetBeforeAfter(topLevelDecl.EndToken, indent, initIndent, initIndent);
-      indent = initIndent;
+      SetBeforeAfter(topLevelDecl.EndToken, indent2, indent, indent);
     }
   }
   public static IndentationFormatter ForProgram(Program program) {

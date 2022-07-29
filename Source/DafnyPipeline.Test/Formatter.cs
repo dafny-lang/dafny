@@ -482,6 +482,175 @@ class T {
 }");
     }
 
+
+    [Fact]
+    public void FormatWorksForTypes() {
+      FormatterWorksFor(@"
+datatype Color =   Red
+                   // Comment1
+               |   /** Comment2 */
+                   Green
+               |   Blue
+
+datatype Color
+  =   Red
+      // Comment1
+  |   Green   |
+      // Comment1
+      Blue
+
+datatype T =
+    C1()
+  | C2(a: int,
+       b: int)
+  | C3(
+      a: int,
+      b: int
+    , c: int)
+
+datatype T =
+  | C1(x: LongType<
+            P1,
+            P2>
+    )
+  | C2( a: int,
+        b: int
+      , c: int
+    )
+  | C3(x: LongType< int,
+                    int
+                  >)
+
+type X = i : int
+       | i == 2 || i == 3 witness 2
+ 
+type X =
+  i : int
+  |   i == 2 ||
+      i == 3
+  witness 2
+
+newtype X
+  = i : int
+  | || i == 2
+    || i == 3 witness var x := 2;
+                      x
+
+newtype X
+  =
+  i : int
+  | i == 2
+    || i == 3
+  witness
+    var x := 2;
+    x
+
+module A {
+  import opened B = A
+  import
+    opened C = A
+  import opened
+    D = A
+  import opened F =
+    E
+  import opened G
+    = E
+  import
+    opened H =
+    B
+  import
+    opened I
+    = B
+  import
+    opened
+    J = B
+}
+
+module M {
+  export X
+    extends A,
+            B
+    provides L1, L2
+    provides L3,
+             L4
+    provides L5
+           , L6
+    // Comment
+    provides
+      L7, L8
+    provides
+      L9,
+      L10
+    provides
+      L11
+      , L12
+  export Y
+    extends A1
+          , B1
+    reveals M1, M2
+    reveals M3,
+            M4
+    reveals M5
+          , M6
+    // Comment
+    reveals
+      M7, M8
+    reveals
+      M9,
+      M10
+    reveals
+      M11
+      , M12
+}
+
+method comprehensions() {
+  var x := imap i: int :: i % 2 == 0 := 1;
+
+  var x := imap
+    i: int ::  i % 2
+               == 0
+           := 1;
+
+  x := imap
+    i: int
+    ::
+    i % 2 == 0
+    :=
+    1;
+
+  x := imap i: int |
+       i % 4 == 0
+    :: i % 2 == 0
+    := 1;
+
+  x := imap i: int
+     | i % 4 == 0
+    :: i % 2 == 0
+    := 1;
+
+  x := imap i: int |  i % 4 == 0
+                  ::  // comment
+                      i % 2 == 0
+                  :=  1;
+}
+iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
+{
+  var i := 0;
+  while i < 10 invariant |xs| == i {
+    x := start + i;
+    yield;
+    i := i + 1;
+  }
+}
+trait X {
+  function X(): int {
+    1
+  }
+}
+");
+    }
+
     private void FormatterWorksFor(string programString) {
       ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();
