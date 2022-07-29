@@ -15,7 +15,8 @@
    "3.0.0-alpha") and select an internal version number (e.g.,
    "3.0.0.30203"). The major.minor.patch numbers may already have been
    incremented since the last release, so they do not necessarily need
-   to be updated. The last section is in "ymmdd" format, where "y" is
+   to be updated, but you may want to increment them further,
+   use judgement. The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
    x.y.z.40112). Edit the internal version number in the following
