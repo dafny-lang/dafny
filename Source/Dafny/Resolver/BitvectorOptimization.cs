@@ -20,16 +20,24 @@ public class BitvectorOptimization : IRewriter {
 }
 
 public class BitvectorOptimizationVisitor : BottomUpVisitor {
-  private bool IsShift(BinaryExpr.Opcode op) {
+  private bool IsShiftOp(BinaryExpr.Opcode op) {
     return op is BinaryExpr.Opcode.LeftShift or BinaryExpr.Opcode.RightShift;
   }
+
+  private Expression ShrinkBitVectorShiftAmount(Expression expr, BitvectorType originalType) {
+    var width = new BigInteger(originalType.Width);
+    var intermediateType = new BitvectorType((int)width.GetBitLength());
+    var newExpr = new ConversionExpr(expr.tok, expr, intermediateType);
+    newExpr.Type = intermediateType;
+    return newExpr;
+  }
+
   protected override void VisitOneExpr(Expression expr) {
-    // TODO: rotate, too
-    if (expr is BinaryExpr binExpr && IsShift(binExpr.Op) && binExpr.Type is BitvectorType bvType) {
-      var width = new BigInteger(bvType.Width);
-      var intermediateType = new BitvectorType((int)width.GetBitLength());
-      binExpr.E1 = new ConversionExpr(binExpr.E1.tok, binExpr.E1, intermediateType);
-      binExpr.E1.Type = intermediateType;
+    if (expr.Type is BitvectorType bvType) {
+
+      if (expr is BinaryExpr binExpr && IsShiftOp(binExpr.Op)) {
+        binExpr.E1 = ShrinkBitVectorShiftAmount(binExpr.E1, bvType);
+      }
     }
   }
 }
