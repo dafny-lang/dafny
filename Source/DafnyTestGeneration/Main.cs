@@ -112,39 +112,10 @@ namespace DafnyTestGeneration {
         yield return testMethod;
       }
 
-      if (DafnyOptions.O.TestGenOptions.PrintTargets != null) {
-        TargetPrinter printer = new TargetPrinter(dafnyInfo);
-        printer.PopulateTargetedMethods(testCount, true);
-        printer.PopulateTargetedMethods(failedTestCount, false);
-        printer.WriteToFile(DafnyOptions.O.TestGenOptions.PrintTargets);
-      }
-
-      if (DafnyOptions.O.TestGenOptions.Verbose) {
-        foreach (var implementation in implementations) {
-          int blocks = implementation.Blocks.Count;
-          int failedQueries = ProgramModification.ModificationsWithStatus(implementation,
-            ProgramModification.Status.Failure);
-          int queries = failedQueries +
-                        ProgramModification.ModificationsWithStatus(implementation,
-                          ProgramModification.Status.Success);
-          int tests = testCount.GetValueOrDefault(implementation, 0);
-          int failedTests = failedTestCount.GetValueOrDefault(implementation, 0);
-          if (ProgramModification.ImplementationIsCovered(implementation)) {
-            Console.WriteLine(
-              $"// Procedure {implementation} ({blocks} " +
-              $"blocks) is completely covered by " +
-              $"{tests} (failed to extract {failedTests}) " +
-              $"tests generated using {queries} SMT queries " +
-              $"(failed {failedQueries} queries)");
-          } else {
-            Console.WriteLine(
-              $"// Procedure {implementation} ({blocks} " +
-              $"blocks) is not fully covered by " +
-              $"{tests} (failed to extract {failedTests}) " +
-              $"tests generated using {queries} SMT queries " +
-              $"(failed {failedQueries} queries)");
-          }
-        }
+      if (DafnyOptions.O.TestGenOptions.PrintStats != null) {
+        StatsPrinter printer = new StatsPrinter();
+        printer.PopulateInformation(dafnyInfo, implementations, testCount, failedTestCount);
+        printer.WriteToFile(DafnyOptions.O.TestGenOptions.PrintStats);
       }
     }
 
