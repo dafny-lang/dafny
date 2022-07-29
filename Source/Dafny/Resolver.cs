@@ -3381,8 +3381,8 @@ namespace Microsoft.Dafny {
         // And check that const initializers are not cyclic.
         var cycleErrorHasBeenReported = new HashSet<ICallable>();
         foreach (var d in declarations) {
-          if (d is ClassDecl) {
-            foreach (var member in ((ClassDecl)d).Members) {
+          if (d is TopLevelDeclWithMembers { Members: var members }) {
+            foreach (var member in members) {
               if (member is ExtremePredicate) {
                 var fn = (ExtremePredicate)member;
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
@@ -3419,7 +3419,9 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-          } else if (d is RedirectingTypeDecl) {
+          }
+
+          if (d is RedirectingTypeDecl) {
             var dd = (RedirectingTypeDecl)d;
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
