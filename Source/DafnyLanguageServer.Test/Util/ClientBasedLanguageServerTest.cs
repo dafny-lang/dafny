@@ -49,10 +49,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     FileVerificationStatus foundStatus;
     do {
       foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      var newlyRunningOrDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Running)
-        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r)).ToList();
+      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
 
-      yield return newlyRunningOrDone;
+      var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+
+      yield return newlyDone.Concat(newlyRunning).ToList();
     } while (foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
