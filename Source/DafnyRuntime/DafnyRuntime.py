@@ -83,6 +83,20 @@ class Seq(tuple):
     def __hash__(self) -> int:
         return hash(tuple(self))
 
+class Array(list):
+    @classmethod
+    def empty(cls, dims):
+        if dims <= 1:
+            return Array()
+        return Array([Array.empty(dims-1)])
+
+    def __len__(self):
+        l = super().__len__()
+        # Hack to enable "empty" matrices
+        if l == 1 and isinstance(self[0], Array) and len(self[0]) == 0:
+            return 0
+        return l
+
 class Set(frozenset):
     @property
     def Elements(self):
