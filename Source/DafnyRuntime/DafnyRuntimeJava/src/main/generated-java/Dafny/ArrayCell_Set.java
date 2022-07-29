@@ -1,8 +1,7 @@
 // Class ArrayCell_Set<T>
 // Dafny class ArrayCell_Set<T> compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class ArrayCell_Set<T> extends ArrayCell<T> {
@@ -30,7 +29,7 @@ public class ArrayCell_Set<T> extends ArrayCell<T> {
   @Override
   public String toString() {
     StringBuilder s = new StringBuilder();
-    s.append("Arrays_Compile.ArrayCell.Set");
+    s.append("Dafny_Compile.ArrayCell.Set");
     s.append("(");
     s.append(dafny.Helpers.toString(this.value));
     s.append(")");

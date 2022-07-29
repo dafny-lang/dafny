@@ -2,8 +2,7 @@
 // Dafny class nat compiled into Java
 package _System;
 
-import Frames_Compile.*;
-import Arrays.*;
+import Dafny.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class nat {

@@ -10,19 +10,20 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     ghost predicate Valid()
       reads this, Repr
-      decreases Repr, 0
+      decreases Repr, 1
       ensures Valid() ==> this in Repr
 
     // Convenience predicate for when your object's validity depends on one
     // or more other objects.
     ghost predicate ValidComponent(component: Validatable)
       reads this, Repr 
-      decreases Repr
+      decreases Repr, 0
     {
+      && this in Repr
       && component in Repr
       && component.Repr <= Repr
       && this !in component.Repr
-      && component.Valid()
+      && (assert component.Repr < Repr; component.Valid())
     }
 
     // Convenience predicate, since you often want to assert that 
@@ -115,7 +116,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ensures fresh(ret.Repr)
     ensures ret.Length() == length
 
-  // Separate type in order to have a type with a Valid()
+  // Separate type in order to have a type without a Valid()
   // that reads {}.
   trait {:extern} ImmutableArray<+T> {
 
@@ -146,6 +147,8 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   // TODO: More consistent method names.
   // This is internal for now but would be great to have in a shared library.
+  // Could also track a start index to support Deque-style use
+  // (possibly in a separate datatype to avoid the extra overhead of adding 0 all the time).
   class Vector<T> extends Validatable {
     var storage: Array<T>
     var size: nat
@@ -154,11 +157,16 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     ghost predicate Valid() 
       reads this, Repr 
-      decreases Repr, 0
+      decreases Repr, 1
       ensures Valid() ==> this in Repr
     {
       && this in Repr
-      && ValidComponent(storage)
+      && storage in Repr
+      && storage.Repr <= Repr
+      && this !in storage.Repr
+      && storage.Valid()
+      // TODO: having trouble with termination on this one
+      // && ValidComponent(storage)
       && 0 <= size <= storage.Length()
       && forall i | 0 <= i < size :: storage.values[i].Set?
     }

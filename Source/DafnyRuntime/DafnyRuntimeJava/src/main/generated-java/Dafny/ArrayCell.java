@@ -1,15 +1,14 @@
 // Class ArrayCell<T>
 // Dafny class ArrayCell<T> compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public abstract class ArrayCell<T> {
   public ArrayCell() { }
 
   public static <T> ArrayCell<T> Default() {
-    return Arrays.ArrayCell.create_Unset();
+    return Dafny.ArrayCell.create_Unset();
   }
   private static final dafny.TypeDescriptor<ArrayCell> _TYPE = dafny.TypeDescriptor.referenceWithInitializer(ArrayCell.class, () -> Default());
   public static <T> dafny.TypeDescriptor<ArrayCell<T>> _typeDescriptor() {

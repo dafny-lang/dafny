@@ -1,8 +1,7 @@
 // Class ArrayCell_Unset<T>
 // Dafny class ArrayCell_Unset<T> compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class ArrayCell_Unset<T> extends ArrayCell<T> {
@@ -27,7 +26,7 @@ public class ArrayCell_Unset<T> extends ArrayCell<T> {
   @Override
   public String toString() {
     StringBuilder s = new StringBuilder();
-    s.append("Arrays_Compile.ArrayCell.Unset");
+    s.append("Dafny_Compile.ArrayCell.Unset");
     return s.toString();
   }
 }

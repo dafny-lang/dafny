@@ -1,8 +1,7 @@
 // Interface Array
 // Dafny trait Array compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class _Companion_Array<T> {

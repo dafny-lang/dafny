@@ -1,8 +1,7 @@
 // Interface ImmutableArray
 // Dafny trait ImmutableArray compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class _Companion_ImmutableArray<T> {

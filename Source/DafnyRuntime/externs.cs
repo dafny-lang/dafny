@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace AtomicBoxes {
+namespace Dafny {
 
   public class AtomicBox<T> where T : class {
 
@@ -16,17 +16,14 @@ namespace AtomicBoxes {
     public T Get() => value;
     public void Put(T t) => value = t;
   }
-}
 
-namespace Arrays {
-
-  public class __default {
-    public static Arrays.Array<T> NewArray<T>(BigInteger length) {
+  public partial class __default {
+    public static Array<T> NewArray<T>(BigInteger length) {
       return new CsharpArray<T>((int)length);
     }
   }
 
-  public class CsharpArray<T> : Arrays.Array<T>, Arrays.ImmutableArray<T> {
+  public class CsharpArray<T> : Array<T>, ImmutableArray<T> {
     private readonly T[] values;
     private readonly int length;
 
@@ -56,12 +53,12 @@ namespace Arrays {
       values[(int)i] = t;
     }
 
-    public void WriteRangeArray(BigInteger start, Arrays.ImmutableArray<T> other) {
+    public void WriteRangeArray(BigInteger start, ImmutableArray<T> other) {
       var csharpArray = other as CsharpArray<T>;
       Array.Copy(csharpArray.values, 0, values, (int)start, csharpArray.length);
     }
 
-    public Arrays.ImmutableArray<T> Freeze(BigInteger size) {
+    public ImmutableArray<T> Freeze(BigInteger size) {
       var intSize = (int)size;
       if (length == intSize) {
         return this;
@@ -69,7 +66,7 @@ namespace Arrays {
       return new CsharpArray<T>(values, intSize);
     }
     
-    public Arrays.ImmutableArray<T> Subarray(BigInteger start, BigInteger end) {
+    public ImmutableArray<T> Subarray(BigInteger start, BigInteger end) {
       if (start == 0) {
         return new CsharpArray<T>(values, (int)end);
       }

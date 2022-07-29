@@ -1,11 +1,10 @@
 // Class Vector
 // Dafny class Vector compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
-public class Vector<T> implements Frames_Compile.Validatable {
+public class Vector<T> implements Validatable {
   private dafny.TypeDescriptor<T> _td_T;
   public Vector(dafny.TypeDescriptor<T> _td_T) {
     this._td_T = _td_T;

@@ -1,11 +1,10 @@
 // Interface Array
 // Dafny trait Array compiled into Java
-package Arrays;
+package Dafny;
 
-import Frames_Compile.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
-public interface Array<T> extends Frames_Compile.Validatable {
+public interface Array<T> extends Validatable {
   public java.math.BigInteger Length();
   public T Read(java.math.BigInteger i);
   public void Write(java.math.BigInteger i, T t);

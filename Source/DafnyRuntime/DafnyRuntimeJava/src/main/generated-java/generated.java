@@ -1,8 +1,11 @@
-// Dafny program array.dfy compiled into Java
+// Dafny program dafnyRuntime.dfy compiled into Java
 
-import Frames_Compile.*;
-import Arrays.*;
+import Dafny.*;
 import _System.*;
+
+
+
+
 
 
 

@@ -1,6 +1,6 @@
 // Interface Validatable
 // Dafny trait Validatable compiled into Java
-package Frames_Compile;
+package Dafny;
 
 
 @SuppressWarnings({"unchecked", "deprecation"})
