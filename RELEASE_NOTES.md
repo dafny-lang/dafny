@@ -9,6 +9,8 @@
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
   (https://github.com/dafny-lang/dafny/pull/2363)
 - fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
+- fix: Check extreme predicates and constants in all types, not just classes
+  (https://github.com/dafny-lang/dafny/pull/2515)
 
 # 3.7.3
 
