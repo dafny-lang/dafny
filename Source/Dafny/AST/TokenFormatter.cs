@@ -407,7 +407,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         SetMemberIndentation(members, indent2);
       }
     }
-    if (topLevelDecl.StartToken.line > 0) {
+    if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetBeforeAfter(topLevelDecl.EndToken, indent2, indent, indent);
     }
   }

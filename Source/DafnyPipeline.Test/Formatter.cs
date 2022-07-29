@@ -496,9 +496,10 @@ datatype Color
   =   Red
       // Comment1
   |   Green   |
-      // Comment1
+      // Comment2
       Blue
 
+// Comment here
 datatype T =
     C1()
   | C2(a: int,
