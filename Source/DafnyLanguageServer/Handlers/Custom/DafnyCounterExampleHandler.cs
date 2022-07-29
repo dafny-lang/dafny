@@ -16,16 +16,27 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
+    private readonly ITextDocumentLoader documentLoader;
 
-    public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, ITextDocumentLoader documentLoader, IDocumentDatabase documents) {
       this.logger = logger;
       this.documents = documents;
+      this.documentLoader = documentLoader;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
         var document = await documents.GetLastDocumentAsync(request.TextDocument);
+
         if (document != null) {
+          var verificationTasks = document!.VerificationTasks;
+          if (verificationTasks != null) {
+            var entry = documents.Documents[request.TextDocument.Uri];
+            foreach (var task in verificationTasks) {
+              documentLoader.Verify(entry, document, task, CancellationToken.None);
+            }
+            await entry.LastDocument;
+          }
           return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
             .GetCounterExamples();
         }
