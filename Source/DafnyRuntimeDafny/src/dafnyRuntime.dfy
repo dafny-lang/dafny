@@ -69,24 +69,24 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       reads Repr
       ensures Length() == |values|
 
-    function Read(i: nat): (ret: T)
+    function Select(i: nat): (ret: T)
       requires Valid()
       requires i < Length()
       requires values[i].Set?
       reads this, Repr
       ensures ret == values[i].value
 
-    method Write(i: nat, t: T)
+    method Update(i: nat, t: T)
       requires Valid()
       requires i < Length()
       modifies Repr
       ensures Valid()
       ensures Repr == old(Repr)
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
-      ensures Read(i) == t
+      ensures Select(i) == t
 
     // TODO: Might want a copy that takes a Vector as well
-    method WriteRangeArray(start: nat, other: ImmutableArray<T>)
+    method UpdateRange(start: nat, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
       requires start <= Length()
@@ -132,10 +132,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       ensures Length() == |values|
 
-    function At(index: nat): T 
+    function Select(index: nat): T 
       requires Valid()
       requires index < |values|
-      ensures At(index) == values[index]
+      ensures Select(index) == values[index]
 
     method Subarray(lo: nat, hi: nat) returns (ret: ImmutableArray<T>)
       requires Valid()
@@ -186,16 +186,16 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       reads this, Repr
     {
-      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Read(i))
+      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Select(i))
     }
 
-    function At(index: nat): T 
+    function Select(index: nat): T 
       requires Valid()
       requires index < size
       reads this, Repr
-      ensures At(index) == Value()[index]
+      ensures Select(index) == Value()[index]
     {
-      storage.Read(index)
+      storage.Select(index)
     }
 
     function Last(): T 
@@ -204,7 +204,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       reads this, Repr
       ensures Last() == Value()[size - 1]
     {
-      storage.Read(size - 1)
+      storage.Select(size - 1)
     }
 
     method AddLast(t: T) 
@@ -216,7 +216,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       if size == storage.Length() {
         Reallocate(Max(MIN_SIZE, storage.Length() * 2));
       }
-      storage.Write(size, t);
+      storage.Update(size, t);
       size := size + 1;
     }
 
@@ -234,7 +234,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     {
       var newStorage := NewArray<T>(newCapacity);
       var values := storage.Freeze(size);
-      newStorage.WriteRangeArray(0, values);
+      newStorage.UpdateRange(0, values);
       storage := newStorage;
 
       Repr := {this} + storage.Repr;
@@ -249,7 +249,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Value() == old(Value()[..(size - 1)])
       ensures t in old(Value())
     {
-      t := storage.Read(size - 1);
+      t := storage.Select(size - 1);
       size := size - 1;
     }
 
@@ -265,7 +265,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
         Reallocate(Max(newSize, storage.Length() * 2));
       }
-      storage.WriteRangeArray(size, other);
+      storage.UpdateRange(size, other);
       size := size + other.Length();
     }
 
@@ -331,7 +331,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures ret == Value()[index]
     {
       var a := ToArray();
-      return a.At(index);
+      return a.Select(index);
     }
 
     method Drop(lo: nat) returns (ret: Sequence<T>)
