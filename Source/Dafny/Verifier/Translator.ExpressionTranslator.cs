@@ -991,11 +991,11 @@ namespace Microsoft.Dafny {
 
             case BinaryExpr.ResolvedOpcode.LeftShift: {
                 Contract.Assert(0 <= bvWidth);
-                return TrShiftRotateExpr("LeftShift", e, e0, e1, e.E1.Type, bvWidth, liftLit);
+                return TrToFunctionCall(GetToken(expr), "LeftShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(GetToken(expr), e1, e.E1.Type, e.Type), liftLit);
               }
             case BinaryExpr.ResolvedOpcode.RightShift: {
                 Contract.Assert(0 <= bvWidth);
-                return TrShiftRotateExpr("RightShift", e, e0, e1, e.E1.Type, bvWidth, liftLit);
+                return TrToFunctionCall(GetToken(expr), "RightShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(GetToken(expr), e1, e.E1.Type, e.Type), liftLit);
               }
             case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
                 Contract.Assert(0 <= bvWidth);
@@ -1422,19 +1422,17 @@ namespace Microsoft.Dafny {
         }
       }
 
-      private Expr TrShiftRotateExpr(string fnName, Expression expr, Expr lhs, Expr rhs, Type rhsType, int w, bool liftLit) {
-        var tok = GetToken(expr);
-        var rhsFinal = translator.ConvertExpression(tok, rhs, rhsType, expr.Type);
-        return TrToFunctionCall(tok, fnName + "_bv" + w, translator.BplBvType(w), lhs, rhsFinal, liftLit);
-      }
-
       public Expr TrExprSpecialFunctionCall(FunctionCallExpr expr) {
         Contract.Requires(expr.Function is SpecialFunction);
         string name = expr.Function.Name;
-        if (name is "RotateLeft" or "RotateRight") {
+        if (name == "RotateLeft") {
           var w = expr.Type.AsBitVectorType.Width;
           Expression arg = expr.Args[0];
-          return TrShiftRotateExpr(name, expr, TrExpr(expr.Receiver), TrExpr(arg), arg.Type, w, false);
+          return TrToFunctionCall(GetToken(expr), "LeftRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
+        } else if (name == "RotateRight") {
+          var w = expr.Type.AsBitVectorType.Width;
+          Expression arg = expr.Args[0];
+          return TrToFunctionCall(GetToken(expr), "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
         } else {
           bool argsAreLit_dummy;
           var args = FunctionInvocationArguments(expr, null, true, out argsAreLit_dummy);
