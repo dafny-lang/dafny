@@ -364,6 +364,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
       // TODO: Classes, Traits
       if (declWithMembers is DatatypeDecl datatypeDecl) {
+        SetBeforeAfter(datatypeDecl.EndToken, -1, -1, indent);
         var verticalBarIndent = indent2;
         var rightOfVerticalBarIndent = indent2;
         var commaIndent = indent2;
