@@ -1365,6 +1365,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      dt.StartToken = dmod.FirstToken;
      dt.EndToken = t;
      dt.TokenWithTrailingDocString = bodyStart;
+     dt.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -2099,20 +2100,21 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   .
 
 /*------------------------------------------------------------------------*/
-FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
+FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
   .)
-  "("
+  "("       (. ownedTokens.Add(t); .)
   [
     TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
             (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+    { ","   (. ownedTokens.Add(t); .)
+      TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
             (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
-  ")"
+  ")"       (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
