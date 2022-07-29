@@ -71,17 +71,13 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
 
-    - name: Build Dafny
-      run: |
-        dotnet build dafny/Source/Dafny.sln
-        rm dafny/Binaries/*.nupkg
     - name: Create release NuGet package (for uploading)
       if: ${{ !inputs.prerelease }}
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Create prerelease NuGet package (for uploading)
       if: ${{ inputs.prerelease }}
       # NuGet will consider any package with a version-suffix as a prerelease
-      run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
+      run: dotnet pack --version-suffix ${{ inputs.name }} dafny/Source/Dafny.sln
 
     - name: Make NuGet package available as an artifact
       uses: actions/upload-artifact@v2
