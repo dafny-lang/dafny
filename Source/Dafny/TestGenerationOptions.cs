@@ -20,6 +20,7 @@ namespace Microsoft.Dafny {
     public bool Verbose = false;
     public bool noPrune = false;
     [CanBeNull] public string PrintBpl = null;
+    [CanBeNull] public string PrintTargets = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -99,6 +100,12 @@ namespace Microsoft.Dafny {
             PrintBpl = args[ps.i];
           }
           return true;
+
+        case "generateTestPrintTargets":
+          if (ps.ConfirmArgumentCount(1)) {
+            PrintTargets = args[ps.i];
+          }
+          return true;
         
         case "generateTestVerbose":
           Verbose = true;
@@ -137,6 +144,8 @@ namespace Microsoft.Dafny {
     Timeout generation of a test for a particular block/path after n seconds
 /generateTestPrintBpl:<fileName>
     Print the Boogie code after all transformations to a specified file
+/generateTestPrintTargets<filename>
+    Print JSON object of all target methods and their number of hits
 /generateTestVerbose
     Print various info as comments for debugging
 /generateTestMinimization:<Random|Topological|Optimal>
