@@ -15,8 +15,8 @@ namespace DafnyTestGeneration {
   /// <summary> Extract essential info from a parsed Dafny program </summary>
   public class DafnyInfo {
     
-    private readonly Dictionary<string, Method> methods;
-    private readonly Dictionary<string, Function> functions;
+    public readonly Dictionary<string, Method> methods;
+    public readonly Dictionary<string, Function> functions;
     public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;

@@ -112,6 +112,12 @@ namespace DafnyTestGeneration {
         yield return testMethod;
       }
 
+      if (DafnyOptions.O.TestGenOptions.PrintTargets != null) {
+        TargetPrinter printer = new TargetPrinter(dafnyInfo);
+        printer.PopulateTargetedMethods(testCount, true);
+        printer.PopulateTargetedMethods(failedTestCount, false);
+        printer.WriteToFile(DafnyOptions.O.TestGenOptions.PrintTargets);
+      }
 
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         foreach (var implementation in implementations) {
