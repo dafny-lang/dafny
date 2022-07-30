@@ -1127,12 +1127,21 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
             return SimpleLvalue(w => {
-              obj(w);
+              var customReceiver = NeedsCustomReceiver(sf) && sf.EnclosingClass is not TraitDecl;
+              if (customReceiver) {
+                w.Write(TypeName_Companion(objType, w, member.tok, member));
+              } else {
+                obj(w);
+              }
               if (compiledName.Length > 0) {
                 w.Write($".{(sf is ConstantField && internalAccess ? "_" : "")}{compiledName}");
               }
               var sep = "(";
               EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+              if (customReceiver) {
+                w.Write(sep + "self");
+                sep = ", ";
+              }
               if (sep != "(") {
                 w.Write(")");
               }
