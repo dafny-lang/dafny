@@ -3184,7 +3184,7 @@ namespace Microsoft.Dafny {
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
-    public readonly string Name;
+    public string Name;
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken IRegion.BodyEndTok { get { return BodyEndTok; } }

@@ -430,6 +430,9 @@ namespace Microsoft.Dafny {
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
+      // TODO: check option
+      rewriters.Add(new ExpectContracts(reporter));
+
       if (DafnyOptions.O.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
