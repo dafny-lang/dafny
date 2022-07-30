@@ -1154,15 +1154,28 @@ namespace Microsoft.Dafny.Compilers {
             });
           }
         case Function fn: {
-            if (additionalCustomParameter == null) {
+            if (additionalCustomParameter == null && typeArgs.Count == 0) {
               return SuffixLvalue(obj, $".{IdName(fn)}");
             }
-            var args = fn.Formals
-              .Where(f => !f.IsGhost)
-              .Select(_ => ProtectedFreshId("_eta"))
-              .Comma();
-            if (args.Length > 0) { additionalCustomParameter += ", "; }
-            return EnclosedLvalue($"lambda {args}: ", obj, $".{IdName(fn)}({additionalCustomParameter}{args})");
+            return SimpleLvalue(w => {
+              var args = fn.Formals
+                .Where(f => !f.IsGhost)
+                .Select(_ => ProtectedFreshId("_eta"))
+                .Comma();
+              w.Write($"lambda {args}: ");
+              obj(w);
+              w.Write($".{IdName(fn)}(");
+              var sep = "";
+              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, w, ref sep);
+              if (additionalCustomParameter != null) {
+                w.Write(sep + additionalCustomParameter);
+                sep = ", ";
+              }
+              if (args.Length > 0) {
+                w.Write(sep);
+              }
+              w.Write(args + ")");
+            });
           }
         default:
           return SimpleLvalue(w => {
