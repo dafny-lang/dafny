@@ -270,8 +270,9 @@ namespace Microsoft.Dafny.Compilers {
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
+        // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
         var argList = ctor.Destructors.Where(d => !d.IsGhost)
-          .Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+          .Select(d => $"(\'{IdProtect(d.CompileName)}\', Any)").Comma();
         var namedtuple = $"NamedTuple(\'{ctorName}\', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -667,7 +668,7 @@ namespace Microsoft.Dafny.Compilers {
                     Contract.Assert(udt.TypeArgs.Any() && ArrowType.IsTotalArrowTypeName(td.Name));
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
-                    var arguments = udt.TypeArgs.Comma((_, i) => $"x{i}");
+                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => $"x{i}");
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
                     return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue,

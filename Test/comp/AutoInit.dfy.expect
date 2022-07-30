@@ -156,3 +156,42 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+
+Dafny program verifier did not attempt verification
+3 false 0
+Cell.Cell(False) false true
+() (0, False, False, [])
+(None, Cell.Cell(0)) (None, Cell.Cell(0)) true
+(None, None, None, Cell.Cell(0)) (None, None, None, Cell.Cell(0)) true
+true false false true
+true false false true
+17
+1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
+1
+ww == null  -- yes, as expected
+true true true true
+true true true
+true true true
+null null
+null null
+null null null
+null null null
+null null null
+null null null
+null null
+null null null
+null null null
+DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
+  DatatypeDefaultValues_Compile.IntList.Nil
+  DatatypeDefaultValues_Compile.Cell.MakeCell(0)
+DatatypeDefaultValues_Compile.GenericTree.Leaf
+  DatatypeDefaultValues_Compile.Complicated.ComplA(0, False)
+  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
+DatatypeDefaultValues_Compile.Difficult.MakeDifficult(None)
+  DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(None)
+ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
+ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+0.0 and 0.0
+13
