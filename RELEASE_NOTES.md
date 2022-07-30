@@ -11,6 +11,8 @@
 - fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
 - fix: Check extreme predicates and constants in all types, not just classes
   (https://github.com/dafny-lang/dafny/pull/2515)
+- fix: Correctly substitute type variables in override checks
+  (https://github.com/dafny-lang/dafny/pull/2522)
 
 # 3.7.3
 
