@@ -74,11 +74,10 @@ namespace DafnyTestGeneration {
       while (!m.IsDefaultModule) {
         if (Attributes.Contains(m.Attributes, "extern") && 
             Attributes.FindExpressions(m.Attributes, "extern").Count > 0) {
-          fullCompiledName = $"{m.CompileName}.{fullCompiledName}";
-        } else {
-          fullCompiledName = $"{m.CompileName}_Compile.{fullCompiledName}";
+          fullCompiledName = $"{Printer.ExprToString(m.Attributes.Args[0]).Trim('"')}.{fullCompiledName}";
+          break;
         }
-
+        fullCompiledName = $"{m.CompileName}_Compile.{fullCompiledName}";
         m = m.EnclosingModule;
       }
       return fullCompiledName;

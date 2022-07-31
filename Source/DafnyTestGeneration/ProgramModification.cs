@@ -80,6 +80,7 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
+      options.TimeLimit = DafnyOptions.O.TimeLimit;
       options.Prune = !DafnyOptions.O.TestGenOptions.noPrune;
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
@@ -114,7 +115,7 @@ namespace DafnyTestGeneration {
       await Task.WhenAny(engine.InferAndVerify(writer, program,
         new PipelineStatistics(), null,
         _ => { }, guid), 
-        Task.Delay(TimeSpan.FromSeconds(oldOptions.TestGenOptions.Timeout)));
+        Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit)));
       program = null; // allows to garbage collect what is no longer needed
       var log = writer.ToString();
       DafnyOptions.Install(oldOptions);

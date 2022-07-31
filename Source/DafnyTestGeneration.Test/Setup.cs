@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
       options.TestGenOptions.TestInlineDepth = 0;
       options.TestGenOptions.noPrune = true;
       options.TestGenOptions.Oracle = TestGenerationOptions.Oracles.None;
-      options.TestGenOptions.Timeout = 5;
+      options.TimeLimit = 10;
       DafnyOptions.Install(options);
     }
 

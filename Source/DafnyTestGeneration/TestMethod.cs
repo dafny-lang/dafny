@@ -353,6 +353,10 @@ namespace DafnyTestGeneration {
         case UserDefinedType _ when variable.CanonicalName() == "null":
           return "null";
         default:
+          var asBasicType = GetBasicType(asType, _ => false);
+          if ((asBasicType != null) && (asBasicType is not UserDefinedType)) {
+            return GetDefaultValue(asType, asType);
+          }
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType = DafnyModelTypeUtils.GetNonNullable(asType ?? variableType);
           ObjectsToMock.Add(new(varId, dafnyType));

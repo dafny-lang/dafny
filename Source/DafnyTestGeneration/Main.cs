@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
@@ -131,7 +132,7 @@ namespace DafnyTestGeneration {
         yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
-      var rawName = Path.GetFileName(sourceFile).Split(".").First();
+      var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
         return $"\"{str.Replace(@"\", @"\\")}\"";

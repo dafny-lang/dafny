@@ -16,7 +16,6 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
-    public uint Timeout = 100;
     public bool Verbose = false;
     public bool noPrune = false;
     [CanBeNull] public string PrintBpl = null;
@@ -87,14 +86,7 @@ namespace Microsoft.Dafny {
             TestInlineDepth = (uint)depth;
           }
           return true;
-        
-        case "generateTestTimeout":
-          var timeout = 0;
-          if (ps.GetIntArgument(ref timeout)) {
-            Timeout = (uint)timeout;
-          }
-          return true;
-        
+
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
@@ -140,8 +132,6 @@ namespace Microsoft.Dafny {
     0 is the default. When used in conjunction with /testTargetMethod, this
     argument specifies the depth up to which all non-tested methods should be
     inlined.
-/generateTestTimeout:<n>
-    Timeout generation of a test for a particular block/path after n seconds
 /generateTestPrintBpl:<fileName>
     Print the Boogie code after all transformations to a specified file
 /generateTestPrintStats:<fileName>
