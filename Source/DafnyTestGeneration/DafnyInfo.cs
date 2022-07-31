@@ -15,8 +15,8 @@ namespace DafnyTestGeneration {
   /// <summary> Extract essential info from a parsed Dafny program </summary>
   public class DafnyInfo {
     
-    private readonly Dictionary<string, Method> methods;
-    private readonly Dictionary<string, Function> functions;
+    public readonly Dictionary<string, Method> methods;
+    public readonly Dictionary<string, Function> functions;
     public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
@@ -54,6 +54,33 @@ namespace DafnyTestGeneration {
           declaration.DefaultExport.VisibilityScope).ToList() ?? new List<VisibilityScope>();
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
+    }
+
+    public string GetCompiledName(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return GetFullCompiledName(methods[callable]);
+      } 
+      if (functions.ContainsKey(callable)) {
+        return GetFullCompiledName(functions[callable]);
+      }
+      throw new Exception("Cannot identify callable " + callable);
+    }
+    
+    private static string GetFullCompiledName(MemberDecl decl) {
+      var fullCompiledName = decl.CompileName;
+      var enclosingClass = decl.EnclosingClass;
+      fullCompiledName = $"{enclosingClass.CompileName}.{fullCompiledName}";
+      var m = enclosingClass.EnclosingModuleDefinition;
+      while (!m.IsDefaultModule) {
+        if (Attributes.Contains(m.Attributes, "extern") && 
+            Attributes.FindExpressions(m.Attributes, "extern").Count > 0) {
+          fullCompiledName = $"{Printer.ExprToString(m.Attributes.Args[0]).Trim('"')}.{fullCompiledName}";
+          break;
+        }
+        fullCompiledName = $"{m.CompileName}_Compile.{fullCompiledName}";
+        m = m.EnclosingModule;
+      }
+      return fullCompiledName;
     }
 
     public IList<Type> GetReturnTypes(string callable) {
