@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../boogie/Source/ExecutionEngine/ExecutionEngine.csproj" />
+    <ProjectReference Include="../../boogie/Source/ExecutionEngine/ExecutionEngine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
