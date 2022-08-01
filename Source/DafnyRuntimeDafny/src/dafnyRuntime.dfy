@@ -19,11 +19,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       reads this, Repr 
       decreases Repr, 0
     {
-      && this in Repr
       && component in Repr
       && component.Repr <= Repr
       && this !in component.Repr
-      && (assert component.Repr < Repr; component.Valid())
+      && component.Valid()
     }
 
     // Convenience predicate, since you often want to assert that 
@@ -33,6 +32,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     {
       Valid() && fresh(Repr - old(Repr))
     }
+  }
+
+  module {:extern} Helpers {
+    function {:extern} ToString<T>(t: T): string
+    function {:extern} HashCode<T>(t: T): bv32
   }
 
   // 
@@ -86,7 +90,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Select(i) == t
 
     // TODO: Might want a copy that takes a Vector as well
-    method UpdateRange(start: nat, other: ImmutableArray<T>)
+    method UpdateSubarray(start: nat, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
       requires start <= Length()
@@ -234,7 +238,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     {
       var newStorage := NewArray<T>(newCapacity);
       var values := storage.Freeze(size);
-      newStorage.UpdateRange(0, values);
+      newStorage.UpdateSubarray(0, values);
       storage := newStorage;
 
       Repr := {this} + storage.Repr;
@@ -265,7 +269,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
         Reallocate(Max(newSize, storage.Length() * 2));
       }
-      storage.UpdateRange(size, other);
+      storage.UpdateSubarray(size, other);
       size := size + other.Length();
     }
 
@@ -324,6 +328,32 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures |Value()| == Length()
+
+    method HashCode() returns (ret: bv32)
+      requires Valid()
+      // TODO: function version as specification (or function by method)
+    {
+      ret := 0;
+      for i := 0 to Length() {
+        var element := Select(i);
+        ret := ((ret << 3) | (ret >> 29)) ^ Helpers.HashCode(element);
+      }
+    }
+
+    method ToString() returns (ret: string)
+      requires Valid()
+    {
+      // TODO: Can we use compiled seq<T> values like this?
+      ret := "[";
+      for i := 0 to Length() {
+        if i != 0 {
+          ret := ret + ",";
+        }
+        var element := Select(i);
+        ret := ret + Helpers.ToString(element);
+      }
+      ret := ret + "]";
+    }
 
     method Select(index: nat) returns (ret: T)
       requires Valid()
@@ -384,6 +414,79 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       || e is ArraySequence<T>
       || e is ConcatSequence<T>
       || e is LazySequence<T>
+
+  // Methods that must be static because they require T to be equality-supporting
+
+  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: nat) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    requires index <= left.Length()
+    requires index <= right.Length()
+    ensures ret == (left.Value()[..index] == right.Value()[..index])
+  {
+    for i := 0 to index
+      invariant left.Value()[..i] == right.Value()[..i]
+    {
+      var leftElement := left.Select(i);
+      var rightElement := right.Select(i);
+      if leftElement != rightElement {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  method EqualSequences<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() == right.Value())
+  {
+    if left.Length() != right.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+  method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() <= right.Value())
+  {
+    if right.Length() < left.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+  method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() < right.Value())
+  {
+    if right.Length() <= left.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+
+  predicate Contains<T(==)>(s: Sequence<T>, t: T)
+    requires s.Valid()
+  {
+    t in s.Value()
+  } by method {
+    for i := 0 to s.Length() 
+      invariant t !in s.Value()[..i]
+    {
+      var element := s.Select(i);
+      if element == t {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Methods that must be static because they use T as an in-parameter
 
   method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
     requires left.Valid()
