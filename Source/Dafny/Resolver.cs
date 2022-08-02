@@ -436,6 +436,7 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
+      rewriters.Add(new BitvectorOptimization(reporter));
 
       if (DafnyOptions.O.DisallowConstructorCaseWithoutParenthesis) {
         rewriters.Add(new ConstructorWarning(reporter));
