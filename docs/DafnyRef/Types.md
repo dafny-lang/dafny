@@ -465,7 +465,7 @@ supported escape sequences are the following:
  `\n`               | line feed
  `\r`               | carriage return
  `\t`               | horizontal tab
- `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\u`_xxxx_         | [universal (unicode) character](https://en.wikipedia.org/wiki/Universal_Character_Set_characters) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
