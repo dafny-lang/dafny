@@ -17,8 +17,9 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <VersionPrefix>3.7.2.40713</VersionPrefix>
+    <VersionPrefix>3.8.0.40729</VersionPrefix>
     <TargetFramework>net6.0</TargetFramework>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +27,7 @@
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.6" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.7" />
   </ItemGroup>
 
   <ItemGroup>

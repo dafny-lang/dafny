@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
-using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -14,7 +14,13 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
-  /// Internal representation of a dafny document.
+  /// Internal representation of a specific version of a Dafny document.
+  ///
+  /// Only one instance should exist of a specific version.
+  /// Asynchronous compilation tasks use this instance to synchronise on
+  ///
+  /// When verification starts, no new instances of DafnyDocument will be created for this version.
+  /// There can be different verification threads that update the state of this object.
   /// </summary>
   /// <param name="TextDocumentItem">The text document represented by this dafny document.</param>
   /// <param name="Errors">The diagnostics to report.</param>
@@ -26,17 +32,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     bool CanDoVerification,
-    // VerificationDiagnostics can be deduced from CounterExamples,
-    // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
-    IReadOnlyList<Counterexample> Counterexamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
     bool WasResolved,
-    IReadOnlyList<IImplementationTask>? VerificationTasks = null,
     bool LoadCanceled = false
   ) {
+    public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
+    public Subject<DafnyDocument> VerificationUpdates { get; } = new();
+
+    public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; } = null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
       ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
@@ -50,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Can be migrated from a previous document
     /// The position and the range are never sent to the client.
     /// </summary>
-    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
+    public VerificationTree VerificationTree { get; set; } = new DocumentVerificationTree(
       TextDocumentItem.Uri.ToString(),
       TextDocumentItem.NumberOfLines
     );
@@ -72,8 +77,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public ConcurrentStack<Counterexample>? CounterexamplesCollector { get; set; }
-    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationIdToViewCollector { get; set; }
+    public List<Counterexample> Counterexamples { get; set; } = new();
+    public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; } = new();
+
+    /// <summary>
+    /// Creates a clone of the DafnyDocument
+    /// </summary>
+    public DafnyDocument Snapshot() {
+      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
+        Program, SymbolTable, WasResolved, LoadCanceled) {
+        VerificationTree = VerificationTree,
+        Counterexamples = Counterexamples.ToList(),
+        ImplementationIdToView = new(ImplementationIdToView),
+        LastTouchedMethodPositions = LastTouchedMethodPositions,
+      };
+      return result;
+    }
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);

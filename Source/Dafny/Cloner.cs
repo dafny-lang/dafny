@@ -207,15 +207,17 @@ namespace Microsoft.Dafny {
       return bvNew;
     }
 
-    public VT CloneIVariable<VT>(VT v) where VT : IVariable {
+    public virtual LocalVariable CloneLocalVariable(LocalVariable local) {
+      return new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+    }
+    public virtual VT CloneIVariable<VT>(VT v) where VT : IVariable {
       var iv = (IVariable)v;
-      if (iv is Formal) {
-        iv = CloneFormal((Formal)iv);
-      } else if (iv is BoundVar) {
-        iv = CloneBoundVar((BoundVar)iv);
-      } else if (iv is LocalVariable) {
-        var local = (LocalVariable)iv;
-        iv = new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+      if (iv is Formal formal) {
+        iv = CloneFormal(formal);
+      } else if (iv is BoundVar boundVar) {
+        iv = CloneBoundVar(boundVar);
+      } else if (iv is LocalVariable localVariable) {
+        iv = CloneLocalVariable(localVariable);
       } else {
         Contract.Assume(false);  // unexpected IVariable
         iv = null;  // please compiler
@@ -657,7 +659,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
+        var lhss = s.Locals.ConvertAll(c =>
+          CloneLocalVariable(c));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else if (stmt is VarDeclPattern) {
@@ -688,15 +691,16 @@ namespace Microsoft.Dafny {
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
-      if (pat is LitPattern) {
-        var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
-      } else if (pat is IdPattern) {
-        var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
-      } else {
-        Contract.Assert(false);
-        return null;
+      switch (pat) {
+        case LitPattern p:
+          return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
+        case IdPattern p:
+          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern), p.IsGhost, p.HasParenthesis);
+        case DisjunctivePattern p:
+          return new DisjunctivePattern(p.Tok, p.Alternatives.ConvertAll(CloneExtendedPattern), p.IsGhost);
+        default:
+          Contract.Assert(false);
+          return null;
       }
     }
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {

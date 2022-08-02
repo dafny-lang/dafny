@@ -55,6 +55,8 @@ class SlowVerifier : IProgramVerifier {
       return source;
     }
 
+    public bool IsIdle => false;
+
     public void Cancel() {
       source.OnError(new TaskCanceledException());
     }

@@ -232,6 +232,15 @@ There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
+Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
+```dafny
+// realExp(2.37, 100) computes 2.37e100
+function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+  if e == 0 then r
+  else if e < 0 then realExp(r/10.0, e+1)
+  else realExp(r*10.0, e-1)
+}
+}
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -420,7 +429,33 @@ But `11` is not a valid `bv3` literal.
 OrdinalType_ = "ORDINAL"
 ````
 
-TO BE WRITTEN
+Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
+there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
+represented as $\omega$ in mathematics, though there is no literal expression in Dafny that represents this value.
+
+The natural numbers are ordinals.
+Any ordinal has a successor ordinal (equivalent to adding `1`).
+Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+the natural number `0` and  $\omega$ are limit ordinals.
+
+The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
+
+The Dafny type `ORDINAL` has these member functions:
+- `o.IsLimit` -- true if `o` is a limit ordinal (including `0`)
+- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==> !o.IsLimit`
+- `o.IsNat` -- true if `o` represents a `nat` value, so for `n` a `nat`, `(n as ORDINAL).IsNat` is true
+and if `o.IsNat` is true then `(o as nat)` is well-defined
+- `o.Offset` -- is the `nat` value giving the offset of the ordinal
+
+In addition, 
+- non-negative numeric literals may be considered `ORDINAL` literals, so `o + 1` is allowed
+- `ORDINAL`s may be compared, using `== != < <= > >=`
+- two `ORDINAL`s may be added and the result is `>=` either one of them; addition is associative but not commutative
+- `*`, `/` and `%` are not defined for `ORDINAL`s
+- two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
+
+
+In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ## 7.5. Characters {#sec-characters}
 
@@ -633,7 +668,38 @@ Here are some examples:
 
 ## 8.2. Type parameter variance
 
-TO BE WRITTEN: Type parameter variance
+Type parameters have several different variance and cardinality properties.
+These properties of type parameters are designated in a generic type definition.
+For instance, in `type A<+T> = ... `, the `+` indicates that the `T` position
+is co-variant. These properties are indicated by the following notation:
+
+notation | variance | cardinality-preserving
+:-------:|----------|-----------------------
+(nothing) | non-variant | yes
+`+`      | co-variant | yes
+`-`      | contra-variant | not necessarily
+`*`      | co-variant | not necessarily
+`!`      | non-variant | not necessarily
+
+- _co-variance_ (`A<+T>` or `A<*T>`) means that if `U` is a subtype of `V` then `A<U>` is a subtype of `A<V>`
+- _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
+- _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
+
+_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
+For example
+
+    type T<X> = X -> bool
+
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
+The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+
+To fix it, we use the variance `!`:
+
+    type T<!X> = X -> bool
+
+This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than values of type `E` for any `E`.
+
+A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
 # 9. Generic Instantiation
@@ -1075,9 +1141,6 @@ needs to iterate over the elements of a collection. Dafny does not have
 built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
-
-TODO: Add examples of using an iterator class
-TODO: Should a foreach statment be added to Dafny
 
 ### 10.5.1. Sequences and arrays
 
@@ -1591,7 +1654,7 @@ corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class Types {#sec-class-types}
+# 13. Class types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1881,9 +1944,10 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
+* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof. (TODO: `:extern` attribute?)
+clauses are true without proof.
 
 ### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
@@ -2111,8 +2175,6 @@ The following example illustrates using such an eta-expansion:
 ```dafny
 {% include_relative examples/Example-TwoState-EtaExample.dfy %}
 ```
-
-TO BE WRITTEN - unchanged predicate
 
 ## 13.4. Function Declarations {#sec-function-declarations}
 
@@ -2569,7 +2631,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types {#sec-trait-types}
+# 14. Trait types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -2806,7 +2868,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array Types {#sec-array-types}
+# 15. Array types {#sec-array-types}
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -3034,9 +3096,10 @@ For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
 ```dafny
 iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
   var i := 0;
-  while i < 10 {
+  while i < 10 invariant |xs| == i {
     x := start + i;
     yield;
     i := i + 1;
@@ -3047,7 +3110,20 @@ An instance of this iterator is created using
 ```dafny
 iter := new Gen(30);
 ```
-TODO: Add example of using the iterator
+It is used like this:
+```
+method Main() {
+  var i := new Gen(30);
+  while true
+    invariant i.Valid() && fresh(i._new)
+    decreases 10 - |i.xs|
+  {
+    var m := i.MoveNext();
+    if (!m) {break; }
+    print i.x;
+  }
+}
+```
 
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the
