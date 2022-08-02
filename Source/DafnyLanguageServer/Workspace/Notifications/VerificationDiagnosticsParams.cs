@@ -156,8 +156,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
-     // The range of this node.
-     Range Range
+     // The range of this node. Used to rendering
+     Range Range,
+     // The position of this node as believed by Boogie (i.e. the symbol name)
+     Position Position
   ) {
     public string PrefixedDisplayName => Kind + " " + DisplayName;
 
@@ -166,9 +168,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
-
-    // Used to relocate a verification tree and to determine which function is currently verifying
-    public Position Position => Range.Start;
 
     /// Time and Resource diagnostics
     public bool Started { get; set; } = false;
@@ -350,7 +349,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     int Lines
   ) : VerificationTree("Document", Identifier, Identifier, Identifier,
-    LinesToRange(Lines)) {
+    LinesToRange(Lines), new Position(0, 0)) {
 
     public static Range LinesToRange(int lines) {
       return new Range(new Position(0, 0),
@@ -365,8 +364,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     string Filename,
     // The range of this node.
-    Range Range
-  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range) {
+    Range Range,
+    Position Position
+  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range, Position) {
     // Recomputed from the children which are ImplementationVerificationTree
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
@@ -435,7 +435,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Filename,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range, Range.Start) {
     public int NumberOfAssertions => Children.Count;
 
     public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
@@ -468,8 +468,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     string Filename,
     // The range of this node.
-    Range Range
-  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range) {
+    Range Range,
+    // The position as used by Boogie
+    Position Position
+  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range, Position) {
     // The index of ImplementationVerificationTree.AssertionBatchTimes
     // is the same as the AssertionVerificationTree.AssertionBatchIndex
     public ImmutableDictionary<int, AssertionBatchMetrics> AssertionBatchMetrics { get; private set; } =
@@ -532,7 +534,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range, Range.Start) {
     public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
       Started = true;
       Finished = true;

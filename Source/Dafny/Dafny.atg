@@ -1352,6 +1352,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
      dt.StartToken = dmod.FirstToken;
+     dt.EndToken = t;
      dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
@@ -1369,7 +1370,9 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
   (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
-     ctor.BodyEndTok = t; 
+     ctor.StartToken = id;
+     ctor.BodyEndTok = t;
+     ctor.EndToken = t;
      ctors.Add(ctor); .)
   .
 
@@ -1437,7 +1440,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 c.StartToken = dmod.FirstToken;
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+  OldSemi                                    (. c.TokenWithTrailingDocString = t; c.EndToken = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1488,7 +1491,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
-       td.StartToken = dmod.FirstToken;        
+       td.StartToken = dmod.FirstToken;
+       td.EndToken = t;
     .)
   )             (. td.TokenWithTrailingDocString = t; .)
   .
@@ -1553,6 +1557,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      }
      td.BodyEndTok = t;
      td.StartToken = dmod.FirstToken;
+     td.EndToken = t;
      td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
@@ -1905,6 +1910,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
      m.StartToken = dmod.FirstToken;
+     m.EndToken = t;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
   .
@@ -2569,6 +2575,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      f.StartToken = dmod.FirstToken;
+     f.EndToken = t;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {

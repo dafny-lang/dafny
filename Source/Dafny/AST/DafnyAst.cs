@@ -3183,6 +3183,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
