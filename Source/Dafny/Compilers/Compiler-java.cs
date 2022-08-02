@@ -775,7 +775,7 @@ namespace Microsoft.Dafny.Compilers {
       return FullTypeName(udt, member, false);
     }
 
-    protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
+    private string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName, bool forceFullName = false) {
       Contract.Requires(udt != null);
       if (udt.IsBuiltinArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
@@ -795,7 +795,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
-      } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
+      } else if ((cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) && !forceFullName) {
         return IdProtect(cl.CompileName);
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
@@ -804,7 +804,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeNameArrayBrackets(int dims) {
       var name = "[";
-      for (int i = 1; i < dims; i++) {
+      for (var i = 1; i < dims; i++) {
         name += "][";
       }
 
@@ -3132,7 +3132,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
         }
       } else if (cl is DatatypeDecl dt) {
-        var s = FullTypeName(udt);
+        var s = FullTypeName(udt, null, false, forceFullName: true);
         var typeargs = "";
         var nonGhostTypeArgs = SelectNonGhost(cl, udt.TypeArgs);
         if (nonGhostTypeArgs.Count != 0) {

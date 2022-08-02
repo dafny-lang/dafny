@@ -1533,7 +1533,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"(({TypeName(xType, wr, udt.tok)})null)";
         }
       } else if (cl is DatatypeDecl dt) {
-        var s = FullTypeName(udt, ignoreInterface: true);
+        var s = FullTypeName(udt, ignoreInterface: true, forceFullName: true);
         var nonGhostTypeArgs = SelectNonGhost(dt, udt.TypeArgs);
         if (nonGhostTypeArgs.Count != 0) {
           s += "<" + TypeNames(nonGhostTypeArgs, wr, udt.tok) + ">";
@@ -2278,7 +2278,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       return FullTypeName(udt, member);
     }
-    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false) {
+    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false, bool forceFullName = false) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2299,7 +2299,7 @@ namespace Microsoft.Dafny.Compilers {
         return (cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.CompileName) + ".") + DtTypeName(cl, false);
       }
 
-      if (cl.EnclosingModuleDefinition.IsDefaultModule) {
+      if (cl.EnclosingModuleDefinition.IsDefaultModule && !forceFullName) {
         return IdProtect(cl.CompileName);
       }
 
