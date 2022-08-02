@@ -1,5 +1,3 @@
-- feat: `predicate P(x: Int): (y: bool) ...` is now a valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
-
 # Upcoming
 
 - fix: Use the right bitvector comparison in decrease checks
@@ -13,6 +11,7 @@
 - fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
 - fix: Check extreme predicates and constants in all types, not just classes
   (https://github.com/dafny-lang/dafny/pull/2515)
+- feat: `predicate P(x: Int): (y: bool) ...` is now a valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
 
 # 3.7.3
 
