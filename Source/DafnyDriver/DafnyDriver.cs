@@ -15,18 +15,17 @@ using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Linq;
+using Microsoft.Boogie;
+using Bpl = Microsoft.Boogie;
+using System.Diagnostics;
 
 namespace Microsoft.Dafny {
-  using System;
-  using System.Collections.Generic;
-  using System.Collections.ObjectModel;
-  using System.Diagnostics.Contracts;
-  using System.IO;
-  using System.Linq;
-
-  using Microsoft.Boogie;
-  using Bpl = Microsoft.Boogie;
-  using System.Diagnostics;
 
   public class DafnyDriver {
     public DafnyOptions Options { get; }
@@ -99,8 +98,7 @@ namespace Microsoft.Dafny {
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var dafnyOptions = new DafnyOptions();
-      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
+      var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       var driver = new DafnyDriver(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
@@ -151,17 +149,20 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(DafnyOptions options, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
-      options.RunningBoogieFromCommandLine = true;
       try {
-        if (!options.Parse(args)) {
+        options = CommandRegistry.Create(args);
+        if (options == null) {
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
+
+        options.RunningBoogieFromCommandLine = true;
       } catch (ProverException pe) {
-        options.Printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        new DafnyConsolePrinter().ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
