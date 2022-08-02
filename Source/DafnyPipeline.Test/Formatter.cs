@@ -498,6 +498,7 @@ datatype Color
   |   Green   |
       // Comment2
       Blue
+      // Blue docstring
 
 // Comment here
 datatype T =
