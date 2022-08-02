@@ -13,7 +13,7 @@ public class BitvectorOptimization : IRewriter {
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
     var visitor = new BitvectorOptimizationVisitor();
-    foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+    foreach (var decl in ModuleDefinition.AllItersAndCallables(m.TopLevelDecls)) {
       visitor.Visit(decl);
     }
   }
