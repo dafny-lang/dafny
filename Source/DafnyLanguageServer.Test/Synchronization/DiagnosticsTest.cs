@@ -18,6 +18,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
+
+    [TestMethod]
+    public async Task EmptyFileNoCodeWarning() {
+      var source = "";
+      //DafnyOptions.O.UseBaseNameForFileName = true;
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(new Range(0,0,0, 0), diagnostics[0].Range);
+    }
+
     [TestMethod]
     public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
       var source = @"
