@@ -76,12 +76,12 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version == "oldest"
+      if: matrix.target-language-version == 'oldest'
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
     - name: Set up newest supported JDK
-      if: matrix.target-language-version == "newest"
+      if: matrix.target-language-version == 'newest'
       uses: actions/setup-java@v1
       with:
         java-version: 18
