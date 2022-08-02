@@ -12,3 +12,15 @@ least predicate tautology2(x: int): (y: int) {
 greatest predicate tautology3(x: int): (y: int) {
   true
 }
+
+type MyBoolSynonym = bool
+
+predicate tautology1(x: int): (y: MyBoolSynonym) {
+  true
+}
+
+type AlwaysTrue = x: bool | x
+
+predicate tautology1(x: int): (y: AlwaysTrue) {
+  true
+}

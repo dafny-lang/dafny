@@ -859,9 +859,7 @@ namespace Microsoft.Dafny {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (f is Predicate || f is TwoStatePredicate || f is ExtremePredicate || f is PrefixPredicate) {
-          // the result type is tacitly "bool"
-        } else {
+        if (f.Result != null) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
