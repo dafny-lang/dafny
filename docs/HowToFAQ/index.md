@@ -45,24 +45,62 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."](FAQNoBody)
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
 - ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
+- ["How do labels in preconditions work?"](FAQPreconditionLabels)
+- ["What do attributes {:java "java", "lang"} mean? Where are attributes documented?"](FAQJavaAttribute) -- TODO 9/20/2021
+- ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
+- ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
+- ["Does Dafny have monadic error handling?"] -- TODO
+- ["What is the `:-` operator?"] - TODO
+- ["What is the meaning of and differences among `->`, `-->`, `~>`?"] - TODO
+- ["What is the difference between `function`, `method`, `function method`, and `function by method`?"] - TODO
+- ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
+- ["A `seq` is an object reference, right?"] - TODO
+- ["How do I pattern match against a head and tail of a sequence?"](FAQPatternMatchSeq)
 
 ## Dafny tools
 
 - ["Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?] - TODO
 - ["Is Dafny available as a library, to be called from other software?]() - TODO
-- ["Is there a standard library for Dafny?"]() - TODO
 - ["Running Dafny on my program works, but trying to run Boogie on the bpl output from Dafny fails. What command-line arguments for Boogie am I missing?] - TODO
 - ["When I try to compile and run the .jave file produced by Dafny, I get errors about missing packages. Where are they?"](FAQJava)
+- ["Does Dafny verify methods in parallel?"](FAQParallel)
+- ["Is there a doc generator for Dafny?"](FAQDocGenerator)
+- [TODO 11/5- FAQ or ERROR?]
+- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"] - TODO
+- ["How do I create a new empty map?"] - TODO
+- [TODO - Sorting, iteration 12/1/2021]
+- ["How does `:-` work? I'm getting an unexpected failure."] - TODO 12/7/2021
+- ["How does one define a record?"] - TODO - 1/5/2022
+- ["Why does Dafny complain about `set i: int | Contains(i)`"] - TODO 1/13/2022
+- ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
+- ["Is there a way to deconstruct a set in a match expression?] - TODO (element and rest)
+- ["Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?"](FAQNonlinearArith)
+- ["How do `{:split_here}` and `{:focus}` work to divide up a verification condition?"] - TODO - 1/7/2022
+- ["How does one declare a type to have a "default" initial value, say a type tagged with {:extern}?'] - TODO - 1/10/2022
+- ["A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Plesae explain."] - TODO
+- ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."] - TODO 332022
+- ["Are there functional alternatives to resursive calls that are more efficient or use less stack space?"] - TODO
+- ["How do I read a file as a string?"](FAQReadFile)
+- ["I can prove `!("a" <= "b")` but not `!("a" < "b")`. Why is that?] TODO
 
 ## Dafny Infrastructure
 
+- ["Is there a standard library for Dafny?"]() - TODO
 - ["Why do I need to use an old Z3?"](FAQZ3)
 - ["How do I ask a question or file a problem report or make a suggestion about Dafny?"() - TODO 
 - ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."]() - TODO
 - ["How do I use Dafny with Brazil?"] -- TODO
-
+- ["What compiler target langages are in development?"](FAQCompileTargets)
+- ["Is there a standard library for Dafny?"] - TODO
+- [ TODO - triggers 12/30/2021 ]
 
 # How-to cookbook
+- ["How does one define a record?"] - TODO
+- ["How do I create and use an iterator?] - TODO - 2/2/2022
+- ["How do I manually run a program compiled to Java?"] TODO
+- ["How do I manually run a program compiled to Go?"] TODO
+- ["How do I manually run a program compiled to Javascript?"] TODO
+- ["How do I manually run a program compiled to C#?"] TODO
 
 # Pitfalls
 
@@ -79,4 +117,9 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["type ? does not have a member IsFailure"] - TODO
 - ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
 - ["function precondition might not hold"](ERROR_SeqComp)
-- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads) -- TODO 8/25/2021
+- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads) -- TODO 8/25/2021, 1/12/2022, 1/26/2022
+- ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
+- ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
+- [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
+- ["Warning: File contains no code: ..."] TODO - no executable code
+- ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
