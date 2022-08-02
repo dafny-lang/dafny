@@ -78,12 +78,12 @@ namespace Microsoft.Dafny {
     public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
     /// <summary>
-    /// One indexed
+    /// One-indexed
     /// </summary>
     public int col { get; set; } // Used by coco, so we can't rename it to Col
 
     /// <summary>
-    /// One indexed
+    /// One-indexed
     /// </summary>
     public int line { get; set; } // Used by coco, so we can't rename it to Line
 

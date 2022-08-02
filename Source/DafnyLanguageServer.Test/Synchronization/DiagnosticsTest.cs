@@ -22,7 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
       var source = "";
-      //DafnyOptions.O.UseBaseNameForFileName = true;
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
