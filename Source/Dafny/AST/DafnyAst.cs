@@ -10822,12 +10822,12 @@ namespace Microsoft.Dafny {
 
   public class ConversionExpr : TypeUnaryExpr {
     public readonly string messagePrefix;
-    public ConversionExpr(IToken tok, Expression expr, Type toType, string msgPrefix = "")
+    public ConversionExpr(IToken tok, Expression expr, Type toType, string messagePrefix = "")
       : base(tok, expr, toType) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
-      messagePrefix = msgPrefix;
+      this.messagePrefix = messagePrefix;
     }
   }
 
