@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(new Range(0,0,0, 0), diagnostics[0].Range);
+      Assert.AreEqual(new Range(0, 0, 0, 0), diagnostics[0].Range);
     }
 
     [TestMethod]
