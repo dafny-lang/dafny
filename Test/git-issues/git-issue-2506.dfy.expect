@@ -1,0 +1,17 @@
+git-issue-2506.dfy(6,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
+git-issue-2506.dfy(10,33): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(13,41): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(15,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(27,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
+git-issue-2506.dfy(31,33): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(34,41): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(36,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(48,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
+git-issue-2506.dfy(52,33): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(55,41): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(57,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(69,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
+git-issue-2506.dfy(73,33): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(76,41): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(78,45): Error: a least predicate is not allowed to declare any ensures clause
+16 resolution/type errors detected in git-issue-2506.dfy

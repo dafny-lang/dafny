@@ -207,15 +207,17 @@ namespace Microsoft.Dafny {
       return bvNew;
     }
 
-    public VT CloneIVariable<VT>(VT v) where VT : IVariable {
+    public virtual LocalVariable CloneLocalVariable(LocalVariable local) {
+      return new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+    }
+    public virtual VT CloneIVariable<VT>(VT v) where VT : IVariable {
       var iv = (IVariable)v;
-      if (iv is Formal) {
-        iv = CloneFormal((Formal)iv);
-      } else if (iv is BoundVar) {
-        iv = CloneBoundVar((BoundVar)iv);
-      } else if (iv is LocalVariable) {
-        var local = (LocalVariable)iv;
-        iv = new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+      if (iv is Formal formal) {
+        iv = CloneFormal(formal);
+      } else if (iv is BoundVar boundVar) {
+        iv = CloneBoundVar(boundVar);
+      } else if (iv is LocalVariable localVariable) {
+        iv = CloneLocalVariable(localVariable);
       } else {
         Contract.Assume(false);  // unexpected IVariable
         iv = null;  // please compiler
@@ -337,7 +339,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
-        return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1));
+        return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1), Tok(e.CloseParen));
 
       } else if (expr is MultiSelectExpr) {
         var e = (MultiSelectExpr)expr;
@@ -353,11 +355,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), e.AtLabel);
+        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.CloseParen == null ? null : Tok(e.CloseParen), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), e.AtLabel);
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
-        return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr));
+        return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr), Tok(e.CloseParen));
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
@@ -485,7 +487,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual Expression CloneApplySuffix(ApplySuffix e) {
-      return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
+      return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), Tok(e.CloseParen));
     }
 
     public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
@@ -657,7 +659,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
+        var lhss = s.Locals.ConvertAll(c =>
+          CloneLocalVariable(c));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else if (stmt is VarDeclPattern) {
@@ -688,15 +691,16 @@ namespace Microsoft.Dafny {
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
-      if (pat is LitPattern) {
-        var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
-      } else if (pat is IdPattern) {
-        var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
-      } else {
-        Contract.Assert(false);
-        return null;
+      switch (pat) {
+        case LitPattern p:
+          return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
+        case IdPattern p:
+          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern), p.IsGhost, p.HasParenthesis);
+        case DisjunctivePattern p:
+          return new DisjunctivePattern(p.Tok, p.Alternatives.ConvertAll(CloneExtendedPattern), p.IsGhost);
+        default:
+          Contract.Assert(false);
+          return null;
       }
     }
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
@@ -1149,7 +1153,7 @@ namespace Microsoft.Dafny {
       foreach (var arg in e.Bindings.ArgumentBindings) {
         args.Add(CloneActualBinding(arg));
       }
-      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args);
+      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
       reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
       return apply;
     }
@@ -1162,7 +1166,7 @@ namespace Microsoft.Dafny {
       foreach (var binding in e.Bindings.ArgumentBindings) {
         args.Add(CloneActualBinding(binding));
       }
-      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args, e.AtLabel);
+      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
       reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
       return fexp;
     }
@@ -1350,7 +1354,7 @@ namespace Microsoft.Dafny {
           var args = new List<ActualBinding>();
           args.Add(new ActualBinding(null, k));
           apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-          var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args);
+          var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args, Tok(apply.CloseParen));
           var c = new ExprRhs(applyClone);
           reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
           return c;

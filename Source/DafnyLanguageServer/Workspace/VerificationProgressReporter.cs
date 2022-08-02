@@ -14,17 +14,6 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  /// The last [MaxLastTouchedMethods] recently modified methods will be
-  /// automatically assigned a priority ranging from
-  /// [MaxLastTouchedMethodPriority - MaxLastTouchedMethods + 1]
-  /// to [MaxLastTouchedMethodPriority] (below, from 6 to 10)
-  /// Since priorities range from 1 to infinite, the only requirement is
-  /// that [MaxLastTouchedMethods] is less than [MaxLastTouchedMethodPriority]
-  /// 10 is a nice priority, not too high so that it can be overriden easily
-  /// to always trigger the verifier to verify them first (for any reason) 
-  /// and not too low so that it's still possible to manually set up priorities 1-5 to
-  /// methods that are not being modified.
-  private const int MaxLastTouchedMethodPriority = 10;
   private const int MaxLastTouchedMethods = 5;
 
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
@@ -79,7 +68,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = document.GetFilePath();
+    var documentFilePath = document.Uri.ToString();
     foreach (var module in document.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
@@ -93,7 +82,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "datatype",
                 ctor.Name,
                 ctor.CompileName,
-                ctor.tok.filename,
+                ctor.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             }
@@ -101,7 +90,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.filename != documentFilePath;
+            var memberWasNotIncluded = member.tok.Filename != documentFilePath;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -115,7 +104,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "constant",
                 member.Name,
                 member.CompileName,
-                member.tok.filename,
+                member.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
@@ -124,7 +113,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.CompileName,
-                member.tok.filename,
+                member.tok.Filename,
                 verificationTreeRange);
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
@@ -133,7 +122,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   "by method part of function",
                   member.Name,
                   member.CompileName + "_by_method",
-                  member.tok.filename,
+                  member.tok.Filename,
                   verificationTreeRangeByMethod);
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
               }
@@ -141,7 +130,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           }
         }
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.filename != documentFilePath) {
+          if (subsetTypeDecl.tok.Filename != documentFilePath) {
             continue;
           }
           var verificationTreeRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
@@ -149,13 +138,23 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.CompileName,
-            subsetTypeDecl.tok.filename,
+            subsetTypeDecl.tok.Filename,
             verificationTreeRange);
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
       }
     }
     document.VerificationTree.Children = result;
+  }
+
+  public void UpdateLastTouchedMethodPositions() {
+    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
+      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
+    if (newlyTouchedVerificationTree != null) {
+      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
+      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+    }
   }
 
   /// <summary>
@@ -168,17 +167,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     if (document.LoadCanceled) {
       return;
     }
-    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
-    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
-    if (newlyTouchedVerificationTree != null) {
-      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
-    }
-
-    var positionToVerificationTree = document.VerificationTree.Children.ToImmutableDictionary(
-      verificationTree => verificationTree.Position,
-      verificationTree => verificationTree);
 
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
@@ -187,18 +175,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
 
     foreach (var implementation in implementations) {
-      var verificationTree = positionToVerificationTree!.GetValueOrDefault(implementation.tok.GetLspPosition(), null);
-      int priority = GetVerificationPriority(verificationTree);
-
-      if (priority > 0 && implementation.Priority < priority) {
-        implementation.Attributes.AddLast(
-          new QKeyValue(
-            implementation.tok,
-            "priority",
-            new List<object>() {
-              new Boogie.LiteralExpr(implementation.tok, BigNum.FromInt(priority))
-            }, null));
-      }
 
       var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
@@ -275,7 +251,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   /// <param name="implementation">The implementation which is going to be verified next</param>
-  public void ReportStartVerifyImplementation(Implementation implementation) {
+  public void ReportVerifyImplementationRunning(Implementation implementation) {
     if (document.LoadCanceled) {
       return;
     }
@@ -377,7 +353,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
           GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
-          if (token.filename != implementationNode.Filename) {
+          if (token.Filename != implementationNode.Filename) {
             return;
           }
 
@@ -392,7 +368,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           var nodeDiagnostic = new AssertionVerificationTree(
             $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
             $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
-            token.filename,
+            token.Filename,
             secondaryOutcomePosition,
             outcomeRange
           ) {
@@ -425,15 +401,15 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
-            null;
+            null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();
@@ -443,24 +419,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  /// <summary>
-  /// Returns the verification priority for a given method, depending on if it was recently modified
-  /// </summary>
-  /// <param name="method">The method to consider</param>
-  /// <returns>The automatically set priority for the underlying method, or 0</returns>
-  private int GetVerificationPriority(VerificationTree? method) {
-    if (method != null) {
-      var lastTouchedIndex = document.LastTouchedMethodPositions.IndexOf(method.Position);
-      // 0 if not found
-      if (lastTouchedIndex == -1) {
-        return 0;
-      }
-      var lastTouchedCount = document.LastTouchedMethodPositions.Count;
-      var priority = MaxLastTouchedMethodPriority + lastTouchedIndex + 1 - lastTouchedCount;
-      return priority;
-    }
-    return 0;
-  }
 
   /// <summary>
   /// Helper to remember that a method tree was recently modified.

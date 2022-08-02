@@ -22,7 +22,7 @@ namespace XUnitExtensions.Lit {
 
     public static ILitCommand Parse(string[] args) {
       if (args.Length != 2) {
-        throw new ArgumentException($"Wrong number of arguments for sed: {args}");
+        throw new ArgumentException($"Wrong number of arguments for sed: {args.Length}");
       }
       var regexpReplace = args[0];
 
@@ -38,7 +38,7 @@ namespace XUnitExtensions.Lit {
       return new SedCommand(regexp, replaceBy, file);
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       var fileContent = File.ReadAllText(file);
       try {
         var stdOutput = Regex.Replace(fileContent, "(?m)" + regexp, replaceBy);
