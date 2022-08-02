@@ -308,6 +308,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires inv(t)
   }
 
+  // TODO: Need custom compiler/runtime code to connect things like HashCode(), Equals() and ToString()
+  // to the native versions of those concepts, adjusting for names and native string types.
+  // How to deal with iteration?
+  //
   // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Would also be good to assert that seq<T> is only used in specifications.
@@ -344,6 +348,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
     {
       // TODO: Can we use compiled seq<T> values like this?
+      // TODO: Need to track whether this is a seq<char> at runtime
       ret := "[";
       for i := 0 to Length() {
         if i != 0 {

@@ -38,7 +38,7 @@ public class JavaArray<T> implements Arrays.Array<T>, ImmutableArray<T> {
   }
 
   @Override
-  public void WriteRangeArray(BigInteger start, ImmutableArray<T> other) {
+  public void UpdateSubarray(BigInteger start, ImmutableArray<T> other) {
     JavaArray<T> otherJavaArray = (JavaArray<T>)other;
     int length = other.Length().intValue();
     int startInt = start.intValue();
