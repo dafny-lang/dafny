@@ -5,6 +5,12 @@ module WithWarning {
   datatype Color = Red | Green | ShadesOfGray(nat)
   datatype Identity<T> = Identity(value: T)
   datatype Colors = Yellow | Blue
+  datatype T = A | B
+  method M(t: T) { 
+    match t
+      case A => print "A";
+      case B => print "B";
+  }
   function method Foo(value: Identity<Colors>): bool {
     match value {
       case Identity(Yellow()) => true
@@ -41,6 +47,12 @@ module WithoutWarning {
   datatype Color = Red | Green | ShadesOfGray(nat)
   datatype Identity<T> = Identity(value: T)
   datatype Colors = Yellow | Blue
+  datatype T = A | B
+    method M(t: T) { 
+      match t
+        case A() => print "A";
+        case B() => print "B";
+    }
   function method Foo(value: Identity<Colors>): bool {
     match value {
       case Identity(Yellow()) => true
