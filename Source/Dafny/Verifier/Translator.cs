@@ -7745,7 +7745,7 @@ namespace Microsoft.Dafny {
         } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
         } else if (f is SpecialField && !(f is DatatypeDestructor)) {
-          if (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items") {
+          if (f.Name is "Keys" or "Values" or "Items") {
             Contract.Assert(f.Type is SetType);
             var setType = (SetType)f.Type;
             return f.Name switch {
@@ -7754,17 +7754,18 @@ namespace Microsoft.Dafny {
               _ => setType.Finite ? predef.MapItems : predef.IMapItems
             };
           }
-        } else if (f is SpecialField && f.Name == "IsLimit") {
-          return predef.ORDINAL_IsLimit;
-        } else if (f is SpecialField && f.Name == "IsSucc") {
-          return predef.ORDINAL_IsSucc;
-        } else if (f is SpecialField && f.Name == "Offset") {
-          return predef.ORDINAL_Offset;
-        } else if (f is SpecialField && f.Name == "IsNat") {
-          return predef.ORDINAL_IsNat;
-        } else if (f is SpecialField && f.FullSanitizedName == "_System.Tuple2._0") {
+          if (f.Name == "IsLimit") {
+            return predef.ORDINAL_IsLimit;
+          } else if (f.Name == "IsSucc") {
+            return predef.ORDINAL_IsSucc;
+          } else if (f.Name == "Offset") {
+            return predef.ORDINAL_Offset;
+          } else if (f.Name == "IsNat") {
+            return predef.ORDINAL_IsNat;
+          }
+        } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return predef.Tuple2Destructors0;
-        } else if (f is SpecialField && f.FullSanitizedName == "_System.Tuple2._1") {
+        } else if (f.FullSanitizedName == "_System.Tuple2._1") {
           return predef.Tuple2Destructors1;
         }
 
