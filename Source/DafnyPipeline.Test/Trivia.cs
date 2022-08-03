@@ -97,14 +97,13 @@ ensures true
 
         AssertTrivia(trait1, "\n/** Trait docstring */\n", " ");
         AssertTrivia(moduleTest, "\n// Comment before\n", " // Module docstring\n");
-        AssertTrivia(trait1, "/** Trait docstring */\n", " ");
-        AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
-        AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
-        AssertTrivia(class1, "// Just a comment\n", "\n// Class docstring\n");
-        AssertTrivia(c, "// Comment attached to c\n", "\n// Docstring attached to c\n\n");
-        AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
-        AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
-        AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+        AssertTrivia(trait2, "\n// Just a comment\n", "\n// Trait docstring\n");
+        AssertTrivia(subsetType, "\n// This is attached to n\n", "\n// This is attached to n as well\n");
+        AssertTrivia(class1, "\n// Just a comment\n", "\n// Class docstring\n");
+        AssertTrivia(c, "\n// Comment attached to c\n", "\n// Docstring attached to c\n");
+        AssertTrivia(f, "\n// This is attached to f\n", "\n// This is f docstring\n");
+        AssertTrivia(g, "\n/** This is the docstring */\n", "\n// This is not the docstring\n");
+        AssertTrivia(m, "\n// Just a regular comment\n", "\n// This is the docstring\n");
       }
     }
 

@@ -486,10 +486,11 @@ public class Scanner {
         }
         lastWasCr = (ch == '\r');
       }
+      var prevPos = pos;
       NextCh();
-      if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || !lastWasCr)) {
+      if(triviaTrailing && triviaNewlines == 2) {
         triviaTrailing = false;
-        posTrailingEndLeadingStart = pos;
+        posTrailingEndLeadingStart = prevPos;
       }
     }
 -->scan2
