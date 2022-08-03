@@ -3183,6 +3183,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
@@ -10821,11 +10822,13 @@ namespace Microsoft.Dafny {
   }
 
   public class ConversionExpr : TypeUnaryExpr {
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public readonly string messagePrefix;
+    public ConversionExpr(IToken tok, Expression expr, Type toType, string messagePrefix = "")
       : base(tok, expr, toType) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
+      this.messagePrefix = messagePrefix;
     }
   }
 
@@ -11131,8 +11134,8 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();  // unexpected operator
       }
     }
-    public readonly Expression E0;
-    public readonly Expression E1;
+    public Expression E0;
+    public Expression E1;
     public enum AccumulationOperand { None, Left, Right }
     public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
     [ContractInvariantMethod]
@@ -12745,6 +12748,16 @@ namespace Microsoft.Dafny {
     public ParensExpression(IToken tok, Expression e)
       : base(tok) {
       E = e;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression == null) {
+          yield return E;
+        } else {
+          yield return ResolvedExpression;
+        }
+      }
     }
   }
 
