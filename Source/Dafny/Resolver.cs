@@ -2042,6 +2042,7 @@ namespace Microsoft.Dafny {
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
             new List<Formal>(),
+            null,
             new List<AttributedExpression>(),
             new List<FrameExpression>(),
             new List<AttributedExpression>(),
