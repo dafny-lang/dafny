@@ -305,12 +305,12 @@ bool IsParenIdentsColon() {
     return false;
   }
   x = scanner.Peek();
-  var oneIdentifier = false;
+  var oneOrMoreIdentifiers = false;
   while(IsIdentifier(x.kind)) {
     x = scanner.Peek();
-    oneIdentifier = true;
+    oneOrMoreIdentifiers = true;
   }
-  return oneIdentifier && x.kind == _colon;
+  return oneOrMoreIdentifiers && x.kind == _colon;
 }
 
 bool IsGets() {
