@@ -859,7 +859,7 @@ namespace Microsoft.Dafny {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (f.Result != null) {
+        if (f.Result != null || (f is not Predicate && f is not ExtremePredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
