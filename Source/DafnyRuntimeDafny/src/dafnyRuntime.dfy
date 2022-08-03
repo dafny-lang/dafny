@@ -60,9 +60,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   //    code amenable to such optimizations. :)
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
-  // Has {:termination false} just so we can provide a feasibility implementation
-  // in a different file.
-  //
   // TODO: This could be a class instead, since it doesn't require variance
   trait {:extern} Array<T> extends Validatable {
 
@@ -89,7 +86,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
       ensures Select(i) == t
 
-    // TODO: Might want a copy that takes a Vector as well
     method UpdateSubarray(start: nat, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
@@ -119,6 +115,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ensures ret.Valid()
     ensures fresh(ret.Repr)
     ensures ret.Length() == length
+
+  method {:extern} CopyArray<T>(other: ImmutableArray<T>) returns (ret: Array<T>)
+    ensures ret.Valid()
+    ensures fresh(ret.Repr)
+    ensures ret.values == other.CellValues()
 
   // Separate type in order to have a type without a Valid()
   // that reads {}.
@@ -420,88 +421,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       || e is ConcatSequence<T>
       || e is LazySequence<T>
 
-  // Methods that must be static because they require T to be equality-supporting
-
-  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: nat) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    requires index <= left.Length()
-    requires index <= right.Length()
-    ensures ret == (left.Value()[..index] == right.Value()[..index])
-  {
-    for i := 0 to index
-      invariant left.Value()[..i] == right.Value()[..i]
-    {
-      var leftElement := left.Select(i);
-      var rightElement := right.Select(i);
-      if leftElement != rightElement {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  method EqualSequences<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() == right.Value())
-  {
-    if left.Length() != right.Length() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Length());
-  }
-
-  method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() <= right.Value())
-  {
-    if right.Length() < left.Length() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Length());
-  }
-
-  method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() < right.Value())
-  {
-    if right.Length() <= left.Length() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Length());
-  }
-
-
-  predicate Contains<T(==)>(s: Sequence<T>, t: T)
-    requires s.Valid()
-  {
-    t in s.Value()
-  } by method {
-    for i := 0 to s.Length() 
-      invariant t !in s.Value()[..i]
-    {
-      var element := s.Select(i);
-      if element == t {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Methods that must be static because they use T as an in-parameter
-
-  method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret.Valid()
-  {
-    var c := new ConcatSequence(left, right);
-    ret := new LazySequence(c);
-  }
-
   class ArraySequence<T> extends Sequence<T> {
     const value: ImmutableArray<T>
 
@@ -752,5 +671,100 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       var arraySeq := new ArraySequence(ret);
       box.Put(arraySeq);
     }
+  }
+
+  // Sequence methods that must be static because they require T to be equality-supporting
+
+  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: nat) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    requires index <= left.Length()
+    requires index <= right.Length()
+    ensures ret == (left.Value()[..index] == right.Value()[..index])
+  {
+    for i := 0 to index
+      invariant left.Value()[..i] == right.Value()[..i]
+    {
+      var leftElement := left.Select(i);
+      var rightElement := right.Select(i);
+      if leftElement != rightElement {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  method EqualSequences<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() == right.Value())
+  {
+    if left.Length() != right.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+  method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() <= right.Value())
+  {
+    if right.Length() < left.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+  method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret == (left.Value() < right.Value())
+  {
+    if right.Length() <= left.Length() {
+      return false;
+    }
+    ret := EqualUpTo(left, right, left.Length());
+  }
+
+
+  predicate Contains<T(==)>(s: Sequence<T>, t: T)
+    requires s.Valid()
+  {
+    t in s.Value()
+  } by method {
+    for i := 0 to s.Length() 
+      invariant t !in s.Value()[..i]
+    {
+      var element := s.Select(i);
+      if element == t {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Sequence methods that must be static because they use T as an in-parameter
+
+  method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
+    requires left.Valid()
+    requires right.Valid()
+    ensures ret.Valid()
+  {
+    var c := new ConcatSequence(left, right);
+    ret := new LazySequence(c);
+  }
+
+  method Update<T>(s: Sequence<T>, i: nat, t: T) returns (ret: Sequence<T>)
+    requires s.Valid()
+    requires i < s.Length()
+    ensures ret.Valid()
+    ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
+  {
+    var a := s.ToArray();
+    var newValue := CopyArray(a);
+    newValue.Update(i, t);
+    var newValueFrozen := newValue.Freeze(newValue.Length());
+    ret := new ArraySequence(newValueFrozen);
   }
 }
