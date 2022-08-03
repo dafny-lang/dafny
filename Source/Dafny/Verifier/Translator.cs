@@ -7744,15 +7744,15 @@ namespace Microsoft.Dafny {
           return predef.ArrayLength;
         } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if (f is SpecialField && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) {
-          Contract.Assert(f.Type is SetType);
-          var setType = (SetType)f.Type;
-          if (f.Name == "Keys") {
-            return setType.Finite ? predef.MapDomain : predef.IMapDomain;
-          } else if (f.Name == "Values") {
-            return setType.Finite ? predef.MapValues : predef.IMapValues;
-          } else {
-            return setType.Finite ? predef.MapItems : predef.IMapItems;
+        } else if (f is SpecialField && !(f is DatatypeDestructor)) {
+          if (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items") {
+            Contract.Assert(f.Type is SetType);
+            var setType = (SetType)f.Type;
+            return f.Name switch {
+              "Keys" => setType.Finite ? predef.MapDomain : predef.IMapDomain,
+              "Values" => setType.Finite ? predef.MapValues : predef.IMapValues,
+              _ => setType.Finite ? predef.MapItems : predef.IMapItems
+            };
           }
         } else if (f is SpecialField && f.Name == "IsLimit") {
           return predef.ORDINAL_IsLimit;
@@ -7762,9 +7762,9 @@ namespace Microsoft.Dafny {
           return predef.ORDINAL_Offset;
         } else if (f is SpecialField && f.Name == "IsNat") {
           return predef.ORDINAL_IsNat;
-        } else if (f.FullSanitizedName == "_System.Tuple2._0") {
+        } else if (f is SpecialField && f.FullSanitizedName == "_System.Tuple2._0") {
           return predef.Tuple2Destructors0;
-        } else if (f.FullSanitizedName == "_System.Tuple2._1") {
+        } else if (f is SpecialField && f.FullSanitizedName == "_System.Tuple2._1") {
           return predef.Tuple2Destructors1;
         }
 
