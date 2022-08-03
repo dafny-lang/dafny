@@ -44,6 +44,15 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
     }
     return base.VisitOneExpr(expr, ref st);
   }
+  protected override bool VisitOneStmt(Statement stmt, ref Unit st) {
+    if (stmt is NestedMatchStmt matchStmt) {
+      var matchStmtCases = matchStmt.Cases;
+      foreach (var caseStmt in matchStmtCases) {
+        CheckPattern(caseStmt.Pat);
+      }
+    }
+    return base.VisitOneStmt(stmt, ref st);
+  }
   private void CheckPattern(ExtendedPattern pattern) {
     if (pattern is not IdPattern idPattern) {
       return;

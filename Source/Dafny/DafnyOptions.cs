@@ -519,7 +519,7 @@ namespace Microsoft.Dafny {
           PrintTooltips = true;
           return true;
 
-        case "warnMissingConstructorParenthesis":
+        case "warnMissingConstructorParentheses":
           DisallowConstructorCaseWithoutParenthesis = true;
           return true;
 
