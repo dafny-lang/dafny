@@ -37,35 +37,30 @@ class DocumentObserver : IObserver<DafnyDocument> {
   }
 
   public void OnError(Exception exception) {
-    if (exception is TaskCanceledException) {
-      OnCompleted();
-    } else {
-      if (exception is OperationCanceledException) {
-        logger.LogWarning(exception, "document processing cancelled.");
-        return;
-      }
-
-      var previousDiagnostics = LastPublishedDocument.LoadCanceled
-        ? new Diagnostic[] { }
-        : LastPublishedDocument.ParseAndResolutionDiagnostics;
-      var internalErrorDiagnostic = new Diagnostic() {
-        Message =
-          "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
-          exception,
-        Severity = DiagnosticSeverity.Error,
-        Range = LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange(),
-        Source = "Crash"
-      };
-      var documentToPublish = LastPublishedDocument with {
-        LoadCanceled = false,
-        ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
-      };
-
-      OnNext(documentToPublish);
-
-      logger.LogError(exception, "error while handling document event");
-      telemetryPublisher.PublishUnhandledException(exception);
+    if (exception is OperationCanceledException) {
+      logger.LogWarning(exception, "document processing cancelled.");
+      return;
     }
+
+    var previousDiagnostics = LastPublishedDocument.LoadCanceled
+      ? new Diagnostic[] { }
+      : LastPublishedDocument.ParseAndResolutionDiagnostics;
+    var internalErrorDiagnostic = new Diagnostic {
+      Message =
+        "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
+        exception,
+      Severity = DiagnosticSeverity.Error,
+      Range = LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange()
+    };
+    var documentToPublish = LastPublishedDocument with {
+      LoadCanceled = false,
+      ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
+    };
+
+    OnNext(documentToPublish);
+
+    logger.LogError(exception, "error while handling document event");
+    telemetryPublisher.PublishUnhandledException(exception);
   }
 
   private readonly object lastPublishedDocumentLock = new();

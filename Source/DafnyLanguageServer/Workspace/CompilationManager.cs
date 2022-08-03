@@ -20,7 +20,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 /// <summary>
 /// Manages the compilation of a single document version.
-/// Agnostic to document updates. Does not handle migration of old document state.
+/// The document will be parsed, resolved, translated to Boogie and verified.
+///
+/// CompilationManager may be configured to pause after translation,
+/// requiring a call to CompilationManager.Verify for the document to be verified.
+///
+/// CompilationManager is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
 public class CompilationManager {
 

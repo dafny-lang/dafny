@@ -32,7 +32,7 @@ public class DocumentManager {
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
-  public Task<DafnyDocument?> LastDocumentAsync => CompilationManager.LastDocument!;
+  public Task<DafnyDocument> LastDocumentAsync => CompilationManager.LastDocument;
 
   public DocumentManager(
     IServiceProvider services,
@@ -120,10 +120,7 @@ public class DocumentManager {
     var migratedViews = document.ImplementationIdToView?.Select(kv => {
       var value = kv.Value.Status < PublishedVerificationStatus.Error
         ? kv.Value with {
-          Diagnostics = migratedImplementationViews != null &&
-                        migratedImplementationViews.TryGetValue(kv.Key, out var previousView)
-            ? previousView.Diagnostics
-            : kv.Value.Diagnostics
+          Diagnostics = migratedImplementationViews?.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
         }
         : kv.Value;
       return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
@@ -151,10 +148,9 @@ public class DocumentManager {
   }
 
   public void Save() {
-    if (!VerifyOnSave) {
-      return;
+    if (VerifyOnSave) {
+      CompilationManager.Verify();
     }
-    CompilationManager.Verify();
   }
 
   public async Task CloseAsync() {

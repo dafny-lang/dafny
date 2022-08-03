@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.LastDocumentAsync;
+        return databaseEntry.LastDocumentAsync!;
       }
       return Task.FromResult<DafnyDocument?>(null);
     }
