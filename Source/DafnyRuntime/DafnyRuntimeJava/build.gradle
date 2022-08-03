@@ -22,15 +22,6 @@ tasks.withType(JavaCompile) {
     options.compilerArgs += ['-Xlint:unchecked']
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs 'src/main/java'
-            srcDirs 'src/main/generated-java'
-        }
-    }
- }
-
 test {
     useJUnitPlatform()
 }
