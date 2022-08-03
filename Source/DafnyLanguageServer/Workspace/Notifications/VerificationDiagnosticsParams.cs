@@ -143,11 +143,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// The verification status consists of two orthogonal concepts:
   /// - StatusVerification: Nothing (initial), Error, Verified, or Inconclusive
   /// - StatusCurrent: Current (Up-to-date), Obsolete (outdated), and Verifying (as notified by the verifier)
+  ///
+  /// The difference between "Range" and "Position" is that "Range" contains two positions that include the entire tree,
+  /// whereas "Position" is a single position that uniquely determines the range, e.g. a symbol position.
+  /// That position typically serves as an placeholder to uniquely determine a method.
+  ///  
+  /// For example:
+  /// 
+  ///     method Test() {}
+  ///     ^Range.Start   ^Range.End
+  ///            ^ Position 
   /// </summary>
   /// <param name="DisplayName">A user-facing name of this node, to be displayed in an IDE explorer</param>
   /// <param name="Identifier">A unique identifier, to be used by the IDE to request re-verification</param>
   /// <param name="Filename">The name of the file this region of the document is contained in</param>
   /// <param name="Range">The range of this region of the document</param>
+  /// <param name="Position">The position that uniquely identify this range</param>
   public record VerificationTree(
      // Method, Function, Subset type, Constant, Document, Assertion...
      string Kind,
@@ -156,9 +167,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
-     // The range of this node. Used to rendering
+     // The start and end of this verification tree
      Range Range,
-     // The position of this node as believed by Boogie (i.e. the symbol name)
+     // The position of the symbol name attached to this node, or Range.Start if it's anonymous
      Position Position
   ) {
     public string PrefixedDisplayName => Kind + " " + DisplayName;
