@@ -7800,7 +7800,9 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
-            sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            if (!Attributes.Contains(cf.Attributes, "opaque")) {
+              sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            }
           }
           sink.AddTopLevelDeclaration(ff);
 

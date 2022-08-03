@@ -419,6 +419,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
+      rewriters.Add(new OpaqueConstRewriter(this.reporter));
       rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
@@ -11088,6 +11089,8 @@ namespace Microsoft.Dafny {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
+            } else if (expr is NameSegment n) {
+              ResolveNameSegment(n, true, null, opts, true);
             } else {
               ResolveExpression(expr, opts);
             }
