@@ -299,17 +299,18 @@ bool IsAlternative() {
       || la.kind == _case;
 }
 
-bool IsParenIdentColon() {
+bool IsParenIdentsColon() {
   IToken x = la;
   if(x.kind != _openparen) {
     return false;
   }
   x = scanner.Peek();
-  if(!IsIdentifier(x.kind)) {
-    return false;
+  var oneIdentifier = false;
+  while(IsIdentifier(x.kind)) {
+    x = scanner.Peek();
+    oneIdentifier = true;
   }
-  x = scanner.Peek();
-  return x.kind == _colon;
+  return oneIdentifier && x.kind == _colon;
 }
 
 bool IsGets() {
@@ -2335,7 +2336,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false> ]
       Formals<true, true, isTwoState, true, formals>
       ":"
-      (  IF(IsParenIdentColon())
+      (  IF(IsParenIdentsColon())
          "("
            GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
@@ -2605,7 +2606,7 @@ PredicateResult<string name, out Formal? result>
      result = null;
   .)
   ":"
-  (  IF(IsParenIdentColon())
+  (  IF(IsParenIdentsColon())
      "("
        GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
