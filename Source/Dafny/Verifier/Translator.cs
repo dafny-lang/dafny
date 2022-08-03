@@ -6044,7 +6044,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran);
         if (e is ConversionExpr) {
           var ee = (ConversionExpr)e;
-          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran);
+          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
