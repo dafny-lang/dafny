@@ -102,6 +102,7 @@ public class HelperString {
 }
 
 public class IndentationFormatter : TokenFormatter.ITokenIndentations {
+  public static int SpaceTab = 2;
 
   public Dictionary<int, int> PosToIndentBefore;
   public Dictionary<int, int> PosToIndentLineBefore;
@@ -189,11 +190,11 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void MarkMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
-    var indent2 = indent + 2;
+    var indent2 = indent + SpaceTab;
     if (startToken.val != "{") {
       SetIndentations(startToken, indent, indent, indent2);
     }
-    var rightIndent = indent2 + 2;
+    var rightIndent = indent2 + SpaceTab;
     var commaIndent = indent2;
     foreach (var token in ownedTokens) {
       if (token.val is "{") {
@@ -201,7 +202,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
       if (token.val is "<" or "[" or "(") {
         if (IsFollowedByNewline(token)) {
-          rightIndent = indent2 + 2;
+          rightIndent = indent2 + SpaceTab;
           commaIndent = indent2;
           SetIndentations(token, commaIndent, commaIndent, rightIndent);
         } else {
@@ -289,15 +290,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         switch (field) {
           case ConstantField constantField:
             var ownedTokens = constantField.OwnedTokens;
-            var commaIndent = indent + 2;
-            var rightIndent = indent + 2;
+            var commaIndent = indent + SpaceTab;
+            var rightIndent = indent + SpaceTab;
             foreach (var token in ownedTokens) {
               switch (token.val) {
                 case ":=": {
                     if (IsFollowedByNewline(token)) {
                       SetDelimiterInsideIndentedRegions(token, indent);
                     } else {
-                      SetAlign(indent + 2, token, out rightIndent, out commaIndent);
+                      SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
                     }
                     break;
                   }
@@ -375,15 +376,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     // TODO: Body here
     indent = savedIndent;
     if (member.BodyEndTok.line > 0) {
-      SetIndentations(member.BodyEndTok, indent + 2, indent, indent);
+      SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
     }
 
     PosToIndentAfter[member.EndToken.pos] = indent;
   }
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    var indent2 = indent + 2;
-    var indent4 = indent + 2;
+    var indent2 = indent + SpaceTab;
+    var indent4 = indent + SpaceTab;
     if (topLevelDecl.StartToken.line > 0) {
       SetOpeningIndentedRegion(topLevelDecl.BodyStartTok, indent);
     }
@@ -394,7 +395,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
       if (declWithMembers is DatatypeDecl datatypeDecl) {
         var verticalBarIndent = indent2;
-        var rightOfVerticalBarIndent = indent2 + 2;
+        var rightOfVerticalBarIndent = indent2 + SpaceTab;
         var commaIndent = indent2;
         var rightIndent = indent2;
         foreach (var token in datatypeDecl.OwnedTokens) {
@@ -411,9 +412,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 if (IsFollowedByNewline(token)) {
                   SetOpeningIndentedRegion(token, rightOfVerticalBarIndent);
                   commaIndent = rightOfVerticalBarIndent;
-                  rightIndent = commaIndent + 2;
+                  rightIndent = commaIndent + SpaceTab;
                 } else {
-                  SetAlign(rightOfVerticalBarIndent + 2, token, out rightIndent, out commaIndent);
+                  SetAlign(rightOfVerticalBarIndent + SpaceTab, token, out rightIndent, out commaIndent);
                 }
                 break;
               }
@@ -531,7 +532,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             var specification = false;
             for (var i = 1; i < ownedTokens.Count; i++) {
               if (specification) {
-                formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + 2);
+                formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + SpaceTab);
               }
 
               if (ownedTokens[i].val == "to") {
@@ -552,8 +553,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case AssignOrReturnStmt:
         case UpdateStmt: {
             var ownedTokens = stmt.OwnedTokens;
-            var rightIndent = indent + 2;
-            var commaIndent = indent + 2;
+            var rightIndent = indent + SpaceTab;
+            var commaIndent = indent + SpaceTab;
             foreach (var token in ownedTokens) {
               switch (token.val) {
                 case ",":
@@ -565,7 +566,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                   if (IsFollowedByNewline(token)) {
                     formatter.SetDelimiterInsideIndentedRegions(token, indent);
                   } else {
-                    formatter.SetAlign(indent + 2, token, out rightIndent, out commaIndent);
+                    formatter.SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
                   }
 
                   break;
@@ -586,8 +587,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case RevealStmt:
         case PrintStmt: {
             var ownedTokens = stmt.OwnedTokens;
-            var commaIndent = indent + 2;
-            var innerIndent = indent + 2;
+            var commaIndent = indent + SpaceTab;
+            var innerIndent = indent + SpaceTab;
             foreach (var token in ownedTokens) {
               switch (token.val) {
                 case "reveal":
@@ -654,15 +655,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private void ApplyMatchFormatting(int indent, List<IToken> ownedTokens) {
       var matchCaseNoIndent = false;
       var caseIndent = indent;
-      var afterArrowIndent = indent + 2;
+      var afterArrowIndent = indent + SpaceTab;
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "match":
             formatter.SetOpeningIndentedRegion(token, indent);
             break;
           case "{":
-            caseIndent = indent + 2;
-            afterArrowIndent = indent + 4;
+            caseIndent = indent + SpaceTab;
+            afterArrowIndent = caseIndent + SpaceTab;
             formatter.SetDelimiterIndentedRegions(token, indent);
             break;
           case "}":
@@ -714,8 +715,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     private void ApplyVarAssignFormatting(int indent, List<IToken> ownedTokens) {
-      var commaIndent = indent + 2;
-      var rightIndent = indent + 2;
+      var commaIndent = indent + SpaceTab;
+      var rightIndent = indent + SpaceTab;
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "var":
@@ -733,9 +734,11 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case ":-":
           case ":=":
             if (!IsFollowedByNewline(token)) {
-              formatter.SetAlign(indent + 2, token, out rightIndent, out commaIndent);
+              formatter.SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
             } else {
               formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              commaIndent = indent + SpaceTab;
+              rightIndent = indent + SpaceTab;
             }
 
             break;
@@ -753,7 +756,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       for (var i = 1; i < ownedTokens.Count; i++) {
-        formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + 2);
+        formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + SpaceTab);
       }
 
       formatter.SetDelimiterIndentedRegions(body.Tok, indent);
@@ -800,7 +803,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             c++;
           }
 
-          var conjunctExtraIndent = c + 2;
+          var conjunctExtraIndent = c + SpaceTab;
           binOpIndent = indent;
           binOpArgIndent = indent + conjunctExtraIndent;
           formatter.SetIndentations(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
@@ -830,7 +833,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   /// if       // line not indented
   ///   x == 2 // Line indented
   private void SetOpeningIndentedRegion(IToken token, int indent) {
-    SetIndentations(token, indent, indent, indent + 2);
+    SetIndentations(token, indent, indent, indent + SpaceTab);
   }
 
   /// For example, a "," keyword in a specially indented list:
@@ -853,7 +856,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   /// else     // line not indented
   ///   x == 2 // Line indented
   private void SetDelimiterIndentedRegions(IToken token, int indent) {
-    SetIndentations(token, indent + 2, indent, indent + 2);
+    SetIndentations(token, indent + SpaceTab, indent, indent + SpaceTab);
   }
 
   /// For example, a ":=" token in an update statement
@@ -865,7 +868,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   ///   1, 2
   /// 
   private void SetDelimiterInsideIndentedRegions(IToken token, int indent) {
-    SetIndentations(token, indent + 2, indent + 2, indent + 2);
+    SetIndentations(token, indent + SpaceTab, indent + SpaceTab, indent + SpaceTab);
   }
 
   /// For example, a closing brace
@@ -875,7 +878,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   /// } // not indented
   /// // not indented
   private void SetClosingIndentedRegion(IToken token, int indent) {
-    SetIndentations(token, indent + 2, indent, indent);
+    SetIndentations(token, indent + SpaceTab, indent, indent);
   }
 
   /// For example, a semicolon
@@ -885,7 +888,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   ///   ; // indented
   /// // not indented
   private void SetClosingIndentedRegionInside(IToken token, int indent) {
-    SetIndentations(token, indent + 2, indent + 2, indent);
+    SetIndentations(token, indent + SpaceTab, indent + SpaceTab, indent);
   }
 
 

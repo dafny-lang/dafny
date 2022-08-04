@@ -17,7 +17,7 @@ namespace DafnyPipeline.Test {
 
     private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
-    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S)[ \t]+(?=\r?\n|\r(?!\n))");
+    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S|\r|\n)[ \t]+(?=\r?\n|\r(?!\n))");
 
     private Newlines currentNewlines;
 
