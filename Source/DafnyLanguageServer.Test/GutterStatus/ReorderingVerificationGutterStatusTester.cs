@@ -108,7 +108,7 @@ method m5() { assert false; } //Remove4:
     "m3 m1 m2 m4 m5\n" +
     "m4 m3 m1 m2 m5\n" +
     "null\n" +
-    "migrated\n" +
+    "null\n" +
     "m2 m4 m3 m1"
   );
   }
