@@ -13,6 +13,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 [TestClass]
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  [TestMethod]
+  public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
+    var source = "method m1() {}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, status1.NamedVerifiables.Count);
+
+    ApplyChange(ref documentItem, new Range(0,0,0,0), "\n");
+
+    var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, status2.NamedVerifiables.Count);
+  }
 
   [TestMethod]
   public async Task NoVerificationStatusPublishedForUnparsedDocument() {

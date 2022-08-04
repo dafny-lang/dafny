@@ -28,23 +28,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
-      if (!document.WasResolved) {
+      var notification = GetFileVerificationStatus(document);
+      if (notification == null) {
         return;
       }
 
-      var notification = GetFileVerificationStatus(document);
       var previous = GetFileVerificationStatus(previousDocument);
-      if (previous.Version > notification.Version ||
-          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+      if (previous != null && (previous.Version > notification.Version ||
+          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables))) {
         return;
       }
 
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
+    private static FileVerificationStatus? GetFileVerificationStatus(DafnyDocument document) {
+      if (document.ImplementationIdToView == null || document.VerificationTasks == null) {
+        return null;
+      }
       return new FileVerificationStatus(document.Uri, document.Version,
-        GetNamedVerifiableStatuses(document.ImplementationIdToView ?? (IReadOnlyDictionary<ImplementationId, ImplementationView>)new Dictionary<ImplementationId, ImplementationView>()));
+        GetNamedVerifiableStatuses(document.ImplementationIdToView));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
