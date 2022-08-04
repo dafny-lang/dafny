@@ -110,6 +110,7 @@ namespace Microsoft.Dafny {
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public bool DisallowConstructorCaseWithoutParenthesis = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
@@ -518,6 +519,10 @@ namespace Microsoft.Dafny {
           PrintTooltips = true;
           return true;
 
+        case "warnMissingConstructorParenthesis":
+          DisallowConstructorCaseWithoutParenthesis = true;
+          return true;
+
         case "autoTriggers": {
             int autoTriggers = 0;
             if (ps.GetIntArgument(ref autoTriggers, 2)) {
@@ -884,7 +889,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:no_inline}
-      TODO
+      When predicates such as `predicate P(x: int) { x % 2 == 0 }`
+      are used in assertions like `assert P(6);`, Dafny
+      will by default try to figure out if it can split the call
+      into multiple assertions that are easier for the verifier.
+      Hence, sometimes, if allowed to do so (e.g. no `{:opaque}`),
+      Dafny will inline the predicate, resulting in, for example,
+      `assert 6 % 2 == 0`.
+      
+      Adding the attribute `{:no_inline}` to a function will prevent
+      the Dafny verifier from inlining it, but unless the function is
+      `{:opaque}` its definition will still be available.
+      
+      This trick can be helpful, for a huge conjunct predicate `P`,
+      assuming that `P(x)` already hold, if we don't want `P`
+      to be opaque, and we `assert P(x)` again. Inlining might result
+      in performance issues because it will have to infer every single
+      conjunct. Adding `{:no_inline}` to the predicate can result
+      in such cases in the verifier being faster.
 
     {:nowarn}
       TODO
@@ -1076,6 +1098,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /warnShadowing  Emits a warning if the name of a declared variable caused another variable
     to be shadowed
+/warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
+    is not followed by parentheses
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features

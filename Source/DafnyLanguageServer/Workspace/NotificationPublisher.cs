@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -27,6 +28,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
+      if (!document.WasResolved) {
+        return;
+      }
+
       var notification = GetFileVerificationStatus(document);
       var previous = GetFileVerificationStatus(previousDocument);
       if (previous.Version > notification.Version ||
@@ -38,7 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
-      return new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationIdToView));
+      return new FileVerificationStatus(document.Uri, document.Version,
+        GetNamedVerifiableStatuses(document.ImplementationIdToView ?? (IReadOnlyDictionary<ImplementationId, ImplementationView>)new Dictionary<ImplementationId, ImplementationView>()));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
@@ -60,7 +66,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
       }
-
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
