@@ -146,7 +146,6 @@ method Bar() { assert false; }";
     Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
-    //await Task.Delay(1000);
     Assert.IsTrue(successfulRun);
     var range = new Range(0, 21, 0, 43);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
@@ -248,7 +247,7 @@ method Bar() { assert true; }";
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
     var lastDocument = await Documents.GetLastDocumentAsync(documentId);
-    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
+    var symbols = lastDocument!.ImplementationIdToView!.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

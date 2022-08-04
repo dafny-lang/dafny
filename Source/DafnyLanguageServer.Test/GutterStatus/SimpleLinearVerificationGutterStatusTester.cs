@@ -41,7 +41,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  |  |  |  I  I  |  | :  false
  .  |  |  |  I  I  |  | :}");
   }
-  [TestMethod]
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
     |  |  |  I  I  |  |  |  I  I  |  |  | :

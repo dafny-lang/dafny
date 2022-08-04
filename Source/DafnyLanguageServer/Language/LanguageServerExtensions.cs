@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
-        .AddSingleton<IProgramVerifier>(CreateVerifier)
+        .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
