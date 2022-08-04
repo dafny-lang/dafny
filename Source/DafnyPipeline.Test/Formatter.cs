@@ -505,7 +505,9 @@ datatype T =
     C1()
   | /** C2's comment */
     C2(a: int,
-       b: int)
+       b: int
+       // comment on b
+    )
     // C2's comment
   | C3(
       a: int,
@@ -513,17 +515,18 @@ datatype T =
     , c: int)
 
 datatype D =
-  | D1(x: LongType<
-            P1,
-            P2>
+  | D1(x: LongType1<
+         P1,
+         P2>
     )
   | D2( a: int,
-        b: int
+        b: LongTypeX< map< int,
+                           int>>
       , c: int
     )
   | D3(x: LongType< int,
                     int
-                  >)
+       >)
 
 type X = i : int
        | i == 2 || i == 3 witness 2
@@ -656,7 +659,7 @@ trait X {
     }
 
     private void FormatterWorksFor(string programString) {
-      ErrorReporter reporter = new ConsoleErrorReporter();
+      BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
@@ -672,7 +675,10 @@ trait X {
         BuiltIns builtIns = new BuiltIns();
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
-        Assert.Equal(0, reporter.ErrorCount);
+        if (reporter.ErrorCount > 0) {
+          var error = reporter.AllMessages[ErrorLevel.Error][0];
+          Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
+        }
         var reprinted = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
           IndentationFormatter.ForProgram(dafnyProgram));
         if (expectedProgram != reprinted && HelperString.Debug) {

@@ -2273,8 +2273,8 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<b
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out IToken tok, bool inExpressionContext, List<IToken> ownedTokens.> =
   (. Expression e; .)
-  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; ownedTokens.Add(t); .)
-  { "."                                 (. ownedTokens.Add(t); )
+  NameSegmentForTypeName<out e, inExpressionContext, ownedTokens>  (. tok = t; .)
+  { "."                                 (. ownedTokens.Add(t); .)
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; ownedTokens.Add(t); .)
     OptGenericInstantiation<out typeArgs, inExpressionContext, ownedTokens>
     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
@@ -4381,7 +4381,7 @@ SeqDisplayExpr<out Expression e>
                                              .)
     "]"                                      (. ownedTokens.Add(t); .)
   )
-  (.  e.OwnedTokens = ownedTokens .)
+  (.  e.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4718,9 +4718,9 @@ NameSegment<out Expression e>
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs, ownedTokens>
-    [ AtCall<out atLabel, out openParen, out args> ]
-  | HashCall<id, out openParen, out typeArgs, out args>
-  | [ AtCall<out atLabel, out openParen, out args> ]
+    [ AtCall<out atLabel, out openParen, out args, ownedTokens> ]
+  | HashCall<id, out openParen, out typeArgs, out args, ownedTokens>
+  | [ AtCall<out atLabel, out openParen, out args, ownedTokens> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
@@ -4735,9 +4735,9 @@ NameSegment<out Expression e>
 
 /*------------------------------------------------------------------------*/
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
-NameSegmentForTypeName<out Expression e, bool inExpressionContext, List<IToken> ownedTokens>
+NameSegmentForTypeName<.out Expression e, bool inExpressionContext, List<IToken> ownedTokens.>
 = (. IToken id;  List<Type> typeArgs; .)
-  Ident<out id>
+  Ident<out id> (. ownedTokens.Add(id); .)
   OptGenericInstantiation<out typeArgs, inExpressionContext, ownedTokens>
   (. e = new NameSegment(id, id.val, typeArgs);
   .)
@@ -4767,15 +4767,16 @@ HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Act
   .
 
 /*------------------------------------------------------------------------*/
-AtCall<.out IToken atLabel, out IToken openParen, out List<ActualBinding> args.>
+AtCall<.out IToken atLabel, out IToken openParen, out List<ActualBinding> args, List<IToken> ownedTokens.>
 = (. atLabel = null;
      openParen = null;
      args = new List<ActualBinding>();
   .)
-  "@" LabelName<out atLabel>
-  "("                                      (. openParen = t; .)
-    [ ActualBindings<args> ]
-  ")"
+  "@"                                      (. ownedTokens.Add(t); .)
+  LabelName<out atLabel>                   (. ownedTokens.Add(t); .)
+  "("                                      (. openParen = t; ownedTokens.Add(t); .)
+    [ ActualBindings<args, ownedTokens> ]
+  ")"                                      (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4786,18 +4787,21 @@ Suffix<ref Expression e>
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
      List<Tuple<IToken, string, Expression>> updates;
+     var ownedTokens = new List<IToken>();
      Expression v;
   .)
-  ( "."
-    ( "("                                             (. x = t; updates = new List<Tuple<IToken, string, Expression>>(); .)
-        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create(id, id.val, v)); .)
-        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
+  ( "."                                               (. ownedTokens.Add(t); .)
+    ( "("                                             (. x = t; ownedTokens.Add(t); updates = new List<Tuple<IToken, string, Expression>>(); .)
+        MemberBindingUpdate<out id, out v>            (. ownedTokens.Add(t); updates.Add(Tuple.Create(id, id.val, v)); .)
+        { ","                                         (. ownedTokens.Add(t); .)
+          MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); ownedTokens.Add(id); .)
         }
-      ")"
+      ")"                                             (. ownedTokens.Add(t); .)
       (. e = new DatatypeUpdateExpr(x, e, updates); .)
-    | DotSuffix<out id, out x>                 (. if (x != null) {
+    | DotSuffix<out id, out x, ownedTokens>    (. if (x != null) {
                                                     // process id as a Suffix in its own right
                                                     e = new ExprDotName(id, e, id.val, null);
+                                                    ownedTokens.Add(id);
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   IToken openParen = null;  List<Type> typeArgs = null;
@@ -4807,10 +4811,10 @@ Suffix<ref Expression e>
 
       ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
-        GenericInstantiation<typeArgs>
-        [ AtCall<out atLabel, out openParen, out args> ]
-      | HashCall<id, out openParen, out typeArgs, out args>
-      | [ AtCall<out atLabel, out openParen, out args> ]
+        GenericInstantiation<typeArgs, ownedTokens>
+        [ AtCall<out atLabel, out openParen, out args, ownedTokens> ]
+      | HashCall<id, out openParen, out typeArgs, out args, ownedTokens>
+      | [ AtCall<out atLabel, out openParen, out args, ownedTokens> ]
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
@@ -4818,28 +4822,31 @@ Suffix<ref Expression e>
          } else {
            Contract.Assert(atLabel == null);
          }
+         e.OwnedTokens = ownedTokens;
       .)
     )
-  | "["                                        (. x = t; .)
+  | "["                                        (. x = t; ownedTokens.Add(t); .)
       ( Expression<out ee, true, true>         (. e0 = ee; .)
-        ( ".."                                 (. anyDots = true; .)
+        ( ".."                                 (. anyDots = true; ownedTokens.Add(t); .)
           [ Expression<out ee, true, true>     (. e1 = ee; .)
           ]
-        | ":="
+        | ":="                                 (. ownedTokens.Add(t); .)
           Expression<out ee, true, true>       (. e1 = ee; .)
-        | ":"                                  (. multipleLengths = new List<Expression>();
+        | ":"                                  (. ownedTokens.Add(t);
+                                                  multipleLengths = new List<Expression>();
                                                   multipleLengths.Add(e0);  // account for the Expression read before the colon
                                                   takeRest = true;
                                                .)
           [ Expression<out ee, true, true>     (. multipleLengths.Add(ee); takeRest = false; .)
             { IF(IsNonFinalColon())
-              ":"
+              ":"                              (. ownedTokens.Add(t); .)
               Expression<out ee, true, true>   (. multipleLengths.Add(ee); .)
             }
-            [ ":"                              (. takeRest = true; .)
+            [ ":"                              (. takeRest = true; ownedTokens.Add(t); .)
             ]
           ]
-        | { "," Expression<out ee, true, true> (. if (multipleIndices == null) {
+        | { ","                                (. ownedTokens.Add(t); .)
+            Expression<out ee, true, true>     (. if (multipleIndices == null) {
                                                     multipleIndices = new List<Expression>();
                                                     multipleIndices.Add(e0);
                                                   }
@@ -4847,11 +4854,11 @@ Suffix<ref Expression e>
                                                .)
           }
         )
-      | ".."                                   (. anyDots = true; .)
+      | ".."                                   (. anyDots = true; ownedTokens.Add(t); .)
         [ Expression<out ee, true, true>       (. e1 = ee; .)
         ]
       )
-    "]"
+    "]"                                        (. ownedTokens.Add(t); .)
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
@@ -4885,18 +4892,23 @@ Suffix<ref Expression e>
              e = new SeqUpdateExpr(x, e, e0, e1);
            }
          }
+         e.OwnedTokens = ownedTokens;
       .)
-  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
-    [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t); .)
+  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); ownedTokens.Add(t); .)
+    [ ActualBindings<args, ownedTokens> ]
+    ")"                                    (. ownedTokens.Add(t);
+                                              e = new ApplySuffix(openParen, null, e, args, t);
+                                              e.OwnedTokens.Add(t);
+                                           .)
   )
   .
 
 /*------------------------------------------------------------------------*/
-ActualBindings<.List<ActualBinding> bindings.>
+ActualBindings<.List<ActualBinding> bindings, List<IToken> ownedTokens.>
 = (. ActualBinding binding; .)
-  ActualBinding<out binding>                      (. bindings.Add(binding); .)
-  { "," ActualBinding<out binding>                (. bindings.Add(binding); .)
+  ActualBinding<out binding>                  (. bindings.Add(binding); .)
+  { ","                                       (. ownedTokens.Add(t); .)
+    ActualBinding<out binding>                (. bindings.Add(binding); .)
   }
   .
 
@@ -5047,7 +5059,7 @@ Attribute<ref Attributes attrs>
   [ Expressions<args, ownedTokens> ]
   "}"                         (. closeBrace = t; ownedTokens.Add(t); .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     addrs.OwnedTokens = ownedTokens;
+     attrs.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -5072,13 +5084,13 @@ Ident<out IToken/*!*/ x>
 // In the third case, x and y return as the tokens for the first and second digits.
 // This parser production solves a problem where the scanner might parse a real number instead
 // of stopping at the decimal point.
-DotSuffix<out IToken x, out IToken y>
+DotSuffix<.out IToken x, out IToken y, List<IToken> ownedTokens.>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
      x = Token.NoToken;
      y = null;
   .)
-  ( Ident<out x>
-  | digits         (. x = t; .)
+  ( Ident<out x>   (. ownedTokens.Add(x); .)
+  | digits         (. x = t; ownedTokens.Add(x); .)
   | decimaldigits  (. x = t;
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
@@ -5087,19 +5099,55 @@ DotSuffix<out IToken x, out IToken y>
                       } else {
                         int dot = x.val.IndexOf('.');
                         if (0 <= dot) {
+                          // change token
+                          // [prev][    x    ]
+                          // to
+                          // [prev][y][dot][x]
                           y = new Token();
-                          y.pos = x.pos + dot + 1;
-                          y.val = x.val.Substring(dot + 1);
-                          x.val = x.val.Substring(0, dot);
-                          y.col = x.col + dot + 1;
+                          y.pos = x.pos;
+                          y.val = x.val.Substring(0, dot);
+                          y.col = x.col;
                           y.line = x.line;
-                          y.filename = x.filename;
+                          y.Filename = x.Filename;
                           y.kind = x.kind;
+                          
+                          var dotTok = new Token();
+                          dotTok.pos = x.pos + dot;
+                          dotTok.val = ".";
+                          dotTok.Filename = x.Filename;
+                          dotTok.line = x.line;
+                          dotTok.kind = x.kind;
+                          dotTok.col = x.col + dot;
+                          
+                          x.pos = x.pos + dot + 1;
+                          x.val = x.val.Substring(dot + 1);
+                          x.col = x.col + dot + 1;
+                          
+                          var prev = x.Prev;
+                          
+                          prev.Next = y;
+                          y.Prev = prev;
+                          
+                          y.Next = dotTok;
+                          dotTok.Prev = y;
+                          
+                          dotTok.Next = x;
+                          x.Prev = dotTok;
+                          ownedTokens.Add(y);
+                          ownedTokens.Add(dotTok);
+                          ownedTokens.Add(x);
+                          
+                          // Ok, now swaps x and y when returning
+                          var tmp = x;
+                          x = y;
+                          y = tmp;
+                        } else {
+                          ownedTokens.Add(x);
                         }
                       }
                    .)
-  | "requires"     (. x = t; .)
-  | "reads"        (. x = t; .)
+  | "requires"     (. x = t; ownedTokens.Add(x); .)
+  | "reads"        (. x = t; ownedTokens.Add(x); .)
   )
   .
 

@@ -216,6 +216,7 @@ namespace Microsoft.Dafny {
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
+    public List<IToken> OwnedTokens = new List<IToken>();
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
@@ -412,7 +413,7 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
-    public List<IToken> OwnedTokens = new List<IToken>IToken>();
+    public List<IToken> OwnedTokens = new List<IToken>();
     public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
     public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
     public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();

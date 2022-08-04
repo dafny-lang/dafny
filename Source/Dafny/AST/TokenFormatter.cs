@@ -246,9 +246,45 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return GetTokenCol(token, indentFallback) - 1 + token.val.Length - 1;
   }
 
-  void SetTypeIndentation(IToken token, Type type) {
-    var indent = GetIndentBefore(token);
-    // TODO
+  void SetTypeIndentation(Type type) {
+    var tokens = type.OwnedTokens;
+    if (tokens.Count == 0) {
+      return;
+    }
+
+    var indent = GetIndentBefore(tokens[0]);
+    if (tokens.Count > 1) {
+      SetIndentations(tokens[0], after: indent + 2);
+    }
+
+    var commaIndent = indent + 2;
+    var rightIndent = indent + 2;
+    foreach (var token in tokens) {
+      switch (token.val) {
+        case "<": {
+            if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, indent);
+            } else {
+              SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
+            }
+            break;
+          }
+        case ",": {
+            SetIndentations(token, rightIndent, commaIndent, rightIndent);
+            break;
+          }
+        case ">": {
+            SetClosingIndentedRegionAligned(token, rightIndent, indent);
+            break;
+          }
+      }
+    }
+
+    if (type is UserDefinedType userDefinedType) {
+      foreach (var subtype in userDefinedType.TypeArgs) {
+        SetTypeIndentation(subtype);
+      }
+    }
   }
 
   void SetAttributeIndentation(Attributes attributes) {
@@ -319,12 +355,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
         break;
       case Method method: {
-          foreach (var formal in method.Ins) {
-            SetTypeIndentation(formal.tok, formal.SyntacticType);
-          }
-          foreach (var formal in method.Outs) {
-            SetTypeIndentation(formal.tok, formal.SyntacticType);
-          }
+          SetFormalsIndentation(method.Ins);
+          SetFormalsIndentation(method.Outs);
           foreach (var req in method.Req) {
             SetAttributedExpressionIndentation(req);
           }
@@ -345,11 +377,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           break;
         }
       case Function function: {
-          foreach (var formal in function.Formals) {
-            SetTypeIndentation(formal.tok, formal.SyntacticType);
-          }
+          SetFormalsIndentation(function.Formals);
           if (function.Result is { } outFormal) {
-            SetTypeIndentation(outFormal.tok, outFormal.SyntacticType);
+            SetTypeIndentation(outFormal.SyntacticType);
           }
           foreach (var req in function.Req) {
             SetAttributedExpressionIndentation(req);
@@ -419,7 +449,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 break;
               }
             case ")": {
-                SetClosingIndentedRegion(token, rightOfVerticalBarIndent);
+                SetIndentations(token.Prev, after: rightIndent);
+                SetClosingIndentedRegionAligned(token, rightIndent, rightOfVerticalBarIndent);
                 break;
               }
             case "=": {
@@ -440,6 +471,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               }
           }
         }
+
+        foreach (var ctor in datatypeDecl.Ctors) {
+          SetFormalsIndentation(ctor.Formals);
+        }
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
@@ -451,6 +486,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
     }
   }
+
+  private void SetFormalsIndentation(List<Formal> ctorFormals) {
+    foreach (var formal in ctorFormals) {
+      SetTypeIndentation(formal.SyntacticType);
+    }
+  }
+
   public static IndentationFormatter ForProgram(Program program) {
     var indentationFormatter = new IndentationFormatter(
       new(),
@@ -869,6 +911,19 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   /// 
   private void SetDelimiterInsideIndentedRegions(IToken token, int indent) {
     SetIndentations(token, indent + SpaceTab, indent + SpaceTab, indent + SpaceTab);
+  }
+
+  /// For example, a closing brace
+  ///
+  /// var x: map<   T
+  ///           ,
+  ///               U
+  ///               // beforeIndent
+  ///           >   // this line indent's
+  ///           //  after liene indent
+  /// // not indented
+  private void SetClosingIndentedRegionAligned(IToken token, int beforeIndent, int indent) {
+    SetIndentations(token, beforeIndent, indent, indent);
   }
 
   /// For example, a closing brace
