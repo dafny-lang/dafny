@@ -2128,53 +2128,54 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;
      ty = new BoolType();  /*keep compiler happy*/
+     var ownedTokens = new List<IToken>();
      List<Type> gt;
      List<Type> tupleArgTypes = null;
      List<bool> argumentGhostness = null;
   .)
-  ( "bool"                          (. tok = t; .)
-  | "char"                          (. tok = t;  ty = new CharType(); .)
-  | "int"                           (. tok = t;  ty = new IntType(); .)
-  | "nat"                           (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "real"                          (. tok = t;  ty = new RealType(); .)
-  | "ORDINAL"                       (. tok = t;  ty = new BigOrdinalType(); .)
-  | bvToken                         (. tok = t;
+  ( "bool"                          (. tok = t; ownedTokens.Add(t); .)
+  | "char"                          (. tok = t;  ty = new CharType(); ownedTokens.Add(t); .)
+  | "int"                           (. tok = t;  ty = new IntType(); ownedTokens.Add(t); .)
+  | "nat"                           (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); ownedTokens.Add(t); .)
+  | "real"                          (. tok = t;  ty = new RealType(); ownedTokens.Add(t); .)
+  | "ORDINAL"                       (. tok = t;  ty = new BigOrdinalType(); ownedTokens.Add(t); .)
+  | bvToken                         (. tok = t; ownedTokens.Add(t);
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
                                        ty = new BitvectorType(w);
                                     .)
-  | "set"                           (. tok = t;.)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "set"                           (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr("set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
-  | "iset"                          (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "iset"                          (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr("set type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
-  | "multiset"                      (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "multiset"                      (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr("multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
-  | "seq"                           (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "seq"                           (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr("seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
-  | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object?"                       (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "map"                           (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "string"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); ownedTokens.Add(t); .)
+  | "object"                        (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); ownedTokens.Add(t); .)
+  | "object?"                       (. tok = t;  ty = new UserDefinedType(tok, tok.val, null); ownedTokens.Add(t); .)
+  | "map"                           (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt == null) {
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
@@ -2184,8 +2185,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(true, gt[0], gt[1]);
                                        }
                                     .)
-  | "imap"                          (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | "imap"                          (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. if (gt == null) {
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
@@ -2195,8 +2196,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(false, gt[0], gt[1]);
                                        }
                                     .)
-  | arrayToken                      (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
+  | arrayToken                      (. tok = t; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out gt, inExpressionContext, ownedTokens>
                                     (. var tokString = tok.val;
                                        bool q = tokString[tokString.Length-1] == '?';
                                        // Extracting the dimension out of array2 or array10?
@@ -2204,16 +2205,19 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
-  | NamedType<out ty, out tok, inExpressionContext>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness, ownedTokens>
+  | NamedType<out ty, out tok, inExpressionContext, ownedTokens>
   )
+  (. ty.OwnedTokens = ownedTokens;
+     ownedTokens = new List<IToken>();
+  .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
        Type t2;
     .)
-    ( "~>"           (. tok = t; arrowKind = 0; .)
-    | "-->"          (. tok = t; arrowKind = 1; .)
-    | "->"           (. tok = t; arrowKind = 2; .)
-    )
+    ( "~>"           (. arrowKind = 0; .)
+    | "-->"          (. arrowKind = 1; .)
+    | "->"           (. arrowKind = 2; .)
+    )                (. tok = t; ownedTokens.Add(t); .)
     Type<out t2>
     (. if (tupleArgTypes != null) {
          gt = tupleArgTypes;
@@ -2232,29 +2236,31 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
            ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
          }
        }
+       ty.OwnedTokens = ownedTokens;
     .)
   ]
   .
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
-  "("                             (. tok = t;
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness, List<IToken> ownedTokens.> =
+  "("                             (. tok = t; ownedTokens.Add(t);
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
                                      var isGhost = false;
                                      argumentGhostness = new List<bool>();
                                   .)
-  [ [ "ghost"                     (. isGhost = true; .)
+  [ [ "ghost"                     (. isGhost = true; ownedTokens.Add(t); .)
     ]
     Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
-    { ","                         (. isGhost = false; .)
-      [ "ghost"                   (. isGhost = true; .)
+    { ","                         (. isGhost = false; ownedTokens.Add(t); .)
+      [ "ghost"                   (. isGhost = true; ownedTokens.Add(t); .)
       ]
       Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
+  ")"                             (. ownedTokens.Add(t);
+                                     if (tupleArgTypes.Count == 1 && !isGhost) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
@@ -2265,34 +2271,35 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<b
   .
 
 /*------------------------------------------------------------------------*/
-NamedType<out Type ty, out IToken tok, bool inExpressionContext> =
+NamedType<.out Type ty, out IToken tok, bool inExpressionContext, List<IToken> ownedTokens.> =
   (. Expression e; .)
-  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
-  { "."
-    TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
-    OptGenericInstantiation<out typeArgs, inExpressionContext>
+  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; ownedTokens.Add(t); .)
+  { "."                                 (. ownedTokens.Add(t); )
+    TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; ownedTokens.Add(t); .)
+    OptGenericInstantiation<out typeArgs, inExpressionContext, ownedTokens>
     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
   }
-  (. ty = new UserDefinedType(e.tok, e); .)
+  (. ty = new UserDefinedType(e.tok, e);.)
   .
 
 /*------------------------------------------------------------------------*/
-OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE: Coco complains about "OptGenericInstantiation deletable". That's okay. */
+OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext, List<IToken> ownedTokens.>  /* NOTE: Coco complains about "OptGenericInstantiation deletable". That's okay. */
 = (. gt = null; .)
   [ IF(IsGenericInstantiation(inExpressionContext))  /* be greedy -- if it looks like a type instantiation, take it */
     (. gt = new List<Type>(); .)
-    GenericInstantiation<gt>
+    GenericInstantiation<gt, ownedTokens>
   ]
   .
 
 /*------------------------------------------------------------------------*/
-GenericInstantiation<.List<Type> gt.>
+GenericInstantiation<.List<Type> gt, List<IToken> ownedTokens.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
-  "<"
+  "<"                                (. ownedTokens.Add(t); .)
     Type<out ty>                     (. gt.Add(ty); .)
-    { "," Type<out ty>               (. gt.Add(ty); .)
+    { ","                            (. ownedTokens.Add(t); .)
+      Type<out ty>                   (. gt.Add(ty); .)
     }
-  ">"
+  ">"                                (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2942,15 +2949,16 @@ Rhs<out AssignmentRhs r>
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
      Attributes attrs = null;
+     var ownedTokens = new List<IToken>();
   .)
-  ( "new"                              (. newToken = t; .)
-    ( NewArray<out ee, out arrayElementInit, out display>  // "ty" is set to InferredTypeProxy above
+  ( "new"                              (. newToken = t; ownedTokens.Add(t); .)
+    ( NewArray<out ee, out arrayElementInit, out display, ownedTokens>  // "ty" is set to InferredTypeProxy above
     | TypeAndToken<out x, out ty, false>
-      [ NewArray<out ee, out arrayElementInit, out display>
+      [ NewArray<out ee, out arrayElementInit, out display, ownedTokens>
       |                                (. x = null; args = new List<ActualBinding>(); .)
-        "("
-          [ ActualBindings<args> ]
-        ")"
+        "("                            (. ownedTokens.Add(t); .)
+          [ ActualBindings<args, ownedTokens> ]
+        ")"                            (. ownedTokens.Add(t); .)
       ]
     )
     (. if (ee != null) {
@@ -2972,32 +2980,37 @@ Rhs<out AssignmentRhs r>
   .
 
 /*------------------------------------------------------------------------*/
-NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Expression> display .>
+NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Expression> display, List<IToken> ownedTokens.>
 = (. ee = new List<Expression>();
      arrayElementInit = null;
      display = null;
      IToken x;
   .)
-  "["                                (. x = t; .)
-  ( "]"                              /* no size is given; this is allowed as long as an initialization display is given */
-    "["                              (. display = new List<Expression>(); .)
-    [ Expressions<display> ]
+  "["                                (. x = t; ownedTokens.Add(t); .)
+  ( "]"                              (. ownedTokens.Add(t); .)
+                                     /* no size is given; this is allowed as long as an initialization display is given */
+    "["                              (. display = new List<Expression>(); ownedTokens.Add(t); .)
+    [ Expressions<display, ownedTokens> ]
     "]"                              (. // we fill in the size
                                         ee.Add(new LiteralExpr(x, display.Count));
+                                        ownedTokens.Add(t); 
                                      .)
-  | Expressions<ee>
+  | Expressions<ee, ownedTokens>
     "]"                              (. // make sure an array class with this dimensionality exists
                                         var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
+                                        ownedTokens.Add(t); 
                                      .)
-    [ "(" Expression<out arrayElementInit, true, true>
-      ")"
-    | "["                            (. if (ee.Count > 1) {
+    [ "("                            (. ownedTokens.Add(t); .)
+      Expression<out arrayElementInit, true, true>
+      ")"                            (. ownedTokens.Add(t); .)
+    | "["                            (. ownedTokens.Add(t);
+                                        if (ee.Count > 1) {
                                           SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
                                         }
                                         display = new List<Expression>();
                                      .)
-      [ Expressions<display> ]
-      "]"
+      [ Expressions<display, ownedTokens> ]
+      "]"                            (. ownedTokens.Add(t); .)
     ]
   )
   (. if (ee.Count == 0) {
@@ -4303,14 +4316,16 @@ SetDisplayExpr<out Expression e>
      IToken token = null;
      IToken x = null;
      e = dummyExpr;
+     var ownedTokens = new List<IToken>();
   .)
-  [ ( "iset" | "multiset" )                  (. token = t; .)
+  [ ( "iset" | "multiset" )                  (. token = t; ownedTokens.Add(t); .)
   ]
   ( "{"                                      (. token = token == null ? t : token;
                                                 x = token;
+                                                ownedTokens.Add(t); 
                                                 List<Expression> elements = new List<Expression/*!*/>();
                                              .)
-    [ Expressions<elements> ]                (. if (token.kind == _iset) {
+    [ Expressions<elements, ownedTokens> ]   (. if (token.kind == _iset) {
                                                   e = new SetDisplayExpr(x, false, elements);
                                                 } else if (token.kind == _multiset) {
                                                   e = new MultiSetDisplayExpr(x, elements);
@@ -4318,17 +4333,18 @@ SetDisplayExpr<out Expression e>
                                                   e = new SetDisplayExpr(x, true, elements);
                                                 }
                                              .)
-    "}"
+    "}"                                      (. ownedTokens.Add(t); .)
   |
-    "("                                       (. x = t; .)
+    "("                                       (. x = t; ownedTokens.Add(t); .)
      Expression<out e, true, true>            (.
                                                   if (token == null || token.kind != _multiset) {
                                                     SemErr(x, "A forming expression must be a multiset");
                                                   }
                                                   e = new MultiSetFormingExpr(x, e);
                                                .)
-    ")"
+    ")"                                       (. ownedTokens.Add(t); .)
   )
+  (. e.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4337,32 +4353,35 @@ SeqDisplayExpr<out Expression e>
      IToken x = null;
      Type explicitTypeArg = null;
      Expression n, f;
+     var ownedTokens = new List<IToken>();
      e = dummyExpr;
   .)
   (
-    "seq"                          (. x = t; .)
+    "seq"                          (. x = t; ownedTokens.Add(t); .)
     [ (. var gt = new List<Type>(); .)
-    GenericInstantiation<gt>     (. if (gt.Count > 1) {
+    GenericInstantiation<gt, ownedTokens>
+                                 (. if (gt.Count > 1) {
                                       SemErr("seq type expects only one type argument");
                                     } else {
                                       explicitTypeArg = gt[0];
                                     }
                                  .)
     ]
-    "("
+    "("                             (. ownedTokens.Add(t); .)
     Expression<out n, true, true>
-    ","
+    ","                             (. ownedTokens.Add(t); .)
     Expression<out f, true, true>
-    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
+    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); ownedTokens.Add(t); .)
   |
     "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
                                                 x = t;
-
+                                                ownedTokens.Add(t);
                                              .)
-    [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
+    [ Expressions<elements, ownedTokens> ]                (. e = new SeqDisplayExpr(x, elements);
                                              .)
-    "]"
+    "]"                                      (. ownedTokens.Add(t); .)
   )
+  (.  e.OwnedTokens = ownedTokens .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4370,20 +4389,27 @@ MapDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
      e = dummyExpr;
+     var ownedTokens = new List<IToken>();
   .)
-  ( "map" | "imap" ) (. IToken mapToken = t; .)
-  "["
-    [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(mapToken, mapToken.kind == _map, elements);.)
-  "]"
+  ( "map" | "imap" ) (. IToken mapToken = t; ownedTokens.Add(t); .)
+  "["                (. ownedTokens.Add(t); .)
+    [ MapLiteralExpressions<out elements, ownedTokens> ] 
+                     (. e = new MapDisplayExpr(mapToken, mapToken.kind == _map, elements);.)
+  "]"                (. ownedTokens.Add(t); e.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/
-MapLiteralExpressions<.out List<ExpressionPair> elements.>
+MapLiteralExpressions<.out List<ExpressionPair> elements, List<IToken> ownedTokens.>
 = (. Expression/*!*/ d, r;
      elements = new List<ExpressionPair/*!*/>();
   .)
-  Expression<out d, true, true> ":=" Expression<out r, true, true>       (. elements.Add(new ExpressionPair(d,r)); .)
-  { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
+  Expression<out d, true, true>
+  ":="                                (. ownedTokens.Add(t); .)
+  Expression<out r, true, true>       (. elements.Add(new ExpressionPair(d,r)); .)
+  { ","                               (. ownedTokens.Add(t); .)
+    Expression<out d, true, true>
+    ":="                              (. ownedTokens.Add(t); .)
+    Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
 
@@ -4686,11 +4712,12 @@ NameSegment<out Expression e>
 = (. IToken id;
      IToken openParen = null; IToken atLabel = null;
      List<Type> typeArgs = null; List<ActualBinding> args = null;
+     var ownedTokens = new List<IToken>();
   .)
-  Ident<out id>
+  Ident<out id>  (. ownedTokens.Add(id); .)
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
-    GenericInstantiation<typeArgs>
+    GenericInstantiation<typeArgs, ownedTokens>
     [ AtCall<out atLabel, out openParen, out args> ]
   | HashCall<id, out openParen, out typeArgs, out args>
   | [ AtCall<out atLabel, out openParen, out args> ]
@@ -4702,15 +4729,16 @@ NameSegment<out Expression e>
      } else {
        Contract.Assert(atLabel == null);
      }
+     e.OwnedTokens = ownedTokens;
   .)
   .
 
 /*------------------------------------------------------------------------*/
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
-NameSegmentForTypeName<out Expression e, bool inExpressionContext>
+NameSegmentForTypeName<out Expression e, bool inExpressionContext, List<IToken> ownedTokens>
 = (. IToken id;  List<Type> typeArgs; .)
   Ident<out id>
-  OptGenericInstantiation<out typeArgs, inExpressionContext>
+  OptGenericInstantiation<out typeArgs, inExpressionContext, ownedTokens>
   (. e = new NameSegment(id, id.val, typeArgs);
   .)
   .
@@ -4725,16 +4753,17 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
  * expression, just like for other function applications.
  * Note: This grammar production mutates the id.val field to append the hash sign.
  */
-HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args.>
+HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args, List<IToken> ownedTokens.>
 = (. Expression k; args = new List<ActualBinding>(); typeArgs = null; .)
-  "#"                                      (. id.val = id.val + "#"; .)
+  "#"                                      (. id.val = id.val + "#"; ownedTokens.Add(t); .)
   [                                        (. typeArgs = new List<Type>(); .)
-    GenericInstantiation<typeArgs>
+    GenericInstantiation<typeArgs, ownedTokens>
   ]
-  "[" Expression<out k, true, true> "]"    (. args.Add(new ActualBinding(null, k)); .)
-  "("                                      (. openParen = t; .)
-    [ ActualBindings<args> ]
-  ")"
+  "["                                      (. ownedTokens.Add(t); .)
+  Expression<out k, true, true> "]"    (. args.Add(new ActualBinding(null, k)); ownedTokens.Add(t); .)
+  "("                                      (. openParen = t; ownedTokens.Add(t); .)
+    [ ActualBindings<args, ownedTokens> ]
+  ")"                                      (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4979,10 +5008,11 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
   .
 
 /*------------------------------------------------------------------------*/
-Expressions<.List<Expression> args.>
+Expressions<.List<Expression> args, List<IToken> ownedTokens.>
 = (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
-  { "," Expression<out e, true, true>                (. args.Add(e); .)
+  { ","                                          (. ownedTokens.Add(t); .)
+    Expression<out e, true, true>                (. args.Add(e); .)
   }
   .
 
@@ -5009,13 +5039,16 @@ Attribute<ref Attributes attrs>
 = (. IToken openBrace, closeBrace;
      IToken x = null;
      var args = new List<Expression>();
+     var ownedTokens = new List<IToken>();
   .)
-  "{:"                         (. openBrace = t; .)
+  "{:"                         (. openBrace = t; ownedTokens.Add(t); .)
   (. ConvertKeywordTokenToIdent(); .)
   AttributeName<out x>
-  [ Expressions<args> ]
-  "}"                         (. closeBrace = t; .)
-  (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs); .)
+  [ Expressions<args, ownedTokens> ]
+  "}"                         (. closeBrace = t; ownedTokens.Add(t); .)
+  (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
+     addrs.OwnedTokens = ownedTokens;
+  .)
   .
 
 /*------------------------------------------------------------------------*/

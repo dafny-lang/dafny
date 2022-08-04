@@ -412,6 +412,7 @@ namespace Microsoft.Dafny {
     public static readonly CharType Char = new CharType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
+    public List<IToken> OwnedTokens = new List<IToken>IToken>();
     public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
     public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
     public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -7134,6 +7135,7 @@ namespace Microsoft.Dafny {
 
   public abstract class AssignmentRhs {
     public readonly IToken Tok;
+    public List<IToken> OwnedTokens = new();
 
     private Attributes attributes;
     public Attributes Attributes {
