@@ -481,7 +481,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       foreach (var member in declWithMembers.Members) {
         SetMemberIndentation(member, initialMemberIndent);
       }
+    } else if (topLevelDecl is TypeSynonymDecl typeSynonymDecl) {
+      SetOpeningIndentedRegion(typeSynonymDecl.StartToken, indent);
+      SetClosingIndentedRegion(typeSynonymDecl.EndToken, indent);
+      // TODO
     }
+
     if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
     }
