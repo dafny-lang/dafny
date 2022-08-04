@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /warnMissingConstructorParenthesis "%s" > "%t"
+// RUN: %dafny /compile:0 /warnMissingConstructorParentheses "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module WithWarning {
