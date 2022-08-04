@@ -82,6 +82,17 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Are there functional alternatives to resursive calls that are more efficient or use less stack space?"] - TODO
 - ["How do I read a file as a string?"](FAQReadFile)
 - ["I can prove `!("a" <= "b")` but not `!("a" < "b")`. Why is that?] TODO
+- ["Can I ask dafny to not check termination of a function?"] TODO _ 5/27/2022
+- ["What does {:termination false} do on trait? It looks like it is required if I want to extends traits from other modules."] - TODO 6/20/2022
+- TODO Refinement - 6/24/2022, 6/30/2022
+- ["How do I make the dafny termination checker happy with this pattern of mutual recursion?"] - TODO 6/24/2022
+- ["What is the easiest way to prove that a class instance is not an instance iof a trait?"] - TODO 6/24/2022
+- ["is there a nice way to turn a set into a seq?"] - TODO 6/29/2022
+- ["What is the difference between `modifies this`, `modifies this.x`, and `modifies this\`x`?] - TODO - 7/8/2022
+- ["How do I declare a default value for a parameter of a method or function?"] - TODO
+- ["I just realized that a function I was compiling had a type-error inside a match case  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"] - TODO 7/15/2022
+- ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"] - TODO 7/15/2022
+- ["How can ghost values call methods with side effects?"] - TODO 7/27/2022
 
 ## Dafny Infrastructure
 
@@ -93,6 +104,9 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What compiler target langages are in development?"](FAQCompileTargets)
 - ["Is there a standard library for Dafny?"] - TODO
 - [ TODO - triggers 12/30/2021 ]
+- ["Can classes appear in specs?"] = #yucca - 3/26/2021
+- TODO Refinement types - #yucca 6/24/2022
+
 
 # How-to cookbook
 - ["How does one define a record?"] - TODO
@@ -117,9 +131,16 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["type ? does not have a member IsFailure"] - TODO
 - ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
 - ["function precondition might not hold"](ERROR_SeqComp)
-- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads) -- TODO 8/25/2021, 1/12/2022, 1/26/2022
+- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads) -- TODO 8/25/2021, 1/12/2022, 1/26/2022, 6/8/2022
 - ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
 - ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
 - [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
 - ["Warning: File contains no code: ..."] TODO - no executable code
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
+- ["Warning: /!\ No terms found to trigger on."] TODO - #yucca 8/18/2021
+
+
+
+Finished #dafny, #dafny-development, #yucca through 7/31
+
+Check #yucca-compiler
