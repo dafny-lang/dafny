@@ -28,6 +28,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
+      if (!document.WasResolved) {
+        return;
+      }
+
       var notification = GetFileVerificationStatus(document);
       var previous = GetFileVerificationStatus(previousDocument);
       if (previous.Version > notification.Version ||
