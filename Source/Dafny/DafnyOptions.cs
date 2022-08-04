@@ -110,6 +110,7 @@ namespace Microsoft.Dafny {
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public bool DisallowConstructorCaseWithoutParenthesis = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
@@ -516,6 +517,10 @@ namespace Microsoft.Dafny {
 
         case "printTooltips":
           PrintTooltips = true;
+          return true;
+
+        case "warnMissingConstructorParenthesis":
+          DisallowConstructorCaseWithoutParenthesis = true;
           return true;
 
         case "autoTriggers": {
@@ -1093,6 +1098,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /warnShadowing  Emits a warning if the name of a declared variable caused another variable
     to be shadowed
+/warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
+    is not followed by parentheses
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features

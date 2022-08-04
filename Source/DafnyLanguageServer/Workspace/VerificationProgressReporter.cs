@@ -77,13 +77,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               destructor => destructor.CorrespondingFormals).Any(
               formal => formal.DefaultValue != null);
             if (aFormalHasADefaultValue) {
-              var verificationTreeRange = ctor.tok.GetLspRange(ctor.BodyEndTok);
+              var verificationTreeRange = ctor.StartToken.GetLspRange(ctor.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "datatype",
                 ctor.Name,
                 ctor.CompileName,
                 ctor.tok.Filename,
-                verificationTreeRange);
+                verificationTreeRange,
+                ctor.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             }
           }
@@ -99,22 +100,24 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
-              var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok);
+              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "constant",
                 member.Name,
                 member.CompileName,
                 member.tok.Filename,
-                verificationTreeRange);
+                verificationTreeRange,
+                member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
-              var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
+              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.CompileName,
                 member.tok.Filename,
-                verificationTreeRange);
+                verificationTreeRange,
+                member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
                 var verificationTreeRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
@@ -123,7 +126,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   member.Name,
                   member.CompileName + "_by_method",
                   member.tok.Filename,
-                  verificationTreeRangeByMethod);
+                  verificationTreeRangeByMethod,
+                  function.ByMethodTok.GetLspPosition());
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
               }
             }
@@ -133,13 +137,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           if (subsetTypeDecl.tok.Filename != documentFilePath) {
             continue;
           }
-          var verificationTreeRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
+          var verificationTreeRange = subsetTypeDecl.StartToken.GetLspRange(subsetTypeDecl.EndToken);
           var verificationTree = new TopLevelDeclMemberVerificationTree(
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.CompileName,
             subsetTypeDecl.tok.Filename,
-            verificationTreeRange);
+            verificationTreeRange,
+            subsetTypeDecl.tok.GetLspPosition());
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
       }
@@ -147,13 +152,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     document.VerificationTree.Children = result;
   }
 
-  public void UpdateLastTouchedMethodPositions() {
-    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+  public void UpdateLastTouchedMethodPositions(Range? lastChange) {
+    var newLastTouchedMethodPositions = document.LastTouchedVerifiables.ToList();
     var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
+      node != null && lastChange != null && node.Range.Contains(lastChange), null);
     if (newlyTouchedVerificationTree != null) {
       RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+      document.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
     }
   }
 
@@ -190,7 +195,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         newDisplayName,
         implementation.Name,
         targetMethodNode.Filename,
-        targetMethodNode.Range
+        targetMethodNode.Range,
+        targetMethodNode.Position
       ).WithImplementation(implementation);
       if (oldImplementationNode != null) {
         newImplementationNode.Children = oldImplementationNode.Children;
