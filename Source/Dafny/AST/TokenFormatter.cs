@@ -383,6 +383,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
     var indent2 = indent + 2;
+    var indent4 = indent + 2;
     if (topLevelDecl.StartToken.line > 0) {
       SetOpeningIndentedRegion(topLevelDecl.BodyStartTok, indent);
     }
@@ -393,7 +394,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
       if (declWithMembers is DatatypeDecl datatypeDecl) {
         var verticalBarIndent = indent2;
-        var rightOfVerticalBarIndent = indent2;
+        var rightOfVerticalBarIndent = indent2 + 2;
         var commaIndent = indent2;
         var rightIndent = indent2;
         foreach (var token in datatypeDecl.OwnedTokens) {
@@ -407,19 +408,24 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 break;
               }
             case "(": {
+                if (IsFollowedByNewline(token)) {
+                  SetOpeningIndentedRegion(token, rightOfVerticalBarIndent);
+                  commaIndent = rightOfVerticalBarIndent;
+                  rightIndent = commaIndent + 2;
+                } else {
+                  SetAlign(rightOfVerticalBarIndent + 2, token, out rightIndent, out commaIndent);
+                }
                 break;
               }
             case ")": {
+                SetClosingIndentedRegion(token, rightOfVerticalBarIndent);
                 break;
               }
             case "=": {
                 if (IsFollowedByNewline(token)) {
                   SetDelimiterInsideIndentedRegions(token, indent2);
                 } else {
-                  SetIndentations(token, indent2, indent2, -1);
-                  rightOfVerticalBarIndent = GetRightAlignIndentAfter(token, indent);
-                  verticalBarIndent = GetRightAlignIndentDelimiter(token, indent);
-                  SetIndentations(token, -1, -1, rightOfVerticalBarIndent);
+                  SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
                 }
 
                 break;

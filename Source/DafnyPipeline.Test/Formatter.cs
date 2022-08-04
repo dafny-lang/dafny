@@ -503,23 +503,25 @@ datatype Color2
 // Comment here
 datatype T =
     C1()
-  | C2(a: int,
+  | /** C2's comment */
+    C2(a: int,
        b: int)
+    // C2's comment
   | C3(
       a: int,
       b: int
     , c: int)
 
-datatype T =
-  | C1(x: LongType<
+datatype D =
+  | D1(x: LongType<
             P1,
             P2>
     )
-  | C2( a: int,
+  | D2( a: int,
         b: int
       , c: int
     )
-  | C3(x: LongType< int,
+  | D3(x: LongType< int,
                     int
                   >)
 
