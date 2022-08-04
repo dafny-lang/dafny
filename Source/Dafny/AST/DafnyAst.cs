@@ -3190,6 +3190,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
@@ -6177,9 +6178,10 @@ namespace Microsoft.Dafny {
     public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals,
+      Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6217,10 +6219,10 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
     public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
@@ -6250,10 +6252,10 @@ namespace Microsoft.Dafny {
   public class LeastPredicate : ExtremePredicate {
     public override string WhatKind { get { return "least predicate"; } }
     public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6261,10 +6263,10 @@ namespace Microsoft.Dafny {
   public class GreatestPredicate : ExtremePredicate {
     public override string WhatKind { get { return "greatest predicate"; } }
     public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6292,10 +6294,10 @@ namespace Microsoft.Dafny {
   public class TwoStatePredicate : TwoStateFunction {
     public override string WhatKind { get { return "twostate predicate"; } }
     public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
+                     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
