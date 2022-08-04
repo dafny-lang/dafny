@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
           errorReporter.GetDiagnostics(textDocument.Uri), program,
-          wasResolved: true, loadCanceled: false);
+          wasResolved: false, loadCanceled: false);
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         errorReporter.GetDiagnostics(textDocument.Uri),
         symbolTable,
         canDoVerification,
-        ghostDiagnostics, program, WasResolved: true);
+        ghostDiagnostics, program, WasResolved: !errorReporter.HasErrors);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {

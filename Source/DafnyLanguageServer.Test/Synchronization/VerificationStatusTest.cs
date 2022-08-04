@@ -13,6 +13,39 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 [TestClass]
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnparsedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(0, 11, 0, 11), "blargh");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnresolvedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
   [TestMethod]
   public async Task ManyConcurrentVerificationRuns() {
     var source = @"
