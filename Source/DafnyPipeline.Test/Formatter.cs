@@ -457,7 +457,7 @@ method Test(z: int) {
     }
 
     [Fact]
-    public void FormatWorksRandomTest() {
+    public void FormatWorksForFunctionMethods() {
       FormatterWorksFor(@"
 function Test(): int {
   1
@@ -492,7 +492,7 @@ datatype Color =   Red
                    Green
                |   Blue
 
-datatype Color
+datatype Color2
   =   Red
       // Comment1
   |   Green   |
@@ -673,6 +673,9 @@ trait X {
         Assert.Equal(0, reporter.ErrorCount);
         var reprinted = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
           IndentationFormatter.ForProgram(dafnyProgram));
+        if (expectedProgram != reprinted && HelperString.Debug) {
+          Console.Write(reprinted);
+        }
         Assert.Equal(expectedProgram, reprinted);
 
         // Verify that the formatting is stable.

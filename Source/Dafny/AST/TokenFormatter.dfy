@@ -1,7 +1,8 @@
 module {:extern @"Microsoft.Dafny.Helpers"} {:options "-functionSyntax:4"} Helpers {
   import opened System
   class {:extern "HelperString"} {:compile false} HelperString {
-    static function Reindent(input: CsString, indentationBefore: CsString, lastIndentation: CsString): CsString
+    static predicate FinishesByNewline(input: CsString)
+    static function Reindent(input: CsString, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
   }
 }
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
@@ -10,6 +11,7 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
     function Current(): T reads this
   }
   type {:extern "Int32"} Int32(==)
+
   ghost function {:extern} GEq(left: Int32, right: Int32): (b: bool)
     ensures left == right ==> b
   type {:extern "String"} CsString(!new,==) {
@@ -129,9 +131,11 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         method GetIndentation(token: IToken, currentIndentation: CsString)
           returns (
             indentationBefore: CsString,
+            indentationBeforeSet: bool,
             lastIndentation: CsString,
+            lastIndentationSet: bool,
             indentationAfter: CsString,
-            wasSet: bool)
+            indentationAfterSet: bool)
           requires token.Valid()
           ensures unchanged(token)
           ensures token.AllTokens() == old(token.AllTokens())
@@ -350,9 +354,9 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         var currentIndent := CsStringEmpty;
         var currentIndentLast := CsStringEmpty;
         var isSet := false;
-        var previousTrailingTrivia := CsStringEmpty;
         ghost var sLengthPrev := s.Length();
         ghost var i := 0;
+        var leadingTriviaWasPreceededByNewline := true;
         while(token != null)
           decreases if token == null then 0 else token.remainingTokens + 1
           invariant token == null || token.Valid()
@@ -367,39 +371,30 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           var firstTokensUntilI := firstToken.AllTokens()[0..i];
           assert forall t <- firstTokensUntilI :: s.Contains(t.val);
           sLengthPrev := s.Length();
-          //IsAllocated(firstTokensUntilI);
-          //assert allocated(firstTokensUntilI);
-          //assert forall t <- firstTokensUntilI :: allocated(t);
           assert forall t <- firstTokensUntilI :: s.Contains(t.val);
-          label a:
-          var s0 := s;
-          // TODO: Dafny clinic
-          //assert allocated(firstTokensUntilI);
           IsAllocated(firstTokensUntilI);
           assert allocated(firstTokensUntilI);
-          var indentationBefore, lastIndentation, indentationAfter, wasSet := reindent.GetIndentation(token, currentIndent);
+          var indentationBefore, indentationBeforeSet,
+              lastIndentation, lastIndentationSet,
+              indentationAfter, indentationAfterSet := reindent.GetIndentation(token, currentIndent);
           //assert forall t <- firstTokensUntilI ::t.val == old@a(t.val);
           assert forall t <- firstTokensUntilI :: s.Contains(t.val);
-          if(wasSet) {
-            currentIndent := indentationBefore;
-            currentIndentLast := lastIndentation;
-            isSet := true;
-          }
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
-          var triviaSoFar := String.Concat(previousTrailingTrivia, token.LeadingTrivia);
-          var newTrivia := if isSet then
-                             HelperString.Reindent(triviaSoFar, indentationBefore, lastIndentation) else triviaSoFar;
+
+          var newLeadingTrivia := HelperString.Reindent(token.LeadingTrivia, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
+          var newTrailingTrivia := HelperString.Reindent(token.TrailingTrivia, true, false, indentationAfter, indentationAfter);
+          leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
           // Had an error here: caught by an invariant
           //s := String.Concat(newTrivia, token.val);
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
-          s := String.Concat(s, String.Concat(newTrivia, token.val));
-          previousTrailingTrivia := token.TrailingTrivia;
-          if(wasSet) {
-            currentIndent := indentationAfter;
-          }
-          assert String.Concat(newTrivia, token.val).Contains(token.val);
+          s := String.Concat(s, String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)));
+          currentIndent := indentationAfter;
+          assert String.Concat(token.val, newTrailingTrivia).Contains(token.val);
+          String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia))
+            .ContainsTransitive(String.Concat(token.val, newTrailingTrivia), token.val);
+          s.ContainsTransitive(String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)), token.val);
+          assert String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)).Contains(token.val);
           assert allocated(firstToken.AllTokens()[0..i]);
-          s.ContainsTransitive(String.Concat(newTrivia, token.val), token.val);
           assert s.Contains(token.val);
           
           if(token.Next != null) {
@@ -428,7 +423,6 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
         }
-        s := String.Concat(s, previousTrailingTrivia);
         assert  forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
         assert i == |firstToken.AllTokens()|;
         assert forall token <- firstToken.AllTokens() :: s.Contains(token.val);
