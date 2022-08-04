@@ -152,13 +152,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     document.VerificationTree.Children = result;
   }
 
-  public void UpdateLastTouchedMethodPositions() {
-    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+  public void UpdateLastTouchedMethodPositions(Range? lastChange) {
+    var newLastTouchedMethodPositions = document.LastTouchedVerifiables.ToList();
     var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
+      node != null && lastChange != null && node.Range.Contains(lastChange), null);
     if (newlyTouchedVerificationTree != null) {
       RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+      document.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
     }
   }
 

@@ -39,7 +39,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
-      return new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationIdToView));
+      return new FileVerificationStatus(document.Uri, document.Version,
+        GetNamedVerifiableStatuses(document.ImplementationIdToView ?? (IReadOnlyDictionary<ImplementationId, ImplementationView>)new Dictionary<ImplementationId, ImplementationView>()));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
