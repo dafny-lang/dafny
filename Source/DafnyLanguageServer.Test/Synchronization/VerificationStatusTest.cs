@@ -22,7 +22,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(0, status1.NamedVerifiables.Count);
 
-    ApplyChange(ref documentItem, new Range(0,0,0,0), "\n");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(0, status2.NamedVerifiables.Count);
