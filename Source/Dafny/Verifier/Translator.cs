@@ -3471,8 +3471,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap,
       List<Bpl.Variable> implInParams,
-      Bpl.Variable/*?*/ resultVariable)
-    {
+      Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Formals.Count <= implInParams.Count);
 
       //generating class post-conditions
@@ -3581,8 +3580,7 @@ namespace Microsoft.Dafny {
 
     private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       foreach (var e in func.OverriddenFunction.Reads) {
@@ -3624,8 +3622,7 @@ namespace Microsoft.Dafny {
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(f != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);

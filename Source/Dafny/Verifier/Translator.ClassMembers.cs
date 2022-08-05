@@ -1182,8 +1182,7 @@ namespace Microsoft.Dafny {
 
     private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -1206,8 +1205,7 @@ namespace Microsoft.Dafny {
 
     private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -1230,8 +1228,7 @@ namespace Microsoft.Dafny {
 
     private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(original != null);
       Contract.Requires(overryd != null);
       Contract.Requires(builder != null);
@@ -1298,8 +1295,7 @@ namespace Microsoft.Dafny {
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
       Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap)
-    {
+      Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       List<FrameExpression> classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
