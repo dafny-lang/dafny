@@ -168,6 +168,7 @@ namespace Microsoft.Dafny {
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
+    public List<IToken> OwnedTokens = new();
     public bool ErrorReported;
 
     public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
@@ -3635,6 +3636,7 @@ namespace Microsoft.Dafny {
   public class ExportSignature {
     public readonly IToken Tok;
     public readonly IToken ClassIdTok;
+    public List<IToken> OwnedTokens = new();
     public readonly bool Opaque;
     public readonly string ClassId;
     public readonly string Id;
@@ -3780,6 +3782,7 @@ namespace Microsoft.Dafny {
     public IToken StartToken = Token.NoToken;
     public IToken EndToken = Token.NoToken;
     public IToken TokenWithTrailingDocString = Token.NoToken;
+    public List<IToken> OwnedTokens = new();
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
@@ -4085,6 +4088,9 @@ namespace Microsoft.Dafny {
 
     public IToken GetFirstTopLevelToken() {
       IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
+        if (decl is LiteralModuleDecl { ModuleDef: DefaultModuleDecl { Includes: { Count: > 0 } includes } } && includes[0].OwnedTokens.Count > 0) {
+          return includes[0].OwnedTokens;
+        }
         if (decl.StartToken.line > 0) {
           return new List<IToken>() { decl.StartToken };
         } else if (decl is TopLevelDeclWithMembers declWithMembers) {

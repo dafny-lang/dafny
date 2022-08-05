@@ -109,6 +109,23 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
+// Lists all the tokens, including the dots in between.
+List<IToken> GetTokenRange(List<IToken> tokens) {
+  if(tokens.Count() == 0) {
+    return new List<IToken>();
+  } else {
+    var result = new List<IToken>();
+    var token = tokens[0];
+    var lastToken = tokens[tokens.Count() - 1];
+    while(token != lastToken) {
+      result.Add(token);
+      token = token.Next;
+    }
+    result.Add(token);
+    return result;
+  }
+}
+
 bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
@@ -946,19 +963,25 @@ Dafny
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
+     var ownedTokens = new List<IToken>();
   .)
-  { "include" stringToken               (. {
-                                             string parsedFile = scanner.FullFilename;
-                                             bool isVerbatimString;
-                                             string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                             includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
-                                             if (!Path.IsPathRooted(includedFile)) {
-                                               string basePath = Path.GetDirectoryName(parsedFile);
-                                               includedFile = Path.Combine(basePath, includedFile);
-                                             }
-                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, theCompileThisFile));
-                                           }
-                                        .)
+  { "include"                 (. ownedTokens.Add(t); .)
+    stringToken               (. {
+                                 ownedTokens.Add(t);
+                                 string parsedFile = scanner.FullFilename;
+                                 bool isVerbatimString;
+                                 string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                 includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
+                                 if (!Path.IsPathRooted(includedFile)) {
+                                   string basePath = Path.GetDirectoryName(parsedFile);
+                                   includedFile = Path.Combine(basePath, includedFile);
+                                 }
+                                 var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
+                                 oneInclude.OwnedTokens = ownedTokens;
+                                 defaultModule.Includes.Add(oneInclude);
+                                 ownedTokens = new List<IToken>();
+                               }
+                            .)
   }
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
@@ -1049,6 +1072,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idQualified = null;
      List<IToken> idRefined = null;
+     var ownedTokens = new List<IToken>();
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
@@ -1056,12 +1080,13 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
-   ModuleQualifiedName<out idQualified>
+   ModuleQualifiedName<out idQualified> (. ownedTokens.AddRange(GetTokenRange(idQualified)); .)
    (. id = idQualified[idQualified.Count-1];
       prefixIds = idQualified.GetRange(0,idQualified.Count-1);
    .)
 
-   [ "refines" ModuleQualifiedName<out idRefined>
+   [ "refines"                           (. ownedTokens.Add(t); .)
+     ModuleQualifiedName<out idRefined>  (. ownedTokens.AddRange(GetTokenRange(idRefined)); .)
    | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
@@ -1069,15 +1094,17 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
                                         false, theVerifyThisFile, theCompileThisFile);
    .)
    SYNC                                (. module.TokenWithTrailingDocString = t; .)
-   "{"                                 (. module.BodyStartTok = t; .)
+   "{"                                 (. module.BodyStartTok = t; ownedTokens.Add(t); .)
      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
    "}"
     (.
-	  module.StartToken = dmod.FirstToken;
+      module.StartToken = dmod.FirstToken;
       module.EndToken = t;
       module.BodyEndTok = t;
+      ownedTokens.Add(t);
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
+      submodule.OwnedTokens = ownedTokens;
       theOptions = dafnyOptionsBackup;
     .)
   .
@@ -1088,28 +1115,29 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
                                       List<IToken> idExports = new List<IToken>();
                                       IToken/*!*/ id;
                                       List<IToken> idPath = new List<IToken>();
+                                      var ownedTokens = new List<IToken>();
                                       submodule = null;
                                      .)
-    ["opened"                        (.opened = true;.) ]
+    ["opened"                        (. opened = true; ownedTokens.Add(t); .) ]
     (. int lookAhead = scanner.Peek().kind; .)
     ( IF(lookAhead == _singleeq)
-      ModuleName<out id>
-      "="
-      QualifiedModuleExport<out idPath, out idExports>
+      ModuleName<out id>             (. ownedTokens.Add(id); .)
+      "="                            (. ownedTokens.Add(t); .)
+      QualifiedModuleExport<out idPath, out idExports, ownedTokens>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
     | IF(lookAhead == _colon)
-      ModuleName<out id>
-      ":"
-      QualifiedModuleExport<out idPath, out idExports>
+      ModuleName<out id>             (. ownedTokens.Add(id); .)
+      ":"                            (. ownedTokens.Add(t); .)
+      QualifiedModuleExport<out idPath, out idExports, ownedTokens>
           (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
     |
-      QualifiedModuleExport<out idPath, out idExports>
+      QualifiedModuleExport<out idPath, out idExports, ownedTokens>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          idPath[idPath.Count-1], parent, opened, idExports);
           .)
-    )
+    ) (. submodule.OwnedTokens = ownedTokens; .)
     .
 
 /*------------------------------------------------------------------------*/
@@ -1122,37 +1150,42 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     IToken/*!*/ id;
     List<ExportSignature> exports = new List<ExportSignature>();;
     List<IToken> extends = new List<IToken>();
+    var ownedTokens = new List<IToken>() { t };
     bool provideAll = false;
     bool revealAll = false;
     bool isDefault = false;
     bool isRefining = false;
     ExportSignature exsig;
   .)
-  [ ExportId<out exportId> ]
-  [ ellipsis  (. isRefining = true; .) ]
+  [ ExportId<out exportId> (. ownedTokens.Add(t); .) ]
+  [ ellipsis  (. isRefining = true;  ownedTokens.Add(t); .) ]
   {
-    "provides"
+    "provides" (. ownedTokens.Add(t); .)
     (
-      ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-        {"," ExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
+      ( ExportSignature<true, out exsig>    (. exports.Add(exsig); .)
+        {","                                (. ownedTokens.Add(t); .)
+         ExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
       )
-    | "*" (. provideAll = true; .)
+    | "*" (. provideAll = true; ownedTokens.Add(t); .)
     )
-  | "reveals"
+  | "reveals"                                   (. ownedTokens.Add(t); .)
     (
       ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-        {"," ExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+        {","                                    (. ownedTokens.Add(t); .)
+         ExportSignature<false, out exsig>      (. exports.Add(exsig); .) }
       )
-    | "*" (. revealAll = true; .)
+    | "*" (. revealAll = true; ownedTokens.Add(t); .)
     )
-  | "extends"
-    ExportId<out id>       (. extends.Add(id); .)
-    {"," ExportId<out id>  (. extends.Add(id); .) }
+  | "extends"              (. ownedTokens.Add(t); .)
+    ExportId<out id>       (. extends.Add(id); ownedTokens.Add(id); .)
+    {","                   (. ownedTokens.Add(t); .)
+     ExportId<out id>      (. extends.Add(id); ownedTokens.Add(id); .) }
   }
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
      }
      submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+     submodule.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -1162,13 +1195,18 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
 // matching any permitted member name
 
 ExportSignature<bool opaque, out ExportSignature exsig>
-= (. IToken prefix; IToken suffix = null; .)
-  TypeNameOrCtorSuffix<out prefix> [ "." TypeNameOrCtorSuffix<out suffix> ]
+= (. IToken prefix; IToken suffix = null;
+     var ownedTokens = new List<IToken>();
+  .)
+  TypeNameOrCtorSuffix<out prefix>   (. ownedTokens.Add(prefix); .)
+  [ "."                              (. ownedTokens.Add(t); .)
+    TypeNameOrCtorSuffix<out suffix> (. ownedTokens.Add(suffix); .)]
   (. if (suffix != null) {
        exsig = new ExportSignature(prefix, prefix.val, suffix, suffix.val, opaque);
      } else {
        exsig = new ExportSignature(prefix, prefix.val, opaque);
      }
+     exsig.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -1183,20 +1221,23 @@ ModuleQualifiedName<.out List<IToken> ids.>
   .
 
 /*------------------------------------------------------------------------*/
-QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
+QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports, List<IToken> ownedTokens.>
 = (. exports = new List<IToken>();
   .)
-  ModuleQualifiedName<out idPath>
-  [ "`" ModuleExportSuffix<exports> ]
+  ModuleQualifiedName<out idPath>     (. ownedTokens.AddRange(GetTokenRange(idPath)); .)
+  [ "`"                               (. ownedTokens.Add(t); .)
+    ModuleExportSuffix<exports, ownedTokens> ]
   .
 
 /*------------------------------------------------------------------------*/
-ModuleExportSuffix<. List<IToken> exports.>
+ModuleExportSuffix<. List<IToken> exports, List<IToken> ownedTokens.>
 =                              (. IToken id; .)
-    ( ExportId<out id>       (. exports.Add(id); .)
-    | "{" ExportId<out id>   (. exports.Add(id); .)
-       { "," ExportId<out id> (. exports.Add(id); .) }
-      "}"
+    ( ExportId<out id>    (. exports.Add(id); ownedTokens.Add(id); .)
+    | "{"                 (. ownedTokens.Add(t); .)
+      ExportId<out id>    (. exports.Add(id); ownedTokens.Add(id); .)
+       { ","              (. ownedTokens.Add(t); .)
+         ExportId<out id> (. exports.Add(id); ownedTokens.Add(id); .) }
+      "}"                 (. ownedTokens.Add(t); .)
     )
   .
 
