@@ -38,7 +38,7 @@ class DocumentObserver : IObserver<DafnyDocument> {
 
   public void OnError(Exception exception) {
     if (exception is OperationCanceledException) {
-      logger.LogWarning(exception, "document processing cancelled.");
+      logger.LogInformation("document processing cancelled.");
       return;
     }
 
