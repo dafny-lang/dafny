@@ -114,11 +114,8 @@ function fib(n: nat): nat {
     var translatedStatusBefore = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusBefore.NamedVerifiables.Count);
 
-    // Delete the end of the Foo range
+    // Delete the end of the Foo range, so Foo() becomes F()
     ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
-
-    var resolutionStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionStatusAfter.NamedVerifiables.Count);
 
     var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusAfter.NamedVerifiables.Count);

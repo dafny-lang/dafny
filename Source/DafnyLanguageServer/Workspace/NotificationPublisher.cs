@@ -30,6 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
       var notification = GetFileVerificationStatus(document);
       if (notification == null) {
+        // Do not publish verification status while resolving
         return;
       }
 
