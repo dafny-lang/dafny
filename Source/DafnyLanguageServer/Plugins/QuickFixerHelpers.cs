@@ -18,7 +18,7 @@ public static class QuickFixerHelpers {
   /// <param name="text">The document</param>
   /// <returns>The substring of the document in the range</returns>
   public static string Extract(Range range, string text) {
-    var token = range.ToBoogieToken(text);
+    var token = range.ToToken(text);
     var startTokenPos = token.StartToken.pos;
     var endTokenPos = token.EndToken.pos + token.EndToken.val.Length;
     var length = endTokenPos - startTokenPos;
@@ -110,7 +110,7 @@ public static class QuickFixerHelpers {
   public static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IQuickFixInput input, Position openingBracePosition) {
 
-    var startToken = openingBracePosition.ToBoogieToken(input.Code);
+    var startToken = openingBracePosition.ToToken(input.Code);
     var endToken = GetMatchingEndToken(input.Program!, input.Uri, startToken);
     if (endToken == null) {
       return (null, "", "");
