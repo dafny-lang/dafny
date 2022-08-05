@@ -23,7 +23,7 @@ How do labels in preconditions work?
 ## Answer
 
 ```dafny
-{% include_relative FAQPreconditionLabel.dfy %}
+{% include_relative FAQPreconditionLabels.dfy %}
 ```
 
 In the code example above, the precondition `x == 0` is labeled with `Zero``
