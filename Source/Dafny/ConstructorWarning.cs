@@ -34,7 +34,7 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
   public ConstructorWarningVisitor(ErrorReporter reporter) {
     this.reporter = reporter;
   }
-  // Implements warning for constructors in match which ensures constructor is followed by parenthesis. 
+  // Implements warning for constructors in match which ensures constructor is followed by parentheses. 
   protected override bool VisitOneExpr(Expression expr, ref Unit st) {
     if (expr is NestedMatchExpr matchExpr) {
       var matchExprCases = matchExpr.Cases;
@@ -46,8 +46,7 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
   }
   protected override bool VisitOneStmt(Statement stmt, ref Unit st) {
     if (stmt is NestedMatchStmt matchStmt) {
-      var matchStmtCases = matchStmt.Cases;
-      foreach (var caseStmt in matchStmtCases) {
+      foreach (var caseStmt in matchStmt.Cases) {
         CheckPattern(caseStmt.Pat);
       }
     }
@@ -57,7 +56,6 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
     if (pattern is not IdPattern idPattern) {
       return;
     }
-
     var isConstructor = idPattern.Arguments != null;
     if (isConstructor) {
       foreach (var nestedPattern in idPattern.Arguments) {
