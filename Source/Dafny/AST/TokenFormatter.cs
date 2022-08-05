@@ -416,7 +416,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var indent2 = indent + SpaceTab;
     var indent4 = indent + SpaceTab;
     if (topLevelDecl.StartToken.line > 0) {
-      SetOpeningIndentedRegion(topLevelDecl.BodyStartTok, indent);
+      SetDelimiterIndentedRegions(topLevelDecl.BodyStartTok, indent);
+      SetOpeningIndentedRegion(topLevelDecl.StartToken, indent);
     }
     if (topLevelDecl is LiteralModuleDecl moduleDecl) {
       foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
