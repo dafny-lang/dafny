@@ -424,71 +424,134 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
       if (declWithMembers is DatatypeDecl datatypeDecl) {
-        var verticalBarIndent = indent2;
-        var rightOfVerticalBarIndent = indent2 + SpaceTab;
-        var commaIndent = indent2;
-        var rightIndent = indent2;
-        foreach (var token in datatypeDecl.OwnedTokens) {
-          switch (token.val) {
-            case "datatype": {
-                SetOpeningIndentedRegion(token, indent);
-                break;
-              }
-            case "|": {
-                SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
-                break;
-              }
-            case "(": {
-                if (IsFollowedByNewline(token)) {
-                  SetOpeningIndentedRegion(token, rightOfVerticalBarIndent);
-                  commaIndent = rightOfVerticalBarIndent;
-                  rightIndent = commaIndent + SpaceTab;
-                } else {
-                  SetAlign(rightOfVerticalBarIndent + SpaceTab, token, out rightIndent, out commaIndent);
-                }
-                break;
-              }
-            case ")": {
-                SetIndentations(token.Prev, after: rightIndent);
-                SetClosingIndentedRegionAligned(token, rightIndent, rightOfVerticalBarIndent);
-                break;
-              }
-            case "=": {
-                if (IsFollowedByNewline(token)) {
-                  SetDelimiterInsideIndentedRegions(token, indent2);
-                } else {
-                  SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
-                }
-
-                break;
-              }
-            case ",": {
-                SetIndentations(token, rightIndent, commaIndent, rightIndent);
-                break;
-              }
-            case ";": {
-                break;
-              }
-          }
-        }
-
-        foreach (var ctor in datatypeDecl.Ctors) {
-          SetFormalsIndentation(ctor.Formals);
-        }
+        SetDatatypeDeclIndent(indent, datatypeDecl);
+      } else if (declWithMembers is RedirectingTypeDecl redirectingTypeDecl) {
+        SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.Members) {
         SetMemberIndentation(member, initialMemberIndent);
       }
-    } else if (topLevelDecl is TypeSynonymDecl typeSynonymDecl) {
-      SetOpeningIndentedRegion(typeSynonymDecl.StartToken, indent);
-      SetClosingIndentedRegion(typeSynonymDecl.EndToken, indent);
-      // TODO
+    } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
+      SetRedirectingTypeDeclDeclIndentation(indent, subsetTypeDecl);
     }
 
     if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
+    }
+  }
+
+  private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl typeSynonymDecl) {
+    SetOpeningIndentedRegion(typeSynonymDecl.StartToken, indent);
+    var indent2 = indent + SpaceTab;
+    var rightOfVerticalBarIndent = indent2;
+    var verticalBarIndent = indent2;
+    foreach (var token in typeSynonymDecl.OwnedTokens) {
+      switch (token.val) {
+        case "newtype":
+        case "type": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "=": {
+            if (IsFollowedByNewline(token)) {
+              SetDelimiterInsideIndentedRegions(token, indent);
+            } else {
+              SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
+            }
+
+            break;
+          }
+        case "|": {
+            SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case "ghost": {
+            SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, verticalBarIndent);
+            break;
+          }
+        case "witness": {
+            if (rightOfVerticalBarIndent == indent2) {
+              rightOfVerticalBarIndent = indent2 + SpaceTab;
+            }
+            SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case "*": {
+            // Nothing to add here.
+            break;
+          }
+        case ";": {
+            break;
+          }
+      }
+    }
+
+    if (typeSynonymDecl is SubsetTypeDecl subsetTypeDecl) {
+      SetExpressionIndentation(subsetTypeDecl.Constraint);
+      SetExpressionIndentation(subsetTypeDecl.Witness);
+      SetTypeIndentation(subsetTypeDecl.Var.SyntacticType);
+    } else if (typeSynonymDecl is NewtypeDecl newtypeDecl) {
+      SetExpressionIndentation(newtypeDecl.Constraint);
+      SetExpressionIndentation(newtypeDecl.Witness);
+      SetTypeIndentation(newtypeDecl.Var.SyntacticType);
+    }
+  }
+
+  private void SetDatatypeDeclIndent(int indent, DatatypeDecl datatypeDecl) {
+    var indent2 = indent + SpaceTab;
+    var verticalBarIndent = indent2;
+    var rightOfVerticalBarIndent = indent2 + SpaceTab;
+    var commaIndent = indent2;
+    var rightIndent = indent2;
+    foreach (var token in datatypeDecl.OwnedTokens) {
+      switch (token.val) {
+        case "datatype": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "=": {
+            if (IsFollowedByNewline(token)) {
+              SetDelimiterInsideIndentedRegions(token, indent2);
+            } else {
+              SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
+            }
+
+            break;
+          }
+        case "|": {
+            SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case "(": {
+            if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, rightOfVerticalBarIndent);
+              commaIndent = rightOfVerticalBarIndent;
+              rightIndent = commaIndent + SpaceTab;
+            } else {
+              SetAlign(rightOfVerticalBarIndent + SpaceTab, token, out rightIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ")": {
+            SetIndentations(token.Prev, after: rightIndent);
+            SetClosingIndentedRegionAligned(token, rightIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case ",": {
+            SetIndentations(token, rightIndent, commaIndent, rightIndent);
+            break;
+          }
+        case ";": {
+            break;
+          }
+      }
+    }
+
+    foreach (var ctor in datatypeDecl.Ctors) {
+      SetFormalsIndentation(ctor.Formals);
     }
   }
 
@@ -764,16 +827,19 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private void ApplyVarAssignFormatting(int indent, List<IToken> ownedTokens) {
       var commaIndent = indent + SpaceTab;
       var rightIndent = indent + SpaceTab;
+      var semicolonIndent = indent;
       foreach (var token in ownedTokens) {
         switch (token.val) {
-          case "var":
-            if (IsFollowedByNewline(token)) {
-              formatter.SetOpeningIndentedRegion(token, indent);
-            } else {
-              formatter.SetAlign(indent, token, out rightIndent, out commaIndent);
-            }
+          case "var": {
+              semicolonIndent = formatter.GetTokenCol(token, indent) - 1;
+              if (IsFollowedByNewline(token)) {
+                formatter.SetOpeningIndentedRegion(token, indent);
+              } else {
+                formatter.SetAlign(indent, token, out rightIndent, out commaIndent);
+              }
 
-            break;
+              break;
+            }
           case ",":
             formatter.SetDelimiterSpeciallyIndentedRegions(token, commaIndent, rightIndent);
             break;
@@ -790,7 +856,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
             break;
           case ";":
-            formatter.SetClosingIndentedRegionInside(token, indent);
+            formatter.SetClosingIndentedRegionInside(token, semicolonIndent);
             break;
             // Otherwise, these are identifiers, We don't need to specify their indentation.
         }

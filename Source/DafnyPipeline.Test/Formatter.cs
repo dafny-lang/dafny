@@ -531,7 +531,18 @@ datatype D =
 type X = i : int
        | i == 2 || i == 3 witness 2
  
-type X =
+//CommentY
+type Y =   i : int
+       |   // Comment
+           i == 2 || i == 3
+           // Comment2
+       witness
+           // Comment3
+           2
+           //Comment4
+
+//CommentZ
+type Z =
   i : int
   |   i == 2 ||
       i == 3
@@ -543,9 +554,10 @@ newtype X
     || i == 3 witness var x := 2;
                       x
 
-newtype X
+newtype Y
   =
-  i : int
+  i : List<int,
+           int>
   | i == 2
     || i == 3
   witness

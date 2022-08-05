@@ -1462,6 +1462,7 @@ LocalVarName<out IToken id> = NoUSIdent<out id> .
 
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
+     var ownedTokens = new List<IToken>();
      Attributes attrs = null;
      td = null;
      Type baseType = null;
@@ -1470,44 +1471,46 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
-  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  NewtypeName<out id>
+  NewtypeName<out id>                      (. ownedTokens.Add(id); .)
   (
-  "="
+  "="                                      (. ownedTokens.Add(t); .)
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
       $"Refinement cannot change the base type of a `newtype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the parent type's body."); .)
   ]
   ( IF(IsIdentColonOrBar())
-    LocalVarName<out bvId>
-    [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
-    "|"
+    LocalVarName<out bvId>                 (. ownedTokens.Add(bvId); .)
+    [ ":"                                  (. ownedTokens.Add(t); .)
+      Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
+    "|"                                    (. ownedTokens.Add(t); .)
     Expression<out constraint, false, true>
     (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
     [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
+      ( "ghost"                            (. ownedTokens.Add(t); .)
+        "witness"                          (. witnessKind = SubsetTypeDecl.WKind.Ghost; ownedTokens.Add(t); .)
         Expression<out witness, false, true>
-      | "witness"
-        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+      | "witness"                          (. ownedTokens.Add(t); .)
+        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; ownedTokens.Add(t); .)
         | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
         )
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false);
-    .)
+    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false); .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: false); .)
   )
-  | ellipsis
+  | ellipsis (. ownedTokens.Add(t); .)
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
     .)
   )             (. td.TokenWithTrailingDocString = t; 
                    td.StartToken = dmod.FirstToken;
-                   td.EndToken = t; .)
+                   td.EndToken = t;
+                   td.OwnedTokens = ownedTokens; .)
   .
 
 /*------------------------------------------------------------------------*/

@@ -5230,6 +5230,8 @@ namespace Microsoft.Dafny {
     string Name { get; }
 
     IToken tok { get; }
+    List<IToken> OwnedTokens { get; }
+    IToken StartToken { get; }
     Attributes Attributes { get; }
     ModuleDefinition Module { get; }
     BoundVar/*?*/ Var { get; }
@@ -5342,6 +5344,8 @@ namespace Microsoft.Dafny {
 
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
+    List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+    IToken RedirectingTypeDecl.StartToken => StartToken;
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
     ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -5425,6 +5429,8 @@ namespace Microsoft.Dafny {
 
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
+    List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+    IToken RedirectingTypeDecl.StartToken => StartToken;
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
     ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
