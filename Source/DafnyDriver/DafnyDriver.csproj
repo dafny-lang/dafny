@@ -9,8 +9,6 @@
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
-      <VersionPrefix>3.8.0.40729</VersionPrefix>
-
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 

@@ -24,9 +24,9 @@
 
    * `Source/version.cs`
 
-   * `Source/DafnyDriver/DafnyDriver.csproj`
+   * `Source/Dafny/Dafny.csproj`
 
-   * `Source/Dafny/DafnyPipeline.csproj`
+   * `Source/DafnyPipeline/DafnyPipeline.csproj`
 
    Put the public version number in place of the "Upcoming" header in
    `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.

@@ -3,6 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dafny", "Dafny\Dafny.csproj", "{F3EB0F43-9CFB-44E1-B786-983DACE64313}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore", "DafnyCore\DafnyCore.csproj", "{ACBF62FD-19AC-4243-9019-056D30A130D6}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{09E25A18-19EA-42C4-B33F-69E3E6FD5698}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "DafnyPipeline\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
@@ -35,10 +39,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\AutoExtern.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore", "DafnyCore\DafnyCore.csproj", "{ACBF62FD-19AC-4243-9019-056D30A130D6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dafny", "Dafny\Dafny.csproj", "{F3EB0F43-9CFB-44E1-B786-983DACE64313}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
