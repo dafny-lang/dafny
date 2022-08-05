@@ -158,6 +158,8 @@ public class CsharpSynthesizer {
       case FreshExpr:
         break;
       default:
+        // TODO: Have the resolver reject all these unimplemented cases,
+        // or convert them to UnsupportedFeatureExceptions
         throw new NotImplementedException();
     }
   }

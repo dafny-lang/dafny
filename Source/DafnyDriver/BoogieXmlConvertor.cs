@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
           // and then it would make sense to rename this class.
           var textLogger = new TextLogger();
           textLogger.Initialize(parameters);
-          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults);
+          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList());
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
         }

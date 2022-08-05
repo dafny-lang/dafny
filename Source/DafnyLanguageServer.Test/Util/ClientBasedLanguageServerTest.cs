@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -69,14 +71,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(options => {
-      options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
-      options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
-      options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
-
-    }, serverOptions => {
+    client = await InitializeClient(InitialiseClientHandler, serverOptions => {
       ServerOptionsAction(serverOptions);
     });
+  }
+
+  protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
+    options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+    options.AddHandler(DafnyRequestNames.GhostDiagnostics,
+      NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
+    options.AddHandler(DafnyRequestNames.VerificationSymbolStatus,
+      NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
   }
 
   protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
@@ -103,7 +108,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents.Values) {
+    foreach (var entry in Documents.Documents) {
       try {
         await entry.LastDocument;
       } catch (TaskCanceledException) {
@@ -120,7 +125,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents.Values) {
+    foreach (var entry in Documents.Documents) {
       try {
         await entry.LastDocument;
       } catch (TaskCanceledException) {
@@ -142,7 +147,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents.Values) {
+    foreach (var entry in Documents.Documents) {
       try {
         await entry.LastDocument;
       } catch (TaskCanceledException) {
@@ -153,14 +158,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
-      "Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
-        diagnostic.ToString())));
+      "1) Unexpected diagnostics were received whereas none were expected:\n" +
+      string.Join(",", resolutionReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
     var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
+    Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri,
+      "2) Unexpected diagnostics were received whereas none were expected:\n" +
+      string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {

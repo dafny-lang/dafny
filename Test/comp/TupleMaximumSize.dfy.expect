@@ -1,17 +1,1 @@
-
-Dafny program verifier finished with 0 verified, 0 errors
-TupleMaximumSize.dfy(9,11): Error: C# back-end does not support tuples with more than 20 arguments.
-Wrote textual form of partial target program to TupleMaximumSize.cs
-
-Dafny program verifier finished with 0 verified, 0 errors
 (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-
-Dafny program verifier finished with 0 verified, 0 errors
-(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-
-Dafny program verifier finished with 0 verified, 0 errors
-(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-
-Dafny program verifier finished with 0 verified, 0 errors
-TupleMaximumSize.dfy(9,11): Error: Java back-end does not support tuples with more than 20 arguments.
-Wrote textual form of partial target program to TupleMaximumSize-java/TupleMaximumSize.java

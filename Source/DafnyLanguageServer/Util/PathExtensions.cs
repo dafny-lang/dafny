@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <param name="documentUri">The URI to check.</param>
     /// <returns><c>true</c> if the given URI is the entrypoint document of the given program.</returns>
     public static bool IsEntryDocument(this Dafny.Program program, DocumentUri documentUri) {
-      return GetFilePath(documentUri) == program.FullName;
+      return documentUri.ToString() == program.FullName;
     }
 
     /// <summary>
@@ -62,7 +62,10 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
     public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
-      return DocumentUri.FromFileSystemPath(token.filename);
+      if (token is IncludeToken includeToken) {
+        return DocumentUri.FromFileSystemPath(includeToken.Include.CanonicalPath);
+      }
+      return DocumentUri.Parse(token.filename);
     }
 
     /// <summary>

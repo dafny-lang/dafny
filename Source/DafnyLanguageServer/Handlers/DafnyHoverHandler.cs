@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
-              node.Filename == document.Uri.GetFileSystemPath()) {
+              node.Filename == document.Uri.ToString()) {
             areMethodStatistics = true;
             return GetTopLevelInformation(node, orderedAssertionBatches);
           }
@@ -180,6 +180,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       var batchRef = AddAssertionBatchDocumentation("batch");
       var assertionCount = assertionBatch.Children.Count;
 
+
+      var currentlyHoveringPostcondition =
+        !(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+          returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position));
+
       var obsolescence = assertionNode.StatusCurrent switch {
         CurrentStatus.Current => "",
         CurrentStatus.Obsolete => "(obsolete) ",
@@ -187,14 +192,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
 
       string GetDescription(Boogie.ProofObligationDescription? description) {
-        return assertionNode?.StatusVerification switch {
-          GutterVerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                                                       (description?.SuccessDescription ?? "_no message_"),
-          GutterVerificationStatus.Error =>
-            $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
-            (description?.FailureDescription ?? "_no message_"),
-          GutterVerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
-          _ => $"{obsolescence}**Waiting to be verified...**",
+        switch (assertionNode?.StatusVerification) {
+          case GutterVerificationStatus.Verified:
+            return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                   (description?.SuccessDescription ?? "_no message_");
+          case GutterVerificationStatus.Error:
+            var failureDescription = description?.FailureDescription ?? "_no message_";
+            if (currentlyHoveringPostcondition &&
+                  (failureDescription == new PostconditionDescription().FailureDescription ||
+                   failureDescription == new EnsuresDescription().FailureDescription)) {
+              failureDescription = "This postcondition might not hold on a return path.";
+            }
+            return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
+                   failureDescription;
+          case GutterVerificationStatus.Inconclusive:
+            return $"{obsolescence}**Ignored or could not reach conclusion**";
+          default: return $"{obsolescence}**Waiting to be verified...**";
         };
       }
 
@@ -229,10 +242,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       // Not the main error displayed in diagnostics
-      if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
-            returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
+      if (currentlyHoveringPostcondition) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
-          ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 

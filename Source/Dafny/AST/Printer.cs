@@ -216,7 +216,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -500,7 +500,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -859,9 +859,7 @@ namespace Microsoft.Dafny {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (f is Predicate || f is TwoStatePredicate || f is ExtremePredicate || f is PrefixPredicate) {
-          // the result type is tacitly "bool"
-        } else {
+        if (f.Result != null || (f is not Predicate && f is not ExtremePredicate && f is not TwoStatePredicate && f is not PrefixPredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
@@ -2870,12 +2868,19 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           break;
+        case DisjunctivePattern dPat:
+          var patSep = "";
+          foreach (var arg in dPat.Alternatives) {
+            wr.Write(patSep);
+            PrintExtendedPattern(arg);
+            patSep = " | ";
+          }
+          break;
         case LitPattern litPat:
           wr.Write(litPat.ToString());
           break;
       }
     }
-
 
     private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {
       Contract.Requires(boundVars != null);

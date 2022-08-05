@@ -1,0 +1,143 @@
+name: Publish Release
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      prerelease:
+        required: false
+        type: boolean
+      sha:
+        required: true
+        type: string
+      draft:
+        required: true
+        type: boolean
+      release_notes:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+      release_nuget:
+        required: true
+        type: boolean
+    secrets:
+      # Required if release_nuget is true
+      nuget_api_key:
+        required: false
+
+env:
+  dotnet-version: 6.0.x # SDK Version for building Dafny
+  
+jobs:
+
+  publish-release:
+    runs-on: macos-latest
+    steps:
+    - name: Print version
+      run: echo ${{ inputs.name }}
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        path: dafny
+        ref: ${{ inputs.sha }}
+    - uses: actions/setup-python@v1
+    - name: Ensure tag exists
+      if: ${{ inputs.prerelease }}
+      run: |
+        git tag ${{ inputs.tag_name }} -f
+        git push origin ${{ inputs.tag_name }} -f
+      working-directory: dafny
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.9.0
+      with:
+        dotnet-version: ${{env.dotnet-version}}
+    - name: C++ for ubuntu 18.04
+      if: matrix.os == 'ubuntu-18.04'
+      run: |
+        sudo apt-get install -y build-essential
+    - name: Choose the right C++ for ubuntu 18.04
+      if: matrix.os == 'ubuntu-18.04'
+      run: |
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
+    - uses: actions/setup-python@v1
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - uses: actions/setup-node@v1
+    - run: npm install bignumber.js
+
+    - name: Build Dafny
+      run: |
+        dotnet build dafny/Source/Dafny.sln
+        rm dafny/Binaries/*.nupkg
+    - name: Create release NuGet package (for uploading)
+      if: ${{ !inputs.prerelease }}
+      run: dotnet pack --no-build dafny/Source/Dafny.sln
+    - name: Create prerelease NuGet package (for uploading)
+      if: ${{ inputs.prerelease }}
+      # NuGet will consider any package with a version-suffix as a prerelease
+      run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
+
+    - name: Make NuGet package available as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget-packages
+        path: dafny/Binaries/*.nupkg
+
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      # Need --skip-duplicate for cases where we release a new Dafny
+      # version but the runtime hasn't changed and is still the old
+      # version.
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+
+    - name: Install latex pandoc
+      run: |
+        brew install pandoc
+        brew install --cask basictex
+        eval "$(/usr/libexec/path_helper)"
+        sudo tlmgr update --self
+        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
+        pandoc -v
+        which latex || echo NOT FOUND latex
+        which xelatex || echo NOT FOUND xelatex
+        sudo gem install rouge
+    - name: Clean Dafny
+      run: dotnet clean dafny/Source/Dafny.sln
+    # First we build the ZIPs (which do not include the refman)
+    - name: Package release files (release)
+      if: ${{ !inputs.prerelease }}
+      run: |
+        python dafny/Scripts/package.py ${{ inputs.name }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+    - name: Package release files (prerelease)
+      if: ${{ inputs.prerelease }}
+      run: |
+        python dafny/Scripts/package.py ${{ inputs.name }} --trial=true --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+    # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
+    # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
+    # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
+    # a platform-specific directory), we build Dafny once here.
+    - name: Re-build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Build reference manual
+      run: |
+        eval "$(/usr/libexec/path_helper)"
+        make -C dafny/docs/DafnyRef
+
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Dafny ${{ inputs.name }}
+        tag_name: ${{ inputs.tag_name }}
+        body: ${{ inputs.release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
+        files: |
+          dafny/Package/dafny-${{ inputs.name }}*
+          dafny/docs/DafnyRef/DafnyRef.pdf
+        fail_on_unmatched_files: true
