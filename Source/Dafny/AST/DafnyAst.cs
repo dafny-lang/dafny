@@ -7429,9 +7429,9 @@ namespace Microsoft.Dafny {
       Lhss = lhss;
     }
 
-    public override IEnumerable<Expression> NonSpecificationSubExpressions {
+    public override IEnumerable<Expression> PreResolveSubExpressions {
       get {
-        foreach (var e in base.NonSpecificationSubExpressions) {
+        foreach (var e in base.PreResolveSubExpressions) {
           yield return e;
         }
 
@@ -7518,8 +7518,8 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> PreResolveSubExpressions {
       get {
-        foreach (var lhs in Lhss) {
-          yield return lhs;
+        foreach (var e in base.PreResolveSubExpressions) {
+          yield return e;
         }
         foreach (var rhs in Rhss) {
           foreach (var e in rhs.SubExpressions) {
@@ -7565,7 +7565,10 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> PreResolveSubExpressions {
       get {
-        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+
+        foreach (var e in base.PreResolveSubExpressions) {
+          yield return e;
+        }
 
         if (Rhs != null) {
           yield return Rhs;
