@@ -263,6 +263,7 @@ method Bar() { assert false; }";
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
+    var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
