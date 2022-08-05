@@ -349,7 +349,7 @@ namespace Microsoft.Dafny {
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
           Console.WriteLine($"\t{variable.ShortName} : " +
-                            $"{variable.Type.InDafnyFormat()} = " +
+                            $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
                             $"{variable.Value}");
         }
       }

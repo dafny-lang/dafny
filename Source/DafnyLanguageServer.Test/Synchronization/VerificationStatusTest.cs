@@ -14,6 +14,53 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
+    var source = "method m1() {}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, status1.NamedVerifiables.Count);
+
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, status2.NamedVerifiables.Count);
+  }
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnparsedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(0, 11, 0, 11), "blargh");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnresolvedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
+  [TestMethod]
   public async Task ManyConcurrentVerificationRuns() {
     var source = @"
 method m1() {
@@ -67,11 +114,8 @@ function fib(n: nat): nat {
     var translatedStatusBefore = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusBefore.NamedVerifiables.Count);
 
-    // Delete the end of the Foo range
+    // Delete the end of the Foo range, so Foo() becomes F()
     ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
-
-    var resolutionStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionStatusAfter.NamedVerifiables.Count);
 
     var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusAfter.NamedVerifiables.Count);
@@ -216,6 +260,7 @@ method Bar() { assert false; }";
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
+    var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 

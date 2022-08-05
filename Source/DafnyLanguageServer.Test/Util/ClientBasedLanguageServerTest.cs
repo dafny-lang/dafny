@@ -158,14 +158,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
-      "Unexpected diagnostics were received whereas none were expected:\n" +
+      "1) Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", resolutionReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
     var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri,
-      "Unexpected diagnostics were received whereas none were expected:\n" +
+      "2) Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
   }
 

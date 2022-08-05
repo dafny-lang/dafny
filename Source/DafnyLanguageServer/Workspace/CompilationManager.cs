@@ -269,6 +269,7 @@ public class CompilationManager {
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
       }
+      logger.LogInformation($"Verification of Boogie implementation {implementationTask.Implementation.Name} completed.");
     } else {
       var existingView = document.ImplementationIdToView!.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
