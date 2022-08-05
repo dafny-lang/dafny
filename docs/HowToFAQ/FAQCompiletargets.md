@@ -10,4 +10,4 @@ What compiler target langages are in development?
 
 As of version 3.7.3
 - C#, Javascript, Java, and Go are well-supported
-- Python, C++ are under development
+- Python, C++, Rust are under development

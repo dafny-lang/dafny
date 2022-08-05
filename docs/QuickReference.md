@@ -45,7 +45,7 @@ Pre is a boolean expression denoting the method's precondition,
 Frame denotes a set of objects whose fields may be updated by the method,
 Post is a boolean expression denoting the method's postcondition,
 TerminationMetric is the method's variant function,
-and Body is a statement that implements the method.
+and Body is a sequence of statements that implements the method.
 Frame can be a list of expressions, each of which is a set of objects or a single object, the latter standing for the singleton set consisting of that one object.
 The method's frame is the union of these sets, plus the set of objects allocated by the method body.
 For example, if c and d are parameters of a class type C, then each line of
@@ -268,6 +268,7 @@ Characters in strings can be escaped; for example, of interest for the print sta
 The `if` statement is the usual one.
 The example shows stringing together alternatives using `else if`.
 The `else` branch is optional, as usual.
+The braces around the then-branch and the else-branch are required.
 
 The `while` statement is the usual loop, where the `invariant` declaration gives a loop invariant,
 the `modifies` clause restricts the modification frame of the loop,
@@ -288,9 +289,8 @@ As suggested by their widths, `<==>` has lower binding power than `==>`, which i
 
 Dafny comparison expressions can be chaining, which means that comparisons "in the same direction" can be strung together. For example,
 `0 <= i < j <= a.Length == N`
-
-has the same meaning as:
-`0 <= i && i < j && j <= a.Length && a.Length == N`
+has the same meaning as
+`0 <= i && i < j && j <= a.Length && a.Length == N`.
 
 Note that boolean equality can be expressed using both `==` and `<==>`. There are two differences between these.
 First, `==` has a higher binding power than `<==>`. Second, `==` is _chaining_ while `<==>` is _associative_.
@@ -303,7 +303,7 @@ Operations on integers are the usual ones, except that `/` (integer division) an
 Dafny expressions include universal and existential quantifiers, which have the form:
 `forall x :: Expr` and `exists x :: Expr`, where `x` is a bound variable (which can be declared with an explicit type, as in `x: T`) and `Expr` is a boolean expression.
 
-Operations on sets include `+` (union), `*` (intersection), and `-` (set difference), the set comparison operators `<` (proper subset), `<=` (subset), their duals `>` and `>=`, and `!!` (disjointness).
+Operations on sets include `+` (union), `*` (intersection), and `-` (set difference), the set comparison operators `<` (proper subset), `<=` (subset), and `!!` (disjointness).
 The expression `x in S` says that `x` is a member of set `S`, and `x !in S` is a convenient way of writing `!(x in S)`.
 
 To make a set from some elements, enclose them in curly braces.
@@ -315,8 +315,8 @@ Membership can be checked like for sets: `x in S` and `x !in S`.
 The length of a sequence S is denoted `|S|`, and the elements of such a sequence have indices from 0 to less than `|S|`.
 The expression `S[j]` denotes the element at index `j` of sequence `S`.
 The expression `S[m..n]`, where `0 <= m <= n <= |S|`, returns a sequence whose elements are the `n-m` elements of `S` starting at index `m` (that is, from `S[m]`, `S[m+1]`, ... up to but not including `S[n]`).
-The expression `S[m..]`; (often called "drop m") is the same as `S[m..|S|]`;, that is, it returns the sequence whose elements are all but the first `m` elements of `S`.
-The expression `S[..n]`; (often called "take n") is the same as `S[0..n]`, that is, it returns the sequence that consists of the first n elements of S.
+The expression `S[m..]` (often called "drop m") is the same as `S[m..|S|]`; that is, it returns the sequence whose elements are all but the first `m` elements of `S`.
+The expression `S[..n]` (often called "take n") is the same as `S[0..n]`; that is, it returns the sequence that consists of the first n elements of `S`.
 
 If `j` is a valid index into sequence `S`, then the expression `S[j := x]`; is the sequence that is like `S` except that it has `x` at index `j`.
 
@@ -326,7 +326,7 @@ For example, `[x,y]` is the sequence consisting of the two elements `x` and `y` 
 
 The if-then-else expression has the form: `if BoolExpr then Expr0 else Expr1`
 
-where Expr0 and Expr1 are any expressions of the same type.
+where `Expr0` and `Expr1` are any expressions of the same type.
 Unlike the if statement, the if-then-else expression uses the `then` keyword, and must include an explicit `else` branch.
 
 

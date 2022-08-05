@@ -49,7 +49,7 @@ in the following way:
 ```
 method Abs(x: int) returns (y: int)
 {
-   ...
+  ...
 }
 ```
 
@@ -63,7 +63,7 @@ can be multiple return values, as in below:
 ```
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-   ...
+  ...
 }
 ```
 
@@ -75,22 +75,13 @@ assignments, `if` statements, loops, other method calls, `return` statements, et
 For example, the `MultipleReturns` method may be
 implemented as:
 
-``` {.editonly}
-method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-{
-   more := x + y;
-   less := x - y;
-   // comments: are not strictly necessary.
-   /* unless you want to keep your sanity. */
-}
-```
-
 ```
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-   more := x + y;
-   less := x - y;
-   // comments: are not strictly necessary.
+  more := x + y;
+  less := x - y;
+  // comments: are not strictly necessary.
+  /* unless you want to keep your sanity. */
 }
 ```
 
@@ -111,11 +102,11 @@ parentheses around the boolean condition, and act as one would expect:
 ``` {.edit}
 method Abs(x: int) returns (y: int)
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
@@ -153,23 +144,15 @@ condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
 
-``` {.editonly}
-method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-{
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
-}
-```
-
 ```
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   ...
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
@@ -191,42 +174,34 @@ method might lead one to guess the following postconditions:
 
 ``` {.edit}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x
-   ensures x < more
+  ensures less < x
+  ensures x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
 The postcondition can also be written:
 
-``` {.editonly}
+```
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x && x < more
+  ensures less < x && x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
-```
-
-```
-   ensures less < x && x < more
 ```
 
 or even:
 
-``` {.editonly}
+```
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x < more
+  ensures less < x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
-```
-
-```
-   ensures less < x < more
 ```
 
 because of the chaining comparison operator syntax in Dafny.
@@ -264,17 +239,17 @@ when you write a method, you get to assume the preconditions, but you must
 establish the postconditions. The caller of the method then gets to assume
 that the postconditions hold after the method returns.
 
-preconditions have their own keyword, `requires`.
+Preconditions have their own keyword, `requires`.
 We can give the necessary precondition to `MultipleReturns`
 as below:
 
 ``` {.edit}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   requires 0 < y
-   ensures less < x < more
+  requires 0 < y
+  ensures less < x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
@@ -327,16 +302,16 @@ example, the following is a trivial use of an assertion inside a dummy method:
 ``` {.editonly}
 method Testing()
 {
-   assert 2 < 3;
-   // Try "asserting" something that is not true.
-   // What does Dafny output?
+  assert 2 < 3;
+  // Try "asserting" something that is not true.
+  // What does Dafny output?
 }
 ```
 
 ```
 method Testing()
 {
-   assert 2 < 3;
+  assert 2 < 3;
 }
 ```
 
@@ -359,12 +334,12 @@ of an initialized, explicitly typed variable declaration:
 ``` {.editonly}
 method m()
 {
-   var x: int := 5;
+  var x: int := 5;
 }
 ```
 
 ```
-   var x: int := 5;
+  var x: int := 5;
 ```
 
 The type annotation can be dropped in this case:
@@ -372,12 +347,12 @@ The type annotation can be dropped in this case:
 ``` {.editonly}
 method m()
 {
-   var x := 5;
+  var x := 5;
 }
 ```
 
 ```
-   var x := 5;
+  var x := 5;
 ```
 
 Multiple variables can be declared at once:
@@ -385,12 +360,12 @@ Multiple variables can be declared at once:
 ``` {.editonly}
 method m()
 {
-   var x, y, z: bool := 1, 2, true;
+  var x, y, z: bool := 1, 2, true;
 }
 ```
 
 ```
-   var x, y, z: bool := 1, 2, true;
+  var x, y, z: bool := 1, 2, true;
 ```
 
 Explicit type declarations only apply to the immediately
@@ -404,18 +379,18 @@ call to `Abs` as follows:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
+  var v := Abs(3);
+  assert 0 <= v;
 }
 ```
 
@@ -423,8 +398,8 @@ method Testing()
 // use definition of Abs() from before.
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
+  var v := Abs(3);
+  assert 0 <= v;
 }
 ```
 
@@ -463,24 +438,24 @@ changing the existing one) to say:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  assert v == 3;
 }
 ```
 
 ```
-   assert v == 3;
+  assert v == 3;
 ```
 
 we find that Dafny cannot prove our assertion, and gives an
@@ -506,24 +481,24 @@ postconditions. In the `Abs` case, we might have written:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   // this stil does not verify, but now it is actually not true:
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  // this still does not verify, but now it is actually not true:
+  assert v == 3;
 }
 ```
 
 ```
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 ```
 
@@ -532,21 +507,21 @@ program fragment:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  assert v == 3;
 }
 ```
 
 ```
-   var v := Abs(3);
-   assert v == 3;
+  var v := Abs(3);
+  assert v == 3;
 ```
 
 would not be true in this case. Dafny is considering, in an
@@ -558,23 +533,23 @@ can partially do this with the following:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
 ```
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
 {
-   // body as before
+  // body as before
 }
 ```
 
@@ -597,25 +572,25 @@ to make the following complete annotation covering all cases:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+     return -x;
+  } else {
+     return x;
+  }
 }
 ```
 
 ```
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   // body as before
+  // body as before
 }
 ```
 
@@ -626,18 +601,18 @@ and somewhat shorter, way of saying the same thing:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y && (y == x || y == -x)
+  ensures 0 <= y && (y == x || y == -x)
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
 ```
-   ensures 0 <= y && (y == x || y == -x)
+  ensures 0 <= y && (y == x || y == -x)
 ```
 
 In general, there can be many ways to write down a given property. Most of the
@@ -657,17 +632,17 @@ of doing this: functions.
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   // Add a precondition here.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   // Simplify the body to just one return statement
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  // Simplify the body to just one return statement
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
@@ -685,20 +660,20 @@ method Abs(x: int) returns (y: int) { ... }
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   // Add a precondition here so that the method verifies.
-   // Don't change the postconditions.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here so that the method verifies.
+  // Don't change the postconditions.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
   y:= x + 2;
 }
 method Abs2(x: int) returns (y: int)
-   // Add a precondition here so that the method verifies.
-   // Don't change the postconditions.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here so that the method verifies.
+  // Don't change the postconditions.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
   y:= x + 1;
 }
@@ -714,12 +689,12 @@ method Abs(x: int) returns (y: int) { ... }
 ```
 function abs(x: int): int
 {
-   ...
+  ...
 }
 ```
 
-This declares a function called `abs`
-which takes a single integer, and returns an integer (the second `int`).
+This declares a function called `abs`,
+which takes a single integer and returns an integer (the second `int`).
 Unlike a method, which can have all sorts of statements
 in its body, a function body must consist of exactly one expression, with the
 correct type. Here our body must be an integer expression. In order to
@@ -729,7 +704,7 @@ expression is like the ternary operator in other languages.
 ``` {.edit}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 ```
 
@@ -742,16 +717,16 @@ So we can write:
 ``` {.editonly}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 method m()
 {
-   assert abs(3) == 3;
+  assert abs(3) == 3;
 }
 ```
 
 ```
-   assert abs(3) == 3;
+  assert abs(3) == 3;
 ```
 
 In fact, not only can we write this statement directly
@@ -771,7 +746,7 @@ actually `3`.
 ``` {.editonly}
 function max(a: int, b: int): int
 {
-   // Fill in an expression here.
+  // Fill in an expression here.
 }
 method Testing() {
   // Add assertions to check max here.
@@ -786,7 +761,7 @@ One caveat of functions is that not only can they appear in
 annotations, they can only appear in annotations. One cannot write:
 
 ```
-   var v := abs(3);
+  var v := abs(3);
 ```
 
 as this is not an annotation. Functions are never part of
@@ -805,7 +780,7 @@ reference for details).
 ``` {.editonly}
 function max(a: int, b: int): int
 {
-   // Use your code from Exercise 4
+  // Use your code from Exercise 4
 }
 method Testing() {
   // Add assertions to check max here. Be sure to capture it to a local variable
@@ -827,17 +802,17 @@ function max(a: int, b: int): int { ... }
 ``` {.editonly}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 method Abs(x: int) returns (y: int)
   // Use abs here, then confirm the method still verifies.
 {
-   // Then change this body to also use abs.
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  // Then change this body to also use abs.
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
@@ -852,8 +827,8 @@ can do something like implement the mathematical Fibonacci function:
 ``` {.edit}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
+  if n == 0 then 0 else
+  if n == 1 then 1 else
                   fib(n - 1) + fib(n - 2)
 }
 ```
@@ -873,20 +848,20 @@ We can start by defining a method like the following:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
+  if n == 0 then 0 else
+  if n == 1 then 1 else
                   fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   // ...
+  // ...
 }
 ```
 
 ```
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
 }
 ```
@@ -900,20 +875,20 @@ via a *`while` loop*. A while loop looks like the following:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+  {
+    i := i + 1;
+  }
 }
 ```
 
 ```
-   var i := 0;
-   while i < n
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+  {
+    i := i + 1;
+  }
 ```
 
 This is a trivial loop that just increments `i` until it reaches `n`. This will form
@@ -940,22 +915,22 @@ its own keyword, to the loop:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
 }
 ```
 
 ```
-   var i := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
 ```
 
 When you specify an invariant, Dafny proves two things: the
