@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>DafnyPipeline</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <VersionPrefix>3.8.0.40729</VersionPrefix>
+    <TargetFramework>net6.0</TargetFramework>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
+      <LogicalName>DafnyRuntime.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
+      <LogicalName>DafnyRuntime.go</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
+      <LogicalName>DafnyRuntime.h</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+      <LogicalName>DafnyRuntime.jar</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
+      <LogicalName>DafnyRuntime.js</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
+      <LogicalName>DafnyRuntime.py</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
