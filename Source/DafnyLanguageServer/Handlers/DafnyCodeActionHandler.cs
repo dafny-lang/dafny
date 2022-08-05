@@ -90,7 +90,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
     var command = request.Data;
-    if (command != null && command.Count() > 2 && command[1] != null) {
+    if (command != null && command.Count() >= 2 && command[1] != null) {
       string? documentUri = command[0]?.Value<string>();
       if (documentUri != null && documentUriToQuickFixes.TryGetValue(documentUri, out var quickFixes)) {
         int? id = command[1]?.Value<int>();

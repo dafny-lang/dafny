@@ -166,6 +166,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using System.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace PluginAddComment;
@@ -186,9 +187,8 @@ Then, we need to create the quickFixer `AddCommentQuickFixer` itself:
 
 ```
 public class AddCommentQuickFixer : QuickFixer {
-  public override QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection) {
-    return new QuickFix[] {
-    };
+  public override IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection) {
+    return new QuickFix[] { };
   }
 }
 ```

@@ -24,8 +24,8 @@ public abstract class QuickFixer {
   /// </summary>
   /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="selection">The current selection</param>
-  /// <returns>A list of potential quickfixes, possibly computed lazily</returns>
-  public abstract QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection);
+  /// <returns>Potential quickfixes</returns>
+  public abstract IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection);
 }
 
 /// <summary>
@@ -33,9 +33,9 @@ public abstract class QuickFixer {
 /// that are being touched by the selection
 /// </summary>
 public abstract class DiagnosticQuickFixer : QuickFixer {
-  public override QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection) {
+  public override IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection) {
     if (input.Program == null) {
-      return new QuickFix[] { };
+      return System.Array.Empty<QuickFix>();
     }
     var diagnostics = input.Diagnostics;
     var result = new List<QuickFix>() { };
@@ -49,7 +49,7 @@ public abstract class DiagnosticQuickFixer : QuickFixer {
       }
     }
 
-    return result.ToArray();
+    return result;
   }
 
   /// <summary>
