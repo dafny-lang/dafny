@@ -9,20 +9,6 @@ How do labels in preconditions work?
 ## Answer
 
 ```dafny
-{% include_relative FAQPreconditionLabel.dfy %}
-```
-
-In the code example above, the precondition `x == 0` is labeld with `Zero---
-title: How do labels in preconditions work?
----
-
-## Question
-
-How do labels in preconditions work?
-
-## Answer
-
-```dafny
 {% include_relative FAQPreconditionLabels.dfy %}
 ```
 
