@@ -35,6 +35,8 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var standardLibraries = new List<string>()
     {
       "DafnyPipeline",
+      // TODO: Shouldn't have to add this
+      // "DafnyCore",
       "System.Console",
       "System.Runtime",
       "Boogie.Core",
