@@ -160,7 +160,7 @@ class Release:
         run(["make", "--quiet", "clean"])
         self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
-        self.run_publish("DafnyDriver")
+        self.run_publish("Dafny")
 
     def pack(self):
         try:
