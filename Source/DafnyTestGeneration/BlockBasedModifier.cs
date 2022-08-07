@@ -22,6 +22,11 @@ namespace DafnyTestGeneration {
       return VisitProgram(p);
     }
     private ProgramModification? VisitBlock(Block node) {
+      var captured = ExtractCapturedStates(node);
+      if (captured.Count > 0 && DafnyOptions.O.TestGenOptions.blocksToSkip.Contains(captured.ToList().First())) {
+        return null;
+      }
+
       if (program == null || implementation == null) {
         return null;
       }

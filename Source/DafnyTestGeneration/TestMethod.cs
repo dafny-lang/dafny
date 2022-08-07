@@ -275,6 +275,27 @@ namespace DafnyTestGeneration {
             elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type?)null)));
           }
           seqName = "d" + nextValueId++;
+
+          //
+          // Work around stack overflow issue that can occur in Dafny when trying to construct large strings.
+          // Only apply this for strings i.e. sequences of characters.
+          //
+          int largeStringSize = 200;
+          if (seqType.Arg is CharType && elements.Count > largeStringSize) {
+            int i = 0;
+            string outstr = "";
+            int chunksize = 100;
+            List<string> chunkStrs = new List<string>();
+            while (i < elements.Count) {
+              int count = Math.Min(chunksize, elements.Count - i);
+              string chunk = "\"" + string.Join("", elements.GetRange(i, count)).Replace("'", "") + "\"";
+              chunkStrs.Add(chunk);
+              i += chunksize;
+            }
+            return string.Join("+", chunkStrs);
+          }
+
+
           ValueCreation.Add(seqType.Arg is CharType
             ? (seqName, asType ?? variableType, $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"")
             : (seqName, asType ?? variableType, $"[{string.Join(", ", elements)}]"));
@@ -622,6 +643,40 @@ namespace DafnyTestGeneration {
       return new List<string>();
     }
 
+    /// <summary>  Return the test input as a list of lines of code </summary>
+    public List<string> TestInputConstructionLines() {
+      List<string> lines = new();
+
+      foreach (var line in ValueCreation) {
+        // TODO: nested tuples will break
+        if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {
+          lines.Add($"var {line.id}: " +
+                    $"({string.Join(",", line.type.TypeArgs.ConvertAll(typ => typ.ToString()))}) " +
+                    $":= {line.value};");
+        } else {
+          lines.Add($"var {line.id} : {line.type} := {line.value};");
+          var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
+          if (subsetTypeCondition != null) {
+            lines.Add("expect " + Printer.ExprToString(subsetTypeCondition) +
+                      ", \"Test does not meet type constraints and should be removed\";");
+          }
+        }
+      }
+
+      // assignments necessary to set up the test case:
+      foreach (var assignment in Assignments) {
+        lines.Add($"{assignment.parentId}.{assignment.fieldName} := " +
+                  $"{assignment.childId};");
+      }
+      
+      string receiver = "";
+      if (!DafnyInfo.IsStatic(MethodName)) {
+        receiver = ArgValues[0];
+        ArgValues.RemoveAt(0);
+      }
+      return lines;
+    }
+
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
       
@@ -640,6 +695,9 @@ namespace DafnyTestGeneration {
       }
 
       lines.Add($"method {{:test}} test{id}() {{");
+
+      // TODO: The lines below for constructing the test input are duplicated above in TestInputConstructionLines
+      // Ideally we should move this code there permanently and call it from here.
       foreach (var line in ValueCreation) {
         // TODO: nested tuples will break
         if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {

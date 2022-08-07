@@ -1,6 +1,8 @@
 using System;
 using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Microsoft.Dafny {
 
@@ -21,6 +23,14 @@ namespace Microsoft.Dafny {
     public bool noPrune = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
+
+    public HashSet<string> blocksToSkip = new HashSet<string>();
+    public HashSet<int> blockIdsToSkip = new HashSet<int>();
+
+    [CanBeNull] public string coveredBlocksFile = null;
+    [CanBeNull] public string inputConstructorFile = null;
+    public int maxTests = -1;
+
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -109,6 +119,32 @@ namespace Microsoft.Dafny {
         
         case "generateTestVerbose":
           Verbose = true;
+          return true;
+
+        // Whether to load/save set of pre-covered blocks from an external file.
+        case "generateTestLoadCovered":
+          if (ps.ConfirmArgumentCount(1)) {
+            coveredBlocksFile = args[ps.i];
+            var coveredLines = File.ReadAllLines(coveredBlocksFile);
+            foreach (string line in coveredLines) {
+              blocksToSkip.Add(line);
+            }
+          }
+          return true;
+
+        // Whether to record constructor for generated test input into file.
+        case "generateTestSaveInputConstructor":
+          if (ps.ConfirmArgumentCount(1)) {
+            inputConstructorFile = args[ps.i];
+          }
+          return true;
+
+        // Maximum number of tests to generate.
+        case "generateTestMaxTests":
+          var numMaxTests = -1;  
+          if (ps.GetIntArgument(ref numMaxTests)) {
+            maxTests = numMaxTests;
+          }
           return true;
       }
 
