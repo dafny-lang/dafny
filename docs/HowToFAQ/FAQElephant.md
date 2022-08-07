@@ -1,10 +1,10 @@
 ---
-title: What is the `:-` operator?
+title: What is the `:-` operator? How does it work?
 ---
 
 ## Question
 
-What is the `:-` operator?
+What is the `:-` operator?a How does it work?
 
 ## Answer
 

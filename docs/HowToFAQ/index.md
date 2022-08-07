@@ -51,9 +51,9 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
 - ["Does Dafny have monadic error handling?"](FAQMonadic)
 - ["What is the `:-` operator?"](FAQElephant)
-- ["How does `:-` work? I'm getting an unexpected failure."] - TODO 12/7/2021
+- ["How does `:-` work? I'm getting an unexpected failure."](FAQElephant)
 - ["What is the meaning of and differences among `->`, `-->`, `~>`?"](FAQFunctionTypes)
-- ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs) - TODO
+- ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
 - ["How do I pattern match against a head and tail of a sequence?"](FAQPatternMatchSeq)
@@ -81,28 +81,27 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"] - TODO
 - ["How do I read a file as a string?"](FAQReadFile)
-- ["I can prove `!("a" <= "b")` but not `!("a" < "b")`, for `a` and `b` strings. Why is that?] TODO
-- ["Can I ask dafny to not check termination of a function?"] TODO _ 5/27/2022
+- ["I can prove `!("a" <= "b")` but not `!("a" < "b")`, for `a` and `b` strings. Why is that?] 5/13/2022 TODO
+- ["Can I ask dafny to not check termination of a function?"](FAQNoTermCheck)
 - ["What does {:termination false} do on trait? It looks like it is required if I want to extends traits from other modules."] - TODO 6/20/2022
 - TODO Refinement - 6/24/2022, 6/30/2022
 - ["How do I make the dafny termination checker happy with this pattern of mutual recursion?"] - TODO 6/24/2022
 - ["What is the easiest way to prove that a class instance is not an instance of a trait?"] - TODO 6/24/2022
-- ["is there a nice way to turn a set into a seq?"] - TODO 6/29/2022
+- ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
 - ["What is the difference between `modifies this`, `modifies this.x`, and `modifies this\`x`?] - TODO - 7/8/2022
 - ["How do I declare a default value for a parameter of a method or function?"] - TODO
 - ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"] - TODO 7/15/2022
 - ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"] - TODO 7/15/2022
-- ["How can ghost code call methods with side effects?"] - TODO 7/27/2022
+- ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
 
 ## Dafny Infrastructure
 
 - ["Is there a standard library for Dafny?"](FAQStandardLibrary)
 - ["Why do I need to use an old Z3?"](FAQZ3)
-- ["How do I ask a question or file a problem report or make a suggestion about Dafny?"() - TODO 
+- ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
 - ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
 - ["How do I use Dafny with Brazil?"] -- TODO
 - ["What compiler target langages are in development?"](FAQCompileTargets)
-- ["Is there a standard library for Dafny?"] - TODO
 - [ TODO - triggers 12/30/2021 ]
 - ["Can classes appear in specs?"] = #yucca - 3/26/2021
 - TODO Refinement types - #yucca 6/24/2022
