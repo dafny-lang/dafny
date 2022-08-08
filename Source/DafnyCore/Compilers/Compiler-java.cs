@@ -2221,7 +2221,7 @@ namespace Microsoft.Dafny.Compilers {
       var stream = assembly.GetManifestResourceStream(jarName);
       var fullJarName = $"{targetDirectory}/{jarName}";
       FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
-      stream.CopyTo(outStream);
+      stream!.CopyTo(outStream);
       outStream.Close();
     }
 
