@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
-    public bool DisallowConstructorCaseWithoutParenthesis = false;
+    public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
@@ -519,8 +519,8 @@ namespace Microsoft.Dafny {
           PrintTooltips = true;
           return true;
 
-        case "warnMissingConstructorParenthesis":
-          DisallowConstructorCaseWithoutParenthesis = true;
+        case "warnMissingConstructorParentheses":
+          DisallowConstructorCaseWithoutParentheses = true;
           return true;
 
         case "autoTriggers": {
