@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
-    public bool Compile = true;
+    public bool Compile = true; // TODO rename to emit target-language binary.
 
     public Compiler Compiler;
     public bool CompileVerbose = true;

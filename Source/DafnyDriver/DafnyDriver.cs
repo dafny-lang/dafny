@@ -154,9 +154,15 @@ namespace Microsoft.Dafny {
       otherFiles = new List<string>();
 
       try {
-        options = CommandRegistry.Create(args);
-        if (options == null) {
-          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        switch (CommandRegistry.Create(args)) {
+          case ParseArgumentSuccess success:
+            options = success.DafnyOptions;
+            break;
+          case ParseArgumentFailure failure:
+            Console.WriteLine(failure.Message);
+            options = null;
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          default: throw new Exception("unreachable");
         }
 
         options.RunningBoogieFromCommandLine = true;
