@@ -1,10 +1,10 @@
 ---
-title: What is the difference between `modifies this`, `modifies this.x`, and `modifies this`` ` ``x`?
+title: What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?
 ---
 
 ## Question
 
-What is the difference between `modifies this`, `modifies this.x`, and `modifies this`` ` ``x`?
+What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?
 
 ## Answer
 
