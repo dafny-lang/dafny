@@ -29,7 +29,7 @@ z3-ubuntu:
 	mv z3-4.8.5-x64-ubuntu-16.04 ${DIR}/Binaries/z3
 
 format:
-	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
 
 clean:
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
