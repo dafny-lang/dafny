@@ -1,8 +1,8 @@
 // RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %baredafny run /noVerify /compileTarget:cs %args "%s" >> "%t"
-// RUN: %baredafny run /noVerify /compileTarget:js %args  "%s" >> "%t"
-// RUN: %baredafny run /noVerify /compileTarget:go %args  "%s" >> "%t"
-// RUN: %baredafny run /noVerify /compileTarget:java %args  "%s" >> "%t"
+// RUN: %baredafny run --noVerify --compileTarget:cs %args "%s" >> "%t"
+// RUN: %baredafny run --noVerify --compileTarget:js %args  "%s" >> "%t"
+// RUN: %baredafny run --noVerify --compileTarget:go %args  "%s" >> "%t"
+// RUN: %baredafny run --noVerify --compileTarget:java %args  "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)

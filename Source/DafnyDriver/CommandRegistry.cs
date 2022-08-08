@@ -5,7 +5,6 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-
 internal interface ParseArgumentResult {
 }
 
@@ -37,13 +36,20 @@ static class CommandRegistry {
     var longNames = command.Options.
       ToDictionary(o => o.LongName, o => o);
     var remainingArguments = arguments.Skip(1);
+    var dafnyOptions = new CommandBasedOptions();
     var foundOptions = new HashSet<ICommandLineOption>();
     var optionValues = new Dictionary<string, object>();
     var optionLessValues = new List<string>();
     while(remainingArguments.Any()) {
       var head = remainingArguments.First();
+      remainingArguments = remainingArguments.Skip(1);
       var isLongName = head.StartsWith("--");
       var isShortName = head.StartsWith("-") && !isLongName;
+      var equalsSplit = head.Split("=");
+      if (equalsSplit.Length > 1) {
+        remainingArguments = new[] { equalsSplit[1] }.Concat(remainingArguments);
+        head = equalsSplit[0];
+      }
       if (isLongName || isShortName) {
         ICommandLineOption option;
         string optionName;
@@ -55,27 +61,30 @@ static class CommandRegistry {
           option = shortNames.GetValueOrDefault(optionName);
         }
         if (option == null) {
-          return new ParseArgumentFailure($"There's no option named ${optionName}.");
-        }
-        foundOptions.Add(option);
-
-        switch (option.Parse(remainingArguments)) {
-          case FailedOption failedOption:
-            return new ParseArgumentFailure(failedOption.Message);
-          case ParsedOption parsedOption:
-            if (option.CanBeUsedMultipleTimes) {
-              var values = (List<object>)optionValues.GetOrCreate(option.LongName, () => new List<object>());
-              values.Add(parsedOption.Value);
-            } else {
-              optionValues[option.LongName] = parsedOption.Value;
-            }
-            remainingArguments = parsedOption.RemainingArguments;
-            break;
+          remainingArguments = dafnyOptions.RecogniseOldOptions(optionName, remainingArguments);
+          if (remainingArguments == null) {
+            return new ParseArgumentFailure($"There's no option named {optionName}.");
+          }
+        } else {
+          foundOptions.Add(option);
+          switch (option.Parse(remainingArguments)) {
+            case FailedOption failedOption:
+              return new ParseArgumentFailure(failedOption.Message);
+            case ParsedOption parsedOption:
+              if (option.CanBeUsedMultipleTimes) {
+                var values = (List<object>)optionValues.GetOrCreate(option.LongName, () => new List<object>());
+                values.Add(parsedOption.Value);
+              } else {
+                optionValues[option.LongName] = parsedOption.Value;
+              }
+              remainingArguments = parsedOption.RemainingArguments;
+              break;
+          }
         }
 
       } else {
+        dafnyOptions.AddFile(head);
         optionLessValues.Add(head);
-        remainingArguments = remainingArguments.Skip(1);
       }
     }
     foreach(var notFoundOption in command.Options.Except(foundOptions)) {
@@ -83,9 +92,7 @@ static class CommandRegistry {
     }
 
     var options = new Options(optionLessValues, optionValues);
-    var dafnyOptions = new CommandBasedOptions();
     command.PostProcess(dafnyOptions, options);
-    dafnyOptions.Parse(optionLessValues.Concat(remainingArguments).ToArray());
     return new ParseArgumentSuccess(dafnyOptions);
   }
 
@@ -93,12 +100,27 @@ static class CommandRegistry {
     private readonly ISet<string> obsoleteOptions = new HashSet<string>() {
       "spillTargetCode", "compile"
     };
+
+    public void AddFile(string file) {
+      base.AddFile(file, null);
+    }
+
     protected override bool ParseOption(string name, CommandLineParseState ps) {
       if (obsoleteOptions.Contains(name)) {
         ps.Error($"Option ${name} is not allowed when using a command.");
         return false;
       }
       return base.ParseOption(name, ps);
+    }
+
+    public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
+      var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
+      parseState.s = "-" + optionName;
+      if (ParseOption(optionName, parseState)) {
+        return remainingArguments.Skip(parseState.nextIndex);
+      }
+
+      return null;
     }
   }
 }
@@ -109,3 +131,12 @@ public interface ParseOptionResult { }
 
 record ParsedOption(IEnumerable<string> RemainingArguments, object Value) : ParseOptionResult;
 record FailedOption(string Message) : ParseOptionResult;
+
+public interface ICommandLineOption {
+  object DefaultValue { get; }
+  string LongName { get; }
+  string ShortName { get; }
+  string Description { get; }
+  bool CanBeUsedMultipleTimes { get; }
+  ParseOptionResult Parse(IEnumerable<string> arguments);
+}
