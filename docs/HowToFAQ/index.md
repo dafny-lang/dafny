@@ -60,7 +60,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
 - ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"] - TODO
 - [TODO - Sorting, iteration 12/1/2021]
-- ["What is the difference between `modifies this`, `modifies this.x`, and `modifies this`` ` ``x`?] TODO - 7/8/2022
+- ["What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?](FAQModifiesThis)
 
 ## Dafny tools
 
