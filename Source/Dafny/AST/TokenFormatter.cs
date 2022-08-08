@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Triggers;
+using Microsoft.VisualBasic;
 
 namespace Microsoft.Dafny.Helpers;
 
@@ -414,15 +415,19 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
     var indent2 = indent + SpaceTab;
-    var indent4 = indent + SpaceTab;
     if (topLevelDecl.StartToken.line > 0) {
       SetDelimiterIndentedRegions(topLevelDecl.BodyStartTok, indent);
       SetOpeningIndentedRegion(topLevelDecl.StartToken, indent);
     }
-    if (topLevelDecl is LiteralModuleDecl moduleDecl) {
-      foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
-        SetDeclIndentation(decl2, indent2);
-      }
+
+    if (topLevelDecl is AliasModuleDecl aliasModuleDecl) {
+      SetAliasModuleDeclIndent(aliasModuleDecl, indent);
+    } else if (topLevelDecl is ModuleExportDecl moduleExportDecl) {
+      SetModuleExportDeclIndentation(moduleExportDecl, indent);
+    } else if (topLevelDecl is AbstractModuleDecl abstractModuleDecl) {
+      SetAbstractModuleDecl(abstractModuleDecl, indent);
+    } else if (topLevelDecl is LiteralModuleDecl moduleDecl) {
+      SetLiteralModuleDeclIndent(moduleDecl, indent);
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
       if (declWithMembers is DatatypeDecl datatypeDecl) {
         SetDatatypeDeclIndent(indent, datatypeDecl);
@@ -441,6 +446,101 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
     }
+  }
+
+  private void SetModuleExportDeclIndentation(ModuleExportDecl moduleDecl, int indent) {
+    var indentedFirst = false;
+    var innerIndent = indent + SpaceTab;
+    var revealExportIndent = innerIndent + SpaceTab;
+    var commaIndent = innerIndent;
+    foreach (var token in moduleDecl.OwnedTokens) {
+      switch (token.val) {
+        case "export": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "extends":
+        case "reveals":
+        case "provides": {
+            if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, innerIndent);
+              revealExportIndent = innerIndent + SpaceTab;
+              commaIndent = innerIndent + SpaceTab;
+            } else {
+              SetAlign(innerIndent, token, out revealExportIndent, out commaIndent);
+            }
+            break;
+          }
+        case ",": {
+            SetIndentations(token, before: revealExportIndent, sameLineBefore: commaIndent, after: revealExportIndent);
+            break;
+          }
+      }
+    }
+  }
+
+  private void SetAliasModuleDeclIndent(AliasModuleDecl moduleDecl, int indent) {
+    var indentedFirst = false;
+    foreach (var token in moduleDecl.OwnedTokens) {
+      switch (token.val) {
+        case "import":
+        case "opened": {
+            if (!indentedFirst) {
+              SetOpeningIndentedRegion(token, indent);
+              indentedFirst = true;
+            }
+
+            break;
+          }
+        case "=": {
+            break;
+          }
+      }
+    }
+  }
+
+  private void SetAbstractModuleDecl(AbstractModuleDecl moduleDecl, int indent) {
+    var innerIndent = SetModuleDeclIndent(moduleDecl.OwnedTokens, indent);
+  }
+
+  private void SetLiteralModuleDeclIndent(LiteralModuleDecl moduleDecl, int indent) {
+    var innerIndent = SetModuleDeclIndent(moduleDecl.OwnedTokens, indent);
+    foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
+      SetDeclIndentation(decl2, innerIndent);
+    }
+  }
+
+  private int SetModuleDeclIndent(List<IToken> ownedTokens, int indent) {
+    var innerIndent = indent + SpaceTab;
+    var indentedFirst = false;
+    foreach (var token in ownedTokens) {
+      switch (token.val) {
+        case "abstract":
+        case "module": {
+            if (!indentedFirst) {
+              SetOpeningIndentedRegion(token, indent);
+              indentedFirst = true;
+            }
+
+            break;
+          }
+        case "{": {
+            if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, indent);
+            } else {
+              SetAlign(indent, token, out innerIndent, out _);
+            }
+
+            break;
+          }
+        case "}": {
+            SetClosingIndentedRegionAligned(token, innerIndent, indent);
+            break;
+          }
+      }
+    }
+
+    return innerIndent;
   }
 
   private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl typeSynonymDecl) {
@@ -567,6 +667,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       new(),
       new(),
       new());
+
+    foreach (var include in program.DefaultModuleDef.Includes) {
+      if (include.OwnedTokens.Count > 0) {
+        indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens[0], 0);
+      }
+    }
 
     foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
       indentationFormatter.SetDeclIndentation(decl, 0);

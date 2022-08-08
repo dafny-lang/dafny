@@ -4088,9 +4088,7 @@ namespace Microsoft.Dafny {
 
     public IToken GetFirstTopLevelToken() {
       IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
-        if (decl is LiteralModuleDecl { ModuleDef: DefaultModuleDecl { Includes: { Count: > 0 } includes } } && includes[0].OwnedTokens.Count > 0) {
-          return includes[0].OwnedTokens;
-        }
+
         if (decl.StartToken.line > 0) {
           return new List<IToken>() { decl.StartToken };
         } else if (decl is TopLevelDeclWithMembers declWithMembers) {
@@ -4101,6 +4099,9 @@ namespace Microsoft.Dafny {
           return new List<IToken>() { };
         }
       });
+      if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
+        return includes[0].OwnedTokens[0];
+      }
       return topTokens.FirstOrDefault((IToken?)null);
     }
   }

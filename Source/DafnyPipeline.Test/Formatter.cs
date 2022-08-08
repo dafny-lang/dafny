@@ -486,6 +486,10 @@ class T {
     [Fact]
     public void FormatWorksForTypes() {
       FormatterWorksFor(@"
+include ""test1""
+include
+  ""test2""
+
 datatype Color =   Red
                    // Comment1
                |   /** Comment2 */
@@ -564,6 +568,14 @@ newtype Y
     var x := 2;
     x
 
+module AM { class A {}
+            class B {} }
+
+module
+  AN
+{  class A {}
+   class B {} }
+
 module A {
   import opened B = A
   import
@@ -594,7 +606,7 @@ module M {
              L4
     provides L5
            , L6
-    // Comment
+             // Comment
     provides
       L7, L8
     provides
@@ -611,7 +623,7 @@ module M {
             M4
     reveals M5
           , M6
-    // Comment
+            // Comment
     reveals
       M7, M8
     reveals
@@ -666,6 +678,9 @@ trait X {
   function X(): int {
     1
   }
+}
+abstract module Abs {
+  function X(): int
 }
 ");
     }
