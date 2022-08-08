@@ -16,10 +16,10 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Where do I put the reads clause?"](FAQReadsClause)
 - ["I heard a rumor of datatypes extending traits coming in the pipeline. How will that work? Will we be able to use is and as with such types?"](FAQTraitsForDatatypes)
 - ["What is the difference between a type and a newtype?"](FAQNewtype)
-- ["Why can compiled modules contain but not import abstract modules?"(FAQImportAbstractModule)
+- ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
 - ["Why does Dafny need an assert in this example?"](FAQNeedsAssert)
 - ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
-- ["Can I access the members of an outer module from its inner module?"(FAQNestedModule)
+- ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of this recursive function?"]() - TODO 3/29/2021
 - ["How do I make a singleton instance of a class for repeated later use?](FAQSingleton)
@@ -58,6 +58,9 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["A `seq` is an object reference, right?"](FAQReferences)
 - ["How do I pattern match against a head and tail of a sequence?"](FAQPatternMatchSeq)
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
+- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"] - TODO
+- [TODO - Sorting, iteration 12/1/2021]
+- ["What is the difference between `modifies this`, `modifies this.x`, and `modifies this`` ` ``x`?] - TODO - 7/8/2022
 
 ## Dafny tools
 
@@ -68,8 +71,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Does Dafny verify methods in parallel?"](FAQParallel)
 - ["Is there a doc generator for Dafny?"](FAQDocGenerator)
 - [TODO 11/5- FAQ or ERROR?]
-- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"] - TODO
-- [TODO - Sorting, iteration 12/1/2021]
 - ["How does one define a record?"] - TODO - 1/5/2022
 - ["Why does Dafny complain about `set i: int | Contains(i)`"] - TODO 1/13/2022
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
@@ -88,7 +89,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I make the dafny termination checker happy with this pattern of mutual recursion?"] - TODO 6/24/2022
 - ["What is the easiest way to prove that a class instance is not an instance of a trait?"] - TODO 6/24/2022
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
-- ["What is the difference between `modifies this`, `modifies this.x`, and `modifies this\`x`?] - TODO - 7/8/2022
 - ["How do I declare a default value for a parameter of a method or function?"] - TODO
 - ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"] - TODO 7/15/2022
 - ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"] - TODO 7/15/2022
