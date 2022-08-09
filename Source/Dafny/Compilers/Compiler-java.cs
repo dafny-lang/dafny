@@ -1773,11 +1773,11 @@ namespace Microsoft.Dafny.Compilers {
       }
       var groundingCtor = dt.GetGroundingCtor();
       var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-      var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
+      var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
       EmitDatatypeValue(dt, groundingCtor, null, dt is CoDatatypeDecl, arguments, wDefault);
 
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
-      arguments = Util.Comma(usedTypeArgs, tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
+      arguments = usedTypeArgs.Comma(tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
       EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
 
       // create methods
@@ -1828,7 +1828,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost && arg.HasName) {
               var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
               if (dt.IsRecordType) {
-                wDtor.WriteLine($"return this.{IdName(arg)};");
+                wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
               } else {
                 wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
                 var n = dtor.EnclosingCtors.Count;
@@ -1836,12 +1836,12 @@ namespace Microsoft.Dafny.Compilers {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
-                    ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
+                    ctor_i.CompileName, DtT_TypeArgs, FieldName(arg, i));
                 }
 
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
                 wDtor.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
+                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{FieldName(arg, 0)};");
               }
             }
           }
@@ -1906,7 +1906,7 @@ namespace Microsoft.Dafny.Compilers {
       var i = 0;
       foreach (Formal arg in ctor.Formals) {
         if (!arg.IsGhost) {
-          wr.WriteLine($"public {TypeName(arg.Type, wr, arg.tok)} {FormalName(arg, i)};");
+          wr.WriteLine($"public {TypeName(arg.Type, wr, arg.tok)} {FieldName(arg, i)};");
           i++;
         }
       }
@@ -1917,7 +1917,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            w.WriteLine($"this.{FormalName(arg, i)} = {FormalName(arg, i)};");
+            w.WriteLine($"this.{FieldName(arg, i)} = {FormalName(arg, i)};");
             i++;
           }
         }
@@ -1938,9 +1938,9 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
         w.Write("return true");
         i = 0;
-        foreach (Formal arg in ctor.Formals) {
+        foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
+            var nm = FieldName(arg, i);
             w.Write(" && ");
             if (IsDirectlyComparable(arg.Type)) {
               w.Write($"this.{nm} == o.{nm}");
@@ -1961,7 +1961,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
+            string nm = FieldName(arg, i);
             w.Write("hash = ((hash << 5) + hash) + ");
             if (IsJavaPrimitiveType(arg.Type)) {
               w.WriteLine($"{BoxedTypeName(arg.Type, w, Token.NoToken)}.hashCode(this.{nm});");
@@ -2002,7 +2002,7 @@ namespace Microsoft.Dafny.Compilers {
                   w.WriteLine($"{tempVar}.append(\", \");");
                 }
                 w.Write($"{tempVar}.append(");
-                var memberName = FormalName(arg, i);
+                var memberName = FieldName(arg, i);
                 if (IsJavaPrimitiveType(arg.Type)) {
                   w.Write($"this.{memberName}");
                 } else {
@@ -2058,6 +2058,13 @@ namespace Microsoft.Dafny.Compilers {
         return "create";
       }
       return "create_" + ctor.CompileName;
+    }
+
+    private string FieldName(Formal formal, int i) {
+      Contract.Requires(formal != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return IdProtect("_" + (formal.HasName ? formal.CompileName : "a" + i));
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2797,7 +2804,7 @@ namespace Microsoft.Dafny.Compilers {
           truncateResult = true;
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
@@ -2814,7 +2821,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (NeedsEuclideanDivision(resultType)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
@@ -3214,7 +3221,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (int.TryParse(dtor.Name, out _)) {
         dtorName = $"dtor_{dtor.Name}()";
       } else {
-        dtorName = FormalName(dtor, formalNonGhostIndex);
+        dtorName = FieldName(dtor, formalNonGhostIndex);
       }
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
