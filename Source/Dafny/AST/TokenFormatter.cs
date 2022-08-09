@@ -869,6 +869,58 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;
     }
 
+    private void ApplyComprehensionExprFormatting(int indent, List<IToken> ownedTokens) {
+      var verticalBarIndent = indent + SpaceTab;
+      var afterVerticalBarIndent = indent + SpaceTab;
+      var alreadyAligned = false;
+      var assignIndent = indent + SpaceTab - 1;
+
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "forall":
+          case "exists":
+          case "map":
+          case "set":
+          case "imap":
+          case "iset": {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case ":=":
+          case "::": {
+              if (alreadyAligned) {
+                formatter.SetIndentations(token, afterVerticalBarIndent, assignIndent, afterVerticalBarIndent);
+              } else {
+                if (IsFollowedByNewline(token)) {
+                  verticalBarIndent = indent + SpaceTab;
+                  afterVerticalBarIndent = indent + SpaceTab + 3;
+                } else {
+                  alreadyAligned = true;
+                  formatter.SetAlign(indent, token, out afterVerticalBarIndent, out _);
+                }
+              }
+              break;
+            }
+          case "|": {
+              if (alreadyAligned) {
+                formatter.SetIndentations(token, afterVerticalBarIndent, verticalBarIndent, afterVerticalBarIndent);
+              } else {
+                if (IsFollowedByNewline(token)) {
+                  verticalBarIndent = indent;
+                  afterVerticalBarIndent = indent + SpaceTab;
+                  assignIndent = verticalBarIndent - 1;
+                } else {
+                  formatter.SetAlign(indent, token, out afterVerticalBarIndent, out verticalBarIndent);
+                  assignIndent = verticalBarIndent - 1;
+                  alreadyAligned = true;
+                }
+              }
+              break;
+            }
+        }
+      }
+    }
+
     private void ApplyMatchFormatting(int indent, List<IToken> ownedTokens) {
       var matchCaseNoIndent = false;
       var caseIndent = indent;
@@ -1003,8 +1055,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             ApplyMatchFormatting(indent, expr.OwnedTokens);
             break;
           }
-        case QuantifierExpr:
-          break; // TODO
+        case ComprehensionExpr: {
+            ApplyComprehensionExprFormatting(indent, expr.OwnedTokens);
+            break;
+          }
       }
 
       return true;

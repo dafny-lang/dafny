@@ -638,26 +638,26 @@ method comprehensions() {
   var x := imap i: int :: i % 2 == 0 := 1;
 
   var x := imap
-    i: int ::  i % 2
-               == 0
+           i: int ::  i % 2
+           == 0
            := 1;
 
   x := imap
-    i: int
-    ::
-    i % 2 == 0
-    :=
-    1;
+       i: int
+       ::
+       i % 2 == 0
+       :=
+       1;
 
   x := imap i: int |
        i % 4 == 0
-    :: i % 2 == 0
-    := 1;
+       :: i % 2 == 0
+       := 1;
 
   x := imap i: int
-     | i % 4 == 0
-    :: i % 2 == 0
-    := 1;
+       |  i % 4 == 0
+       :: i % 2 == 0
+       := 1;
 
   x := imap i: int |  i % 4 == 0
                   ::  // comment
