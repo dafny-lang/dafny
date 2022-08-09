@@ -12,7 +12,9 @@
 - fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
 - fix: Check extreme predicates and constants in all types, not just classes
   (https://github.com/dafny-lang/dafny/pull/2515)
-- feat: `predicate P(x: int): (y: bool) ...` is now a valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
+- fix: Correctly substitute type variables in override checks
+  (https://github.com/dafny-lang/dafny/pull/2522)
+- feat: `predicate P(x: int): (y: bool) ...` is now valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
 - fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
 
 # 3.7.3
