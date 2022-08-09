@@ -53,6 +53,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new Position(boogieLine + LineOffset, boogieColumn + ColumnOffset);
     }
 
+    public static (int line, int col) ToTokenLineAndCol(this Position position) {
+      return (line: position.Line - LineOffset, col: position.Character - ColumnOffset);
+    }
+
     public static IToken ToToken(this Position position, string document) {
       try {
         return new Token() {

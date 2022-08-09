@@ -5,46 +5,46 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 
 /// <summary>
-/// Plugins implement one or more QuickFixer to offer "quick code fixes".
+/// Plugins implement one or more DafnyCodeActionProvider to offer "quick code fixes".
 /// They should return very quickly, so most of the processing has to be done in the GetEdit()
-/// of every QuickFix.
+/// of every DafnyCodeAction.
 ///
-/// To provide quick fixes for diagnostics related to the selection,
-/// implement the subclass 'DiagnosticQuickFixer'
+/// To provide code actions for diagnostics related to the selection,
+/// implement the subclass 'DiagnosticDafnyCodeActionProvider'
 ///
 /// To convert a token to an LSP Range include `using Microsoft.Dafny.LanguageServer.Language;`
 /// and use `token.GetLspRange()`
 ///
 /// To get the start or end of a range as another range, use
-///   QuickFixerHelpers.GetStartRange(range) or `range.GetStartRange()`
+///   DafnyCodeActionProviderHelpers.GetStartRange(range) or `range.GetStartRange()`
 /// </summary>
-public abstract class QuickFixer {
+public abstract class DafnyCodeActionProvider {
   /// <summary>
-  /// Returns the quick fixes associated to the provided selection, which could be a RangeToken
+  /// Returns the code actions associated to the provided selection, which could be a RangeToken
   /// </summary>
   /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="selection">The current selection</param>
   /// <returns>Potential quickfixes</returns>
-  public abstract IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection);
+  public abstract IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection);
 }
 
 /// <summary>
-/// Implement this class if you need to compute quick fixes only for the diagnostics
+/// Implement this class if you need to compute code actions only for the diagnostics
 /// that are being touched by the selection
 /// </summary>
-public abstract class DiagnosticQuickFixer : QuickFixer {
-  public override IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection) {
+public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvider {
+  public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
     if (input.Program == null) {
-      return System.Array.Empty<QuickFix>();
+      return System.Array.Empty<DafnyCodeAction>();
     }
     var diagnostics = input.Diagnostics;
-    var result = new List<QuickFix>() { };
+    var result = new List<DafnyCodeAction>() { };
     foreach (var diagnostic in diagnostics) {
       if (diagnostic.Range.Start.Line <= selection.Start.Line &&
           selection.Start.Line <= diagnostic.Range.End.Line) {
-        var moreQuickFixes = GetQuickFixes(input, diagnostic, selection);
-        if (moreQuickFixes != null) {
-          result.AddRange(moreQuickFixes);
+        var moreDafnyCodeActiones = GetDafnyCodeActions(input, diagnostic, selection);
+        if (moreDafnyCodeActiones != null) {
+          result.AddRange(moreDafnyCodeActiones);
         }
       }
     }
@@ -59,5 +59,5 @@ public abstract class DiagnosticQuickFixer : QuickFixer {
   /// <param name="diagnostic"></param>
   /// <param name="selection"></param>
   /// <returns></returns>
-  protected abstract IEnumerable<QuickFix>? GetQuickFixes(IQuickFixInput input, Diagnostic diagnostic, Range selection);
+  protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection);
 }

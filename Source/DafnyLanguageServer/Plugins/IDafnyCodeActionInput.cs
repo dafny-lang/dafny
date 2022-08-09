@@ -2,7 +2,7 @@
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 
-public interface IQuickFixInput {
+public interface IDafnyCodeActionInput {
   /// <summary>
   /// The URI of the document being considered
   /// </summary>

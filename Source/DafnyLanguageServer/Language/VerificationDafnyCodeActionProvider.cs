@@ -14,8 +14,8 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// A verification quick fixers provides quick "fixes" for verification errors.
 /// For now, it offers to inline a failing postcondition if there is no "return" keyword.
 /// </summary>
-class VerificationQuickFixer : DiagnosticQuickFixer {
-  protected override IEnumerable<QuickFix>? GetQuickFixes(IQuickFixInput input, Diagnostic diagnostic, Range selection) {
+class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
     var uri = input.Uri;
     if (diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;
@@ -29,18 +29,19 @@ class VerificationQuickFixer : DiagnosticQuickFixer {
       return null;
     }
 
-    var expression = QuickFixerHelpers.Extract(relatedInformation.Location.Range, input.Code);
+    var expression = DafnyCodeActionHelpers.Extract(relatedInformation.Location.Range, input.Code);
     var (beforeEndBrace, indentationExtra, indentationUntilBrace) =
-      QuickFixerHelpers.GetInformationToInsertAtEndOfBlock(input, diagnostic.Range.Start);
+      DafnyCodeActionHelpers.GetInformationToInsertAtEndOfBlock(input, diagnostic.Range.Start);
     if (beforeEndBrace == null) {
       return null;
     }
 
-    return new QuickFix[] {
-      new InstantQuickFix(
-        "Make the failing assertion explicit",
+    return new DafnyCodeAction[] {
+      new InstantDafnyCodeAction(
+        "Assert postcondition at return location where it fails",
+        new List<Diagnostic>(){diagnostic},
         new[] {
-          new QuickFixEdit(beforeEndBrace,
+          new DafnyCodeActionEdit(beforeEndBrace,
             $"{indentationExtra}assert {expression};\n{indentationUntilBrace}")
         }
       )

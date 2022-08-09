@@ -109,7 +109,7 @@ A plugin typically defines:
   1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when their method `GetRewriters()` is called by Dafny,
   2) Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when their method `GetCompilers()` is called by Dafny,
   3) If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`,
-     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer`s when their method `GetQuickFixers()` is called by the Dafny Language Server.
+     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`s when their method `GetDafnyCodeActionProviders()` is called by the Dafny Language Server.
 
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
@@ -117,8 +117,8 @@ A plugin typically defines:
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Compiler`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetCompilers()`.
   If no configuration class is provided, an automatic configuration will load every defined `Compiler` automatically.
-* Zero or more classes extending `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer`.
-  Only a configuration class of type `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration` can be responsible for instantiating them and returning them in `GetQuickFixers()`.
+* Zero or more classes extending `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`.
+  Only a configuration class of type `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration` can be responsible for instantiating them and returning them in `GetDafnyCodeActionProviders()`.
 
 The most important methods of the class `Rewriter` that plugins override are
 * (experimental) `PreResolve(ModuleDefinition)`: Here you can optionally modify the AST before it is resolved.
@@ -176,19 +176,19 @@ After that, add a `PluginConfiguration` that will expose all the quickfixers of 
 This class will be discovered and instantiated automatically by Dafny.
 ```
 public class TestConfiguration : PluginConfiguration {
-  public override QuickFixer[] GetQuickFixers() {
-    return new QuickFixer[] { new AddCommentQuickFixer() };
+  public override DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
+    return new DafnyCodeActionProvider[] { new AddCommentDafnyCodeActionProvider() };
   }
 }
 ```
 Note that you could also override the methods `GetRewriters()` and `GetCompilers()` for other purposes, but this is out of scope for this tutorial.
 
-Then, we need to create the quickFixer `AddCommentQuickFixer` itself:
+Then, we need to create the quickFixer `AddCommentDafnyCodeActionProvider` itself:
 
 ```
-public class AddCommentQuickFixer : QuickFixer {
-  public override IEnumerable<QuickFix> GetQuickFixes(IQuickFixInput input, Range selection) {
-    return new QuickFix[] { };
+public class AddCommentDafnyCodeActionProvider : DafnyCodeActionProvider {
+  public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
+    return new DafnyCodeAction[] { };
   }
 }
 ```
@@ -198,46 +198,46 @@ We replace the return statement with a conditional that tests whether the select
 ```
     var firstTokenRange = input.Program?.GetFirstTopLevelToken()?.GetLspRange();
     if(firstTokenRange != null && firstTokenRange.Start.Line == selection.Start.Line) {
-      return new QuickFix[] {
+      return new DafnyCodeAction[] {
         // TODO
       };
     } else {
-      return new QuickFix[] { };
+      return new DafnyCodeAction[] { };
     }
 ```
 
-Every quick fix consists of a title (provided immediately), and zero or more `QuickFixEdit` (computed lazily).
-An `QuickFixEdit` has a `Range` to remove and some `string` to insert instead. All `QuickFixEdit`
-of the same `QuickFix` are applied at the same time if selected.
+Every quick fix consists of a title (provided immediately), and zero or more `DafnyCodeActionEdit` (computed lazily).
+An `DafnyCodeActionEdit` has a `Range` to remove and some `string` to insert instead. All `DafnyCodeActionEdit`
+of the same `DafnyCodeAction` are applied at the same time if selected.
 
-To create a `QuickFix`, we can either use the easy-to-use `InstantQuickFix`, which accepts a title and an array of edits:
+To create a `DafnyCodeAction`, we can either use the easy-to-use `InstantDafnyCodeAction`, which accepts a title and an array of edits:
 ```
-  return new QuickFix[] {
-    new InstantQuickFix("Insert comment", new QuickFixEdit[] {
-      new QuickFixEdit(firstTokenRange.GetStartRange(), "/*First comment*/")
+  return new DafnyCodeAction[] {
+    new InstantDafnyCodeAction("Insert comment", new DafnyCodeActionEdit[] {
+      new DafnyCodeActionEdit(firstTokenRange.GetStartRange(), "/*First comment*/")
     })
   };
 ```
 
-or we can implement our custom inherited class of `QuickFix`:
+or we can implement our custom inherited class of `DafnyCodeAction`:
 ```
-public class CustomQuickFix: QuickFix {
+public class CustomDafnyCodeAction: DafnyCodeAction {
   public Range whereToInsert;
   
-  public CustomQuickFix(Range whereToInsert): base("Insert comment") {
+  public CustomDafnyCodeAction(Range whereToInsert): base("Insert comment") {
     this.whereToInsert = whereToInsert;
   }
-  public override QuickFixEdit[] GetEdits() {
-    return new QuickFixEdit[] {
-      new QuickFixEdit(whereToInsert.GetStartRange(), "/*A comment*/")
+  public override DafnyCodeActionEdit[] GetEdits() {
+    return new DafnyCodeActionEdit[] {
+      new DafnyCodeActionEdit(whereToInsert.GetStartRange(), "/*A comment*/")
     };
   }
 }
 ```
 In that case, we could return:
 ```
-  return new QuickFix[] {
-    new CustomQuickFix(firstTokenRange)
+  return new DafnyCodeAction[] {
+    new CustomDafnyCodeAction(firstTokenRange)
   };
 ```
 

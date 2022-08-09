@@ -11,20 +11,20 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
-public class PluginsQuickFixTest : PluginsTestBase {
+public class PluginsDafnyCodeActionTest : PluginsTestBase {
   [TestInitialize]
   public async Task SetUp() {
     await SetUpPlugin();
   }
 
   protected override string LibraryName =>
-    "PluginsQuickFixTest";
+    "PluginsDafnyCodeActionTest";
 
   protected override string[] CommandLineArgument =>
     new[] { $"--dafny:plugins:0={LibraryPath}" };
 
   [TestMethod]
-  public async Task EnsureQuickFixerWorks() {
+  public async Task EnsureDafnyCodeActionProviderWorks() {
     var documentItem = CreateTestDocument(@"
 method firstMethod() {
 }");

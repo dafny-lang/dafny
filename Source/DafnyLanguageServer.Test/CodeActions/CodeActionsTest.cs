@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
       await TestCodeActionHelper(@"
 method f() returns (i: int)
   ensures i > 10 >>>{
-[[Make the failing assertion explicit|  assert i > 10;
+[[Assert postcondition at return location where it fails|  assert i > 10;
 ]]}");
     }
 
@@ -42,7 +42,7 @@ method f(b: bool) returns (i: int)
   ensures i > 10 {
   if b >>>{
     i := 0;
-  [[Make the failing assertion explicit|  assert i > 10;
+  [[Assert postcondition at return location where it fails|  assert i > 10;
   ]]} else {
     i := 10;
   }
@@ -56,7 +56,7 @@ method f(b: bool) returns (i: int)
 const x := 1;
   method f() returns (i: int)
     ensures i > 10 >>>{
-  [[Make the failing assertion explicit|  assert i > 10;
+  [[Assert postcondition at return location where it fails|  assert i > 10;
   ]]}");
     }
 
@@ -67,7 +67,7 @@ const x := 1;
 const x := 1;
   method f() returns (i: int)
 {t}{t}{t}{t}{t}{t}ensures i > 10 >>>{{
-{t}{t}{t}[[Make the failing assertion explicit|{t}assert i > 10;
+{t}{t}{t}[[Assert postcondition at return location where it fails|{t}assert i > 10;
 {t}{t}{t}]]}}");
     }
 
@@ -78,7 +78,7 @@ const x := 1;
   method f() returns (i: int)
     ensures i > 10
 >>>{
-[[Make the failing assertion explicit|  assert i > 10;
+[[Assert postcondition at return location where it fails|  assert i > 10;
 ]]}");
     }
 
@@ -90,7 +90,7 @@ const x := 1;
     ensures i > 10
 >>>{
     assert 1 == 1; /* a commented { that should not prevent indentation to be 4 */
-[[Make the failing assertion explicit|    assert i > 10;
+[[Assert postcondition at return location where it fails|    assert i > 10;
 ]]}");
     }
 
@@ -101,7 +101,7 @@ const x := 1;
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
-  >>>{[[Make the failing assertion explicit| assert i > 10;
+  >>>{[[Assert postcondition at return location where it fails| assert i > 10;
   ]]}");
     }
 
@@ -112,7 +112,7 @@ const x := 1;
   method f() returns (i: int)
     ensures i > 10
   >>>{
-  [[Make the failing assertion explicit|  assert i > 10;
+  [[Assert postcondition at return location where it fails|  assert i > 10;
   ]]}");
     }
 
@@ -124,20 +124,20 @@ const x := 1;
       var initialCode = "";
       var lastPosition = 0;
       var lastStartOfLine = 0;
-      string expectedQuickFixTitle = null;
-      string expectedQuickFixCode = null;
+      string expectedDafnyCodeActionTitle = null;
+      string expectedDafnyCodeActionCode = null;
       Range requestPosition = null;
-      Range expectedQuickFixRange = null;
+      Range expectedDafnyCodeActionRange = null;
       var numberOfLines = 0;
       var positionOffset = 0;
       for (var i = 0; i < matches.Count; i++) {
         var match = matches[i];
         initialCode += source.Substring(lastPosition, match.Index - lastPosition);
         if (match.Groups["message"].Success) {
-          expectedQuickFixTitle = match.Groups["message"].Value;
-          expectedQuickFixCode = match.Groups["inserted"].Value;
+          expectedDafnyCodeActionTitle = match.Groups["message"].Value;
+          expectedDafnyCodeActionCode = match.Groups["inserted"].Value;
           Position position = (numberOfLines, (match.Index + positionOffset) - lastStartOfLine);
-          expectedQuickFixRange = (position, position);
+          expectedDafnyCodeActionRange = (position, position);
           positionOffset -= match.Value.Length;
         }
 
@@ -157,16 +157,16 @@ const x := 1;
 
       initialCode += source.Substring(lastPosition);
 
-      Assert.IsNotNull(expectedQuickFixCode, "Could not find an expected quick fix code");
-      Assert.IsNotNull(expectedQuickFixTitle, "Could not find an expected quick fix title");
-      Assert.IsNotNull(expectedQuickFixRange, "Could not find an expected quick fix range");
+      Assert.IsNotNull(expectedDafnyCodeActionCode, "Could not find an expected quick fix code");
+      Assert.IsNotNull(expectedDafnyCodeActionTitle, "Could not find an expected quick fix title");
+      Assert.IsNotNull(expectedDafnyCodeActionRange, "Could not find an expected quick fix range");
 
-      await TestIfCodeAction(initialCode, requestPosition, expectedQuickFixTitle, expectedQuickFixCode,
-        expectedQuickFixRange);
+      await TestIfCodeAction(initialCode, requestPosition, expectedDafnyCodeActionTitle, expectedDafnyCodeActionCode,
+        expectedDafnyCodeActionRange);
     }
 
-    private async Task TestIfCodeAction(string source, Range requestPosition, string expectedQuickFixTitle, string expectedQuickFix,
-      Range expectedQuickFixRange) {
+    private async Task TestIfCodeAction(string source, Range requestPosition, string expectedDafnyCodeActionTitle, string expectedDafnyCodeAction,
+      Range expectedDafnyCodeActionRange) {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -177,19 +177,24 @@ const x := 1;
 
       var completionList = await RequestCodeActionAsync(documentItem, requestPosition);
       var found = false;
+      var otherTitles = new List<string>();
       foreach (var completion in completionList) {
-        if (completion.CodeAction is { Title: var title } codeAction && title == expectedQuickFixTitle) {
-          found = true;
-          codeAction = await RequestResolveCodeAction(codeAction);
-          var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
-          Assert.IsNotNull(textDocumentEdit);
-          var edit = textDocumentEdit.Edits.Single();
-          Assert.AreEqual(expectedQuickFix, edit.NewText);
-          Assert.AreEqual(expectedQuickFixRange, edit.Range);
+        if (completion.CodeAction is { Title: var title } codeAction) {
+          otherTitles.Add(title);
+          if (title == expectedDafnyCodeActionTitle) {
+            found = true;
+            codeAction = await RequestResolveCodeAction(codeAction);
+            var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
+            Assert.IsNotNull(textDocumentEdit);
+            var edit = textDocumentEdit.Edits.Single();
+            Assert.AreEqual(expectedDafnyCodeAction, edit.NewText);
+            Assert.AreEqual(expectedDafnyCodeActionRange, edit.Range);
+          }
         }
       }
 
-      Assert.IsTrue(found, $"Did not find the code action '{expectedQuickFixTitle}'");
+      Assert.IsTrue(found,
+        $"Did not find the code action '{expectedDafnyCodeActionTitle}'. Available were:{string.Join(",", otherTitles)}");
     }
   }
 }

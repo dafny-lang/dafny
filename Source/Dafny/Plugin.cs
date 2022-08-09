@@ -13,10 +13,10 @@ public interface Plugin {
 }
 
 public class ConfiguredPlugin : Plugin {
-  public readonly PluginConfiguration Configuration;
+  public PluginConfiguration Configuration { get; }
 
   public ConfiguredPlugin(PluginConfiguration configuration) {
-    this.Configuration = configuration;
+    Configuration = configuration;
   }
 
   public IEnumerable<Compiler> GetCompilers() {

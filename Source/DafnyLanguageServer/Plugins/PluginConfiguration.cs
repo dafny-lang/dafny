@@ -19,7 +19,7 @@ public abstract class PluginConfiguration : Dafny.Plugins.PluginConfiguration {
   /// Override this method to provide quick fixers
   /// </summary>
   /// <returns>An array of quick fixers implemented by this plugin</returns>
-  public virtual QuickFixer[] GetQuickFixers() {
-    return Array.Empty<QuickFixer>();
+  public virtual DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
+    return Array.Empty<DafnyCodeActionProvider>();
   }
 }
