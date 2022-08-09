@@ -34,9 +34,12 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var compilation = CSharpCompilation.Create(assemblyName);
     var standardLibraries = new List<string>()
     {
-      "DafnyPipeline",
-      // TODO: Shouldn't have to add this
-      // "DafnyCore",
+      // Just referencing DafnyPipeline is normally enough in a plugin project,
+      // since the build will include transitive dependencies as well,
+      // but here we have to explicitly enumerate every dependency.
+      // That means DafnyCore is the best reference since it directly contains
+      // all the Microsoft.Dafny elements.
+      "DafnyCore",
       "System.Console",
       "System.Runtime",
       "Boogie.Core",
