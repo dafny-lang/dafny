@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isExtern) {
         // Allow the library name to be "" to import built-in things like the error type
         if (pkgName != "") {
-          import.SuppressDummy = true;
+          // import.SuppressDummy = true;
           AddImport(import);
         }
         return new ConcreteSyntaxTree(); // ignore contents of extern module
@@ -2027,7 +2027,9 @@ namespace Microsoft.Dafny.Compilers {
 
       foreach (Expression dim in dimensions) {
         wr.Write(sep);
+        wr.Write("_dafny.IntOfUint64(");
         TrExpr(dim, wr, false, wStmts);
+        wr.Write(")");
         sep = ", ";
       }
 

@@ -48,7 +48,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeTypeDescriptors,
       Feature.TupleInitialization,
       Feature.ContinueStatements,
-      Feature.ForLoops,
       Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.IntBoundedPool,
       Feature.NonSequentializableForallStatements,
@@ -838,8 +837,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.ForLoops);
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr)
+    {
+      wr.Write($"for {IdName(loopIndex)} in range(");
+      var startWr = wr.Fork();
+      wr.Write($", {endVarName}");
+      wr.Write(")");
+
+      var bodyWr = wr.NewBlockPy($":");
+      bodyWr = EmitContinueLabel(labels, bodyWr);
+      TrStmtList(body, bodyWr);
+
+      return startWr;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
