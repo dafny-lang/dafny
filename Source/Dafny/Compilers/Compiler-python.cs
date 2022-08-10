@@ -65,6 +65,10 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
+      return $"default_{tp.CompileName}";
+    }
     protected override string StmtTerminator { get => ""; }
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
@@ -79,14 +83,13 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
       wr.NewBlockPy("try:")
-        .WriteLine("module_.default__.Main()");
+        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = ((ClassWriter)cw).MethodWriter;
-      return wr.WriteLine("def Main():");
+      return ((ClassWriter)cw).MethodWriter.NewBlockPy("def Main():");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
@@ -175,14 +178,14 @@ namespace Microsoft.Dafny.Compilers {
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl
                              && decl.Members.Any(m => !m.IsGhost && ((m is Field && !m.IsStatic) || m is Constructor));
-      var constructorWriter = needsConstructor
-        ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
-        : null;
-      if (cls is ClassDecl d) {
-        if (!needsConstructor && d.Members.All(m => m.IsGhost)) {
-          methodWriter.WriteLine("pass");
-        }
+      ConcreteSyntaxTree constructorWriter = null;
+      if (needsConstructor) {
+        var block = methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline);
+        constructorWriter = block.Fork();
+        block.WriteLine("pass");
       }
+      methodWriter.NewBlockPy("def __str__(self) -> str:")
+        .WriteLine($"return \"{fullPrintName}\"");
       return new ClassWriter(this, constructorWriter, methodWriter);
     }
 
@@ -213,9 +216,14 @@ namespace Microsoft.Dafny.Compilers {
       if (dt.HasFinitePossibleValues) {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");
         var w = btw.NewBlockPy(
-          $"def AllSingletonConstructors(instance):");
+          $"def AllSingletonConstructors(cls):");
         w.WriteLine($"return [{dt.Ctors.Select(ctor => $"{DtCtorDeclarationName(ctor, false)}()").Comma()}]");
       }
+
+      btw.WriteLine($"@classmethod");
+      var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
+      var arguments = dt.GetGroundingCtor().Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+      wDefault.WriteLine($"return {DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})");
 
       // Ensures the string representation from the constructor is chosen
       btw.NewBlockPy("def __repr__(self) -> str:")
@@ -529,6 +537,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
+      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+        wr.WriteLine("_this = self");
+      }
       wr = wr.NewBlockPy($"while True:").NewBlockPy($"with {DafnyRuntimeModule}.label():");
       var body = wr.Fork();
       wr.WriteLine("break");
@@ -631,6 +642,9 @@ namespace Microsoft.Dafny.Compilers {
 
               case TypeParameter tp:
                 return $"{tp.CompileName}()";
+
+              case ClassDecl:
+                return "None";
             }
             break;
           }
@@ -964,7 +978,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
-      wr.Write("self");
+      var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
+      wr.Write(isTailRecursive ? "_this" : "self");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
@@ -1568,28 +1583,11 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
       }
-      if (runAfterCompile) {
-        Contract.Assert(callToMain != null); // this is part of the contract of CompileTargetProgram
-        // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'python'
-        // will run the program.
-        return true;
-      } else {
-        // compile now
-        return SendToNewPythonProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames,
-          outputWriter);
-      }
+      return true;
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-        string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-
-      return SendToNewPythonProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
-        outputWriter);
-    }
-
-    bool SendToNewPythonProcess(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-        string targetFilename, ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter) {
+      string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
       var psi = new ProcessStartInfo("python3", targetFilename) {

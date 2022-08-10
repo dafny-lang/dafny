@@ -772,15 +772,17 @@ namespace Microsoft.Dafny {
         substMap.Add(m.OverriddenMethod.Outs[i], ie);
       }
 
+      var typeMap = GetTypeArgumentSubstitutionMap(m.OverriddenMethod, m);
+
       Boogie.StmtList stmts;
       //adding assume Pre’; assert P; // this checks that Pre’ implies P
-      AddMethodOverrideReqsChk(m, builder, etran, substMap);
+      AddMethodOverrideReqsChk(m, builder, etran, substMap, typeMap);
 
       //adding assert R <= Rank’;
-      AddOverrideTerminationChk(m, m.OverriddenMethod, builder, etran, substMap);
+      AddOverrideTerminationChk(m, m.OverriddenMethod, builder, etran, substMap, typeMap);
 
       //adding assert W <= Frame’
-      AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap);
+      AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap, typeMap);
 
       if (!(m is TwoStateLemma)) {
         //change the heap at locations W
@@ -788,7 +790,7 @@ namespace Microsoft.Dafny {
       }
 
       //adding assume Q; assert Post’;
-      AddMethodOverrideEnsChk(m, builder, etran, substMap);
+      AddMethodOverrideEnsChk(m, builder, etran, substMap, typeMap);
 
       stmts = builder.Collect(m.tok);
 
@@ -933,18 +935,20 @@ namespace Microsoft.Dafny {
         substMap.Add(f.OverriddenFunction.Result, ie);
       }
 
+      var typeMap = GetTypeArgumentSubstitutionMap(f.OverriddenFunction, f);
+
       //adding assume Pre’; assert P; // this checks that Pre’ implies P
-      AddFunctionOverrideReqsChk(f, builder, etran, substMap);
+      AddFunctionOverrideReqsChk(f, builder, etran, substMap, typeMap);
 
       //adding assert R <= Rank’;
-      AddOverrideTerminationChk(f, f.OverriddenFunction, builder, etran, substMap);
+      AddOverrideTerminationChk(f, f.OverriddenFunction, builder, etran, substMap, typeMap);
 
       //adding assert W <= Frame’
-      AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
+      AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap, typeMap);
 
       //adding assume Q; assert Post’;
       //adding assume J.F(ins) == C.F(ins);
-      AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
+      AddFunctionOverrideEnsChk(f, builder, etran, substMap, typeMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
       var stmts = builder.Collect(f.tok);
 
@@ -1176,7 +1180,9 @@ namespace Microsoft.Dafny {
       return typeMap;
     }
 
-    private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+    private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -1187,7 +1193,7 @@ namespace Microsoft.Dafny {
       }
       //generating trait post-conditions with class variables
       foreach (var en in m.OverriddenMethod.Ens) {
-        Expression postcond = Substitute(en.E, null, substMap);
+        Expression postcond = Substitute(en.E, null, substMap, typeMap);
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
@@ -1197,14 +1203,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+    private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       foreach (var req in m.OverriddenMethod.Req) {
-        Expression precond = Substitute(req.E, null, substMap);
+        Expression precond = Substitute(req.E, null, substMap, typeMap);
         builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(precond)));
       }
       //generating class pre-conditions
@@ -1218,7 +1226,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+    private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(original != null);
       Contract.Requires(overryd != null);
       Contract.Requires(builder != null);
@@ -1242,7 +1252,7 @@ namespace Microsoft.Dafny {
 
       for (int i = 0; i < N; i++) {
         Expression e0 = calleeDecreases[i];
-        Expression e1 = Substitute(contextDecreases[i], null, substMap);
+        Expression e1 = Substitute(contextDecreases[i], null, substMap, typeMap);
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
           break;
@@ -1283,13 +1293,15 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
-    private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
+    private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       List<FrameExpression> classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
       if (m.OverriddenMethod.Mod != null) {
         foreach (var e in m.OverriddenMethod.Mod.Expressions) {
-          var newE = Substitute(e.E, null, substMap);
+          var newE = Substitute(e.E, null, substMap, typeMap);
           FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
