@@ -1645,7 +1645,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlockPy("try:");
       TrStmt(body, tryBlock);
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
-      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = str(e)");
+      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = _dafny.str(e.message)");
       TrStmt(recoveryBody, exceptBlock);
     }
 
