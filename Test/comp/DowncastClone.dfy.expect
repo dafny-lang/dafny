@@ -33,10 +33,3 @@ DowncastClone.dfy(51,9): Error: compilation does not support trait types as a ty
 DowncastClone.dfy(51,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
 (0,-1): Error: compilation does not support trait types as a type parameter (got 'X' for type parameter 1); consider introducing a ghost
 Wrote textual form of partial target program to DowncastClone-java/DowncastClone.java
-
-Dafny program verifier did not attempt verification
-Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
-false and false
-_module.Y and _module.Y
-Done
