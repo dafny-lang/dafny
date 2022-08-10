@@ -56,15 +56,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
-    IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents { get; }
-  }
+    DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId);
 
-  public interface IDocumentEntry {
-    Task<DafnyDocument> ResolvedDocument { get; }
-    Task<DafnyDocument> TranslatedDocument { get; }
-    DafnyDocument LastPublishedDocument { get; }
-    Task<DafnyDocument> LastDocument { get; }
-    void Observe(IObservable<DafnyDocument> updates);
-    public bool Idle { get; }
+    IEnumerable<CompilationManager> Documents { get; }
   }
 }

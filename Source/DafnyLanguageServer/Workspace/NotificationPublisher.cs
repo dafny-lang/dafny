@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -28,17 +29,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
       var notification = GetFileVerificationStatus(document);
+      if (notification == null) {
+        // Do not publish verification status while resolving
+        return;
+      }
+
       var previous = GetFileVerificationStatus(previousDocument);
-      if (previous.Version > notification.Version ||
-          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+      if (previous != null && (previous.Version > notification.Version ||
+          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables))) {
         return;
       }
 
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
-      return new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationIdToView));
+    private static FileVerificationStatus? GetFileVerificationStatus(DafnyDocument document) {
+      if (document.ImplementationIdToView == null || document.VerificationTasks == null) {
+        return null;
+      }
+      return new FileVerificationStatus(document.Uri, document.Version,
+        GetNamedVerifiableStatuses(document.ImplementationIdToView));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
@@ -60,7 +70,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
       }
-
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 

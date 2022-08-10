@@ -20,6 +20,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
 
+  [TestMethod]
+  public async Task EnsureEmptyMethodDisplayVerified() {
+    await VerifyTrace(@"
+ .  | :method x() {
+ .  | :  // Nothing here
+ .  | :}");
+  }
+
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await VerifyTrace(@"
@@ -116,11 +124,11 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:method f(x: int) {
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:  //Next1:\n  //Next2:\n  
- .  S [=][=][I][S][S][ ][I][S][S][ ]:  assert x == 2; }
-            [-][~][=][=][I][S][S][ ]:
-                        [-][~][=][=]:");
+ .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
+ .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
+            [-][~][=][I][S][ ]:
+                     [-][~][=]:");
   }
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
@@ -131,7 +139,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [=][=][-][~][=][=]:  x > 3 { y := x;
  .  S [S][ ][I][S][S][ ]:  //Next1:\n
  .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [S][ ][-][~][=][=]:    y := y + 1;
+ .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
             [I][S][S][ ]:");
@@ -144,5 +152,42 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [=][=]:  assert false
  .  S [=][=]:    || false;
  .  S [S][ ]:}");
+  }
+
+  [TestMethod]
+  public async Task EnsureBodylessMethodsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
+  }
+
+
+  [TestMethod]
+  public async Task EnsureBodylessFunctionsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:function method {:extern} test4(a: nat, b: nat): nat
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
   }
 }
