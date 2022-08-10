@@ -4470,18 +4470,20 @@ MapLiteralExpressions<.out List<ExpressionPair> elements, List<IToken> ownedToke
 MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      List<BoundVar> bvars = new List<BoundVar>();
+     var ownedTokens = new List<IToken>(); 
      Expression range = null;
      Expression bodyLeft = null;
      Expression bodyRight;
      Attributes attrs = null;
      bool finite = true;
   .)
-  ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
+  ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; ownedTokens.Add(t); .)
   QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
-  QSep
+  QSep                                         (. ownedTokens.Add(t); .)
   Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
-    ":=" Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps || !finite>
+    ":="                                       (. ownedTokens.Add(t); .)
+    Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (bodyLeft == null && bvars.Count != 1) {
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
@@ -4489,6 +4491,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      } else {
        e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
      }
+     e.OwnedTokens = ownedTokens;
   .)
   .
 

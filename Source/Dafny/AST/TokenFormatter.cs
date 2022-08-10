@@ -870,10 +870,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     private void ApplyComprehensionExprFormatting(int indent, List<IToken> ownedTokens) {
-      var verticalBarIndent = indent + SpaceTab;
-      var afterVerticalBarIndent = indent + SpaceTab;
+      var afterAssignIndent = indent + SpaceTab;
       var alreadyAligned = false;
-      var assignIndent = indent + SpaceTab - 1;
+      var assignIndent = indent + SpaceTab;
 
       foreach (var token in ownedTokens) {
         switch (token.val) {
@@ -889,30 +888,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case ":=":
           case "::": {
               if (alreadyAligned) {
-                formatter.SetIndentations(token, afterVerticalBarIndent, assignIndent, afterVerticalBarIndent);
+                formatter.SetIndentations(token, afterAssignIndent, assignIndent, afterAssignIndent);
               } else {
                 if (IsFollowedByNewline(token)) {
-                  verticalBarIndent = indent + SpaceTab;
-                  afterVerticalBarIndent = indent + SpaceTab + 3;
+                  afterAssignIndent = indent + SpaceTab + 3;
                 } else {
                   alreadyAligned = true;
-                  formatter.SetAlign(indent, token, out afterVerticalBarIndent, out _);
-                }
-              }
-              break;
-            }
-          case "|": {
-              if (alreadyAligned) {
-                formatter.SetIndentations(token, afterVerticalBarIndent, verticalBarIndent, afterVerticalBarIndent);
-              } else {
-                if (IsFollowedByNewline(token)) {
-                  verticalBarIndent = indent;
-                  afterVerticalBarIndent = indent + SpaceTab;
-                  assignIndent = verticalBarIndent - 1;
-                } else {
-                  formatter.SetAlign(indent, token, out afterVerticalBarIndent, out verticalBarIndent);
-                  assignIndent = verticalBarIndent - 1;
-                  alreadyAligned = true;
+                  formatter.SetAlign(indent, token, out afterAssignIndent, out assignIndent);
+                  assignIndent -= 1; // because "::" or ":=" has one more char than a comma 
                 }
               }
               break;
