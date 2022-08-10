@@ -330,7 +330,7 @@ def newArray(initValue, *dims):
 
 @dataclass
 class HaltException(Exception):
-    message: builtins.str
+    message: Seq
 
 def quantifier(vals, frall, pred):
     for u in vals:
