@@ -108,7 +108,7 @@ method m5() { assert false; } //Remove4:
     "m3 m1 m2 m4 m5\n" +
     "m4 m3 m1 m2 m5\n" +
     "null\n" +
-    "migrated\n" +
+    "null\n" +
     "m2 m4 m3 m1"
   );
   }
@@ -188,8 +188,8 @@ method m5() { assert false; } //Remove4:
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
-        Console.WriteLine("foundStatus after timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
-        Console.WriteLine($"History was: {string.Join("\n", verificationStatusReceiver.History)}");
+        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        Console.WriteLine($"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
         throw;
       }
 

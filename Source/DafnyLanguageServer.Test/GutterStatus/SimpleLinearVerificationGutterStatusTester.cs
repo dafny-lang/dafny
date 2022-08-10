@@ -20,6 +20,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
 
+  [TestMethod]
+  public async Task EnsureEmptyMethodDisplayVerified() {
+    await VerifyTrace(@"
+ .  | :method x() {
+ .  | :  // Nothing here
+ .  | :}");
+  }
+
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await VerifyTrace(@"
