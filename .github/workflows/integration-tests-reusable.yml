@@ -48,6 +48,7 @@ jobs:
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
+      target-runtime-version: ${{ steps.populate-target-runtime-version-all.outputs.target-runtime-version }} ${{ steps.populate-target-runtime-version-one.outputs.target-runtime-version }}
       shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   test:
     needs: populate-matrix-dimensions
@@ -55,6 +56,7 @@ jobs:
     strategy:
       matrix:
         os: ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-list) }}
+        target-runtime-version: ${{ fromJson(needs.populate-matrix-dimensions.outputs.target-runtime-version) }}
         shard: ${{ fromJson(needs.populate-matrix-dimensions.outputs.shard-list) }}
       fail-fast: false
     steps:
