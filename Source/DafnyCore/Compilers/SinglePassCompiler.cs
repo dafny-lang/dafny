@@ -1442,9 +1442,9 @@ namespace Microsoft.Dafny.Compilers {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream(filename);
       if (stream is null) {
-        throw new Exception( $"Cannot find embedded resource: {filename}");
+        throw new Exception($"Cannot find embedded resource: {filename}");
       }
-      
+
       var rd = new StreamReader(stream);
       WriteFromStream(rd, wr.Append((new Verbatim())));
     }

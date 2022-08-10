@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         IsPrecompiled = true;
-        
+
         var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
         SourceFileName = Path.GetTempFileName();
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
       using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       using var dllPeReader = new PEReader(dllFs);
       var dllMetadataReader = dllPeReader.GetMetadataReader();
-        
+
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
         var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
