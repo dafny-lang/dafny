@@ -29,7 +29,10 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
         IConfiguration configuration, Action killLanguageServer) {
-
+      options.ServerInfo = new ServerInfo {
+        Name = "Dafny",
+        Version = DafnyVersion
+      };
       return options
         .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)

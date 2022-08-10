@@ -207,15 +207,17 @@ namespace Microsoft.Dafny {
       return bvNew;
     }
 
-    public VT CloneIVariable<VT>(VT v) where VT : IVariable {
+    public virtual LocalVariable CloneLocalVariable(LocalVariable local) {
+      return new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+    }
+    public virtual VT CloneIVariable<VT>(VT v) where VT : IVariable {
       var iv = (IVariable)v;
-      if (iv is Formal) {
-        iv = CloneFormal((Formal)iv);
-      } else if (iv is BoundVar) {
-        iv = CloneBoundVar((BoundVar)iv);
-      } else if (iv is LocalVariable) {
-        var local = (LocalVariable)iv;
-        iv = new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+      if (iv is Formal formal) {
+        iv = CloneFormal(formal);
+      } else if (iv is BoundVar boundVar) {
+        iv = CloneBoundVar(boundVar);
+      } else if (iv is LocalVariable localVariable) {
+        iv = CloneLocalVariable(localVariable);
       } else {
         Contract.Assume(false);  // unexpected IVariable
         iv = null;  // please compiler
@@ -657,7 +659,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
+        var lhss = s.Locals.ConvertAll(c =>
+          CloneLocalVariable(c));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else if (stmt is VarDeclPattern) {
@@ -692,7 +695,7 @@ namespace Microsoft.Dafny {
         case LitPattern p:
           return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
         case IdPattern p:
-          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
+          return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern), p.IsGhost, p.HasParenthesis);
         case DisjunctivePattern p:
           return new DisjunctivePattern(p.Tok, p.Alternatives.ConvertAll(CloneExtendedPattern), p.IsGhost);
         default:
@@ -746,6 +749,7 @@ namespace Microsoft.Dafny {
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
+      var result = f.Result != null ? CloneFormal(f.Result) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
       var decreases = CloneSpecExpr(f.Decreases);
@@ -758,24 +762,24 @@ namespace Microsoft.Dafny {
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals,
+        return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, result,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
           f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
+        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is GreatestPredicate) {
-        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals,
+        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
+        return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, result,
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
+        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, result, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, result, CloneType(f.ResultType),
           req, reads, ens, decreases, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       }

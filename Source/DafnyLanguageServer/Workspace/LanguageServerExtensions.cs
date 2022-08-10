@@ -27,7 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return services
         .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
         .Configure<DafnyPluginsOptions>(configuration.GetSection(DafnyPluginsOptions.Section))
-        .AddSingleton<IDocumentDatabase, DocumentDatabase>()
+        .AddSingleton<IDocumentDatabase>(serviceProvider => new DocumentManagerDatabase(serviceProvider,
+          serviceProvider.GetRequiredService<IOptions<DocumentOptions>>().Value,
+          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>().Value))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
@@ -42,13 +44,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return TextDocumentLoader.Create(
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
-        services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<INotificationPublisher>(),
-        services.GetRequiredService<IOptions<VerifierOptions>>().Value
+        services.GetRequiredService<INotificationPublisher>()
       );
     }
   }

@@ -22,33 +22,23 @@ public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
 public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
-  private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
-  private readonly ITextDocumentLoader documentLoader;
 
   public VerificationHandler(
-    ILogger<VerificationHandler> logger,
-    IDocumentDatabase documents,
-    ITextDocumentLoader documentLoader) {
-    this.logger = logger;
+    IDocumentDatabase documents) {
     this.documents = documents;
-    this.documentLoader = documentLoader;
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    if (documentManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentEntry.TranslatedDocument;
+    var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
     var requestPosition = request.Position;
-    var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
-    foreach (var taskToRun in tasks) {
-      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-      documentEntry.Observe(verifiedDocuments);
-    }
-
-    return !documentEntry.Idle;
+    return GetTasksAtPosition(translatedDocument, requestPosition).
+      Any(taskToRun => documentManager.CompilationManager.Verify(translatedDocument, taskToRun));
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
@@ -59,11 +49,12 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    if (documentManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentEntry.TranslatedDocument;
+    var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();
