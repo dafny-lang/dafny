@@ -546,6 +546,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
 
       return type.NormalizeExpandKeepConstraints() switch {
+        var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
         CharType => $"{DafnyDefaults}.char",
@@ -554,7 +555,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl => $"{DafnyDefaults}.pointer",
+          ClassDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
@@ -584,7 +585,7 @@ namespace Microsoft.Dafny.Compilers {
         var dt = (DatatypeDecl)udt.ResolvedClass;
         var w = new ConcreteSyntaxTree();
         if (dt is TupleTypeDecl) {
-          w.Write("tuple(");
+          w.Write($"{DafnyDefaults}.tuple(");
         } else {
           w.Write($"{TypeName_UDT(FullTypeName(udt), udt, wr, tok)}.default(");
         }
