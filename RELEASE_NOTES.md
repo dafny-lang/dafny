@@ -16,6 +16,7 @@
   (https://github.com/dafny-lang/dafny/pull/2522)
 - feat: `predicate P(x: int): (y: bool) ...` is now valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
 - fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
+- fix: The CLI no longer attempts to load each DLL file passed to it. (https://github.com/dafny-lang/dafny/pull/2568)
 
 # 3.7.3
 
