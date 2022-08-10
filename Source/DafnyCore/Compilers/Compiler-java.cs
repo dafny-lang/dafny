@@ -2219,9 +2219,13 @@ namespace Microsoft.Dafny.Compilers {
       var jarName = "DafnyRuntime.jar";
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream(jarName);
+      if (stream == null) {
+        throw new Exception($"Cannot find embedded resource: {jarName}");
+      }
+
       var fullJarName = $"{targetDirectory}/{jarName}";
       FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
-      stream!.CopyTo(outStream);
+      stream.CopyTo(outStream);
       outStream.Close();
     }
 
