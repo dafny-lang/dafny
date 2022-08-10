@@ -24,3 +24,10 @@ Wrote textual form of target program to ManualCompile.cpp
 Additional target code written to ManualCompile.h
 Additional target code written to DafnyRuntime.h
 hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile-py/ManualCompile.py
+Additional target code written to ManualCompile-py/_dafny.py
+Additional target code written to ManualCompile-py/System_.py
+Additional target code written to ManualCompile-py/module_.py
+hello, Dafny
