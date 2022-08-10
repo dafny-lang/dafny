@@ -83,6 +83,20 @@ public static class DafnyCodeActionHelpers {
       new string(useTabs ? '\t' : ' ', indentationBrace));
   }
 
+  public static DafnyCodeActionEdit? InsertAtEndOfBlock(
+    IDafnyCodeActionInput input,
+    Position openingBracePosition,
+    string statementsToInsert) {
+    var (beforeEndBrace, indentationExtra, indentationUntilBrace) =
+      GetInformationToInsertAtEndOfBlock(input, openingBracePosition);
+    if (beforeEndBrace == null) {
+      return null;
+    }
+
+    return new DafnyCodeActionEdit(beforeEndBrace,
+      $"{indentationExtra}{statementsToInsert}\n{indentationUntilBrace}");
+  }
+
   /// <summary>
   /// Given the position of an opening brace of a Block, returns the range for the position just before the closing brace,
   /// and indentation helpers as defined by GetIndentationBefore()
@@ -90,7 +104,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  public static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();

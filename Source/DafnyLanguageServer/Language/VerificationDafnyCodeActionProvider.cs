@@ -30,9 +30,9 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
     }
 
     var expression = input.Extract(relatedInformation.Location.Range);
-    var (beforeEndBrace, indentationExtra, indentationUntilBrace) =
-      DafnyCodeActionHelpers.GetInformationToInsertAtEndOfBlock(input, diagnostic.Range.Start);
-    if (beforeEndBrace == null) {
+    var statement = $"assert {expression};";
+    var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Range.Start, statement);
+    if (edit == null) {
       return null;
     }
 
@@ -40,10 +40,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       new InstantDafnyCodeAction(
         "Assert postcondition at return location where it fails",
         new List<Diagnostic>(){diagnostic},
-        new[] {
-          new DafnyCodeActionEdit(beforeEndBrace,
-            $"{indentationExtra}assert {expression};\n{indentationUntilBrace}")
-        }
+        new[] { edit }
       )
     };
 

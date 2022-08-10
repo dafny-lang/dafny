@@ -121,7 +121,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     });
   }
 
-  private IEnumerable<TextEdit> GetTextEdits(DafnyCodeActionEdit[] quickFixEdits) {
+  private IEnumerable<TextEdit> GetTextEdits(IEnumerable<DafnyCodeActionEdit> quickFixEdits) {
     var edits = new List<TextEdit>();
     foreach (var (range, toReplace) in quickFixEdits) {
       edits.Add(new TextEdit() {
@@ -129,7 +129,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
         Range = range
       });
     }
-    return edits.ToArray();
+    return edits;
   }
 }
 

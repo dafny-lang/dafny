@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using System.Collections.Generic;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 
@@ -26,7 +27,7 @@ public abstract class DafnyCodeAction {
 
   // Edits are all performed at the same time
   // They are lazily invoked, so that they can be as complex as needed.
-  public abstract DafnyCodeActionEdit[] GetEdits();
+  public abstract IEnumerable<DafnyCodeActionEdit> GetEdits();
 }
 
 // This class enables returning code actions instantly.
