@@ -122,7 +122,7 @@ Dafny program verifier did not attempt verification
 Dt: static
 
 Dafny program verifier did not attempt verification
-Dt: Dt.Dt0(2, False)
+Dt: Dt.Dt0(2, false)
 
 Dafny program verifier did not attempt verification
 Co: static

@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.Compilers {
       var constructorWriter = block.Fork();
       block.WriteLine("pass");
 
-      methodWriter.NewBlockPy("def __str__(self) -> str:")
+      methodWriter.NewBlockPy("def __dafnystr__(self) -> str:")
         .WriteLine($"return \"{fullPrintName}\"");
       return new ClassWriter(this, constructorWriter, methodWriter);
     }
@@ -231,10 +231,6 @@ namespace Microsoft.Dafny.Compilers {
       }
       wDefault.WriteLine($"return lambda: {constructorCall}");
 
-      // Ensures the string representation from the constructor is chosen
-      btw.NewBlockPy("def __repr__(self) -> str:")
-        .WriteLine("return self.__str__()");
-
       // Ensures the inequality is based on equality defined in the constructor
       btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
         .WriteLine("return not self.__eq__(__o)");
@@ -249,8 +245,8 @@ namespace Microsoft.Dafny.Compilers {
           .WriteLine("self.d = self.c()")
           .WriteLine("self.c = None");
         get.WriteLine("return self.d");
-        w.NewBlockPy("def __str__(self) -> str:")
-          .WriteLine("return str(self._get())");
+        w.NewBlockPy("def __dafnystr__(self) -> str:")
+          .WriteLine($"return {DafnyRuntimeModule}.str(self._get())");
         foreach (var destructor in from ctor in dt.Ctors
                                    let index = 0
                                    from dtor in ctor.Destructors
@@ -274,8 +270,8 @@ namespace Microsoft.Dafny.Compilers {
           .WriteLine("self.d = self.c()")
           .WriteLine("self.c = None");
         get.WriteLine("return self.d");
-        w.NewBlockPy("def __str__(self) -> str:")
-          .WriteLine("return str(self._get())");
+        w.NewBlockPy("def __dafnystr__(self) -> str:")
+          .WriteLine($"return {DafnyRuntimeModule}.str(self._get())");
         foreach (var destructor in from ctor in dt.Ctors
                                    let index = 0
                                    from dtor in ctor.Destructors
@@ -322,14 +318,14 @@ namespace Microsoft.Dafny.Compilers {
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"{{self.{IdProtect(f.CompileName)}}}")
+        .Select(f => $"{{{DafnyRuntimeModule}.str(self.{IdProtect(f.CompileName)})}}")
         .Comma();
 
       if (args.Length > 0 && dt is not CoDatatypeDecl) {
         fString += $"({args})";
       }
 
-      wr.NewBlockPy("def __str__(self) -> str:")
+      wr.NewBlockPy("def __dafnystr__(self) -> str:")
         .WriteLine($"return f\'{fString}\'");
 
       var argList = ctor.Formals

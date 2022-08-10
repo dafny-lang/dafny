@@ -14,24 +14,31 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    if value is None:
-        builtins.print("null", end="")
+    builtins.print(str(value), end="")
+
+def str(value) -> builtins.str:
+    if hasattr(value, '__dafnystr__'):
+        return value.__dafnystr__()
+    elif value is None:
+        return "null"
     elif isinstance(value, bool):
-        builtins.print("true" if value else "false", end="")
+        return "true" if value else "false"
+    elif isinstance(value, tuple):
+        return '(' + ', '.join(map(str, value)) + ')'
     elif isinstance(value, FunctionType):
-        builtins.print("Function", end="")
+        return "Function"
     else:
-        builtins.print(value, end="")
+        return builtins.str(value)
 
 @dataclass
 class Break(Exception):
-    target: str
+    target: builtins.str
 
 class TailCall(Exception):
     pass
 
 @contextmanager
-def label(name: str = None):
+def label(name: builtins.str = None):
     try:
         yield
     except Break as g:
@@ -52,10 +59,10 @@ class Seq(tuple):
         if __iterable is None:
             __iterable = []
         self.isStr = isStr \
-                     or isinstance(__iterable, str) \
+                     or isinstance(__iterable, builtins.str) \
                      or (isinstance(__iterable, Seq) and __iterable.isStr) \
                      or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
+                         and all(isinstance(e, builtins.str) and len(e) == 1 for e in __iterable)
                          and len(__iterable) > 0)
 
     @property
@@ -66,7 +73,7 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def __str__(self) -> str:
+    def __dafnystr__(self) -> builtins.str:
         if self.isStr:
             return ''.join(self)
         return '[' + ', '.join(map(str, self)) + ']'
@@ -95,6 +102,9 @@ class Array(list):
             return Array()
         return Array([Array.empty(dims-1)])
 
+    def __dafnystr__(self) -> builtins.str:
+        return '[' + ', '.join(map(str, self)) + ']'
+
     def __len__(self):
         l = super().__len__()
         # Hack to enable "empty" matrices
@@ -113,7 +123,7 @@ class Set(frozenset):
         s = list(self)
         return map(Set, chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
-    def __str__(self) -> str:
+    def __dafnystr__(self) -> builtins.str:
         return '{' + ', '.join(map(str, self)) + '}'
 
     def union(self, other):
@@ -132,7 +142,7 @@ class Set(frozenset):
         return Set(super().__sub__(other))
 
 class MultiSet(Counter):
-    def __str__(self) -> str:
+    def __dafnystr__(self) -> builtins.str:
         return 'multiset{' + ', '.join(map(str, self.elements())) + '}'
 
     def __len__(self):
@@ -181,8 +191,8 @@ class MultiSet(Counter):
         return self[item] > 0
 
 class Map(dict):
-    def __str__(self) -> str:
-        return 'map[' + ', '.join(map(lambda i: f'{i[0]} := {i[1]}', self.items)) + ']'
+    def __dafnystr__(self) -> builtins.str:
+        return 'map[' + ', '.join(map(lambda i: f'{str(i[0])} := {str(i[1])}', self.items)) + ']'
 
     @property
     def Elements(self):
@@ -242,7 +252,7 @@ class BigOrdinal:
         return True
 
 class BigRational(Fraction):
-    def __str__(self):
+    def __dafnystr__(self):
         if self.denominator == 1:
             return f"{self.numerator}.0"
         correction = self.divides_a_power_of_10(self.denominator)
@@ -320,7 +330,7 @@ def newArray(initValue, *dims):
 
 @dataclass
 class HaltException(Exception):
-    message: str
+    message: builtins.str
 
 def quantifier(vals, frall, pred):
     for u in vals:

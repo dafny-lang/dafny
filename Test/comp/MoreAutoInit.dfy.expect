@@ -705,8 +705,8 @@ null-null null-null null-null null-null
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
 DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
-()-() (0, BigRational(0, 1))-(0, BigRational(0, 1))
-(DefaultValuedExpressions_Compile.Color.Red, (0, BigRational(0, 1)), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, BigRational(0, 1)), ())
+()-() (0, 0.0)-(0, 0.0)
+(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
