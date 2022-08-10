@@ -45,7 +45,6 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.StaticConstants,
-      Feature.RuntimeTypeDescriptors,
       Feature.TupleInitialization,
       Feature.ContinueStatements,
       Feature.ForLoops,
@@ -54,7 +53,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.NonSequentializableForallStatements,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
-      Feature.Multisets,
       Feature.SubsetTypeTests,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.ExactBoundedPool,
@@ -266,6 +264,31 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+      if (dt is CoDatatypeDecl) {
+        var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
+        w.NewBlockPy("def __init__(self, c):")
+          .WriteLine("self.c = c")
+          .WriteLine("self.d = None");
+        var get = w.NewBlockPy($"def _get(self):");
+        get.NewBlockPy("if self.c is not None:")
+          .WriteLine("self.d = self.c()")
+          .WriteLine("self.c = None");
+        get.WriteLine("return self.d");
+        w.NewBlockPy("def __str__(self) -> str:")
+          .WriteLine("return str(self._get())");
+        foreach (var destructor in from ctor in dt.Ctors
+                                   let index = 0
+                                   from dtor in ctor.Destructors
+                                   where dtor.EnclosingCtors[0] == ctor
+                                   select dtor.CorrespondingFormals[0] into arg
+                                   where !arg.IsGhost
+                                   select IdProtect(arg.CompileName)) {
+          w.WriteLine("@property");
+          w.NewBlockPy($"def {destructor}(self):")
+            .WriteLine($"return self._get().{destructor}");
+        }
+      }
+
       foreach (var ctor in dt.Ctors) {
         var ctorName = IdProtect(ctor.CompileName);
 
@@ -339,6 +362,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         w.WriteLine($"default = staticmethod(lambda: {TypeInitializationValue(udt, wr, nt.tok, false, false)})");
       }
+
       return cw;
     }
 
@@ -515,38 +539,34 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
+    // Unlike the other compilers, we use lambdas to model type descriptors here.
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var customName = false;
-      var name = type.NormalizeExpandKeepConstraints() switch {
-        var x when x.IsBuiltinArrowType => "null",
+      return type.NormalizeExpandKeepConstraints() switch {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        BoolType or TypeProxy => "bool",
-        CharType => "char",
-        IntType or BitvectorType => "int",
-        RealType => "real",
+        BoolType or TypeProxy => $"{DafnyDefaults}.bool",
+        CharType => $"{DafnyDefaults}.char",
+        IntType or BitvectorType => $"{DafnyDefaults}.int",
+        RealType => $"{DafnyDefaults}.real",
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl or NonNullTypeDecl => "null",
+          ClassDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
         },
         _ => throw new cce.UnreachableException()
       };
-      return (customName ? "" : DafnyDefaults + ".") + name;
 
       string CollectionTypeDescriptor() {
-        customName = true;
         return TypeHelperName(type.NormalizeExpandKeepConstraints());
       }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
-        customName = true;
         if (thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl) {
           return $"self.{typeParameter.CompileName}";
         }
@@ -557,7 +577,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string CustomDescriptor(UserDefinedType userDefinedType) {
-        customName = true;
         return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.tok)}.default";
       }
 
@@ -1429,6 +1448,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.SeqNeq:
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
           opString = "!="; break;
 
         case BinaryExpr.ResolvedOpcode.Union:

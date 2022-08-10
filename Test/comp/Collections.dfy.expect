@@ -34,7 +34,7 @@ Test zero multiplicity:
   printing: multiset{multiset{}, multiset{42}} multiset{12}
   union: 1 1 1 1
   membership: false false
-  equality: false false
+  equality: false true false
   subset: true true true true false
   strict subset: true false false true false
   disjoint: true true true true
@@ -161,7 +161,7 @@ Test zero multiplicity:
   printing: multiset{multiset{}, multiset{42}} multiset{12}
   union: 1 1 1 1
   membership: false false
-  equality: false false
+  equality: false true false
   subset: true true true true false
   strict subset: true false false true false
   disjoint: true true true true
@@ -288,7 +288,7 @@ Test zero multiplicity:
   printing: multiset{multiset{}, multiset{42}} multiset{12}
   union: 1 1 1 1
   membership: false false
-  equality: false false
+  equality: false true false
   subset: true true true true false
   strict subset: true false false true false
   disjoint: true true true true
@@ -415,7 +415,7 @@ Test zero multiplicity:
   printing: multiset{multiset{}, multiset{42}} multiset{12}
   union: 1 1 1 1
   membership: false false
-  equality: false false
+  equality: false true false
   subset: true true true true false
   strict subset: true false false true false
   disjoint: true true true true
@@ -542,7 +542,7 @@ Test zero multiplicity:
   printing: multiset{multiset{}, multiset{42}} multiset{12}
   union: 1 1 1 1
   membership: false false
-  equality: false false
+  equality: false true false
   subset: true true true true false
   strict subset: true false false true false
   disjoint: true true true true
