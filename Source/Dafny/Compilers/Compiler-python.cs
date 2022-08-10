@@ -586,7 +586,6 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           w.Write("tuple(");
         } else {
-          customName = true;
           w.Write($"{TypeName_UDT(FullTypeName(udt), udt, wr, tok)}.default(");
         }
         EmitTypeDescriptorsActuals(UsedTypeParameters(dt, typeArgs), tok, w, true);
