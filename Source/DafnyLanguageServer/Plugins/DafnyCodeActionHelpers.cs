@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -11,24 +12,6 @@ namespace Microsoft.Dafny.LanguageServer.Plugins;
 /// Helpers for plugins defining a DafnyCodeActionProvider
 /// </summary>
 public static class DafnyCodeActionHelpers {
-  /// <summary>
-  /// Given an LSP range and some text, extract the corresponding substring
-  /// </summary>
-  /// <param name="range">The range to extract</param>
-  /// <param name="text">The document</param>
-  /// <returns>The substring of the document in the range</returns>
-  public static string Extract(Range range, string text) {
-    var token = range.ToToken(text);
-    var startTokenPos = token.StartToken.pos;
-    var endTokenPos = token.EndToken.pos + token.EndToken.val.Length;
-    var length = endTokenPos - startTokenPos;
-    if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= text.Length) {
-      return ""; // Safeguard
-    }
-
-    return text.Substring(startTokenPos, length);
-  }
-
   /// <summary>
   /// Given the position of a closing brace '}' and the position of the opening brace '{',
   /// returns spacing that can be used to insert a statement before the closing brace,

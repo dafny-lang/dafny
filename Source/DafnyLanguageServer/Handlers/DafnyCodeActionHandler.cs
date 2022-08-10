@@ -44,7 +44,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DafnyDocument document, CodeActionParams request) {
     var id = 0;
     return fixers.SelectMany(fixer => {
-      var fixerInput = new VerificationDafnyCodeActionProviderInput(document);
+      var fixerInput = new DafnyCodeActionInput(document);
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -133,8 +133,8 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   }
 }
 
-public class VerificationDafnyCodeActionProviderInput : IDafnyCodeActionInput {
-  public VerificationDafnyCodeActionProviderInput(
+public class DafnyCodeActionInput : IDafnyCodeActionInput {
+  public DafnyCodeActionInput(
     DafnyDocument document) {
     Document = document;
   }
@@ -158,4 +158,56 @@ public class VerificationDafnyCodeActionProviderInput : IDafnyCodeActionInput {
   }
 
   public string DocumentUri => Document.Uri.GetFileSystemPath();
+
+  private Dictionary<int, int>? codeLineToPos = null;
+
+  public Dictionary<int, int> CodeLineToPos {
+    get {
+      if (codeLineToPos == null) {
+        codeLineToPos = new Dictionary<int, int>();
+        var pos = 0;
+        var seenCr = false;
+        var seenLf = false;
+        var isNewline = false;
+        codeLineToPos[0] = 0;
+        var line = 1;
+        while (pos < Code.Length) {
+          if (Code[pos] == '\r') {
+            if (seenCr) {
+              isNewline = true;
+            }
+            seenCr = true;
+          } else if (Code[pos] == '\n') {
+            if (seenLf) {
+              isNewline = true;
+            }
+            seenLf = true;
+          } else if (seenLf || seenCr) {
+            isNewline = true;
+          }
+
+          if (isNewline) {
+            seenLf = false;
+            seenCr = false;
+            isNewline = false;
+            codeLineToPos[line] = pos;
+            line++;
+          }
+          pos++;
+        }
+      }
+      return codeLineToPos;
+    }
+  }
+
+  public string Extract(Range range) {
+    var startTokenPos = CodeLineToPos[range.Start.Line] + range.Start.Character;
+    var endTokenPos = CodeLineToPos[range.End.Line] + range.End.Character;
+    var length = endTokenPos - startTokenPos;
+    if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= Code.Length) {
+      return ""; // Safeguard
+    }
+
+    return Code.Substring(startTokenPos, length);
+  }
 }

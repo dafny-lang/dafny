@@ -1,6 +1,4 @@
-﻿using System;
-using Microsoft.Dafny.LanguageServer.Util;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -55,28 +53,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static (int line, int col) ToTokenLineAndCol(this Position position) {
       return (line: position.Line - LineOffset, col: position.Character - ColumnOffset);
-    }
-
-    public static IToken ToToken(this Position position, string document) {
-      try {
-        return new Token() {
-          line = position.Line - LineOffset,
-          col = position.Character - ColumnOffset,
-          val = "",
-          pos = position.ToAbsolutePosition(document)
-        };
-      } catch (ArgumentException) {
-        return Token.NoToken;
-      }
-    }
-
-    public static RangeToken ToToken(this Range range, string document) {
-      var start = range.Start.ToToken(document);
-      var end = range.End.ToToken(document);
-      if (end.line == 0) { // Sometimes the end is not a valid token because of over approximation
-        end = start;
-      }
-      return new RangeToken(start, end);
     }
   }
 }

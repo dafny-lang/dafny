@@ -29,7 +29,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    var expression = DafnyCodeActionHelpers.Extract(relatedInformation.Location.Range, input.Code);
+    var expression = input.Extract(relatedInformation.Location.Range);
     var (beforeEndBrace, indentationExtra, indentationUntilBrace) =
       DafnyCodeActionHelpers.GetInformationToInsertAtEndOfBlock(input, diagnostic.Range.Start);
     if (beforeEndBrace == null) {
