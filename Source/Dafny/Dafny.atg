@@ -2608,7 +2608,7 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
   .
 
 /*------------------------------------------------------------------------*/
-PredicateResult<string name, out Formal? result>
+PredicateResult<string name, out Formal result>
 = (. Type/*!*/ returnType = new BoolType();
      result = null;
   .)
