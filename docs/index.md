@@ -17,7 +17,7 @@ layout: page
 ![Dafny Banner](./banner2.png "Dafny")
 
 **Dafny** is a verification-aware programming language that has native support for recording specifications and is equipped with a static program verifier. By blending sophisticated automated reasoning with familiar programming idioms and tools, Dafny empowers developers to write provably correct code (w.r.t. specifications),
-while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progressi -- Python, C++, Rust) so Dafny can integrate with your existing workflow.
+while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progress -- Python, C++, Rust) so Dafny can integrate with your existing workflow.
 
 **Quick Links:**
 - [**Installation**](https://github.com/dafny-lang/dafny/wiki/INSTALL) ([Dafny for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode))
@@ -26,10 +26,10 @@ while also compiling your Dafny code to familiar development environments such a
 - [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
 
 In addition to a verification engine to check implementation against specifications, there are several compilers, plugins for common software development IDEs, a LSP-based Language Server, a code formatter, a reference manual, tutorials, power user tips, books, the experiences of professors teaching Dafny, and the accumulating expertise of industrial projects using Dafny.
+Example Dafny code in a Visual Studio IDE is shown next to the logo above.
 
 Dafny will give you **assurance that your code meets the specifications you write**, while letting you write both code and specifications in the Dafny programming language itself.
 Since verification is an integral part of development, it will thus **reduce the risk of costly late-stage bugs** that are typically missed by testing.
-Sample Dafny code in a Visual Studio IDE is shown next to the logo above.
 
 Dafny has support for common programming concepts such as 
 - mathematical and bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance
