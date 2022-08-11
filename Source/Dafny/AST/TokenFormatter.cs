@@ -190,7 +190,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
   }
 
-  void MarkMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
+  // functions, methods, predicates, iterators...
+  void SetMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
     var indent2 = indent + SpaceTab;
     if (startToken.val != "{") {
       SetIndentations(startToken, indent, indent, indent2);
@@ -315,7 +316,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   void SetMemberIndentation(MemberDecl member, int indent) {
     var savedIndent = indent;
-    MarkMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+    SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
     if (member.BodyStartTok.line > 0) {
       SetDelimiterIndentedRegions(member.BodyStartTok, indent);
     }
@@ -433,6 +434,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         SetDatatypeDeclIndent(indent, datatypeDecl);
       } else if (declWithMembers is RedirectingTypeDecl redirectingTypeDecl) {
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
+      } else if (topLevelDecl is IteratorDecl iteratorDecl) {
+        SetIteratorDeclIndent(indent, iteratorDecl);
+        if (iteratorDecl.BodyStartTok.line > 0) {
+          SetDelimiterIndentedRegions(iteratorDecl.BodyStartTok, indent);
+          SetClosingIndentedRegion(iteratorDecl.BodyEndTok, indent);
+        }
+        if (iteratorDecl.Body != null) {
+          SetStatementIndentation(iteratorDecl.Body);
+        }
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
@@ -446,6 +456,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
     }
+  }
+
+  private void SetIteratorDeclIndent(int indent, IteratorDecl iteratorDecl) {
+    SetMethodLikeIndent(iteratorDecl.StartToken, iteratorDecl.OwnedTokens, indent);
   }
 
   private void SetModuleExportDeclIndentation(ModuleExportDecl moduleDecl, int indent) {
@@ -861,7 +875,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             break;
           }
         default:
-          formatter.MarkMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
+          formatter.SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
           formatter.SetIndentations(stmt.EndTok, -1, -1, indent);
           break;
       }
@@ -872,7 +886,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private void ApplyComprehensionExprFormatting(int indent, List<IToken> ownedTokens) {
       var afterAssignIndent = indent + SpaceTab;
       var alreadyAligned = false;
-      var assignIndent = indent + SpaceTab;
+      var assignIndent = indent;
 
       foreach (var token in ownedTokens) {
         switch (token.val) {
@@ -891,7 +905,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 formatter.SetIndentations(token, afterAssignIndent, assignIndent, afterAssignIndent);
               } else {
                 if (IsFollowedByNewline(token)) {
-                  afterAssignIndent = indent + SpaceTab + 3;
+                  formatter.SetIndentations(token, afterAssignIndent, assignIndent, afterAssignIndent);
                 } else {
                   alreadyAligned = true;
                   formatter.SetAlign(indent, token, out afterAssignIndent, out assignIndent);

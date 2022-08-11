@@ -645,15 +645,15 @@ method comprehensions() {
   var x := imap i: int :: i % 2 == 0 := 1;
 
   var a := imap
-             i: int ::  i % 2
+             t: int ::  t % 2
                         == 0
                     := 1;
 
   b := imap
          i: int
-         ::
+       ::
          i % 2 == 0
-         :=
+       :=
          1;
 
   c := imap i: int |
@@ -667,9 +667,10 @@ method comprehensions() {
        := 1;
 
   e := imap i: int |  i % 6 == 0
-         ::  // comment
+       ::  
+         // comment
          i % 2 == 0
-         :=  1;
+       :=  1;
 }
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
