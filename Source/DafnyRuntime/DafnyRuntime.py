@@ -15,13 +15,13 @@ class classproperty(property):
 
 def print(value):
     if value is None:
-        builtins.print("null", end="")
+        builtins.print("null", end="", flush=True)
     elif isinstance(value, bool):
-        builtins.print("true" if value else "false", end="")
+        builtins.print("true" if value else "false", end="", flush=True)
     elif isinstance(value, FunctionType):
-        builtins.print("Function", end="")
+        builtins.print("Function", end="", flush=True)
     else:
-        builtins.print(value, end="")
+        builtins.print(value, end="", flush=True)
 
 @dataclass
 class Break(Exception):
