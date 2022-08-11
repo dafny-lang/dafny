@@ -14,7 +14,7 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-![Dafny Banner](./logo.png "Dafny") ![Dafny Example](./DafnyExample.png "Dafny Example")
+![Dafny Banner](./banner2.png "Dafny")
 
 **Dafny** is a verification-aware programming language that has native support for recording specifications and is equipped with a static program verifier. By blending sophisticated automated reasoning with familiar programming idioms and tools, Dafny empowers developers to write provably correct code (w.r.t. specifications),
 while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progress) so it can integrate with your existing workflow.
@@ -26,6 +26,7 @@ while also compiling your Dafny code to familiar development environments such a
 
 Dafny will give you **assurance that your code meets the specifications you write**, while letting you write both code and specifications in the Dafny programming language itself.
 Since verification is an integral part of development, it will thus **reduce the risk of costly late-stage bugs** that are typically missed by testing.
+Sample Dafny code in a Visual Studio IDE is shown next to the logo above.
 
 Dafny has support for common programming concepts such as 
 - mathematical and bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance
