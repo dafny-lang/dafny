@@ -149,6 +149,7 @@ method m5() { assert false; } //Remove4:
             $"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
         } catch (OperationCanceledException) {
           Console.WriteLine("Operation cancelled when expecting: " + string.Join(", ", expectedSymbols) );
+          throw;
         }
       }
     }
