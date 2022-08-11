@@ -140,11 +140,16 @@ method m5() { assert false; } //Remove4:
           await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
           continue;
         }
-        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
-        var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
-        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
-          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
-          $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
+
+        try {
+          var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+          var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
+          Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+            $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
+            $"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
+        } catch (OperationCanceledException) {
+          Console.WriteLine("Operation cancelled when expecting: " + string.Join(", ", expectedSymbols) );
+        }
       }
     }
 
@@ -185,11 +190,12 @@ method m5() { assert false; } //Remove4:
     do {
       try {
         foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        count++;
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
         Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
-        Console.WriteLine($"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
+        Console.WriteLine($"\nnOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
         throw;
       }
 
@@ -215,7 +221,6 @@ method m5() { assert false; } //Remove4:
         semaphore.Release(1);
       }
 
-      count++;
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
