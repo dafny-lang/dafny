@@ -1,0 +1,14 @@
+constructorVariableName.dfy(8,8): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
+constructorVariableName.dfy(9,3): Warning: this branch is redundant
+constructorVariableName.dfy(10,3): Warning: this branch is redundant
+constructorVariableName.dfy(15,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
+constructorVariableName.dfy(16,2): Warning: this branch is redundant
+constructorVariableName.dfy(20,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
+constructorVariableName.dfy(21,2): Warning: this branch is redundant 
+constructorVariableName.dfy(25,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
+constructorVariableName.dfy(26,2): Warning: this branch is redundant 
+constructorVariableName.dfy(33,11): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
+constructorVariableName.dfy(34,6): Warning: this branch is redundant 
+constructorVariableName.dfy(35,6): Warning: this branch is redundant 
+
+Dafny program verifier finished with 1 verified, 0 errors
