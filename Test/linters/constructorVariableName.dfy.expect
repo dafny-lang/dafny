@@ -1,14 +1,15 @@
-constructorVariableName.dfy(8,8): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
-constructorVariableName.dfy(9,3): Warning: this branch is redundant
-constructorVariableName.dfy(10,3): Warning: this branch is redundant
-constructorVariableName.dfy(15,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
-constructorVariableName.dfy(16,2): Warning: this branch is redundant
-constructorVariableName.dfy(20,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
-constructorVariableName.dfy(21,2): Warning: this branch is redundant 
-constructorVariableName.dfy(25,7): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
-constructorVariableName.dfy(26,2): Warning: this branch is redundant 
-constructorVariableName.dfy(33,11): Warning: Variable name 'GreyScale' has the same name as an exisiting constructor
-constructorVariableName.dfy(34,6): Warning: this branch is redundant 
-constructorVariableName.dfy(35,6): Warning: this branch is redundant 
+constructorVariableName.dfy(10,6): Warning: this branch is redundant
+constructorVariableName.dfy(20,9): Warning: Variable name 'GreyScale' has the same name as a datatype constructor that's in scope at this location
+constructorVariableName.dfy(21,4): Warning: this branch is redundant
+constructorVariableName.dfy(22,4): Warning: this branch is redundant
+constructorVariableName.dfy(27,9): Warning: Variable name 'GreyScale' has the same name as a datatype constructor that's in scope at this location
+constructorVariableName.dfy(28,4): Warning: this branch is redundant
+constructorVariableName.dfy(32,9): Warning: Variable name 'GreyScale' has the same name as a datatype constructor that's in scope at this location
+constructorVariableName.dfy(33,4): Warning: this branch is redundant 
+constructorVariableName.dfy(37,9): Warning: Variable name 'GreyScale' has the same name as a datatype constructor that's in scope at this location
+constructorVariableName.dfy(38,4): Warning: this branch is redundant 
+constructorVariableName.dfy(45,13): Warning: Variable name 'GreyScale' has the same name as a datatype constructor that's in scope at this location
+constructorVariableName.dfy(46,8): Warning: this branch is redundant 
+constructorVariableName.dfy(47,8): Warning: this branch is redundant 
 
 Dafny program verifier finished with 1 verified, 0 errors
