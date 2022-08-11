@@ -1,5 +1,5 @@
 ---
-title: The Dafny Language and Software Verification System
+title: Dafny
 # Feel free to add content and custom Front Matter to this file.
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
@@ -14,16 +14,15 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
+![Dafny Banner](./banner.png "Dafny")
+
+**Dafny** is a verification-aware programming language that has native support for recording specifications and is equipped with a static program verifier. By blending sophisticated automated reasoning with familiar programming idioms and tools, Dafny empowers developers to write provably correct code (w.r.t. specifications),
+while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progress) so it can integrate with your existing workflow.
+
 **Quick Links:**
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
 - [Dafny Resources for Users](toc) ([installation](https://github.com/dafny-lang/dafny/wiki/INSTALL)) ([Dafny for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode))
 - [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
-
-![Dafny Banner](./banner.png "Dafny")
-
-Dafny is a **verification-ready programming language**.
-As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
-When you're done, Dafny can **compile your code to C#, Java, JavaScript, C++ or Go** (more to come!), so it can integrate with your existing workflow.
 
 Dafny will give you **assurance that your code meets the specifications you write**, while letting you write both code and specifications in the Dafny programming language itself.
 Since verification is an integral part of development, it will thus **reduce the risk of costly late-stage bugs** that are typically missed by testing.
