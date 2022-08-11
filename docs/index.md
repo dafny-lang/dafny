@@ -14,7 +14,7 @@ layout: page
 
 <link rel="stylesheet" href="assets/main.css">
 
-![Dafny Banner](./banner.png "Dafny")
+![Dafny Banner](./logo.png "Dafny") ![Dafny Example](./DafnyExample.png "Dafny Example")
 
 **Dafny** is a verification-aware programming language that has native support for recording specifications and is equipped with a static program verifier. By blending sophisticated automated reasoning with familiar programming idioms and tools, Dafny empowers developers to write provably correct code (w.r.t. specifications),
 while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progress) so it can integrate with your existing workflow.
