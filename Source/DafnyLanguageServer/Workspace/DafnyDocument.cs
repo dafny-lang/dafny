@@ -87,6 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, SymbolTable, CanDoVerification, GhostDiagnostics,
         Program, WasResolved, LoadCanceled) {
         VerificationTree = VerificationTree,
+        VerificationTasks = VerificationTasks,
         Counterexamples = Counterexamples == null ? null : new(Counterexamples),
         ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),
         LastTouchedVerifiables = LastTouchedVerifiables,
