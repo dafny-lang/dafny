@@ -1279,7 +1279,22 @@ namespace Microsoft.Dafny.Compilers {
         }
         var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
         var v = new CheckHasNoAssumes_Visitor(this, wr);
-        foreach (TopLevelDecl d in m.TopLevelDecls) {
+
+        var parentRelation = new Graph<TopLevelDecl>();
+        m.TopLevelDecls.ForEach(parentRelation.AddVertex);
+
+        foreach (var d in m.TopLevelDecls) {
+          if (d is TopLevelDeclWithMembers cl) {
+            foreach (var trait in cl.ParentTraitHeads) {
+              if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition) {
+                parentRelation.AddEdge(cl, trait);
+              }
+            }
+          }
+        }
+
+        var decls = parentRelation.TopologicallySortedComponents().SelectMany(parentRelation.GetSCC);
+        foreach (TopLevelDecl d in decls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
             continue;
