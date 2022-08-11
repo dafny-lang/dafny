@@ -20,7 +20,7 @@ layout: page
 while also compiling your Dafny code to familiar development environments such as C#, Java, JavaScript and Go (with more in progress -- Python, C++, Rust) so Dafny can integrate with your existing workflow.
 
 **Quick Links:**
-- [**Installation**](https://github.com/dafny-lang/dafny/wiki/INSTALL) ([Dafny for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode))
+- [**Installation**](https://github.com/dafny-lang/dafny/wiki/INSTALL) (or a [VSCode plugin for Dafny](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode))
 - [Dafny Reference Manual and User Guide](DafnyRef/DafnyRef)
 - [Dafny Resources for Users](toc)
 - [Dafny GitHub project (for developers of the Dafny tools themselves)](https://github.com/dafny-lang/dafny)
