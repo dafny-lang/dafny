@@ -16,6 +16,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}";
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    var fooPosition = fooSymbol.SelectionRange.Start;
+    var runSuccess = await client.RunSymbolVerification(documentItem, fooPosition, CancellationToken);
+    Assert.IsTrue(runSuccess);
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [TestMethod]
   public async Task FunctionByMethodIsSeenAsSingleVerifiable() {
     var source = @"
 function MultiplyByPlus(x: nat, y: nat): nat {
