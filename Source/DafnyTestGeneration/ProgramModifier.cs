@@ -112,16 +112,21 @@ namespace DafnyTestGeneration {
       // Merge all programs into one first:
       var program = new Program();
       foreach (var p in programs) {
-        p.Resolve(DafnyOptions.O);
-        p.Typecheck(DafnyOptions.O);
         program.AddTopLevelDeclarations(p.TopLevelDeclarations);
       }
       // Remove duplicates afterwards:
       var declarations = new Dictionary<string, HashSet<string?>>();
+      var axioms = new HashSet<string>();
       var toRemove = new List<Declaration>();
       foreach (var declaration in program.TopLevelDeclarations) {
         var typeName = declaration.GetType().Name;
         if (typeName.Equals("Axiom")) {
+          var axiomAsString = declaration.ToString();
+          if (axiomAsString != null && axioms.Contains(axiomAsString)) {
+            toRemove.Add(declaration);
+            continue;
+          }
+          axioms.Add(declaration.ToString());
           continue;
         }
         if (!declarations.ContainsKey(typeName)) {
@@ -134,6 +139,7 @@ namespace DafnyTestGeneration {
         }
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
+      program.Resolve(DafnyOptions.O);
       program = Utils.DeepCloneProgram(program);
       program.Resolve(DafnyOptions.O);
       program.Typecheck(DafnyOptions.O);
@@ -324,7 +330,7 @@ namespace DafnyTestGeneration {
         var data = new List<object>
           { "Block", implementation.Name, node.UniqueId.ToString() };
         node.cmds.Add(GetAssumePrintCmd(data));
-        return base.VisitBlock(node);
+        return node;
       }
 
       public override Implementation VisitImplementation(Implementation node) {
@@ -590,9 +596,9 @@ namespace DafnyTestGeneration {
           return node;
         }
 
-        Microsoft.Boogie.Function? func = currProgram.Functions
+        Function? func = currProgram.Functions
           .Where(f => f.Name == expr.Fun.FunctionName[..^CanCallSuffix.Length])
-          .FirstOrDefault((Microsoft.Boogie.Function) null);
+          .FirstOrDefault((Function) null);
         if (func == null) {
           return node;
         }
@@ -668,21 +674,16 @@ namespace DafnyTestGeneration {
           node.cmds.Insert(node.cmds.IndexOf(cmd), newCmd);
           node.cmds.Remove(cmd);
         }
-        return base.VisitBlock(node);
+        return node;
       }
 
       public override Procedure VisitProcedure(Procedure node) {
         List<Ensures> newEnsures = new();
-        List<Requires> newRequires = new();
         foreach (var e in node.Ensures) {
           newEnsures.Add(new Ensures(new Token(), true, e.Condition, e.Comment, e.Attributes));
         }
-        foreach (var r in node.Requires) {
-          newRequires.Add(new Requires(new Token(), true, r.Condition, r.Comment, r.Attributes));
-        }
         node.Ensures = newEnsures;
-        node.Requires = newRequires;
-        return base.VisitProcedure(node);
+        return node;
       }
       
       public override Program VisitProgram(Program node) {

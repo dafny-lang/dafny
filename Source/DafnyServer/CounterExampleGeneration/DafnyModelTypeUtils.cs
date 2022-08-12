@@ -8,6 +8,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using MapType = Microsoft.Dafny.MapType;
 using Type = Microsoft.Dafny.Type;
+using TypeProxy = Microsoft.Dafny.TypeProxy;
 
 namespace DafnyServer.CounterexampleGeneration {
 
@@ -108,6 +109,10 @@ namespace DafnyServer.CounterexampleGeneration {
             TransformType(arrowType.Result, transform));
         case UserDefinedType userDefinedType:
           return transform(userDefinedType);
+        case InferredTypeProxy inferredTypeProxy:
+          var tmp = new InferredTypeProxy();
+          tmp.T = TransformType(inferredTypeProxy.T, transform);
+          return tmp;
       }
       return type;
     }

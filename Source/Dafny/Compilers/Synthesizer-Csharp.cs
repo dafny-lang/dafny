@@ -102,8 +102,12 @@ public class CsharpSynthesizer {
       o => compiler.idGenerator.FreshId(o.CompileName + "Mock"));
     foreach (var (obj, mockName) in objectToMockName) {
       var typeName = compiler.TypeName(obj.Type, wr, obj.Tok);
-      wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
-      wr.FormatLine($"{mockName}.CallBase = true;");
+      if ((method.Outs.First().Type as UserDefinedType).IsTraitType) {
+        wr.FormatLine($"var {mockName} = new Mock<{typeName}>(MockBehavior.Strict);");
+      } else {
+        wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
+        wr.FormatLine($"{mockName}.CallBase = true;");
+      }
       wr.FormatLine($"var {obj.CompileName} = {mockName}.Object;");
     }
 
@@ -170,13 +174,14 @@ public class CsharpSynthesizer {
     var methodName = method.CompileName;
 
     if (((Function)method).Ens.Count != 0) {
-      compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
-                                 "be unsatisfied when synthesizing code " +
-                                 "for method {1}", ErrorWriter,
-        methodName, lastSynthesizedMethod.Name);
+      //compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
+      //                           "be unsatisfied when synthesizing code " +
+      //                           "for method {1}", ErrorWriter,
+      //  methodName, lastSynthesizedMethod.Name);
     }
-
-    wr.Format($"{objectToMockName[receiver]}.Setup(x => x.{methodName}(");
+    
+    var tmpId = compiler.idGenerator.FreshId("tmp");
+    wr.Format($"{objectToMockName[receiver]}.Setup({tmpId} => {tmpId}.{methodName}(");
 
     // The remaining part of the method uses Moq's argument matching to
     // describe the arguments for which the method should be stubbed
@@ -212,10 +217,11 @@ public class CsharpSynthesizer {
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
       var fieldName = field.CompileName;
-      compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
+      /*compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
                                 "(field {0} of object {1} inside method {2})",
-        ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
-      wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
+        ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);*/
+      var tmpId = compiler.idGenerator.FreshId("tmp");
+      wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
       compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
       wr.WriteLine(");");
       return;

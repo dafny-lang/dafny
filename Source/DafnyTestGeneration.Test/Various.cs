@@ -41,7 +41,7 @@ module M {
       Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.b")));
       Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 1));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 1));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[1] == "0"));
       Assert.IsTrue(methods.Count(m => m.ArgValues[1] != "0") is 1 or 2);
       Assert.IsTrue(methods.All(m =>
@@ -74,7 +74,7 @@ module M {
       Assert.IsTrue(methods.All(m => m.MethodName == "M.Inlining.a"));
       Assert.IsTrue(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 1));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 1));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[1] == "0"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[1], "-?[1-9][0-9]*")));
@@ -113,7 +113,7 @@ module Paths {
       Assert.IsTrue(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       var values = methods.Select(m =>
           int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
         .ToList();
@@ -157,7 +157,7 @@ module Paths {
       Assert.IsTrue(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       var values = methods.Select(m =>
           int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
         .ToList();
@@ -207,24 +207,24 @@ module Objects {
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.Exists(m =>
         (m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
-        m.ObjectsToMock.Count == 1) ||
+        m.ValueCreation.Count == 1) ||
         (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
         m.Assignments[0] == ("v1", "next", "v0") &&
-        m.ObjectsToMock.Count == 2)));
+        m.ValueCreation.Count == 2)));
       Assert.IsTrue(methods.Exists(m =>
-        (m.Assignments.Count > 2 && m.ObjectsToMock.Count > 2 &&
+        (m.Assignments.Count > 2 && m.ValueCreation.Count > 2 &&
         m.Assignments.Last() == ("v0", "next", "v1") &&
         m.Assignments[^2] == ("v1", "next", "v2")) ||
-        (m.Assignments.Count == 2 && m.ObjectsToMock.Count == 2 &&
+        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
         m.Assignments[1] == ("v0", "next", "v1") &&
         m.Assignments[0] == ("v1", "next", "v1"))));
       Assert.IsTrue(methods.Exists(m =>
         (m.Assignments.Count == 1 &&
         m.Assignments[0] == ("v0", "next", "null") &&
-        m.ObjectsToMock.Count == 1) ||
+        m.ValueCreation.Count == 1) ||
         (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
         m.Assignments[0] == ("v1", "next", "null") &&
-        m.ObjectsToMock.Count == 2)));
+        m.ValueCreation.Count == 2)));
     }
 
     [TestMethod]
@@ -251,8 +251,8 @@ module Module {
       Assert.AreEqual("Module.ignoreNonNullableObject", m.MethodName);
       Assert.IsTrue(m.DafnyInfo.IsStatic("Module.ignoreNonNullableObject"));
       Assert.AreEqual(2, m.ArgValues.Count);
-      Assert.AreEqual(1, m.ObjectsToMock.Count);
-      Assert.AreEqual("Module.Value<char>", m.ObjectsToMock[0].type.ToString());
+      Assert.AreEqual(1, m.ValueCreation.Count);
+      Assert.AreEqual("Module.Value<char>", m.ValueCreation[0].type.ToString());
     }
 
     [TestMethod]
@@ -315,7 +315,7 @@ module Test {
       Assert.IsTrue(methods.All(m => m.MethodName == "Test.IsEvenLength"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 1));
       Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 1));
       Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "[]"));
       Assert.IsTrue(methods.Exists(m =>
@@ -342,7 +342,7 @@ module Math {
       Assert.IsTrue(methods.All(m => m.MethodName == "Math.Min"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Math.Min")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 0));
       Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
       Assert.IsTrue(methods.Exists(m => int.Parse(m.ArgValues[1]) <= int.Parse(m.ArgValues[0])));
@@ -370,7 +370,7 @@ module ShortCircuit {
       Assert.IsTrue(methods.All(m => m.MethodName == "ShortCircuit.Or"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.All(m => m.NOfTypeArgs == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "false"));
@@ -397,19 +397,19 @@ module C {
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.Exists(m => m.MethodName == "A.m" &&
                                         m.DafnyInfo.IsStatic("A.m") &&
-                                        m.ObjectsToMock.Count == 0 &&
+                                        m.ValueCreation.Count == 0 &&
                                         m.Assignments.Count == 0 &&
                                         m.ArgValues.Count == 1 &&
                                         m.ArgValues[0] == "0"));
       Assert.IsTrue(methods.Exists(m => m.MethodName == "B.m" &&
                                         m.DafnyInfo.IsStatic("B.m") &&
-                                        m.ObjectsToMock.Count == 0 &&
+                                        m.ValueCreation.Count == 0 &&
                                         m.Assignments.Count == 0 &&
                                         m.ArgValues.Count == 1 &&
                                         m.ArgValues[0] == "'0'"));
       Assert.IsTrue(methods.Exists(m => m.MethodName == "C.m" &&
                                         m.DafnyInfo.IsStatic("C.m") &&
-                                        m.ObjectsToMock.Count == 0 &&
+                                        m.ValueCreation.Count == 0 &&
                                         m.Assignments.Count == 0 &&
                                         m.ArgValues.Count == 1 &&
                                         m.ArgValues[0] == "0.0"));

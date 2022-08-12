@@ -35,7 +35,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToZero")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "0"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "-[1-9][0-9]*")));
@@ -62,7 +62,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.checkIfTrue")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "false"));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
     }
@@ -97,7 +97,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToZero")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "0.0"));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "1.0"));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "-1.0"));
@@ -130,7 +130,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToBase")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "(10 as bv10)"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "\\([0-9] as bv10\\)")));
@@ -160,7 +160,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "'B'"));
       Assert.IsTrue(methods.Exists(m =>
         m.ArgValues[0].Length == 3 && m.ArgValues[0][1] > 'B'));
@@ -191,7 +191,7 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "'B'"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "'[^B]'")));

@@ -70,19 +70,6 @@ namespace DafnyTestGeneration {
             }
           }
           break;
-        // case TestGenerationOptions.Minimizations.Greedy:
-          /*var currentOrdering = GreedyOrderBlock(implementation);
-          while (currentOrdering.Count != 0) {
-            foreach (var block in currentOrdering) {
-              var modification = VisitBlock(block);
-              if (modification != null) {
-                yield return modification;
-                break;
-              }
-            }
-            currentOrdering = GreedyOrderBlock(implementation);
-          }
-          break;*/
         case TestGenerationOptions.Minimizations.Optimal:
           var variables = PathBasedModifier.InitBlockVars(node);
           var allPathsFeasible = false;

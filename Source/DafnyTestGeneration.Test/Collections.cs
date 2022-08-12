@@ -37,7 +37,7 @@ module C {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("C.compareStringLengthToOne")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 1));
       Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "\"\""));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ValueCreation[0].value, "\".\"")));
@@ -87,18 +87,18 @@ module SimpleTest {
       Assert.IsTrue(methods.All(m =>
         Regex.IsMatch(m.ValueCreation[0].value, "\".*\"")));
       Assert.IsTrue(methods.All(m =>
-        Regex.IsMatch(m.ValueCreation[1].value,
+        Regex.IsMatch(m.ValueCreation.Last().value,
           "\\[(v[0-9]+|null)(, (v[0-9]+|null))*\\]") ||
         m.ValueCreation[1].value == "[]"));
 
       Assert.IsTrue(methods.Exists(m =>
         m.ValueCreation[0].value.Length - 2 !=
-        m.ValueCreation[1].value.Split(",").Length));
+        m.ValueCreation.Last().value.Split(",").Length));
 
       Assert.IsTrue(methods.Exists(m =>
         m.ValueCreation[0].value.Length < 4 &&
         m.ValueCreation[0].value.Length - 2 ==
-        m.ValueCreation[1].value.Split(",").Length));
+        m.ValueCreation.Last().value.Split(",").Length));
     }
 
   }

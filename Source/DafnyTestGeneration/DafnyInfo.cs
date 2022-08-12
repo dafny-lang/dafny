@@ -18,10 +18,12 @@ namespace DafnyTestGeneration {
     public readonly Dictionary<string, Method> methods;
     public readonly Dictionary<string, Function> functions;
     public readonly Dictionary<string, IndDatatypeDecl> Datatypes;
+    private readonly Dictionary<string, ClassDecl> Classes;
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs;
     private readonly Dictionary<string, (List<TypeParameter> args, Type superset)> subsetToSuperset;
-    private readonly Dictionary<string, string> witnessForType;
+    private readonly Dictionary<string, Expression> witnessForType;
+    private readonly Dictionary<string, (IVariable variable, Expression expr)> conditionForType;
     // list of top level scopes accessible from the testing module
     private readonly List<VisibilityScope> scopes;
 
@@ -30,7 +32,10 @@ namespace DafnyTestGeneration {
       functions = new Dictionary<string, Function>();
       ToImportAs = new Dictionary<string, string>();
       Datatypes = new Dictionary<string, IndDatatypeDecl>();
-      witnessForType = new Dictionary<string, string>();
+      Classes = new Dictionary<string, ClassDecl>();
+      witnessForType = new Dictionary<string, Expression>();
+      conditionForType =
+        new Dictionary<string, (IVariable variable, Expression expr)>();
       subsetToSuperset =
         new Dictionary<string, (List<TypeParameter> args, Type superset)>();
       subsetToSuperset["_System.string"] = new(
@@ -168,7 +173,10 @@ namespace DafnyTestGeneration {
           !witnessForType.ContainsKey(userDefinedType.Name)) {
         return null;
       }
-      return witnessForType[userDefinedType.Name];
+
+      return Printer.ExprToString(
+        new ClonerWithSubstitution(this, new Dictionary<IVariable, string>(),
+          "").CloneExpr(witnessForType[userDefinedType.Name]));
     }
 
     public Type? GetSupersetType(Type type) {
@@ -216,6 +224,147 @@ namespace DafnyTestGeneration {
       }
       throw new Exception("Cannot identify callable " + callableName);
     }
+    
+    public IEnumerable<Expression> GetRequires(List<string> ins, string callableName, string receiver) {
+      Dictionary<IVariable, string> subst = new Dictionary<IVariable, string>();
+      if (methods.ContainsKey(callableName)) {
+        for (int i = 0; i < methods[callableName].Ins.Count; i++) {
+          subst[methods[callableName].Ins[i]] = ins[i];
+        }
+        return methods[callableName].Req.Select(e =>
+            new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
+          .Where(e => e != null);
+      } 
+      if (functions.ContainsKey(callableName)) {
+        for (int i = 0; i < functions[callableName].Formals.Count; i++) {
+          subst[functions[callableName].Formals[i]] = ins[i];
+        }
+        return functions[callableName].Req.Select(e =>
+            new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
+          .Where(e => e != null);
+      }
+      throw new Exception("Cannot identify callable " + callableName);
+    }
+    
+    public Expression? GetTypeCondition(Type type, string name) {
+      if (type is not UserDefinedType userDefinedType ||
+          !conditionForType.ContainsKey(userDefinedType.Name)) {
+        return null;
+      }
+      Dictionary<IVariable, string> subst = new Dictionary<IVariable, string>();
+      subst[conditionForType[userDefinedType.Name].variable] = name;
+      var condition = conditionForType[userDefinedType.Name].expr;
+      return new ClonerWithSubstitution(this, subst, name).CloneValidOrNull(condition);
+    }
+
+    public List<(string name, Type type, bool mutable, string? defValue)> GetNonGhostFields(UserDefinedType? type) {
+      if (type == null || !Classes.ContainsKey(type.Name)) {
+        throw new Exception("Cannot identify class " + type?.Name ??
+                            " (null) ");
+      }
+
+      var relevantFields = Classes[type.Name].Members.OfType<Field>()
+        .Where(field => !field.IsGhost);
+      var result = new List<(string name, Type type, bool mutable, string defValue)>();
+      foreach (var field in relevantFields) {
+        string? defValue = null;
+        if (field is ConstantField constantField && constantField.Rhs != null) {
+          var defExpression = new ClonerWithSubstitution(
+            this,
+            new Dictionary<IVariable, string>(),
+            "").CloneExpr(constantField.Rhs);
+          if (defExpression != null) {
+            defValue = Printer.ExprToString(defExpression);
+          }
+        }
+        var fieldType = Utils.CopyWithReplacements(
+          Utils.UseFullName(field.Type),
+          Classes[type.Name].TypeArgs.ConvertAll(arg => arg.ToString()),
+          type.TypeArgs);
+        result.Add(new (field.Name, fieldType, field.IsMutable, defValue));
+      }
+      return result;
+    }
+
+    public bool IsTrait(UserDefinedType? type) {
+      if (type == null || !Classes.ContainsKey(type.Name)) {
+        throw new Exception("Cannot identify class " + type?.Name ??
+                            " (null) ");
+      }
+      return Classes[type.Name] is TraitDecl;
+    }
+    
+    public List<Type>? GetTypesForTrait(UserDefinedType? type) {
+      if (!IsTrait(type) || Classes[type.Name] is not TraitDecl traitDecl) {
+        return null;
+      }
+      var result = new List<Type>();
+      foreach (var member in traitDecl.Members) {
+        switch (member) {
+          case Function function when !function.IsGhost:
+            var resultType = Utils.CopyWithReplacements(
+              Utils.UseFullName(function.ResultType),
+              traitDecl.TypeArgs.ConvertAll(arg => arg.ToString()),
+              type.TypeArgs);;
+            if (resultType.ToString() != type.ToString() && !result.Any(type =>
+                  type.ToString() == resultType.ToString()) && !resultType.ToString().Contains("_tuple")) {
+              result.Add(resultType);
+            }
+            break;
+        }
+      }
+      return result;
+    }
+    
+    public List<string> GetEnsuresForTrait(UserDefinedType? type, string name, Dictionary<string, string> arguments) {
+      var result = new List<string>();
+      var traitDecl = (TraitDecl) Classes[type.Name];
+      foreach (var member in traitDecl.Members) {
+        switch (member) {
+          case Function function when !function.IsGhost:
+            var resultType = Utils.CopyWithReplacements(
+              Utils.UseFullName(function.ResultType),
+              traitDecl.TypeArgs.ConvertAll(arg => arg.ToString()),
+              type.TypeArgs);
+            if (resultType.ToString().Contains("_tuple")) {
+              continue;
+            }
+            var inputTypes = function.Formals.ConvertAll(formal =>
+              Utils.CopyWithReplacements(
+                Utils.UseFullName(formal.Type),
+                traitDecl.TypeArgs.ConvertAll(arg => arg.ToString()),
+                type.TypeArgs));
+            var id = 0;
+            var inputIds = function.Formals.ConvertAll(_ => name + "_arg" + id++);
+            var inputs = Enumerable.Zip(inputIds, inputTypes);
+            result.Add($"ensures forall " +
+                       $"{string.Join(",", inputs.Select(formal => formal.First + ":" + formal.Second))} ::" +
+                       $"{name}.{function.Name}" +
+                       $"({String.Join(",", inputIds)}) == " +
+                       $"{arguments[resultType.ToString()]}");
+            break;
+        }
+      }
+      return result;
+    }
+    public bool IsExtern(UserDefinedType? type) {
+      if (type == null || !Classes.ContainsKey(type.Name)) {
+        throw new Exception("Cannot identify class " + type?.Name ??
+                            " (null) ");
+      }
+      string qualification, name;
+      return Classes[type.Name].IsExtern(out qualification, out name);
+    }
+    
+    public Constructor? GetConstructor(UserDefinedType? type) {
+      if (type == null || !Classes.ContainsKey(type.Name)) {
+        throw new Exception("Cannot identify class " + type?.Name ??
+                            " (null) ");
+      }
+      return Classes[type.Name].Members.OfType<Constructor>()
+        .OrderBy(constructor => constructor.Ins.Count())
+        .FirstOrDefault((Constructor?) null);
+    }
 
     /// <summary>
     /// Fills in the Dafny Info data by traversing the AST
@@ -251,11 +400,11 @@ namespace DafnyTestGeneration {
       private void VisitUserDefinedTypeDeclaration(string newTypeName, 
         Type baseType, Expression? witness, List<TypeParameter> typeArgs) {
         if (witness != null) {
-          info.witnessForType[newTypeName] = Printer.ExprToString(witness);
+          info.witnessForType[newTypeName] = witness;
           if (DafnyOptions.O.TestGenOptions.Verbose) {
             Console.Out.WriteLine($"// Values of type {newTypeName} will be " +
                                   $"assigned the default value of " +
-                                  $"{info.witnessForType[newTypeName]}");
+                                  $"{Printer.ExprToString(info.witnessForType[newTypeName])}");
           }
         } else if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.Out.WriteLine($"// Warning: Values of type {newTypeName} " +
@@ -273,6 +422,7 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
+        info.conditionForType[name] = new(newType.Var, newType.Constraint);
         VisitUserDefinedTypeDeclaration(name, type, newType.Witness, 
           newType.TypeArgs);
       }
@@ -283,6 +433,7 @@ namespace DafnyTestGeneration {
         while (type is InferredTypeProxy inferred) {
           type = inferred.T;
         }
+        info.conditionForType[name] = new(newType.Var, newType.Constraint);
         VisitUserDefinedTypeDeclaration(name, type, newType.Witness, 
           newType.TypeArgs);
       }
@@ -316,6 +467,8 @@ namespace DafnyTestGeneration {
       }
 
       private void Visit(ClassDecl d) {
+        info.Classes[d.FullDafnyName] = d;
+        info.Classes[d.FullSanitizedName] = d;
         d.Members.ForEach(Visit);
       }
 
@@ -389,10 +542,16 @@ namespace DafnyTestGeneration {
           case DatatypeValue datatypeValue:
             if (datatypeValue.Type is UserDefinedType udt &&
                 udt.ResolvedClass != null) {
-              return new ApplyExpr(new Token(),
-                new IdentifierExpr(new Token(),udt.ResolvedClass.FullDafnyName + "." + 
-                datatypeValue.MemberName), 
-                datatypeValue.Arguments.ConvertAll(CloneExpr));
+              var actualBindings = datatypeValue.Bindings.ArgumentBindings.ConvertAll(
+                  base.CloneActualBinding);
+              var newValue = new DatatypeValue(new Token(),
+                udt.ResolvedClass.FullDafnyName, datatypeValue.MemberName,
+                actualBindings);
+              newValue.Type = Utils.UseFullName(datatypeValue.Type);
+              newValue.InferredTypeArgs = datatypeValue.InferredTypeArgs.ConvertAll(typ => Utils.UseFullName(typ));
+              newValue.Bindings.arguments =
+                actualBindings.ConvertAll(binding => binding.Actual);
+              return newValue;
             }
             isValidExpression = false;
             return base.CloneExpr(expr);

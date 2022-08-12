@@ -112,17 +112,25 @@ namespace DafnyTestGeneration {
       engine.CollectModSets(program);
       engine.Inline(program);
       var writer = new StringWriter();
-      await Task.WhenAny(engine.InferAndVerify(writer, program,
-        new PipelineStatistics(), null,
-        _ => { }, guid), 
-        Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit)));
+      var result = Task.WhenAny(engine.InferAndVerify(writer, program,
+          new PipelineStatistics(), null,
+          _ => { }, guid), 
+        Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit))).Result;
       program = null; // allows to garbage collect what is no longer needed
-      var log = writer.ToString();
-      DafnyOptions.Install(oldOptions);
-      // make sure that there is a counterexample (i.e. no parse errors, etc):
-      var stringReader = new StringReader(log);
       CounterexampleStatus = Status.Failure;
       counterexampleLog = null;
+      DafnyOptions.Install(oldOptions);
+      if (result is not Task<PipelineOutcome>) {
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.WriteLine(
+            $"// No test can be generated for {UniqueId} " +
+            $"because the verifier timed out.");
+        }
+        return counterexampleLog;
+      }
+      var log = writer.ToString();
+      // make sure that there is a counterexample (i.e. no parse errors, etc):
+      var stringReader = new StringReader(log);
       while (await stringReader.ReadLineAsync() is { } line) {
         if (line.StartsWith("Block |")) {
           counterexampleLog = log;

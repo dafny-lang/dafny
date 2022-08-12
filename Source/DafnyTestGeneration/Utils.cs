@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +6,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
 using Function = Microsoft.Dafny.Function;
+using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
 using Type = Microsoft.Dafny.Type;
@@ -114,7 +114,25 @@ namespace DafnyTestGeneration {
         }
       }
 
+      private static Attributes RemoveAttribute(Attributes attributes, string toRemove) {
+        if (attributes == null) {
+          return null;
+        }
+        if (attributes.Name == toRemove) {
+          return RemoveAttribute(attributes.Prev, toRemove);
+        }
+        attributes.Prev = RemoveAttribute(attributes.Prev, toRemove);
+        return attributes;
+      }
+
       private static void AddByMethod(Function func) {
+        func.Attributes = RemoveAttribute(func.Attributes, "opaque");
+        if (DafnyOptions.O.TestGenOptions.Fuel != null) {
+          func.Attributes = RemoveAttribute(func.Attributes, "fuel");
+          func.Attributes = new Attributes("fuel",
+          new List<Expression>() { new LiteralExpr(new Token(),  (int) DafnyOptions.O.TestGenOptions.Fuel) }, 
+          func.Attributes);
+        }
         if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
           return;
         }
