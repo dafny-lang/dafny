@@ -29,7 +29,15 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
     if (documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
       var lastDocument = await documentEntry.LastDocument;
       var firstToken = lastDocument.Program.GetFirstTopLevelToken();
-      var result = TokenFormatter.__default.printSourceReindent(firstToken, IndentationFormatter.ForProgram(lastDocument.Program));
+      string result;
+      if (firstToken == null) {
+        result = lastDocument.TextDocumentItem.Text;
+      } else {
+        result =
+          TokenFormatter.__default.printSourceReindent(firstToken,
+            IndentationFormatter.ForProgram(lastDocument.Program));
+      }
+
       return new TextEditContainer(new TextEdit[] {
         new TextEdit() {NewText = result, Range = lastDocument.VerificationTree.Range}
       });

@@ -3289,12 +3289,13 @@ WhileStmt<out Statement stmt>
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
-      BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+      BlockStmt<out body, out bodyStart, out bodyEnd>  (. isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; ownedTokens.Add(t); .)
+      ellipsis                   (. bodyEllipsis = t; isDirtyLoop = false; ownedTokens.Add(t); .)
     | /* go body-less */
     )
     (.
+      endTok = t;
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
@@ -3349,10 +3350,11 @@ ForLoopStmt<out Statement stmt>
   )
   LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
-    BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+    BlockStmt<out body, out bodyStart, out bodyEnd>  (. isDirtyLoop = false; .)
   | /* go body-less */
   )
   (.
+    endTok = t;
     // The following statement protects against crashes in case of parsing errors
     if (body == null && !isDirtyLoop) {
       body = new BlockStmt(x, endTok, new List<Statement>());
@@ -3671,7 +3673,7 @@ ForallStmt<out Statement/*!*/ s>
      if (block != null) {
         tok = block.EndTok;
      }
-     s = new ForallStmt(x, tok, bvars, qattrs, range, ens, block);
+     s = new ForallStmt(x, t, bvars, qattrs, range, ens, block);
      s.OwnedTokens = ownedTokens;
   .)
   .
@@ -4074,6 +4076,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
                         SemErr(x, "invalid RelOp (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
                         x.val = "!!";
+                        y.val = "";
                         op = BinaryExpr.Opcode.Disjoint;
                       }
                    .)

@@ -293,13 +293,20 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     // TODO
   }
 
-  void SetAttributedExpressionIndentation(AttributedExpression attrExpression) {
-    SetAttributeIndentation(attrExpression.Attributes);
-    SetExpressionIndentation(attrExpression.E);
+  void SetDecreasesExpressionIndentation(Expression expression, int indent) {
+    SetExpressionIndentation(expression);
+    SetIndentations(expression.EndToken, after: indent);
   }
 
-  void SetFrameExpressionIndentation(FrameExpression frameExpression) {
+  void SetAttributedExpressionIndentation(AttributedExpression attrExpression, int indent) {
+    SetAttributeIndentation(attrExpression.Attributes);
+    SetExpressionIndentation(attrExpression.E);
+    SetIndentations(attrExpression.E.EndToken, after: indent);
+  }
+
+  void SetFrameExpressionIndentation(FrameExpression frameExpression, int indent) {
     SetExpressionIndentation(frameExpression.E);
+    SetIndentations(frameExpression.E.EndToken, after: indent);
   }
 
   void SetExpressionIndentation(Expression expression) {
@@ -315,12 +322,6 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   void SetMemberIndentation(MemberDecl member, int indent) {
-    var savedIndent = indent;
-    SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
-    if (member.BodyStartTok.line > 0) {
-      SetDelimiterIndentedRegions(member.BodyStartTok, indent);
-    }
-
     switch (member) {
       case Field field:
         SetOpeningIndentedRegion(field.StartToken, indent);
@@ -357,18 +358,23 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
         break;
       case Method method: {
+          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+          if (member.BodyStartTok.line > 0) {
+            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
+          }
           SetFormalsIndentation(method.Ins);
           SetFormalsIndentation(method.Outs);
           foreach (var req in method.Req) {
-            SetAttributedExpressionIndentation(req);
+            SetAttributedExpressionIndentation(req, indent + SpaceTab);
           }
           foreach (var mod in method.Mod.Expressions) {
-            SetFrameExpressionIndentation(mod);
+            SetFrameExpressionIndentation(mod, indent + SpaceTab);
           }
           foreach (var ens in method.Ens) {
-            SetAttributedExpressionIndentation(ens);
+            SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
           foreach (var dec in method.Decreases.Expressions) {
+            SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
             SetExpressionIndentation(dec);
           }
 
@@ -379,21 +385,25 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           break;
         }
       case Function function: {
+          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+          if (member.BodyStartTok.line > 0) {
+            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
+          }
           SetFormalsIndentation(function.Formals);
           if (function.Result is { } outFormal) {
             SetTypeIndentation(outFormal.SyntacticType);
           }
           foreach (var req in function.Req) {
-            SetAttributedExpressionIndentation(req);
+            SetAttributedExpressionIndentation(req, indent + SpaceTab);
           }
           foreach (var frame in function.Reads) {
-            SetFrameExpressionIndentation(frame);
+            SetFrameExpressionIndentation(frame, indent + SpaceTab);
           }
           foreach (var ens in function.Ens) {
-            SetAttributedExpressionIndentation(ens);
+            SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
           foreach (var dec in function.Decreases.Expressions) {
-            SetExpressionIndentation(dec);
+            SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
           }
           if (function.ByMethodBody is { } byMethodBody) {
             SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
@@ -403,10 +413,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           SetExpressionIndentation(function.Body);
           break;
         }
-    }
+      default: {
+          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+          if (member.BodyStartTok.line > 0) {
+            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
+          }
 
-    // TODO: Body here
-    indent = savedIndent;
+          break;
+        }
+    }
     if (member.BodyEndTok.line > 0) {
       SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
     }
@@ -668,6 +683,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     foreach (var ctor in datatypeDecl.Ctors) {
       SetFormalsIndentation(ctor.Formals);
     }
+
+    if (datatypeDecl.EndToken.TrailingTrivia.Trim() == "") {
+      SetIndentations(datatypeDecl.EndToken, after: indent);
+    }
   }
 
   private void SetFormalsIndentation(List<Formal> ctorFormals) {
@@ -750,9 +769,20 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case ForallStmt forallStmt:
           FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
+          foreach (var ens in forallStmt.Ens) {
+            formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+          }
+          formatter.SetClosingIndentedRegion(forallStmt.EndTok, indent);
           break;
         case WhileStmt whileStmt:
           FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
+          foreach (var ens in whileStmt.Invariants) {
+            formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+          }
+          foreach (var dec in whileStmt.Decreases.Expressions) {
+            formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+          }
+          formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
           break;
         case ForLoopStmt forLoopStmt: {
             var ownedTokens = forLoopStmt.OwnedTokens;
@@ -770,8 +800,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 specification = true;
               }
             }
-            formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
-            formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
+
+            foreach (var ens in forLoopStmt.Invariants) {
+              formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+            }
+
+            if (forLoopStmt.Body != null) {
+              formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
+              formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
+            } else {
+              formatter.SetClosingIndentedRegion(forLoopStmt.EndTok, indent);
+            }
+
             break;
           }
         case VarDeclStmt varDeclStmt: {
@@ -969,9 +1009,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               if (IsFollowedByNewline(token)) {
                 formatter.SetOpeningIndentedRegion(token, indent);
               } else {
-                var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
-                formatter.SetIndentations(token, indent, indent, rightIndent);
+                if (token.val == "else" && token.Next.val == "if") { // Don't indent the subexpression
+                  formatter.SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
+                } else {
+                  var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                  formatter.SetIndentations(token, indent, indent, rightIndent);
+                }
               }
+
+              formatter.SetIndentations(token.Prev, after: indent);
               break;
             }
         }
@@ -1028,8 +1074,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + SpaceTab);
       }
 
-      formatter.SetDelimiterIndentedRegions(body.Tok, indent);
-      formatter.SetClosingIndentedRegion(body.EndTok, indent);
+      if (body != null) {
+        formatter.SetDelimiterIndentedRegions(body.Tok, indent);
+        formatter.SetClosingIndentedRegion(body.EndTok, indent);
+      }
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {

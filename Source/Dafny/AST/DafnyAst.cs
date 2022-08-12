@@ -4102,7 +4102,7 @@ namespace Microsoft.Dafny {
       if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
         return includes[0].OwnedTokens[0];
       }
-      return topTokens.FirstOrDefault((IToken?)null);
+      return topTokens.MinBy(token => token.pos);
     }
   }
 
@@ -10039,7 +10039,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Expression> SubExpressions {
-      get { return Arguments; }
+      get { return Arguments != null ? Arguments : new List<Expression>(); }
     }
   }
 

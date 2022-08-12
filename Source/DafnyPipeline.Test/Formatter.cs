@@ -4,6 +4,7 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -17,9 +18,31 @@ namespace DafnyPipeline.Test {
 
     private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
-    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S|\r|\n)[ \t]+(?=\r?\n|\r(?!\n))");
+    private static Regex removeTrailingNewlineRegex = new Regex(@"(?<=\S|\r|\n)[ \t]+(?=\r?\n|\r(?!\n)|$)");
 
     private Newlines currentNewlines;
+
+    [Fact]
+    public void FormatterWorksForFinalSpaceAfterDatatype() {
+      FormatterWorksFor(@"
+datatype Maybe<T> = None | Some(get: T)
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForDecreasesInvariantComments() {
+      FormatterWorksFor(@"
+method Test() {
+  while X
+    decreases true || false
+    // comment
+    invariant true || false
+    // comment
+  {
+  }
+}
+");
+    }
 
     [Fact]
     public void FormatterWorksForAssignments() {
@@ -681,6 +704,110 @@ iterator Gen(start: int) yields (x: int)
     yield;
     i := i + 1;
   }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForMethodBeforeAClass() {
+      FormatterWorksFor(@"
+method Test()
+  ensures true || false
+  // comment should be between ensures and not attached to true/false
+  ensures false
+{
+  assert A !! B; // should not print !!!
+
+  var wr := new WriterStream;
+  var definition := r.get;
+ 
+  // write term with a html anchor
+  wr.PutWordInsideTag(term, term);
+
+  var i := 0;
+
+  wr.Create();
+ 
+  while 0 < |q.contents|
+  
+  while (n < N)
+    invariant n <= N;
+    invariant (forall B: seq<int> ::
+               // For any board 'B' with 'N' queens, each placed in an existing row
+               |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+               // ... where 'B' is an extension of 'boardSoFar'
+               boardSoFar <= B &&
+               // ... and the first column to extend 'boardSoFar' has a queen in one of
+               // the first 'n' rows
+               0 <= B[pos] && B[pos] < n
+               ==>
+               // ... the board 'B' is not entirely consistent
+               (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
+  {
+  }
+}
+
+function canProveFalse(): bool {
+  if 1 == 2 then true
+  // Otherwise, we have to make difficult choices
+  else if 3 == 4 then true
+  // Still not? We give up
+  else false
+}
+
+class TestClass {
+}
+");
+    }
+    [Fact]
+    public void FormatterWorksForCppExample() {
+      FormatterWorksFor(@"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp ExternDefs.h ""%s"" > ""%t""
+// RUN: %diff ""%s.expect"" ""%t""
+
+newtype uint32 = i:int | 0 <= i < 0x100000000
+
+method ReturnTuple() returns (x:(uint32,uint32))
+{
+  return (1, 2);
+}
+
+function method EmptyTuple() : () {
+  ()
+}
+
+function method GetEmptyTuple() : () {
+  EmptyTuple()
+}
+
+function method Test() : (bool, bool) {
+  (false, true)
+}
+
+method BoolCallee(a:bool) returns (a0:bool, a1:bool)
+{
+  return a, a;
+}
+
+method BoolCaller(a:bool)
+{
+  var a0, a1 := BoolCallee(a);
+}
+
+method GenericCallee<A>(a:A) returns (a0:A, a1:A)
+{
+  return a, a;
+}
+
+method GenericCaller<A>(a:A)
+{
+  var a0, a1 := GenericCallee(a);
+}
+
+method Main() {
+  var x := ReturnTuple();
+  var y := x.0;
+  print y;
 }
 ");
     }
