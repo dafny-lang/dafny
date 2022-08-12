@@ -19,6 +19,7 @@ static class CommandRegistry {
     CoresOption.Instance,
     VerificationTimeLimit.Instance,
     UseBaseFileName.Instance,
+    PrintOption.Instance,
   });
 
   static void AddCommand(ICommand command) {
@@ -69,7 +70,11 @@ static class CommandRegistry {
           if (isLongName) {
             remainingArguments = dafnyOptions.RecogniseOldOptions(optionName, remainingArguments);
             if (remainingArguments == null) {
-              return new ParseArgumentFailure($"There's no option named {optionName}.");
+              var hint = "";
+              if (optionName.Contains(":")) {
+                hint += " Did you mean to use '=' instead of ':' ?";
+              }
+              return new ParseArgumentFailure($"There's no option named {optionName}." + hint);
             }
           } else {
             return new ParseArgumentFailure($"There's no option with the short name {optionName}.");
@@ -130,8 +135,16 @@ static class CommandRegistry {
     public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
       var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
       parseState.s = "-" + optionName;
-      if (ParseDafnySpecificOption(optionName, parseState)) {
-        return remainingArguments.Skip(parseState.nextIndex);
+      const string boogiePrefix = "boogie-";
+      if (optionName.StartsWith(boogiePrefix)) {
+        optionName = optionName.Substring(boogiePrefix.Length);
+        if (ParseBoogieOption(optionName, parseState)) {
+          return remainingArguments.Skip(parseState.nextIndex);
+        }
+      } else {
+        if (ParseDafnySpecificOption(optionName, parseState)) {
+          return remainingArguments.Skip(parseState.nextIndex);
+        }
       }
 
       return null;

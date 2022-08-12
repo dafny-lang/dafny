@@ -26,6 +26,20 @@ class NoVerifyOption : BooleanOption {
   }
 }
 
+class PrintOption : StringOption {
+  public static readonly PrintOption Instance = new();
+  public override object DefaultValue => null;
+  public override string LongName => "print";
+  public override string ShortName => null;
+  public override string Description => "missing";
+  public override bool CanBeUsedMultipleTimes => false;
+
+  public override void PostProcess(DafnyOptions options) {
+    options.DafnyPrintFile = Get(options);
+    base.PostProcess(options);
+  }
+}
+
 class TargetOption : StringOption {
   public static readonly TargetOption Instance = new();
   public override object DefaultValue => "cs";
