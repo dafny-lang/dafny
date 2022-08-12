@@ -38,7 +38,7 @@ public abstract class IntegerOption : CommandLineOption<int> {
       return new ParsedOption(arguments.Skip(1), number);
     }
 
-    return new FailedOption("blerp");
+    return new FailedOption($"Failed to parse value {value} as an integer for option {LongName}");
   }
 }
 
@@ -47,7 +47,6 @@ public abstract class NaturalNumberOption : CommandLineOption<uint> {
   public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(IEnumerable<string> arguments) {
-
     if (!arguments.Any()) {
       return new FailedOption($"No argument found for option {LongName}");
     }
@@ -57,7 +56,7 @@ public abstract class NaturalNumberOption : CommandLineOption<uint> {
       return new ParsedOption(arguments.Skip(1), number);
     }
 
-    return new FailedOption("blerp");
+    return new FailedOption($"Failed to parse value {value} as a non-negative integer for option {LongName}");
   }
 }
 
