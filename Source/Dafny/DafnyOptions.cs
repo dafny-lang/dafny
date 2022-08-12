@@ -16,6 +16,8 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+  public record Options(List<string> FreeArguments, IDictionary<string, object> OptionArguments);
+
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -39,6 +41,8 @@ namespace Microsoft.Dafny {
           .GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
+
+    public Options Options { get; set; }
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -185,6 +189,20 @@ namespace Microsoft.Dafny {
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
+      if (ParseDafnySpecificOption(name, ps)) {
+        return true;
+      }
+
+      return ParseBoogieOption(name, ps);
+    }
+
+    protected bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps)
+    {
+      return base.ParseOption(name, ps);
+    }
+
+    protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps)
+    {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "library":
@@ -237,17 +255,18 @@ namespace Microsoft.Dafny {
 
           return true;
 
-        case "compile": {
-            int compile = 0;
-            if (ps.GetIntArgument(ref compile, 5)) {
-              // convert option to two booleans
-              Compile = compile != 0;
-              ForceCompile = compile == 2 || compile == 4;
-              RunAfterCompile = compile == 3 || compile == 4;
-            }
-
-            return true;
+        case "compile":
+        {
+          int compile = 0;
+          if (ps.GetIntArgument(ref compile, 5)) {
+            // convert option to two booleans
+            Compile = compile != 0;
+            ForceCompile = compile == 2 || compile == 4;
+            RunAfterCompile = compile == 3 || compile == 4;
           }
+
+          return true;
+        }
 
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
@@ -262,123 +281,136 @@ namespace Microsoft.Dafny {
 
           return true;
 
-        case "compileVerbose": {
-            int verbosity = 0;
-            if (ps.GetIntArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
-            }
-
-            return true;
+        case "compileVerbose":
+        {
+          int verbosity = 0;
+          if (ps.GetIntArgument(ref verbosity, 2)) {
+            CompileVerbose = verbosity == 1;
           }
+
+          return true;
+        }
 
         case "Plugin":
-        case "plugin": {
-            if (ps.ConfirmArgumentCount(1)) {
-              var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0) {
-                var pluginArray = pluginAndArgument.Split(',');
-                var pluginPath = pluginArray[0];
-                var arguments = Array.Empty<string>();
-                if (pluginArray.Length >= 2) {
-                  // There are no commas in paths, but there can be in arguments
-                  var argumentsString = string.Join(',', pluginArray.Skip(1));
-                  // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  arguments = ParsePluginArguments(argumentsString);
-                }
-                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
+        case "plugin":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            var pluginAndArgument = args[ps.i];
+            if (pluginAndArgument.Length > 0) {
+              var pluginArray = pluginAndArgument.Split(',');
+              var pluginPath = pluginArray[0];
+              var arguments = Array.Empty<string>();
+              if (pluginArray.Length >= 2) {
+                // There are no commas in paths, but there can be in arguments
+                var argumentsString = string.Join(',', pluginArray.Skip(1));
+                // Parse arguments, accepting and remove double quotes that isolate long arguments
+                arguments = ParsePluginArguments(argumentsString);
               }
-            }
 
-            return true;
+              Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
+            }
           }
 
-        case "trackPrintEffects": {
-            int printEffects = 0;
-            if (ps.GetIntArgument(ref printEffects, 2)) {
-              EnforcePrintEffects = printEffects == 1;
-            }
-            return true;
+          return true;
+        }
+
+        case "trackPrintEffects":
+        {
+          int printEffects = 0;
+          if (ps.GetIntArgument(ref printEffects, 2)) {
+            EnforcePrintEffects = printEffects == 1;
           }
+
+          return true;
+        }
 
         case "Main":
-        case "main": {
-            if (ps.ConfirmArgumentCount(1)) {
-              MainMethod = args[ps.i];
-            }
-
-            return true;
+        case "main":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            MainMethod = args[ps.i];
           }
 
-        case "runAllTests": {
-            int runAllTests = 0;
-            if (ps.GetIntArgument(ref runAllTests, 2)) {
-              RunAllTests = runAllTests != 0; // convert to boolean
-            }
+          return true;
+        }
 
-            return true;
+        case "runAllTests":
+        {
+          int runAllTests = 0;
+          if (ps.GetIntArgument(ref runAllTests, 2)) {
+            RunAllTests = runAllTests != 0; // convert to boolean
           }
 
-        case "dafnyVerify": {
-            int verify = 0;
-            if (ps.GetIntArgument(ref verify, 2)) {
-              DafnyVerify = verify != 0; // convert to boolean
-            }
+          return true;
+        }
 
-            return true;
+        case "dafnyVerify":
+        {
+          int verify = 0;
+          if (ps.GetIntArgument(ref verify, 2)) {
+            DafnyVerify = verify != 0; // convert to boolean
           }
 
-        case "diagnosticsFormat": {
-            if (ps.ConfirmArgumentCount(1)) {
-              switch (args[ps.i]) {
-                case "json":
-                  Printer = new DafnyJsonConsolePrinter { Options = this };
-                  DiagnosticsFormat = DiagnosticsFormats.JSON;
-                  break;
-                case "text":
-                  Printer = new DafnyConsolePrinter { Options = this };
-                  DiagnosticsFormat = DiagnosticsFormats.PlainText;
-                  break;
-                case var df:
-                  ps.Error($"Unsupported diagnostic format: '{df}'; expecting one of 'json', 'text'.");
-                  break;
-              }
-            }
+          return true;
+        }
 
-            return true;
+        case "diagnosticsFormat":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            switch (args[ps.i]) {
+              case "json":
+                Printer = new DafnyJsonConsolePrinter { Options = this };
+                DiagnosticsFormat = DiagnosticsFormats.JSON;
+                break;
+              case "text":
+                Printer = new DafnyConsolePrinter { Options = this };
+                DiagnosticsFormat = DiagnosticsFormats.PlainText;
+                break;
+              case var df:
+                ps.Error($"Unsupported diagnostic format: '{df}'; expecting one of 'json', 'text'.");
+                break;
+            }
           }
 
-        case "spillTargetCode": {
-            int spill = 0;
-            if (ps.GetIntArgument(ref spill, 4)) {
-              SpillTargetCode = spill;
-            }
+          return true;
+        }
 
-            return true;
-          }
-        case "out": {
-            if (ps.ConfirmArgumentCount(1)) {
-              DafnyPrintCompiledFile = args[ps.i];
-            }
-
-            return true;
+        case "spillTargetCode":
+        {
+          int spill = 0;
+          if (ps.GetIntArgument(ref spill, 4)) {
+            SpillTargetCode = spill;
           }
 
-        case "coverage": {
-            if (ps.ConfirmArgumentCount(1)) {
-              CoverageLegendFile = args[ps.i];
-            }
-
-            return true;
+          return true;
+        }
+        case "out":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            DafnyPrintCompiledFile = args[ps.i];
           }
 
-        case "noCheating": {
-            int cheat = 0; // 0 is default, allows cheating
-            if (ps.GetIntArgument(ref cheat, 2)) {
-              DisallowSoundnessCheating = cheat == 1;
-            }
+          return true;
+        }
 
-            return true;
+        case "coverage":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            CoverageLegendFile = args[ps.i];
           }
+
+          return true;
+        }
+
+        case "noCheating":
+        {
+          int cheat = 0; // 0 is default, allows cheating
+          if (ps.GetIntArgument(ref cheat, 2)) {
+            DisallowSoundnessCheating = cheat == 1;
+          }
+
+          return true;
+        }
 
         case "pmtrace":
           MatchCompilerDebug = true;
@@ -408,14 +440,15 @@ namespace Microsoft.Dafny {
           DisableNLarith = true;
           return true;
 
-        case "arith": {
-            int a = 0;
-            if (ps.GetIntArgument(ref a, 11)) {
-              ArithMode = a;
-            }
-
-            return true;
+        case "arith":
+        {
+          int a = 0;
+          if (ps.GetIntArgument(ref a, 11)) {
+            ArithMode = a;
           }
+
+          return true;
+        }
 
         case "mimicVerificationOf":
           if (ps.ConfirmArgumentCount(1)) {
@@ -428,6 +461,7 @@ namespace Microsoft.Dafny {
               ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
             }
           }
+
           return true;
 
         case "autoReqPrint":
@@ -465,14 +499,15 @@ namespace Microsoft.Dafny {
           SeparateModuleOutput = true;
           return true;
 
-        case "deprecation": {
-            int d = 1;
-            if (ps.GetIntArgument(ref d, 3)) {
-              DeprecationNoise = d;
-            }
-
-            return true;
+        case "deprecation":
+        {
+          int d = 1;
+          if (ps.GetIntArgument(ref d, 3)) {
+            DeprecationNoise = d;
           }
+
+          return true;
+        }
 
         case "functionSyntax":
           if (ps.ConfirmArgumentCount(1)) {
@@ -492,6 +527,7 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
         case "quantifierSyntax":
@@ -504,16 +540,18 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
-        case "countVerificationErrors": {
-            int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetIntArgument(ref countErrors, 2)) {
-              CountVerificationErrors = countErrors == 1;
-            }
-
-            return true;
+        case "countVerificationErrors":
+        {
+          int countErrors = 1; // defaults to reporting verification errors
+          if (ps.GetIntArgument(ref countErrors, 2)) {
+            CountVerificationErrors = countErrors == 1;
           }
+
+          return true;
+        }
 
         case "printTooltips":
           PrintTooltips = true;
@@ -523,61 +561,69 @@ namespace Microsoft.Dafny {
           DisallowConstructorCaseWithoutParenthesis = true;
           return true;
 
-        case "autoTriggers": {
-            int autoTriggers = 0;
-            if (ps.GetIntArgument(ref autoTriggers, 2)) {
-              AutoTriggers = autoTriggers == 1;
-            }
-
-            return true;
+        case "autoTriggers":
+        {
+          int autoTriggers = 0;
+          if (ps.GetIntArgument(ref autoTriggers, 2)) {
+            AutoTriggers = autoTriggers == 1;
           }
 
-        case "rewriteFocalPredicates": {
-            int rewriteFocalPredicates = 0;
-            if (ps.GetIntArgument(ref rewriteFocalPredicates, 2)) {
-              RewriteFocalPredicates = rewriteFocalPredicates == 1;
-            }
+          return true;
+        }
 
-            return true;
+        case "rewriteFocalPredicates":
+        {
+          int rewriteFocalPredicates = 0;
+          if (ps.GetIntArgument(ref rewriteFocalPredicates, 2)) {
+            RewriteFocalPredicates = rewriteFocalPredicates == 1;
           }
 
-        case "optimize": {
-            Optimize = true;
-            return true;
+          return true;
+        }
+
+        case "optimize":
+        {
+          Optimize = true;
+          return true;
+        }
+
+        case "allocated":
+        {
+          ps.GetIntArgument(ref Allocated, 5);
+          return true;
+        }
+
+        case "optimizeResolution":
+        {
+          int d = 2;
+          if (ps.GetIntArgument(ref d, 3)) {
+            OptimizeResolution = d;
           }
 
-        case "allocated": {
-            ps.GetIntArgument(ref Allocated, 5);
-            return true;
+          return true;
+        }
+
+        case "definiteAssignment":
+        {
+          int da = 0;
+          if (ps.GetIntArgument(ref da, 4)) {
+            DefiniteAssignmentLevel = da;
           }
 
-        case "optimizeResolution": {
-            int d = 2;
-            if (ps.GetIntArgument(ref d, 3)) {
-              OptimizeResolution = d;
-            }
+          return true;
+        }
 
-            return true;
-          }
+        case "useRuntimeLib":
+        {
+          UseRuntimeLib = true;
+          return true;
+        }
 
-        case "definiteAssignment": {
-            int da = 0;
-            if (ps.GetIntArgument(ref da, 4)) {
-              DefiniteAssignmentLevel = da;
-            }
-
-            return true;
-          }
-
-        case "useRuntimeLib": {
-            UseRuntimeLib = true;
-            return true;
-          }
-
-        case "disableScopes": {
-            DisableScopes = true;
-            return true;
-          }
+        case "disableScopes":
+        {
+          DisableScopes = true;
+          return true;
+        }
 
         case "printIncludes":
           if (ps.ConfirmArgumentCount(1)) {
@@ -599,24 +645,26 @@ namespace Microsoft.Dafny {
 
           return true;
 
-        case "stdin": {
-            UseStdin = true;
-            return true;
-          }
+        case "stdin":
+        {
+          UseStdin = true;
+          return true;
+        }
 
-        case "showSnippets": {
-            if (ps.ConfirmArgumentCount(1)) {
-              if (args[ps.i].Equals("0")) {
-                ShowSnippets = false;
-              } else if (args[ps.i].Equals("1")) {
-                ShowSnippets = true;
-              } else {
-                InvalidArgumentError(name, ps);
-              }
+        case "showSnippets":
+        {
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("0")) {
+              ShowSnippets = false;
+            } else if (args[ps.i].Equals("1")) {
+              ShowSnippets = true;
+            } else {
+              InvalidArgumentError(name, ps);
             }
-
-            return true;
           }
+
+          return true;
+        }
 
         case "warningsAsErrors":
           WarningsAsErrors = true;
@@ -634,12 +682,11 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-          return true;
 
+          return true;
       }
 
-      // Unless this is an option for test generation, defer to superclass
-      return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+      return TestGenOptions.ParseOption(name, ps);
     }
 
     private static string[] ParsePluginArguments(string argumentsString) {

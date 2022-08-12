@@ -14,7 +14,12 @@ record ParseArgumentFailure(string Message) : ParseArgumentResult;
 static class CommandRegistry {
   private static readonly Dictionary<string, ICommand> Commands = new();
 
-  public static ISet<ICommandLineOption> CommonOptions = new HashSet<ICommandLineOption>(new [] { ShowSnippetsOption.Instance });
+  public static ISet<ICommandLineOption> CommonOptions = new HashSet<ICommandLineOption>(new ICommandLineOption[] {
+    ShowSnippetsOption.Instance,
+    CoresOption.Instance,
+    VerificationTimeLimit.Instance,
+    UseBaseFileName.Instance,
+  });
 
   static void AddCommand(ICommand command) {
     Commands.Add(command.Name, command);
@@ -61,9 +66,13 @@ static class CommandRegistry {
           option = shortNames.GetValueOrDefault(optionName);
         }
         if (option == null) {
-          remainingArguments = dafnyOptions.RecogniseOldOptions(optionName, remainingArguments);
-          if (remainingArguments == null) {
-            return new ParseArgumentFailure($"There's no option named {optionName}.");
+          if (isLongName) {
+            remainingArguments = dafnyOptions.RecogniseOldOptions(optionName, remainingArguments);
+            if (remainingArguments == null) {
+              return new ParseArgumentFailure($"There's no option named {optionName}.");
+            }
+          } else {
+            return new ParseArgumentFailure($"There's no option with the short name {optionName}.");
           }
         } else {
           foundOptions.Add(option);
@@ -78,8 +87,11 @@ static class CommandRegistry {
                 optionValues[option.LongName] = parsedOption.Value;
               }
               remainingArguments = parsedOption.RemainingArguments;
+              dafnyOptions.Options = new Options(optionLessValues, optionValues);
+              option.PostProcess(dafnyOptions);
               break;
           }
+
         }
 
       } else {
@@ -92,7 +104,9 @@ static class CommandRegistry {
     }
 
     var options = new Options(optionLessValues, optionValues);
+    dafnyOptions.Options = options;
     command.PostProcess(dafnyOptions, options);
+    dafnyOptions.ApplyDefaultOptions();
     return new ParseArgumentSuccess(dafnyOptions);
   }
 
@@ -116,7 +130,7 @@ static class CommandRegistry {
     public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
       var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
       parseState.s = "-" + optionName;
-      if (ParseOption(optionName, parseState)) {
+      if (ParseDafnySpecificOption(optionName, parseState)) {
         return remainingArguments.Skip(parseState.nextIndex);
       }
 
@@ -124,8 +138,6 @@ static class CommandRegistry {
     }
   }
 }
-
-public record Options(List<string> FreeArguments, IDictionary<string, object> OptionArguments);
 
 public interface ParseOptionResult { }
 
@@ -139,4 +151,6 @@ public interface ICommandLineOption {
   string Description { get; }
   bool CanBeUsedMultipleTimes { get; }
   ParseOptionResult Parse(IEnumerable<string> arguments);
+
+  void PostProcess(DafnyOptions options);
 }

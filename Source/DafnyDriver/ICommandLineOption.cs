@@ -3,8 +3,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-
-abstract class CommandLineOption<T> : ICommandLineOption {
+public abstract class CommandLineOption<T> : ICommandLineOption {
+  public T Get(DafnyOptions options) {
+    return Get(options.Options);
+  }
   public T Get(Options options) {
     return (T)options.OptionArguments[LongName];
   }
@@ -18,9 +20,11 @@ abstract class CommandLineOption<T> : ICommandLineOption {
   public abstract string Description { get; }
   public abstract bool CanBeUsedMultipleTimes { get; }
   public abstract ParseOptionResult Parse(IEnumerable<string> arguments);
+  public virtual void PostProcess(DafnyOptions options) {
+  }
 }
 
-abstract class IntegerOption : CommandLineOption<int> {
+public abstract class IntegerOption : CommandLineOption<int> {
   public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(IEnumerable<string> arguments) {
@@ -33,48 +37,52 @@ abstract class IntegerOption : CommandLineOption<int> {
     if (int.TryParse(value, out var number)) {
       return new ParsedOption(arguments.Skip(1), number);
     }
-    return value switch {
-      "0" => new ParsedOption(arguments.Skip(1), false),
-      "1" => new ParsedOption(arguments.Skip(1), true),
-      _ => new FailedOption("blerp")
-    };
+
+    return new FailedOption("blerp");
   }
 }
 
-abstract class BooleanOption : CommandLineOption<bool> {
+
+public abstract class NaturalNumberOption : CommandLineOption<uint> {
   public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+
     if (!arguments.Any()) {
-      return new ParsedOption(arguments, true);
+      return new FailedOption($"No argument found for option {LongName}");
+    }
+
+    var value = arguments.First();
+    if (uint.TryParse(value, out var number)) {
+      return new ParsedOption(arguments.Skip(1), number);
+    }
+
+    return new FailedOption("blerp");
+  }
+}
+
+public abstract class BooleanOption : CommandLineOption<bool> {
+  public override bool CanBeUsedMultipleTimes => false;
+  public override object DefaultValue => false;
+
+  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+    var defaultResult = new ParsedOption(arguments, true);
+    if (!arguments.Any()) {
+      return defaultResult;
     }
 
     var value = arguments.First();
     return value switch {
       "0" => new ParsedOption(arguments.Skip(1), false),
       "1" => new ParsedOption(arguments.Skip(1), true),
-      _ => new FailedOption("blerp")
+      _ => defaultResult
     };
   }
 }
 
-class ShowSnippetsOption : BooleanOption {
-  public static readonly ShowSnippetsOption Instance = new();
-
-  public override object DefaultValue => false;
-  public override string LongName => "showSnippets";
-  public override string ShortName => null;
-
-  public override string Description => @"
-/showSnippets:<n>
-    0 (default) - don't show source code snippets for Dafny messages
-    1 - show a source code snippet for each Dafny message".TrimStart();
-}
-
-class NoVerifyOption : BooleanOption {
-  public static readonly NoVerifyOption Instance = new();
-  public override object DefaultValue => false;
-  public override string LongName => "noVerify";
-  public override string ShortName => null;
-  public override string Description => "missing";
+abstract class StringOption : CommandLineOption<string> {
+  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+    var value = arguments.First();
+    return new ParsedOption(arguments.Skip(1), value);
+  }
 }

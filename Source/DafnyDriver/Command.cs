@@ -23,7 +23,10 @@ class BuildCommand : ICommand {
   }
 
   public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(
-    CommandRegistry.CommonOptions.Concat(new[] { NoVerifyOption.Instance, }));
+    CommandRegistry.CommonOptions.Concat(new ICommandLineOption[] {
+      NoVerifyOption.Instance,
+      TargetOption.Instance,
+    }));
 }
 
 class RunCommand : ICommand {
@@ -31,12 +34,15 @@ class RunCommand : ICommand {
   public string Help => "Run the program";
 
   public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(
-    CommandRegistry.CommonOptions.Concat(new[] { NoVerifyOption.Instance, }));
+    CommandRegistry.CommonOptions.Concat(new ICommandLineOption[] {
+      NoVerifyOption.Instance,
+      TargetOption.Instance,
+    }));
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceCompile = !NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
   }
 }
 

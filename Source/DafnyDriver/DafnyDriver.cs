@@ -99,23 +99,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
-      var driver = new DafnyDriver(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
-      ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
-        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
-        _ => throw new ArgumentOutOfRangeException()
-      };
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
+          var driver = new DafnyDriver(dafnyOptions);
+          ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
+            DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
+            DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
+            _ => throw new ArgumentOutOfRangeException()
+          };
           exitValue = driver.ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter).Result;
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-          break;
+          return (int)ExitValue.PREPROCESSING_ERROR;
         case CommandLineArgumentsResult.OK_EXIT_EARLY:
           exitValue = ExitValue.SUCCESS;
           break;
