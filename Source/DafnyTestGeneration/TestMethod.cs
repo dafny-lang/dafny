@@ -538,9 +538,9 @@ namespace DafnyTestGeneration {
           var setName = "d" + nextValueId++;
           ValueCreation.Add((setName, asType ?? type, "{}"));
           return setName;
-        case MapType:
+        case MapType mapType:
           var mapName = "d" + nextValueId++;
-          ValueCreation.Add((mapName, asType ?? type, "map[]"));
+          ValueCreation.Add((mapName, asType ?? type, mapType.Finite ? "map[]" : "imap[]"));
           return mapName;
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple") || tupleType.Name.StartsWith("_System._tuple"):
           errorMessages.Add("// Failed - temporary disable tuple support");
