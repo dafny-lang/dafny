@@ -46,7 +46,7 @@ static class CommandRegistry {
     var foundOptions = new HashSet<ICommandLineOption>();
     var optionValues = new Dictionary<string, object>();
     var optionLessValues = new List<string>();
-    while(remainingArguments.Any()) {
+    while (remainingArguments.Any()) {
       var head = remainingArguments.First();
       remainingArguments = remainingArguments.Skip(1);
       var isLongName = head.StartsWith("--");
@@ -104,7 +104,7 @@ static class CommandRegistry {
         optionLessValues.Add(head);
       }
     }
-    foreach(var notFoundOption in command.Options.Except(foundOptions)) {
+    foreach (var notFoundOption in command.Options.Except(foundOptions)) {
       optionValues[notFoundOption.LongName] = notFoundOption.DefaultValue;
     }
 
