@@ -1,7 +1,10 @@
+constructorCaseWithoutParentheses.dfy(22,11): Warning: Variable name 'ShadesOfGray' has the same name as a datatype constructor that's in scope at this location
 constructorCaseWithoutParentheses.dfy(23,6): Warning: this branch is redundant 
 constructorCaseWithoutParentheses.dfy(24,6): Warning: this branch is redundant 
+constructorCaseWithoutParentheses.dfy(28,11): Warning: Variable name 'ShadesOfGray' has the same name as a datatype constructor that's in scope at this location
 constructorCaseWithoutParentheses.dfy(29,6): Warning: this branch is redundant 
 constructorCaseWithoutParentheses.dfy(30,6): Warning: this branch is redundant 
+constructorCaseWithoutParentheses.dfy(37,14): Warning: Variable name 'ShadesOfGray' has the same name as a datatype constructor that's in scope at this location
 constructorCaseWithoutParentheses.dfy(38,9): Warning: this branch is redundant 
 constructorCaseWithoutParentheses.dfy(39,9): Warning: this branch is redundant 
 constructorCaseWithoutParentheses.dfy(11,11): Warning: Constructor name 'A' should be followed by parentheses
