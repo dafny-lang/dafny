@@ -77,12 +77,24 @@ namespace Microsoft.Dafny {
       // We do not want output such as "Compiled program written to Foo.cs"
       // from the compilers, since that changes with the target language
       "/compileVerbose:0",
-
-      // Hide Boogie execution traces since they are meaningless for Dafny programs
-      "/errorTrace:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
       "/timeLimit:300"
+    };
+
+    public static readonly string[] NewDefaultArgumentsForTesting = new[] {
+      // Try to verify 2 verification conditions at once
+      "--cores=2",
+
+      // We do not want absolute or relative paths in error messages, just the basename of the file
+      "--useBaseNameForFileName",
+
+      // We do not want output such as "Compiled program written to Foo.cs"
+      // from the compilers, since that changes with the target language
+      "--compileVerbose=0",
+
+      // Set a default time limit, to catch cases where verification time runs off the rails
+      "--verificationTimeLimit=300"
     };
 
     public static int Main(string[] args) {

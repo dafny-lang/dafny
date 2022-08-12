@@ -100,6 +100,8 @@ namespace IntegrationTests {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
 
+      substitutions["%args"] = string.Join(" ", DafnyDriver.NewDefaultArgumentsForTesting);
+
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
