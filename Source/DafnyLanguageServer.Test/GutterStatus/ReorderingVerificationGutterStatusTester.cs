@@ -128,11 +128,26 @@ method m5() { assert false; } //Remove4:
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
-    var initialOrder = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
-    var initialSymbols = GetSymbols(code, initialOrder).ToList();
-    Assert.IsTrue(symbols.First().SequenceEqual(initialSymbols),
-      $"Expected {string.Join(", ", symbols.First())} but got {string.Join(", ", initialSymbols)}");
+    var index = 0;
+    // ReSharper disable AccessToModifiedClosure
+    async Task CompareWithExpectation(List<string> expectedSymbols) {
+      try {
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
+        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
+          $"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
+      } catch (OperationCanceledException) {
+        Console.WriteLine($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
+        throw;
+      }
+
+      index++;
+    }
+
+    await CompareWithExpectation(symbols.First());
     foreach (var (change, expectedSymbols) in changes.Zip(symbols.Skip(1))) {
+      index++;
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
       if (expectedSymbols != null) {
         var migrated = expectedSymbols.Count == 0;
@@ -141,16 +156,7 @@ method m5() { assert false; } //Remove4:
           continue;
         }
 
-        try {
-          var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
-          var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
-          Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
-            $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
-            $"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
-        } catch (OperationCanceledException) {
-          Console.WriteLine("Operation cancelled when expecting: " + string.Join(", ", expectedSymbols) );
-          throw;
-        }
+        await CompareWithExpectation(expectedSymbols);
       }
     }
 
@@ -196,7 +202,7 @@ method m5() { assert false; } //Remove4:
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
         Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
-        Console.WriteLine($"\nnOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
+        Console.WriteLine($"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
         throw;
       }
 
