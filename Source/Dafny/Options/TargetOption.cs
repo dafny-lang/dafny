@@ -15,7 +15,17 @@ class TargetOption : CommandLineOption<Compiler> {
   public override object GetDefaultValue(DafnyOptions options) => "cs";
   public override string LongName => "target";
   public override string ShortName => null;
-  public override string Description => "missing";
+  public override string Description => @"/compileTarget:<lang>
+    cs (default) - Compilation to .NET via C#
+    go - Compilation to Go
+    js - Compilation to JavaScript
+    java - Compilation to Java
+    py - Compilation to Python
+    cpp - Compilation to C++
+
+    Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
+    This includes lack of support for BigIntegers (aka int), most higher order
+    functions, and advanced features like traits or co-inductive types.";
   public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
