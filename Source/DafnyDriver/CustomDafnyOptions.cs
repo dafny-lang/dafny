@@ -2,18 +2,6 @@ using Dafny;
 
 namespace Microsoft.Dafny;
 
-class ShowSnippetsOption : BooleanOption {
-  public static readonly ShowSnippetsOption Instance = new();
-
-  public override string LongName => "showSnippets";
-  public override string ShortName => null;
-
-  public override string Description => @"
-/showSnippets:<n>
-    0 (default) - don't show source code snippets for Dafny messages
-    1 - show a source code snippet for each Dafny message".TrimStart();
-}
-
 class NoVerifyOption : BooleanOption {
   public static readonly NoVerifyOption Instance = new();
   public override string LongName => "noVerify";

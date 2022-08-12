@@ -20,6 +20,11 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
+    private static ISet<ICommandLineOption> AvailableNewStyleOptions = new HashSet<ICommandLineOption>(
+      new ICommandLineOption[] {
+        ShowSnippetsOption.Instance
+      });
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
@@ -42,7 +47,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Options Options { get; set; }
+    public Options Options { get; set; } = new(new(), new Dictionary<string, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -156,7 +161,6 @@ namespace Microsoft.Dafny {
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
-    public bool ShowSnippets = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
@@ -191,6 +195,21 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       if (ParseDafnySpecificOption(name, ps)) {
         return true;
+      }
+
+      foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
+        switch (option.Parse(ps.args.Skip(ps.i))) {
+          case FailedOption failedOption:
+            ps.Error(failedOption.Message);
+            break;
+          case ParsedOption parsedOption:
+            Options.OptionArguments[option.LongName] = parsedOption.Value;
+            option.PostProcess(this);
+            ps.nextIndex = ps.i + parsedOption.ConsumedArguments;
+            return true;
+          default:
+            throw new ArgumentOutOfRangeException();
+        }
       }
 
       return ParseBoogieOption(name, ps);
@@ -622,20 +641,6 @@ namespace Microsoft.Dafny {
 
         case "stdin": {
             UseStdin = true;
-            return true;
-          }
-
-        case "showSnippets": {
-            if (ps.ConfirmArgumentCount(1)) {
-              if (args[ps.i].Equals("0")) {
-                ShowSnippets = false;
-              } else if (args[ps.i].Equals("1")) {
-                ShowSnippets = true;
-              } else {
-                InvalidArgumentError(name, ps);
-              }
-            }
-
             return true;
           }
 

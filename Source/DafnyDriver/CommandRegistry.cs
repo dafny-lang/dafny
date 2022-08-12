@@ -91,7 +91,7 @@ static class CommandRegistry {
               } else {
                 optionValues[option.LongName] = parsedOption.Value;
               }
-              remainingArguments = parsedOption.RemainingArguments;
+              remainingArguments = remainingArguments.Skip(parsedOption.ConsumedArguments);
               dafnyOptions.Options = new Options(optionLessValues, optionValues);
               option.PostProcess(dafnyOptions);
               break;
@@ -150,20 +150,4 @@ static class CommandRegistry {
       return null;
     }
   }
-}
-
-public interface ParseOptionResult { }
-
-record ParsedOption(IEnumerable<string> RemainingArguments, object Value) : ParseOptionResult;
-record FailedOption(string Message) : ParseOptionResult;
-
-public interface ICommandLineOption {
-  object DefaultValue { get; }
-  string LongName { get; }
-  string ShortName { get; }
-  string Description { get; }
-  bool CanBeUsedMultipleTimes { get; }
-  ParseOptionResult Parse(IEnumerable<string> arguments);
-
-  void PostProcess(DafnyOptions options);
 }
