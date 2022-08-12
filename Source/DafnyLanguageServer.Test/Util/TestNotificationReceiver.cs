@@ -18,6 +18,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       availableNotifications.Release();
     }
 
+    public bool HasPendingNotifications => !notifications.IsEmpty;
+
     public IReadOnlyList<TNotification> History => notificationHistory;
 
     public void ClearHistory() {

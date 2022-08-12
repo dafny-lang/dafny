@@ -7,16 +7,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Serilog.Core;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class NotificationPublisher : INotificationPublisher {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
+    private readonly VerifierOptions verifierOptions;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
       this.logger = logger;
       this.languageServer = languageServer;
+      this.verifierOptions = verifierOptions.Value;
     }
 
     public void PublishNotifications(DafnyDocument previous, DafnyDocument document) {
@@ -86,6 +90,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
+      if (!verifierOptions.GutterStatus) {
+        return;
+      }
+
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
