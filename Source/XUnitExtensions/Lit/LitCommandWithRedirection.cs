@@ -39,7 +39,7 @@ namespace XUnitExtensions.Lit {
         argumentsList.RemoveRange(redirectErrorIndex, 2);
       }
 
-      var arguments = argumentsList.Select(config.ApplySubstitutions);
+      var arguments = argumentsList.SelectMany(a => config.ApplySubstitutions(a).Split(" "));
 
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
         return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
