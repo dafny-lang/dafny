@@ -14,7 +14,7 @@ py: verify
 	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../DafnyRuntime/generated
 	
 go: verify
-    dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:go /out:../DafnyRuntime/generated
+	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:go /out:../DafnyRuntime/generated
 
 build:
 	dotnet build ../DafnyRuntime
