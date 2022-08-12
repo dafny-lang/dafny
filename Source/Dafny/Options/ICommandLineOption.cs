@@ -4,13 +4,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public interface ICommandLineOption {
-  object DefaultValue { get; }
+  object GetDefaultValue(DafnyOptions options);
   string LongName { get; }
   string ShortName { get; }
   string Description { get; }
   bool CanBeUsedMultipleTimes { get; }
-  ParseOptionResult Parse(IEnumerable<string> arguments);
-
+  ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
   void PostProcess(DafnyOptions options);
 }
 
@@ -30,12 +29,12 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
     options.OptionArguments[LongName] = value;
   }
 
-  public abstract object DefaultValue { get; }
+  public abstract object GetDefaultValue(DafnyOptions options);
   public abstract string LongName { get; }
   public abstract string ShortName { get; }
   public abstract string Description { get; }
   public abstract bool CanBeUsedMultipleTimes { get; }
-  public abstract ParseOptionResult Parse(IEnumerable<string> arguments);
+  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
 
   public virtual void PostProcess(DafnyOptions options) {
   }
@@ -44,7 +43,7 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
 public abstract class IntegerOption : CommandLineOption<int> {
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
     if (!arguments.Any()) {
       return new FailedOption($"No argument found for option {LongName}");
     }
@@ -61,7 +60,7 @@ public abstract class IntegerOption : CommandLineOption<int> {
 public abstract class NaturalNumberOption : CommandLineOption<uint> {
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
     if (!arguments.Any()) {
       return new FailedOption($"No argument found for option {LongName}");
     }
@@ -77,9 +76,9 @@ public abstract class NaturalNumberOption : CommandLineOption<uint> {
 
 public abstract class BooleanOption : CommandLineOption<bool> {
   public override bool CanBeUsedMultipleTimes => false;
-  public override object DefaultValue => false;
+  public override object GetDefaultValue(DafnyOptions options) => false;
 
-  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
     var defaultResult = new ParsedOption(0, true);
     if (!arguments.Any()) {
       return defaultResult;
@@ -95,7 +94,7 @@ public abstract class BooleanOption : CommandLineOption<bool> {
 }
 
 public abstract class StringOption : CommandLineOption<string> {
-  public override ParseOptionResult Parse(IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
     var value = arguments.First();
     return new ParsedOption(1, value);
   }

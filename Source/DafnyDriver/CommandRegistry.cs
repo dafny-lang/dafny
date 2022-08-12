@@ -81,7 +81,7 @@ static class CommandRegistry {
           }
         } else {
           foundOptions.Add(option);
-          switch (option.Parse(remainingArguments)) {
+          switch (option.Parse(dafnyOptions, remainingArguments)) {
             case FailedOption failedOption:
               return new ParseArgumentFailure(failedOption.Message);
             case ParsedOption parsedOption:
@@ -105,7 +105,8 @@ static class CommandRegistry {
       }
     }
     foreach (var notFoundOption in command.Options.Except(foundOptions)) {
-      optionValues[notFoundOption.LongName] = notFoundOption.DefaultValue;
+      optionValues[notFoundOption.LongName] = notFoundOption.GetDefaultValue(dafnyOptions);
+      notFoundOption.PostProcess(dafnyOptions);
     }
 
     var options = new Options(optionLessValues, optionValues);

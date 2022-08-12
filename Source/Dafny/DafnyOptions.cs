@@ -22,7 +22,8 @@ namespace Microsoft.Dafny {
 
     private static ISet<ICommandLineOption> AvailableNewStyleOptions = new HashSet<ICommandLineOption>(
       new ICommandLineOption[] {
-        ShowSnippetsOption.Instance
+        ShowSnippetsOption.Instance,
+        CompileTargetOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -198,7 +199,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
-        switch (option.Parse(ps.args.Skip(ps.i))) {
+        switch (option.Parse(this, ps.args.Skip(ps.i))) {
           case FailedOption failedOption:
             ps.Error(failedOption.Message);
             break;
@@ -283,19 +284,6 @@ namespace Microsoft.Dafny {
 
             return true;
           }
-
-        case "compileTarget":
-          if (ps.ConfirmArgumentCount(1)) {
-            var compileTarget = args[ps.i];
-            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
-            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
-            if (Compiler == null) {
-              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
-              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
-            }
-          }
-
-          return true;
 
         case "compileVerbose": {
             int verbosity = 0;
