@@ -9,10 +9,11 @@
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
-      <VersionPrefix>3.7.3.40719</VersionPrefix>
+      <VersionPrefix>3.8.0.40729</VersionPrefix>
 
       <PackAsTool>true</PackAsTool>
       <ToolCommandName>dafny</ToolCommandName>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">

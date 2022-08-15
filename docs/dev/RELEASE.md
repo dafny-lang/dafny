@@ -13,7 +13,10 @@
 
 2. Select a version number (descriptor) `$VER` (e.g., "3.0.0" or
    "3.0.0-alpha") and select an internal version number (e.g.,
-   "3.0.0.30203"). The last section is in "ymmdd" format, where "y" is
+   "3.0.0.30203"). The major.minor.patch numbers may already have been
+   incremented since the last release, so they do not necessarily need
+   to be updated, but you may want to increment them further,
+   use judgement. The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
    x.y.z.40112). Edit the internal version number in the following
@@ -55,7 +58,7 @@
 
 6. Once the action completes, you should find the draft release at
    https://github.com/dafny-lang/dafny/releases. Edit the release body
-   to add in the release notes from `RELEASE_NOTES.md`. 
+   to add in the release notes from `RELEASE_NOTES.md`.
    Also check the box to create a new discussion based on
    the release, if this is not a pre-release.
 
@@ -64,22 +67,31 @@
    on multiple platforms. Again you can watch for this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-8. Manually trigger the "Test NuGet Tool Installation" workflow on the
+8. Manually upload packages to NuGet, from the fresh checkout of the
+   repository used for tagging.
+
+   ```
+   dotnet build Source/Dafny.sln
+   dotnet pack --no-build dafny/Source/Dafny.sln
+   dotnet nuget push --skip-duplicate "Binaries/Dafny*.nupkg" -k $A_VALID_API_KEY -s https://api.nuget.org/v3/index.json
+   ```
+
+9. Manually trigger the "Test NuGet Tool Installation" workflow on the
    `master` branch (following the same process as for step 3).
 
-9. If preparing a pre-release, stop here, as
-   the following steps declare the release as the latest version, which
-   is not the intention.
+10. If preparing a pre-release, stop here, as
+    the following steps declare the release as the latest version, which
+    is not the intention.
 
-10. If something goes wrong, delete the tag and release in GitHub, fix the
-   problem and try again.
+11. If something goes wrong, delete the tag and release in GitHub, fix the
+    problem and try again.
 
-11. Update the Homebrew formula for Dafny (see below).
-   Note that it is fine to leave this for the next day,
-   and other members of the community may update the formula
-   in the meantime anyway.
+12. Update the Homebrew formula for Dafny (see below).
+    Note that it is fine to leave this for the next day,
+    and other members of the community may update the formula
+    in the meantime anyway.
 
-12. Announce the new release to the world.
+13. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
@@ -98,63 +110,35 @@ with git commands and concepts is helpful.
    Running `which brew` will tell you if it is. See
    <https://docs.brew.sh/Installation> if not.
 
-1. Update brew: `brew update`
+1. Create a GitHub personal access token (if you don't have one handy),
+   and put it in an environment variable:
 
-2. Find the formula: `cd $(brew --repo)/Library/Taps/homebrew/homebrew-core/Formula`
+   ```
+   export HOMEBREW_GITHUB_API_TOKEN=your_token_here
+   ```
 
-3. Prepare the repository:
-
-        git checkout master
-        git pull origin
-        git checkout -b <some new branch name>
-
-   The branch name is needed in various places below
-
-4. Edit the formula (e.g., `vi dafny.rb`). For a normal release change,
-   all that is needed is to change the name of the archive file for the
-   release and its SHA.
-
-   a) Change the line near the top of the file that looks like
-
-          url "https://github.com/dafny-lang/dafny/archive/v2.3.0.tar.gz"
-
-      to hold the actual release number (this is the url for the source
-      asset; you can see the actual name on the Releases page for the
-      latest build).
-   b) Save the file
-   c) Run `brew reinstall dafny`.
-   d) The command will complain that the SHA does not match. Copy the
-      correct SHA, reopen the file and paste the new SHA into the `sha`
-      line after the `url` line.
-   e) Bump up the revision number (by one) on the succeeding line.
-   f) Save the file
-   g) Check that you have not introduced any syntax errors by running
-      `brew reinstall dafny` again. If you totally mess up the file,
-      you can do `git checkout dafny.rb`.
-
-5. Create a pull request following the instructions here:
+2. Create a pull request following the instructions here:
 
     <https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request>
 
-6. Expect comments from the reviewers. If changes are needed, do 4-6
+   These instructions currently involve the following command:
+
+   ```
+  brew bump-formula-pr \
+    --url <source .tar.gz for the release> \
+    --sha256 <sha256 of the source .tar.gz for the release>
+   ```
+
+3. Expect comments from the reviewers. If changes are needed, do 4-6
    again. Eventually the reviewers will accept and merge the PR.
 
-7. Then bring your Homebrew installation back to normal:
-
-        git checkout master
-        git pull origin master
-
-8. Test the installation by running
+4. Test the installation by running
 
         brew reinstall dafny
 
-   and then execute `dafny` on a sample file to see if it has the
-   correct version number. Even better is to try this step on a
-   different machine than the one on which the `dafny.rb` file was edited
-
-9. If everything works you can, at your leisure do
-
-        git branch -d <the branch name>
+   and then execute `dafny /version` see if it has the correct version
+   number. Even better is to try this step on a different machine than
+   the one on which the `dafny.rb` file was edited
 
 ## Updating and releasing a new version of VSCode plugin
 
@@ -172,14 +156,6 @@ with git commands and concepts is helpful.
 
 5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
 
-6. Select a new version number `$VER` for the plugin (e.g. "2.4.0") and change the value of the constant `version` in the file `package.json`
-   to `$VER` and commit the changes.
+6. Follow the release process detailed in the plugin's repository:
 
-7. Then tag and push the changes:
-
-       git tag v<$VER>
-       git push v<$VER>
-
-8. Create a pull request and, once merged, a GitHub action will automatically run in reaction to the tag being pushed to master, which will create a new release in the VSCode marketplace.
-
-9. Announce the release to the world.
+   <https://github.com/dafny-lang/ide-vscode/blob/master/CONTRIBUTING.md>

@@ -430,16 +430,30 @@ OrdinalType_ = "ORDINAL"
 ````
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
-there is an `ORDINAL` value that is larger than any `nat`.
-- a value of type `nat` may be explicitly converted to an `ORDINAL` using `as ORDINAL`
-- a value of type `ORDINAL` may be explicitly converted to a `nat` using `as nat` if it is known to be less than some `nat` value 
-- non-negative numeric literals may be considered `ORDINAL` literals
+there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
+represented as $\omega$ in mathematics, though there is no literal expression in Dafny that represents this value.
+
+The natural numbers are ordinals.
+Any ordinal has a successor ordinal (equivalent to adding `1`).
+Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+the natural number `0` and  $\omega$ are limit ordinals.
+
+The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
+
+The Dafny type `ORDINAL` has these member functions:
+- `o.IsLimit` -- true if `o` is a limit ordinal (including `0`)
+- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==> !o.IsLimit`
+- `o.IsNat` -- true if `o` represents a `nat` value, so for `n` a `nat`, `(n as ORDINAL).IsNat` is true
+and if `o.IsNat` is true then `(o as nat)` is well-defined
+- `o.Offset` -- is the `nat` value giving the offset of the ordinal
+
+In addition, 
+- non-negative numeric literals may be considered `ORDINAL` literals, so `o + 1` is allowed
 - `ORDINAL`s may be compared, using `== != < <= > >=`
-- two `ORDINAL`s may be added and the result is `>=` either one of them
-- two `ORDINAL`s may be subtracted if the LHS is `>=` the RHS (so the result is non-negative) and the RHS value is equal to some `nat` value. That is, for `ORDINAL` `x`, `assert x - x == 0;` fails
- but `assert x < 1000000000 ==> x-x == 0;` succeeds.
+- two `ORDINAL`s may be added and the result is `>=` either one of them; addition is associative but not commutative
 - `*`, `/` and `%` are not defined for `ORDINAL`s
-- there is no literal in Dafny that represents the `ORDINAL` value that is larger than any `nat` (typically written $\omega$ in mathematics)
+- two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
+
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
@@ -1128,9 +1142,6 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of using an iterator class
-TODO: Should a foreach statment be added to Dafny
-
 ### 10.5.1. Sequences and arrays
 
 Sequences and arrays are indexable and have a length. So the idiom to
@@ -1643,7 +1654,7 @@ corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class Types {#sec-class-types}
+# 13. Class types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1933,9 +1944,10 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
+* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof. (TODO: `:extern` attribute?)
+clauses are true without proof.
 
 ### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
@@ -2164,8 +2176,6 @@ The following example illustrates using such an eta-expansion:
 {% include_relative examples/Example-TwoState-EtaExample.dfy %}
 ```
 
-TO BE WRITTEN - unchanged predicate
-
 ## 13.4. Function Declarations {#sec-function-declarations}
 
 ````grammar
@@ -2215,6 +2225,12 @@ PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
   [ GenericParameters ]
   [ KType ]
   Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
+  [
+    ":"
+    ( Type
+    | "(" Ident ":" "bool" ")"
+    )
+  ]
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2357,8 +2373,8 @@ clauses.
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
+keyword with the `predicate` keyword and possibly omitting a declaration of the
+return type (if it is not named).
 
 ### 13.4.3. Function Transparency
 A function is said to be _transparent_ in a location if the
@@ -2615,7 +2631,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types {#sec-trait-types}
+# 14. Trait types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -2852,7 +2868,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array Types {#sec-array-types}
+# 15. Array types {#sec-array-types}
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -3080,9 +3096,10 @@ For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
 ```dafny
 iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
   var i := 0;
-  while i < 10 {
+  while i < 10 invariant |xs| == i {
     x := start + i;
     yield;
     i := i + 1;
@@ -3093,7 +3110,20 @@ An instance of this iterator is created using
 ```dafny
 iter := new Gen(30);
 ```
-TODO: Add example of using the iterator
+It is used like this:
+```
+method Main() {
+  var i := new Gen(30);
+  while true
+    invariant i.Valid() && fresh(i._new)
+    decreases 10 - |i.xs|
+  {
+    var m := i.MoveNext();
+    if (!m) {break; }
+    print i.x;
+  }
+}
+```
 
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the

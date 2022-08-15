@@ -99,13 +99,17 @@ namespace Microsoft.Dafny {
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      ErrorReporter reporter = new ConsoleErrorReporter();
-
       var dafnyOptions = new DafnyOptions();
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
       var driver = new DafnyDriver(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
+
+      ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
+        _ => throw new ArgumentOutOfRangeException()
+      };
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -345,7 +349,7 @@ namespace Microsoft.Dafny {
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
           Console.WriteLine($"\t{variable.ShortName} : " +
-                            $"{variable.Type.InDafnyFormat()} = " +
+                            $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
                             $"{variable.Value}");
         }
       }

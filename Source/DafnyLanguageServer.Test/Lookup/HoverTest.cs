@@ -436,7 +436,14 @@ lemma dummy(e: int) {
     case _ => var xx := 1;
                    ^[```dafny\nghost xx: int\n```]
   }
-}");
+}
+method test(opt: int) {
+  match(opt)
+  case 1 =>
+    var s := 1;
+        ^[```dafny\ns: int\n```]
+}
+");
     }
   }
 }

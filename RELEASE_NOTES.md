@@ -1,3 +1,22 @@
+# Upcoming
+
+- fix: Use the right bitvector comparison in decrease checks
+  (https://github.com/dafny-lang/dafny/pull/2512)
+- fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
+  (https://github.com/dafny-lang/dafny/pull/2416)
+- feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.
+  (https://github.com/dafny-lang/dafny/pull/2448)
+- fix: Counterexamples - fix an integer parsing bug and correctly extract datatype and field names (https://github.com/dafny-lang/dafny/pull/2461)
+- feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
+  (https://github.com/dafny-lang/dafny/pull/2363)
+- fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
+- fix: Check extreme predicates and constants in all types, not just classes
+  (https://github.com/dafny-lang/dafny/pull/2515)
+- fix: Correctly substitute type variables in override checks
+  (https://github.com/dafny-lang/dafny/pull/2522)
+- feat: `predicate P(x: int): (y: bool) ...` is now valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
+- fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
+
 # 3.7.3
 
 - feat: *Less code navigation when verifying code*: In the IDE, failing postconditions and preconditions error messages now immediately display the sub-conditions that Dafny could not prove. Both on hover and in the Problems window. (https://github.com/dafny-lang/dafny/pull/2434)

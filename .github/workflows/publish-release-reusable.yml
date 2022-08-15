@@ -70,6 +70,32 @@ jobs:
         java-version: 1.8
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
+
+    - name: Build Dafny
+      run: |
+        dotnet build dafny/Source/Dafny.sln
+        rm dafny/Binaries/*.nupkg
+    - name: Create release NuGet package (for uploading)
+      if: ${{ !inputs.prerelease }}
+      run: dotnet pack --no-build dafny/Source/Dafny.sln
+    - name: Create prerelease NuGet package (for uploading)
+      if: ${{ inputs.prerelease }}
+      # NuGet will consider any package with a version-suffix as a prerelease
+      run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
+
+    - name: Make NuGet package available as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget-packages
+        path: dafny/Binaries/*.nupkg
+
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      # Need --skip-duplicate for cases where we release a new Dafny
+      # version but the runtime hasn't changed and is still the old
+      # version.
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+
     - name: Install latex pandoc
       run: |
         brew install pandoc
@@ -81,6 +107,8 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+    - name: Clean Dafny
+      run: dotnet clean dafny/Source/Dafny.sln
     # First we build the ZIPs (which do not include the refman)
     - name: Package release files (release)
       if: ${{ !inputs.prerelease }}
@@ -94,7 +122,7 @@ jobs:
     # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
     # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
     # a platform-specific directory), we build Dafny once here.
-    - name: Build Dafny
+    - name: Re-build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Build reference manual
       run: |
@@ -113,18 +141,3 @@ jobs:
           dafny/Package/dafny-${{ inputs.name }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: true
-
-    - name: Create release NuGet package (for uploading)
-      if: ${{ !inputs.prerelease }}
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
-    - name: Create prerelease NuGet package (for uploading)
-      if: ${{ inputs.prerelease }}
-      # NuGet will consider any package with a version-suffix as a prerelease
-      run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
-
-    - name: Upload package to NuGet
-      if: ${{ inputs.release_nuget }}
-      # Need --skip-duplicate for cases where we release a new Dafny
-      # version but the runtime hasn't changed and is still the old
-      # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
