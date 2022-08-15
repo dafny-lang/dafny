@@ -1,7 +1,5 @@
 namespace Microsoft.Dafny;
 
-// TODO add version command
-// TODO attribute help
 public class HelpOption : BooleanOption {
   public static readonly HelpOption Instance = new();
   public override string LongName => "help";
@@ -10,7 +8,7 @@ public class HelpOption : BooleanOption {
   public override string Description => "Display this help text";
 
   public override void PostProcess(DafnyOptions options) {
-    options.HelpRequested = true;
+    options.HelpRequested = Get(options);
     base.PostProcess(options);
   }
 }
