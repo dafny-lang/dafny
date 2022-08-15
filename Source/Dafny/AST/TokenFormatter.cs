@@ -729,12 +729,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref int unusedIndent) {
-      /*if (stmt.OwnedTokens.Count > 0) {
-        var firstToken = stmt.OwnedTokens[0];
-        var indent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
-        
+      if (stmt == null) {
+        return false;
       }
-      return true;*/
       var firstToken = stmt.Tok;
       var indent = formatter.GetIndentBefore(firstToken);
       switch (stmt) {
@@ -769,13 +766,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case ForallStmt forallStmt:
           FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
+          VisitOneStmt(forallStmt.Body, ref unusedIndent);
           foreach (var ens in forallStmt.Ens) {
             formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
           formatter.SetClosingIndentedRegion(forallStmt.EndTok, indent);
-          break;
+          return false;
         case WhileStmt whileStmt:
           FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
+          VisitOneStmt(whileStmt.Body, ref unusedIndent);
           foreach (var ens in whileStmt.Invariants) {
             formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
@@ -783,7 +782,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
           }
           formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
-          break;
+          return false;
         case ForLoopStmt forLoopStmt: {
             var ownedTokens = forLoopStmt.OwnedTokens;
             if (ownedTokens.Count > 0) {
@@ -804,15 +803,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             foreach (var ens in forLoopStmt.Invariants) {
               formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
             }
-
+            VisitOneStmt(forLoopStmt.Body, ref unusedIndent);
             if (forLoopStmt.Body != null) {
               formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
               formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
             } else {
               formatter.SetClosingIndentedRegion(forLoopStmt.EndTok, indent);
             }
-
-            break;
+            return false;
           }
         case VarDeclStmt varDeclStmt: {
             var ownedTokens = varDeclStmt.OwnedTokens;

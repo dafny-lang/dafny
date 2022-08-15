@@ -743,6 +743,7 @@ method Test()
                ==>
                // ... the board 'B' is not entirely consistent
                (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
+    // comments here
   {
   }
 }
