@@ -923,6 +923,65 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;
     }
 
+    protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
+      var firstToken = expr.StartToken;
+      var indent = formatter.GetIndentBefore(firstToken);
+      switch (expr) {
+        case BinaryExpr binaryExpr: {
+            ApplyBinaryExprFormatting(binaryExpr);
+            break;
+          }
+        case LetExpr: {
+            ApplyVarAssignFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case ITEExpr: {
+            ApplyITEFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case NestedMatchExpr: {
+            ApplyMatchFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case ComprehensionExpr: {
+            ApplyComprehensionExprFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+        case ParensExpression: {
+            ApplyParensExpressionFormatting(indent, expr.OwnedTokens);
+            break;
+          }
+      }
+
+      return true;
+    }
+
+    private void ApplyParensExpressionFormatting(int indent, List<IToken> ownedTokens) {
+      var itemIndent = indent + SpaceTab;
+      var commaIndent = indent;
+
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "(": {
+              if (IsFollowedByNewline(token)) {
+                formatter.SetIndentations(token, indent, indent, itemIndent);
+              } else {
+                formatter.SetAlign(indent, token, out itemIndent, out commaIndent);
+              }
+              break;
+            }
+          case ",": {
+              formatter.SetIndentations(token, itemIndent, commaIndent, itemIndent);
+              break;
+            }
+          case ")": {
+              formatter.SetIndentations(token, itemIndent, commaIndent, commaIndent);
+              break;
+            }
+        }
+      }
+    }
+
     private void ApplyComprehensionExprFormatting(int indent, List<IToken> ownedTokens) {
       var afterAssignIndent = indent + SpaceTab;
       var alreadyAligned = false;
@@ -1078,35 +1137,6 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         formatter.SetDelimiterIndentedRegions(body.Tok, indent);
         formatter.SetClosingIndentedRegion(body.EndTok, indent);
       }
-    }
-
-    protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
-      var firstToken = expr.StartToken;
-      var indent = formatter.GetIndentBefore(firstToken);
-      switch (expr) {
-        case BinaryExpr binaryExpr: {
-            ApplyBinaryExprFormatting(binaryExpr);
-            break;
-          }
-        case LetExpr: {
-            ApplyVarAssignFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-        case ITEExpr: {
-            ApplyITEFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-        case NestedMatchExpr: {
-            ApplyMatchFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-        case ComprehensionExpr: {
-            ApplyComprehensionExprFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-      }
-
-      return true;
     }
 
     private void ApplyBinaryExprFormatting(BinaryExpr binaryExpr) {

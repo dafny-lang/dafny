@@ -4330,10 +4330,11 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req, List<IToken> ow
 ParensExpression<out Expression e>
 = (. IToken x;
      var args = new List<ActualBinding>();
+     var ownedTokens = new List<IToken>();
   .)
-  "("                                        (. x = t; .)
-  [ TupleArgs<args> ]
-  ")"
+  "("                                        (. x = t; ownedTokens.Add(t); .)
+  [ TupleArgs<args, ownedTokens> ]
+  ")"                                        (. ownedTokens.Add(t); .)
   (. if (args.Count == 1 && !args[0].IsGhost) {
        if (args[0].FormalParameterName != null) {
          SemErr(args[0].FormalParameterName, "binding not allowed in parenthesized expression");
@@ -4363,6 +4364,7 @@ ParensExpression<out Expression e>
        var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
        e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
+     e.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -5088,16 +5090,16 @@ Expressions<.List<Expression> args, List<IToken> ownedTokens.>
   .
 
 /*------------------------------------------------------------------------*/
-TupleArgs<.List<ActualBinding> args.>
+TupleArgs<.List<ActualBinding> args, List<IToken> ownedTokens.>
 = (. ActualBinding binding; bool isGhost = false; .)
   // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
   [ IF(la.kind == _ghost && !IsVar())
-    "ghost"                             (. isGhost = true; .)
+    "ghost"                             (. isGhost = true; ownedTokens.Add(t); .)
   ]
   ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
-  { ","                                 (. isGhost = false; .)
+  { ","                                 (. isGhost = false; ownedTokens.Add(t); .)
     [ IF(la.kind == _ghost && !IsVar())
-      "ghost"                           (. isGhost = true; .)
+      "ghost"                           (. isGhost = true; ownedTokens.Add(t); .)
     ]
     ActualBinding<out binding, isGhost> (. args.Add(binding); .)
   }
