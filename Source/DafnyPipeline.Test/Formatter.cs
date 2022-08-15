@@ -14,7 +14,11 @@ using Xunit;
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Formatter")]
   public class Formatter {
-    enum Newlines { LF, CR, CRLF };
+    enum Newlines {
+      LF,
+      CR,
+      CRLF
+    };
 
     private static Regex indentRegex = new Regex(@"(?<=\n|\r(?!\n))[ \t]*");
 
@@ -262,19 +266,19 @@ method topLevel(
   }
   forall z <- [0]
     ensures 1 == 1 {
-    assert true;
+    assert i == 1;
   }
   forall z <- [0]
     ensures 0 == 0
   {
-    assert true;
+    assert 0 == 0;
   }
   
   forall z <- [0]
     ensures
       0 == 0
   {
-    assert true;
+    assert 0 != 0;
   }
   while z != 0
     invariant true {
@@ -292,11 +296,11 @@ method topLevel(
     z := 0;
   }
   for i := 0 to 1 {
-    assert true;
+    assert i >= 0;
   }
   for i :=
     0 to 1 {
-    assert true;
+    assert i <= 1;
   }
   for i := 0 to 1
     invariant true
@@ -706,6 +710,55 @@ iterator Gen(start: int) yields (x: int)
   }
 }
 ");
+    }
+
+    [Fact]
+    public void FormatterWorksForWhileTests() {
+      FormatterWorksFor(@"
+method Test() {
+  rs.Close();
+  ghost var qc := q.contents;
+  q := Sort(q);
+  assert forall k :: k in q.contents ==> k in multiset(q.contents);
+  var wr := new WriterStream;
+  wr.Create();
+
+  while 0 < |q.contents|
+    invariant wr.Valid() && fresh(wr.footprint)
+    invariant glossary.Valid()
+    invariant glossary !in wr.footprint
+    invariant q !in wr.footprint
+    invariant forall k :: k in q.contents ==> k in glossary.keys
+  {
+    var term := q.Dequeue();
+    var r := glossary.Find(term);
+    assert r.Some?;
+    var definition := r.get;
+
+    // write term with a html anchor
+    wr.PutWordInsideTag(term, term);
+    var i := 0;
+
+    var qcon := q.contents;
+    while i < |definition|
+      invariant wr.Valid() && fresh(wr.footprint)
+      invariant glossary.Valid()
+      invariant glossary !in wr.footprint
+      invariant q !in wr.footprint
+      invariant qcon == q.contents
+      invariant forall k :: k in q.contents ==> k in glossary.keys
+    {
+      var w := definition[i];
+      var r := glossary.Find(w);
+      if r == None {
+        wr.PutWordInsideHyperlink(w, w);
+      } else {
+        wr.PutWord(w);
+      }
+      i:= i +1;
+    }
+  }
+}");
     }
 
     [Fact]

@@ -746,7 +746,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               }
             }
 
-            break;
+            foreach (var blockStmtBody in blockStmt.Body) {
+              formatter.SetIndentations(blockStmtBody.StartToken, indent + SpaceTab, indent + SpaceTab);
+              Visit(blockStmtBody, indent + SpaceTab);
+            }
+
+            // Already recursively visited all statements.
+            return false;
           }
         case IfStmt ifStmt: {
             if (ifStmt.OwnedTokens.Count > 0) {
@@ -766,7 +772,6 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case ForallStmt forallStmt:
           FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
-          VisitOneStmt(forallStmt.Body, ref unusedIndent);
           foreach (var ens in forallStmt.Ens) {
             formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
@@ -774,7 +779,6 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return false;
         case WhileStmt whileStmt:
           FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
-          VisitOneStmt(whileStmt.Body, ref unusedIndent);
           foreach (var ens in whileStmt.Invariants) {
             formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
@@ -803,13 +807,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             foreach (var ens in forLoopStmt.Invariants) {
               formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
             }
-            VisitOneStmt(forLoopStmt.Body, ref unusedIndent);
-            if (forLoopStmt.Body != null) {
-              formatter.SetDelimiterIndentedRegions(forLoopStmt.Body.Tok, indent);
-              formatter.SetClosingIndentedRegion(forLoopStmt.Body.EndTok, indent);
-            } else {
-              formatter.SetClosingIndentedRegion(forLoopStmt.EndTok, indent);
-            }
+
+            VisitBody(forLoopStmt.Body, indent);
+            formatter.SetClosingIndentedRegion(forLoopStmt.EndTok, indent);
             return false;
           }
         case VarDeclStmt varDeclStmt: {
@@ -919,6 +919,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       return true;
+    }
+
+    private void VisitBody(Statement body, int indent) {
+      if (body == null) {
+        return;
+      }
+      formatter.SetDelimiterIndentedRegions(body.Tok, indent);
+      formatter.SetClosingIndentedRegion(body.EndTok, indent);
+      Visit(body, indent);
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
@@ -1134,6 +1143,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       if (body != null) {
         formatter.SetDelimiterIndentedRegions(body.Tok, indent);
         formatter.SetClosingIndentedRegion(body.EndTok, indent);
+        Visit(body, indent);
       }
     }
 
