@@ -34,6 +34,18 @@ Running...
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to JustRun-py/JustRun.py
+Additional target code written to JustRun-py/_dafny.py
+Additional target code written to JustRun-py/System_.py
+Additional target code written to JustRun-py/module_.py
+Running...
+
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors

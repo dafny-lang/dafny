@@ -8,25 +8,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
-  public class DocumentSymbolTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      client = await InitializeClient();
-    }
-
-    private IRequestProgressObservable<IEnumerable<SymbolInformationOrDocumentSymbol>, SymbolInformationOrDocumentSymbolContainer> RequestDocumentSymbol(TextDocumentItem documentItem) {
-      return client.RequestDocumentSymbol(
-        new DocumentSymbolParams {
-          TextDocument = documentItem.Uri,
-        },
-        CancellationToken
-      );
-    }
+  public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
     public async Task LoadCorrectDocumentCreatesSymbols() {
@@ -44,7 +30,7 @@ class Y {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var classSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       var classChildren = classSymbol.Children.ToArray();
       Assert.AreEqual("Y", classSymbol.Name);
       Assert.AreEqual(new Range((0, 6), (9, 0)), classSymbol.Range);
@@ -112,7 +98,7 @@ class Y {
         }
       });
 
-      var classSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       var classChildren = classSymbol.Children.ToArray();
       Assert.AreEqual("Y", classSymbol.Name);
       Assert.AreEqual(new Range((0, 6), (8, 0)), classSymbol.Range);
@@ -145,7 +131,7 @@ class Y {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var methodSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.AreEqual("DoIt", methodSymbol.Name);
       Assert.AreEqual(new Range((0, 7), (0, 11)), methodSymbol.Range);
       Assert.AreEqual(SymbolKind.Method, methodSymbol.Kind);
@@ -157,7 +143,7 @@ class Y {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var methodSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.AreEqual("ConstOne", methodSymbol.Name);
       Assert.AreEqual(new Range((0, 9), (0, 17)), methodSymbol.Range);
       Assert.AreEqual(SymbolKind.Function, methodSymbol.Kind);

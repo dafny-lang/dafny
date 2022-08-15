@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -19,6 +22,27 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
+
+  [TestMethod]
+  public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
+    var source = @"
+method Foo() ensures false { } ";
+    await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.GutterStatus)}", "false" } });
+
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.IsFalse(verificationStatusGutterReceiver.HasPendingNotifications);
+  }
+
+  [TestMethod]
+  public async Task EnsureEmptyMethodDisplayVerified() {
+    await VerifyTrace(@"
+ .  | :method x() {
+ .  | :  // Nothing here
+ .  | :}");
+  }
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationGutterStatusIsWorking() {
