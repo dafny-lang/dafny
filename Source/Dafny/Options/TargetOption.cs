@@ -10,7 +10,8 @@ class CompileTargetOption : TargetOption {
   public new static readonly CompileTargetOption Instance = new();
   public override string LongName => "compileTarget";
 }
-class TargetOption : CommandLineOption<Compiler> {
+
+public class TargetOption : CommandLineOption<Compiler> {
   public static readonly TargetOption Instance = new();
   public override object GetDefaultValue(DafnyOptions options) => "cs";
   public override string LongName => "target";
