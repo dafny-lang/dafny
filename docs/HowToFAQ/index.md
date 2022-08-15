@@ -46,7 +46,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
 - ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
 - ["How do labels in preconditions work?"](FAQPreconditionLabels)
-- ["What do attributes {:java "java", "lang"} mean? Where are attributes documented?"](FAQJavaAttribute) -- TODO 9/20/2021
+- ["What do attributes {:java "java", "lang"} mean? Where are attributes documented?"](FAQJavaAttribute)
 - ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
 - ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
 - ["Does Dafny have monadic error handling?"](FAQMonadic)
@@ -56,7 +56,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
-- ["How do I pattern match against a head and tail of a sequence?"](FAQPatternMatchSeq)
+- ["How do I pattern match against a head and tail of a sequence or against a set?"](FAQMatchOnSet)
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
 - ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"](FAQImportOneThing)
 - [TODO - Sorting, iteration 12/1/2021]
@@ -74,7 +74,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - [TODO 11/5- FAQ or ERROR?]
 - ["Why does Dafny complain about `set i: int | Contains(i)`"] - TODO 1/13/2022
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
-- ["Is there a way to deconstruct a set in a match expression?] - TODO (element and rest)
 - ["Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?"](FAQNonlinearArith)
 - ["How do `{:split_here}` and `{:focus}` work to divide up a verification condition?"] - TODO - 1/7/2022
 - ["How does one declare a type to have a "default" initial value, say a type tagged with {:extern}?'] - TODO - 1/10/2022
