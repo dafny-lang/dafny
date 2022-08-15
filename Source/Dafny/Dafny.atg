@@ -142,11 +142,12 @@ public static int Parse (bool useStdin, string/*!*/ filename, Include include, M
   Contract.Requires(module != null);
   string s;
   if (useStdin) {
-    s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
+    s = Microsoft.Dafny.PreprocessorHelper.Fill(System.Console.In, new List<string>(), Environment.NewLine);
     return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   } else {
+    var newline = PreprocessorHelper.DetectNewline(filename);
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
-      s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
+      s = Microsoft.Dafny.PreprocessorHelper.Fill(reader, new List<string>(), newline);
       return Parse(s, filename, DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
