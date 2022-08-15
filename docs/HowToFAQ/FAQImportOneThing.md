@@ -23,7 +23,7 @@ module B {
 }
 ```
 The `export` directive in module `A` just exports the name `j` in the export set `JustJ`.
-So then you can import just `j` in `B` by importing `A`JustJ`.
+So then you can import just `j` in `B` by importing ``A`JustJ``.
 
 You can create as many export sets as you like, for different contexts.
 See the details [here](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-export-sets-and-access-control).
