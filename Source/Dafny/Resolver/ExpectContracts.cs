@@ -9,6 +9,8 @@ namespace Microsoft.Dafny;
 
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
+  private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) {
   }
@@ -57,15 +59,18 @@ public class ExpectContracts : IRewriter {
   private void AddWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok; // TODO: do better
 
+    var receiver = decl.IsStatic
+      ? (Expression)new StaticReceiverExpr(tok, parent, false)
+      : (Expression)new ThisExpr(parent);
+    var newName = decl.Name + "_checked";
+    MemberDecl newDecl = null;
+
     if (decl is Method origMethod) {
       var newMethod = cloner.CloneMethod(origMethod);
-      newMethod.Name = origMethod.Name + "_checked";
+      newMethod.Name = newName;
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var receiver = origMethod.IsStatic
-        ? (Expression)new StaticReceiverExpr(tok, parent, false)
-        : (Expression)new ThisExpr(parent);
       var selector = new MemberSelectExpr(tok, receiver, origMethod.Name) {
         Member = origMethod,
         TypeApplication_JustMember = new List<Type>(), // TODO: fill in properly
@@ -75,22 +80,14 @@ public class ExpectContracts : IRewriter {
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
       newMethod.Body = body;
-      parent.Members.Add(newMethod);
+      newDecl = newMethod;
     } else if (decl is Function origFunc) {
       var newFunc = cloner.CloneFunction(origFunc);
-      newFunc.Name = origFunc.Name + "_checked";
+      newFunc.Name = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var callExpr = new FunctionCallExpr(tok, origFunc.Name, new ThisExpr(tok), tok, tok, args);
+      var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, tok, tok, args);
       newFunc.Body = callExpr;
-      var receiver = origFunc.IsStatic ?
-        (Expression)new StaticReceiverExpr(tok, parent, false) :
-        (Expression)new ThisExpr(parent);
-      var selector = new MemberSelectExpr(tok, receiver, origFunc.Name) {
-        Member = origFunc,
-        TypeApplication_JustMember = new List<Type>(), // TODO: fill in properly
-        TypeApplication_AtEnclosingClass = new List<Type>() // TODO: fill in properly
-      };
 
       var localName = origFunc.Result?.Name ?? "__result";
       var local = new LocalVariable(tok, tok, localName, origFunc.ResultType, false);
@@ -108,7 +105,12 @@ public class ExpectContracts : IRewriter {
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
       body.AppendStmt(new ReturnStmt(tok, tok, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       newFunc.ByMethodBody = body;
-      parent.Members.Add(newFunc);
+      newDecl = newFunc;
+    }
+
+    if (newDecl is not null) {
+      parent.Members.Add(newDecl);
+      wrappedDeclarations.Add(decl, newDecl);
     }
   }
 
@@ -127,9 +129,70 @@ public class ExpectContracts : IRewriter {
     foreach (var (topLevelDecl, decl) in membersToWrap) {
       AddWrapper(topLevelDecl, decl);
     }
+
+    callRedirector = new CallRedirector(wrappedDeclarations);
+  }
+
+  class CallRedirector : TopDownVisitor<MemberDecl> {
+    private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations;
+
+    public CallRedirector(Dictionary<MemberDecl, MemberDecl> wrappedDeclarations) {
+      this.wrappedDeclarations = wrappedDeclarations;
+    }
+
+    private bool HasTestAttribute(MemberDecl decl) {
+      return Attributes.Contains(decl.Attributes, "test");
+    }
+
+    private bool HasExternAttribute(MemberDecl decl) {
+      return Attributes.Contains(decl.Attributes, "extern");
+    }
+
+    private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
+      // TODO: make this configurable
+      return (HasTestAttribute(caller) || HasExternAttribute(callee)) &&
+             wrappedDeclarations.ContainsKey(caller);
+    }
+
+    protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
+      if (expr is FunctionCallExpr fce) {
+        if (ShouldCallWrapper(decl, fce.Function)) {
+          var target = fce.Function;
+          var newTarget = wrappedDeclarations[target];
+          Console.WriteLine($"Call (expression) to {target.Name} redirecting to {newTarget.Name}");
+          // TODO: apparently the following isn't enough
+          fce.Function = (Function)newTarget;
+          fce.Name = newTarget.Name;
+        }
+      }
+
+      return true;
+    }
+
+    protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
+      if (stmt is CallStmt cs) {
+        if (ShouldCallWrapper(decl, cs.Method)) {
+          var target = cs.MethodSelect.Member;
+          var newTarget = wrappedDeclarations[target];
+          Console.WriteLine($"Call (statement) to {target.Name} redirecting to {newTarget.Name}");
+          // TODO: apparently the following isn't enough
+          cs.MethodSelect.Member = newTarget;
+          cs.MethodSelect.MemberName = newTarget.Name;
+        }
+      }
+
+      return true;
+    }
   }
 
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
-    // TODO: replace calls as dictated by the policy currently enabled
+    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      foreach (var decl in topLevelDecl.Members) {
+        if (decl is ICallable callable) {
+          Console.WriteLine($"Visiting {decl.Name}");
+          callRedirector.Visit(callable, decl);
+        }
+      }
+    }
   }
 }

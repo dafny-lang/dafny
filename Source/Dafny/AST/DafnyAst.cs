@@ -10132,7 +10132,7 @@ namespace Microsoft.Dafny {
 
   public class MemberSelectExpr : Expression {
     public readonly Expression Obj;
-    public readonly string MemberName;
+    public string MemberName;
     [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
     [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
 
@@ -10493,7 +10493,7 @@ namespace Microsoft.Dafny {
   }
 
   public class FunctionCallExpr : Expression {
-    public readonly string Name;
+    public string Name;
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly IToken CloseParen;
