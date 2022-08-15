@@ -72,7 +72,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Does Dafny verify methods in parallel?"](FAQParallel)
 - ["Is there a doc generator for Dafny?"](FAQDocGenerator)
 - [TODO 11/5- FAQ or ERROR?]
-- ["Why does Dafny complain about `set i: int | Contains(i)`"] - TODO 1/13/2022
+- ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
 - ["Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?"](FAQNonlinearArith)
 - ["How do `{:split_here}` and `{:focus}` work to divide up a verification condition?"] - TODO - 1/7/2022
@@ -88,7 +88,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I make the dafny termination checker happy with this pattern of mutual recursion?"] - TODO 6/24/2022
 - ["What is the easiest way to prove that a class instance is not an instance of a trait?"] - TODO 6/24/2022
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
-- ["How do I declare a default value for a parameter of a method or function?"] - TODO
+- ["How do I declare a default value for a parameter of a method or function?"](FAQDefaultParameter)
 - ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"](FAQRedundantCase)
 - ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"] - TODO 7/15/2022
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
