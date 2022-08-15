@@ -8746,7 +8746,7 @@ namespace Microsoft.Dafny {
   // ------------------------------------------------------------------------------------------------------
 
   public abstract class TokenWrapper : IToken {
-    protected readonly IToken WrappedToken;
+    public readonly IToken WrappedToken;
     protected TokenWrapper(IToken wrappedToken) {
       Contract.Requires(wrappedToken != null);
       WrappedToken = wrappedToken;
