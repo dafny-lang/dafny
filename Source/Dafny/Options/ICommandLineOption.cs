@@ -17,7 +17,7 @@ public interface ICommandLineOption {
   void PostProcess(DafnyOptions options);
 
   public static string Help(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
-    var regex = new Regex(@"----\s([^-]+)\s-+\n");
+    var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
     var categories = regex.Matches(template).ToArray();
 
     var optionsByCategory = options.GroupBy(option => option.Category).
@@ -27,17 +27,19 @@ public interface ICommandLineOption {
     var outputIndex = 0;
     for (var index = 0; index < categories.ToArray().Length; index++) {
       var category = categories.ToArray()[index];
-      output.Append(template.Substring(outputIndex, category.Index));
+      var preCategory = template.Substring(outputIndex, category.Index - outputIndex);
+      output.Append(preCategory);
       outputIndex = category.Index + category.Length;
       var categoryName = category.Groups[1].Value;
       output.Append(category.Value);
       var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<ICommandLineOption>());
 
-      foreach (var option in optionsForCategory) {
+      foreach (var option in optionsForCategory.OrderBy(o => o.LongName)) {
         var prefix = oldStyle ? "/" : "--";
         var suffix = oldStyle ? ":" : "=";
-        var optionHelpHeader = prefix + option.LongName + suffix + "<value>";
-        var optionHelp = optionHelpHeader + "\n" + option.Description;
+        var optionHelpHeader = "  " + prefix + option.LongName + suffix + "<value>";
+        var linePrefix = "\n      ";
+        var optionHelp = optionHelpHeader + linePrefix + string.Join(linePrefix, option.Description.Split("\n")) + "\n";
         output.Append(optionHelp);
       }
     }

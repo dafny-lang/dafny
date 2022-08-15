@@ -1052,9 +1052,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     If print before the module is resolved (/dprint), then everything in the module
     is printed.
     If no view is specified, then everything in the module is printed.
-/showSnippets:<n>
-    0 (default) - don't show source code snippets for Dafny messages
-    1 - show a source code snippet for each Dafny message
 /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
 /pmtrace      print pattern-match compiler debug info
 /titrace      print type-inference debug info
@@ -1280,17 +1277,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         memory (i.e., does not write an output file) and runs it
     4 - like (3), but attempts to compile and run regardless of
         verification outcome
-/compileTarget:<lang>
-    cs (default) - Compilation to .NET via C#
-    go - Compilation to Go
-    js - Compilation to JavaScript
-    java - Compilation to Java
-    py - Compilation to Python
-    cpp - Compilation to C++
-
-    Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
-    This includes lack of support for BigIntegers (aka int), most higher order
-    functions, and advanced features like traits or co-inductive types.
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
