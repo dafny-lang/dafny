@@ -882,6 +882,46 @@ datatype T = Test
 }
 ");
     }
+    [Fact]
+    public void FormatterworksForAlternatives() {
+      FormatterWorksFor(@"
+method AlternativeStmt() {
+  if
+  {
+    case x % 2 == 1 =>
+      print ""odd"";
+    case x % 2 == 0 =>
+      print ""even"";
+      // That's the last case
+  }
+  if
+  case x % 2 == 1 =>
+    print ""odd1"";
+  case x % 2 == 0 =>
+    print ""even1"";
+    // That's the last case
+}
+
+method AlternativeLoopStmt() {
+  while
+    invariant x >= 0
+  {
+    case x % 2 == 1 =>
+      print ""odd2"";
+    case x % 2 == 0 =>
+      print ""even2"";
+      // That's the last case
+  }
+  while
+    invariant x >= 0
+  case x % 2 == 1 =>
+    print ""odd3"";
+  case x % 2 == 0 =>
+    print ""even3"";
+    // That's the last case
+}
+");
+    }
 
     private void FormatterWorksFor(string programString) {
       BatchErrorReporter reporter = new BatchErrorReporter();

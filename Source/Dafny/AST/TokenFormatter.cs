@@ -766,35 +766,57 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             if (ifStmt.OwnedTokens.Count > 0) {
               formatter.SetOpeningIndentedRegion(ifStmt.OwnedTokens[0], indent);
             }
-            formatter.SetDelimiterIndentedRegions(ifStmt.Thn.Tok, indent);
-            formatter.SetClosingIndentedRegion(ifStmt.Thn.EndTok, indent);
+            Visit(ifStmt.Guard, indent);
+            VisitBody(ifStmt.Thn, indent);
             if (ifStmt.OwnedTokens.Count > 1) { // "else"
               formatter.SetKeywordWithoutSurroundingIndentation(ifStmt.OwnedTokens[1], indent);
             }
-            if (ifStmt.Els != null) {
-              formatter.SetOpeningIndentedRegion(ifStmt.Els.Tok, indent);
-              formatter.SetClosingIndentedRegion(ifStmt.Els.EndTok, indent);
+            VisitBody(ifStmt.Els, indent);
+            return false;
+          }
+        case AlternativeStmt alternativeStmt: {
+            ApplyMatchFormatting(indent, alternativeStmt.OwnedTokens);
+            VisitAlternatives(alternativeStmt.Alternatives, indent);
+            return false;
+          }
+        case ForallStmt forallStmt: {
+            FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
+            foreach (var ens in forallStmt.Ens) {
+              formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
             }
 
-            break;
+            formatter.SetClosingIndentedRegion(forallStmt.EndTok, indent);
+            return false;
           }
-        case ForallStmt forallStmt:
-          FormatLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
-          foreach (var ens in forallStmt.Ens) {
-            formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+        case WhileStmt whileStmt: {
+            FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
+            foreach (var ens in whileStmt.Invariants) {
+              formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+            }
+
+            foreach (var dec in whileStmt.Decreases.Expressions) {
+              formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+            }
+
+            formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
+            return false;
           }
-          formatter.SetClosingIndentedRegion(forallStmt.EndTok, indent);
-          return false;
-        case WhileStmt whileStmt:
-          FormatLikeLoop(whileStmt.OwnedTokens, whileStmt.Body, indent);
-          foreach (var ens in whileStmt.Invariants) {
-            formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+        case AlternativeLoopStmt alternativeLoopStmt: {
+            ApplyMatchFormatting(indent, alternativeLoopStmt.OwnedTokens);
+            foreach (var ens in alternativeLoopStmt.Invariants) {
+              formatter.SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+            }
+            foreach (var dec in alternativeLoopStmt.Decreases.Expressions) {
+              formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+            }
+
+            VisitAlternatives(alternativeLoopStmt.Alternatives, indent);
+            if (alternativeLoopStmt.EndTok.val == "}") {
+              formatter.SetClosingIndentedRegion(alternativeLoopStmt.EndTok, indent);
+            }
+
+            return false;
           }
-          foreach (var dec in whileStmt.Decreases.Expressions) {
-            formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
-          }
-          formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
-          return false;
         case ForLoopStmt forLoopStmt: {
             var ownedTokens = forLoopStmt.OwnedTokens;
             if (ownedTokens.Count > 0) {
@@ -857,8 +879,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             break;
           }
         case NestedMatchStmt: {
-            var ownedTokens = stmt.OwnedTokens;
-            ApplyMatchFormatting(indent, ownedTokens);
+            ApplyMatchFormatting(indent, stmt.OwnedTokens);
             break;
           }
         case RevealStmt:
@@ -927,6 +948,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       return true;
+    }
+
+    private void VisitAlternatives(List<GuardedAlternative> alternatives, int indent) {
+      foreach (var alternative in alternatives) {
+        Visit(alternative.Guard, indent + SpaceTab);
+        foreach (var bodyStmt in alternative.Body) {
+          Visit(bodyStmt, indent + SpaceTab);
+        }
+      }
     }
 
     private void VisitBody(Statement body, int indent) {
@@ -1038,6 +1068,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var afterArrowIndent = indent + SpaceTab;
       foreach (var token in ownedTokens) {
         switch (token.val) {
+          case "if":
+          case "while":
           case "match":
             formatter.SetOpeningIndentedRegion(token, indent);
             break;
