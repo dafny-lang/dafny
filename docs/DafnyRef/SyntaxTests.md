@@ -58,7 +58,7 @@ op:      - ! ~ x  -!~x
 op:      a + b - c * d / e % f a+b-c*d/e%f
 op:      <= >= < > == != b&&c || ==> <==> <==
 # 28. !=# !! in !in
-op:      !in∆  !iné
+op:      !in???  !in??
 not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }
 types:   int real string char bool nat ORDINAL

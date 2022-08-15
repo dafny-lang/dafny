@@ -1903,15 +1903,15 @@ method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
 
 where `:att1` and `:att2` are attributes of the method,
 `T1` and `T2` are type parameters of the method (if generic),
-`a, b, c` are the method’s in-parameters, `x, y, z` are the
-method’s out-parameters, `Pre` is a boolean expression denoting the
-method’s precondition, `Frame` denotes a set of objects whose fields may
+`a, b, c` are the method???s in-parameters, `x, y, z` are the
+method???s out-parameters, `Pre` is a boolean expression denoting the
+method???s precondition, `Frame` denotes a set of objects whose fields may
 be updated by the method, `Post` is a boolean expression denoting the
-method’s postcondition, `Rank` is the method’s variant function, and
+method???s postcondition, `Rank` is the method???s variant function, and
 `Body` is a list of statements that implements the method. `Frame` can be a list
 of expressions, each of which is a set of objects or a single object, the
 latter standing for the singleton set consisting of that one object. The
-method’s frame is the union of these sets, plus the set of objects
+method???s frame is the union of these sets, plus the set of objects
 allocated by the method body. For example, if `c` and `d` are parameters
 of a class type `C`, then
 
@@ -1930,7 +1930,7 @@ A method can be declared as ghost by preceding the declaration with the
 keyword `ghost` and as static by preceding the declaration with the keyword `static`.
 The default is non-static (i.e., instance) and non-ghost.
 An instance method has an implicit receiver parameter, `this`.
-A static method M in a class C can be invoked by `C.M(…)`.
+A static method M in a class C can be invoked by `C.M(???)`.
 
 An ordinary method is declared with the `method` keyword;
 [the section about constructors](#sec-constructors) explains methods that instead use the
@@ -2308,11 +2308,11 @@ function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
 
 where `:att1` and `:att2` are attributes of the function, if any, `T1`
 and `T2` are type parameters of the function (if generic), `a, b, c` are
-the function’s parameters, `T` is the type of the function’s result,
-`Pre` is a boolean expression denoting the function’s precondition,
+the function???s parameters, `T` is the type of the function???s result,
+`Pre` is a boolean expression denoting the function???s precondition,
 `Frame` denotes a set of objects whose fields the function body may
-depend on, `Post` is a boolean expression denoting the function’s
-postcondition, `Rank` is the function’s variant function, and `Body` is
+depend on, `Post` is a boolean expression denoting the function???s
+postcondition, `Rank` is the function???s variant function, and `Body` is
 an expression that defines the function's return value. The precondition
 allows a function to be partial, that is, the precondition says when the
 function is defined (and Dafny will verify that every use of the function
@@ -2357,7 +2357,7 @@ keywords "`function method`". [TODO: This use of keywords is proposed to change.
 Like methods, functions can be either _instance_ (which they are by default) or
 _static_ (when the function declaration contains the keyword `static`).
 An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
-by `C.F(…)`. This provides a convenient way to declare a number of helper
+by `C.F(???)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
 As for methods, a ``...`` is used when declaring
@@ -3695,7 +3695,7 @@ playing field between induction (which is familiar) and co-induction
 (which, despite being the dual of induction, is often perceived as eerily
 mysterious). Moreover, the automation provided by our SMT-based verifier
 reduces the tedium in writing co-inductive proofs. For example, it
-verifies `Theorem_BelowSquare` from the program text given above— no
+verifies `Theorem_BelowSquare` from the program text given above??? no
 additional lemmas or tactics are needed. In fact, as a consequence of the
 automatic-induction heuristic in Dafny, the verifier will
 automatically verify `Theorem_BelowSquare` even given an empty body.
@@ -3707,7 +3707,7 @@ For example, as illustrated by the second co-lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
 futile. (We explain how this works in [the section about greatest lemmas](#sec-colemmas)) Our initial experience
 with co-induction in Dafny shows it to provide an intuitive, low-overhead
-user experience that compares favorably to even the best of today’s
+user experience that compares favorably to even the best of today???s
 interactive proof assistants for co-induction. In addition, the
 co-inductive features and verification support in Dafny have other
 potential benefits. The features are a stepping stone for verifying
@@ -3727,13 +3727,13 @@ enforced as follows: Dafny computes the call graph of functions. The strongly co
 components within it are _clusters_ of mutually recursive definitions; the clusters are arranged in
 a DAG. This stratifies the functions so that a call from one cluster in the DAG to a
 lower cluster is allowed arbitrarily. For an intra-cluster call, Dafny prescribes a proof
-obligation that is taken through the program verifier’s reasoning engine. Semantically,
-each function activation is labeled by a _rank_—a lexicographic tuple determined
-by evaluating the function’s `decreases` clause upon invocation of the function. The
+obligation that is taken through the program verifier???s reasoning engine. Semantically,
+each function activation is labeled by a _rank_???a lexicographic tuple determined
+by evaluating the function???s `decreases` clause upon invocation of the function. The
 proof obligation for an intra-cluster call is thus that the rank of the callee is strictly less
 (in a language-defined well-founded relation) than the rank of the caller. Because
 these well-founded checks correspond to proving termination of executable code, we
-will often refer to them as “termination checks”. The same process applies to methods.
+will often refer to them as ???termination checks???. The same process applies to methods.
 
 Lemmas in Dafny are commonly introduced by declaring a method, stating
 the property of the lemma in the _postcondition_ (keyword `ensures`) of
@@ -3743,7 +3743,7 @@ the method. Lemmas are stated, used, and proved as methods, but
 since they have no use at run time, such lemma methods are typically
 declared as _ghost_, meaning that they are not compiled into code. The
 keyword `lemma` introduces such a method. Control flow statements
-correspond to proof techniques—case splits are introduced with if
+correspond to proof techniques???case splits are introduced with if
 statements, recursion and loops are used for induction, and method calls
 for structuring the proof. Additionally, the statement:
 ```dafny
@@ -3798,15 +3798,15 @@ each parameter of a constructor can be named in order to introduce a
 corresponding destructor. For example, if `xs` is the stream
 `SCons(x, ys)`, then `xs.SCons?` and `xs.head == x` hold. In contrast
 to datatype declarations, there is no grounding check for
-co-datatypes—since a codatatype admits infinite values, the type is
+co-datatypes???since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
 ### 19.3.3. Creating Values of Co-datatypes
-To define values of co-datatypes, one could imagine a “co-function”
-language feature: the body of a “co-function” could include possibly
+To define values of co-datatypes, one could imagine a ???co-function???
+language feature: the body of a ???co-function??? could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
 semantics (akin to a **CoFixpoint** in Coq). Dafny uses a different design:
-it offers only functions (not “co-functions”), but it classifies each
+it offers only functions (not ???co-functions???), but it classifies each
 intra-cluster call as either _recursive_ or _co-recursive_. Recursive calls
 are subject to termination checks. Co-recursive calls may be
 never-ending, which is what is needed to define infinite values of a
@@ -3866,10 +3866,10 @@ exists, the (implicit functor defining the) co-predicate must be
 monotonic. This is enforced by a syntactic restriction on the form of the
 body of co-predicates: after conversion to negation normal form (i.e.,
 pushing negations down to the atoms), intra-cluster calls of
-co-predicates must appear only in _positive_ positions—that is, they must
+co-predicates must appear only in _positive_ positions???that is, they must
 appear as atoms and must not be negated. Additionally, to guarantee
 soundness later on, we require that they appear in _co-friendly_
-positions—that is, in negation normal form, when they appear under
+positions???that is, in negation normal form, when they appear under
 existential quantification, the quantification needs to be limited to a
 finite range[^fn-copredicate-restriction]. Since the evaluation of a co-predicate might not
 terminate, co-predicates are always ghost. There is also a restriction on
@@ -3925,7 +3925,7 @@ induction. More precisely, Dafny passes to the SMT solver an
 assumption `D(P)` for every co-predicate `P`, where:
 
 ```dafny
-D(P) = ? x • P(x) <==> ? k • P#[k](x)
+D(P) = ? x ??? P(x) <==> ? k ??? P#[k](x)
 ```
 
 In other words, a co-predicate is true iff its corresponding prefix
@@ -3958,7 +3958,7 @@ lemma UpPosLemmaK(k: nat, n: int)
 
 The lemma `UpPosLemma` proves `Pos(Up(n))` for every `n > 0`. We first
 show `Pos#[k](Up(n ))`, for `n > 0` and an arbitrary `k`, and then use
-the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
+the forall statement to show `? k ??? Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
@@ -4000,7 +4000,7 @@ The prefix lemma is constructed from the co-lemma by
 
 * adding a parameter `_k` of type `nat` to denote the prefix length,
 
-* replacing in the co-lemma’s postcondition the positive co-friendly
+* replacing in the co-lemma???s postcondition the positive co-friendly
   occurrences of co-predicates by corresponding prefix predicates,
   passing in `_k` as the prefix-length argument,
 
@@ -4010,7 +4010,7 @@ The prefix lemma is constructed from the co-lemma by
   `M(args)` to a greatest lemma by a call `M#[_k - 1](args)` to the
   corresponding prefix lemma, and then
 
-* making the body’s execution conditional on `_k != 0`.
+* making the body???s execution conditional on `_k != 0`.
 
 Note that this rewriting removes all co-recursive calls of co-lemmas,
 replacing them with recursive calls to prefix lemmas. These recursive
@@ -4025,9 +4025,9 @@ co-lemma.[^fn-co-predicate-co-lemma-diffs]
 
 We can now think of the body of the co-lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
-this new body will establish the greatest lemma’s declared postcondition (on
+this new body will establish the greatest lemma???s declared postcondition (on
 account of the `D` axiom, and remembering that only the positive
-co-friendly occurrences of co-predicates in the co-lemma’s postcondition
+co-friendly occurrences of co-predicates in the co-lemma???s postcondition
 are rewritten), so there is no reason for the program verifier to check
 it.
 

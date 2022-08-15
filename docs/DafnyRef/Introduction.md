@@ -22,8 +22,8 @@ omits them from the executable code.
 
 The `dafny` verifier is run as part of the compiler. As such, a programmer
 interacts with it in much the same way as with the static type
-checker—when the tool produces errors, the programmer responds by
-changing the program’s type declarations, specifications, and statements.
+checker???when the tool produces errors, the programmer responds by
+changing the program???s type declarations, specifications, and statements.
 
 (This document typically uses "Dafny" to refer to the programming language
 and `dafny` to refer to the software tool that verifies and compiles programs

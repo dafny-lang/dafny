@@ -1262,7 +1262,7 @@ bound. A simple trick for dealing with this situation is given below:
 
 This is actually Dafny's guess for this situation, as it sees `i < n` and
 assumes that `n - i` is the quantity that decreases. The upper bound of the
-loop invariant implies that `0 <= n – i`, and gives Dafny a lower bound on
+loop invariant implies that `0 <= n ??? i`, and gives Dafny a lower bound on
 the quantity. This also works when the bound `n` is not constant, such as
 in the binary search algorithm, where two quantities approach each other,
 and neither is fixed.

@@ -975,13 +975,13 @@ and [expressions](#sec-match-expression).
 `CasePattern`s are used
 in `LetExpr`s and `VarDeclStatement`s.
 The `ExtendedPattern` differs from `CasePattern` in allowing literals,
-symbolic constants, and disjunctive (“or”) patterns.
+symbolic constants, and disjunctive (???or???) patterns.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
 must correspond to one of the following:
 
-* (0) a case disjunction (“or-pattern”)
+* (0) a case disjunction (???or-pattern???)
 * (1) bound variable (a simple identifier),
 * (2) a constructor of the type of the value,
 * (3) a literal of the correct type, or
