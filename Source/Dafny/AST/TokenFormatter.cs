@@ -19,8 +19,11 @@ public class HelperString {
 
   public static bool Debug = false;
 
+  public static readonly Regex FinishesByNewlineRegex =
+    new(@"(\r?\n|\r)[ \t]*$");
+
   public static bool FinishesByNewline(string s) {
-    return s.Length > 0 && (s[^1] is '\n' or '\r');
+    return FinishesByNewlineRegex.IsMatch(s);
   }
 
   public static readonly Regex NewlineRegex =
@@ -36,7 +39,7 @@ public class HelperString {
     var commentExtra = "";
     // Invariant: Relative indentation inside a multi-line comment should be unchanged
 
-    return NewlineRegex.Replace(input,
+    var result = NewlineRegex.Replace(input,
       MaybeDebug(trailingTrivia, match => {
         if (match.Groups["trailingWhitespace"].Success) {
           return RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
@@ -53,7 +56,9 @@ public class HelperString {
         }
 
         if (commentType.Length == 0) {//End of the string. Do we indent or not?
-          return precededByNewline && !trailingTrivia ? lastIndentation : match.Groups[0].Value;
+          return precededByNewline && !trailingTrivia ? lastIndentation :
+            trailingTrivia ? "" : // The leading trivia of the next token is going to take care of the indentation
+            match.Groups[0].Value;
         }
 
         if (!startOfString) {
@@ -91,6 +96,8 @@ public class HelperString {
         return lastIndentation;
       })
     );
+
+    return result;
   }
 
   private static MatchEvaluator MaybeDebug(bool trailingTrivia, MatchEvaluator func) {

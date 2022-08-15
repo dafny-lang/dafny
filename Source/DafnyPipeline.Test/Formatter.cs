@@ -882,6 +882,7 @@ datatype T = Test
 }
 ");
     }
+
     [Fact]
     public void FormatterworksForAlternatives() {
       FormatterWorksFor(@"
@@ -923,17 +924,37 @@ method AlternativeLoopStmt() {
 ");
     }
 
-    private void FormatterWorksFor(string programString) {
+    [Fact]
+    public void IndentCorrectlyAModule() {
+      FormatterWorksFor(@"
+module Tests {
+class C {
+  function F(c: C, d: D): bool { true }
+  method M(x: int)
+  { }
+}
+}", @"
+module Tests {
+  class C {
+    function F(c: C, d: D): bool { true }
+    method M(x: int)
+    { }
+  }
+}");
+    }
+
+    private void FormatterWorksFor(string testCase, string expectedProgramString = null) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
-      foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
+      var newlineTypes = Enum.GetValues(typeof(Newlines));
+      foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
-        programString = AdjustNewlines(programString);
-        var programNotIndented = indentRegex.Replace(programString, "");
-        var expectedProgram = removeTrailingNewlineRegex.Replace(programString, "");
+        var programString = AdjustNewlines(testCase);
+        var programNotIndented = expectedProgramString != null ? programString : indentRegex.Replace(programString, "");
+        var expectedProgram = expectedProgramString != null ? AdjustNewlines(expectedProgramString) : removeTrailingNewlineRegex.Replace(programString, "");
 
         ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
         Microsoft.Dafny.Type.ResetScopes();
