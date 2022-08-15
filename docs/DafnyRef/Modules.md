@@ -283,7 +283,7 @@ verbose enough to impede understanding.
 
 
 
-## 4.5. Export Sets and Access Control
+## 4.5. Export Sets and Access Control {#sec-export-sets-and-access-control}
 ````grammar
 ModuleExport =
   "export"
