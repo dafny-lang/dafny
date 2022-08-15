@@ -5,6 +5,7 @@ public class CoresOption : IntegerOption {
   public override object GetDefaultValue(DafnyOptions options) => 1;
   public override string LongName => "cores";
   public override string ShortName => null;
+  public override string Category => "General options";
 
   public override string Description => @"
 /cores:<n>
@@ -20,6 +21,8 @@ public class UseBaseFileName : BooleanOption {
   public static readonly UseBaseFileName Instance = new();
   public override string LongName => "useBaseNameForFileName";
   public override string ShortName => null;
+  public override string Category => "General options";
+
   public override string Description => @"
 /useBaseNameForFileName : When parsing use basename of file for tokens instead
                           of the path supplied on the command line".TrimStart();
@@ -35,6 +38,8 @@ public class VerificationTimeLimit : NaturalNumberOption {
   public override object GetDefaultValue(DafnyOptions options) => 0U;
   public override string LongName => "verificationTimeLimit";
   public override string ShortName => "";
+  public override string Category => "Verification options";
+
   public override string Description => @"
 /timeLimit:<num>
                 Limit the number of seconds spent trying to verify

@@ -227,6 +227,9 @@ namespace Microsoft.Dafny {
       return base.ParseOption(name, ps);
     }
 
+    public override string Help =>
+      ICommandLineOption.Help(base.Help, AvailableNewStyleOptions, true);
+
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {

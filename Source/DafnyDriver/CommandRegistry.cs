@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -42,7 +44,7 @@ static class CommandRegistry {
     var longNames = command.Options.
       ToDictionary(o => o.LongName, o => o);
     var remainingArguments = arguments.Skip(1);
-    var dafnyOptions = new CommandBasedOptions();
+    var dafnyOptions = new CommandBasedOptions(command);
     var foundOptions = new HashSet<ICommandLineOption>();
     var optionValues = new Dictionary<ICommandLineOption, object>();
     var optionLessValues = new List<string>();
@@ -116,13 +118,21 @@ static class CommandRegistry {
   }
 
   class CommandBasedOptions : DafnyOptions {
+    private readonly ICommand command;
+
     private readonly ISet<string> obsoleteOptions = new HashSet<string>() {
-      "spillTargetCode", "compile"
+      "spillTargetCode", "compile", "dafnyVerify"
     };
+
+    public CommandBasedOptions(ICommand command) {
+      this.command = command;
+    }
 
     public void AddFile(string file) {
       base.AddFile(file, null);
     }
+
+    public override string Help => ICommandLineOption.Help(HelpBody, command.Options);
 
     protected override bool ParseOption(string name, CommandLineParseState ps) {
       if (obsoleteOptions.Contains(name)) {

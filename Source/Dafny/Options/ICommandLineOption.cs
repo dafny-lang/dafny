@@ -1,16 +1,50 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny;
 
 public interface ICommandLineOption {
   object GetDefaultValue(DafnyOptions options);
   string LongName { get; }
+
   string ShortName { get; }
+  string Category { get; }
   string Description { get; }
   bool CanBeUsedMultipleTimes { get; }
   ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
   void PostProcess(DafnyOptions options);
+
+  public static string Help(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
+    var regex = new Regex(@"----\s([^-]+)\s-+\n");
+    var categories = regex.Matches(template).ToArray();
+
+    var optionsByCategory = options.GroupBy(option => option.Category).
+      ToDictionary(g => g.Key, g => g as IEnumerable<ICommandLineOption>);
+
+    var output = new StringBuilder();
+    var outputIndex = 0;
+    for (var index = 0; index < categories.ToArray().Length; index++) {
+      var category = categories.ToArray()[index];
+      output.Append(template.Substring(outputIndex, category.Index));
+      outputIndex = category.Index + category.Length;
+      var categoryName = category.Groups[1].Value;
+      output.Append(category.Value);
+      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<ICommandLineOption>());
+
+      foreach (var option in optionsForCategory) {
+        var prefix = oldStyle ? "/" : "--";
+        var suffix = oldStyle ? ":" : "=";
+        var optionHelpHeader = prefix + option.LongName + suffix + "<value>";
+        var optionHelp = optionHelpHeader + "\n" + option.Description;
+        output.Append(optionHelp);
+      }
+    }
+    output.Append(template.Substring(outputIndex));
+
+    return output.ToString();
+  }
 }
 
 public abstract class CommandLineOption<T> : ICommandLineOption {
@@ -32,6 +66,7 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
   public abstract object GetDefaultValue(DafnyOptions options);
   public abstract string LongName { get; }
   public abstract string ShortName { get; }
+  public abstract string Category { get; }
   public abstract string Description { get; }
   public abstract bool CanBeUsedMultipleTimes { get; }
   public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
