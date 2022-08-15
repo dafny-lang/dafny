@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      var argumentStack = new Stack<string>(ps.args.Skip(ps.i));
+      var argumentStack = new Stack<string>(ps.args.Skip(ps.i).Reverse());
       var originalSize = argumentStack.Count;
       foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
         switch (option.Parse(this, argumentStack)) {
@@ -219,12 +219,12 @@ namespace Microsoft.Dafny {
           case ParsedOption parsedOption:
             Options.OptionArguments[option] = parsedOption.Value;
             option.PostProcess(this);
+            ps.nextIndex = ps.i + originalSize - argumentStack.Count;
             return true;
           default:
             throw new ArgumentOutOfRangeException();
         }
       }
-      ps.nextIndex = ps.i + originalSize - argumentStack.Count;
 
       return ParseBoogieOption(name, ps);
     }

@@ -4,13 +4,13 @@ class CompileOption : NaturalNumberOption {
   public static readonly CompileOption Instance = new();
 
   public override object GetDefaultValue(DafnyOptions options) {
-    return -1;
+    return 999;
   }
 
   public override void PostProcess(DafnyOptions options) {
     var compile = Get(options);
 
-    if (compile >= 0) {
+    if (compile != 999) {
       // convert option to two booleans
       options.Compile = compile != 0;
       options.ForceCompile = compile == 2 || compile == 4;
