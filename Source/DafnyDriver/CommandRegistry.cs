@@ -46,6 +46,8 @@ static class CommandRegistry {
     var foundOptions = new HashSet<ICommandLineOption>();
     var optionValues = new Dictionary<ICommandLineOption, object>();
     var optionLessValues = new List<string>();
+    var options = new Options(optionLessValues, optionValues);
+    dafnyOptions.Options = options;
     while (remainingArguments.Any()) {
       var head = remainingArguments.First();
       remainingArguments = remainingArguments.Skip(1);
@@ -92,7 +94,6 @@ static class CommandRegistry {
                 optionValues[option] = parsedOption.Value;
               }
               remainingArguments = remainingArguments.Skip(parsedOption.ConsumedArguments);
-              dafnyOptions.Options = new Options(optionLessValues, optionValues);
               option.PostProcess(dafnyOptions);
               break;
           }
@@ -109,8 +110,6 @@ static class CommandRegistry {
       notFoundOption.PostProcess(dafnyOptions);
     }
 
-    var options = new Options(optionLessValues, optionValues);
-    dafnyOptions.Options = options;
     command.PostProcess(dafnyOptions, options);
     dafnyOptions.ApplyDefaultOptions();
     return new ParseArgumentSuccess(dafnyOptions);

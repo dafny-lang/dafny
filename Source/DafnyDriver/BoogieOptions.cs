@@ -32,7 +32,7 @@ public class UseBaseFileName : BooleanOption {
 
 public class VerificationTimeLimit : NaturalNumberOption {
   public static readonly VerificationTimeLimit Instance = new();
-  public override object GetDefaultValue(DafnyOptions options) => 0;
+  public override object GetDefaultValue(DafnyOptions options) => 0U;
   public override string LongName => "verificationTimeLimit";
   public override string ShortName => "";
   public override string Description => @"
