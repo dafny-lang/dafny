@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
@@ -29,8 +28,8 @@ functions, and advanced features like traits or co-inductive types.".TrimStart()
 
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
-    var target = arguments.First();
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
+    var target = arguments.Pop();
     var compilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers()).ToList();
     var compiler = compilers.LastOrDefault(c => c.TargetId == target);
     if (compiler == null) {
@@ -38,7 +37,7 @@ functions, and advanced features like traits or co-inductive types.".TrimStart()
       return new FailedOption($"No compiler found for compileTarget \"{target}\"; expecting one of {known}");
     }
 
-    return new ParsedOption(1, compiler);
+    return new ParsedOption(compiler);
   }
 
   public override void PostProcess(DafnyOptions options) {

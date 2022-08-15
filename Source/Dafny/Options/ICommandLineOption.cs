@@ -8,12 +8,11 @@ namespace Microsoft.Dafny;
 public interface ICommandLineOption {
   object GetDefaultValue(DafnyOptions options);
   string LongName { get; }
-
   string ShortName { get; }
   string Category { get; }
   string Description { get; }
   bool CanBeUsedMultipleTimes { get; }
-  ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
+  ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
   void PostProcess(DafnyOptions options);
 
   public static string GenerateHelp(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
@@ -71,7 +70,7 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
   public abstract string Category { get; }
   public abstract string Description { get; }
   public abstract bool CanBeUsedMultipleTimes { get; }
-  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
+  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
 
   public virtual void PostProcess(DafnyOptions options) {
   }
@@ -80,14 +79,14 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
 public abstract class IntegerOption : CommandLineOption<int> {
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     if (!arguments.Any()) {
       return new FailedOption($"No argument found for option {LongName}");
     }
 
-    var value = arguments.First();
+    var value = arguments.Pop();
     if (int.TryParse(value, out var number)) {
-      return new ParsedOption(1, number);
+      return new ParsedOption(number);
     }
 
     return new FailedOption($"Failed to parse value {value} as an integer for option {LongName}");
@@ -97,14 +96,14 @@ public abstract class IntegerOption : CommandLineOption<int> {
 public abstract class NaturalNumberOption : CommandLineOption<uint> {
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     if (!arguments.Any()) {
       return new FailedOption($"No argument found for option {LongName}");
     }
 
-    var value = arguments.First();
+    var value = arguments.Pop();
     if (uint.TryParse(value, out var number)) {
-      return new ParsedOption(1, number);
+      return new ParsedOption(number);
     }
 
     return new FailedOption($"Failed to parse value {value} as a non-negative integer for option {LongName}");
@@ -115,30 +114,34 @@ public abstract class BooleanOption : CommandLineOption<bool> {
   public override bool CanBeUsedMultipleTimes => false;
   public override object GetDefaultValue(DafnyOptions options) => false;
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
-    var defaultResult = new ParsedOption(0, true);
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
+    var defaultResult = new ParsedOption(true);
     if (!arguments.Any()) {
       return defaultResult;
     }
 
-    var value = arguments.First();
-    return value switch {
-      "0" => new ParsedOption(1, false),
-      "1" => new ParsedOption(1, true),
-      _ => defaultResult
-    };
+    var value = arguments.Pop();
+    switch (value) {
+      case "0":
+        return new ParsedOption(false);
+      case "1":
+        return new ParsedOption(true);
+      default:
+        arguments.Push(value);
+        return defaultResult;
+    }
   }
 }
 
 public abstract class StringOption : CommandLineOption<string> {
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments) {
-    var value = arguments.First();
-    return new ParsedOption(1, value);
+  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
+    var value = arguments.Pop();
+    return new ParsedOption(value);
   }
 }
 
 public interface ParseOptionResult { }
 
-public record ParsedOption(int ConsumedArguments, object Value) : ParseOptionResult;
+public record ParsedOption(object Value) : ParseOptionResult;
 
 public record FailedOption(string Message) : ParseOptionResult;

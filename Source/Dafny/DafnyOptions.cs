@@ -209,20 +209,22 @@ namespace Microsoft.Dafny {
         return true;
       }
 
+      var argumentStack = new Stack<string>(ps.args.Skip(ps.i));
+      var originalSize = argumentStack.Count;
       foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
-        switch (option.Parse(this, ps.args.Skip(ps.i))) {
+        switch (option.Parse(this, argumentStack)) {
           case FailedOption failedOption:
             ps.Error(failedOption.Message);
             break;
           case ParsedOption parsedOption:
             Options.OptionArguments[option] = parsedOption.Value;
             option.PostProcess(this);
-            ps.nextIndex = ps.i + parsedOption.ConsumedArguments;
             return true;
           default:
             throw new ArgumentOutOfRangeException();
         }
       }
+      ps.nextIndex = ps.i + originalSize - argumentStack.Count;
 
       return ParseBoogieOption(name, ps);
     }

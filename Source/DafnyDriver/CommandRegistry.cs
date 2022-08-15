@@ -57,20 +57,26 @@ Dafny commands:";
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
+    var remainingArguments = new Stack<string>(arguments.Reverse());
+    if (remainingArguments.Count == 0) {
+      return new ParseArgumentSuccess(DafnyOptions.Create(arguments));
+    }
+
+    var first = remainingArguments.Pop();
     // Special cases because we're still supporting the old style CLI as well.
-    if (arguments[0] == "-h" || arguments[0] == "--help") {
+    if (first == "-h" || first == "--help") {
       var helpOptions = new HelpOptions {
         HelpRequested = true
       };
       return new ParseArgumentSuccess(helpOptions);
     }
-    if (arguments[0] == "--version") {
+    if (first == "--version") {
       var result = new DafnyOptions();
       result.VersionRequested = true;
       return new ParseArgumentSuccess(result);
     }
 
-    if (!Commands.TryGetValue(arguments[0], out var command)) {
+    if (!Commands.TryGetValue(first, out var command)) {
       return new ParseArgumentSuccess(DafnyOptions.Create(arguments));
     }
 
@@ -78,7 +84,7 @@ Dafny commands:";
       ToDictionary(o => o.ShortName, o => o);
     var longNames = command.Options.
       ToDictionary(o => o.LongName, o => o);
-    var remainingArguments = arguments.Skip(1);
+
     var dafnyOptions = new CommandBasedOptions(command);
     var foundOptions = new HashSet<ICommandLineOption>();
     var optionValues = new Dictionary<ICommandLineOption, object>();
@@ -86,13 +92,12 @@ Dafny commands:";
     var options = new Options(optionLessValues, optionValues);
     dafnyOptions.Options = options;
     while (remainingArguments.Any()) {
-      var head = remainingArguments.First();
-      remainingArguments = remainingArguments.Skip(1);
+      var head = remainingArguments.Pop();
       var isLongName = head.StartsWith("--");
       var isShortName = head.StartsWith("-") && !isLongName;
       var equalsSplit = head.Split("=");
       if (equalsSplit.Length > 1) {
-        remainingArguments = new[] { equalsSplit[1] }.Concat(remainingArguments);
+        remainingArguments.Push(equalsSplit[1]);
         head = equalsSplit[0];
       }
       if (isLongName || isShortName) {
@@ -107,8 +112,7 @@ Dafny commands:";
         }
         if (option == null) {
           if (isLongName) {
-            remainingArguments = dafnyOptions.RecogniseOldOptions(optionName, remainingArguments);
-            if (remainingArguments == null) {
+            if (!dafnyOptions.RecogniseOldOptions(optionName, remainingArguments)) {
               var hint = "";
               if (optionName.Contains(":")) {
                 hint += " Did you mean to use '=' instead of ':' ?";
@@ -130,7 +134,6 @@ Dafny commands:";
               } else {
                 optionValues[option] = parsedOption.Value;
               }
-              remainingArguments = remainingArguments.Skip(parsedOption.ConsumedArguments);
               break;
           }
 
@@ -187,21 +190,27 @@ class CommandBasedOptions : DafnyOptions {
     return base.ParseOption(name, ps);
   }
 
-  public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
+  public bool RecogniseOldOptions(string optionName, Stack<string> remainingArguments) {
     var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
     parseState.s = "-" + optionName;
     const string boogiePrefix = "boogie-";
     if (optionName.StartsWith(boogiePrefix)) {
       optionName = optionName.Substring(boogiePrefix.Length);
       if (ParseBoogieOption(optionName, parseState)) {
-        return remainingArguments.Skip(parseState.nextIndex);
+        for (var x = 0; x < parseState.nextIndex; x++) {
+          remainingArguments.Pop();
+        }
+        return true;
       }
     } else {
       if (ParseDafnySpecificOption(optionName, parseState)) {
-        return remainingArguments.Skip(parseState.nextIndex);
+        for (var x = 0; x < parseState.nextIndex; x++) {
+          remainingArguments.Pop();
+        }
+        return true;
       }
     }
 
-    return null;
+    return false;
   }
 }
