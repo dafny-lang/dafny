@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return tasks.
         OrderBy(t => t.Implementation.Priority).
         CreateOrderedEnumerable(
-          t => document.LastTouchedMethodPositions.IndexOf(t.Implementation.tok.GetLspPosition()),
+          t => document.LastTouchedVerifiables.IndexOf(t.Implementation.tok.GetLspPosition()),
           null, true).
         ToList();
     }

@@ -436,8 +436,9 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
+      rewriters.Add(new BitvectorOptimization(reporter));
 
-      if (DafnyOptions.O.DisallowConstructorCaseWithoutParenthesis) {
+      if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
 
@@ -2041,6 +2042,7 @@ namespace Microsoft.Dafny {
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
             new List<Formal>(),
+            null,
             new List<AttributedExpression>(),
             new List<FrameExpression>(),
             new List<AttributedExpression>(),
@@ -2332,7 +2334,7 @@ namespace Microsoft.Dafny {
       var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
-      var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+      var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
         f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
         f.ByMethodBody, f.Attributes, null, true);

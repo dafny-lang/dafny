@@ -652,26 +652,27 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string PrintInvocation(Formal f, int i) {
-        var prefix = customReceiver
-          ? datatype.IsRecordType || !f.HasName ? $"(({DtCtorDeclarationName(ctor)}{typeArgs}) _this)." : "_this.dtor_"
-          : "";
-        var (name, type) = ($"{prefix}{FormalName(f, i)}", f.Type);
+        var name = customReceiver
+          ? datatype.IsRecordType || !f.HasName
+            ? $"(({DtCtorDeclarationName(ctor)}{typeArgs}) _this).{FieldName(f, i)}"
+            : $"_this.{DestructorGetterName(f, ctor, i)}"
+          : FieldName(f, i);
         var constructorIndex = -1;
         bool ContainsTyVar(TypeParameter tp, Type ty)
           => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
              || ty.TypeArgs.Exists(ty => ContainsTyVar(tp, ty));
 
-        if ((constructorIndex = nonGhostTypeArgs.IndexOf(type.AsTypeParameter)) != -1) {
+        if ((constructorIndex = nonGhostTypeArgs.IndexOf(f.Type.AsTypeParameter)) != -1) {
           return $"converter{constructorIndex}({name})";
         }
 
-        if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, type))) {
+        if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, f.Type))) {
           var map = nonGhostTypeArgs.ToDictionary(
             tp => tp,
             tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
-          var to = Resolver.SubstType(type, map);
+          var to = Resolver.SubstType(f.Type, map);
           var downcast = new ConcreteSyntaxTree();
-          EmitDowncast(type, to, null, downcast).Write(name);
+          EmitDowncast(f.Type, to, null, downcast).Write(name);
           return downcast.ToString();
         }
 
@@ -700,7 +701,7 @@ namespace Microsoft.Dafny.Compilers {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
-              var DtorM = arg.HasName ? arg.CompileName : FormalName(arg, index);
+              var DtorM = arg.HasName ? "_" + arg.CompileName : FieldName(arg, index);
               //   TN dtor_QDtorM { get; }
               interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
@@ -876,7 +877,7 @@ namespace Microsoft.Dafny.Compilers {
       var i = 0;
       foreach (Formal arg in ctor.Formals) {
         if (!arg.IsGhost) {
-          wr.WriteLine($"public readonly {TypeName(arg.Type, wr, arg.tok)} {FormalName(arg, i)};");
+          wr.WriteLine($"public readonly {TypeName(arg.Type, wr, arg.tok)} {FieldName(arg, i)};");
           i++;
         }
       }
@@ -888,7 +889,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            w.WriteLine($"this.{FormalName(arg, i)} = {FormalName(arg, i)};");
+            w.WriteLine($"this.{FieldName(arg, i)} = {FormalName(arg, i)};");
             i++;
           }
         }
@@ -908,14 +909,12 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine($"var oth = other as {DtCtorName(ctor)}{TypeParameters(nonGhostTypeArgs)};");
         w.Write("return oth != null");
         i = 0;
-        foreach (Formal arg in ctor.Formals) {
+        foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
-            if (IsDirectlyComparable(arg.Type)) {
-              w.Write($" && this.{nm} == oth.{nm}");
-            } else {
-              w.Write($" && object.Equals(this.{nm}, oth.{nm})");
-            }
+            var nm = FieldName(arg, i);
+            w.Write(IsDirectlyComparable(arg.Type)
+              ? $" && this.{nm} == oth.{nm}"
+              : $" && object.Equals(this.{nm}, oth.{nm})");
 
             i++;
           }
@@ -932,7 +931,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
+            string nm = FieldName(arg, i);
             w.WriteLine($"hash = ((hash << 5) + hash) + ((ulong){DafnyHelpersClass}.GetHashCode(this.{nm}));");
             i++;
           }
@@ -970,7 +969,7 @@ namespace Microsoft.Dafny.Compilers {
                     w.WriteLine($"{tempVar} += \", \";");
                   }
 
-                  w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FormalName(arg, i)});");
+                  w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
                   i++;
                 }
               }
@@ -982,6 +981,13 @@ namespace Microsoft.Dafny.Compilers {
             break;
         }
       }
+    }
+
+    private string FieldName(Formal formal, int i) {
+      Contract.Requires(formal != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return IdProtect("_" + (formal.HasName ? formal.CompileName : "a" + i));
     }
 
     /// <summary>
@@ -2712,7 +2718,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string DestructorGetterName(Formal dtor, DatatypeCtor ctor, int index) {
-      return $"dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, index))}";
+      return $"dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FieldName(dtor, index))}";
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,

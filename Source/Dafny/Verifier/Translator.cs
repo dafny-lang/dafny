@@ -3467,7 +3467,11 @@ namespace Microsoft.Dafny {
       return assumeCmd;
     }
 
-    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
+    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap,
+      List<Bpl.Variable> implInParams,
+      Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Formals.Count <= implInParams.Count);
 
       //generating class post-conditions
@@ -3528,7 +3532,7 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        Expression postcond = Substitute(en.E, null, substMap);
+        Expression postcond = Substitute(en.E, null, substMap, typeMap);
         bool splitHappened;  // we don't actually care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
@@ -3574,11 +3578,13 @@ namespace Microsoft.Dafny {
       return tyargs;
     }
 
-    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
+    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       foreach (var e in func.OverriddenFunction.Reads) {
-        var newE = Substitute(e.E, null, substMap);
+        var newE = Substitute(e.E, null, substMap, typeMap);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
       }
@@ -3614,14 +3620,16 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
     }
 
-    private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+    private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(f != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       foreach (var req in f.OverriddenFunction.Req) {
-        Expression precond = Substitute(req.E, null, substMap);
+        Expression precond = Substitute(req.E, null, substMap, typeMap);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
       }
       //generating class pre-conditions
@@ -6033,7 +6041,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran);
         if (e is ConversionExpr) {
           var ee = (ConversionExpr)e;
-          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran);
+          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -7744,24 +7752,25 @@ namespace Microsoft.Dafny {
           return predef.ArrayLength;
         } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if (f is SpecialField && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) {
-          Contract.Assert(f.Type is SetType);
-          var setType = (SetType)f.Type;
-          if (f.Name == "Keys") {
-            return setType.Finite ? predef.MapDomain : predef.IMapDomain;
-          } else if (f.Name == "Values") {
-            return setType.Finite ? predef.MapValues : predef.IMapValues;
-          } else {
-            return setType.Finite ? predef.MapItems : predef.IMapItems;
+        } else if (f is SpecialField && !(f is DatatypeDestructor)) {
+          if (f.Name is "Keys" or "Values" or "Items") {
+            Contract.Assert(f.Type is SetType);
+            var setType = (SetType)f.Type;
+            return f.Name switch {
+              "Keys" => setType.Finite ? predef.MapDomain : predef.IMapDomain,
+              "Values" => setType.Finite ? predef.MapValues : predef.IMapValues,
+              _ => setType.Finite ? predef.MapItems : predef.IMapItems
+            };
           }
-        } else if (f is SpecialField && f.Name == "IsLimit") {
-          return predef.ORDINAL_IsLimit;
-        } else if (f is SpecialField && f.Name == "IsSucc") {
-          return predef.ORDINAL_IsSucc;
-        } else if (f is SpecialField && f.Name == "Offset") {
-          return predef.ORDINAL_Offset;
-        } else if (f is SpecialField && f.Name == "IsNat") {
-          return predef.ORDINAL_IsNat;
+          if (f.Name == "IsLimit") {
+            return predef.ORDINAL_IsLimit;
+          } else if (f.Name == "IsSucc") {
+            return predef.ORDINAL_IsSucc;
+          } else if (f.Name == "Offset") {
+            return predef.ORDINAL_Offset;
+          } else if (f.Name == "IsNat") {
+            return predef.ORDINAL_IsNat;
+          }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return predef.Tuple2Destructors0;
         } else if (f.FullSanitizedName == "_System.Tuple2._1") {

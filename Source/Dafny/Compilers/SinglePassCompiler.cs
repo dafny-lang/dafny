@@ -199,8 +199,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(typeArgs != null);
       Contract.Requires(dt.TypeArgs.Count == typeArgs.Count);
 
-      var idt = dt as IndDatatypeDecl;
-      if (idt == null) {
+      if (dt is not IndDatatypeDecl idt) {
         return TypeArgumentInstantiation.ListFromClass(dt, typeArgs);
       } else {
         Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
