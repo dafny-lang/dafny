@@ -21,11 +21,11 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
-- ["Is there a simple way to prove the termination of this recursive function?"]() - TODO 3/29/2021
+- ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
 - ["How do I make a singleton instance of a class for repeated later use?](FAQSingleton)
 - ["Is there a way to write `if foo().equals(bar()) { x } else { y }` where `foo` and `bar` are methods?](FAQMethodSequence)
 - ["When I have multiple methods with the same extern value I get an error.  We need to do this to handle overloading in Java libraries.  Is there a workaround?"]() - TODO 4/1/2021
-- [TODO: loop modifies problem] - 4/1/2021
+- [If I have an assertion about a class and a loop that doesn't mention (read, modify)  the class, why does dafny fail to establish the assertion after the loop?](FAQLoopModifies)
 - ["I can assert a condition right before a return, so why does the postcondition fail?](FAQFailingPost)
 - ["How can I combine sequences of different types?"](FAQSeqTrait)
 - ["How do I disambiguate module names?](FAQModuleNames)
@@ -58,7 +58,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["A `seq` is an object reference, right?"](FAQReferences)
 - ["How do I pattern match against a head and tail of a sequence?"](FAQPatternMatchSeq)
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
-- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"] - TODO
+- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"](FAQImportOneThing)
 - [TODO - Sorting, iteration 12/1/2021]
 - ["What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?](FAQModifiesThis)
 
