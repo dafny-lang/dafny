@@ -19,19 +19,23 @@ static class CommandRegistry {
     get {
       var linePrefix = "\n  ";
       var commands = linePrefix + string.Join(linePrefix, Commands.Values.Select(command => command.Name.PadRight(18) + command.Description));
-      var header = @"
+      return NewStyleHelpHeader + @"
+
+  ---- Dafny commands  -------------------------------------------------------" + commands;
+    }
+  }
+
+  public static string NewStyleHelpHeader =>
+    @"
 Usage: dafny [dafny-options] [command] [command-options] [arguments]
 
 Execute a Dafny command.
 
-dafny-options:
+  ---- dafny-options  --------------------------------------------------------
+
   -h|--help         Show command line help.
   --version         Display Dafny version in use.
-
-Dafny commands:";
-      return header + commands;
-    }
-  }
+  --attrHelp        Print a message about supported declaration attributes";
 
   public static ISet<ICommandLineOption> CommonOptions = new HashSet<ICommandLineOption>(new ICommandLineOption[] {
     ShowSnippetsOption.Instance,
@@ -172,13 +176,19 @@ class CommandBasedOptions : DafnyOptions {
     base.AddFile(file, null);
   }
 
+  private static readonly string CommandHelpHeader = CommandRegistry.NewStyleHelpHeader + @"
+
+  ---- General options -------------------------------------------------------
+
+";
+
   public override string Help {
     get {
       var boogieStep1 = new Regex(@"/(\w+):").Replace(BoogieHelpBody, "--boogie-$1=");
       var boogieStep2 = new Regex(@"/(\w+)").Replace(boogieStep1, "--boogie-$1");
-      var step1 = new Regex(@"/(\w+):").Replace(HelpHeader + this.DafnyHelpBody,"--$1=");
+      var step1 = new Regex(@"/(\w+):").Replace(DafnyHelpBody, "--$1=");
       var step2 = new Regex(@"/(\w+)").Replace(step1, "--$1");
-      return ICommandLineOption.GenerateHelp(step2 + boogieStep2, Command.Options);
+      return ICommandLineOption.GenerateHelp(CommandHelpHeader + step2 + boogieStep2, Command.Options);
     }
   }
 
