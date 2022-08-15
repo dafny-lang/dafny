@@ -21,7 +21,8 @@ static class CommandRegistry {
       var commands = linePrefix + string.Join(linePrefix, Commands.Values.Select(command => command.Name.PadRight(18) + command.Description));
       return NewStyleHelpHeader + @"
 
-  ---- Dafny commands  -------------------------------------------------------" + commands;
+  ---- Dafny commands  -------------------------------------------------------
+" + commands;
     }
   }
 
@@ -49,9 +50,10 @@ Execute a Dafny command.
   static void AddCommand(ICommand command) {
     Commands.Add(command.Name, command);
   }
+
   static CommandRegistry() {
-    AddCommand(new BuildCommand());
     AddCommand(new VerifyCommand());
+    AddCommand(new BuildCommand());
     AddCommand(new RunCommand());
   }
 
