@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
-
-class CompileTargetOption : TargetOption {
-  public new static readonly CompileTargetOption Instance = new();
-  public override string LongName => "compileTarget";
-}
 
 public class TargetOption : CommandLineOption<Compiler> {
   public static readonly TargetOption Instance = new();

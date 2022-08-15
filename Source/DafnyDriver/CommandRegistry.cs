@@ -22,6 +22,7 @@ static class CommandRegistry {
     VerificationTimeLimit.Instance,
     UseBaseFileName.Instance,
     PrintOption.Instance,
+    HelpOption.Instance,
   });
 
   static void AddCommand(ICommand command) {
@@ -96,7 +97,6 @@ static class CommandRegistry {
                 optionValues[option] = parsedOption.Value;
               }
               remainingArguments = remainingArguments.Skip(parsedOption.ConsumedArguments);
-              option.PostProcess(dafnyOptions);
               break;
           }
 
@@ -109,7 +109,9 @@ static class CommandRegistry {
     }
     foreach (var notFoundOption in command.Options.Except(foundOptions)) {
       optionValues[notFoundOption] = notFoundOption.GetDefaultValue(dafnyOptions);
-      notFoundOption.PostProcess(dafnyOptions);
+    }
+    foreach (var option in command.Options) {
+      option.PostProcess(dafnyOptions);
     }
 
     command.PostProcess(dafnyOptions, options);
@@ -132,7 +134,15 @@ static class CommandRegistry {
       base.AddFile(file, null);
     }
 
-    public override string Help => ICommandLineOption.Help(HelpBody, command.Options);
+    public override string Help {
+      get {
+        var boogieStep1 = new Regex(@"/(\w+):").Replace(BoogieHelpBody, "--boogie-$1=");
+        var boogieStep2 = new Regex(@"/(\w+)").Replace(boogieStep1, "--boogie-$1");
+        var step1 = new Regex(@"/(\w+):").Replace(HelpHeader + this.DafnyHelpBody,"--$1=");
+        var step2 = new Regex(@"/(\w+)").Replace(step1, "--$1");
+        return ICommandLineOption.GenerateHelp(step2 + boogieStep2, command.Options);
+      }
+    }
 
     protected override bool ParseOption(string name, CommandLineParseState ps) {
       if (obsoleteOptions.Contains(name)) {

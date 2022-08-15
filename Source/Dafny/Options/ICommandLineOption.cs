@@ -16,7 +16,7 @@ public interface ICommandLineOption {
   ParseOptionResult Parse(DafnyOptions dafnyOptions, IEnumerable<string> arguments);
   void PostProcess(DafnyOptions options);
 
-  public static string Help(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
+  public static string GenerateHelp(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
     var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
     var categories = regex.Matches(template).ToArray();
 

@@ -19,7 +19,7 @@ class BuildCommand : ICommand {
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.Compile = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
-    dafnyOptions.SpillTargetCode = noVerify ? 3 : 2;
+    dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
 
   public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(

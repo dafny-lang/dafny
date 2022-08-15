@@ -1,5 +1,20 @@
 namespace Microsoft.Dafny;
 
+// TODO add version command
+// TODO attribute help
+public class HelpOption : BooleanOption {
+  public static readonly HelpOption Instance = new();
+  public override string LongName => "help";
+  public override string ShortName => null;
+  public override string Category => "General options";
+  public override string Description => "Display this help text";
+
+  public override void PostProcess(DafnyOptions options) {
+    options.HelpRequested = true;
+    base.PostProcess(options);
+  }
+}
+
 public class CoresOption : IntegerOption {
   public static readonly CoresOption Instance = new();
   public override object GetDefaultValue(DafnyOptions options) => 1;
@@ -7,9 +22,7 @@ public class CoresOption : IntegerOption {
   public override string ShortName => null;
   public override string Category => "General options";
 
-  public override string Description => @"
-/cores:<n>
-            Run the Dafny CLI using <n> cores. Defaults to 1.";
+  public override string Description => @"Run the Dafny CLI using <n> cores. Defaults to 1.";
 
   public override void PostProcess(DafnyOptions options) {
     options.VcsCores = Get(options);
@@ -24,8 +37,8 @@ public class UseBaseFileName : BooleanOption {
   public override string Category => "General options";
 
   public override string Description => @"
-/useBaseNameForFileName : When parsing use basename of file for tokens instead
-                          of the path supplied on the command line".TrimStart();
+When parsing use basename of file for tokens instead
+of the path supplied on the command line".TrimStart();
 
   public override void PostProcess(DafnyOptions options) {
     options.UseBaseNameForFileName = Get(options);
@@ -41,9 +54,8 @@ public class VerificationTimeLimit : NaturalNumberOption {
   public override string Category => "Verification options";
 
   public override string Description => @"
-/timeLimit:<num>
-                Limit the number of seconds spent trying to verify
-                each procedure".TrimStart();
+Limit the number of seconds spent trying to verify
+each procedure".TrimStart();
 
   public override void PostProcess(DafnyOptions options) {
     options.TimeLimit = Get(options);

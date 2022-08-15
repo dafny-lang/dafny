@@ -20,10 +20,14 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    private static ISet<ICommandLineOption> AvailableNewStyleOptions = new HashSet<ICommandLineOption>(
+    private static readonly ISet<ICommandLineOption> AvailableNewStyleOptions = new HashSet<ICommandLineOption>(
       new ICommandLineOption[] {
         ShowSnippetsOption.Instance,
         CompileTargetOption.Instance,
+        CompileOption.Instance,
+        SpillTargetCodeOption.Instance,
+        DafnyVerifyOption.Instance,
+        DPrintOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -106,7 +110,7 @@ namespace Microsoft.Dafny {
     public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
-    public int SpillTargetCode = 0; // [0..4]
+    public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
@@ -228,7 +232,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help =>
-      ICommandLineOption.Help(base.Help, AvailableNewStyleOptions, true);
+      ICommandLineOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -242,13 +246,6 @@ namespace Microsoft.Dafny {
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
-          }
-
-          return true;
-
-        case "dprint":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrintFile = args[ps.i];
           }
 
           return true;
@@ -282,18 +279,6 @@ namespace Microsoft.Dafny {
           }
 
           return true;
-
-        case "compile": {
-            int compile = 0;
-            if (ps.GetIntArgument(ref compile, 5)) {
-              // convert option to two booleans
-              Compile = compile != 0;
-              ForceCompile = compile == 2 || compile == 4;
-              RunAfterCompile = compile == 3 || compile == 4;
-            }
-
-            return true;
-          }
 
         case "compileVerbose": {
             int verbosity = 0;
@@ -377,15 +362,6 @@ namespace Microsoft.Dafny {
                   ps.Error($"Unsupported diagnostic format: '{df}'; expecting one of 'json', 'text'.");
                   break;
               }
-            }
-
-            return true;
-          }
-
-        case "spillTargetCode": {
-            int spill = 0;
-            if (ps.GetIntArgument(ref spill, 4)) {
-              SpillTargetCode = spill;
             }
 
             return true;
@@ -697,7 +673,6 @@ namespace Microsoft.Dafny {
 
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
-      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();
@@ -1001,7 +976,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string HelpBody =>
+    protected override string HelpBody => DafnyHelpBody + BoogieHelpBody;
+
+    protected string BoogieHelpBody => base.HelpBody;
+
+    protected string DafnyHelpBody =>
       $@"
 All the .dfy files supplied on the command line along with files recursively
 included by 'include' directives are considered a single Dafny program;
@@ -1029,9 +1008,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Overall reporting and printing ----------------------------------------
 
 /stats        Print interesting statistics about the Dafny files supplied.
-/dprint:<file>
-    print Dafny program after parsing it
-    (use - as <file> to print to console)
 /rprint:<file>
     print Dafny program after resolving it
     (use - as <file> to print to console)
@@ -1129,9 +1105,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Verification options -------------------------------------------------
 
-/dafnyVerify:<n>
-    0 - stop after typechecking
-    1 - continue on to translation, verification, and compilation
 /verifyAllModules
     Verify modules that come from an include directive
 /separateModuleOutput
@@ -1266,17 +1239,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Compilation options ---------------------------------------------------
 
-/compile:<n>  0 - do not compile Dafny program
-    1 (default) - upon successful verification of the Dafny
-        program, compile it to the designated target language
-        (/noVerify automatically counts as failed verification)
-    2 - always attempt to compile Dafny program to the target
-        language, regardless of verification outcome
-    3 - if there is a Main method and there are no verification
-        errors and /noVerify is not used, compiles program in
-        memory (i.e., does not write an output file) and runs it
-    4 - like (3), but attempts to compile and run regardless of
-        verification outcome
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
@@ -1293,20 +1255,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
         the compiler to the console
-/spillTargetCode:<n>
-    This option concerns the textual representation of the target program.
-    This representation is of no interest when working with only Dafny code,
-    but may be of interest in cross-language situations.
-    0 (default) - Don't make any extra effort to write the textual target program
-        (but still compile it, if /compile indicates to do so).
-    1 - Write the textual target program, if it is being compiled.
-    2 - Write the textual target program, provided it passes the verifier (and
-        /noVerify is NOT used), regardless of /compile setting.
-    3 - Write the textual target program, regardless of verification outcome
-        and /compile setting.
-    Note, some compiler targets may (always or in some situations) write out the
-    textual target program as part of compilation, in which case /spillTargetCode:0
-    behaves the same way as /spillTargetCode:1.
 /out:<file>
     filename and location for the generated target language files
 /coverage:<file>
@@ -1335,7 +1283,7 @@ Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
 program.
-".Replace("\n", "\n  ") + base.HelpBody;
+".Replace("\n", "\n  ");
   }
 }
 
