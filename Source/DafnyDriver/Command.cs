@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -6,7 +7,7 @@ namespace Microsoft.Dafny;
 public interface ICommand {
   string Name { get; }
 
-  string Help { get; }
+  string Description { get; }
 
   ISet<ICommandLineOption> Options { get; }
 
@@ -15,7 +16,7 @@ public interface ICommand {
 
 class BuildCommand : ICommand {
   public string Name => "build";
-  public string Help => "Generate source file in the target language";
+  public string Description => "Generate source files in the target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.Compile = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
@@ -31,7 +32,7 @@ class BuildCommand : ICommand {
 
 class RunCommand : ICommand {
   public string Name => "run";
-  public string Help => "Run the program";
+  public string Description => "Run the program.";
 
   public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(
     CommandRegistry.CommonOptions.Concat(new ICommandLineOption[] {
@@ -48,7 +49,7 @@ class RunCommand : ICommand {
 
 class VerifyCommand : ICommand {
   public string Name => "verify";
-  public string Help => "Verify the program";
+  public string Description => "Verify the program.";
   public ISet<ICommandLineOption> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {

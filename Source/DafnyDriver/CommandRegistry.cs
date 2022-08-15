@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -15,6 +14,24 @@ record ParseArgumentFailure(string Message) : ParseArgumentResult;
 
 static class CommandRegistry {
   private static readonly Dictionary<string, ICommand> Commands = new();
+
+  public static string CommandOverview {
+    get {
+      var linePrefix = "\n  ";
+      var commands = linePrefix + string.Join(linePrefix, Commands.Values.Select(command => command.Name.PadRight(18) + command.Description));
+      var header = @"
+Usage: dafny [dafny-options] [command] [command-options] [arguments]
+
+Execute a Dafny command.
+
+dafny-options:
+  -h|--help         Show command line help.
+  --version         Display Dafny version in use.
+
+Dafny commands:";
+      return header + commands;
+    }
+  }
 
   public static ISet<ICommandLineOption> CommonOptions = new HashSet<ICommandLineOption>(new ICommandLineOption[] {
     ShowSnippetsOption.Instance,
@@ -34,8 +51,25 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
   }
 
+  class HelpOptions : DafnyOptions {
+    public override string Help => CommandRegistry.CommandOverview;
+  }
+
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
+    // Special cases because we're still supporting the old style CLI as well.
+    if (arguments[0] == "-h" || arguments[0] == "--help") {
+      var helpOptions = new HelpOptions {
+        HelpRequested = true
+      };
+      return new ParseArgumentSuccess(helpOptions);
+    }
+    if (arguments[0] == "--version") {
+      var result = new DafnyOptions();
+      result.VersionRequested = true;
+      return new ParseArgumentSuccess(result);
+    }
+
     if (!Commands.TryGetValue(arguments[0], out var command)) {
       return new ParseArgumentSuccess(DafnyOptions.Create(arguments));
     }
@@ -118,56 +152,56 @@ static class CommandRegistry {
     dafnyOptions.ApplyDefaultOptions();
     return new ParseArgumentSuccess(dafnyOptions);
   }
+}
 
-  class CommandBasedOptions : DafnyOptions {
-    private readonly ICommand command;
+class CommandBasedOptions : DafnyOptions {
+  public ICommand Command { get; }
 
-    private readonly ISet<string> obsoleteOptions = new HashSet<string>() {
-      "spillTargetCode", "compile", "dafnyVerify"
-    };
+  private readonly ISet<string> obsoleteOptions = new HashSet<string>() {
+    "spillTargetCode", "compile", "dafnyVerify"
+  };
 
-    public CommandBasedOptions(ICommand command) {
-      this.command = command;
+  public CommandBasedOptions(ICommand command) {
+    this.Command = command;
+  }
+
+  public void AddFile(string file) {
+    base.AddFile(file, null);
+  }
+
+  public override string Help {
+    get {
+      var boogieStep1 = new Regex(@"/(\w+):").Replace(BoogieHelpBody, "--boogie-$1=");
+      var boogieStep2 = new Regex(@"/(\w+)").Replace(boogieStep1, "--boogie-$1");
+      var step1 = new Regex(@"/(\w+):").Replace(HelpHeader + this.DafnyHelpBody,"--$1=");
+      var step2 = new Regex(@"/(\w+)").Replace(step1, "--$1");
+      return ICommandLineOption.GenerateHelp(step2 + boogieStep2, Command.Options);
     }
+  }
 
-    public void AddFile(string file) {
-      base.AddFile(file, null);
+  protected override bool ParseOption(string name, CommandLineParseState ps) {
+    if (obsoleteOptions.Contains(name)) {
+      ps.Error($"Option ${name} is not allowed when using a command.");
+      return false;
     }
+    return base.ParseOption(name, ps);
+  }
 
-    public override string Help {
-      get {
-        var boogieStep1 = new Regex(@"/(\w+):").Replace(BoogieHelpBody, "--boogie-$1=");
-        var boogieStep2 = new Regex(@"/(\w+)").Replace(boogieStep1, "--boogie-$1");
-        var step1 = new Regex(@"/(\w+):").Replace(HelpHeader + this.DafnyHelpBody,"--$1=");
-        var step2 = new Regex(@"/(\w+)").Replace(step1, "--$1");
-        return ICommandLineOption.GenerateHelp(step2 + boogieStep2, command.Options);
+  public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
+    var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
+    parseState.s = "-" + optionName;
+    const string boogiePrefix = "boogie-";
+    if (optionName.StartsWith(boogiePrefix)) {
+      optionName = optionName.Substring(boogiePrefix.Length);
+      if (ParseBoogieOption(optionName, parseState)) {
+        return remainingArguments.Skip(parseState.nextIndex);
+      }
+    } else {
+      if (ParseDafnySpecificOption(optionName, parseState)) {
+        return remainingArguments.Skip(parseState.nextIndex);
       }
     }
 
-    protected override bool ParseOption(string name, CommandLineParseState ps) {
-      if (obsoleteOptions.Contains(name)) {
-        ps.Error($"Option ${name} is not allowed when using a command.");
-        return false;
-      }
-      return base.ParseOption(name, ps);
-    }
-
-    public IEnumerable<string> RecogniseOldOptions(string optionName, IEnumerable<string> remainingArguments) {
-      var parseState = new CommandLineParseState(remainingArguments.ToArray(), "foo");
-      parseState.s = "-" + optionName;
-      const string boogiePrefix = "boogie-";
-      if (optionName.StartsWith(boogiePrefix)) {
-        optionName = optionName.Substring(boogiePrefix.Length);
-        if (ParseBoogieOption(optionName, parseState)) {
-          return remainingArguments.Skip(parseState.nextIndex);
-        }
-      } else {
-        if (ParseDafnySpecificOption(optionName, parseState)) {
-          return remainingArguments.Skip(parseState.nextIndex);
-        }
-      }
-
-      return null;
-    }
+    return null;
   }
 }
