@@ -5,7 +5,6 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
-
 class CompileTargetOption : TargetOption {
   public new static readonly CompileTargetOption Instance = new();
   public override string LongName => "compileTarget";
@@ -13,9 +12,11 @@ class CompileTargetOption : TargetOption {
 
 public class TargetOption : CommandLineOption<Compiler> {
   public static readonly TargetOption Instance = new();
-  public override object GetDefaultValue(DafnyOptions options) => "cs";
+  public override object GetDefaultValue(DafnyOptions options) =>
+    options.Plugins.SelectMany(p => p.GetCompilers()).First(c => c.TargetId == "cs");
+
   public override string LongName => "target";
-  public override string ShortName => null;
+  public override string ShortName => "t";
   public override string Description => @"/compileTarget:<lang>
     cs (default) - Compilation to .NET via C#
     go - Compilation to Go
@@ -38,7 +39,7 @@ public class TargetOption : CommandLineOption<Compiler> {
       return new FailedOption($"No compiler found for compileTarget \"{target}\"; expecting one of {known}");
     }
 
-    return new ParsedOption(1, target);
+    return new ParsedOption(1, compiler);
   }
 
   public override void PostProcess(DafnyOptions options) {

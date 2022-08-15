@@ -16,7 +16,7 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public record Options(List<string> FreeArguments, IDictionary<string, object> OptionArguments);
+  public record Options(List<string> FreeArguments, IDictionary<ICommandLineOption, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Options Options { get; set; } = new(new(), new Dictionary<string, object>());
+    public Options Options { get; set; } = new(new(), new Dictionary<ICommandLineOption, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -193,6 +193,13 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
+    public override bool Parse(string[] args) {
+      foreach (var option in AvailableNewStyleOptions.Except(Options.OptionArguments.Keys)) {
+        Options.OptionArguments[option] = option.GetDefaultValue(this);
+      }
+      return base.Parse(args);
+    }
+
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       if (ParseDafnySpecificOption(name, ps)) {
         return true;
@@ -204,7 +211,7 @@ namespace Microsoft.Dafny {
             ps.Error(failedOption.Message);
             break;
           case ParsedOption parsedOption:
-            Options.OptionArguments[option.LongName] = parsedOption.Value;
+            Options.OptionArguments[option] = parsedOption.Value;
             option.PostProcess(this);
             ps.nextIndex = ps.i + parsedOption.ConsumedArguments;
             return true;

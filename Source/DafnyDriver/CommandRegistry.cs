@@ -44,7 +44,7 @@ static class CommandRegistry {
     var remainingArguments = arguments.Skip(1);
     var dafnyOptions = new CommandBasedOptions();
     var foundOptions = new HashSet<ICommandLineOption>();
-    var optionValues = new Dictionary<string, object>();
+    var optionValues = new Dictionary<ICommandLineOption, object>();
     var optionLessValues = new List<string>();
     while (remainingArguments.Any()) {
       var head = remainingArguments.First();
@@ -86,10 +86,10 @@ static class CommandRegistry {
               return new ParseArgumentFailure(failedOption.Message);
             case ParsedOption parsedOption:
               if (option.CanBeUsedMultipleTimes) {
-                var values = (List<object>)optionValues.GetOrCreate(option.LongName, () => new List<object>());
+                var values = (List<object>)optionValues.GetOrCreate(option, () => new List<object>());
                 values.Add(parsedOption.Value);
               } else {
-                optionValues[option.LongName] = parsedOption.Value;
+                optionValues[option] = parsedOption.Value;
               }
               remainingArguments = remainingArguments.Skip(parsedOption.ConsumedArguments);
               dafnyOptions.Options = new Options(optionLessValues, optionValues);
@@ -105,7 +105,7 @@ static class CommandRegistry {
       }
     }
     foreach (var notFoundOption in command.Options.Except(foundOptions)) {
-      optionValues[notFoundOption.LongName] = notFoundOption.GetDefaultValue(dafnyOptions);
+      optionValues[notFoundOption] = notFoundOption.GetDefaultValue(dafnyOptions);
       notFoundOption.PostProcess(dafnyOptions);
     }
 

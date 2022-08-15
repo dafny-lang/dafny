@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny run --noVerify -t=cs %args "%s" >> "%t"
+// RUN: %baredafny run --noVerify -t=js %args "%s" >> "%t"
+// RUN: %baredafny run --noVerify -t=go %args "%s" >> "%t"
+// RUN: %baredafny run --noVerify -t=java %args "%s" >> "%t"
+// RUN: %baredafny run --noVerify -t=py %args "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

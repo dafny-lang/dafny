@@ -17,8 +17,7 @@ class NoVerifyOption : BooleanOption {
 
 class PrintOption : StringOption {
   public static readonly PrintOption Instance = new();
-  public override object GetDefaultValue(DafnyOptions options) =>
-    DafnyOptions.DefaultPlugins.SelectMany(p => p.GetCompilers()).First(c => c.TargetId == "cs");
+  public override object GetDefaultValue(DafnyOptions options) => null;
 
   public override string LongName => "print";
   public override string ShortName => null;

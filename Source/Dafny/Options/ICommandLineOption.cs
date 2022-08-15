@@ -19,14 +19,14 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
   }
 
   public T Get(Options options) {
-    return (T)options.OptionArguments[LongName];
+    return (T)options.OptionArguments[this];
   }
 
   public void Set(DafnyOptions options, T value) {
     Set(options.Options, value);
   }
   public void Set(Options options, T value) {
-    options.OptionArguments[LongName] = value;
+    options.OptionArguments[this] = value;
   }
 
   public abstract object GetDefaultValue(DafnyOptions options);
