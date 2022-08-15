@@ -677,6 +677,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case ";": {
             break;
           }
+        case "{": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "}": {
+            SetClosingIndentedRegion(token, indent);
+            break;
+          }
       }
     }
 

@@ -865,6 +865,23 @@ method Main() {
 }
 ");
     }
+    [Fact]
+    public void FormatterWorksForUniversalPatternShiftDatatypeParens() {
+      FormatterWorksFor(@"
+newtype b17 = x | 0 <= x < (10 as bv8 << -1) as int
+newtype b18 = x | 0 <= x < (10 as bv8 >> -1) as int
+
+method UniversalPattern() {
+  var f, _ := Capture(15);
+  x := 1 << 2;
+  x := 1 >> 3;
+}
+
+datatype T = Test
+{
+}
+");
+    }
 
     private void FormatterWorksFor(string programString) {
       BatchErrorReporter reporter = new BatchErrorReporter();

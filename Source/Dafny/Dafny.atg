@@ -1398,7 +1398,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
     DatatypeMemberDecl<ctors, ownedTokens> }
   | ellipsis                               (. isRefining = true; bodyStart = t; ownedTokens.Add(t); .)
   )
-  [ TypeMembers<module, members> ]
+  [ TypeMembers<module, members, ownedTokens> ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
      } else {
@@ -1431,15 +1431,15 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors, List<IToken> ownedTokens
   .
 
 /*------------------------------------------------------------------------*/
-TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
+TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members, List<IToken> ownedTokens .>
 = (. DeclModifierData dmod;
   .)
-  "{"
+  "{"          (. ownedTokens.Add(t); .)
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
     ClassMemberDecl<dmod, members, false, true, false>
   }
-  "}"
+  "}"          (. ownedTokens.Add(t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1547,14 +1547,14 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
         )
       )
     ]
-    [ TypeMembers<module, members> ]
+    [ TypeMembers<module, members, ownedTokens> ]
     (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false); .)
   | Type<out baseType>
-    [ TypeMembers<module, members> ]
+    [ TypeMembers<module, members, ownedTokens> ]
     (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: false); .)
   )
   | ellipsis (. ownedTokens.Add(t); .)
-    [ TypeMembers<module, members> ]
+    [ TypeMembers<module, members, ownedTokens> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
     .)
@@ -1615,8 +1615,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       .)
     )
   | ellipsis                               (. isRefining = true; ownedTokens.Add(t); .)
-    [ TypeMembers<module, members> ]
-  | TypeMembers<module, members>
+    [ TypeMembers<module, members, ownedTokens> ]
+  | TypeMembers<module, members, ownedTokens>
   ]
   (. if (td == null) {
        if (module is DefaultModuleDecl) {
@@ -4095,9 +4095,19 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
   Term<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsShiftOp())  /* read a Term as far as possible */
     ( "<"            (. x = t;  op = BinaryExpr.Opcode.LeftShift; .)
-      "<"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      "<"            (. t.val = "<<";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     | ">"            (. x = t;  op = BinaryExpr.Opcode.RightShift; .)
-      ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      ">"            (. t.val = ">>";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
@@ -5267,7 +5277,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
+  Ident<out x>     (. x = (t as Token) with {val = UnwildIdent(t.val, allowWildcardId)}; .)
   .
 
 /*------------------------------------------------------------------------*/
