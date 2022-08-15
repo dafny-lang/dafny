@@ -107,7 +107,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 
 
 # How-to cookbook
-- ["How does one define a record?"] - TODO
+- ["How does one define a record?"](FAQRecord)
 - ["How do I create and use an iterator?] - TODO - 2/2/2022
 - ["How do I manually run a program compiled to Java?"] TODO
 - ["How do I manually run a program compiled to Go?"] TODO
