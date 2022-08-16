@@ -125,6 +125,8 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
+      DafnyOptions.O.XmlSink?.Close();
+
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
         try {
           VerificationResultConvertor.RaiseTestLoggerEvents(DafnyOptions.O.VerificationLoggerConfigs);
