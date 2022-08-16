@@ -342,8 +342,9 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::__Main);");
-      Coverage.EmitTearDown(wBody);
+      wBody.WriteLine($"dafny.DafnySequence<Character>[] dafnyArgs = new dafny.DafnySequence[args.length];");
+      wBody.WriteLine($"for(int i = 0; i < args.length; i++) dafnyArgs[i] = dafny.DafnySequence.asString(args[i]);");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(dafnyArgs); }} );");
     }
 
     void EmitImports(ConcreteSyntaxTree wr, out ConcreteSyntaxTree importWriter) {
@@ -2279,7 +2280,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename)) {
+      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename) + " " + DafnyOptions.O.MainArgsString) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
@@ -3996,9 +3997,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock("public static void __Main()");
+      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<Character>[] {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,

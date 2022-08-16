@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr);
+    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, ref string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -2371,6 +2371,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public const string STATIC_ARGS_NAME = "args";
+
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
@@ -2407,7 +2409,8 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
-        w = CreateStaticMain(cw);
+        var args_name = STATIC_ARGS_NAME;
+        w = CreateStaticMain(cw, ref args_name);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
@@ -2432,8 +2435,8 @@ namespace Microsoft.Dafny.Compilers {
           w.Write("{0}.", companion);
         }
         EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
-        w.Write("(");
-        var sep = "";
+        w.Write("(" + args_name);
+        var sep = ", ";
         if (receiver != null && customReceiver) {
           w.Write("{0}", IdName(receiver));
           sep = ", ";

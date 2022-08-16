@@ -88,8 +88,8 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      return ((ClassWriter)cw).MethodWriter.NewBlockPy("def Main():");
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+      return ((ClassWriter)cw).MethodWriter.NewBlockPy($"def Main({argsParameterName}):");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,

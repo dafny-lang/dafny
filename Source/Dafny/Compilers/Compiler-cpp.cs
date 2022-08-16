@@ -149,9 +149,9 @@ namespace Microsoft.Dafny.Compilers {
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
       var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
-      return wr.NewBlock("int main()");
+      return wr.NewBlock($"int main(int argc, char *{argsParameterName}[])");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {

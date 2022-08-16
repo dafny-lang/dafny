@@ -185,6 +185,9 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
+    public string MainArgsString =>
+      string.Join(" ", MainArgs.Select(x => x.Replace(@"\", @"\\").Replace(@"""", @"\\""")));
+
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
