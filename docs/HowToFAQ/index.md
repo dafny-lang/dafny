@@ -86,7 +86,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules."](FAQTerminationFalse)
 - TODO Refinement - 6/24/2022, 6/30/2022
 - ["How do I make the dafny termination checker happy with this pattern of mutual recursion?"] - TODO 6/24/2022
-- ["What is the easiest way to prove that a class instance is not an instance of a trait?"] - TODO 6/24/2022
+- ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
 - ["How do I declare a default value for a parameter of a method or function?"](FAQDefaultParameter)
 - ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"](FAQRedundantCase)
