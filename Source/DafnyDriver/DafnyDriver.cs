@@ -128,7 +128,13 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.XmlSink != null) {
         DafnyOptions.O.XmlSink.Close();
         if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
-          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfigs);
+          try {
+            BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename,
+                                                     DafnyOptions.O.VerificationLoggerConfigs);
+          } catch (ArgumentException ae) {
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, $"*** Error: {ae.Message}");
+            exitValue = ExitValue.PREPROCESSING_ERROR;
+          }
         }
       }
       if (DafnyOptions.O.Wait) {
