@@ -28,6 +28,8 @@
 
    * `Source/Dafny/DafnyPipeline.csproj`
 
+   * `Source/DafnyLanguageServer/DafnyLanguageServer.csproj`
+
    Put the public version number in place of the "Upcoming" header in
    `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
 
