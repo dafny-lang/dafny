@@ -114,7 +114,6 @@ namespace Microsoft.Dafny {
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
-
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
           var driver = new DafnyDriver(dafnyOptions);
