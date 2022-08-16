@@ -18,7 +18,7 @@ class BuildCommand : ICommand {
   public string Name => "build";
   public string Description => "Generate source files in the target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.Compile = false;
+    dafnyOptions.EmitExecutable = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
@@ -41,7 +41,7 @@ class RunCommand : ICommand {
     }));
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.Compile = true;
+    dafnyOptions.EmitExecutable = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
   }
@@ -53,6 +53,6 @@ class VerifyCommand : ICommand {
   public ISet<ICommandLineOption> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.Compile = false;
+    dafnyOptions.EmitExecutable = false;
   }
 }

@@ -12,7 +12,7 @@ class CompileOption : NaturalNumberOption {
 
     if (compile != 999) {
       // convert option to two booleans
-      options.Compile = compile != 0;
+      options.EmitExecutable = compile != 0;
       options.ForceCompile = compile == 2 || compile == 4;
       options.RunAfterCompile = compile == 3 || compile == 4;
     }
