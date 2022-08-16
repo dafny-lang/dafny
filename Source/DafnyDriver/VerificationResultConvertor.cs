@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
   ///  * CSV files, which are easier to parse and summarize. 
   ///  * human-readable text output.
   /// </summary>
-  public static class BoogieXmlConvertor {
+  public static class VerificationResultConvertor {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 

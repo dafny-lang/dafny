@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
         try {
-          BoogieXmlConvertor.RaiseTestLoggerEvents( DafnyOptions.O.VerificationLoggerConfigs);
+          VerificationResultConvertor.RaiseTestLoggerEvents(DafnyOptions.O.VerificationLoggerConfigs);
         } catch (ArgumentException ae) {
           DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, $"*** Error: {ae.Message}");
           exitValue = ExitValue.PREPROCESSING_ERROR;
