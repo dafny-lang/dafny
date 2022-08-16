@@ -197,21 +197,16 @@ namespace DafnyTestGeneration {
         modification.Implementation == implementation || 
         DafnyOptions.O.TestGenOptions.TargetMethod != null);
 
-    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds) {
+    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists=false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
-        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success);
+        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.All(blockId =>
         relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
     }
-    
-    public static bool ImplementationIsCovered(Implementation implementation) {
-      return BlocksAreCovered(implementation,
-        implementation.Blocks.Where(block => block.Cmds.Count != 0).Select(block => block.UniqueId).ToHashSet());
-    }
-    
-    public static int NumberOfBlocksCovered(Implementation implementation) {
+
+    public static int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists=false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
-        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success);
+        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       var blockIds = implementation.Blocks.Where(block => block.Cmds.Count != 0)
         .Select(block => block.UniqueId).ToHashSet();
       return blockIds.Count(blockId =>

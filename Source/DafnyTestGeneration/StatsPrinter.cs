@@ -26,6 +26,8 @@ namespace DafnyTestGeneration {
           .Count(block => block.Cmds.Count != 0).ToString();
         record["blocksCovered"] =
           ProgramModification.NumberOfBlocksCovered(implementation).ToString();
+        record["blocksCoveredByTests"] =
+          ProgramModification.NumberOfBlocksCovered(implementation, onlyIfTestsExists:true).ToString();
         record["failedQueries"] =
           ProgramModification.ModificationsWithStatus(implementation,
             ProgramModification.Status.Failure).ToString();
