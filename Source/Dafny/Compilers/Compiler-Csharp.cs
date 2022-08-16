@@ -3271,7 +3271,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
       }
       try {
-        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
+        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
         entry.Invoke(null, parameters);
         return true;
       } catch (System.Reflection.TargetInvocationException e) {
@@ -3326,7 +3326,9 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
+      wBody.WriteLine($"Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length];");
+      wBody.WriteLine($"for(var i = 0; i < args.Length; i++) dafnyArgs[i] = Dafny.Sequence<char>.FromString(args[i]);");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(dafnyArgs));");
       Coverage.EmitTearDown(wBody);
     }
 

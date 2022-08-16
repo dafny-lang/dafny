@@ -1629,6 +1629,7 @@ namespace Microsoft.Dafny.Compilers {
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
       //    The method takes no non-ghost parameters and no type parameters
+      //      except at most one array of type "array<string>"
       //    The enclosing type does not take any type parameters
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // In addition, either:
@@ -1670,8 +1671,19 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (!m.Ins.TrueForAll(f => f.IsGhost)) {
-        reason = "the method has non-ghost parameters";
-        return false;
+        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
+        if (nonGhostFormals.Count > 1) {
+          reason = "the method has two or more non-ghost parameters";
+          return false;
+        }
+        var typeOfUniqueFormal = nonGhostFormals[0].Type.NormalizeExpandKeepConstraints();
+        if (!typeOfUniqueFormal.IsArrayType ||
+            typeOfUniqueFormal.TypeArgs.Count != 1 ||
+            typeOfUniqueFormal.TypeArgs[0].AsSeqType is not { } seqType ||
+            !seqType.Arg.IsCharType) {
+          reason = "the method's non-ghost argument type should be an array<string>, got " + typeOfUniqueFormal.TypeArgs[0];
+          return false;
+        }
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";

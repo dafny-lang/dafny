@@ -86,6 +86,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
+    public List<string> MainArgs = new List<string>();
 
     public Compiler Compiler;
     public bool CompileVerbose = true;
@@ -283,7 +284,7 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  arguments = ParsePluginArguments(argumentsString);
+                  arguments = ParseInnerArguments(argumentsString);
                 }
                 Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
@@ -304,6 +305,15 @@ namespace Microsoft.Dafny {
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
+            }
+
+            return true;
+          }
+
+        case "mainArgs":
+        case "MainArgs": {
+            if (ps.ConfirmArgumentCount(1)) {
+              MainArgs.AddRange(ParseInnerArguments(args[ps.i]));
             }
 
             return true;
@@ -642,7 +652,7 @@ namespace Microsoft.Dafny {
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
-    private static string[] ParsePluginArguments(string argumentsString) {
+    private static string[] ParseInnerArguments(string argumentsString) {
       var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
       var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
       return splitter.Matches(argumentsString).Select(
