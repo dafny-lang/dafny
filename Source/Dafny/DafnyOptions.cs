@@ -1283,6 +1283,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
+/arg:<argument> (repeated)
+    When running the dafny program through /compile:3 or /compile:4, each individual
+    <argument> becomes an element of the array provided to the main function
 /runAllTests:<n> (experimental)
     0 (default) - Annotates compiled methods with the {{:test}} attribute
         such that they can be tested using a testing framework
