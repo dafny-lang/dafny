@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
 using OmniSharp.Extensions.LanguageServer.Client;
+using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {

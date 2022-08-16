@@ -3,5 +3,5 @@ using System.Reflection;
 // When changing this, also be sure to change it in the following files:
 // * Source/DafnyDriver/DafnyDriver.csproj
 // * Source/Dafny/DafnyPipeline.csproj
-[assembly: AssemblyVersion("3.7.3.40719")]
-[assembly: AssemblyFileVersion("3.7.3.40719")]
+[assembly: AssemblyVersion("3.8.0.40729")]
+[assembly: AssemblyFileVersion("3.8.0.40729")]

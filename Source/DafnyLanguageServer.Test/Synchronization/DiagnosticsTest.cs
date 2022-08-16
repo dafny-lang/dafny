@@ -18,6 +18,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
+
+    [TestMethod]
+    public async Task EmptyFileNoCodeWarning() {
+      var source = "";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(new Range(0, 0, 0, 0), diagnostics[0].Range);
+    }
+
     [TestMethod]
     public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
       var source = @"
@@ -560,10 +570,11 @@ method t10() { assert false; }".TrimStart();
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
       for (int i = 0; i < 10; i++) {
+        diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual(5, diagnostics.Length, "Old to new history was:" + string.Join(", ", diagnosticsReceiver.History));
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
@@ -833,10 +844,9 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
-      Diagnostic[] resolutionDiagnostics3) {
-      Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
-      foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
+      Assert.AreEqual(first.Length, second.Length);
+      foreach (var t in first.Zip(second)) {
         Assert.AreEqual(t.First.Message, t.Second.Message);
       }
     }
