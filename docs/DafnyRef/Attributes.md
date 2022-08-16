@@ -510,7 +510,7 @@ BOUNDVARS = ID : ID
 ### 23.2.23. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It configures Dafny as if
-`OPT0`, `OPT1`, ??? had been passed on the command line.  Outside of the module,
+`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
 options revert to their previous values.
 
 Only a small subset of Dafny's command line options is supported.  Use the
