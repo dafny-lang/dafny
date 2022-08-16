@@ -43,7 +43,11 @@ namespace Microsoft.Dafny {
           var parametersList = loggerConfig[(semiColonIndex + 1)..];
           foreach (string s in parametersList.Split(",")) {
             var equalsIndex = s.IndexOf("=");
-            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+            if (equalsIndex >= 0) {
+              parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+            } else {
+              throw new ArgumentException($"unknown parameter to `/verificationLogger:csv`: {s}");
+            }
           }
         } else {
           loggerName = loggerConfig;
@@ -61,9 +65,9 @@ namespace Microsoft.Dafny {
           // and then it would make sense to rename this class.
           var textLogger = new TextLogger();
           textLogger.Initialize(parameters);
-          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults);
+          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList());
         } else {
-          throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
+          throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
         }
       }
       events.EnableEvents();

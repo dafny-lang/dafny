@@ -9,6 +9,7 @@ using Function = Microsoft.Dafny.Function;
 using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {

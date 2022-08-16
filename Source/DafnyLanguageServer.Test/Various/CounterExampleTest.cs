@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Handlers.Custom;
+﻿using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -7,16 +8,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyServer.CounterexampleGeneration;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
-  public class CounterExampleTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      client = await InitializeClient();
-    }
+  public class CounterExampleTest : ClientBasedLanguageServerTest {
 
     private Task<CounterExampleList> RequestCounterExamples(DocumentUri documentUri) {
       return client.SendRequest(
@@ -25,6 +22,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         },
         CancellationToken
       );
+    }
+
+    [TestMethod]
+    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
+      await SetUp(new Dictionary<string, string> {
+        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+      });
+      var source = @"
+      method Abs(x: int) returns (y: int)
+        ensures y > 0
+      {
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual((2, 6), counterExamples[0].Position);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
     [TestMethod]
@@ -1000,6 +1016,76 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss?"));
       Assert.AreEqual("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss?"]);
+    }
+
+    [TestMethod]
+    public async Task UnboundedIntegers() {
+      var source = @"
+      ghost const NAT64_MAX := 0x7fff_ffff_ffff_ffff
+
+      newtype nat64 = x | 0 <= x <= NAT64_MAX
+
+      function method plus(a: nat64, b: nat64): nat64 {
+        a + b
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:int"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:int"));
+      var a = long.Parse(counterExamples[0].Variables["a:int"]);
+      var b = long.Parse(counterExamples[0].Variables["b:int"]);
+      Assert.IsTrue(a + b < a || a + b < b);
+    }
+
+    [TestMethod]
+    public async Task DatatypeWithPredicate() {
+      var source = @"
+      module M {
+        datatype D = C(i:int) {
+          predicate p() {true}
+        }
+
+        method test(d: D) {
+          if (d.p()) {
+            assert d.i != 123;
+          }
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("d:M.D"));
+      Assert.AreEqual("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
+    }
+
+    /// <summary>
+    /// Test a situation in which two fields of an object are equal
+    /// (the value is represented by one Element in the Model)
+    /// </summary>
+    [TestMethod]
+    public async Task EqualFields() {
+      var source = @"
+      module M {
+        class C { 
+          var c1:char;
+          var c2:char;
+        }
+
+        method test(c: C?) {
+          assert c == null || c.c1 != c.c2 || c.c1 != '\u1023';
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c:M.C?"));
+      Assert.IsTrue(counterExamples[0].Variables["c:M.C?"] is
+        "(c1 := '\\u1023', c2 := '\\u1023')" or
+        "(c2 := '\\u1023', c1 := '\\u1023')");
     }
   }
 }

@@ -5,6 +5,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using LiteralExpr = Microsoft.Boogie.LiteralExpr;
 using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyTestGeneration {
 

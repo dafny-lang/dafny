@@ -13,13 +13,89 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
+
+  public interface IToken : Microsoft.Boogie.IToken {
+    /*
+    int kind { get; set; }
+    int pos { get; set; }
+    int col { get; set; }
+    int line { get; set; }
+    string val { get; set; }
+    bool IsValid { get; }*/
+    string Boogie.IToken.filename {
+      get => Filename;
+      set => Filename = value;
+    }
+
+    string Filename { get; set; }
+
+    /// <summary>
+    /// TrailingTrivia contains everything after the token,
+    /// until and including two newlines between which there is no commment
+    /// All the remaining trivia is for the LeadingTrivia of the next token
+    ///
+    /// ```
+    /// const /*for const*/ x /*for x*/ := /* for := */ 1/* for 1 */
+    /// // for 1 again
+    /// // for 1 again
+    ///
+    /// // Two newlines, now all the trivia is for var y
+    /// // this line as well.
+    /// var y := 2
+    /// ```
+    /// </summary>
+    string TrailingTrivia { get; set; }
+    string LeadingTrivia { get; set; }
+  }
+
+  /// <summary>
+  /// Has one-indexed line and column fields
+  /// </summary>
+  public record Token : IToken {
+    public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
+    public static readonly IToken NoToken = (IToken)new Token();
+
+    public Token() : this(0, 0) { }
+
+    public Token(int linenum, int colnum) {
+      this.line = linenum;
+      this.col = colnum;
+      this.val = "";
+    }
+
+    public int kind { get; set; } // Used by coco, so we can't rename it to Kind
+
+    public string Filename { get; set; }
+
+    public int pos { get; set; } // Used by coco, so we can't rename it to Pos
+
+    /// <summary>
+    /// One-indexed
+    /// </summary>
+    public int col { get; set; } // Used by coco, so we can't rename it to Col
+
+    /// <summary>
+    /// One-indexed
+    /// </summary>
+    public int line { get; set; } // Used by coco, so we can't rename it to Line
+
+    public string val { get; set; } // Used by coco, so we can't rename it to Val
+
+    public string LeadingTrivia { get; set; }
+
+    public string TrailingTrivia { get; set; }
+
+    public bool IsValid => this.Filename != null;
+  }
+
 
   public class Program {
     [ContractInvariantMethod]
@@ -3113,6 +3189,9 @@ namespace Microsoft.Dafny {
     public IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken StartToken = Token.NoToken;
+    public IToken EndToken = Token.NoToken;
+    public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -3427,6 +3506,7 @@ namespace Microsoft.Dafny {
   // Represents module X { ... }
   public class LiteralModuleDecl : ModuleDecl {
     public readonly ModuleDefinition ModuleDef;
+
     [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
 
     private ModuleSignature emptySignature;
@@ -3449,6 +3529,8 @@ namespace Microsoft.Dafny {
     public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
       : base(module.tok, module.Name, parent, false, false) {
       ModuleDef = module;
+      StartToken = module.StartToken;
+      TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     }
     public override object Dereference() { return ModuleDef; }
   }
@@ -3685,6 +3767,8 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public IToken StartToken = Token.NoToken;
+    public IToken TokenWithTrailingDocString = Token.NoToken;
     public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
@@ -6094,9 +6178,10 @@ namespace Microsoft.Dafny {
     public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals,
+      Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6134,10 +6219,10 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
     public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
@@ -6154,7 +6239,7 @@ namespace Microsoft.Dafny {
 
       var args = new List<Expression>() { depth };
       args.AddRange(fexp.Args);
-      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
+      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
       prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
       prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
@@ -6167,10 +6252,10 @@ namespace Microsoft.Dafny {
   public class LeastPredicate : ExtremePredicate {
     public override string WhatKind { get { return "least predicate"; } }
     public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6178,10 +6263,10 @@ namespace Microsoft.Dafny {
   public class GreatestPredicate : ExtremePredicate {
     public override string WhatKind { get { return "greatest predicate"; } }
     public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6209,10 +6294,10 @@ namespace Microsoft.Dafny {
   public class TwoStatePredicate : TwoStateFunction {
     public override string WhatKind { get { return "twostate predicate"; } }
     public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
+                     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -8671,8 +8756,8 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.col; }
       set { throw new NotSupportedException(); }
     }
-    public virtual string filename {
-      get { return WrappedToken.filename; }
+    public virtual string Filename {
+      get { return WrappedToken.Filename; }
       set { throw new NotSupportedException(); }
     }
     public bool IsValid {
@@ -8692,6 +8777,14 @@ namespace Microsoft.Dafny {
     }
     public virtual string val {
       get { return WrappedToken.val; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual string LeadingTrivia {
+      get { return WrappedToken.LeadingTrivia; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual string TrailingTrivia {
+      get { return WrappedToken.TrailingTrivia; }
       set { throw new NotSupportedException(); }
     }
   }
@@ -8878,27 +8971,51 @@ namespace Microsoft.Dafny {
 
     private RangeToken rangeToken;
 
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
+    protected IToken[] FormatTokens = null;
+
     /// Creates a token on the entire range of the expression.
     /// Used only for error reporting.
     public RangeToken RangeToken {
       get {
         if (rangeToken == null) {
-          var startTok = tok;
-          var endTok = tok;
-          foreach (var e in SubExpressions) {
-            if (e.tok.filename != tok.filename || e.IsImplicit) {
-              // Ignore auto-generated expressions, if any.
-              continue;
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+            foreach (var e in SubExpressions) {
+              if (e.tok.Filename != tok.Filename || e.IsImplicit) {
+                // Ignore auto-generated expressions, if any.
+                continue;
+              }
+
+              if (e.StartToken.pos < startTok.pos) {
+                startTok = e.StartToken;
+              } else if (e.EndToken.pos > endTok.pos) {
+                endTok = e.EndToken;
+              }
             }
 
-            if (e.StartToken.pos < startTok.pos) {
-              startTok = e.StartToken;
-            } else if (e.EndToken.pos > endTok.pos) {
-              endTok = e.EndToken;
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                if (token.Filename != tok.Filename) {
+                  continue;
+                }
+
+                if (token.pos < startTok.pos) {
+                  startTok = token;
+                }
+
+                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+                  endTok = token;
+                }
+              }
             }
+
+            rangeToken = new RangeToken(startTok, endTok);
           }
-
-          rangeToken = new RangeToken(startTok, endTok);
         }
 
         return rangeToken;
@@ -10248,13 +10365,15 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression E0;
     public readonly Expression E1;
+    public readonly IToken CloseParen;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
       Contract.Invariant(!SelectOne || E1 == null);
     }
 
-    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1)
+    public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(seq != null);
@@ -10264,6 +10383,10 @@ namespace Microsoft.Dafny {
       Seq = seq;
       E0 = e0;
       E1 = e1;
+      CloseParen = closeParen;
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -10367,10 +10490,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ApplyExpr(IToken tok, Expression fn, List<Expression> args)
+    public IToken CloseParen;
+
+    public ApplyExpr(IToken tok, Expression fn, List<Expression> args, IToken closeParen)
       : base(tok) {
       Function = fn;
       Args = args;
+      CloseParen = closeParen;
+      FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
   }
 
@@ -10378,6 +10505,7 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
+    public readonly IToken CloseParen;
     public readonly Label/*?*/ AtLabel;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
@@ -10444,8 +10572,8 @@ namespace Microsoft.Dafny {
 
     [FilledInDuringResolution] public Function Function;
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+      : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
@@ -10454,7 +10582,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(type == null);
     }
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
@@ -10466,17 +10594,19 @@ namespace Microsoft.Dafny {
       this.Name = fn;
       this.Receiver = receiver;
       this.OpenParen = openParen;
+      this.CloseParen = closeParen;
       this.AtLabel = atLabel;
       this.Bindings = bindings;
+      this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
     }
 
     /// <summary>
     /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
     /// to be already resolved, and are all given positionally.
     /// </summary>
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
       Label /*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+      : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
@@ -10700,11 +10830,13 @@ namespace Microsoft.Dafny {
   }
 
   public class ConversionExpr : TypeUnaryExpr {
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public readonly string messagePrefix;
+    public ConversionExpr(IToken tok, Expression expr, Type toType, string messagePrefix = "")
       : base(tok, expr, toType) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
+      this.messagePrefix = messagePrefix;
     }
   }
 
@@ -11010,8 +11142,8 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();  // unexpected operator
       }
     }
-    public readonly Expression E0;
-    public readonly Expression E1;
+    public Expression E0;
+    public Expression E1;
     public enum AccumulationOperand { None, Left, Right }
     public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
     [ContractInvariantMethod]
@@ -11033,7 +11165,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns a resolved binary expression
     /// </summary>
-    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
       : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
       ResolvedOp = rop;
       switch (rop) {
@@ -12246,6 +12378,15 @@ namespace Microsoft.Dafny {
       this.IsGhost = isGhost;
     }
   }
+
+  public class DisjunctivePattern : ExtendedPattern {
+    public readonly List<ExtendedPattern> Alternatives;
+    public DisjunctivePattern(IToken tok, List<ExtendedPattern> alternatives, bool isGhost = false) : base(tok, isGhost) {
+      Contract.Requires(alternatives != null && alternatives.Count > 0);
+      this.Alternatives = alternatives;
+    }
+  }
+
   public class LitPattern : ExtendedPattern {
     public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
 
@@ -12282,7 +12423,7 @@ namespace Microsoft.Dafny {
           } else {
             var n = (BigInteger)lit.Value;
             var tok = new Token(neg.tok.line, neg.tok.col) {
-              filename = neg.tok.filename,
+              Filename = neg.tok.Filename,
               val = "-0"
             };
             return new LiteralExpr(tok, -n);
@@ -12304,18 +12445,23 @@ namespace Microsoft.Dafny {
   }
 
   public class IdPattern : ExtendedPattern {
+    public bool HasParenthesis { get; }
     public readonly String Id;
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
     public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
     public LiteralExpr ResolvedLit; // null if just an identifier
 
+    public bool IsWildcardPattern =>
+      Arguments == null && Id.StartsWith("_");
+
     public void MakeAConstructor() {
       this.Arguments = new List<ExtendedPattern>();
     }
 
-    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
+    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
       Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      HasParenthesis = hasParenthesis;
       this.Id = id;
       this.Type = new InferredTypeProxy();
       this.Arguments = arguments;
@@ -12611,6 +12757,16 @@ namespace Microsoft.Dafny {
       : base(tok) {
       E = e;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression == null) {
+          yield return E;
+        } else {
+          yield return ResolvedExpression;
+        }
+      }
+    }
   }
 
   public class TypeExpr : ParensExpression {
@@ -12893,6 +13049,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ApplySuffix : SuffixExpr {
     public readonly IToken/*?*/ AtTok;
+    public readonly IToken CloseParen;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
 
@@ -12901,13 +13058,17 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
       AtTok = atLabel;
+      CloseParen = closeParen;
       Bindings = new ActualBindings(args);
+      if (closeParen != null) {
+        FormatTokens = new[] { closeParen };
+      }
     }
   }
 

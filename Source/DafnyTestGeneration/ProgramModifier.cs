@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Token = Microsoft.Dafny.Token;
 using Declaration = Microsoft.Boogie.Declaration;
 using Formal = Microsoft.Boogie.Formal;
 using Function = Microsoft.Boogie.Function;

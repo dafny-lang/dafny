@@ -52,11 +52,22 @@ namespace Microsoft.Dafny {
         Expression substExpr;
         if (substMap.TryGetValue(e.Var, out substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;
+          Expression substExprFinal;
           if (substIdExpr != null) {
             // clone it, using the source location of the original
-            substExpr = new IdentifierExpr(expr.tok, substIdExpr.Var);
+            substExprFinal = new IdentifierExpr(expr.tok, substIdExpr.Var);
+          } else {
+            if (substExpr.tok != e.RangeToken) {
+              var substExprParens = new ParensExpression(expr.RangeToken, substExpr);
+              substExprParens.Type = substExpr.Type;
+              substExprParens.ResolvedExpression = substExpr;
+              substExprFinal = substExprParens;
+            } else {
+              substExprFinal = substExpr;
+            }
           }
-          return cce.NonNull(substExpr);
+
+          return cce.NonNull(substExprFinal);
         }
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -100,7 +111,7 @@ namespace Microsoft.Dafny {
         Expression e0 = sse.E0 == null ? null : Substitute(sse.E0);
         Expression e1 = sse.E1 == null ? null : Substitute(sse.E1);
         if (seq != sse.Seq || e0 != sse.E0 || e1 != sse.E1) {
-          newExpr = new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
+          newExpr = new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1, sse.CloseParen);
         }
 
       } else if (expr is SeqUpdateExpr) {
@@ -128,7 +139,7 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel ?? oldHeapLabel);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel);
           newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
           newFce.CoCall = e.CoCall;  // also copy the co-call status
           newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
@@ -142,7 +153,7 @@ namespace Microsoft.Dafny {
         ApplyExpr e = (ApplyExpr)expr;
         Expression fn = Substitute(e.Function);
         List<Expression> args = SubstituteExprList(e.Args);
-        newExpr = new ApplyExpr(e.tok, fn, args);
+        newExpr = new ApplyExpr(e.tok, fn, args, e.CloseParen);
 
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;

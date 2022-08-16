@@ -55,9 +55,9 @@ namespace DafnyTestGeneration {
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
-
+    
     public bool IsValid => errorMessages.Count == 0;
-
+    
     public static void ClearTypesToSynthesize() {
       TypesToSynthesize.Clear();
     }
@@ -243,7 +243,7 @@ namespace DafnyTestGeneration {
         type => DafnyInfo.GetSupersetType(type) != null &&
                 type.Name.StartsWith("_System"),
         type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
-      if (variableType.ToString() == defaultType.ToString() && 
+      if (variableType.ToString() == defaultType.ToString() &&
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
       }
@@ -264,9 +264,9 @@ namespace DafnyTestGeneration {
               ? (seqName, asType ?? variableType, "\"\"")
               : (seqName, asType ?? variableType, "[]"));
             return seqName;
-          }
-          for (var i = 0; i < seqVar.GetLength(); i++) {
-            var element = seqVar[i];
+    }
+          for (var i = 0; i < seqVar?.GetLength(); i++) {
+            var element = seqVar?[i];
             if (element == null) {
               getDefaultValueParams = new();
               elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type?)null)));
@@ -626,14 +626,14 @@ namespace DafnyTestGeneration {
     private List<string> TestMethodLines() {
       
       List<string> lines = new();
-
+      
       if (errorMessages.Count != 0) {
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           lines.AddRange(errorMessages);
         }
         return lines;
       }
-
+      
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
         returnParNames.Add("r" + i);

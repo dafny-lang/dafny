@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyServer.CounterexampleGeneration {

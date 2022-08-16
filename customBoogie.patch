@@ -2,7 +2,7 @@ diff --git a/Source/Dafny.sln b/Source/Dafny.sln
 index 88200dcc4..3a75b0cc5 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -34,6 +34,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
+@@ -35,6 +35,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
  EndProject
  Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
  EndProject
@@ -37,7 +37,7 @@ index 88200dcc4..3a75b0cc5 100644
  Global
  	GlobalSection(SolutionConfigurationPlatforms) = preSolution
  		Debug|Any CPU = Debug|Any CPU
-@@ -92,6 +120,72 @@ Global
+@@ -94,6 +122,72 @@ Global
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
@@ -137,7 +137,7 @@ index 6ea0de067..ca1e0e527 100644
        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
--      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.6" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.7" />
 +      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  

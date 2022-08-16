@@ -59,7 +59,13 @@ namespace Microsoft.Dafny {
       clo = options;
     }
 
+    public enum DiagnosticsFormats {
+      PlainText,
+      JSON,
+    }
+
     public bool UnicodeOutput = false;
+    public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
@@ -104,6 +110,7 @@ namespace Microsoft.Dafny {
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
@@ -320,6 +327,26 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "diagnosticsFormat": {
+            if (ps.ConfirmArgumentCount(1)) {
+              switch (args[ps.i]) {
+                case "json":
+                  Printer = new DafnyJsonConsolePrinter { Options = this };
+                  DiagnosticsFormat = DiagnosticsFormats.JSON;
+                  break;
+                case "text":
+                  Printer = new DafnyConsolePrinter { Options = this };
+                  DiagnosticsFormat = DiagnosticsFormats.PlainText;
+                  break;
+                case var df:
+                  ps.Error($"Unsupported diagnostic format: '{df}'; expecting one of 'json', 'text'.");
+                  break;
+              }
+            }
+
+            return true;
+          }
+
         case "spillTargetCode": {
             int spill = 0;
             if (ps.GetIntArgument(ref spill, 4)) {
@@ -490,6 +517,10 @@ namespace Microsoft.Dafny {
 
         case "printTooltips":
           PrintTooltips = true;
+          return true;
+
+        case "warnMissingConstructorParentheses":
+          DisallowConstructorCaseWithoutParentheses = true;
           return true;
 
         case "autoTriggers": {
@@ -858,7 +889,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:no_inline}
-      TODO
+      When predicates such as `predicate P(x: int) { x % 2 == 0 }`
+      are used in assertions like `assert P(6);`, Dafny
+      will by default try to figure out if it can split the call
+      into multiple assertions that are easier for the verifier.
+      Hence, sometimes, if allowed to do so (e.g. no `{:opaque}`),
+      Dafny will inline the predicate, resulting in, for example,
+      `assert 6 % 2 == 0`.
+      
+      Adding the attribute `{:no_inline}` to a function will prevent
+      the Dafny verifier from inlining it, but unless the function is
+      `{:opaque}` its definition will still be available.
+      
+      This trick can be helpful, for a huge conjunct predicate `P`,
+      assuming that `P(x)` already hold, if we don't want `P`
+      to be opaque, and we `assert P(x)` again. Inlining might result
+      in performance issues because it will have to infer every single
+      conjunct. Adding `{:no_inline}` to the predicate can result
+      in such cases in the verifier being faster.
 
     {:nowarn}
       TODO
@@ -990,6 +1038,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /printTooltips
     Dump additional positional information (displayed as mouse-over tooltips by
     the VS plugin) to stdout as 'Info' messages.
+/diagnosticsFormat:<text|json>
+    Choose how to report errors, warnings, and info messages.
+    text (default): Use human readable output
+    json: Print each message as a JSON object, one per line.
 
 ---- Language feature selection --------------------------------------------
 
@@ -1046,6 +1098,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /warnShadowing  Emits a warning if the name of a declared variable caused another variable
     to be shadowed
+/warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
+    is not followed by parentheses
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features
@@ -1278,9 +1332,9 @@ program.
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private Bpl.IToken token;
+  private IToken token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
@@ -1303,7 +1357,7 @@ class DafnyAttributeOptions : DafnyOptions {
   };
 
   private readonly Errors errors;
-  public Bpl.IToken Token { get; set; }
+  public IToken Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;
@@ -1311,7 +1365,7 @@ class DafnyAttributeOptions : DafnyOptions {
   }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
-    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Microsoft.Dafny.Token.NoToken);
   }
 
   private void Unsupported(string name, Bpl.CommandLineParseState ps) {

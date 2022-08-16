@@ -8,6 +8,7 @@ using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using LetExpr = Microsoft.Dafny.LetExpr;
 using OldExpr = Microsoft.Dafny.OldExpr;
 using Program = Microsoft.Dafny.Program;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
@@ -285,7 +286,7 @@ namespace DafnyTestGeneration {
       }
       return result;
     }
-
+    
     public bool IsTrait(UserDefinedType? type) {
       if (type == null || !Classes.ContainsKey(type.Name)) {
         throw new Exception("Cannot identify class " + type?.Name ??

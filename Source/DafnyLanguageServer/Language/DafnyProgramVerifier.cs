@@ -19,7 +19,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-
     private readonly VerificationResultCache cache = new();
     private readonly ExecutionEngine engine;
 
@@ -27,8 +26,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ILogger<DafnyProgramVerifier> logger,
       IOptions<VerifierOptions> options
       ) {
-
       var engineOptions = DafnyOptions.O;
+      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
       engineOptions.TimeLimit = options.Value.TimeLimit;
       engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -64,12 +63,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var result = translated.SelectMany(t => {
+      var tasks = translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      }).ToList();
-      return result;
+      });
+      return tasks.
+        OrderBy(t => t.Implementation.Priority).
+        CreateOrderedEnumerable(
+          t => document.LastTouchedVerifiables.IndexOf(t.Implementation.tok.GetLspPosition()),
+          null, true).
+        ToList();
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;

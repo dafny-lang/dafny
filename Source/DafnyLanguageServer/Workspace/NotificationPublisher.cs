@@ -1,17 +1,26 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Serilog.Core;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class NotificationPublisher : INotificationPublisher {
+    private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
+    private readonly VerifierOptions verifierOptions;
 
-    public NotificationPublisher(ILanguageServerFacade languageServer) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
+      this.logger = logger;
       this.languageServer = languageServer;
+      this.verifierOptions = verifierOptions.Value;
     }
 
     public void PublishNotifications(DafnyDocument previous, DafnyDocument document) {
@@ -28,17 +37,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
       var notification = GetFileVerificationStatus(document);
+      if (notification == null) {
+        // Do not publish verification status while resolving
+        return;
+      }
+
       var previous = GetFileVerificationStatus(previousDocument);
-      if (previous.Version > notification.Version ||
-          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+      if (previous != null && (previous.Version > notification.Version ||
+          previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables))) {
         return;
       }
 
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
-      return new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationIdToView));
+    private static FileVerificationStatus? GetFileVerificationStatus(DafnyDocument document) {
+      if (document.ImplementationIdToView == null || document.VerificationTasks == null) {
+        return null;
+      }
+      return new FileVerificationStatus(document.Uri, document.Version,
+        GetNamedVerifiableStatuses(document.ImplementationIdToView));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
@@ -60,7 +78,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
       }
-
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
@@ -73,6 +90,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
+      if (!verifierOptions.GutterStatus) {
+        return;
+      }
+
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
         // Therefore, we do not republish the errors when the document (re-)load was canceled.

@@ -24,9 +24,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var document = await documents.GetLastDocumentAsync(request.TextDocument);
-        if (document != null) {
-          return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
+        var documentManager = documents.GetDocumentManager(request.TextDocument);
+        if (documentManager != null) {
+          var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
+          var verificationTasks = translatedDocument.VerificationTasks;
+          if (verificationTasks != null) {
+            foreach (var task in verificationTasks) {
+              documentManager.CompilationManager.Verify(translatedDocument, task);
+            }
+          }
+
+          var documentWithCounterExamples = await documentManager.LastDocumentAsync;
+          return new CounterExampleLoader(logger, documentWithCounterExamples!, request.CounterExampleDepth, cancellationToken)
             .GetCounterExamples();
         }
 
@@ -60,11 +69,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if (!document.Counterexamples.Any()) {
+        if (!document.Counterexamples!.Any()) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.Counterexamples)
+        var counterExamples = GetLanguageSpecificModels(document.Counterexamples!)
           .SelectMany(GetCounterExamples)
           .WithCancellation(cancellationToken)
           .ToArray();
@@ -90,8 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + 
-                        DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
+            variable => variable.ShortName + ":" + DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
             variable => variable.Value
           )
         );

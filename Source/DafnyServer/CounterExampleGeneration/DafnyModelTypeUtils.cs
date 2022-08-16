@@ -4,11 +4,10 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
 using MapType = Microsoft.Dafny.MapType;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
-using TypeProxy = Microsoft.Dafny.TypeProxy;
 
 namespace DafnyServer.CounterexampleGeneration {
 
