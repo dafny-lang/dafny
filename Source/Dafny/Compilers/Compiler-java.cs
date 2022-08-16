@@ -342,6 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
+      wBody.WriteLine(@"@SuppressWarnings(""unchecked"")");
       wBody.WriteLine($"dafny.DafnySequence<Character>[] dafnyArgs = new dafny.DafnySequence[args.length];");
       wBody.WriteLine($"for(int i = 0; i < args.length; i++) dafnyArgs[i] = dafny.DafnySequence.asString(args[i]);");
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(dafnyArgs); }} );");

@@ -1,5 +1,6 @@
 # Upcoming
 
+- feat: Command-line arguments available from Main() in Dafny programs (https://github.com/dafny-lang/dafny/pull/2594)
 - fix: Use the right bitvector comparison in decrease checks
   (https://github.com/dafny-lang/dafny/pull/2512)
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.

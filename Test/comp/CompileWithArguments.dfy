@@ -1,13 +1,13 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /arg:csharp /arg:1 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /arg:javascript /arg:2 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "/arg:go go" /arg:1 "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java /arg:java /arg:heya "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "/arg:python /arg:1 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:2 /compileTarget:cs "%s" /out:CompileWithArgument.dll
-// RUN: %dotnet CompileWithArgument.dll "ellel" 2 >> "%t"
-// RUN: %dotnet CompileWithArgument.dll "on the go" 1 >> "%t"
-// RUN: %dotnet CompileWithArgument.dll "dll" "Aloha from" >> "%t"
+// RN: %dafny /noVerify /compile:4 /compileTarget:js /arg:javascript /arg:2 "%s" >> "%t"
+// RN: %dafny /noVerify /compile:4 /compileTarget:go "/arg:go go" /arg:1 "%s" >> "%t"
+// RN: %dafny /noVerify /compile:4 /compileTarget:py "/arg:python /arg:1 "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:2 /compileTarget:cs "%s" /out:%s.dll
+// RUN: dotnet %s.dll "ellel" 2 >> "%t"
+// RUN: dotnet %s.dll "on the go" 1 >> "%t"
+// RUN: dotnet %s.dll "dll" "Aloha from" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main(args: array<string>) {
