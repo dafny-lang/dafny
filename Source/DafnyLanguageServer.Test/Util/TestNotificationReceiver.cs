@@ -22,6 +22,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
 
     public IReadOnlyList<TNotification> History => notificationHistory;
 
+    public void ClearHistory() {
+      notificationHistory.Clear();
+    }
+
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
       if (notifications.TryDequeue(out var notification)) {

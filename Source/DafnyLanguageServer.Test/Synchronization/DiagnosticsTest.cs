@@ -570,10 +570,11 @@ method t10() { assert false; }".TrimStart();
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
       for (int i = 0; i < 10; i++) {
+        diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual(5, diagnostics.Length, "Old to new history was:" + string.Join(", ", diagnosticsReceiver.History));
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
