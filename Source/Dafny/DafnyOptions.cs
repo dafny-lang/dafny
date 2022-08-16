@@ -310,10 +310,9 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "mainArgs":
-        case "MainArgs": {
+        case "arg": {
             if (ps.ConfirmArgumentCount(1)) {
-              MainArgs.AddRange(ParseInnerArguments(args[ps.i]));
+              MainArgs.Add(args[ps.i]);
             }
 
             return true;
