@@ -3,11 +3,12 @@ namespace Microsoft.Dafny;
 class CompileOption : NaturalNumberOption {
   public static readonly CompileOption Instance = new();
 
-  public override object GetDefaultValue(DafnyOptions options) {
-    return 999;
+  public override object DefaultValue
+  {
+    get { return 999; }
   }
 
-  public override void TypedPostProcess(DafnyOptions options, uint value) {
+  public override string TypedPostProcess(DafnyOptions options, uint value) {
     var compile = value;
 
     if (compile != 999) {
@@ -16,11 +17,12 @@ class CompileOption : NaturalNumberOption {
       options.ForceCompile = compile == 2 || compile == 4;
       options.RunAfterCompile = compile == 3 || compile == 4;
     }
-    base.PostProcess(options, value);
+    return base.TypedPostProcess(options, value);
   }
 
   public override string LongName => "compile";
   public override string ShortName => null;
+  public override string ArgumentName => null;
   public override string Category => "Compilation options";
 
   public override string Description => @"

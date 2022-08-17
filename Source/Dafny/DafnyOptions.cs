@@ -16,12 +16,13 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public record Options(List<string> FreeArguments, IDictionary<ICommandLineOption, object> OptionArguments);
+  public record Options(List<string> FreeArguments, IDictionary<IOptionSpec, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+    public void AddFile(string file) => base.AddFile(file, null);
 
-    private static readonly ISet<ICommandLineOption> AvailableNewStyleOptions = new HashSet<ICommandLineOption>(
-      new ICommandLineOption[] {
+    private static readonly ISet<IOptionSpec> AvailableNewStyleOptions = new HashSet<IOptionSpec>(
+      new IOptionSpec[] {
         ShowSnippetsOption.Instance,
         CompileTargetOption.Instance,
         CompileOption.Instance,
@@ -52,7 +53,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Options Options { get; set; } = new(new(), new Dictionary<ICommandLineOption, object>());
+    public Options Options { get; set; } = new(new(), new Dictionary<IOptionSpec, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -199,7 +200,7 @@ namespace Microsoft.Dafny {
 
     public override bool Parse(string[] args) {
       foreach (var option in AvailableNewStyleOptions.Except(Options.OptionArguments.Keys)) {
-        Options.OptionArguments[option] = option.GetDefaultValue(this);
+        Options.OptionArguments[option] = option.DefaultValue;
       }
       return base.Parse(args);
     }
@@ -234,7 +235,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help =>
-      ICommandLineOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
+      IOptionSpec.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym

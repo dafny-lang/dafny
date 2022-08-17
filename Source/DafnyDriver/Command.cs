@@ -1,20 +1,21 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public interface ICommand {
+public interface ICommandSpec {
   string Name { get; }
 
   string Description { get; }
 
-  ISet<ICommandLineOption> Options { get; }
+  ISet<IOptionSpec> Options { get; }
 
   void PostProcess(DafnyOptions dafnyOptions, Options options);
 }
 
-class BuildCommand : ICommand {
+class BuildCommand : ICommandSpec {
   public string Name => "build";
   public string Description => "Generate source files in the target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
@@ -23,19 +24,19 @@ class BuildCommand : ICommand {
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
 
-  public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(
-    CommandRegistry.CommonOptions.Concat(new ICommandLineOption[] {
+  public ISet<IOptionSpec> Options => new HashSet<IOptionSpec>(
+    CommandRegistry.CommonOptions.Concat(new IOptionSpec[] {
       NoVerifyOption.Instance,
       TargetOption.Instance,
     }));
 }
 
-class RunCommand : ICommand {
+class RunCommand : ICommandSpec {
   public string Name => "run";
   public string Description => "Run the program.";
 
-  public ISet<ICommandLineOption> Options => new HashSet<ICommandLineOption>(
-    CommandRegistry.CommonOptions.Concat(new ICommandLineOption[] {
+  public ISet<IOptionSpec> Options => new HashSet<IOptionSpec>(
+    CommandRegistry.CommonOptions.Concat(new IOptionSpec[] {
       NoVerifyOption.Instance,
       TargetOption.Instance,
     }));
@@ -47,10 +48,10 @@ class RunCommand : ICommand {
   }
 }
 
-class VerifyCommand : ICommand {
+class VerifyCommand : ICommandSpec {
   public string Name => "verify";
   public string Description => "Verify the program.";
-  public ISet<ICommandLineOption> Options => CommandRegistry.CommonOptions;
+  public ISet<IOptionSpec> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.EmitExecutable = false;

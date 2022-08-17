@@ -2,18 +2,21 @@ namespace Microsoft.Dafny;
 
 class SpillTargetCodeOption : NaturalNumberOption {
   public static readonly SpillTargetCodeOption Instance = new();
-  public override object GetDefaultValue(DafnyOptions options) {
-    return 0;
+
+  public override object DefaultValue
+  {
+    get { return 0; }
   }
 
-  public override void TypedPostProcess(DafnyOptions options, uint value) {
+  public override string TypedPostProcess(DafnyOptions options, uint value) {
     options.SpillTargetCode = value;
-    base.PostProcess(options, value);
+    return base.TypedPostProcess(options, value);
   }
 
   public override string LongName => "spillTargetCode";
 
   public override string ShortName => null;
+  public override string ArgumentName => null;
   public override string Category => "Compilation options";
 
   public override string Description => @"

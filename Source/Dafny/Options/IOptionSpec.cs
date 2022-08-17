@@ -2,25 +2,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.CommandLine;
 
 namespace Microsoft.Dafny;
 
-public interface ICommandLineOption {
-  object GetDefaultValue(DafnyOptions options);
+public interface IOptionSpec {
+
+  Option ToOption { get; }
+  object DefaultValue { get; }
   string LongName { get; }
   string ShortName { get; }
+  string ArgumentName { get; }
   string Category { get; }
   string Description { get; }
-  bool CanBeUsedMultipleTimes { get; }
   ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
-  void PostProcess(DafnyOptions options, object value);
+  string PostProcess(DafnyOptions options, object value);
 
-  public static string GenerateHelp(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
+  public static string GenerateHelp(string template, IEnumerable<IOptionSpec> options, bool oldStyle = false) {
     var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
     var categories = regex.Matches(template).ToArray();
 
     var optionsByCategory = options.GroupBy(option => option.Category).
-      ToDictionary(g => g.Key, g => g as IEnumerable<ICommandLineOption>);
+      ToDictionary(g => g.Key, g => g as IEnumerable<IOptionSpec>);
 
     var output = new StringBuilder();
     var outputIndex = 0;
@@ -31,7 +34,7 @@ public interface ICommandLineOption {
       outputIndex = category.Index + category.Length;
       var categoryName = category.Groups[1].Value;
       output.Append(category.Value);
-      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<ICommandLineOption>());
+      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<IOptionSpec>());
 
       foreach (var option in optionsForCategory.OrderBy(o => o.LongName)) {
         var prefix = oldStyle ? "/" : "--";
@@ -48,7 +51,7 @@ public interface ICommandLineOption {
   }
 }
 
-public abstract class CommandLineOption<T> : ICommandLineOption {
+public abstract class CommandLineOption<T> : IOptionSpec {
   public T Get(DafnyOptions options) {
     return Get(options.Options);
   }
@@ -64,24 +67,36 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
     options.OptionArguments[this] = value;
   }
 
-  public abstract object GetDefaultValue(DafnyOptions options);
-  public abstract string LongName { get; }
-  public abstract string ShortName { get; }
-  public abstract string Category { get; }
-  public abstract string Description { get; }
-  public abstract bool CanBeUsedMultipleTimes { get; }
-  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
-
-  public virtual void TypedPostProcess(DafnyOptions options, T value) {
+  public virtual Option ToOption {
+    get {
+      var result = new Option<T>("--" + LongName, Description);
+      result.SetDefaultValue(DefaultValue);
+      result.ArgumentHelpName = ArgumentName;
+      if (ShortName != null) {
+        result.AddAlias("-" + ShortName);
+      }
+      return result;
+    }
   }
 
-  public void PostProcess(DafnyOptions options, object value) {
-    TypedPostProcess(options, (T)value);
+  public abstract object DefaultValue { get; }
+  public abstract string LongName { get; }
+  public abstract string ShortName { get; }
+  public abstract string ArgumentName { get; }
+  public abstract string Category { get; }
+  public abstract string Description { get; }
+  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
+
+  public virtual string TypedPostProcess(DafnyOptions options, T value) {
+    return null;
+  }
+
+  public string PostProcess(DafnyOptions options, object value) {
+    return TypedPostProcess(options, (T)value);
   }
 }
 
 public abstract class IntegerOption : CommandLineOption<int> {
-  public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     if (!arguments.Any()) {
@@ -98,7 +113,6 @@ public abstract class IntegerOption : CommandLineOption<int> {
 }
 
 public abstract class NaturalNumberOption : CommandLineOption<uint> {
-  public override bool CanBeUsedMultipleTimes => false;
 
   public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     if (!arguments.Any()) {
@@ -115,8 +129,9 @@ public abstract class NaturalNumberOption : CommandLineOption<uint> {
 }
 
 public abstract class BooleanOption : CommandLineOption<bool> {
-  public override bool CanBeUsedMultipleTimes => false;
-  public override object GetDefaultValue(DafnyOptions options) => false;
+  public override object DefaultValue => false;
+
+  public override string ArgumentName => null;
 
   public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     var defaultResult = new ParsedOption(true);
@@ -138,6 +153,19 @@ public abstract class BooleanOption : CommandLineOption<bool> {
 }
 
 public abstract class StringOption : CommandLineOption<string> {
+  protected virtual string[] AllowedValues => null;
+
+  public override Option ToOption {
+    get {
+      var result = base.ToOption;
+      if (AllowedValues != null) {
+        result.FromAmong(AllowedValues);
+      }
+
+      return result;
+    }
+  }
+
   public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
     var value = arguments.Pop();
     return new ParsedOption(value);

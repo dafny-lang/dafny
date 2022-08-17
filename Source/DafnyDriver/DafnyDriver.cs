@@ -127,8 +127,7 @@ namespace Microsoft.Dafny {
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
           return (int)ExitValue.PREPROCESSING_ERROR;
         case CommandLineArgumentsResult.OK_EXIT_EARLY:
-          exitValue = ExitValue.SUCCESS;
-          break;
+          return (int)ExitValue.SUCCESS;
         default:
           throw new ArgumentOutOfRangeException();
       }
@@ -169,9 +168,8 @@ namespace Microsoft.Dafny {
             options = success.DafnyOptions;
             break;
           case ParseArgumentFailure failure:
-            Console.WriteLine(failure.Message);
             options = null;
-            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+            return failure.ExitResult;
           default: throw new Exception("unreachable");
         }
 
