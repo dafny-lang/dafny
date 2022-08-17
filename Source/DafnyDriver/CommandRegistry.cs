@@ -109,7 +109,7 @@ static class CommandRegistry {
         dafnyOptions.AddFile(file.FullName);
       }
 
-      dafnyOptions.ApplyDefaultOptions();
+      dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       commandSpec.PostProcess(dafnyOptions, options);
     }
 

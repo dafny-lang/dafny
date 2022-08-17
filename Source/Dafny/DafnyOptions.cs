@@ -583,12 +583,17 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      base.ApplyDefaultOptions();
       foreach (var option in AvailableNewStyleOptions) {
         Options.OptionArguments.GetOrCreate(option, () => option.DefaultValue);
         option.PostProcess(this);
       }
 
+      ApplyDefaultOptionsWithoutSettingsDefault();
+    }
+
+    public void ApplyDefaultOptionsWithoutSettingsDefault()
+    {
+      base.ApplyDefaultOptions();
       if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
