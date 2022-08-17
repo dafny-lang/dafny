@@ -1,7 +1,7 @@
 namespace Microsoft.Dafny;
 
 public class OutOption : OutputOption {
-  public static readonly OutOption Instance = new();
+  public new static readonly OutOption Instance = new();
   public override string LongName => "out";
 }
 

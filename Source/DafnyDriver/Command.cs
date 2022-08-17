@@ -30,6 +30,7 @@ class BuildCommand : ICommandSpec {
       TargetOption.Instance,
       CompileVerboseOption.Instance,
       OutputOption.Instance,
+      UseRuntimeLibOption.Instance
     }));
 }
 

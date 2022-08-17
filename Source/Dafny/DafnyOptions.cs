@@ -25,7 +25,6 @@ namespace Microsoft.Dafny {
       new IOptionSpec[] {
         ShowSnippetsOption.Instance,
         CompileTargetOption.Instance,
-        DafnyVerifyOption.Instance,
         DPrintOption.Instance,
         LibraryOption.Instance,
         DafnyPreludeOption.Instance,
@@ -33,6 +32,7 @@ namespace Microsoft.Dafny {
         CompileVerboseOption.Instance,
         OutOption.Instance,
         PluginOption.Instance,
+        UseRuntimeLibOption.Instance
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -201,13 +201,6 @@ namespace Microsoft.Dafny {
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
-
-    public override bool Parse(string[] args) {
-      foreach (var option in AvailableNewStyleOptions.Except(Options.OptionArguments.Keys)) {
-        Options.OptionArguments[option] = option.DefaultValue;
-      }
-      return base.Parse(args);
-    }
 
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       if (ParseDafnySpecificOption(name, ps)) {
@@ -529,11 +522,6 @@ namespace Microsoft.Dafny {
               DefiniteAssignmentLevel = da;
             }
 
-            return true;
-          }
-
-        case "useRuntimeLib": {
-            UseRuntimeLib = true;
             return true;
           }
 
@@ -1029,6 +1017,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Verification options -------------------------------------------------
 
+/dafnyVerify:<n>
+    0 - stop after typechecking
+    1 - continue on to translation, verification, and compilation
 /verifyAllModules
     Verify modules that come from an include directive
 /separateModuleOutput
@@ -1211,9 +1202,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     0 - Resolve and translate all methods
     1 - Translate methods only in the call graph of current verification target
     2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
-/useRuntimeLib
-    Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-    than including DafnyRuntime.cs verbatim.
 /library:<file>
     The contents of this file and any files it includes can be referenced from other files as if they were included. 
     However, these contents are skipped during code generation and verification.

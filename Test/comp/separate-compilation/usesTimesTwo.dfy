@@ -1,7 +1,7 @@
-// RUN: %baredafny build --useRuntimeLib --out=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
+// RUN: %baredafny build --useRuntimeLib --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
 // RUN: dotnet build %S/Inputs/producer
 
-// RUN: %baredafny build --useRuntimeLib --out=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
+// RUN: %baredafny build --useRuntimeLib --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
 // RUN: dotnet run --project %S/consumer > "%t"
 // RUN: %diff "%s.expect" "%t"
 

@@ -124,9 +124,9 @@ public abstract class BooleanOption : CommandLineOption<bool> {
   public override string ArgumentName => null;
 
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {
-    int printEffects = 0;
-    if (ps.GetIntArgument(ref printEffects, 2)) {
-      Set(options, printEffects == 1);
+    int result = 0;
+    if (ps.GetIntArgument(ref result, 2)) {
+      Set(options, result == 1);
     }
   }
 }

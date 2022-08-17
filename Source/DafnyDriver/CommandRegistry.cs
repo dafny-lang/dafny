@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -54,6 +55,7 @@ static class CommandRegistry {
     }
 
     var wasInvoked = false;
+    string optionFailure = null;
     var dafnyOptions = new DafnyOptions();
     var optionValues = new Dictionary<IOptionSpec, object>();
     var optionLessValues = new List<string>();
@@ -95,7 +97,11 @@ static class CommandRegistry {
           var optionSpec = optionToSpec[option];
           var value = context.ParseResult.GetValueForOption(option);
           options.OptionArguments[optionSpec] = value;
-          optionSpec.PostProcess(dafnyOptions);
+          var failure = optionSpec.PostProcess(dafnyOptions);
+          if (failure != null) {
+            optionFailure = failure;
+            break;
+          }
         }
       }
 
@@ -108,6 +114,10 @@ static class CommandRegistry {
     }
 
     var exitCode = rootCommand.InvokeAsync(arguments).Result;
+    if (optionFailure != null) {
+      Console.WriteLine(optionFailure);
+      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+    }
     if (!wasInvoked) {
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
     }
