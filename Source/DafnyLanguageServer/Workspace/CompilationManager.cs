@@ -251,6 +251,7 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
+    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
