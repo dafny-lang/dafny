@@ -82,6 +82,7 @@ public abstract class CommandLineOption<T> : IOptionSpec {
       if (DefaultValue != null) {
         result.SetDefaultValue(DefaultValue);
       }
+      result.IsHidden = Hidden;
       result.ArgumentHelpName = ArgumentName;
       if (ShortName != null) {
         result.AddAlias("-" + ShortName);

@@ -591,8 +591,7 @@ namespace Microsoft.Dafny {
       ApplyDefaultOptionsWithoutSettingsDefault();
     }
 
-    public void ApplyDefaultOptionsWithoutSettingsDefault()
-    {
+    public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
       if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {

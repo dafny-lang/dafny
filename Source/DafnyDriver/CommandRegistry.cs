@@ -28,7 +28,7 @@ static class CommandRegistry {
     CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
     BoogieOption.Instance,
     PreludeOption.Instance,
-    UseBaseFileName.Instance,
+    UseBaseFileNameOption.Instance,
     PrintOption.Instance,
   });
 
@@ -83,7 +83,7 @@ static class CommandRegistry {
       command.SetHandler(CommandHandler);
     }
 
-    var rootCommand = new RootCommand("Dafny");
+    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language.");
     foreach (var command in commandToSpec.Keys) {
       rootCommand.AddCommand(command);
     }

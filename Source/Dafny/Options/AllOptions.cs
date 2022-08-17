@@ -88,6 +88,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
 
 public class CompileVerboseOption : BooleanOption {
   public static readonly CompileVerboseOption Instance = new();
+  public override bool Hidden => true;
   public override object DefaultValue => true;
   public override string LongName => "compileVerbose";
   public override string Category => "Compilation options";

@@ -16,8 +16,8 @@ public class CoresOption : IntegerOption {
   }
 }
 
-public class UseBaseFileName : BooleanOption {
-  public static readonly UseBaseFileName Instance = new();
+public class UseBaseFileNameOption : BooleanOption {
+  public static readonly UseBaseFileNameOption Instance = new();
   public override bool Hidden => true;
   public override string LongName => "useBaseNameForFileName";
   public override string ShortName => null;
