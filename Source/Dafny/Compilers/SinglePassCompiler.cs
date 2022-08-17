@@ -1530,7 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
               foreach (MemberDecl member in c.Members) {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
-                  if (!IsPermittedAsMain(mainMethod, out string reason)) {
+                  if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
                     ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
@@ -1570,7 +1570,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
@@ -1611,7 +1611,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
@@ -1624,7 +1624,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static bool IsPermittedAsMain(Method m, out String reason) {
+    public static bool IsPermittedAsMain(Program program, Method m, out String reason) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
@@ -1684,6 +1684,11 @@ namespace Microsoft.Dafny.Compilers {
           reason = "the method's non-ghost argument type should be an array<string>, got " + typeOfUniqueFormal;
           return false;
         }
+      } else {
+        // Need to manually insert the args.
+        var argsType = program.BuiltIns.ArrayType(1, new SeqType(new CharType()), true);
+        argsType.ResolvedClass = new ArrayClassDecl(1, program.DefaultModuleDef, null);
+        m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";
