@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------------------------
@@ -165,29 +165,29 @@ method CalcStmtExpr(d: D)
   case true =>
     a := old(calc { } 10); // warning: old has no effect (but this is hard to determine)
   case true =>
-    a := old(calc {
+    a := old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { assert d.data == 3; }
       2;
-    } 10); // warning: old has no effect
+    } 10);
   case true =>
-    a := old(calc {
+    a := old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { assert d.data == 100; } // error: assertion violation
       2;
-    } 10); // warning: old has no effect
+    } 10);
   case true =>
-    a := old(calc {
+    a := old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { d.Lemma(3); }
       2;
-    } 10); // warning: old has no effect
+    } 10);
   case true =>
-    a := old(calc {
+    a := old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { d.Lemma(100); } // error: precondition violation
       2;
-    } 10); // warning: old has no effect
+    } 10);
   }
 }
 
@@ -198,28 +198,29 @@ twostate function CalcStmtExprFunction(d: D, selector: int): int
   case 0 =>
     old(calc { } 10) // warning: old has no effect (but this is hard to determine)
   case 1 =>
-    a := old(calc {
+    old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { assert d.data == 3; }
       2;
-    } 10); // warning: old has no effect
+    } 10)
   case 2 =>
-    a := old(calc {
+    old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { assert d.data == 100; } // error: assertion violation
       2;
-    } 10); // warning: old has no effect
-  case true =>
-    a := old(calc {
+    } 10)
+  case 3 =>
+    old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { d.Lemma(3); }
       2;
-    } 10); // warning: old has no effect
-  case true =>
-    a := old(calc {
+    } 10)
+  case 4 =>
+    old(calc { // this old does have an an effect (but this is hard to determine)
       2;
     ==  { d.Lemma(100); } // error: precondition violation
       2;
-    } 10); // warning: old has no effect
-  }
+    } 10)
+  case _ =>
+    10
 }

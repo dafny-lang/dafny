@@ -993,9 +993,9 @@ namespace Microsoft.Dafny {
       //     havoc x,y;
       //     CheckWellformed( Range );
       //     assume Range(x,y);
-      //     Tr( Body );
       //     CheckWellformed( Post );
-      //     assert Post;
+      //     Tr( Body );       // include only if there is a Body
+      //     assert Post;      // include only if there is a Body
       //     assume false;
       //   } else {
       //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
@@ -1022,12 +1022,18 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
       definedness.Add(TrAssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
 
+      var ensuresDefinedness = new BoogieStmtListBuilder(this);
+      foreach (var ens in s.Ens) {
+        TrStmt_CheckWellformed(ens.E, ensuresDefinedness, locals, etran, false);
+        ensuresDefinedness.Add(TrAssumeCmd(ens.E.tok, etran.TrExpr(ens.E)));
+      }
+      PathAsideBlock(s.Tok, ensuresDefinedness, definedness);
+
       if (s.Body != null) {
         TrStmt(s.Body, definedness, locals, etran);
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
-
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
@@ -1609,10 +1615,9 @@ namespace Microsoft.Dafny {
 
       List<AssignToLhs> lhsBuilders;
       List<Bpl.IdentifierExpr> bLhss;
-      Bpl.Expr[] ignore1, ignore2;
-      string[] ignore3;
       var tySubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3, s.OriginalInitialLhs);
+      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss,
+        out _, out _, out _, s.OriginalInitialLhs);
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
       var lhsTypes = new List<Type>();
