@@ -1681,7 +1681,7 @@ namespace Microsoft.Dafny.Compilers {
             typeOfUniqueFormal.TypeArgs.Count != 1 ||
             typeOfUniqueFormal.TypeArgs[0].AsSeqType is not { } seqType ||
             !seqType.Arg.IsCharType) {
-          reason = "the method's non-ghost argument type should be an array<string>, got " + typeOfUniqueFormal.TypeArgs[0];
+          reason = "the method's non-ghost argument type should be an array<string>, got " + typeOfUniqueFormal;
           return false;
         }
       }
