@@ -79,7 +79,9 @@ public abstract class CommandLineOption<T> : IOptionSpec {
   public virtual Option ToOption {
     get {
       var result = new Option<T>("--" + LongName, Description);
-      result.SetDefaultValue(DefaultValue);
+      if (DefaultValue != null) {
+        result.SetDefaultValue(DefaultValue);
+      }
       result.ArgumentHelpName = ArgumentName;
       if (ShortName != null) {
         result.AddAlias("-" + ShortName);

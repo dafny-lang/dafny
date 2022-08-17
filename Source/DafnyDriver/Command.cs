@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.CommandLine;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -10,7 +8,7 @@ public interface ICommandSpec {
 
   string Description { get; }
 
-  ISet<IOptionSpec> Options { get; }
+  IEnumerable<IOptionSpec> Options { get; }
 
   void PostProcess(DafnyOptions dafnyOptions, Options options);
 }
@@ -24,25 +22,25 @@ class BuildCommand : ICommandSpec {
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
 
-  public ISet<IOptionSpec> Options => new HashSet<IOptionSpec>(
-    CommandRegistry.CommonOptions.Concat(new IOptionSpec[] {
-      NoVerifyOption.Instance,
-      TargetOption.Instance,
-      CompileVerboseOption.Instance,
+  public IEnumerable<IOptionSpec> Options =>
+    new IOptionSpec[] {
       OutputOption.Instance,
-      UseRuntimeLibOption.Instance
-    }));
+      TargetOption.Instance,
+      NoVerifyOption.Instance,
+      CompileVerboseOption.Instance,
+      UseRuntimeLibOption.Instance,
+    }.Concat(CommandRegistry.CommonOptions);
 }
 
 class RunCommand : ICommandSpec {
   public string Name => "run";
   public string Description => "Run the program.";
 
-  public ISet<IOptionSpec> Options => new HashSet<IOptionSpec>(
-    CommandRegistry.CommonOptions.Concat(new IOptionSpec[] {
-      NoVerifyOption.Instance,
+  public IEnumerable<IOptionSpec> Options =>
+    new IOptionSpec[] {
       TargetOption.Instance,
-    }));
+      NoVerifyOption.Instance,
+    }.Concat(CommandRegistry.CommonOptions);
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.EmitExecutable = true;
@@ -55,7 +53,7 @@ class RunCommand : ICommandSpec {
 class VerifyCommand : ICommandSpec {
   public string Name => "verify";
   public string Description => "Verify the program.";
-  public ISet<IOptionSpec> Options => CommandRegistry.CommonOptions;
+  public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.EmitExecutable = false;

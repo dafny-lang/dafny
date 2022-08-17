@@ -8,7 +8,7 @@ class NoVerifyOption : BooleanOption {
   public override string LongName => "noVerify";
   public override string ShortName => null;
   public override string Category => "Compilation options";
-  public override string Description => "missing";
+  public override string Description => "Skip verification";
 
   public override string PostProcess(DafnyOptions options) {
     options.Verify = !Get(options);
@@ -20,7 +20,6 @@ class BoogieOption : StringOption {
   public static readonly BoogieOption Instance = new();
   public override object DefaultValue => null;
   public override string LongName => "boogie";
-  public override string ShortName => "null";
   public override string ArgumentName => null;
   public override string Category => null;
   public override string Description => "arguments to boogie";

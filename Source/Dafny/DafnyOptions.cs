@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
         CompileTargetOption.Instance,
         DPrintOption.Instance,
         LibraryOption.Instance,
-        DafnyPreludeOption.Instance,
+        DPreludeOption.Instance,
         PrintModeOption.Instance,
         CompileVerboseOption.Instance,
         OutOption.Instance,

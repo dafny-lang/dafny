@@ -7,7 +7,7 @@ class DPrintOption : PrintOption {
 public class PrintOption : StringOption {
   public static readonly PrintOption Instance = new();
   public override object DefaultValue => null;
-
+  public override bool Hidden => true;
   public override string LongName => "print";
   public override string ArgumentName => "file";
   public override string Category => "Overall reporting and printing";

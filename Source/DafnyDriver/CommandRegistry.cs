@@ -20,16 +20,16 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 static class CommandRegistry {
   private static readonly Dictionary<string, ICommandSpec> Commands = new();
 
-  public static ISet<IOptionSpec> CommonOptions = new HashSet<IOptionSpec>(new IOptionSpec[] {
-    ShowSnippetsOption.Instance,
+  public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
     VerificationTimeLimit.Instance,
-    UseBaseFileName.Instance,
-    PrintOption.Instance,
+    ShowSnippetsOption.Instance,
+    PluginOption.Instance,
     CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
     BoogieOption.Instance,
-    DafnyPreludeOption.Instance,
-    PluginOption.Instance,
+    PreludeOption.Instance,
+    UseBaseFileName.Instance,
+    PrintOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {

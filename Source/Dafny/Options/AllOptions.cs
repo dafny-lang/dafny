@@ -139,21 +139,6 @@ implementation methods.  It also disables anything NoIncludes disables.";
   }
 }
 
-public class DafnyPreludeOption : StringOption {
-  public static readonly DafnyPreludeOption Instance = new();
-  public override object DefaultValue => null;
-  public override string LongName => "dprelude";
-  public override string ArgumentName => "file";
-  public override string Category => "Input configuration";
-  public override string Description => "choose Dafny prelude file";
-
-  public override string PostProcess(DafnyOptions options) {
-    options.DafnyPrelude = Get(options);
-    options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
-    return null;
-  }
-}
-
 public class LibraryOption : CommandLineOption<List<string>> {
   public static readonly LibraryOption Instance = new();
 
