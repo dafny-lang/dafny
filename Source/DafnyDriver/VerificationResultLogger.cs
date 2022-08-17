@@ -18,14 +18,12 @@ using VC;
 namespace Microsoft.Dafny {
 
   /// <summary>
-  /// Utility to translate verification results into test logger events,
-  /// allowing us to deliver them through common loggers on the .NET
-  /// platform. For now we support three formats:
+  /// Utility to translate verification results into logs in several formats:
   ///  * TRX files, which can be understood and visualized by various .NET tools.
   ///  * CSV files, which are easier to parse and summarize. 
   ///  * human-readable text output.
   /// </summary>
-  public static class VerificationResultConvertor {
+  public static class VerificationResultLogger {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
