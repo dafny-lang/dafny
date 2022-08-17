@@ -7,12 +7,20 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class PluginOption : CommandLineOption<List<string>> {
-  public override object DefaultValue { get; }
-  public override string LongName { get; }
-  public override string ArgumentName { get; }
-  public override string Category { get; }
-  public override string Description { get; }
+public class PluginOption : CommandLineOption<List<string>> {
+  public static readonly PluginOption Instance = new();
+  public override object DefaultValue => new List<string>();
+  public override string LongName => "plugin";
+  public override string ArgumentName => "path to one assembly";
+  public override string Category => "Plugins";
+
+  public override string Description => @"
+(experimental) One path to an assembly that contains at least one
+instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
+It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
+More information about what plugins do and how define them:
+https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins";
+
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {
     if (ps.ConfirmArgumentCount(1)) {
       var pluginAndArgument = ps.args[ps.i];
@@ -45,7 +53,20 @@ class PluginOption : CommandLineOption<List<string>> {
   }
 
   public override string PostProcess(DafnyOptions options) {
-    throw new System.NotImplementedException();
+    var plugins = Get(options);
+    foreach (var pluginAndArgument in plugins) {
+      var pluginArray = pluginAndArgument.Split(',');
+      var pluginPath = pluginArray[0];
+      var arguments = Array.Empty<string>();
+      if (pluginArray.Length >= 2) {
+        // There are no commas in paths, but there can be in arguments
+        var argumentsString = string.Join(',', pluginArray.Skip(1));
+        // Parse arguments, accepting and remove double quotes that isolate long arguments
+        arguments = ParsePluginArguments(argumentsString);
+      }
+
+      options.Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
+    }
   }
 }
 
@@ -101,11 +122,11 @@ implementation methods.  It also disables anything NoIncludes disables.";
     return null;
   }
 }
-class DafnyPreludeOption : StringOption {
+
+public class DafnyPreludeOption : StringOption {
   public static readonly DafnyPreludeOption Instance = new();
   public override object DefaultValue => null;
   public override string LongName => "dprelude";
-  public override string ShortName => null;
   public override string ArgumentName => "file";
   public override string Category => "Input configuration";
   public override string Description => "choose Dafny prelude file";

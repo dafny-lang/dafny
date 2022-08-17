@@ -25,13 +25,14 @@ namespace Microsoft.Dafny {
       new IOptionSpec[] {
         ShowSnippetsOption.Instance,
         CompileTargetOption.Instance,
-        SpillTargetCodeOption.Instance,
         DafnyVerifyOption.Instance,
         DPrintOption.Instance,
         LibraryOption.Instance,
         DafnyPreludeOption.Instance,
         PrintModeOption.Instance,
-        CompileVerboseOption.Instance
+        CompileVerboseOption.Instance,
+        OutOption.Instance,
+        PluginOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -257,28 +258,6 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "Plugin":
-        case "plugin": {
-            if (ps.ConfirmArgumentCount(1)) {
-              var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0) {
-                var pluginArray = pluginAndArgument.Split(',');
-                var pluginPath = pluginArray[0];
-                var arguments = Array.Empty<string>();
-                if (pluginArray.Length >= 2) {
-                  // There are no commas in paths, but there can be in arguments
-                  var argumentsString = string.Join(',', pluginArray.Skip(1));
-                  // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  arguments = ParsePluginArguments(argumentsString);
-                }
-
-                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
-              }
-            }
-
-            return true;
-          }
-
         case "trackPrintEffects": {
             int printEffects = 0;
             if (ps.GetIntArgument(ref printEffects, 2)) {
@@ -334,13 +313,15 @@ namespace Microsoft.Dafny {
 
             return true;
           }
-        case "out": {
-            if (ps.ConfirmArgumentCount(1)) {
-              DafnyPrintCompiledFile = args[ps.i];
-            }
 
-            return true;
+        case "spillTargetCode": {
+          uint spill = 0;
+          if (ps.GetUnsignedNumericArgument(ref spill, x => true)) {
+            SpillTargetCode = spill;
           }
+
+          return true;
+        }
 
         case "coverage": {
             if (ps.ConfirmArgumentCount(1)) {
@@ -607,18 +588,6 @@ namespace Microsoft.Dafny {
       }
 
       return TestGenOptions.ParseOption(name, ps);
-    }
-
-    private static string[] ParsePluginArguments(string argumentsString) {
-      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
-      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
-      return splitter.Matches(argumentsString).Select(
-        matchResult =>
-          matchResult.Groups["escapedArgument"].Success
-          ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
-            matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
-          : matchResult.Groups["rawArgument"].Value
-      ).ToArray();
     }
 
     protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
@@ -967,13 +936,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Plugins ---------------------------------------------------------------
 
-/plugin:<path to one assembly>[ <arguments>]
-    (experimental) One path to an assembly that contains at least one
-    instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-    It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
-    More information about what plugins do and how define them:
-    https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-
 ---- Overall reporting and printing ----------------------------------------
 
 /stats        Print interesting statistics about the Dafny files supplied.
@@ -1224,8 +1186,20 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         Cannot be used if the program already contains a main method.
         Note that /compile:3 or 4 must be provided as well to actually execute
         this main method!
-/out:<file>
-    filename and location for the generated target language files
+/spillTargetCode:<n>
+    This option concerns the textual representation of the target program.
+    This representation is of no interest when working with only Dafny code,
+    but may be of interest in cross-language situations.
+    0 (default) - Don't make any extra effort to write the textual target program
+        (but still compile it, if /compile indicates to do so).
+    1 - Write the textual target program, if it is being compiled.
+    2 - Write the textual target program, provided it passes the verifier (and
+        /noVerify is NOT used), regardless of /compile setting.
+    3 - Write the textual target program, regardless of verification outcome
+        and /compile setting.
+    Note, some compiler targets may (always or in some situations) write out the
+    textual target program as part of compilation, in which case /spillTargetCode:0
+    behaves the same way as /spillTargetCode:1.
 /coverage:<file>
     The compiler emits branch-coverage calls and outputs into
     <file> a legend that gives a description of each

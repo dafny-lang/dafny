@@ -29,6 +29,7 @@ class BuildCommand : ICommandSpec {
       NoVerifyOption.Instance,
       TargetOption.Instance,
       CompileVerboseOption.Instance,
+      OutputOption.Instance,
     }));
 }
 

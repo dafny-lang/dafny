@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -26,6 +27,8 @@ static class CommandRegistry {
     PrintOption.Instance,
     CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
     BoogieOption.Instance,
+    DafnyPreludeOption.Instance,
+    PluginOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -56,7 +59,7 @@ static class CommandRegistry {
     var optionLessValues = new List<string>();
     var options = new Options(optionLessValues, optionValues);
     dafnyOptions.Options = options;
-    var filesArgument = new Argument<IEnumerable<string>>("Files", "input files");
+    var filesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
     filesArgument.AddValidator(r => {
       var value = r.Tokens[0].Value;
       if (value.StartsWith("--")) {
@@ -97,7 +100,7 @@ static class CommandRegistry {
       }
 
       foreach (var file in context.ParseResult.GetValueForArgument(filesArgument)) {
-        dafnyOptions.AddFile(file);
+        dafnyOptions.AddFile(file.FullName);
       }
 
       dafnyOptions.ApplyDefaultOptions();

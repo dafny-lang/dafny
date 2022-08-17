@@ -6,6 +6,11 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
+class CompileTargetOption : TargetOption {
+  public new static readonly CompileTargetOption Instance = new();
+  public override string LongName => "compileTarget";
+}
+
 public class TargetOption : StringOption {
   public static readonly TargetOption Instance = new();
 
