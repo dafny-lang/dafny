@@ -35,12 +35,6 @@ functions, and advanced features like traits or co-inductive types.".TrimStart()
 
   protected override string[] AllowedValues => new[] { "cs", "go", "js", "java", "py", "cpp" };
 
-  // Old style parsing will not use System.CommandLine, since we need to parse Boogie options as well.
-  // How do we allow specifying options in Dafny that support both old and new style?
-  // Enable using newSpec for old style parsing
-  // option lists such as /library.
-  // Two types of postprocessing.
-
   public override string PostProcess(DafnyOptions options) {
     var value = Get(options);
     var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
