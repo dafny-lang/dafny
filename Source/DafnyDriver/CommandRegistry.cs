@@ -102,6 +102,7 @@ static class CommandRegistry {
         dafnyOptions.AddFile(file);
       }
 
+      dafnyOptions.ApplyDefaultOptions();
       commandSpec.PostProcess(dafnyOptions, options);
     }
 
@@ -110,7 +111,6 @@ static class CommandRegistry {
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
     }
     if (exitCode == 0) {
-      dafnyOptions.ApplyDefaultOptions();
       return new ParseArgumentSuccess(dafnyOptions);
     }
 

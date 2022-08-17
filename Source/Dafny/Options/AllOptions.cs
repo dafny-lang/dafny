@@ -51,6 +51,7 @@ class PluginOption : CommandLineOption<List<string>> {
 
 public class CompileVerboseOption : BooleanOption {
   public static readonly CompileVerboseOption Instance = new();
+  public override object DefaultValue => true;
   public override string LongName => "compileVerbose";
   public override string Category => "Compilation options";
   public override string Description => @"
