@@ -2281,7 +2281,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename) + " " + DafnyOptions.O.MainArgsString) {
+      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename) + DafnyOptions.O.ArgsStringExtra) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,

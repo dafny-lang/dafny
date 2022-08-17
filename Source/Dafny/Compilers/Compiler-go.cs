@@ -58,6 +58,7 @@ namespace Microsoft.Dafny.Compilers {
     private static List<Import> StandardImports =
       new List<Import> {
         new Import { Name = "_dafny", Path = "dafny" },
+        new Import { Name = "os", Path = "os" },
       };
     private static string DummyTypeName = "Dummy__";
 
@@ -118,7 +119,11 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine("{0}.{1}()", companion, idName);
+      var dafnyArgs = "dafnyArgs";
+      wBody.WriteLine("var size = len(os.Args)-1");
+      wBody.WriteLine($"var {dafnyArgs} []interface{{}} = make([]interface{{}}, size)");
+      wBody.WriteLine($"for i, item := range os.Args[1:] {{ {dafnyArgs}[i] = {GetHelperModuleName()}.SeqOfString(item) }}");
+      wBody.WriteLine("{0}.{1}({2}.NewArrayWithValues({3}...))", companion, idName, GetHelperModuleName(), dafnyArgs);
       Coverage.EmitTearDown(wBody);
     }
 
@@ -197,7 +202,11 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
       if (!import.SuppressDummy) {
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
+        if (id == "os") {
+          importDummyWriter.WriteLine("var _ = os.Args");
+        } else {
+          importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
+        }
       }
     }
 
@@ -3604,7 +3613,7 @@ namespace Microsoft.Dafny.Compilers {
         verb = string.Format("build -o \"{0}\"", output);
       }
 
-      var args = string.Format("{0} \"{1}\"", verb, targetFilename);
+      var args = string.Format("{0} \"{1}\"", verb, targetFilename) + DafnyOptions.O.ArgsStringExtra;
       var psi = new ProcessStartInfo("go", args) {
         CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,
