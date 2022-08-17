@@ -22,7 +22,7 @@ static class CommandRegistry {
 
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
-    VerificationTimeLimit.Instance,
+    VerificationTimeLimitOption.Instance,
     ShowSnippetsOption.Instance,
     PluginOption.Instance,
     CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
