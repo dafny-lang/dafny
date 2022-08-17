@@ -154,7 +154,7 @@ Execute a Dafny command.
       optionValues[notFoundOption] = notFoundOption.GetDefaultValue(dafnyOptions);
     }
     foreach (var option in command.Options) {
-      option.PostProcess(dafnyOptions);
+      option.PostProcess(dafnyOptions, options.OptionArguments[option]);
     }
 
     command.PostProcess(dafnyOptions, options);

@@ -6,9 +6,9 @@ class DafnyVerifyOption : BooleanOption {
     return 1;
   }
 
-  public override void PostProcess(DafnyOptions options) {
-    options.DafnyVerify = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, bool value) {
+    options.DafnyVerify = value;
+    base.PostProcess(options, value);
   }
 
   public override string LongName => "dafnyVerify";

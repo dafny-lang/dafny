@@ -7,8 +7,8 @@ class CompileOption : NaturalNumberOption {
     return 999;
   }
 
-  public override void PostProcess(DafnyOptions options) {
-    var compile = Get(options);
+  public override void TypedPostProcess(DafnyOptions options, uint value) {
+    var compile = value;
 
     if (compile != 999) {
       // convert option to two booleans
@@ -16,7 +16,7 @@ class CompileOption : NaturalNumberOption {
       options.ForceCompile = compile == 2 || compile == 4;
       options.RunAfterCompile = compile == 3 || compile == 4;
     }
-    base.PostProcess(options);
+    base.PostProcess(options, value);
   }
 
   public override string LongName => "compile";

@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
             break;
           case ParsedOption parsedOption:
             Options.OptionArguments[option] = parsedOption.Value;
-            option.PostProcess(this);
+            option.PostProcess(this, parsedOption.Value);
             ps.nextIndex = ps.i + originalSize - argumentStack.Count;
             return true;
           default:

@@ -12,10 +12,10 @@ print Dafny program after parsing it
 (use - as <file> to print to console)".TrimStart();
   public override bool CanBeUsedMultipleTimes => false;
 
-  public override void PostProcess(DafnyOptions options) {
-    options.DafnyPrintFile = Get(options);
+  public override void TypedPostProcess(DafnyOptions options, string value) {
+    options.DafnyPrintFile = value;
     options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,
       options.FileTimestamp);
-    base.PostProcess(options);
+    base.PostProcess(options, value);
   }
 }

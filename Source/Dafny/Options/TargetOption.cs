@@ -40,8 +40,8 @@ functions, and advanced features like traits or co-inductive types.".TrimStart()
     return new ParsedOption(compiler);
   }
 
-  public override void PostProcess(DafnyOptions options) {
-    options.Compiler = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, Compiler value) {
+    options.Compiler = value;
+    base.PostProcess(options, value);
   }
 }

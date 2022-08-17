@@ -13,7 +13,7 @@ public interface ICommandLineOption {
   string Description { get; }
   bool CanBeUsedMultipleTimes { get; }
   ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
-  void PostProcess(DafnyOptions options);
+  void PostProcess(DafnyOptions options, object value);
 
   public static string GenerateHelp(string template, IEnumerable<ICommandLineOption> options, bool oldStyle = false) {
     var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
@@ -72,7 +72,11 @@ public abstract class CommandLineOption<T> : ICommandLineOption {
   public abstract bool CanBeUsedMultipleTimes { get; }
   public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
 
-  public virtual void PostProcess(DafnyOptions options) {
+  public virtual void TypedPostProcess(DafnyOptions options, T value) {
+  }
+
+  public void PostProcess(DafnyOptions options, object value) {
+    TypedPostProcess(options, (T)value);
   }
 }
 

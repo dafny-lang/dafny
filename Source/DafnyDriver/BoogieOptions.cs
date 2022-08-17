@@ -7,9 +7,9 @@ public class HelpOption : BooleanOption {
   public override string Category => "General options";
   public override string Description => "Display this help text";
 
-  public override void PostProcess(DafnyOptions options) {
+  public override void TypedPostProcess(DafnyOptions options, bool value) {
     options.HelpRequested = Get(options);
-    base.PostProcess(options);
+    base.PostProcess(options, value);
   }
 }
 
@@ -22,9 +22,9 @@ public class CoresOption : IntegerOption {
 
   public override string Description => @"Run the Dafny CLI using <n> cores. Defaults to 1.";
 
-  public override void PostProcess(DafnyOptions options) {
-    options.VcsCores = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, int value) {
+    options.VcsCores = value;
+    base.PostProcess(options, value);
   }
 }
 
@@ -38,9 +38,9 @@ public class UseBaseFileName : BooleanOption {
 When parsing use basename of file for tokens instead
 of the path supplied on the command line".TrimStart();
 
-  public override void PostProcess(DafnyOptions options) {
-    options.UseBaseNameForFileName = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, bool value) {
+    options.UseBaseNameForFileName = value;
+    base.PostProcess(options, value);
   }
 }
 
@@ -55,8 +55,8 @@ public class VerificationTimeLimit : NaturalNumberOption {
 Limit the number of seconds spent trying to verify
 each procedure".TrimStart();
 
-  public override void PostProcess(DafnyOptions options) {
-    options.TimeLimit = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, uint value) {
+    options.TimeLimit = value;
+    base.PostProcess(options, value);
   }
 }

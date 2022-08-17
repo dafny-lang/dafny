@@ -10,8 +10,8 @@ class NoVerifyOption : BooleanOption {
   public override string Category => "Compilation options";
   public override string Description => "missing";
 
-  public override void PostProcess(DafnyOptions options) {
-    options.Verify = !Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, bool value) {
+    options.Verify = !value;
+    base.PostProcess(options, value);
   }
 }

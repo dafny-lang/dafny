@@ -6,9 +6,9 @@ class SpillTargetCodeOption : NaturalNumberOption {
     return 0;
   }
 
-  public override void PostProcess(DafnyOptions options) {
-    options.SpillTargetCode = Get(options);
-    base.PostProcess(options);
+  public override void TypedPostProcess(DafnyOptions options, uint value) {
+    options.SpillTargetCode = value;
+    base.PostProcess(options, value);
   }
 
   public override string LongName => "spillTargetCode";
