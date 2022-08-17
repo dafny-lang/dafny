@@ -1361,7 +1361,7 @@ type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
 The declaration of a subset type permits an optional `witness` clause.
-The `witness clause is decribed in [Section 11.3.4](#sec-witness).
+The `witness clause is described in [Section 11.3.4](#sec-witness).
 
 Dafny builds in three families of subset types, as described next.
 
