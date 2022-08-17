@@ -86,7 +86,7 @@ class D {
 
   method TestFields()
     ensures data == old(data)
-    ensures N == old(N) // warning: old has no effect
+    ensures N == old(N) // warning: old has no effect, since N is const
   {
   }
 
@@ -132,6 +132,11 @@ class D {
   }
 }
 
+
+lemma StaticLemmaWithoutPrecondition(y: int)
+{
+}
+
 // ---------------------------------------
 
 method StmtExpr(d: D)
@@ -163,27 +168,33 @@ method CalcStmtExpr(d: D)
   d.data := 100;
   if {
   case true =>
-    a := old(calc { } 10); // warning: old has no effect (but this is hard to determine)
+    a := old(calc { } 10); // warning: old has no effect
   case true =>
-    a := old(calc { // this old does have an an effect (but this is hard to determine)
+    a := old(calc {
       2;
     ==  { assert d.data == 3; }
       2;
     } 10);
   case true =>
-    a := old(calc { // this old does have an an effect (but this is hard to determine)
+    a := old(calc {
       2;
     ==  { assert d.data == 100; } // error: assertion violation
       2;
     } 10);
   case true =>
-    a := old(calc { // this old does have an an effect (but this is hard to determine)
+    a := old(calc {
       2;
     ==  { d.Lemma(3); }
       2;
     } 10);
   case true =>
-    a := old(calc { // this old does have an an effect (but this is hard to determine)
+    a := old(calc {
+      2;
+    ==  { StaticLemmaWithoutPrecondition(3); }
+      2;
+    } 10);
+  case true =>
+    a := old(calc {
       2;
     ==  { d.Lemma(100); } // error: precondition violation
       2;
@@ -193,30 +204,31 @@ method CalcStmtExpr(d: D)
 
 twostate function CalcStmtExprFunction(d: D, selector: int): int
   requires old(d.data) == 3 && d.data == 100
+  reads d
 {
   match selector
   case 0 =>
-    old(calc { } 10) // warning: old has no effect (but this is hard to determine)
+    old(calc { } 10) // warning: old has no effect
   case 1 =>
-    old(calc { // this old does have an an effect (but this is hard to determine)
+    old(calc {
       2;
     ==  { assert d.data == 3; }
       2;
     } 10)
   case 2 =>
-    old(calc { // this old does have an an effect (but this is hard to determine)
+    old(calc {
       2;
     ==  { assert d.data == 100; } // error: assertion violation
       2;
     } 10)
   case 3 =>
-    old(calc { // this old does have an an effect (but this is hard to determine)
+    old(calc {
       2;
     ==  { d.Lemma(3); }
       2;
     } 10)
   case 4 =>
-    old(calc { // this old does have an an effect (but this is hard to determine)
+    old(calc {
       2;
     ==  { d.Lemma(100); } // error: precondition violation
       2;

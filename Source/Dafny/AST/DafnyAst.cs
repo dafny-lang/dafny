@@ -6712,6 +6712,24 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters all sub expressions that are not part of specifications
+    /// </summary>
+    public IEnumerable<Expression> SubExpressionsIncludingTransitiveSubStatements {
+      get {
+        foreach (var e in SubExpressions) {
+          yield return e;
+        }
+
+        foreach (var s in SubStatements) {
+          foreach (var e in s.SubExpressionsIncludingTransitiveSubStatements) {
+            yield return e;
+          }
+        }
+      }
+    }
+
+    /// <summary>
     /// Returns the non-null substatements of the Statements.
     /// </summary>
     public virtual IEnumerable<Statement> SubStatements {
