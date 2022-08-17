@@ -102,7 +102,7 @@ class C {
     data := 100;
 
     var arr := new int[100](i => 8);
-/*    forall i | 0 <= i < arr.Length
+    forall i | 0 <= i < arr.Length
       ensures arr[i] == old(5 +
         calc {
           0;
@@ -114,7 +114,7 @@ class C {
         data)
     {
     }
-*/
+
     for i := 0 to arr.Length
       invariant forall j :: 0 <= j < i ==> arr[j] == old(6 +
         calc {
