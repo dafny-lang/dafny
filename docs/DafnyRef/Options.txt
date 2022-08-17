@@ -24,25 +24,33 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Input configuration ---------------------------------------------------
   
-  /dprelude:<file>
+  /prelude:<value>
       choose Dafny prelude file
   /stdin
       Read standard input and treat it as an input .dfy file.
   
   ---- Plugins ---------------------------------------------------------------
   
-  /plugin:<path to one assembly>[ <arguments>]
+  /plugin:<value>
+      
       (experimental) One path to an assembly that contains at least one
       instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
       It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
       More information about what plugins do and how define them:
       https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-  
   ---- Overall reporting and printing ----------------------------------------
   
   /dprint:<value>
       print Dafny program after parsing it
       (use - as <file> to print to console)
+  /printMode:<value>
+      
+      Everything is the default.
+      DllEmbed prints the source that will be included in a compiled dll.
+      NoIncludes disables printing of {{:verify false}} methods incorporated via the
+      include mechanism, as well as datatypes and fields included from other files.
+      NoGhost disables printing of functions, ghost methods, and proof statements in
+      implementation methods.  It also disables anything NoIncludes disables.
   /showSnippets:<value>
       0 (default) - don't show source code snippets for Dafny messages
       1 - show a source code snippet for each Dafny message
@@ -50,13 +58,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /rprint:<file>
       print Dafny program after resolving it
       (use - as <file> to print to console)
-  /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-      Everything is the default.
-      DllEmbed prints the source that will be included in a compiled dll.
-      NoIncludes disables printing of {:verify false} methods incorporated via the
-      include mechanism, as well as datatypes and fields included from other files.
-      NoGhost disables printing of functions, ghost methods, and proof statements in
-      implementation methods.  It also disables anything NoIncludes disables.
   /printIncludes:<None|Immediate|Transitive>
       None is the default.
       Immediate prints files included by files listed on the command line
@@ -144,7 +145,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Verification options -------------------------------------------------
   
-  /dafnyVerify:<value>
+  /dafnyVerify:<n>
       0 - stop after typechecking
       1 - continue on to translation, verification, and compilation
   /verifyAllModules
@@ -299,18 +300,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Compilation options ---------------------------------------------------
   
-  /compile:<value>
-      0 - do not compile Dafny program
-      1 (default) - upon successful verification of the Dafny
-          program, compile it to the designated target language
-          (/noVerify automatically counts as failed verification)
-      2 - always attempt to compile Dafny program to the target
-          language, regardless of verification outcome
-      3 - if there is a Main method and there are no verification
-          errors and /noVerify is not used, compiles program in
-          memory (i.e., does not write an output file) and runs it
-      4 - like (3), but attempts to compile and run regardless of
-          verification outcome
   /compileTarget:<value>
       cs (default) - Compilation to .NET via C#
       go - Compilation to Go
@@ -322,7 +311,45 @@ Usage: Dafny [ option ... ] [ filename ... ]
       Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
       This includes lack of support for BigIntegers (aka int), most higher order
       functions, and advanced features like traits or co-inductive types.
-  /spillTargetCode:<value>
+  /compileVerbose:<value>
+      
+      0 - don't print status of compilation to the console
+      1 (default) - print information such as files being written by
+          the compiler to the console
+  /library:<value>
+      The contents of this file and any files it includes can be referenced from other files as if they were included. 
+      However, these contents are skipped during code generation and verification.
+      This option is useful in a diamond dependency situation, 
+      to prevent code from the bottom dependency from being generated more than once.
+  /out:<value>
+      filename and location for the generated target language files
+  /useRuntimeLib:<value>
+      Refer to pre-built DafnyRuntime.dll in compiled assembly rather
+      than including DafnyRuntime.cs verbatim.
+  /compile:<n>  0 - do not compile Dafny program
+      1 (default) - upon successful verification of the Dafny
+          program, compile it to the designated target language
+          (/noVerify automatically counts as failed verification)
+      2 - always attempt to compile Dafny program to the target
+          language, regardless of verification outcome
+      3 - if there is a Main method and there are no verification
+          errors and /noVerify is not used, compiles program in
+          memory (i.e., does not write an output file) and runs it
+      4 - like (3), but attempts to compile and run regardless of
+          verification outcome
+  /Main:<name>
+      The (fully-qualified) name of the method to use as the executable entry point.
+      Default is the method with the {:main} attribute, or else the method named 'Main'.
+  /runAllTests:<n> (experimental)
+      0 (default) - Annotates compiled methods with the {:test} attribute
+          such that they can be tested using a testing framework
+          in the target language (e.g. xUnit for C#).
+      1 - Emits a main method in the target language that will execute every method
+          in the program with the {:test} attribute.
+          Cannot be used if the program already contains a main method.
+          Note that /compile:3 or 4 must be provided as well to actually execute
+          this main method!
+  /spillTargetCode:<n>
       This option concerns the textual representation of the target program.
       This representation is of no interest when working with only Dafny code,
       but may be of interest in cross-language situations.
@@ -336,24 +363,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
       Note, some compiler targets may (always or in some situations) write out the
       textual target program as part of compilation, in which case /spillTargetCode:0
       behaves the same way as /spillTargetCode:1.
-  /Main:<name>
-      The (fully-qualified) name of the method to use as the executable entry point.
-      Default is the method with the {:main} attribute, or else the method named 'Main'.
-  /runAllTests:<n> (experimental)
-      0 (default) - Annotates compiled methods with the {:test} attribute
-          such that they can be tested using a testing framework
-          in the target language (e.g. xUnit for C#).
-      1 - Emits a main method in the target language that will execute every method
-          in the program with the {:test} attribute.
-          Cannot be used if the program already contains a main method.
-          Note that /compile:3 or 4 must be provided as well to actually execute
-          this main method!
-  /compileVerbose:<n>
-      0 - don't print status of compilation to the console
-      1 (default) - print information such as files being written by
-          the compiler to the console
-  /out:<file>
-      filename and location for the generated target language files
   /coverage:<file>
       The compiler emits branch-coverage calls and outputs into
       <file> a legend that gives a description of each
@@ -365,9 +374,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
       0 - Resolve and translate all methods
       1 - Translate methods only in the call graph of current verification target
       2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
-  /useRuntimeLib
-      Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-      than including DafnyRuntime.cs verbatim.
   /library:<file>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
