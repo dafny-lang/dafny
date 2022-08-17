@@ -16,6 +16,9 @@ public class UseRuntimeLibOption : BooleanOption {
 Refer to pre-built DafnyRuntime.dll in compiled assembly rather
 than including DafnyRuntime.cs verbatim.".TrimStart();
 
+  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
+    Set(options, true);
+  }
   public override string PostProcess(DafnyOptions options) {
     options.UseRuntimeLib = Get(options);
     return null;

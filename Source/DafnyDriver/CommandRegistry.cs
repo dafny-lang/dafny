@@ -51,7 +51,12 @@ static class CommandRegistry {
 
     var first = arguments[0];
     if (first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
-      return new ParseArgumentSuccess(DafnyOptions.Create(arguments));
+      var oldOptions = new DafnyOptions();
+      if (oldOptions.Parse(arguments)) {
+        return new ParseArgumentSuccess(oldOptions);
+      }
+
+      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
 
     var wasInvoked = false;
