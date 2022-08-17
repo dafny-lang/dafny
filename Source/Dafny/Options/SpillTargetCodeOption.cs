@@ -1,9 +1,10 @@
 namespace Microsoft.Dafny;
 
+// TODO remove and use old code.
 class SpillTargetCodeOption : NaturalNumberOption {
   public static readonly SpillTargetCodeOption Instance = new();
 
-  public override object DefaultValue => 0;
+  public override object DefaultValue => 0U;
 
   public override string PostProcess(DafnyOptions options) {
     options.SpillTargetCode = Get(options);

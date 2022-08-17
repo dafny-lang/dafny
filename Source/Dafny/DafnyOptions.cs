@@ -627,6 +627,10 @@ namespace Microsoft.Dafny {
 
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
+      foreach (var option in AvailableNewStyleOptions) {
+        Options.OptionArguments.GetOrCreate(option, () => option.DefaultValue);
+        option.PostProcess(this);
+      }
 
       if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {
@@ -640,7 +644,6 @@ namespace Microsoft.Dafny {
       Compiler ??= new CsharpCompiler();
 
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();

@@ -111,6 +111,7 @@ class DafnyPreludeOption : StringOption {
 
   public override string PostProcess(DafnyOptions options) {
     options.DafnyPrelude = Get(options);
+    options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
     return null;
   }
 }

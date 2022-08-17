@@ -26,7 +26,10 @@ class BoogieOption : StringOption {
   public override string Description => "arguments to boogie";
 
   public override string PostProcess(DafnyOptions options) {
-    options.Parse(Get(options).Split(" "));
+    var boogieOptions = Get(options);
+    if (boogieOptions != null) {
+      options.Parse(boogieOptions.Split(" "));
+    }
     return null;
   }
 }
