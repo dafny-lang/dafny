@@ -1360,6 +1360,9 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
+The declaration of a subset type permits an optional `witness` clause.
+The `witness clause is decribed in [Section 11.3.4](#sec-witness).
+
 Dafny builds in three families of subset types, as described next.
 
 ### 11.3.1. Type `nat`
@@ -1502,6 +1505,18 @@ constraint may not be satisfied.
 
 For more information about arrow types, see [Section 17](#sec-arrow-types).
 
+### 11.3.4. Witness clauses {#sec-witness}
+
+The declaration of a subset type permits an optional `witness` clause.
+Types in Dafny are generally expected to be non-empty, in part because
+variables of any type are expected to always have some value.
+In many cases, Dafny can determine that a newly declared type has 
+some value. For example, a numeric type that includes 0 is known by Dafny
+to be non-empty. However, Dafny cannot always make this determination.
+If it cannot, a `witness` clause may be required. The value given in
+the `witness` clause must be a valid value for the type and assures Dafny
+that the type is non-empty.
+
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
@@ -1520,7 +1535,8 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   [ TypeMembers ]
 ````
 A newtype is like a type synonym or subset type except that it declares a wholly new type
-name that is distinct from its base type.
+name that is distinct from its base type. The optional `witnesss` clause
+is described in [Section 11.3.4](#sec-witness).
 
 A new type can be declared with the _newtype_
 declaration, for example:
