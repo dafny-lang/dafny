@@ -27,7 +27,7 @@ class BuildCommand : ICommandSpec {
       OutputOption.Instance,
       TargetOption.Instance,
       NoVerifyOption.Instance,
-      CompileVerboseOption.Instance,
+      // CompileVerboseOption.Instance,
       UseRuntimeLibOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 }
