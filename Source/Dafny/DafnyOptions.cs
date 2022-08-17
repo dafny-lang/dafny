@@ -308,13 +308,13 @@ namespace Microsoft.Dafny {
           }
 
         case "spillTargetCode": {
-          uint spill = 0;
-          if (ps.GetUnsignedNumericArgument(ref spill, x => true)) {
-            SpillTargetCode = spill;
-          }
+            uint spill = 0;
+            if (ps.GetUnsignedNumericArgument(ref spill, x => true)) {
+              SpillTargetCode = spill;
+            }
 
-          return true;
-        }
+            return true;
+          }
 
         case "coverage": {
             if (ps.ConfirmArgumentCount(1)) {
