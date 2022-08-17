@@ -246,16 +246,16 @@ namespace Microsoft.Dafny {
           return true;
 
         case "compile": {
-          int compile = 0;
-          if (ps.GetIntArgument(ref compile, 5)) {
-            // convert option to two booleans
-            EmitExecutable = compile != 0;
-            ForceCompile = compile == 2 || compile == 4;
-            RunAfterCompile = compile == 3 || compile == 4;
-          }
+            int compile = 0;
+            if (ps.GetIntArgument(ref compile, 5)) {
+              // convert option to two booleans
+              EmitExecutable = compile != 0;
+              ForceCompile = compile == 2 || compile == 4;
+              RunAfterCompile = compile == 3 || compile == 4;
+            }
 
-          return true;
-        }
+            return true;
+          }
 
         case "Plugin":
         case "plugin": {

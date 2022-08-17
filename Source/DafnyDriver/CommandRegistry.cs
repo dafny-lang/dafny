@@ -68,8 +68,7 @@ static class CommandRegistry {
     var specToOption = optionToSpec.ToDictionary(o => o.Value, o => o.Key);
     var commandToSpec = Commands.Values.ToDictionary(c => {
       var result = new Command(c.Name, c.Description);
-      foreach(var option in c.Options)
-      {
+      foreach (var option in c.Options) {
         result.AddOption(specToOption[option]);
       }
       result.AddArgument(filesArgument);
@@ -84,8 +83,7 @@ static class CommandRegistry {
       rootCommand.AddCommand(command);
     }
 
-    void CommandHandler(InvocationContext context)
-    {
+    void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
