@@ -1,18 +1,5 @@
 namespace Microsoft.Dafny;
 
-public class HelpOption : BooleanOption {
-  public static readonly HelpOption Instance = new();
-  public override string LongName => "help";
-  public override string ShortName => null;
-  public override string Category => "General options";
-  public override string Description => "Display this help text";
-
-  public override string TypedPostProcess(DafnyOptions options, bool value) {
-    options.HelpRequested = Get(options);
-    return base.TypedPostProcess(options, value);
-  }
-}
-
 public class CoresOption : IntegerOption {
   public static readonly CoresOption Instance = new();
   public override object DefaultValue => 1;
@@ -23,9 +10,9 @@ public class CoresOption : IntegerOption {
 
   public override string Description => @"Run the Dafny CLI using <n> cores. Defaults to 1.";
 
-  public override string TypedPostProcess(DafnyOptions options, int value) {
-    options.VcsCores = value;
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.VcsCores = Get(options);
+    return null;
   }
 }
 
@@ -39,9 +26,9 @@ public class UseBaseFileName : BooleanOption {
 When parsing use basename of file for tokens instead
 of the path supplied on the command line".TrimStart();
 
-  public override string TypedPostProcess(DafnyOptions options, bool value) {
-    options.UseBaseNameForFileName = value;
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.UseBaseNameForFileName = Get(options);
+    return null;
   }
 }
 
@@ -57,8 +44,8 @@ public class VerificationTimeLimit : NaturalNumberOption {
 Limit the number of seconds spent trying to verify
 each procedure".TrimStart();
 
-  public override string TypedPostProcess(DafnyOptions options, uint value) {
-    options.TimeLimit = value;
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.TimeLimit = Get(options);
+    return null;
   }
 }

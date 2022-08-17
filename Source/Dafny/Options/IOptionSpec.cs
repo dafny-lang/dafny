@@ -3,11 +3,13 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.CommandLine;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
 public interface IOptionSpec {
 
+  bool Hidden { get; }
   Option ToOption { get; }
   object DefaultValue { get; }
   string LongName { get; }
@@ -15,8 +17,9 @@ public interface IOptionSpec {
   string ArgumentName { get; }
   string Category { get; }
   string Description { get; }
-  ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
-  string PostProcess(DafnyOptions options, object value);
+  void Parse(CommandLineParseState ps, DafnyOptions options);
+
+  string PostProcess(DafnyOptions options);
 
   public static string GenerateHelp(string template, IEnumerable<IOptionSpec> options, bool oldStyle = false) {
     var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
@@ -56,6 +59,10 @@ public abstract class CommandLineOption<T> : IOptionSpec {
     return Get(options.Options);
   }
 
+  protected void InvalidArgumentError(string name, Boogie.CommandLineParseState ps) {
+    ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
+  }
+
   public T Get(Options options) {
     return (T)options.OptionArguments[this];
   }
@@ -66,6 +73,8 @@ public abstract class CommandLineOption<T> : IOptionSpec {
   public void Set(Options options, T value) {
     options.OptionArguments[this] = value;
   }
+
+  public virtual bool Hidden => false;
 
   public virtual Option ToOption {
     get {
@@ -81,50 +90,31 @@ public abstract class CommandLineOption<T> : IOptionSpec {
 
   public abstract object DefaultValue { get; }
   public abstract string LongName { get; }
-  public abstract string ShortName { get; }
+  public virtual string ShortName => null;
   public abstract string ArgumentName { get; }
   public abstract string Category { get; }
   public abstract string Description { get; }
-  public abstract ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments);
+  public abstract void Parse(CommandLineParseState ps, DafnyOptions options);
 
-  public virtual string TypedPostProcess(DafnyOptions options, T value) {
-    return null;
-  }
-
-  public string PostProcess(DafnyOptions options, object value) {
-    return TypedPostProcess(options, (T)value);
-  }
+  public abstract string PostProcess(DafnyOptions options);
 }
 
 public abstract class IntegerOption : CommandLineOption<int> {
-
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
-    if (!arguments.Any()) {
-      return new FailedOption($"No argument found for option {LongName}");
+  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
+    int a = 0;
+    if (ps.GetIntArgument(ref a)) {
+      Set(options, a);
+      options.ArithMode = a;
     }
-
-    var value = arguments.Pop();
-    if (int.TryParse(value, out var number)) {
-      return new ParsedOption(number);
-    }
-
-    return new FailedOption($"Failed to parse value {value} as an integer for option {LongName}");
   }
 }
 
 public abstract class NaturalNumberOption : CommandLineOption<uint> {
-
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
-    if (!arguments.Any()) {
-      return new FailedOption($"No argument found for option {LongName}");
+  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
+    uint a = 0;
+    if (ps.GetUnsignedNumericArgument(ref a, _ => true)) {
+      Set(options, a);
     }
-
-    var value = arguments.Pop();
-    if (uint.TryParse(value, out var number)) {
-      return new ParsedOption(number);
-    }
-
-    return new FailedOption($"Failed to parse value {value} as a non-negative integer for option {LongName}");
   }
 }
 
@@ -133,21 +123,10 @@ public abstract class BooleanOption : CommandLineOption<bool> {
 
   public override string ArgumentName => null;
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
-    var defaultResult = new ParsedOption(true);
-    if (!arguments.Any()) {
-      return defaultResult;
-    }
-
-    var value = arguments.Pop();
-    switch (value) {
-      case "0":
-        return new ParsedOption(false);
-      case "1":
-        return new ParsedOption(true);
-      default:
-        arguments.Push(value);
-        return defaultResult;
+  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
+    int printEffects = 0;
+    if (ps.GetIntArgument(ref printEffects, 2)) {
+      Set(options, printEffects == 1);
     }
   }
 }
@@ -166,9 +145,10 @@ public abstract class StringOption : CommandLineOption<string> {
     }
   }
 
-  public override ParseOptionResult Parse(DafnyOptions dafnyOptions, Stack<string> arguments) {
-    var value = arguments.Pop();
-    return new ParsedOption(value);
+  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
+    if (ps.ConfirmArgumentCount(1)) {
+      Set(options, ps.args[ps.i]);
+    }
   }
 }
 

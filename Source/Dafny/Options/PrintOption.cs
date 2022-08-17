@@ -12,10 +12,10 @@ public class PrintOption : StringOption {
 print Dafny program after parsing it
 (use - as <file> to print to console)".TrimStart();
 
-  public override string TypedPostProcess(DafnyOptions options, string value) {
-    options.DafnyPrintFile = value;
+  public override string PostProcess(DafnyOptions options) {
+    options.DafnyPrintFile = Get(options);
     options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,
       options.FileTimestamp);
-    return base.TypedPostProcess(options, value);
+    return null;
   }
 }

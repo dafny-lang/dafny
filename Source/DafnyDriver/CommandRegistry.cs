@@ -24,6 +24,8 @@ static class CommandRegistry {
     VerificationTimeLimit.Instance,
     UseBaseFileName.Instance,
     PrintOption.Instance,
+    CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
+    BoogieOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -92,7 +94,7 @@ static class CommandRegistry {
           var optionSpec = optionToSpec[option];
           var value = context.ParseResult.GetValueForOption(option);
           options.OptionArguments[optionSpec] = value;
-          optionSpec.PostProcess(dafnyOptions, value);
+          optionSpec.PostProcess(dafnyOptions);
         }
       }
 

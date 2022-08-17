@@ -25,10 +25,13 @@ namespace Microsoft.Dafny {
       new IOptionSpec[] {
         ShowSnippetsOption.Instance,
         CompileTargetOption.Instance,
-        CompileOption.Instance,
         SpillTargetCodeOption.Instance,
         DafnyVerifyOption.Instance,
         DPrintOption.Instance,
+        LibraryOption.Instance,
+        DafnyPreludeOption.Instance,
+        PrintModeOption.Instance,
+        CompileVerboseOption.Instance
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -131,7 +134,7 @@ namespace Microsoft.Dafny {
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
-    public HashSet<string> LibraryFiles { get; } = new();
+    public HashSet<string> LibraryFiles { get; set; } = new();
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -210,21 +213,9 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      var argumentStack = new Stack<string>(ps.args.Skip(ps.i).Reverse());
-      var originalSize = argumentStack.Count;
       foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
-        switch (option.Parse(this, argumentStack)) {
-          case FailedOption failedOption:
-            ps.Error(failedOption.Message);
-            break;
-          case ParsedOption parsedOption:
-            Options.OptionArguments[option] = parsedOption.Value;
-            option.PostProcess(this, parsedOption.Value);
-            ps.nextIndex = ps.i + originalSize - argumentStack.Count;
-            return true;
-          default:
-            throw new ArgumentOutOfRangeException();
-        }
+        option.Parse(ps, this);
+        return true;
       }
 
       return ParseBoogieOption(name, ps);
@@ -240,35 +231,6 @@ namespace Microsoft.Dafny {
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
-        case "library":
-          if (ps.ConfirmArgumentCount(1)) {
-            LibraryFiles.Add(args[ps.i]);
-          }
-
-          return true;
-        case "dprelude":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrelude = args[ps.i];
-          }
-
-          return true;
-
-        case "printMode":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("Everything")) {
-              PrintMode = PrintModes.Everything;
-            } else if (args[ps.i].Equals("NoIncludes")) {
-              PrintMode = PrintModes.NoIncludes;
-            } else if (args[ps.i].Equals("NoGhost")) {
-              PrintMode = PrintModes.NoGhost;
-            } else if (args[ps.i].Equals("DllEmbed")) {
-              PrintMode = PrintModes.DllEmbed;
-            } else {
-              InvalidArgumentError(name, ps);
-            }
-          }
-
-          return true;
 
         case "rprint":
           if (ps.ConfirmArgumentCount(1)) {
@@ -283,14 +245,17 @@ namespace Microsoft.Dafny {
 
           return true;
 
-        case "compileVerbose": {
-            int verbosity = 0;
-            if (ps.GetIntArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
-            }
-
-            return true;
+        case "compile": {
+          int compile = 0;
+          if (ps.GetIntArgument(ref compile, 5)) {
+            // convert option to two booleans
+            EmitExecutable = compile != 0;
+            ForceCompile = compile == 2 || compile == 4;
+            RunAfterCompile = compile == 3 || compile == 4;
           }
+
+          return true;
+        }
 
         case "Plugin":
         case "plugin": {
@@ -994,8 +959,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Input configuration ---------------------------------------------------
 
-/dprelude:<file>
-    choose Dafny prelude file
 /stdin
     Read standard input and treat it as an input .dfy file.
 
@@ -1014,13 +977,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /rprint:<file>
     print Dafny program after resolving it
     (use - as <file> to print to console)
-/printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-    Everything is the default.
-    DllEmbed prints the source that will be included in a compiled dll.
-    NoIncludes disables printing of {{:verify false}} methods incorporated via the
-    include mechanism, as well as datatypes and fields included from other files.
-    NoGhost disables printing of functions, ghost methods, and proof statements in
-    implementation methods.  It also disables anything NoIncludes disables.
 /printIncludes:<None|Immediate|Transitive>
     None is the default.
     Immediate prints files included by files listed on the command line
@@ -1242,6 +1198,17 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Compilation options ---------------------------------------------------
 
+/compile:<n>  0 - do not compile Dafny program
+    1 (default) - upon successful verification of the Dafny
+        program, compile it to the designated target language
+        (/noVerify automatically counts as failed verification)
+    2 - always attempt to compile Dafny program to the target
+        language, regardless of verification outcome
+    3 - if there is a Main method and there are no verification
+        errors and /noVerify is not used, compiles program in
+        memory (i.e., does not write an output file) and runs it
+    4 - like (3), but attempts to compile and run regardless of
+        verification outcome
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
@@ -1254,10 +1221,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         Cannot be used if the program already contains a main method.
         Note that /compile:3 or 4 must be provided as well to actually execute
         this main method!
-/compileVerbose:<n>
-    0 - don't print status of compilation to the console
-    1 (default) - print information such as files being written by
-        the compiler to the console
 /out:<file>
     filename and location for the generated target language files
 /coverage:<file>

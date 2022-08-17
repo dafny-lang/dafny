@@ -28,6 +28,7 @@ class BuildCommand : ICommandSpec {
     CommandRegistry.CommonOptions.Concat(new IOptionSpec[] {
       NoVerifyOption.Instance,
       TargetOption.Instance,
+      CompileVerboseOption.Instance,
     }));
 }
 
@@ -45,6 +46,7 @@ class RunCommand : ICommandSpec {
     dafnyOptions.EmitExecutable = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.CompileVerbose = false;
   }
 }
 

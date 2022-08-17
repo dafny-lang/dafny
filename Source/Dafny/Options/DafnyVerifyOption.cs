@@ -3,14 +3,11 @@ namespace Microsoft.Dafny;
 class DafnyVerifyOption : BooleanOption {
   public static readonly DafnyVerifyOption Instance = new();
 
-  public override object DefaultValue
-  {
-    get { return 1; }
-  }
+  public override object DefaultValue => 1;
 
-  public override string TypedPostProcess(DafnyOptions options, bool value) {
-    options.DafnyVerify = value;
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.DafnyVerify = Get(options);
+    return null;
   }
 
   public override string LongName => "dafnyVerify";

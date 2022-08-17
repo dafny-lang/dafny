@@ -10,13 +10,14 @@ class NoVerifyOption : BooleanOption {
   public override string Category => "Compilation options";
   public override string Description => "missing";
 
-  public override string TypedPostProcess(DafnyOptions options, bool value) {
-    options.Verify = !value;
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.Verify = !Get(options);
+    return null;
   }
 }
 
 class BoogieOption : StringOption {
+  public static readonly BoogieOption Instance = new();
   public override object DefaultValue => null;
   public override string LongName => "boogie";
   public override string ShortName => "null";
@@ -24,8 +25,8 @@ class BoogieOption : StringOption {
   public override string Category => null;
   public override string Description => "arguments to boogie";
 
-  public override string TypedPostProcess(DafnyOptions options, string value) {
-    options.Parse(value.Split(" "));
-    return base.TypedPostProcess(options, value);
+  public override string PostProcess(DafnyOptions options) {
+    options.Parse(Get(options).Split(" "));
+    return null;
   }
 }
