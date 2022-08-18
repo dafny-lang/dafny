@@ -64,7 +64,11 @@ public abstract class CommandLineOption<T> : IOptionSpec {
   }
 
   public T Get(Options options) {
-    return (T)options.OptionArguments[this];
+    if (options.OptionArguments.TryGetValue(this, out var result)) {
+      return (T)result;
+    }
+
+    return default;
   }
 
   public void Set(DafnyOptions options, T value) {
