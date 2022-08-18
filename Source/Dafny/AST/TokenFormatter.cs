@@ -729,8 +729,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return indentationFormatter;
   }
 
+  private static Regex FollowedByNewlineRegex = new Regex("^[ \t]*[\r\n]");
+
   public static bool IsFollowedByNewline(IToken token) {
-    return token.TrailingTrivia.Contains('\n') || token.TrailingTrivia.Contains('\r');
+    return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);
   }
 
   class FormatterVisitor : TopDownVisitor<int> {
@@ -750,19 +752,50 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var firstToken = stmt.Tok;
       var indent = formatter.GetIndentBefore(firstToken);
       switch (stmt) {
+        case CalcStmt calcStmt: {
+            foreach (var token in calcStmt.OwnedTokens) {
+              if (token.val == "{") {
+                formatter.SetOpeningIndentedRegion(token, indent);
+              } else if (token.val == "}") {
+                formatter.SetClosingIndentedRegion(token, indent);
+              } else if (token.val == ";") {
+                formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              }
+            }
+
+            foreach (var hint in calcStmt.Hints) {
+              if (hint.Tok.pos != hint.EndTok.pos) {
+                formatter.SetOpeningIndentedRegion(hint.Tok, indent + SpaceTab);
+                formatter.SetClosingIndentedRegion(hint.EndTok, indent + SpaceTab);
+              }
+            }
+            break;
+          }
         case BlockStmt blockStmt: {
+            var openingIndent = indent;
             foreach (var token in blockStmt.OwnedTokens) {
-              if (!formatter.PosToIndentBefore.ContainsKey(token.pos)) {
-                if (token.val == "{") {
-                  formatter.SetDelimiterIndentedRegions(token, indent);
-                } else if (token.val == "}") {
-                  formatter.SetClosingIndentedRegion(token, indent);
-                }
+              switch (token.val) {
+                case "{": {
+                    if (!formatter.PosToIndentLineBefore.ContainsKey(token.pos)) {
+                      formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                    } else {
+                      openingIndent = formatter.PosToIndentLineBefore[token.pos];
+                      formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                    }
+                    break;
+                  }
+                case "}": {
+                    formatter.SetClosingIndentedRegion(token, openingIndent);
+                    break;
+                  }
               }
             }
 
             foreach (var blockStmtBody in blockStmt.Body) {
-              formatter.SetIndentations(blockStmtBody.StartToken, indent + SpaceTab, indent + SpaceTab);
+              if (blockStmtBody is not BlockStmt) {
+                formatter.SetIndentations(blockStmtBody.StartToken, indent + SpaceTab, indent + SpaceTab);
+              }
+
               Visit(blockStmtBody, indent + SpaceTab);
             }
 
@@ -868,14 +901,24 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                   break;
                 case ":|":
                 case ":-":
-                case ":=":
-                  if (IsFollowedByNewline(token)) {
-                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
-                  } else {
-                    formatter.SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
+                case ":=": {
+                    if (IsFollowedByNewline(token)) {
+                      // True if it did not have a LHS
+                      if (formatter.PosToIndentLineBefore.ContainsKey(token.pos)) {
+                        formatter.SetOpeningIndentedRegion(token, indent);
+                      } else {
+                        formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                      }
+                    } else {
+                      var opIndent = formatter.PosToIndentLineBefore.ContainsKey(token.pos)
+                        ? formatter.PosToIndentLineBefore[token.pos]
+                        : indent + SpaceTab;
+                      formatter.SetAlign(opIndent, token, out rightIndent, out commaIndent);
+                    }
+
+                    break;
                   }
 
-                  break;
                 case ";":
                   formatter.SetClosingIndentedRegionInside(token, indent);
                   break;
@@ -976,6 +1019,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
+      if (expr == null) {
+        return false;
+      }
       var firstToken = expr.StartToken;
       var indent = formatter.GetIndentBefore(firstToken);
       switch (expr) {

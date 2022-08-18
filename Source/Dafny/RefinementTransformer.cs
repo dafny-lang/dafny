@@ -31,6 +31,11 @@ namespace Microsoft.Dafny {
       this.InheritingModule = m;
     }
 
+
+    public override IToken WithVal(string newVal) {
+      return new RefinementToken(WrappedToken.WithVal(newVal), InheritingModule);
+    }
+
     public static bool IsInherited(IToken tok, ModuleDefinition m) {
       while (tok is NestedToken) {
         var n = (NestedToken)tok;

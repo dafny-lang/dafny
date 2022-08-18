@@ -58,6 +58,8 @@ namespace Microsoft.Dafny {
     string LeadingTrivia { get; set; }
     IToken Next { get; set; } // The next token
     IToken Prev { get; set; } // The previous token
+
+    public IToken WithVal(string val);  // create a new token by setting the given val.
   }
 
   public record Token : IToken {
@@ -95,6 +97,10 @@ namespace Microsoft.Dafny {
     public IToken Next { get; set; } // The next token
 
     public IToken Prev { get; set; } // The previous token
+
+    public IToken WithVal(string val) {
+      return this with { val = val };
+    }
   }
 
 
@@ -8867,6 +8873,8 @@ namespace Microsoft.Dafny {
       WrappedToken = wrappedToken;
     }
 
+    public abstract IToken WithVal(string newVal);
+
     public int col {
       get { return WrappedToken.col; }
       set { throw new NotSupportedException(); }
@@ -8930,6 +8938,10 @@ namespace Microsoft.Dafny {
     public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
       this.endTok = endTok;
     }
+
+    public override IToken WithVal(string newVal) {
+      return this;
+    }
   }
 
   public class NestedToken : TokenWrapper {
@@ -8943,6 +8955,10 @@ namespace Microsoft.Dafny {
     public IToken Outer { get { return WrappedToken; } }
     public readonly IToken Inner;
     public readonly string Message;
+
+    public override IToken WithVal(string newVal) {
+      return this;
+    }
   }
 
   /// <summary>
@@ -8962,6 +8978,10 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.val; }
       set { WrappedToken.val = value; }
     }
+
+    public override IToken WithVal(string newVal) {
+      return new IncludeToken(Include, WrappedToken.WithVal(newVal));
+    }
   }
 
   /// <summary>
@@ -8978,6 +8998,10 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.val; }
       set { WrappedToken.val = value; }
     }
+
+    public override IToken WithVal(string newVal) {
+      return new QuantifiedVariableDomainToken((WrappedToken.WithVal(newVal)));
+    }
   }
 
   /// <summary>
@@ -8988,6 +9012,10 @@ namespace Microsoft.Dafny {
     public QuantifiedVariableRangeToken(IToken wrappedToken)
       : base(wrappedToken) {
       Contract.Requires(wrappedToken != null);
+    }
+
+    public override IToken WithVal(string newVal) {
+      return new QuantifiedVariableRangeToken(WrappedToken.WithVal(newVal));
     }
 
     public override string val {

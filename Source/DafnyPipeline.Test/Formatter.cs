@@ -943,6 +943,47 @@ module Tests {
 }");
     }
 
+    [Fact]
+    public void ElephantOperatorIndentedCorrectly() {
+      FormatterWorksFor(@"
+method {:test} PassingTestUsingNoLHSAssignOrHalt() {
+  :- // Comment 
+     expect FailUnless(true);
+  :-
+    expect FailUnless(true);
+}");
+    }
+
+    [Fact]
+    public void CalcStatementsIndentedCorrectly() {
+      FormatterWorksFor(@"
+lemma Test() {
+  calc {
+    A;
+    O[j..] + O[..j];
+    O[j..j+1] + O[j+1..] + O[..j];
+    O[j..j+1] + (O[j+1..] + O[..j]);
+  }
+  calc {
+    C;
+    A[1..] + [A[0]];
+    { assert A[0] == O[j] && A[1..] == O[j+1..] + O[..j]; }
+    O[j+1..] + O[..j] + [O[j]];
+    // Pre comment
+    {
+      // Begin comment
+      assert [O[j]] == O[j..j+1];
+      // Inside comment
+    }
+    // Extra comment
+    O[j+1..] + O[..j] + O[j..j+1];
+    O[j+1..] + (O[..j] + O[j..j+1]);
+    { assert O[..j] + O[j..j+1] == O[..j+1]; }
+    O[j+1..] + O[..j+1];
+  }
+}");
+    }
+
     private void FormatterWorksFor(string testCase, string expectedProgramString = null) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();

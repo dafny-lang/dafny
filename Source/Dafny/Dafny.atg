@@ -2966,7 +2966,7 @@ UpdateStmt<out Statement/*!*/ s>
     ";"                            (. endTok = t; ownedTokens.Add(t); .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
-| ":-"                             (. x = t; ownedTokens.Add(t); .)
+| ":-"                             (. x = t; ownedTokens.Add(t); startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume") (. keywordToken = t; ownedTokens.Add(t); .)
    ]
@@ -3721,22 +3721,24 @@ CalcStmt<out Statement s>
      var hints = new List<BlockStmt>();
      CalcStmt.CalcOp stepOp;
      var stepOps = new List<CalcStmt.CalcOp>();
+     var ownedTokens = new List<IToken>();
      Expression e;
      IToken opTok;
      IToken danglingOperator = null;
   .)
-  "calc"                                                  (. x = t; .)
+  "calc"                                                  (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
   [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
                                                              } else {
                                                                resOp = userSuppliedOp;
+                                                               ownedTokens.Add(opTok);
                                                              }
                                                           .)
   ]
-  "{"
+  "{"                                                     (. ownedTokens.Add(t); .)
   { Expression<out e, false, true>                        (. lines.Add(e); stepOp = null; danglingOperator = null; .)
-    ";"
+    ";"                                                   (. ownedTokens.Add(t); .)
     [ CalcOp<out opTok, out op>                           (. var maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
@@ -3744,6 +3746,7 @@ CalcStmt<out Statement s>
                                                                stepOp = op;
                                                                resOp = maybeOp;
                                                                danglingOperator = opTok;
+                                                               ownedTokens.Add(opTok);
                                                              }
                                                           .)
     ]                                                     (. stepOps.Add(stepOp); .)
@@ -3763,10 +3766,11 @@ CalcStmt<out Statement s>
     }
     (. var h = new BlockStmt(hintStart, hintEnd, subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
        hints.Add(h);
+       h.OwnedTokens = new List<IToken>() { hintStart, hintEnd };
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
   }
-  "}"
+  "}"                                            (. ownedTokens.Add(t); .)
   (.
     if (danglingOperator != null) {
       SemErr(danglingOperator, "a calculation cannot end with an operator");
@@ -3776,6 +3780,7 @@ CalcStmt<out Statement s>
       lines.Add(lines[lines.Count - 1]);
     }
     s = new CalcStmt(x, t, userSuppliedOp, lines, hints, stepOps, attrs);
+    s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -5280,7 +5285,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. x = (t as Token) with {val = UnwildIdent(t.val, allowWildcardId)}; .)
+  Ident<out x>     (. x = t.WithVal(UnwildIdent(t.val, allowWildcardId)); .)
   .
 
 /*------------------------------------------------------------------------*/
