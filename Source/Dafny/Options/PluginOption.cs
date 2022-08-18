@@ -10,7 +10,7 @@ public class PluginOption : CommandLineOption<List<string>> {
   public static readonly PluginOption Instance = new();
   public override object DefaultValue => new List<string>();
   public override string LongName => "plugin";
-  public override string ArgumentName => "path to one assembly";
+  public override string ArgumentName => "file[,argument]*";
   public override string Category => "Plugins";
 
   public override string Description => @"
