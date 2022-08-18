@@ -24,7 +24,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Input configuration ---------------------------------------------------
   
-  /prelude:<value>
+  /dprelude:<value>
       choose Dafny prelude file
   /stdin
       Read standard input and treat it as an input .dfy file.

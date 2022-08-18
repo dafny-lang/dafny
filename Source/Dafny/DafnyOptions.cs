@@ -591,7 +591,7 @@ namespace Microsoft.Dafny {
 
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
-      
+
       Compiler ??= new CsharpCompiler();
 
       // expand macros in filenames, now that LogPrefix is fully determined
