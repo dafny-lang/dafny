@@ -1596,8 +1596,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   [ TypeMembers ]
 ````
 A newtype is like a type synonym or subset type except that it declares a wholly new type
-name that is distinct from its base type. The optional `witnesss` clause
-is described in [Section 11.3.4](#sec-witness).
+name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
 A new type can be declared with the _newtype_
 declaration, for example:
