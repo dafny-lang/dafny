@@ -13,9 +13,9 @@ public interface ICommandSpec {
   void PostProcess(DafnyOptions dafnyOptions, Options options);
 }
 
-class BuildCommand : ICommandSpec {
-  public string Name => "build";
-  public string Description => "Generate source files in the target language.";
+class IntegrateCommand : ICommandSpec {
+  public string Name => "integrate";
+  public string Description => "Generate source and build files in a specified target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.EmitExecutable = false;
     var noVerify = NoVerifyOption.Instance.Get(options);

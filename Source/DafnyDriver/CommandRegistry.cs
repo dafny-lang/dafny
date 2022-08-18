@@ -39,7 +39,7 @@ static class CommandRegistry {
 
   static CommandRegistry() {
     AddCommand(new VerifyCommand());
-    AddCommand(new BuildCommand());
+    AddCommand(new IntegrateCommand());
     AddCommand(new RunCommand());
   }
 
