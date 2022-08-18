@@ -1513,7 +1513,7 @@ variables of any type are expected to have some value when they are used.
 In many cases, Dafny can determine that a newly declared type has 
 some value. For example, a numeric type that includes 0 is known by Dafny
 to be non-empty. However, Dafny cannot always make this determination.
-If it cannot, a `witness` clause will be required. The value given in
+If it cannot, a `witness` clause is required. The value given in
 the `witness` clause must be a valid value for the type and assures Dafny
 that the type is non-empty.
 
