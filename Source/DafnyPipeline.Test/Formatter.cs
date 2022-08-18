@@ -979,6 +979,81 @@ method {:test} PassingTestUsingNoLHSAssignOrHalt() {
       FormatterWorksFor(@"
 lemma Test() {
   calc {
+     1;
+  <  3;
+  == 4;
+  }
+  calc {
+     5;
+  == 2;
+  >= 7;
+  >  8;
+  }
+  calc {
+    10;
+  ==
+    calc {
+      10;
+    ==
+      10;
+    }
+    10;
+  <=
+    calc {
+       10;
+    <= 20;
+    }
+    20;
+  < calc {
+      20;
+    < 30;
+    }
+    30;
+  }
+  calc {
+         1;
+  ==#[k] 1+0;
+  ==#[k] 0+1;
+  }
+
+  calc {
+    1;
+  ==#[k]
+    1;
+  ==#[k]
+    1;
+  }
+  calc {
+       false;
+  ==>  true;
+  <==> 1 == 1;
+  }
+  calc {
+    false;
+  ==>
+    true;
+  <==>
+    1 == 1;
+  }
+  calc {
+      false;
+  ==> true;
+  ==> true;
+  }
+
+  calc {
+    false;
+  ==>
+    true;
+  ==>
+    true;
+  }
+  calc {
+       true;
+  <==  false;
+  <==> 1 == 0;
+  }
+  calc {
     A;
     O[j..] + O[..j];
     O[j..j+1] + O[j+1..] + O[..j];

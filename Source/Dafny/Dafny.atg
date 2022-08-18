@@ -3728,18 +3728,17 @@ CalcStmt<out Statement s>
   .)
   "calc"                                                  (. x = t; ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
+  [ CalcOp<out opTok, out userSuppliedOp, ownedTokens>    (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
                                                              } else {
                                                                resOp = userSuppliedOp;
-                                                               ownedTokens.Add(opTok);
                                                              }
                                                           .)
   ]
   "{"                                                     (. ownedTokens.Add(t); .)
   { Expression<out e, false, true>                        (. lines.Add(e); stepOp = null; danglingOperator = null; .)
     ";"                                                   (. ownedTokens.Add(t); .)
-    [ CalcOp<out opTok, out op>                           (. var maybeOp = resOp.ResultOp(op);
+    [ CalcOp<out opTok, out op, ownedTokens>              (. var maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
                                                              } else {
@@ -3766,7 +3765,6 @@ CalcStmt<out Statement s>
     }
     (. var h = new BlockStmt(hintStart, hintEnd, subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
        hints.Add(h);
-       h.OwnedTokens = new List<IToken>() { hintStart, hintEnd };
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
   }
@@ -3785,24 +3783,28 @@ CalcStmt<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
+CalcOp<.out IToken x, out CalcStmt.CalcOp/*!*/ op, List<IToken> ownedTokens.>
 = (. var binOp = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator
      Expression k = null;
      x = null;
   .)
-  ( "=="           (. x = t;  binOp = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
-  | "<"            (. x = t;  binOp = BinaryExpr.Opcode.Lt; .)
-  | ">"            (. x = t;  binOp = BinaryExpr.Opcode.Gt; .)
-  | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
-  | ">="           (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
-  | "!="           (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2260'       (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
-  | EquivOp        (. x = t;  binOp = BinaryExpr.Opcode.Iff; .)
-  | ImpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Imp; .)
-  | ExpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Exp; .)
+  ( "=="           (. x = t;  binOp = BinaryExpr.Opcode.Eq; ownedTokens.Add(t); .)
+    [ "#"          (. ownedTokens.Add(t); .)
+      "["          (. ownedTokens.Add(t); .)
+      Expression<out k, true, true>
+      "]"          (. ownedTokens.Add(t); .)
+    ]
+  | "<"            (. x = t;  binOp = BinaryExpr.Opcode.Lt; ownedTokens.Add(t); .)
+  | ">"            (. x = t;  binOp = BinaryExpr.Opcode.Gt; ownedTokens.Add(t); .)
+  | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; ownedTokens.Add(t); .)
+  | ">="           (. x = t;  binOp = BinaryExpr.Opcode.Ge; ownedTokens.Add(t); .)
+  | "!="           (. x = t;  binOp = BinaryExpr.Opcode.Neq; ownedTokens.Add(t); .)
+  | '\u2260'       (. x = t;  binOp = BinaryExpr.Opcode.Neq; ownedTokens.Add(t); .)
+  | '\u2264'       (. x = t;  binOp = BinaryExpr.Opcode.Le; ownedTokens.Add(t); .)
+  | '\u2265'       (. x = t;  binOp = BinaryExpr.Opcode.Ge; ownedTokens.Add(t); .)
+  | EquivOp        (. x = t;  binOp = BinaryExpr.Opcode.Iff; ownedTokens.Add(t); .)
+  | ImpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Imp; ownedTokens.Add(t); .)
+  | ExpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Exp; ownedTokens.Add(t); .)
   )
   (.
     if (k == null) {

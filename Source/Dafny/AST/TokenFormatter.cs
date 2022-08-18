@@ -753,20 +753,69 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var indent = formatter.GetIndentBefore(firstToken);
       switch (stmt) {
         case CalcStmt calcStmt: {
+            var inCalc = false;
+            var first = true;
+            var innerCalcIndent = indent + SpaceTab;
+            // First phase: We get the alignment
             foreach (var token in calcStmt.OwnedTokens) {
-              if (token.val == "{") {
-                formatter.SetOpeningIndentedRegion(token, indent);
-              } else if (token.val == "}") {
-                formatter.SetClosingIndentedRegion(token, indent);
-              } else if (token.val == ";") {
-                formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              switch (token.val) {
+                case "calc":
+                case ";":
+                case "}": {
+                    break;
+                  }
+                case "{": {
+                    inCalc = true;
+                    break;
+                  }
+                default: {
+                    if (inCalc) {
+                      if (!IsFollowedByNewline(token) &&
+                          (token.val != "==" || token.Next.val != "#") &&
+                          token.val != "#" &&
+                          token.val != "[") {
+                        formatter.SetIndentations(token, sameLineBefore: indent);
+                        innerCalcIndent = Math.Max(innerCalcIndent, formatter.GetRightAlignIndentAfter(token, indent));
+                      }
+                    }
+                    break;
+                  }
               }
             }
 
-            foreach (var hint in calcStmt.Hints) {
+            inCalc = false;
+            foreach (var token in calcStmt.OwnedTokens) {
+              switch (token.val) {
+                case "calc": {
+                    break;
+                  }
+                case "{": {
+                    formatter.SetIndentations(token, indent, indent, innerCalcIndent);
+                    inCalc = true;
+                    break;
+                  }
+                case "}": {
+                    formatter.SetIndentations(token, innerCalcIndent, indent, indent);
+                    break;
+                  }
+                case ";": {
+                    formatter.SetDelimiterInsideIndentedRegions(token, indent);
+                    break;
+                  }
+                default: { // It has to be an operator
+                    if (inCalc) {
+                      formatter.SetIndentations(token, innerCalcIndent, indent, innerCalcIndent);
+                    }
+                    break;
+                  }
+              }
+            }
+
+            foreach (var hint in calcStmt.Hints) { // This block
               if (hint.Tok.pos != hint.EndTok.pos) {
-                formatter.SetOpeningIndentedRegion(hint.Tok, indent + SpaceTab);
-                formatter.SetClosingIndentedRegion(hint.EndTok, indent + SpaceTab);
+                foreach (var hintStep in hint.Body) {
+                  formatter.SetOpeningIndentedRegion(hintStep.StartToken, indent + SpaceTab);
+                }
               }
             }
             break;
@@ -792,7 +841,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
 
             foreach (var blockStmtBody in blockStmt.Body) {
-              if (blockStmtBody is not BlockStmt) {
+              if (blockStmtBody is not BlockStmt && blockStmt.OwnedTokens.Count > 0) {
                 formatter.SetIndentations(blockStmtBody.StartToken, indent + SpaceTab, indent + SpaceTab);
               }
 
