@@ -1360,8 +1360,7 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
-The declaration of a subset type permits an optional `witness` clause.
-The `witness` clause is described in [Section 11.3.4](#sec-witness).
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness),  to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
 
 Dafny builds in three families of subset types, as described next.
 
