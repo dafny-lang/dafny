@@ -175,8 +175,6 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
-    // Working around the fact that xmlFilename is private
-    public string BoogieXmlFilename = null;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
@@ -593,15 +591,7 @@ namespace Microsoft.Dafny {
 
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
-      if (VerificationLoggerConfigs.Any()) {
-        if (XmlSink != null) {
-          throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
-        }
-
-        BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
-      }
-
+      
       Compiler ??= new CsharpCompiler();
 
       // expand macros in filenames, now that LogPrefix is fully determined
