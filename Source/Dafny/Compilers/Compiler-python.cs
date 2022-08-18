@@ -45,7 +45,6 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.StaticConstants,
-      Feature.TupleInitialization,
       Feature.ContinueStatements,
       Feature.ForLoops,
       Feature.AssignSuchThatWithNonFiniteBounds,
@@ -234,31 +233,6 @@ namespace Microsoft.Dafny.Compilers {
       // Ensures the inequality is based on equality defined in the constructor
       btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
         .WriteLine("return not self.__eq__(__o)");
-
-      if (dt is CoDatatypeDecl) {
-        var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
-        w.NewBlockPy("def __init__(self, c):")
-          .WriteLine("self.c = c")
-          .WriteLine("self.d = None");
-        var get = w.NewBlockPy($"def _get(self):");
-        get.NewBlockPy("if self.c is not None:")
-          .WriteLine("self.d = self.c()")
-          .WriteLine("self.c = None");
-        get.WriteLine("return self.d");
-        w.NewBlockPy("def __dafnystr__(self) -> str:")
-          .WriteLine($"return {DafnyRuntimeModule}.str(self._get())");
-        foreach (var destructor in from ctor in dt.Ctors
-                                   let index = 0
-                                   from dtor in ctor.Destructors
-                                   where dtor.EnclosingCtors[0] == ctor
-                                   select dtor.CorrespondingFormals[0] into arg
-                                   where !arg.IsGhost
-                                   select IdProtect(arg.CompileName)) {
-          w.WriteLine("@property");
-          w.NewBlockPy($"def {destructor}(self):")
-            .WriteLine($"return self._get().{destructor}");
-        }
-      }
 
       if (dt is CoDatatypeDecl) {
         var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
@@ -683,6 +657,7 @@ namespace Microsoft.Dafny.Compilers {
                     Contract.Assert(udt.TypeArgs.Any() && ArrowType.IsTotalArrowTypeName(td.Name));
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
+                    // The final TypeArg contains the result type
                     var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => $"x{i}");
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
