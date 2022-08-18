@@ -264,7 +264,7 @@ namespace DafnyTestGeneration {
               ? (seqName, asType ?? variableType, "\"\"")
               : (seqName, asType ?? variableType, "[]"));
             return seqName;
-    }
+          }
           for (var i = 0; i < seqVar?.GetLength(); i++) {
             var element = seqVar?[i];
             if (element == null) {
@@ -669,11 +669,6 @@ namespace DafnyTestGeneration {
                   $"{assignment.childId};");
       }
       
-      string receiver = "";
-      if (!DafnyInfo.IsStatic(MethodName)) {
-        receiver = ArgValues[0];
-        ArgValues.RemoveAt(0);
-      }
       return lines;
     }
 
@@ -696,29 +691,7 @@ namespace DafnyTestGeneration {
 
       lines.Add($"method {{:test}} test{id}() {{");
 
-      // TODO: The lines below for constructing the test input are duplicated above in TestInputConstructionLines
-      // Ideally we should move this code there permanently and call it from here.
-      foreach (var line in ValueCreation) {
-        // TODO: nested tuples will break
-        if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {
-          lines.Add($"var {line.id}: " +
-                    $"({string.Join(",", line.type.TypeArgs.ConvertAll(typ => typ.ToString()))}) " +
-                    $":= {line.value};");
-        } else {
-          lines.Add($"var {line.id} : {line.type} := {line.value};");
-          var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
-          if (subsetTypeCondition != null) {
-            lines.Add("expect " + Printer.ExprToString(subsetTypeCondition) +
-                      ", \"Test does not meet type constraints and should be removed\";");
-          }
-        }
-      }
-
-      // assignments necessary to set up the test case:
-      foreach (var assignment in Assignments) {
-        lines.Add($"{assignment.parentId}.{assignment.fieldName} := " +
-                  $"{assignment.childId};");
-      }
+      lines.AddRange(TestInputConstructionLines());
       
       string receiver = "";
       if (!DafnyInfo.IsStatic(MethodName)) {
