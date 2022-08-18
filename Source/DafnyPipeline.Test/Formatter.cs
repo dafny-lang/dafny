@@ -496,6 +496,26 @@ function Test(): int {
 }");
     }
 
+
+    [Fact]
+    public void FormatWorksForChainedImplications() {
+      FormatterWorksFor(@"
+method Test() {
+  assert (1 ==>
+            2 ==> 
+              3);
+  assert (4
+          ==> 5
+            ==> 6);
+  assert (7
+          <== 8 
+          <== 9);
+  assert (10 <==
+          11 <== 
+          12);
+}");
+    }
+
     [Fact]
     public void FormatWorksConstant() {
       FormatterWorksFor(@"
@@ -794,8 +814,8 @@ method Test()
                // the first 'n' rows
                0 <= B[pos] && B[pos] < n
                ==>
-               // ... the board 'B' is not entirely consistent
-               (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
+                 // ... the board 'B' is not entirely consistent
+                 (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
     // comments here
   {
   }

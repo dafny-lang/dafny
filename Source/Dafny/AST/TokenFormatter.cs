@@ -1026,8 +1026,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var indent = formatter.GetIndentBefore(firstToken);
       switch (expr) {
         case BinaryExpr binaryExpr: {
-            ApplyBinaryExprFormatting(binaryExpr);
-            break;
+            return ApplyBinaryExprFormatting(indent, binaryExpr);
           }
         case LetExpr: {
             ApplyVarAssignFormatting(indent, expr.OwnedTokens);
@@ -1240,8 +1239,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    private void ApplyBinaryExprFormatting(BinaryExpr binaryExpr) {
-      int indent;
+    private bool ApplyBinaryExprFormatting(int indent, BinaryExpr binaryExpr) {
       if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
         // Alignment required.
         if (binaryExpr.OwnedTokens.Count == 2) {
@@ -1272,7 +1270,27 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           binOpIndent = -1;
           binOpArgIndent = -1;
         }
+
+        return true; // Default indentation
+      } else if (binaryExpr.Op is BinaryExpr.Opcode.Imp or BinaryExpr.Opcode.Exp) {
+        foreach (var token in binaryExpr.OwnedTokens) {
+          switch (token.val) {
+            case "==>": {
+                formatter.SetOpeningIndentedRegion(token, indent);
+                break;
+              }
+            case "<==": {
+                formatter.SetIndentations(token, indent, indent, indent);
+                break;
+              }
+          }
+        }
+        Visit(binaryExpr.E0, indent);
+        Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + SpaceTab);
+        return false;
       }
+
+      return true;
     }
   }
 
