@@ -40,7 +40,7 @@ class Defaults:
     EXCLUDED_FOLDERS = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
-    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/timeLimit:300"]
+    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/compileVerbose:0", "/timeLimit:300"]
     EXTENSIONS = [".dfy", ".transcript"]
 
 class Colors:
@@ -377,9 +377,9 @@ def run_one(args):
     return run_one_internal(*args)
 
 def get_server_path(compiler):
-    REGEXP = r"\bDafny.exe\b.*"
+    REGEXP = r"\bDafny\b.*"
     if re.search(REGEXP, compiler):
-        return re.sub(REGEXP, "DafnyServer.exe", compiler)
+        return re.sub(REGEXP, "DafnyServer", compiler)
     else:
         return None
 

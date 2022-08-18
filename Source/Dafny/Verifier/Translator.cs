@@ -10,13 +10,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
+using Microsoft.BaseTypes;
+using Microsoft.Dafny.Triggers;
+using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
@@ -267,7 +274,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(AllocField != null);
       }
 
-      public Bpl.Type SetType(IToken tok, bool finite, Bpl.Type ty) {
+      public Bpl.Type SetType(Bpl.IToken tok, bool finite, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
@@ -275,14 +282,14 @@ namespace Microsoft.Dafny {
         return new Bpl.TypeSynonymAnnotation(Token.NoToken, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { ty });
       }
 
-      public Bpl.Type MultiSetType(IToken tok, Bpl.Type ty) {
+      public Bpl.Type MultiSetType(Bpl.IToken tok, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
         return new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { ty });
       }
-      public Bpl.Type MapType(IToken tok, bool finite, Bpl.Type tya, Bpl.Type tyb) {
+      public Bpl.Type MapType(Bpl.IToken tok, bool finite, Bpl.Type tya, Bpl.Type tyb) {
         Contract.Requires(tok != null);
         Contract.Requires(tya != null && tyb != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
@@ -290,14 +297,14 @@ namespace Microsoft.Dafny {
         return new Bpl.CtorType(Token.NoToken, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { tya, tyb });
       }
 
-      public Bpl.Type SeqType(IToken tok, Bpl.Type ty) {
+      public Bpl.Type SeqType(Bpl.IToken tok, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
         return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { ty });
       }
 
-      public Bpl.Type FieldName(IToken tok, Bpl.Type ty) {
+      public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
@@ -305,7 +312,7 @@ namespace Microsoft.Dafny {
         return new Bpl.CtorType(tok, fieldName, new List<Bpl.Type> { ty });
       }
 
-      public Bpl.IdentifierExpr Alloc(IToken tok) {
+      public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
 
@@ -1401,7 +1408,7 @@ namespace Microsoft.Dafny {
     }
 
     // Makes a call to equality, if k is null, or otherwise prefix equality. For codatatypes.
-    Bpl.Expr CoEqualCall(CoDatatypeDecl codecl, List<Bpl.Expr> largs, List<Bpl.Expr> rargs, Bpl.Expr k, Bpl.Expr l, Bpl.Expr A, Bpl.Expr B, IToken tok = null) {
+    Bpl.Expr CoEqualCall(CoDatatypeDecl codecl, List<Bpl.Expr> largs, List<Bpl.Expr> rargs, Bpl.Expr k, Bpl.Expr l, Bpl.Expr A, Bpl.Expr B, Bpl.IToken tok = null) {
       Contract.Requires(codecl != null);
       Contract.Requires(largs != null);
       Contract.Requires(rargs != null);
@@ -1602,10 +1609,10 @@ namespace Microsoft.Dafny {
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, comment));
+                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -1615,10 +1622,10 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+              ens.Add(Ensures(s.Tok, s.IsOnlyFree, s.E, null, comment));
               comment = null;
             }
           }
@@ -3161,7 +3168,7 @@ namespace Microsoft.Dafny {
 
     public int assertionCount = 0;
 
-    Bpl.IdentifierExpr GetTmpVar_IdExpr(IToken tok, string name, Bpl.Type ty, List<Variable> locals)  // local variable that's shared between statements that need it
+    Bpl.IdentifierExpr GetTmpVar_IdExpr(Bpl.IToken tok, string name, Bpl.Type ty, List<Variable> locals)  // local variable that's shared between statements that need it
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3460,7 +3467,11 @@ namespace Microsoft.Dafny {
       return assumeCmd;
     }
 
-    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
+    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap,
+      List<Bpl.Variable> implInParams,
+      Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Formals.Count <= implInParams.Count);
 
       //generating class post-conditions
@@ -3521,7 +3532,7 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        Expression postcond = Substitute(en.E, null, substMap);
+        Expression postcond = Substitute(en.E, null, substMap, typeMap);
         bool splitHappened;  // we don't actually care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
@@ -3567,11 +3578,13 @@ namespace Microsoft.Dafny {
       return tyargs;
     }
 
-    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
+    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       foreach (var e in func.OverriddenFunction.Reads) {
-        var newE = Substitute(e.E, null, substMap);
+        var newE = Substitute(e.E, null, substMap, typeMap);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
       }
@@ -3604,17 +3617,19 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(false), kv));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
     }
 
-    private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap) {
+    private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(f != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       foreach (var req in f.OverriddenFunction.Req) {
-        Expression precond = Substitute(req.E, null, substMap);
+        Expression precond = Substitute(req.E, null, substMap, typeMap);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
       }
       //generating class pre-conditions
@@ -4195,8 +4210,8 @@ namespace Microsoft.Dafny {
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
         foreach (var s in splits) {
-          if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
+          if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
+            AddEnsures(ens, Ensures(s.Tok, false, s.E, errorMessage, null));
           }
         }
       }
@@ -4505,7 +4520,7 @@ namespace Microsoft.Dafny {
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
-              var tok = new NestedToken(witnessCheckTok, split.E.tok);
+              var tok = witnessCheckTok is IToken t ? new NestedToken(t, split.Tok) : witnessCheckTok;
               witnessCheckBuilder.Add(AssertNS(tok, split.E, desc));
             }
           }
@@ -5866,7 +5881,7 @@ namespace Microsoft.Dafny {
             string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
-                var tok = new NestedToken(GetToken(expr), ss.E.tok);
+                var tok = new NestedToken(GetToken(expr), ss.Tok);
                 var desc = new PODesc.PreconditionSatisfied(errorMessage);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
@@ -6026,7 +6041,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran);
         if (e is ConversionExpr) {
           var ee = (ConversionExpr)e;
-          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran);
+          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -7737,24 +7752,25 @@ namespace Microsoft.Dafny {
           return predef.ArrayLength;
         } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if (f is SpecialField && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) {
-          Contract.Assert(f.Type is SetType);
-          var setType = (SetType)f.Type;
-          if (f.Name == "Keys") {
-            return setType.Finite ? predef.MapDomain : predef.IMapDomain;
-          } else if (f.Name == "Values") {
-            return setType.Finite ? predef.MapValues : predef.IMapValues;
-          } else {
-            return setType.Finite ? predef.MapItems : predef.IMapItems;
+        } else if (f is SpecialField && !(f is DatatypeDestructor)) {
+          if (f.Name is "Keys" or "Values" or "Items") {
+            Contract.Assert(f.Type is SetType);
+            var setType = (SetType)f.Type;
+            return f.Name switch {
+              "Keys" => setType.Finite ? predef.MapDomain : predef.IMapDomain,
+              "Values" => setType.Finite ? predef.MapValues : predef.IMapValues,
+              _ => setType.Finite ? predef.MapItems : predef.IMapItems
+            };
           }
-        } else if (f is SpecialField && f.Name == "IsLimit") {
-          return predef.ORDINAL_IsLimit;
-        } else if (f is SpecialField && f.Name == "IsSucc") {
-          return predef.ORDINAL_IsSucc;
-        } else if (f is SpecialField && f.Name == "Offset") {
-          return predef.ORDINAL_Offset;
-        } else if (f is SpecialField && f.Name == "IsNat") {
-          return predef.ORDINAL_IsNat;
+          if (f.Name == "IsLimit") {
+            return predef.ORDINAL_IsLimit;
+          } else if (f.Name == "IsSucc") {
+            return predef.ORDINAL_IsSucc;
+          } else if (f.Name == "Offset") {
+            return predef.ORDINAL_Offset;
+          } else if (f.Name == "IsNat") {
+            return predef.ORDINAL_IsNat;
+          }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return predef.Tuple2Destructors0;
         } else if (f.FullSanitizedName == "_System.Tuple2._1") {
@@ -8321,7 +8337,7 @@ namespace Microsoft.Dafny {
       return CondApplyBox(tok, e, fromType, null);
     }
 
-    public Bpl.Expr CondApplyUnbox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+    public Bpl.Expr CondApplyUnbox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(fromType != null);
@@ -8390,11 +8406,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
+    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
       return Assert(tok, condition, description, tok, kv);
     }
 
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
+    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
@@ -8408,11 +8424,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc) {
+    Bpl.PredicateCmd AssertNS(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc) {
       return AssertNS(tok, condition, desc, tok, null);
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
+    Bpl.PredicateCmd AssertNS(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(desc != null);
       Contract.Requires(condition != null);
@@ -9280,7 +9296,7 @@ namespace Microsoft.Dafny {
         BitvectorType bv = (BitvectorType)ty0;
         eq = Bpl.Expr.Eq(e0, e1);
         less = FunctionCall(tok, "lt_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
-        atmost = FunctionCall(tok, "ge_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
+        atmost = FunctionCall(tok, "le_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
       } else if (ty0 is BigOrdinalType) {
         eq = Bpl.Expr.Eq(e0, e1);
@@ -9307,7 +9323,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
-      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.filename, stmt.Tok.line, stmt.Tok.col)));
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filename, stmt.Tok.line, stmt.Tok.col)));
     }
 
     /// <summary>
@@ -10633,7 +10649,7 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
       public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
-        : base(expr.tok) {
+        : base(ToDafnyToken(expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(dafnyType != null);
         Expr = expr;
@@ -11037,8 +11053,9 @@ namespace Microsoft.Dafny {
       public bool IsOnlyFree { get { return Kind == K.Free; } }
       public bool IsOnlyChecked { get { return Kind == K.Checked; } }
       public bool IsChecked { get { return Kind != K.Free; } }
-      public readonly Bpl.Expr E;
-      public SplitExprInfo(K kind, Bpl.Expr e) {
+      public readonly Expr E;
+      public IToken Tok => ToDafnyToken(E.tok);
+      public SplitExprInfo(K kind, Expr e) {
         Contract.Requires(e != null && e.tok != null);
         // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);
         Kind = kind;
@@ -11146,7 +11163,7 @@ namespace Microsoft.Dafny {
         var ss = new List<SplitExprInfo>();
         if (TrSplitExpr(bce.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
           foreach (var s in ss) {
-            splits.Add(new SplitExprInfo(s.Kind, CondApplyBox(s.E.tok, s.E, bce.FromType, bce.ToType)));
+            splits.Add(new SplitExprInfo(s.Kind, CondApplyBox(s.Tok, s.E, bce.FromType, bce.ToType)));
           }
           return true;
         }
@@ -11418,7 +11435,7 @@ namespace Microsoft.Dafny {
             foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
               foreach (var cs in caseProduct) {
                 if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                  newCases.Add(Bpl.Expr.Binary(new NestedToken(cs.tok, kase.tok), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                  newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
                 } else {
                   newCases.Add(cs);
                 }
@@ -11574,7 +11591,7 @@ namespace Microsoft.Dafny {
                 var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
-                  : (IToken)new NestedToken(GetToken(fexp), s.E.tok);
+                  : (IToken)new NestedToken(GetToken(fexp), s.Tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
               }

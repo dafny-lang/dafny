@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
-  public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
+  public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines = fsCache.GetOrAdd(filename, key => {
