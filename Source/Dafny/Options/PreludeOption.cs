@@ -1,6 +1,7 @@
 namespace Microsoft.Dafny;
 
 public class DPreludeOption : PreludeOption {
+  public new static readonly DPreludeOption Instance = new();
   public override string LongName => "dprelude";
 }
 
