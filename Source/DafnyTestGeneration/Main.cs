@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
+using System.Diagnostics;
 
 namespace DafnyTestGeneration {
 
@@ -96,7 +97,31 @@ namespace DafnyTestGeneration {
       Dictionary<Implementation, int> testCount = new();
       Dictionary<Implementation, int> failedTestCount = new();
       // Generate tests based on counterexamples produced from modifications
+      var numTestsGenerated = 0;
+      HashSet<string> blocksToSkip = DafnyOptions.O.TestGenOptions.blocksToSkip;
+
       await foreach (var modification in GetModifications(program)) {
+        var blockCapturedState = "";
+        if (DafnyOptions.O.TestGenOptions.maxTests >= 0) {
+          if (numTestsGenerated >= DafnyOptions.O.TestGenOptions.maxTests) {
+            yield break;
+          }
+
+          if (modification.CapturedStates.Count == 0) {
+            continue;
+          }
+
+          blockCapturedState = modification.CapturedStates.ToList().First();
+
+          if (blocksToSkip.Contains(blockCapturedState)) {
+            Console.WriteLine("// Skipping " +
+                              modification.CapturedStates.ToList().First());
+            continue;
+          }
+
+          Console.WriteLine("// current block:" + blockCapturedState);
+        }
+
         var log = await modification.GetCounterExampleLog();
         implementations.Add(modification.Implementation);
         if (log == null) {
@@ -113,6 +138,24 @@ namespace DafnyTestGeneration {
         }
         testCount[modification.Implementation] =
           testCount.GetValueOrDefault(modification.Implementation, 0) + 1;
+        if (testMethod.IsValid) {
+          Console.WriteLine("// newly covered:" + blockCapturedState);
+          numTestsGenerated += 1;
+
+          // Write out the set of covered lines.
+          if (DafnyOptions.O.TestGenOptions.coveredBlocksFile != null) {
+            var alreadyCovered = DafnyOptions.O.TestGenOptions.blocksToSkip;
+            alreadyCovered.Add(blockCapturedState);
+            var coveredLines = alreadyCovered.ToList();
+            File.WriteAllLines(DafnyOptions.O.TestGenOptions.coveredBlocksFile, coveredLines);
+          }
+
+          // Save Dafny file for re-constructing the generated test input.
+          if (DafnyOptions.O.TestGenOptions.inputConstructorFile != null) {
+            var inputLines = testMethod.TestInputConstructionLines();
+            File.WriteAllLines(DafnyOptions.O.TestGenOptions.inputConstructorFile, inputLines);
+          }
+        }
         yield return testMethod;
       }
 

@@ -264,7 +264,7 @@ namespace DafnyTestGeneration {
               ? (seqName, asType ?? variableType, "\"\"")
               : (seqName, asType ?? variableType, "[]"));
             return seqName;
-    }
+          }
           for (var i = 0; i < seqVar?.GetLength(); i++) {
             var element = seqVar?[i];
             if (element == null) {
@@ -275,6 +275,27 @@ namespace DafnyTestGeneration {
             elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type?)null)));
           }
           seqName = "d" + nextValueId++;
+
+          //
+          // Work around stack overflow issue that can occur in Dafny when trying to construct large strings.
+          // Only apply this for strings i.e. sequences of characters.
+          //
+          int largeStringSize = 200;
+          if (seqType.Arg is CharType && elements.Count > largeStringSize) {
+            int i = 0;
+            string outstr = "";
+            int chunksize = 100;
+            List<string> chunkStrs = new List<string>();
+            while (i < elements.Count) {
+              int count = Math.Min(chunksize, elements.Count - i);
+              string chunk = "\"" + string.Join("", elements.GetRange(i, count)).Replace("'", "") + "\"";
+              chunkStrs.Add(chunk);
+              i += chunksize;
+            }
+            return string.Join("+", chunkStrs);
+          }
+
+
           ValueCreation.Add(seqType.Arg is CharType
             ? (seqName, asType ?? variableType, $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"")
             : (seqName, asType ?? variableType, $"[{string.Join(", ", elements)}]"));
@@ -622,24 +643,10 @@ namespace DafnyTestGeneration {
       return new List<string>();
     }
 
-    /// <summary>  Return the test method as a list of lines of code </summary>
-    private List<string> TestMethodLines() {
-      
+    /// <summary>  Return the test input as a list of lines of code </summary>
+    public List<string> TestInputConstructionLines() {
       List<string> lines = new();
-      
-      if (errorMessages.Count != 0) {
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
-          lines.AddRange(errorMessages);
-        }
-        return lines;
-      }
-      
-      var returnParNames = new List<string>();
-      for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
-        returnParNames.Add("r" + i);
-      }
 
-      lines.Add($"method {{:test}} test{id}() {{");
       foreach (var line in ValueCreation) {
         // TODO: nested tuples will break
         if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {
@@ -661,6 +668,30 @@ namespace DafnyTestGeneration {
         lines.Add($"{assignment.parentId}.{assignment.fieldName} := " +
                   $"{assignment.childId};");
       }
+      
+      return lines;
+    }
+
+    /// <summary>  Return the test method as a list of lines of code </summary>
+    private List<string> TestMethodLines() {
+      
+      List<string> lines = new();
+      
+      if (errorMessages.Count != 0) {
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          lines.AddRange(errorMessages);
+        }
+        return lines;
+      }
+      
+      var returnParNames = new List<string>();
+      for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
+        returnParNames.Add("r" + i);
+      }
+
+      lines.Add($"method {{:test}} test{id}() {{");
+
+      lines.AddRange(TestInputConstructionLines());
       
       string receiver = "";
       if (!DafnyInfo.IsStatic(MethodName)) {
