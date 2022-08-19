@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyServer.CounterexampleGeneration;
@@ -26,6 +28,14 @@ namespace DafnyTestGeneration {
       }
       new Resolver(program).ResolveProgram(program);
       return program;
+    }
+
+    public static string Stringify(this object value) {
+      if (value is IEnumerable<object> enumerable) {
+        return string.Join(", ", enumerable.Select(Stringify));
+      }
+
+      return value.ToString()!;
     }
   }
 }
