@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
       client.SaveDocument(documentItem);
-      
+
       await AssertNothingIsQueued(documentItem);
     }
 
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
-      
+
       Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 30), CancellationToken));
       await AssertNothingIsQueued(documentItem);
@@ -87,8 +87,7 @@ method {:timeLimit 10} test() {
   assert Ack(5, 5) == 0;
 }".TrimStart();
 
-    private async Task AssertNothingIsQueued(TextDocumentItem documentItem)
-    {
+    private async Task AssertNothingIsQueued(TextDocumentItem documentItem) {
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       while (status.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error)) {
         if (status.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Queued)) {
