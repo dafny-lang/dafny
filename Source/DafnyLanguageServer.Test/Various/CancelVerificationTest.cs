@@ -14,7 +14,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class CancelVerificationTest : ClientBasedLanguageServerTest {
 
-    // https://github.com/dafny-lang/language-server-csharp/issues/40
     [TestMethod]
     public async Task ChangingTheDocumentStopsOnChangeVerification() {
       await SetUp(new Dictionary<string, string>() {
