@@ -87,8 +87,8 @@ function MultiplyByPlus(x: nat, y: nat): nat {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     DateTime? first = null;
-    DateTime? second = null;;
-    DateTime? third = null;;
+    DateTime? second = null;
+    DateTime? third = null;
     try {
       first = DateTime.Now;
       var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
