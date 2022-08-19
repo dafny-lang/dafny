@@ -125,16 +125,14 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
-      if (DafnyOptions.O.XmlSink != null) {
-        DafnyOptions.O.XmlSink.Close();
-        if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
-          try {
-            BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename,
-                                                     DafnyOptions.O.VerificationLoggerConfigs);
-          } catch (ArgumentException ae) {
-            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, $"*** Error: {ae.Message}");
-            exitValue = ExitValue.PREPROCESSING_ERROR;
-          }
+      DafnyOptions.O.XmlSink?.Close();
+
+      if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
+        try {
+          VerificationResultLogger.RaiseTestLoggerEvents(DafnyOptions.O.VerificationLoggerConfigs);
+        } catch (ArgumentException ae) {
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, $"*** Error: {ae.Message}");
+          exitValue = ExitValue.PREPROCESSING_ERROR;
         }
       }
       if (DafnyOptions.O.Wait) {
