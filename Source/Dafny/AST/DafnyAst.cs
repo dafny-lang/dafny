@@ -4593,6 +4593,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+    public readonly bool IsGhost;
     public readonly List<Formal> Formals;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -4608,12 +4609,13 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public SpecialField QueryField;
     [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
 
-    public DatatypeCtor(IToken tok, string name, [Captured] List<Formal> formals, Attributes attributes)
+    public DatatypeCtor(IToken tok, string name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
       : base(tok, name, attributes, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(formals));
       this.Formals = formals;
+      this.IsGhost = isGhost;
     }
 
     public string FullName {

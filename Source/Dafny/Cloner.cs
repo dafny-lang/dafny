@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
-      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.Formals.ConvertAll(CloneFormal), CloneAttributes(ct.Attributes));
+      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.IsGhost, ct.Formals.ConvertAll(CloneFormal), CloneAttributes(ct.Attributes));
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
