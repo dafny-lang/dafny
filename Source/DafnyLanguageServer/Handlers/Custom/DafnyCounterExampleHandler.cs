@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           var verificationTasks = translatedDocument.VerificationTasks;
           if (verificationTasks != null) {
             foreach (var task in verificationTasks) {
-              documentManager.CompilationManager.Verify(translatedDocument, task);
+              documentManager.CompilationManager.VerifyTask(translatedDocument, task);
             }
           }
 
