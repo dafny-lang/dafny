@@ -3,7 +3,6 @@ Deprecation.dfy(23,0): Warning: the old keyword phrase 'inductive predicate' has
 Deprecation.dfy(26,0): Warning: the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'
 Deprecation.dfy(29,0): Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'
 Deprecation.dfy(32,0): Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'
-Deprecation.dfy(37,0): Warning: the 'protected' modifier is no longer supported; to restrict access from outside the module, use a 'provides' clause in the module's export set; if you're trying to add conjuncts to a predicate in a refinement module, see Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy in the Dafny test suite on GitHub
 
 Dafny program verifier finished with 0 verified, 0 errors
 yet here we are
