@@ -94,7 +94,7 @@ method {:timeLimit 10} test() {
           status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
           var then = DateTime.Now;
           // A queued status may momentarily arise, while one task is being queued and the other being cancelled.
-          if ((then - time).Milliseconds > 100) {
+          if ((then - time).Milliseconds > 1000) {
             Assert.Fail("No task may be queued.");
           }
           continue;
