@@ -817,13 +817,24 @@ namespace Microsoft.Dafny {
 
       if (expr is IdentifierExpr expression) {
         if (expression.Var != null && expression.Var.IsGhost) {
-          reporter?.Error(MessageSource.Resolver, expression, "ghost variables are allowed only in specification contexts");
+          reporter?.Error(MessageSource.Resolver, expression, "a ghost variable is allowed only in specification contexts");
           return false;
         }
 
       } else if (expr is MemberSelectExpr selectExpr) {
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
-          reporter?.Error(MessageSource.Resolver, selectExpr, "ghost fields are allowed only in specification contexts");
+          string what;
+          switch (selectExpr.Member) {
+            case TwoStateFunction _:
+            case ExtremePredicate _:
+            case PrefixPredicate _:
+              what = selectExpr.Member.WhatKind;
+              break;
+            default:
+              what = "ghost " + selectExpr.Member.WhatKind;
+              break;
+          }
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
         }
 

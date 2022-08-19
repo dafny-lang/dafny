@@ -5052,7 +5052,8 @@ namespace Microsoft.Dafny {
     }
     public readonly ID SpecialId;
     public readonly object IdParam;
-    public SpecialField(IToken tok, string name, ID specialId, object idParam, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    public SpecialField(IToken tok, string name, ID specialId, object idParam,
+      bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
       : this(tok, name, specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -5060,7 +5061,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
 
-    public SpecialField(IToken tok, string name, ID specialId, object idParam, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    public SpecialField(IToken tok, string name, ID specialId, object idParam,
+      bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
       : base(tok, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
