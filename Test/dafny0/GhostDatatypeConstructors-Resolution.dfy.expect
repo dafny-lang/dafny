@@ -1,0 +1,6 @@
+GhostDatatypeConstructors-Resolution.dfy(19,13): Error: a ghost discriminator is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(37,9): Error: a ghost variable is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(38,9): Error: a ghost variable is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(39,9): Error: a ghost variable is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(50,7): Error: == can only be applied to expressions of types that support equality (got XY)
+5 resolution/type errors detected in GhostDatatypeConstructors-Resolution.dfy
