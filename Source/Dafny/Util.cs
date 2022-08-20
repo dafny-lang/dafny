@@ -997,6 +997,14 @@ namespace Microsoft.Dafny {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
         return chainingExpression.Operands.TrueForAll(ee => CheckIsCompilable(ee, codeContext));
+
+      } else if (expr is MatchExpr matchExpr) {
+        var mc = FirstCaseThatMentionsCtorOfGhostVariantDatatype(matchExpr.Cases);
+        if (mc != null) {
+          reporter?.Error(MessageSource.Resolver, mc.tok, "match expression is not compilable, because it mentions a constructor from a ghost-variant datatype");
+          isCompilable = false;
+        }
+        // other conditions are checked below
       }
 
       foreach (var ee in expr.SubExpressions) {
@@ -1200,7 +1208,7 @@ namespace Microsoft.Dafny {
         return UsesSpecFeatures(((NestedMatchExpr)expr).ResolvedExpression);
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        if (UsesSpecFeatures(me.Source)) {
+        if (UsesSpecFeatures(me.Source) || FirstCaseThatMentionsCtorOfGhostVariantDatatype(me.Cases) != null) {
           return true;
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
@@ -1240,6 +1248,10 @@ namespace Microsoft.Dafny {
       if (arg.Ctor != null) {
         MakeGhostAsNeeded(arg);
       }
+    }
+
+    public static MC FirstCaseThatMentionsCtorOfGhostVariantDatatype<MC>(List<MC> cases) where MC : MatchCase {
+      return cases.FirstOrDefault(cs => cs.Ctor.EnclosingDatatype.HasGhostVariant, null);
     }
   }
 }

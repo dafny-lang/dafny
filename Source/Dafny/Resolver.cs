@@ -8831,7 +8831,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source);
+          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatMentionsCtorOfGhostVariantDatatype(s.Cases) != null;
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
           }
@@ -9819,9 +9819,11 @@ namespace Microsoft.Dafny {
           }
         }
         // this constructor satisfies the requirements, check to see if it is a better fit than the
-        // one found so far. By "better" it means fewer type arguments. Between the ones with
-        // the same number of the type arguments, pick the one shows first.
-        if (groundingCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count) {
+        // one found so far. Here, "better" means
+        //   * a ghost constructor is better than a non-ghost constructor
+        //   * among those, a constructor with fewer type arguments is better
+        //   * among those, the first one is preferred.
+        if (groundingCtor == null || (!groundingCtor.IsGhost && ctor.IsGhost) || typeParametersUsed.Count < lastTypeParametersUsed.Count) {
           groundingCtor = ctor;
           lastTypeParametersUsed = typeParametersUsed;
         }

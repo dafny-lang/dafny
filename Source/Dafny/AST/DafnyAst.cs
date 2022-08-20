@@ -4482,6 +4482,8 @@ namespace Microsoft.Dafny {
       get { return this is IndDatatypeDecl && Ctors.Count == 1; }
     }
 
+    public bool HasGhostVariant => Ctors.Any(ctor => ctor.IsGhost);
+
     public TopLevelDecl AsTopLevelDecl => this;
     public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
@@ -4551,7 +4553,7 @@ namespace Microsoft.Dafny {
     }
 
     public override DatatypeCtor GetGroundingCtor() {
-      return Ctors[0];
+      return Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
     }
   }
 
