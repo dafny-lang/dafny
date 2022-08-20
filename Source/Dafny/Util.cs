@@ -878,6 +878,10 @@ namespace Microsoft.Dafny {
         return isCompilable;
 
       } else if (expr is DatatypeValue value) {
+        if (value.Ctor.IsGhost) {
+          reporter?.Error(MessageSource.Resolver, expr, "ghost constructor is allowed only in specification contexts");
+          isCompilable = false;
+        }
         // check all NON-ghost arguments
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < value.Arguments.Count; i++) {
@@ -1087,6 +1091,10 @@ namespace Microsoft.Dafny {
         return cce.NonNull(e.Var).IsGhost;
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
+        if (e.Ctor.IsGhost) {
+          return true;
+        }
+
         // check all NON-ghost arguments
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < e.Arguments.Count; i++) {

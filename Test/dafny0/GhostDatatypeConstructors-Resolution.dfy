@@ -158,3 +158,37 @@ module EqualitySupport {
     }
   }
 }
+
+module {:options "/functionSyntax:4"} Constructors {
+  import opened Types
+
+  method M0() returns (xy0: XY, ghost xy1: XY) {
+    xy0 := D0(2);
+    xy0 := D1(2.0);
+    xy0 := G0(true); // error: G0 is a ghost constructor
+
+    xy1 := D0(2);
+    xy1 := D1(2.0);
+    xy1 := G0(true);
+  }
+
+  method M1() returns (xy0: XY, ghost xy1: XY) {
+    var a := D0(2);
+    var b := D1(2.0);
+    var c := G0(true); // this makes c auto-ghost
+
+    xy0 := a;
+    xy0 := b;
+    xy0 := c; // error: RHS is ghost
+    xy1 := a;
+    xy1 := b;
+    xy1 := c;
+  }
+
+  function F(b: bool): XY {
+    if b then
+      D0(2)
+    else
+      G0(true) // error: G0 is a ghost constructor
+  }
+}

@@ -11,4 +11,7 @@ GhostDatatypeConstructors-Resolution.dfy(96,25): Error: assignment to non-ghost 
 GhostDatatypeConstructors-Resolution.dfy(126,4): Error: match expression is not compilable, because it mentions a constructor from a ghost-variant datatype
 GhostDatatypeConstructors-Resolution.dfy(144,4): Error: match expression is not compilable, because it mentions a constructor from a ghost-variant datatype
 GhostDatatypeConstructors-Resolution.dfy(156,7): Error: == can only be applied to expressions of types that support equality (got XY)
-13 resolution/type errors detected in GhostDatatypeConstructors-Resolution.dfy
+GhostDatatypeConstructors-Resolution.dfy(168,11): Error: ghost constructor is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(182,11): Error: a ghost variable is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(192,6): Error: ghost constructor is allowed only in specification contexts
+16 resolution/type errors detected in GhostDatatypeConstructors-Resolution.dfy
