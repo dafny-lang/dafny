@@ -9917,12 +9917,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
-      // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
-      // the whole SCC is incapable of providing the equality operation.  Also, if any parameter of any inductive datatype
-      // is a ghost, then the whole SCC is incapable of providing the equality operation.
+
+      void MarkSCCAsNotSupportingEquality() {
+        foreach (var ddtt in scc) {
+          ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
+        }
+      }
+
+      // Look for conditions that make the whole SCC incapable of providing the equality operation:
+      //   * a datatype in the SCC has a ghost constructor
+      //   * a parameter of an inductive datatype in the SCC is ghost
+      //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            MarkSCCAsNotSupportingEquality();
+            return;  // we are done
+          }
           foreach (var arg in ctor.Formals) {
             var anotherIndDt = arg.Type.AsIndDatatype;
             if (arg.IsGhost ||
@@ -9930,10 +9942,7 @@ namespace Microsoft.Dafny {
                 arg.Type.IsCoDatatype ||
                 arg.Type.IsArrowType) {
               // arg.Type is known never to support equality
-              // So, go around the entire SCC and record what we learnt
-              foreach (var ddtt in scc) {
-                ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
-              }
+              MarkSCCAsNotSupportingEquality();
               return;  // we are done
             }
           }
