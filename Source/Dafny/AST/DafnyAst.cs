@@ -5098,6 +5098,16 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class DatatypeDiscriminator : SpecialField {
+    public override string WhatKind {
+      get { return "discriminator"; }
+    }
+
+    public DatatypeDiscriminator(IToken tok, string name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+      : base(tok, name, specialId, idParam, isGhost, false, false, type, attributes) {
+    }
+  }
+
   public class DatatypeDestructor : SpecialField {
     public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
     public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
