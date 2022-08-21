@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -136,7 +137,7 @@ method m5() { assert false; } //Remove4:
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
-          $"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
+          $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       } catch (OperationCanceledException) {
         Console.WriteLine($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
         throw;
@@ -202,7 +203,7 @@ method m5() { assert false; } //Remove4:
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
         Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
-        Console.WriteLine($"\nOld to new history was: {string.Join("\n", verificationStatusReceiver.History)}");
+        Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
         throw;
       }
 
