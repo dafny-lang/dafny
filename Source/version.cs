@@ -4,5 +4,5 @@ using System.Reflection;
 // * Source/DafnyDriver/DafnyDriver.csproj
 // * Source/Dafny/DafnyPipeline.csproj
 // * Source/DafnyLanguageServer/DafnyLanguageServer.csproj
-[assembly: AssemblyVersion("3.8.0.40729")]
-[assembly: AssemblyFileVersion("3.8.0.40729")]
+[assembly: AssemblyVersion("3.8.0.40822")]
+[assembly: AssemblyFileVersion("3.8.0.40822")]
