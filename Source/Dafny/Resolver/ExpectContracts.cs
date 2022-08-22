@@ -5,15 +5,14 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
   private CallRedirector callRedirector;
 
-  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
-  }
+  public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
 
   /// <summary>
   /// Create an expect statement that checks the given contract clause
@@ -40,7 +39,8 @@ public class ExpectContracts : IRewriter {
   /// <param name="ensures">The list of ensures clause expressions.</param>
   /// <param name="callStmt">The call statement to include.</param>
   /// <returns>The newly-created block statement.</returns>
-  private static BlockStmt MakeContractCheckingBody(List<AttributedExpression> requires, List<AttributedExpression> ensures, Statement callStmt) {
+  private static BlockStmt MakeContractCheckingBody(List<AttributedExpression> requires,
+    List<AttributedExpression> ensures, Statement callStmt) {
     var expectRequiresStmts = requires.Select(req =>
       CreateContractExpectStatement(req, "requires"));
     var expectEnsuresStmts = ensures.Select(ens =>
@@ -56,7 +56,7 @@ public class ExpectContracts : IRewriter {
     return !decl.IsGhost && decl is not Constructor;
   }
 
-  private void AddWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
+  private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok; // TODO: do better
 
     var receiver = decl.IsStatic
@@ -109,25 +109,36 @@ public class ExpectContracts : IRewriter {
     }
 
     if (newDecl is not null) {
-      parent.Members.Add(newDecl);
       wrappedDeclarations.Add(decl, newDecl);
     }
   }
 
-  internal override void PreResolve(ModuleDefinition moduleDefinition) {
+  internal override void PreResolve(Program program) {
+
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (ShouldGenerateWrapper(decl)) {
-          membersToWrap.Add((topLevelDecl, decl));
+    // Find module members to wrap
+    foreach (var moduleDefinition in program.RawModules()) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (ShouldGenerateWrapper(decl)) {
+            membersToWrap.Add((topLevelDecl, decl));
+          }
         }
       }
     }
 
+    // Generate a wrapper for each of the members identified above
     foreach (var (topLevelDecl, decl) in membersToWrap) {
-      AddWrapper(topLevelDecl, decl);
+      GenerateWrapper(topLevelDecl, decl);
+    }
+
+    // Add the generated wrappers to the module
+    foreach (var (topLevelDecl, decl) in membersToWrap) {
+      if (wrappedDeclarations.ContainsKey(decl)) {
+        topLevelDecl.Members.Add(wrappedDeclarations[decl]);
+      }
     }
 
     callRedirector = new CallRedirector(wrappedDeclarations);
@@ -141,11 +152,11 @@ public class ExpectContracts : IRewriter {
     }
 
     private bool HasTestAttribute(MemberDecl decl) {
-      return Attributes.Contains(decl.Attributes, "test");
+      return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
     }
 
     private bool HasExternAttribute(MemberDecl decl) {
-      return Attributes.Contains(decl.Attributes, "extern");
+      return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
     }
 
     private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
@@ -185,12 +196,14 @@ public class ExpectContracts : IRewriter {
     }
   }
 
-  internal override void PostResolve(ModuleDefinition moduleDefinition) {
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (decl is ICallable callable) {
-          Console.WriteLine($"Visiting {decl.Name}");
-          callRedirector.Visit(callable, decl);
+  internal override void PostResolve(Program program) {
+    foreach (var moduleDefinition in program.Modules()) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (decl is ICallable callable) {
+            Console.WriteLine($"Visiting {decl.Name}");
+            callRedirector.Visit(callable, decl);
+          }
         }
       }
     }
