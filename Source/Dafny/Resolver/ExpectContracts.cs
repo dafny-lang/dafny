@@ -165,11 +165,11 @@ public class ExpectContracts : IRewriter {
     private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
       // TODO: make this configurable
       return (HasTestAttribute(caller) || HasExternAttribute(callee)) &&
-             wrappedDeclarations.ContainsKey(caller);
+             wrappedDeclarations.ContainsKey(callee) &&
+             !wrappedDeclarations.ContainsValue(caller);
     }
 
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
-      /*
       if (expr is FunctionCallExpr fce) {
         if (ShouldCallWrapper(decl, fce.Function)) {
           var target = fce.Function;
@@ -178,15 +178,16 @@ public class ExpectContracts : IRewriter {
           // TODO: apparently the following isn't enough
           fce.Function = (Function)newTarget;
           fce.Name = newTarget.Name;
+          var resolved = (FunctionCallExpr)fce.Resolved;
+          resolved.Function = (Function)newTarget;
+          resolved.Name = newTarget.Name;
         }
       }
-      */
 
       return true;
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
-      /*
       if (stmt is CallStmt cs) {
         if (ShouldCallWrapper(decl, cs.Method)) {
           var target = cs.MethodSelect.Member;
@@ -195,16 +196,17 @@ public class ExpectContracts : IRewriter {
           // TODO: apparently the following isn't enough
           cs.MethodSelect.Member = newTarget;
           cs.MethodSelect.MemberName = newTarget.Name;
+          var resolved = (MemberSelectExpr)cs.MethodSelect;
+          resolved.Member = newTarget;
+          resolved.MemberName = newTarget.Name;
         }
       }
-      */
 
       return true;
     }
   }
 
   internal override void PostResolve(Program program) {
-    /*
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
@@ -215,6 +217,5 @@ public class ExpectContracts : IRewriter {
         }
       }
     }
-    */
   }
 }
