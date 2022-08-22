@@ -1,5 +1,5 @@
 ---
-title: Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the later you can use in expressions, but otherwise.  Is there anything the former can do that the later can’t, for example?
+title: Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?
 ---
 
 ## Question
