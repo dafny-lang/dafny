@@ -12,4 +12,14 @@ If you have questions that are not addressed here, be sure to communicate them t
 # FAQs
 ## Dafny language
 
+- ["How do I format a string?"](FAQStringOutput)
+- ["Where do I put the reads clause?"](FAQReadsClause)
+- ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
+- ["What is the difference between a type and a newtype?"](FAQNewtype)
+- ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
+- ["Why does Dafny need an assert in this example?"](FAQNeedsAssert)
+- ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
+- ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
+- ["What is `-` on bitvectors?"](FAQBVNegation)
+- ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
 
