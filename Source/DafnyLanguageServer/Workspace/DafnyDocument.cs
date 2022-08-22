@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -15,6 +16,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+
   /// <summary>
   /// Internal representation of a specific version of a Dafny document.
   ///
@@ -30,41 +32,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="Program">The compiled Dafny program.</param>
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
-  public record DafnyDocument(
-    DocumentTextBuffer TextDocumentItem,
-    IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    SymbolTable SymbolTable,
-    bool CanDoVerification,
-    IReadOnlyList<Diagnostic> GhostDiagnostics,
-    Dafny.Program Program,
-    bool WasResolved,
-    bool LoadCanceled = false
-  ) {
-
-    public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; } = null;
-
-    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationIdToView?.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
-
+  public class DafnyDocument { // TODO rename to DafnyDocument
+    public DocumentTextBuffer TextDocumentItem { get; }
+    
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
 
-
-    /// <summary>
-    /// Contains the real-time status of all verification efforts.
-    /// Can be migrated from a previous document
-    /// The position and the range are never sent to the client.
-    /// </summary>
-    public VerificationTree VerificationTree { get; set; } = new DocumentVerificationTree(
-      TextDocumentItem.Uri.ToString(),
-      TextDocumentItem.NumberOfLines
-    );
+    public DafnyDocument(DocumentTextBuffer textDocumentItem) {
+      TextDocumentItem = textDocumentItem;
+    }
 
     // List of a few last touched method positions
     public ImmutableList<Position> LastTouchedVerifiables { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; init; } = null;
+    
+    /// <summary>
+    /// Creates a clone of the DafnyDocument
+    /// </summary>
+    public virtual DafnyDocument Snapshot() {
+      return new DafnyDocument(TextDocumentItem) {
+        LastTouchedVerifiables = LastTouchedVerifiables,
+      };
+    }
+    
+    public bool CanDoVerification { get; }
+    public bool WasResolved { get; }
+    public bool LoadCanceled { get; } = false;
+  }
+
+  public class ParsedCompilation : DafnyDocument {
+    public ParsedCompilation(DocumentTextBuffer textDocumentItem, 
+      Dafny.Program program) : base(textDocumentItem) {
+      Program = program;
+    }
+
+    public Dafny.Program Program { get; }
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
@@ -74,26 +78,78 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public bool IsDocument(DocumentUri documentUri) {
       return documentUri == Uri;
     }
-
-    public int LinesCount => VerificationTree.Range.End.Line;
-    public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public List<Counterexample>? Counterexamples { get; set; }
-    public Dictionary<ImplementationId, ImplementationView>? ImplementationIdToView { get; set; }
-
-    /// <summary>
-    /// Creates a clone of the DafnyDocument
-    /// </summary>
-    public DafnyDocument Snapshot() {
-      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, SymbolTable, CanDoVerification, GhostDiagnostics,
-        Program, WasResolved, LoadCanceled) {
-        VerificationTree = VerificationTree,
-        VerificationTasks = VerificationTasks,
-        Counterexamples = Counterexamples == null ? null : new(Counterexamples),
-        ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),
+    
+    public override DafnyDocument Snapshot() {
+      return new ParsedCompilation(TextDocumentItem, Program) {
         LastTouchedVerifiables = LastTouchedVerifiables,
       };
-      return result;
     }
+  }
+
+  public class ResolvedCompilation : ParsedCompilation {
+    public ResolvedCompilation(
+      DocumentTextBuffer textDocumentItem, 
+      Dafny.Program program, 
+      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
+      SymbolTable symbolTable, 
+      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program) 
+    {
+      ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
+      SymbolTable = symbolTable;
+      GhostDiagnostics = ghostDiagnostics;
+      
+      VerificationTree = new DocumentVerificationTree(
+        TextDocumentItem.Uri.ToString(),
+        TextDocumentItem.NumberOfLines
+      );
+    }
+
+    public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; }
+    public SymbolTable SymbolTable { get; }
+    public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
+
+    public virtual IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
+    
+    public override DafnyDocument Snapshot() {
+      return new ResolvedCompilation(TextDocumentItem, Program, ParseAndResolutionDiagnostics, SymbolTable, GhostDiagnostics) {
+        LastTouchedVerifiables = LastTouchedVerifiables,
+      };
+    }
+
+    /// <summary>
+    /// Contains the real-time status of all verification efforts.
+    /// Can be migrated from a previous document
+    /// The position and the range are never sent to the client.
+    /// </summary>
+    public VerificationTree VerificationTree { get; set; }
+  }
+
+  public class TranslatedCompilation : ResolvedCompilation {
+    public TranslatedCompilation(DocumentTextBuffer textDocumentItem, 
+      Dafny.Program program, 
+      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
+      SymbolTable symbolTable, 
+      IReadOnlyList<Diagnostic> ghostDiagnostics, 
+      IReadOnlyList<IImplementationTask> verificationTasks,
+      IVerificationProgressReporter gutterProgressReporter, 
+      List<Counterexample> counterexamples, Dictionary<ImplementationId, ImplementationView> implementationIdToView) 
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) 
+    {
+      VerificationTasks = verificationTasks;
+      GutterProgressReporter = gutterProgressReporter;
+      Counterexamples = counterexamples;
+      ImplementationIdToView = implementationIdToView;
+    }
+    
+    public override IEnumerable<Diagnostic> Diagnostics => base.Diagnostics.Concat(
+      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
+
+    public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
+    
+    public int LinesCount => VerificationTree.Range.End.Line;
+    public IVerificationProgressReporter GutterProgressReporter { get; set; }
+    public List<Counterexample> Counterexamples { get; set; }
+    public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);

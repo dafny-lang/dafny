@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document, CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 

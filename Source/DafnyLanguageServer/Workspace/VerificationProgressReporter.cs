@@ -17,12 +17,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private const int MaxLastTouchedMethods = 5;
 
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly DafnyDocument document;
+  private readonly ResolvedCompilation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    DafnyDocument document,
+    ResolvedCompilation document,
     ICompilationStatusNotificationPublisher statusPublisher,
     INotificationPublisher notificationPublisher
   ) {

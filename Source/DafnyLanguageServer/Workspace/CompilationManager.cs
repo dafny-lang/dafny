@@ -50,8 +50,8 @@ public class CompilationManager {
   private readonly ReplaySubject<DafnyDocument> documentUpdates = new();
   public IObservable<DafnyDocument> DocumentUpdates => documentUpdates;
 
-  public Task<DafnyDocument> ResolvedDocument { get; }
-  public Task<DafnyDocument> TranslatedDocument { get; }
+  public Task<ResolvedCompilation> ResolvedDocument { get; }
+  public Task<TranslatedCompilation> TranslatedDocument { get; }
 
   public CompilationManager(IServiceProvider services,
     VerifierOptions verifierOptions,
@@ -94,7 +94,7 @@ public class CompilationManager {
     var _ = VerifyEverythingAsync();
   }
 
-  private async Task<DafnyDocument> ResolveAsync() {
+  private async Task<ResolvedCompilation> ResolveAsync() {
     try {
       var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
@@ -108,7 +108,7 @@ public class CompilationManager {
     }
   }
 
-  private async Task<DafnyDocument> TranslateAsync() {
+  private async Task<TranslatedCompilation> TranslateAsync() {
     try {
       var resolvedDocument = await ResolvedDocument;
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
@@ -124,8 +124,8 @@ public class CompilationManager {
     }
   }
 
-  public async Task<DafnyDocument> PrepareVerificationTasksAsync(
-    DafnyDocument loaded,
+  public async Task<TranslatedCompilation> PrepareVerificationTasksAsync(
+    ResolvedCompilation loaded,
     CancellationToken cancellationToken) {
     if (loaded.ParseAndResolutionDiagnostics.Any(d =>
           d.Severity == DiagnosticSeverity.Error &&
@@ -157,19 +157,18 @@ public class CompilationManager {
       }
     }
 
-    loaded.ImplementationIdToView = initialViews;
-    loaded.Counterexamples = new();
-    loaded.VerificationTasks = verificationTasks;
+    var translated = new TranslatedCompilation(loaded.TextDocumentItem, loaded.Program,
+      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
+      progressReporter, new(), initialViews);
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
     var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
       implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
-    loaded.GutterProgressReporter = progressReporter;
-    return loaded;
+    return translated;
   }
 
-  protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+  protected virtual VerificationProgressReporter CreateVerificationProgressReporter(ResolvedCompilation document) {
     return new VerificationProgressReporter(
       services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
       document, statusPublisher, this.services.GetRequiredService<INotificationPublisher>());
@@ -201,13 +200,13 @@ public class CompilationManager {
     }
   }
 
-  private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+  private void SetAllUnvisitedMethodsAsVerified(TranslatedCompilation document) {
     foreach (var tree in document.VerificationTree.Children) {
       tree.SetVerifiedIfPending();
     }
   }
 
-  public bool VerifyTask(DafnyDocument dafnyDocument, IImplementationTask implementationTask) {
+  public bool VerifyTask(TranslatedCompilation dafnyDocument, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
@@ -236,7 +235,7 @@ public class CompilationManager {
     return true;
   }
 
-  private void FinishedNotifications(DafnyDocument dafnyDocument) {
+  private void FinishedNotifications(TranslatedCompilation dafnyDocument) {
     MarkVerificationFinished();
     if (VerifierOptions.GutterStatus) {
       // All unvisited trees need to set them as "verified"
@@ -250,7 +249,7 @@ public class CompilationManager {
     NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
   }
 
-  private void HandleStatusUpdate(DafnyDocument document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+  private void HandleStatusUpdate(TranslatedCompilation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
@@ -314,8 +313,8 @@ public class CompilationManager {
     }
   }
 
-  private void NotifyStatus(TextDocumentItem item, DafnyDocument document, CancellationToken cancellationToken) {
-    var errorCount = document.ImplementationIdToView!.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+  private void NotifyStatus(TextDocumentItem item, TranslatedCompilation document, CancellationToken cancellationToken) {
+    var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
     logger.LogDebug($"Finished verification with {errorCount} errors.");
     var verified = errorCount == 0;
     var compilationStatusAfterVerification = verified
@@ -344,10 +343,10 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<DafnyDocument> LastDocument => TranslatedDocument.ContinueWith(t => {
+  public Task<ResolvedCompilation> LastDocument => TranslatedDocument.ContinueWith<Task<ResolvedCompilation>>(t => {
     if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD003
-      return verificationCompleted.Task.ContinueWith(_ => t, TaskScheduler.Current).Unwrap();
+      return verificationCompleted.Task.ContinueWith<Task<ResolvedCompilation>>(_ => Task.FromResult<ResolvedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD003
     }
 

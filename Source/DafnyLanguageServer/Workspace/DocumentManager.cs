@@ -164,13 +164,13 @@ public class DocumentManager {
   /// <summary>
   /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
   /// </summary>
-  public async Task<DafnyDocument?> GetResolvedDocumentAsync() {
+  public async Task<ResolvedCompilation?> GetResolvedDocumentAsync() {
     try {
       var resolvedDocument = await CompilationManager.ResolvedDocument;
     } catch (OperationCanceledException) {
     }
 
     var result = observer.LastPublishedDocument;
-    return result;
+    return result as ResolvedCompilation;
   }
 }

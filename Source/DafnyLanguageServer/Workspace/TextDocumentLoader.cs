@@ -77,14 +77,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public async Task<ResolvedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
         TaskCreationOptions.None, ResolverScheduler);
     }
 
-    private DafnyDocument LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    private ResolvedCompilation LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
@@ -105,11 +105,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(textDocument,
+      return new ResolvedCompilation(
+        textDocument,
+        program,
         errorReporter.GetDiagnostics(textDocument.Uri),
         symbolTable,
-        canDoVerification,
-        ghostDiagnostics, program, WasResolved: !errorReporter.HasErrors);
+        // canDoVerification,
+        ghostDiagnostics
+        // , WasResolved: !errorReporter.HasErrors
+        );
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -118,7 +122,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private DafnyDocument CreateDocumentWithEmptySymbolTable(
+    private ResolvedCompilation CreateDocumentWithEmptySymbolTable(
       ILogger<SymbolTable> logger,
       DocumentTextBuffer textDocument,
       IReadOnlyList<Diagnostic> diagnostics,
@@ -126,15 +130,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       bool wasResolved,
       bool loadCanceled
     ) {
-      return new DafnyDocument(
+      return new ResolvedCompilation(
         textDocument,
+        program,
         diagnostics,
         CreateEmptySymbolTable(program, logger),
-        false,
-        Array.Empty<Diagnostic>(),
-        program,
-        wasResolved,
-        loadCanceled
+        // false,
+        Array.Empty<Diagnostic>()
+        // wasResolved,
+        // loadCanceled
       );
     }
 
