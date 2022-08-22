@@ -50,6 +50,12 @@ public class ExpectContracts : IRewriter {
     return new BlockStmt(callStmt.Tok, callStmt.EndTok, bodyStatements.ToList());
   }
 
+  private static Expression MakeApplySuffix(IToken tok, string name, List<Expression> args) {
+    var nameExpr = new NameSegment(tok, name, null);
+    var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
+    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+  }
+
   private bool ShouldGenerateWrapper(MemberDecl decl) {
     // TODO: make this more discriminating
     // TODO: could work for ghost statements eventually
@@ -59,9 +65,6 @@ public class ExpectContracts : IRewriter {
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok; // TODO: do better
 
-    var receiver = decl.IsStatic
-      ? (Expression)new StaticReceiverExpr(tok, parent, false)
-      : (Expression)new ThisExpr(parent);
     var newName = decl.Name + "_checked";
     MemberDecl newDecl = null;
 
@@ -71,12 +74,9 @@ public class ExpectContracts : IRewriter {
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var selector = new MemberSelectExpr(tok, receiver, origMethod.Name) {
-        Member = origMethod,
-        TypeApplication_JustMember = new List<Type>(), // TODO: fill in properly
-        TypeApplication_AtEnclosingClass = new List<Type>() // TODO: fill in properly
-      };
-      var callStmt = new CallStmt(tok, tok, outs, selector, args);
+      var applyExpr = MakeApplySuffix(tok, origMethod.Name, args);
+      var applyRhs = new ExprRhs(applyExpr);
+      var callStmt = new UpdateStmt(tok, tok, outs, new List<AssignmentRhs>() { applyRhs });
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
       newMethod.Body = body;
@@ -86,7 +86,7 @@ public class ExpectContracts : IRewriter {
       newFunc.Name = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, tok, tok, args);
+      var callExpr = MakeApplySuffix(tok, origFunc.Name, args);
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
@@ -100,10 +100,13 @@ public class ExpectContracts : IRewriter {
 
       var callStmt = origFunc.Result?.Name is null
         ? (Statement)new VarDeclStmt(tok, tok, locs, new UpdateStmt(tok, tok, lhss, rhss))
-        : (Statement)new AssignStmt(tok, tok, localExpr, callRhs);
+        : (Statement)new UpdateStmt(tok, tok, lhss, rhss);
 
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
-      body.AppendStmt(new ReturnStmt(tok, tok, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+
+      if (origFunc.Result?.Name is null) {
+        body.AppendStmt(new ReturnStmt(tok, tok, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+      }
       newFunc.ByMethodBody = body;
       newDecl = newFunc;
     }
@@ -166,6 +169,7 @@ public class ExpectContracts : IRewriter {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
+      /*
       if (expr is FunctionCallExpr fce) {
         if (ShouldCallWrapper(decl, fce.Function)) {
           var target = fce.Function;
@@ -176,11 +180,13 @@ public class ExpectContracts : IRewriter {
           fce.Name = newTarget.Name;
         }
       }
+      */
 
       return true;
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
+      /*
       if (stmt is CallStmt cs) {
         if (ShouldCallWrapper(decl, cs.Method)) {
           var target = cs.MethodSelect.Member;
@@ -191,12 +197,14 @@ public class ExpectContracts : IRewriter {
           cs.MethodSelect.MemberName = newTarget.Name;
         }
       }
+      */
 
       return true;
     }
   }
 
   internal override void PostResolve(Program program) {
+    /*
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
@@ -207,5 +215,6 @@ public class ExpectContracts : IRewriter {
         }
       }
     }
+    */
   }
 }
