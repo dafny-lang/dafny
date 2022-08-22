@@ -845,10 +845,10 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
-      Assert.AreEqual(first.Length, second.Length);
-      foreach (var t in first.Zip(second)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message);
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
+      Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
+      foreach (var t in expected.Zip(actual)) {
+        Assert.AreEqual(t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
