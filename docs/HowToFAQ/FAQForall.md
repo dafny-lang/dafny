@@ -4,7 +4,7 @@ title: How do I use forall statements and expressions in a lemma?
 
 ## Question
 
-If I'm trying to prove a lemma in Dafny with a forall statement that needs help in the body ( {} ) of the lemma, how do I make an arbitrary variable (specifically of type string32 ) in the body of the lemma to help prove the forall statement?
+If I'm trying to prove a lemma in Dafny with a `forall` statement that needs help in the body (`{}`) of the lemma, how do I make an arbitrary variable in the body of the lemma to help prove the `forall` statement?
 
 ## Answer
 
