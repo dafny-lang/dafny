@@ -1079,6 +1079,107 @@ lemma Test() {
 }");
     }
 
+
+
+    [Fact]
+    public void FormatterWorksForSmokeTest() {
+      FormatterWorksFor(@"
+include ""../libraries/src/Wrappers.dfy""
+import opened Wrappers
+
+method id<T>(r: T) returns (r2: T)  {
+  r2 := r;
+}
+
+method test(s: string) returns (r: Option<string>) {
+  r := None;
+  var x :- id<Option<string>>(Some(s));
+  r := Some(x);
+}
+
+method Main() {
+  var x := test(""ok"");
+  if x.Some? {
+    print x.value;
+  } else {
+    print ""None?!"";
+  }
+}
+", @"
+include ""../libraries/src/Wrappers.dfy""
+import opened Wrappers
+
+method id<T>(r: T) returns (r2: T)  {
+  r2 := r;
+}
+
+method test(s: string) returns (r: Option<string>) {
+  r := None;
+  var x :- id<Option<string>>(Some(s));
+  r := Some(x);
+}
+
+method Main() {
+  var x := test(""ok"");
+  if x.Some? {
+    print x.value;
+  } else {
+    print ""None?!"";
+  }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForLabels() {
+      var test = @"
+method BreakLabels(s: seq<int>)
+  requires |s| == 1000
+{
+  label A:
+  for i := 0 to 100
+  {
+    label B:
+    label C:
+    for j := 100 downto 0
+    {
+    }
+  }
+}
+method Test() {
+  while {
+    case true =>
+      for k := 0 to 10
+        invariant k <= 5
+      {
+        if k == 5 {
+          break break;
+        }
+        c := c + 1;
+      }
+  }
+  var i := 0;
+  label Loop:
+  while
+    decreases 10 - i
+  {
+    case i < 10 =>
+      if i == 929 {
+      } else if i < 7 {
+        i := i + 1;
+        continue Loop;
+      } else {
+        b := true;
+        break Loop;
+      }
+      assert false; // unreachable
+      expect false; // unreachable
+  }
+}
+";
+      FormatterWorksFor(test, test);
+    }
+
     private void FormatterWorksFor(string testCase, string expectedProgramString = null) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();

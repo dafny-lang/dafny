@@ -2842,12 +2842,15 @@ OneStmt<out Statement/*!*/ s>
 /*------------------------------------------------------------------------*/
 LabeledStmt<out Statement s>
 = (. IToken colonToken;
+     IToken labelToken;
   .)
-  "label"  (. IToken id; .)
+  "label"  (. IToken id; labelToken = t; .)
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
-     s.OwnedTokens = new List<IToken>() { id, colonToken };
+     var allTokens = new List<IToken>(){labelToken, id, colonToken};
+     allTokens.AddRange(s.OwnedTokens);
+     s.OwnedTokens = allTokens;
   .)
   .
 
