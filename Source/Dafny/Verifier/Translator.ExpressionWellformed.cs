@@ -1027,40 +1027,8 @@ namespace Microsoft.Dafny {
         });
         builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
 
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        // If we're inside an "old" expression, then "etran" will know how to translate
-        // expressions. However, here, we're also having to translate e.S, which is a
-        // Statement. Since statement translation (in particular, CallStmt's) works
-        // directly on the global variable $Heap, we change its value here.
-        // (Note, this would be a bad translation if the Statement could introduce
-        // control flow that would miss the "$Heap := tmpHeap;" assignment that
-        // resets the value of $Heap. Luckily, StmtExpr does not allow any such
-        // Statement.)
-        Bpl.IdentifierExpr tmpHeap = null;
-        Bpl.IdentifierExpr theHeap = null;
-        if (etran.UsesOldHeap) {
-          var suffix = CurrentIdGenerator.FreshId("StmtExpr#");
-          var tmpHeapVar = new Bpl.LocalVariable(e.S.Tok, new Bpl.TypedIdent(e.S.Tok, "Heap$" + suffix, predef.HeapType));
-          locals.Add(tmpHeapVar);
-          tmpHeap = new Bpl.IdentifierExpr(e.S.Tok, tmpHeapVar);
-          var generalEtran = new ExpressionTranslator(this, predef, e.S.Tok);
-          theHeap = (Bpl.IdentifierExpr /*TODO: this cast is dubious*/)generalEtran.HeapExpr;
-        }
-
-        if (tmpHeap != null) {
-          // tmpHeap := $Heap;
-          builder.Add(Bpl.Cmd.SimpleAssign(e.S.Tok, tmpHeap, theHeap));
-          // $Heap := etran.$Heap;
-          builder.Add(Bpl.Cmd.SimpleAssign(e.S.Tok, theHeap, etran.HeapExpr));
-        }
-        TrStmt(e.S, builder, locals, etran);
-        if (tmpHeap != null) {
-          // $Heap := tmpHeap;
-          builder.Add(Bpl.Cmd.SimpleAssign(e.S.Tok, theHeap, tmpHeap));
-        }
-
-        CheckWellformedWithResult(e.E, options, result, resultType, locals, builder, etran);
+      } else if (expr is StmtExpr stmtExpr) {
+        CheckWellformedStmtExpr(stmtExpr, options, result, resultType, locals, builder, etran);
         result = null;
 
       } else if (expr is ITEExpr) {
@@ -1165,6 +1133,49 @@ namespace Microsoft.Dafny {
         }
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
+    }
+
+    private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Expr result, Type resultType, List<Variable> locals,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      // If we're inside an "old" expression, then "etran" will know how to translate
+      // expressions. However, here, we're also having to translate e.S, which is a
+      // Statement. Since statement translation (in particular, CallStmt's) works
+      // directly on the global variable $Heap, we change its value here.
+      // (Note, this would be a bad translation if the Statement could introduce
+      // control flow that would miss the "$Heap := tmpHeap;" assignment that
+      // resets the value of $Heap. Luckily, StmtExpr does not allow any such
+      // Statement.)
+
+      void addStatements() {
+        TrStmt(stmtExpr.S, builder, locals, etran);
+      }
+
+      void withFreshHeap(string heapVarSuffix, IToken token) {
+        var suffix = CurrentIdGenerator.FreshId(heapVarSuffix);
+        var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType));
+        locals.Add(tmpHeapVar);
+        var tmpHeap = new Bpl.IdentifierExpr(token, tmpHeapVar);
+        var generalEtran = new ExpressionTranslator(this, predef, token);
+        var theHeap = (Bpl.IdentifierExpr /*TODO: this cast is dubious*/)generalEtran.HeapExpr;
+
+        // tmpHeap := $Heap;
+        builder.Add(Bpl.Cmd.SimpleAssign(token, tmpHeap, theHeap));
+        // $Heap := etran.$Heap;
+        builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, etran.HeapExpr));
+
+        addStatements();
+
+        // $Heap := tmpHeap;
+        builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, tmpHeap));
+      }
+
+      if (etran.UsesOldHeap) {
+        withFreshHeap("StmtExpr#", stmtExpr.S.Tok);
+      } else {
+        addStatements();
+      }
+
+      CheckWellformedWithResult(stmtExpr.E, options, result, resultType, locals, builder, etran);
     }
 
     void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
