@@ -3621,7 +3621,7 @@ PrintStmt<out Statement s>
   ";"                                          (.
     ownedTokens.Add(t);
     s = new PrintStmt(x, t, args);
-    s.OwnedTokens.Add(t);
+    s.OwnedTokens = ownedTokens;
     .)
   .
 

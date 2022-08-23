@@ -975,6 +975,19 @@ method {:test} PassingTestUsingNoLHSAssignOrHalt() {
     }
 
     [Fact]
+    public void FormatterWorksForPrintStmt() {
+      FormatterWorksFor(@"
+// Sanity check
+method Main() {
+  print FunctionMethodSyntax.CompiledFunction()
+    + GhostFunctionSyntax.CompiledFunction()
+    + StillGhostFunctionSyntax.CompiledFunction()
+    + BackToDefault.CompiledFunction();
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForMultipleModules() {
       FormatterWorksFor(@"
 module Outer.A {

@@ -837,7 +837,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetIndentMatchStmt(indent, stmt.OwnedTokens);
         case RevealStmt:
         case PrintStmt:
-          return SetIndentPrintRevealStmt(stmt, indent);
+          return SetIndentPrintRevealStmt(indent, stmt);
         case AssumeStmt:
         case ExpectStmt:
         case AssertStmt: {
@@ -941,7 +941,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return false;
     }
 
-    private bool SetIndentPrintRevealStmt(Statement stmt, int indent) {
+    private bool SetIndentPrintRevealStmt(int indent, Statement stmt) {
       var ownedTokens = stmt.OwnedTokens;
       var commaIndent = indent + SpaceTab;
       var innerIndent = indent + SpaceTab;
