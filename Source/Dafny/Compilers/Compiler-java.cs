@@ -349,6 +349,7 @@ namespace Microsoft.Dafny.Compilers {
       wBody.WriteLine($"for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, dafny.DafnySequence.asString(args[i]));");
       wBody.WriteLine($"dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> result = dafny.DafnySequence.fromArray(type, dafnyArgs);");
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(result); }} );");
+      Coverage.EmitTearDown(wBody);
     }
 
     void EmitImports(ConcreteSyntaxTree wr, out ConcreteSyntaxTree importWriter) {
