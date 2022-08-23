@@ -8,7 +8,7 @@ Is there a way to disable termination checks for recursive predicate definitions
 
 ## Answer
 
-Well, first of all, be careful about thinking things like "I know this to be logically consostent". Verifiers exist to check our human tendency to hand-wave over iquestionable assumptions.
+Well, first of all, be careful about thinking things like "I know this to be logically consistent". Verifiers exist to check our human tendency to hand-wave over questionable assumptions.
 
 That said, you can do something like this:
 
