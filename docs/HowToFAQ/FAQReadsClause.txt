@@ -1,1 +1,2 @@
-/Users/davidcok/projects/mydafny/FAQReadsClause.dfy(5,19): Error: insufficient reads clause to read field
+FAQReadsClause.dfy(6,37): Error: this symbol not expected in Dafny
+1 parse errors detected in FAQReadsClause.dfy
