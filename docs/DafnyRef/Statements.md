@@ -824,7 +824,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 20.10. Binding Guards
+## 20.10. Binding Guards {#sec-binding-guards}
 ````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional }
