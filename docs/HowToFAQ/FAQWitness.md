@@ -20,4 +20,4 @@ And, it is permitted to have possibly empty types by using a witness clause `wit
 For instance, a declaration of a variable with a possibly-empty type will need an initializer,
 if that variable is ever used, because Dafny requires variables to be 'definitely assigned' before being used.
 
-The Reference Manual contains a discussion of witness clauses [here](../DafnyRef/DafnyRef#sec-witness-clauses).
+The Reference Manual contains a [discussion about witness clauses](../DafnyRef/DafnyRef#sec-witness-clauses).
