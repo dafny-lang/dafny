@@ -10,11 +10,11 @@ Here is an example function:
 ```dafny
 datatype Dummy = State1 | State2
 
-  function WalkState(str: string, s: Dummy): string {
-    if str == [] then []
-    else if s.State1? then WalkState(str[1..], Dummy.State2)
-    else WalkState(str, Dummy.State1)
-  }
+function WalkState(str: string, s: Dummy): string {
+  if str == [] then []
+  else if s.State1? then WalkState(str[1..], Dummy.State2)
+  else WalkState(str, Dummy.State1)
+}
 ```
 
 ## Answer
