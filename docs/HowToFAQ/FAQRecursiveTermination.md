@@ -20,12 +20,13 @@ datatype Dummy = State1 | State2
 ## Answer
 
 In general, to prove termination of any recursive structure one needs to declare a 
-(well-founded) measure that decreases on each iteration or recursive invocation;
-because a well-founded measure has a lower limit, the recursion must eventually terminate.
+([well-founded](../DafnyRef/DafnyRef#sec-well-founded-orders)) measure that decreases on each iteration or recursive invocation;
+because a well-founded measure has no infinitely decreasing sequences, the recursion must eventually terminate.
 In many cases, Dafny will deduce a satisfactory (provable) measure to apply by default.
 But where it cannot, the user must supply such a measure. A user-supplied measure is 
-declared in a `decreases` clause. Such a measure can be a tuple, ordered lexicographically by the
-termination metric for each data type.
+declared in a `decreases` clause. Such a measure is a sequence of expressions, ordered lexicographically by the
+termination metric for each data type; the details of the ordering are 
+explained in the [reference manual section on Decreases Clause](../DafnyRef/DafnyRef#sec-decreases-clause).
 
 In the case of this example, the measure must be a combination of the length of the string, 
 which decreases (and is bounded by 0) in the _else if_ branch and the state, 
@@ -43,7 +44,4 @@ datatype Dummy = State1 | State2
   }
 ```
 which then proves without further user guidance.
-
-A more detailed dicsussion of termination measures is found in the 
-[reference manual, section on Decreases Clause](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-decreases-clause).
 

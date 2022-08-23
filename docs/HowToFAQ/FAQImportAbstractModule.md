@@ -50,3 +50,15 @@ module Mod2 refines Mod {
 ```
 Here the module `Mod.A`, which is an unspecified refinement of `Interface` inside of `Mod`, is refined to be the concrete module
 `Implementation` inside of `Mod2`, which is a refinement of `Mod`.
+
+However, to the very specific point of the question:
+```dafny
+abstract module J {}
+
+module K {
+  abstract module JJ {}
+  import J // ERROR
+}
+```
+You are correct that abstract module `JJ` can be declared in `K`, but abstract module `J` cannot be imported.
+This is somewhat of an anomaly in Dafny.

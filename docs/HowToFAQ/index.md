@@ -17,7 +17,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
 - ["What is the difference between a type and a newtype?"](FAQNewtype)
 - ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
-- ["Why does Dafny need an assert in this example?"](FAQNeedsAssert)
+- ["Why does Dafny need an obvious assert?"](FAQNeedsAssert)
 - ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)

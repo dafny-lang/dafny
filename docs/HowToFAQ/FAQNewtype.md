@@ -22,7 +22,7 @@ is not intended to be mixed with integers.
 
 This is evident in the allowed conversions, as shown in this example code:
 ```
-{% include_relative FAQnewtype.dfy %}
+{% include_relative FAQNewtype.dfy %}
 ```
 
 The other important characteristic of `newtype`s is that they may have a different representation in the compilation target language.
