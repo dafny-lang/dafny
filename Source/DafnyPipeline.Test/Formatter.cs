@@ -590,7 +590,7 @@ type Y =   i : int
        witness
            // Comment3
            2
-           //Comment4
+//Comment4
 
 //CommentZ
 type Z =
@@ -981,6 +981,16 @@ module Outer.A {
   import B
   import C
   const a := B.b + C.c
+}");
+    }
+
+
+    [Fact]
+    public void FormatterWorksForCommentAfterSubsetType() {
+      FormatterWorksFor(@"
+module R1 refines Q {
+  type G = real  // specify G
+  // now, it is known how to initialize
 }");
     }
 

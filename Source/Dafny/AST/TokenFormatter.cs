@@ -328,112 +328,107 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     visitor.Visit(statement, GetIndentBefore(statement.Tok));
   }
 
-  void SetMemberIndentation(MemberDecl member, int indent) {
-    switch (member) {
-      case Field field:
-        SetOpeningIndentedRegion(field.StartToken, indent);
-        SetClosingIndentedRegion(field.EndToken, indent);
-        switch (field) {
-          case ConstantField constantField:
-            var ownedTokens = constantField.OwnedTokens;
-            var commaIndent = indent + SpaceTab;
-            var rightIndent = indent + SpaceTab;
-            foreach (var token in ownedTokens) {
-              switch (token.val) {
-                case ":=": {
-                    if (IsFollowedByNewline(token)) {
-                      SetDelimiterInsideIndentedRegions(token, indent);
-                    } else {
-                      SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
-                    }
-                    break;
-                  }
-                case ",": {
-                    SetIndentations(token, rightIndent, commaIndent, rightIndent);
-                    break;
-                  }
-                case ";": {
-                    break;
-                  }
+  private void SetFunctionIndentation(MemberDecl member, int indent, Function function) {
+    SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+    if (member.BodyStartTok.line > 0) {
+      SetDelimiterIndentedRegions(member.BodyStartTok, indent);
+    }
+
+    SetFormalsIndentation(function.Formals);
+    if (function.Result is { } outFormal) {
+      SetTypeIndentation(outFormal.SyntacticType);
+    }
+
+    foreach (var req in function.Req) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+
+    foreach (var frame in function.Reads) {
+      SetFrameExpressionIndentation(frame, indent + SpaceTab);
+    }
+
+    foreach (var ens in function.Ens) {
+      SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+    }
+
+    foreach (var dec in function.Decreases.Expressions) {
+      SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+    }
+
+    if (function.ByMethodBody is { } byMethodBody) {
+      SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
+      SetClosingIndentedRegion(byMethodBody.EndTok, indent);
+      SetStatementIndentation(byMethodBody);
+    }
+
+    SetExpressionIndentation(function.Body);
+  }
+
+  private void SetMethodIndentation(int indent, Method method) {
+    SetMethodLikeIndent(method.StartToken, method.OwnedTokens, indent);
+    if (method.BodyStartTok.line > 0) {
+      SetDelimiterIndentedRegions(method.BodyStartTok, indent);
+    }
+
+    SetFormalsIndentation(method.Ins);
+    SetFormalsIndentation(method.Outs);
+    foreach (var req in method.Req) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+
+    foreach (var mod in method.Mod.Expressions) {
+      SetFrameExpressionIndentation(mod, indent + SpaceTab);
+    }
+
+    foreach (var ens in method.Ens) {
+      SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+    }
+
+    foreach (var dec in method.Decreases.Expressions) {
+      SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+      SetExpressionIndentation(dec);
+    }
+
+    if (method.Body != null) {
+      SetStatementIndentation(method.Body);
+    }
+  }
+
+  private void SetFieldIndentation(int indent, Field field) {
+    SetOpeningIndentedRegion(field.StartToken, indent);
+    SetClosingIndentedRegion(field.EndToken, indent);
+    switch (field) {
+      case ConstantField constantField:
+        var ownedTokens = constantField.OwnedTokens;
+        var commaIndent = indent + SpaceTab;
+        var rightIndent = indent + SpaceTab;
+        foreach (var token in ownedTokens) {
+          switch (token.val) {
+            case ":=": {
+                if (IsFollowedByNewline(token)) {
+                  SetDelimiterInsideIndentedRegions(token, indent);
+                } else {
+                  SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
+                }
+
+                break;
               }
-            }
-            if (constantField.Rhs is { } constantFieldRhs) {
-              SetExpressionIndentation(constantFieldRhs);
-            }
-
-            break;
+            case ",": {
+                SetIndentations(token, rightIndent, commaIndent, rightIndent);
+                break;
+              }
+            case ";": {
+                break;
+              }
+          }
         }
+
+        if (constantField.Rhs is { } constantFieldRhs) {
+          SetExpressionIndentation(constantFieldRhs);
+        }
+
         break;
-      case Method method: {
-          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
-          if (member.BodyStartTok.line > 0) {
-            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
-          }
-          SetFormalsIndentation(method.Ins);
-          SetFormalsIndentation(method.Outs);
-          foreach (var req in method.Req) {
-            SetAttributedExpressionIndentation(req, indent + SpaceTab);
-          }
-          foreach (var mod in method.Mod.Expressions) {
-            SetFrameExpressionIndentation(mod, indent + SpaceTab);
-          }
-          foreach (var ens in method.Ens) {
-            SetAttributedExpressionIndentation(ens, indent + SpaceTab);
-          }
-          foreach (var dec in method.Decreases.Expressions) {
-            SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
-            SetExpressionIndentation(dec);
-          }
-
-          if (method.Body != null) {
-            SetStatementIndentation(method.Body);
-          }
-
-          break;
-        }
-      case Function function: {
-          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
-          if (member.BodyStartTok.line > 0) {
-            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
-          }
-          SetFormalsIndentation(function.Formals);
-          if (function.Result is { } outFormal) {
-            SetTypeIndentation(outFormal.SyntacticType);
-          }
-          foreach (var req in function.Req) {
-            SetAttributedExpressionIndentation(req, indent + SpaceTab);
-          }
-          foreach (var frame in function.Reads) {
-            SetFrameExpressionIndentation(frame, indent + SpaceTab);
-          }
-          foreach (var ens in function.Ens) {
-            SetAttributedExpressionIndentation(ens, indent + SpaceTab);
-          }
-          foreach (var dec in function.Decreases.Expressions) {
-            SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
-          }
-          if (function.ByMethodBody is { } byMethodBody) {
-            SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
-            SetClosingIndentedRegion(byMethodBody.EndTok, indent);
-            SetStatementIndentation(byMethodBody);
-          }
-          SetExpressionIndentation(function.Body);
-          break;
-        }
-      default: {
-          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
-          if (member.BodyStartTok.line > 0) {
-            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
-          }
-
-          break;
-        }
     }
-    if (member.BodyEndTok.line > 0) {
-      SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
-    }
-
-    PosToIndentAfter[member.EndToken.pos] = indent;
   }
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
@@ -473,11 +468,44 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
       SetRedirectingTypeDeclDeclIndentation(indent, subsetTypeDecl);
+    } else if (topLevelDecl is TypeSynonymDecl typeSynonymDecl) {
+      SetRedirectingTypeDeclDeclIndentation(indent, typeSynonymDecl);
     }
 
     if (topLevelDecl.StartToken.line > 0 && topLevelDecl.EndToken.val == "}") {
       SetIndentations(topLevelDecl.EndToken, indent2, indent, indent);
     }
+  }
+
+  private void SetMemberIndentation(MemberDecl member, int indent) {
+    switch (member) {
+      case Field field: {
+          SetFieldIndentation(indent, field);
+          break;
+        }
+
+      case Method method: {
+          SetMethodIndentation(indent, method);
+          break;
+        }
+      case Function function: {
+          SetFunctionIndentation(member, indent, function);
+          break;
+        }
+      default: {
+          SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
+          if (member.BodyStartTok.line > 0) {
+            SetDelimiterIndentedRegions(member.BodyStartTok, indent);
+          }
+
+          break;
+        }
+    }
+    if (member.BodyEndTok.line > 0) {
+      SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
+    }
+
+    PosToIndentAfter[member.EndToken.pos] = indent;
   }
 
   private void SetIteratorDeclIndent(int indent, IteratorDecl iteratorDecl) {
@@ -582,12 +610,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return innerIndent;
   }
 
-  private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl typeSynonymDecl) {
-    SetOpeningIndentedRegion(typeSynonymDecl.StartToken, indent);
+  private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl redirectingTypeDecl) {
+    SetOpeningIndentedRegion(redirectingTypeDecl.StartToken, indent);
     var indent2 = indent + SpaceTab;
     var rightOfVerticalBarIndent = indent2;
     var verticalBarIndent = indent2;
-    foreach (var token in typeSynonymDecl.OwnedTokens) {
+    foreach (var token in redirectingTypeDecl.OwnedTokens) {
       switch (token.val) {
         case "newtype":
         case "type": {
@@ -628,14 +656,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    if (typeSynonymDecl is SubsetTypeDecl subsetTypeDecl) {
+    if (redirectingTypeDecl is SubsetTypeDecl subsetTypeDecl) {
       SetExpressionIndentation(subsetTypeDecl.Constraint);
       SetExpressionIndentation(subsetTypeDecl.Witness);
       SetTypeIndentation(subsetTypeDecl.Var.SyntacticType);
-    } else if (typeSynonymDecl is NewtypeDecl newtypeDecl) {
+      SetIndentations(subsetTypeDecl.EndToken, after: indent);
+    } else if (redirectingTypeDecl is NewtypeDecl newtypeDecl) {
       SetExpressionIndentation(newtypeDecl.Constraint);
       SetExpressionIndentation(newtypeDecl.Witness);
       SetTypeIndentation(newtypeDecl.Var.SyntacticType);
+      SetIndentations(newtypeDecl.EndToken, after: indent);
+    } else if (redirectingTypeDecl is TypeSynonymDecl typeSynonymDecl) {
+      SetIndentations(typeSynonymDecl.EndToken, after: indent);
     }
   }
 
