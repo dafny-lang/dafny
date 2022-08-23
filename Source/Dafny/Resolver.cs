@@ -11103,9 +11103,9 @@ namespace Microsoft.Dafny {
               }
             } else if (expr is NameSegment or ExprDotName) {
               if (expr is NameSegment) {
-                ResolveNameSegment(expr as NameSegment, true, null, opts, true);
+                ResolveNameSegment(expr as NameSegment, true, null, revealResolutionContext, true);
               } else {
-                ResolveDotSuffix(expr as ExprDotName, true, null, opts, true);
+                ResolveDotSuffix(expr as ExprDotName, true, null, revealResolutionContext, true);
               }
               MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
               var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
