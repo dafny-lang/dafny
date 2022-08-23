@@ -272,8 +272,9 @@ def check_version_cs(args):
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
     if (v2 != v3 or hy != v1):
         return False
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ v1 + "." + v2)
     return True
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
