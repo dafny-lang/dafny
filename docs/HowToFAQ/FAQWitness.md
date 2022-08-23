@@ -18,6 +18,6 @@ empty sets, sequence and maps for those base types.
 
 And, it is permitted to have possibly empty types by using a witness clause `witness *`, but there are restrictions on the use of possibly empty types.
 For instance, a declaration of a variable with a possibly-empty type will need an initializer,
-if that variable is ever used, because Dafny requires variables to be 'definitely assigned' before being used..
+if that variable is ever used, because Dafny requires variables to be 'definitely assigned' before being used.
 
 The Reference Manual contains a discussion of witness clauses [here](../DafnyRef/DafnyRef#sec-witness-clauses).
