@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitSetup(wr);
       var dafnyArgs = "dafnyArgs";
       wr.NewBlockPy("try:")
-        .WriteLine($"{dafnyArgs} = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv[1:]]")
+        .WriteLine($"{dafnyArgs} = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
         .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}({dafnyArgs})");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");

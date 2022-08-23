@@ -344,8 +344,9 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitSetup(wBody);
       wBody.WriteLine(@"@SuppressWarnings(""unchecked"")");
       wBody.WriteLine($"dafny.TypeDescriptor<dafny.DafnySequence<? extends Character>> type = dafny.DafnySequence.<Character>_typeDescriptor(dafny.TypeDescriptor.CHAR);");
-      wBody.WriteLine($"dafny.Array<dafny.DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length);");
-      wBody.WriteLine($"for (int i = 0; i < args.length; i++) dafnyArgs.set(i, dafny.DafnySequence.asString(args[i]));");
+      wBody.WriteLine($"dafny.Array<dafny.DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);");
+      wBody.WriteLine($"dafnyArgs.set(0, dafny.DafnySequence.asString(\"java\"));");
+      wBody.WriteLine($"for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, dafny.DafnySequence.asString(args[i]));");
       wBody.WriteLine($"dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> result = dafny.DafnySequence.fromArray(type, dafnyArgs);");
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(result); }} );");
     }

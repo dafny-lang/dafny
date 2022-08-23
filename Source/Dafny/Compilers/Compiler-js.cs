@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(require('process').argv.slice(1)));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
+      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(require('process').argv));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
       Coverage.EmitTearDown(wr);
     }
 

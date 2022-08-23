@@ -3326,8 +3326,9 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length];");
-      wBody.WriteLine($"for(var i = 0; i < args.Length; i++) dafnyArgs[i] = Dafny.Sequence<char>.FromString(args[i]);");
+      wBody.WriteLine($"Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length + 1];");
+      wBody.WriteLine($"dafnyArgs[0] = Dafny.Sequence<char>.FromString(\"dotnet\");");
+      wBody.WriteLine($"for(var i = 0; i < args.Length; i++) dafnyArgs[i+1] = Dafny.Sequence<char>.FromString(args[i]);");
       wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromArray(dafnyArgs)));");
       Coverage.EmitTearDown(wBody);
     }

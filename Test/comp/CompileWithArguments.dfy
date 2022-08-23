@@ -12,15 +12,21 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main(args: seq<string>) {
-  if |args| != 2 {
-    print "Expected 2 arguments, got ", |args|;
+  if |args| != 3 {
+    print "Expected 3 arguments, got ", |args|;
   } else {
-    if args[1] == "1" {
-      print "Hello ",args[0], "\n";
-    } else if args[1] == "2" {
-      print "Howdy ", args[0], "\n";
+    var executable := args[0];
+    if |executable| < 24 {
+      print executable, " says ";
     } else {
-      print args[1], " ", args[0], "\n";
+      print "Someone says ";
+    }
+    if args[2] == "1" {
+      print "Hello ",args[1], "\n";
+    } else if args[2] == "2" {
+      print "Howdy ", args[1], "\n";
+    } else {
+      print args[2], " ", args[1], "\n";
     }
   }
 }

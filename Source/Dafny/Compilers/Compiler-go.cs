@@ -120,9 +120,9 @@ namespace Microsoft.Dafny.Compilers {
 
       Coverage.EmitSetup(wBody);
       var dafnyArgs = "dafnyArgs";
-      wBody.WriteLine("var size = len(os.Args)-1");
+      wBody.WriteLine("var size = len(os.Args)");
       wBody.WriteLine($"var {dafnyArgs} []interface{{}} = make([]interface{{}}, size)");
-      wBody.WriteLine($"for i, item := range os.Args[1:] {{ {dafnyArgs}[i] = {GetHelperModuleName()}.SeqOfString(item) }}");
+      wBody.WriteLine($"for i, item := range os.Args {{ {dafnyArgs}[i] = {GetHelperModuleName()}.SeqOfString(item) }}");
       wBody.WriteLine("{0}.{1}({2}.SeqOf({3}...))", companion, idName, GetHelperModuleName(), dafnyArgs);
       Coverage.EmitTearDown(wBody);
     }
