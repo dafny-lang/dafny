@@ -1,5 +1,5 @@
 ---
-title: Why does Dafny need the assert in this example?
+title: Why does Dafny need an obvious assert?
 ---
 
 ## Question:
