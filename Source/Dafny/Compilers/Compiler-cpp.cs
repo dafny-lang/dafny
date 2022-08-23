@@ -1579,7 +1579,6 @@ namespace Microsoft.Dafny.Compilers {
         case "new":
         case "operator":
         case "private":
-        case "protected":
         case "public":
         case "register":
         case "reinterpret_cast":

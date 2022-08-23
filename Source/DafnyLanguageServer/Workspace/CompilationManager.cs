@@ -42,7 +42,7 @@ public class CompilationManager {
   private readonly Range? lastChange;
   private readonly IServiceProvider services;
   private readonly ImmutableList<Position> migratedLastTouchedVerifiables;
-  private bool shouldVerify;
+  private readonly bool verifyAllImmediately;
   private readonly VerificationTree? migratedVerificationTree;
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -57,7 +57,7 @@ public class CompilationManager {
     VerifierOptions verifierOptions,
     DocumentTextBuffer textBuffer,
     Range? lastChange,
-    bool shouldVerify,
+    bool verifyAllImmediately,
     ImmutableList<Position> migratedLastTouchedVerifiables,
     VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
@@ -70,7 +70,7 @@ public class CompilationManager {
     TextBuffer = textBuffer;
     this.services = services;
     this.migratedLastTouchedVerifiables = migratedLastTouchedVerifiables;
-    this.shouldVerify = shouldVerify;
+    this.verifyAllImmediately = verifyAllImmediately;
     this.migratedVerificationTree = migratedVerificationTree;
     this.lastChange = lastChange;
     cancellationSource = new();
@@ -78,19 +78,18 @@ public class CompilationManager {
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
 
-    if (shouldVerify) {
+    if (verifyAllImmediately) {
       var _ = VerifyEverythingAsync();
     } else {
       MarkVerificationFinished();
     }
   }
 
-  public void Verify() {
-    if (shouldVerify) {
+  public void VerifyAll() {
+    if (verifyAllImmediately) {
       return;
     }
 
-    shouldVerify = true;
     MarkVerificationStarted();
     var _ = VerifyEverythingAsync();
   }
@@ -114,6 +113,10 @@ public class CompilationManager {
       var resolvedDocument = await ResolvedDocument;
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
       documentUpdates.OnNext(translatedDocument);
+      foreach (var task in translatedDocument.VerificationTasks!) {
+        cancellationSource.Token.Register(task.Cancel);
+      }
+
       return translatedDocument;
     } catch (Exception e) {
       documentUpdates.OnError(e);
@@ -194,7 +197,7 @@ public class CompilationManager {
     statusPublisher.SendStatusNotification(translatedDocument.TextDocumentItem, CompilationStatus.VerificationStarted);
 
     foreach (var implementationTask in implementationTasks) {
-      Verify(translatedDocument, implementationTask);
+      VerifyTask(translatedDocument, implementationTask);
     }
   }
 
@@ -204,7 +207,7 @@ public class CompilationManager {
     }
   }
 
-  public bool Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask) {
+  public bool VerifyTask(DafnyDocument dafnyDocument, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
@@ -251,6 +254,7 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
+    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);

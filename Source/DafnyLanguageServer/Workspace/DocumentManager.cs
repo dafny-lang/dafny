@@ -149,7 +149,7 @@ public class DocumentManager {
 
   public void Save() {
     if (VerifyOnSave) {
-      CompilationManager.Verify();
+      CompilationManager.VerifyAll();
     }
   }
 

@@ -1473,7 +1473,6 @@ namespace Microsoft.Dafny.Compilers {
         case "native":
         case "package":
         case "private":
-        case "protected":
         case "public":
         case "short":
         case "super":

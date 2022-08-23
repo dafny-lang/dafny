@@ -2180,7 +2180,6 @@ namespace Microsoft.Dafny.Compilers {
         case "new":
         case "package":
         case "private":
-        case "protected":
         case "public":
         case "return":
         case "short":
