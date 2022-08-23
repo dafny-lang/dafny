@@ -13,7 +13,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 ## Dafny language
 
 - ["How do I format a string?"](FAQStringOutput)
-- ["Where do I put the reads clause?"](FAQReadsClause)
+- ["Where do I put the reads clause in a subset type?"](FAQReadsClause)
 - ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
 - ["What is the difference between a type and a newtype?"](FAQNewtype)
 - ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
