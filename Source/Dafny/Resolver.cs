@@ -335,7 +335,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
-      Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
     }
 
     public ValuetypeDecl AsValuetypeDecl(Type t) {
@@ -9147,7 +9146,6 @@ namespace Microsoft.Dafny {
 
     TopLevelDeclWithMembers currentClass;
     Method currentMethod;
-    bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
@@ -11150,7 +11148,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, stmt, "yield statement is allowed only in iterators");
         } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is Method)) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is allowed only in method");
-        } else if (inBodyInitContext) {
+        } else if (resolutionContext.InFirstPhaseConstructor) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
@@ -13640,8 +13638,7 @@ namespace Microsoft.Dafny {
         var ll = (MemberSelectExpr)lhs;
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
-          var cf = field as ConstantField;
-          if (inBodyInitContext && cf != null && !cf.IsStatic && cf.Rhs == null) {
+          if (resolutionContext.InFirstPhaseConstructor && field is ConstantField cf && !cf.IsStatic && cf.Rhs == null) {
             if (Expression.AsThis(ll.Obj) != null) {
               // it's cool; this field can be assigned to here
             } else {
@@ -13672,13 +13669,10 @@ namespace Microsoft.Dafny {
       if (blockStmt is DividedBlockStmt) {
         var div = (DividedBlockStmt)blockStmt;
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
-        Contract.Assert(!inBodyInitContext);  // divided bodies are never nested
-        inBodyInitContext = true;
+        Contract.Assert(!resolutionContext.InFirstPhaseConstructor);  // divided bodies are never nested
         foreach (Statement ss in div.BodyInit) {
-          ResolveStatementWithLabels(ss, resolutionContext);
+          ResolveStatementWithLabels(ss, resolutionContext.WithInsideFirstPhaseConstructor(true));
         }
-        Contract.Assert(inBodyInitContext);
-        inBodyInitContext = false;
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
@@ -14645,21 +14639,25 @@ namespace Microsoft.Dafny {
       public readonly bool InOld; // implies !IsTwoState
       public readonly bool InReveal;
       public readonly bool InFunctionPostcondition;
+      public readonly bool InFirstPhaseConstructor; // implies codeContext is Constructor
 
       public bool IsGhost => CodeContext.IsGhost;
 
-      private ResolutionContext(ICodeContext codeContext, bool isTwoState, bool inOld, bool inReveal, bool inFunctionPostcondition) {
+      private ResolutionContext(ICodeContext codeContext, bool isTwoState, bool inOld, bool inReveal, bool inFunctionPostcondition,
+        bool inFirstPhaseConstructor) {
         Contract.Requires(codeContext != null);
         this.CodeContext = codeContext;
         this.IsTwoState = isTwoState;
         this.InOld = inOld;
         this.InReveal = inReveal;
         this.InFunctionPostcondition = inFunctionPostcondition;
+        this.InFirstPhaseConstructor = inFirstPhaseConstructor;
         Contract.Assert(!InOld || !IsTwoState); // InOld ==> !IsTwoState
+        Contract.Assert(!InFirstPhaseConstructor || CodeContext is Constructor);
       }
 
       public ResolutionContext(ICodeContext codeContext, bool isTwoState)
-        : this(codeContext, isTwoState, false, false, false) {
+        : this(codeContext, isTwoState, false, false, false, false) {
       }
 
       /// <summary>
@@ -14681,35 +14679,42 @@ namespace Microsoft.Dafny {
         if (CodeContext.IsGhost == isGhost) {
           return this;
         }
-        return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition);
+        return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
       }
 
       public ResolutionContext WithTwoState(bool isTwoState) {
         if (this.IsTwoState == isTwoState) {
           return this;
         }
-        return new ResolutionContext(CodeContext, isTwoState, InOld, InReveal, InFunctionPostcondition);
+        return new ResolutionContext(CodeContext, isTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
       }
 
       public ResolutionContext WithInsideOld(bool insideOld) {
         if (this.InOld == insideOld) {
           return this;
         }
-        return new ResolutionContext(CodeContext, IsTwoState, insideOld, InReveal, InFunctionPostcondition);
+        return new ResolutionContext(CodeContext, IsTwoState, insideOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
       }
 
       public ResolutionContext WithInsideReveal(bool insideReveal) {
         if (this.InReveal == insideReveal) {
           return this;
         }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, insideReveal, InFunctionPostcondition);
+        return new ResolutionContext(CodeContext, IsTwoState, InOld, insideReveal, InFunctionPostcondition, InFirstPhaseConstructor);
       }
 
       public ResolutionContext WithInsideFunctionPostcondition(bool insideFunctionPostcondition) {
         if (this.InFunctionPostcondition == insideFunctionPostcondition) {
           return this;
         }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, insideFunctionPostcondition);
+        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, insideFunctionPostcondition, InFirstPhaseConstructor);
+      }
+
+      public ResolutionContext WithInsideFirstPhaseConstructor(bool insideFirstPhaseConstructor) {
+        if (this.InFirstPhaseConstructor == insideFirstPhaseConstructor) {
+          return this;
+        }
+        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, InFunctionPostcondition, insideFirstPhaseConstructor);
       }
     }
 
