@@ -8,7 +8,7 @@
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
     <OutputPath>..\..\Binaries\</OutputPath>
     <IsPackable>true</IsPackable>
-    <VersionPrefix>3.8.0.40729</VersionPrefix>
+    <VersionPrefix>3.8.0.40822</VersionPrefix>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 

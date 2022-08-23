@@ -9,7 +9,7 @@
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
-      <VersionPrefix>3.8.0.40729</VersionPrefix>
+      <VersionPrefix>3.8.0.40822</VersionPrefix>
 
       <PackAsTool>true</PackAsTool>
       <ToolCommandName>dafny</ToolCommandName>

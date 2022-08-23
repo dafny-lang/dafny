@@ -1,5 +1,7 @@
 # Upcoming
 
+# 3.8.0
+
 - fix: Use the right bitvector comparison in decrease checks
   (https://github.com/dafny-lang/dafny/pull/2512)
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
