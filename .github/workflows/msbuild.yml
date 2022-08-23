@@ -47,7 +47,6 @@ jobs:
       working-directory: dafny
       run: |
         dotnet build Source/Dafny.sln
-        dotnet build -f net462 Source/DafnyRuntime/DafnyRuntime.csproj
         dotnet build -f netstandard2.0 Source/DafnyRuntime/DafnyRuntime.csproj
     - name: Check whitespace and style
       working-directory: dafny
