@@ -16,7 +16,7 @@ assert !MatchingResult();
 ## Answer
 
 The problem here is the trigger on the quantification expression.
-Dafny sees the `forall` quantifier and but uses it only when there is a `v in vals` fact in the context for some v (this is what the annotation on the forall iin the VSCode IDE means: Selected triggers: {v in vals}).  So until you give it a concrete fact to "trigger" on, it doesn't use your quantifier.
+Dafny sees the `forall` quantifier but uses it only when there is a `v in vals` fact in the context for some v (this is what the annotation on the forall in the VSCode IDE means: Selected triggers: {v in vals}).  So until you give it a concrete fact to "trigger" on, it doesn't use your quantifier.
 
 [Pages 2--4 of this paper](https://pit-claudel.fr/clement/papers/dafny-trigger-selection-CAV16.pdf)
-give a description of how triggers work.
+gives description of how triggers work.
