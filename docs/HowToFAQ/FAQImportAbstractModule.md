@@ -8,7 +8,22 @@ Why can compiled modules contain but not import abstract modules?
 
 ## Answer
 
-Keep in mind first that abstract modules are not compiled.
+The question refers to code like this:
+```dafny
+abstract module J {}
+
+module K {
+  abstract module JJ {}
+  import J // ERROR
+}
+```
+It is indeed the case that the abstract module `JJ` can be declared in non-abstract module `K` but the abstract module `J` is not permitted to be imported.
+This discrepancy is the subject of a proposed change to Dafny rules (cf. [issue #2635](https://github.com/dafny-lang/dafny/issues/2635)).
+
+In either cases, however, there are limits on what can be done with an abstract submodule.
+It is first of all not compiled as part of the enclosing module. Thus it can only be used as the subject of refinement.
+
+That feature is described in the remainder of this FAQ.
 
 The enclosing module may declare an abstract module A and also a non-abstract module B that refines A.
 A refining module import (`import D : C`) may only occur in an abstract module itself.
@@ -50,15 +65,3 @@ module Mod2 refines Mod {
 ```
 Here the module `Mod.A`, which is an unspecified refinement of `Interface` inside of `Mod`, is refined to be the concrete module
 `Implementation` inside of `Mod2`, which is a refinement of `Mod`.
-
-However, to the very specific point of the question:
-```dafny
-abstract module J {}
-
-module K {
-  abstract module JJ {}
-  import J // ERROR
-}
-```
-You are correct that abstract module `JJ` can be declared in `K`, but abstract module `J` cannot be imported.
-This is somewhat of an anomaly in Dafny.
