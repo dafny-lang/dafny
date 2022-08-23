@@ -46,8 +46,7 @@ jobs:
       name: ${{ needs.determine-vars.outputs.name }}
       sha: ${{ github.sha }}
       tag_name: nightly
-      # TODO: The Nuget publishing workflow doesn't handle preleases correctly yet.
-      release_nuget: false
+      release_nuget: true
       draft: false
       release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
       prerelease: true

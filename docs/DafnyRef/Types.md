@@ -1360,6 +1360,8 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+
 Dafny builds in three families of subset types, as described next.
 
 ### 11.3.1. Type `nat`
@@ -1502,6 +1504,79 @@ constraint may not be satisfied.
 
 For more information about arrow types, see [Section 17](#sec-arrow-types).
 
+### 11.3.4. Witness clauses {#sec-witness}
+
+The declaration of a subset type permits an optional `witness` clause.
+Types in Dafny are generally expected to be non-empty, in part because
+variables of any type are expected to have some value when they are used.
+In many cases, Dafny can determine that a newly declared type has 
+some value. For example, a numeric type that includes 0 is known by Dafny
+to be non-empty. However, Dafny cannot always make this determination.
+If it cannot, a `witness` clause is required. The value given in
+the `witness` clause must be a valid value for the type and assures Dafny
+that the type is non-empty.
+
+For example, 
+```dafny
+type OddInt = x: int | x % 2 == 1
+```
+will give an error message, but
+```dafny
+type OddInt = x: int | x % 2 == 1 witness 73
+```
+does not. Here is another example:
+```dafny
+type NonEmptySeq = x: seq<int> | |x| > 0 witness [0]
+```
+
+If the witness is only available in ghost code, you can declare the witness
+as a `ghost witness`. In this case, the Dafny verifier knows that the type
+is non-empty, but it will not be able to auto-initialize a variable of that
+type in compiled code.
+
+There is even room to do the following:
+```dafny
+type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
+
+function MySubsetWitness(): BaseType
+  ensures RHS(MySubsetWitness())
+```
+Here the type is given a ghost witness: the result of the expression
+`MySubsetWitness()`, which is a call of a (ghost) function.
+Now that function has a postcondition saying that the returned value 
+is indeed a candidate value for the declared type, so the verifier is
+satisfied regarding the non-emptiness of the type. However, the function
+has no body, so there is still no proof that there is indeed such a witness.
+You can either supply a, perhaps complicated, body to generate a viable
+candidate or you can be very sure, without proof, that there is indeed such a value.
+If you are wrong, you have introduced an unsoundness into your program.
+
+In addition though, types are allowed to be empty or possibly empty.
+This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
+A declaration like this produces an empty type:
+```dafny
+type ReallyEmpty = x: int | false witness *
+```
+The type can be used in code like
+```dafny
+method M(x: ReallyEmpty) returns (seven: int)
+  ensures seven == 7
+{
+  seven := 10;
+}
+```
+which does verify. But the method can never be called because there is no value that
+can be supplied as the argument. Even this code
+```dafny
+method P() returns (seven: int)
+  ensures seven == 7
+{
+  var x: ReallyEmpty;
+  seven := 10;
+}
+```
+does not complain about `x` unless `x` is actually used, in which case it must have a value.
+The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
@@ -1520,7 +1595,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   [ TypeMembers ]
 ````
 A newtype is like a type synonym or subset type except that it declares a wholly new type
-name that is distinct from its base type.
+name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
 A new type can be declared with the _newtype_
 declaration, for example:
@@ -2225,6 +2300,12 @@ PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
   [ GenericParameters ]
   [ KType ]
   Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
+  [
+    ":"
+    ( Type
+    | "(" Ident ":" "bool" ")"
+    )
+  ]
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2367,8 +2448,8 @@ clauses.
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
+keyword with the `predicate` keyword and possibly omitting a declaration of the
+return type (if it is not named).
 
 ### 13.4.3. Function Transparency
 A function is said to be _transparent_ in a location if the

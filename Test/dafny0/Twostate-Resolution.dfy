@@ -560,3 +560,12 @@ module BadRefinement refines RefinementBase {
   twostate predicate X(new a: C) { true } // error: cannot change non-new to new
   twostate predicate Y(a: C) { true } // error: cannot change new to non-new
 }
+
+module RevealInsideIterator {
+  function {:opaque} G(): int { 2 }
+
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
+}

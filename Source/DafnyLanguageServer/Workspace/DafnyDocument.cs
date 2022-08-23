@@ -1,4 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using System;
+using System.Collections.Concurrent;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -31,20 +33,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    SymbolTable SymbolTable,
     bool CanDoVerification,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
-    SymbolTable SymbolTable,
     bool WasResolved,
     bool LoadCanceled = false
   ) {
-    public IScheduler UpdateScheduler { get; } = new EventLoopScheduler();
-    public Subject<DafnyDocument> VerificationUpdates { get; } = new();
 
     public IReadOnlyList<IImplementationTask>? VerificationTasks { get; set; } = null;
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
-      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
+      ImplementationIdToView?.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     );
 
     // List of a few last touched method positions
-    public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
+    public ImmutableList<Position> LastTouchedVerifiables { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; init; } = null;
@@ -77,19 +77,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
-    public List<Counterexample> Counterexamples { get; set; } = new();
-    public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; } = new();
+    public List<Counterexample>? Counterexamples { get; set; }
+    public Dictionary<ImplementationId, ImplementationView>? ImplementationIdToView { get; set; }
 
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
     public DafnyDocument Snapshot() {
-      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, CanDoVerification, GhostDiagnostics,
-        Program, SymbolTable, WasResolved, LoadCanceled) {
+      var result = new DafnyDocument(TextDocumentItem, ParseAndResolutionDiagnostics, SymbolTable, CanDoVerification, GhostDiagnostics,
+        Program, WasResolved, LoadCanceled) {
         VerificationTree = VerificationTree,
-        Counterexamples = Counterexamples.ToList(),
-        ImplementationIdToView = new(ImplementationIdToView),
-        LastTouchedMethodPositions = LastTouchedMethodPositions,
+        VerificationTasks = VerificationTasks,
+        Counterexamples = Counterexamples == null ? null : new(Counterexamples),
+        ImplementationIdToView = ImplementationIdToView == null ? null : new(ImplementationIdToView),
+        LastTouchedVerifiables = LastTouchedVerifiables,
       };
       return result;
     }
