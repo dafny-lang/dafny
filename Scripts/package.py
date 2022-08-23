@@ -253,10 +253,13 @@ def pack(args, releases):
 
 def check_version_cs(args):
     # Checking version.cs
-    for line in open(path.join(SOURCE_DIRECTORY,"version.cs")):
-        res = re.match(r'^\s*\[assembly:\s+AssemblyVersion\("([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)\]\s*$', line)
-        if res:
-            (v1, v2) = res.groups()
+    with open(path.join(SOURCE_DIRECTORY,"version.cs")) as fp:
+        match = re.search(r'\[assembly:\s+AssemblyVersion\("([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)\]', fp.read())
+        if match:
+            (v1, v2) = match.groups()
+        else:
+            flush("The AssemblyVersion attribute in version.cs could not be found.")
+            return False
     now = time.localtime()
     year = now[0]
     month = now[1]
@@ -272,8 +275,7 @@ def check_version_cs(args):
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
     if (v2 != v3 or hy != v1):
         return False
-    fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + v1 + "." + v2)
     return True
 
 def parse_arguments():
