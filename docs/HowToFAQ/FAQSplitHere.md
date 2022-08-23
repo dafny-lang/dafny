@@ -8,12 +8,13 @@ How do `{:split_here}` and `{:focus}` work to divide up a verification condition
 
 ## Answer
 
-Analysis of a method for the purpose of verification identifies a large number of assertions that must be proved.
-These assertions are grouped into batches.
+Verifying a method requires proving a large number of assertions.
+Dafny uses a backend prover (an SMT solver) to verify assertions. The prover may become better or worse at verifying an assertion if you also ask it to also verify another assertion. 
+Dafny allows you to split up a group of assertions into batches, where each batch is sent to the SMT solver separately, so the verification of each batch is not influenced by the others.
 
-One default way of operating is to combine all assertions into one batch, make one proof attempt out of it,
-and have the prover tackle the whole thing at once. This method allows the prover to use intermediate results to 
-more efficiently prove all of the assertions. However, even when this is more efficient than the combination of proving each
+
+One default way of operating is to combine all assertions into one batch, leading to a single run of the prover. 
+ However, even when this is more efficient than the combination of proving each
 assertion by itself (with prover start-up costs and the like for each one), it can also take quite a while to give a final result, possibly even timing-out.
 
 So sometimes it is preferable to prove each assertion by itself, using the `-vcsSplitOnEveryAssert` command-line option.
