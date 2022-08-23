@@ -253,7 +253,9 @@ def pack(args, releases):
 
 def check_version_cs(args):
     # Checking version.cs
-    for line in open(path.join(SOURCE_DIRECTORY,"version.cs")):
+    with open(path.join(SOURCE_DIRECTORY,"version.cs")) as fp:
+        lines = fp.readlines()
+    for line in lines:
         res = re.match(r'^\s*\[assembly:\s+AssemblyVersion\("([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)\]\s*$', line)
         if res:
             (v1, v2) = res.groups()
@@ -274,7 +276,6 @@ def check_version_cs(args):
         return False
     flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ v1 + "." + v2)
     return True
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
