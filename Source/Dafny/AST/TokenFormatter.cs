@@ -544,6 +544,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
       SetDeclIndentation(decl2, innerIndent);
     }
+    foreach (var decl2 in moduleDecl.ModuleDef.PrefixNamedModules) {
+      SetDeclIndentation(decl2.Item2, innerIndent);
+    }
   }
 
   private int SetModuleDeclIndent(List<IToken> ownedTokens, int indent) {
@@ -725,11 +728,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
       indentationFormatter.SetDeclIndentation(decl, 0);
     }
+    foreach (var decl in program.DefaultModuleDef.PrefixNamedModules) {
+      indentationFormatter.SetDeclIndentation(decl.Item2, 0);
+    }
 
     return indentationFormatter;
   }
 
-  private static Regex FollowedByNewlineRegex = new Regex("^[ \t]*[\r\n]");
+  private static Regex FollowedByNewlineRegex = new Regex("^[ \t]*[\r\n/]");
 
   public static bool IsFollowedByNewline(IToken token) {
     return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);
@@ -1310,7 +1316,22 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         formatter.SetOpeningIndentedRegion(ownedTokens[0], indent);
       }
 
-      for (var i = 1; i < ownedTokens.Count; i++) {
+      var loopStarted = false;
+      for (var i = 0; i < ownedTokens.Count; i++) {
+        var token = ownedTokens[i];
+        if (token.val == "label") {
+          formatter.SetOpeningIndentedRegion(token, indent);
+          continue;
+        }
+        if (token.val == "while" || token.val == "forall") {
+          loopStarted = true;
+          formatter.SetOpeningIndentedRegion(token, indent);
+          continue;
+        }
+
+        if (!loopStarted) {
+          continue;
+        }
         formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + SpaceTab);
       }
 

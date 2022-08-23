@@ -968,9 +968,19 @@ module Tests {
       FormatterWorksFor(@"
 method {:test} PassingTestUsingNoLHSAssignOrHalt() {
   :- // Comment 
-     expect FailUnless(true);
+    expect FailUnless(true);
   :-
     expect FailUnless(true);
+}");
+    }
+
+    [Fact]
+    public void FormatterWorksForMultipleModules() {
+      FormatterWorksFor(@"
+module Outer.A {
+  import B
+  import C
+  const a := B.b + C.c
 }");
     }
 
@@ -1147,6 +1157,17 @@ method BreakLabels(s: seq<int>)
   }
 }
 method Test() {
+  var a, b, c, d, e;
+  var i := 0;
+  while (i < M)
+  {
+    var j := 0;
+    label InnerHasLabel:
+    while (j < N)
+    {
+    }
+  }
+  label a:
   while {
     case true =>
       for k := 0 to 10

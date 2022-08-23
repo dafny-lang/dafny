@@ -164,7 +164,10 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return DefaultModuleDef.GetFirstTopLevelToken();
+      var candidateTokens = new List<IToken>() { DefaultModuleDef.GetFirstTopLevelToken() };
+      candidateTokens.AddRange(DefaultModuleDef.PrefixNamedModules.Select(
+        module => module.Item2.ModuleDef.GetFirstTopLevelToken()));
+      return candidateTokens.Where(token => token != null && token.line > 0).MinBy(token => token.pos);
     }
   }
 
@@ -4093,14 +4096,19 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
+      if (StartToken.line > 0) {
+        return StartToken;
+      }
       IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
-
         if (decl.StartToken.line > 0) {
           return new List<IToken>() { decl.StartToken };
         } else if (decl is TopLevelDeclWithMembers declWithMembers) {
           return declWithMembers.Members.Where(
               member => member.tok.line > 0)
             .Select(member => member.StartToken);
+        } else if (decl is LiteralModuleDecl literalModuleDecl) {
+          return literalModuleDecl.ModuleDef.PrefixNamedModules.Select(module =>
+            module.Item2.ModuleDef.GetFirstTopLevelToken()).Where(tok => tok.line > 0);
         } else {
           return new List<IToken>() { };
         }
@@ -4108,6 +4116,7 @@ namespace Microsoft.Dafny {
       if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
         return includes[0].OwnedTokens[0];
       }
+
       return topTokens.MinBy(token => token.pos);
     }
   }
