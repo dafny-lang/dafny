@@ -343,9 +343,11 @@ namespace Microsoft.Dafny.Compilers {
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine(@"@SuppressWarnings(""unchecked"")");
-      wBody.WriteLine($"dafny.DafnySequence<Character>[] dafnyArgs = new dafny.DafnySequence[args.length];");
-      wBody.WriteLine($"for(int i = 0; i < args.length; i++) dafnyArgs[i] = dafny.DafnySequence.asString(args[i]);");
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(dafnyArgs); }} );");
+      wBody.WriteLine($"dafny.TypeDescriptor<dafny.DafnySequence<? extends Character>> type = dafny.DafnySequence.<Character>_typeDescriptor(dafny.TypeDescriptor.CHAR);");
+      wBody.WriteLine($"dafny.Array<dafny.DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length);");
+      wBody.WriteLine($"for (int i = 0; i < args.length; i++) dafnyArgs.set(i, dafny.DafnySequence.asString(args[i]));");
+      wBody.WriteLine($"dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> result = dafny.DafnySequence.fromArray(type, dafnyArgs);");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(result); }} );");
     }
 
     void EmitImports(ConcreteSyntaxTree wr, out ConcreteSyntaxTree importWriter) {
@@ -2252,6 +2254,7 @@ namespace Microsoft.Dafny.Compilers {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
+      Console.Write("javac " + string.Join(" ", files));
       var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
         CreateNoWindow = true,
         UseShellExecute = false,
@@ -4000,7 +4003,7 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<Character>[] {argsParameterName})");
+      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,

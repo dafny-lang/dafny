@@ -123,7 +123,7 @@ namespace Microsoft.Dafny.Compilers {
       wBody.WriteLine("var size = len(os.Args)-1");
       wBody.WriteLine($"var {dafnyArgs} []interface{{}} = make([]interface{{}}, size)");
       wBody.WriteLine($"for i, item := range os.Args[1:] {{ {dafnyArgs}[i] = {GetHelperModuleName()}.SeqOfString(item) }}");
-      wBody.WriteLine("{0}.{1}({2}.NewArrayWithValues({3}...))", companion, idName, GetHelperModuleName(), dafnyArgs);
+      wBody.WriteLine("{0}.{1}({2}.SeqOf({3}...))", companion, idName, GetHelperModuleName(), dafnyArgs);
       Coverage.EmitTearDown(wBody);
     }
 
@@ -3614,6 +3614,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var args = string.Format("{0} \"{1}\"", verb, targetFilename) + DafnyOptions.O.ArgsStringExtra;
+      Console.Write(args);
       var psi = new ProcessStartInfo("go", args) {
         CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,

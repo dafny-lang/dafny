@@ -1677,17 +1677,15 @@ namespace Microsoft.Dafny.Compilers {
           return false;
         }
         var typeOfUniqueFormal = nonGhostFormals[0].Type.NormalizeExpandKeepConstraints();
-        if (!typeOfUniqueFormal.IsArrayType ||
-            typeOfUniqueFormal.TypeArgs.Count != 1 ||
-            typeOfUniqueFormal.TypeArgs[0].AsSeqType is not { } seqType ||
-            !seqType.Arg.IsCharType) {
-          reason = "the method's non-ghost argument type should be an array<string>, got " + typeOfUniqueFormal;
+        if (typeOfUniqueFormal.AsSeqType is not { } seqType ||
+            seqType.Arg.AsSeqType is not { } subSeqType ||
+            !subSeqType.Arg.IsCharType) {
+          reason = "the method's non-ghost argument type should be an seq<string>, got " + typeOfUniqueFormal;
           return false;
         }
       } else {
         // Need to manually insert the args.
-        var argsType = program.BuiltIns.ArrayType(1, new SeqType(new CharType()), true);
-        argsType.ResolvedClass = new ArrayClassDecl(1, program.DefaultModuleDef, null);
+        var argsType = new SeqType(new SeqType(new CharType()));
         m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {

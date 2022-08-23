@@ -1,5 +1,6 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /arg:csharp /arg:1 "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cpp /arg:cpp /arg:Yipee "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java /arg:java /arg:heya "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /arg:javascript /arg:2 "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py /arg:python /arg:1 "%s" >> "%t"
@@ -10,9 +11,9 @@
 // RUN: dotnet %s.dll "dll" "Aloha from" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method Main(args: array<string>) {
-  if args.Length != 2 {
-    print "Expected 2 arguments, got ", args.Length;
+method Main(args: seq<string>) {
+  if |args| != 2 {
+    print "Expected 2 arguments, got ", |args|;
   } else {
     if args[1] == "1" {
       print "Hello ",args[0], "\n";

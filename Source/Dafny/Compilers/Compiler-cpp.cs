@@ -142,16 +142,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      var w = wr.NewBlock("int main()");
+      var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}();", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
+      tryWr.WriteLine("DafnySequence<DafnySequence<char>> dafnyArgs((uint64)argc - 1);");
+      tryWr.WriteLine("for(int i = 1; i < argc; i++) {");
+      tryWr.WriteLine("  std::string s = argv[i];");
+      tryWr.WriteLine("  dafnyArgs.start[i-1] = DafnySequenceFromString(s);");
+      tryWr.WriteLine("}");
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafnyArgs);", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
       var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
-      return wr.NewBlock($"int main(int argc, char *{argsParameterName}[])");
+      return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -2497,7 +2502,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
+      var psi = new ProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.ArgsStringExtra) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,

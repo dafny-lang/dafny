@@ -3328,7 +3328,7 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length];");
       wBody.WriteLine($"for(var i = 0; i < args.Length; i++) dafnyArgs[i] = Dafny.Sequence<char>.FromString(args[i]);");
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(dafnyArgs));");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromArray(dafnyArgs)));");
       Coverage.EmitTearDown(wBody);
     }
 
