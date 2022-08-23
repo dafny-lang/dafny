@@ -10177,7 +10177,7 @@ namespace Microsoft.Dafny {
           scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
         }
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
-        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction).WithInsideFunctionPostcondition(true));
+        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
         if (f.Result != null) {
@@ -11085,7 +11085,7 @@ namespace Microsoft.Dafny {
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
-            var revealResolutionContext = resolutionContext.WithInsideReveal(true);
+            var revealResolutionContext = resolutionContext with { InReveal = true };
             if (expr is ApplySuffix) {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
@@ -13668,7 +13668,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
         Contract.Assert(!resolutionContext.InFirstPhaseConstructor);  // divided bodies are never nested
         foreach (Statement ss in div.BodyInit) {
-          ResolveStatementWithLabels(ss, resolutionContext.WithInsideFirstPhaseConstructor(true));
+          ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
         }
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
@@ -14630,28 +14630,14 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    public class ResolutionContext {
-      public readonly ICodeContext CodeContext;
-      public readonly bool IsTwoState;
-      public readonly bool InOld; // implies !IsTwoState
-      public readonly bool InReveal;
-      public readonly bool InFunctionPostcondition;
-      public readonly bool InFirstPhaseConstructor; // implies codeContext is Constructor
+    public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
+      bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
+
+      // Invariants:
+      // InOld implies !IsTwoState
+      // InFirstPhaseConstructor implies codeContext is Constructor
 
       public bool IsGhost => CodeContext.IsGhost;
-
-      private ResolutionContext(ICodeContext codeContext, bool isTwoState, bool inOld, bool inReveal, bool inFunctionPostcondition,
-        bool inFirstPhaseConstructor) {
-        Contract.Requires(codeContext != null);
-        this.CodeContext = codeContext;
-        this.IsTwoState = isTwoState;
-        this.InOld = inOld;
-        this.InReveal = inReveal;
-        this.InFunctionPostcondition = inFunctionPostcondition;
-        this.InFirstPhaseConstructor = inFirstPhaseConstructor;
-        Contract.Assert(!InOld || !IsTwoState); // InOld ==> !IsTwoState
-        Contract.Assert(!InFirstPhaseConstructor || CodeContext is Constructor);
-      }
 
       public ResolutionContext(ICodeContext codeContext, bool isTwoState)
         : this(codeContext, isTwoState, false, false, false, false) {
@@ -14677,41 +14663,6 @@ namespace Microsoft.Dafny {
           return this;
         }
         return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithTwoState(bool isTwoState) {
-        if (this.IsTwoState == isTwoState) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, isTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideOld(bool insideOld) {
-        if (this.InOld == insideOld) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, insideOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideReveal(bool insideReveal) {
-        if (this.InReveal == insideReveal) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, insideReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideFunctionPostcondition(bool insideFunctionPostcondition) {
-        if (this.InFunctionPostcondition == insideFunctionPostcondition) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, insideFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideFirstPhaseConstructor(bool insideFirstPhaseConstructor) {
-        if (this.InFirstPhaseConstructor == insideFirstPhaseConstructor) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, InFunctionPostcondition, insideFirstPhaseConstructor);
       }
     }
 
@@ -15040,7 +14991,7 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "old", resolutionContext);
-        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false).WithInsideOld(true));
+        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld =  true });
         expr.Type = e.E.Type;
 
       } else if (expr is UnchangedExpr) {
@@ -16454,7 +16405,7 @@ namespace Microsoft.Dafny {
 
       // resolve the LHS expression
       // LHS should not be reveal lemma
-      ResolutionContext nonRevealOpts = resolutionContext.WithInsideReveal(false);
+      ResolutionContext nonRevealOpts = resolutionContext with { InReveal = false };
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
       } else if (expr.Lhs is ExprDotName) {
