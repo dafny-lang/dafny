@@ -253,14 +253,10 @@ def pack(args, releases):
 
 def check_version_cs(args):
     # Checking version.cs
-    fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
-    lines = fp.readlines()
-    verline = lines[5]
-    qstart = verline.index('"')
-    qend = verline.index('"', qstart+1)
-    lastdot = verline.rindex('.',qstart)
-    v1 = verline[qstart+1:lastdot]
-    v2 = verline[lastdot+1:qend]
+    for line in open(path.join(SOURCE_DIRECTORY,"version.cs")):
+        res = re.match(r'^\s*\[assembly:\s+AssemblyVersion\("([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)\]\s*$', line)
+        if res:
+            (v1, v2) = res.groups()
     now = time.localtime()
     year = now[0]
     month = now[1]
