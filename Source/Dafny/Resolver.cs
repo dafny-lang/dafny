@@ -9150,10 +9150,7 @@ namespace Microsoft.Dafny {
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
     readonly Scope<Label>/*!*/ dominatingStatementLabels = new Scope<Label>();
-    private bool inOneStateStatementContext = false; // usually, statements are two-state contexts, but there are exceptions (StmtExpr in one-state expression)
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
-
-    public bool IsTwoStateContext(ResolutionContext resolutionContext) => resolutionContext.IsTwoState && !inOneStateStatementContext;
 
     /// <summary>
     /// Resolves the types along .ParentTraits and fills in .ParentTraitHeads
@@ -11094,7 +11091,7 @@ namespace Microsoft.Dafny {
               var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
               if (methodCallInfo == null) {
                 reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
-              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !IsTwoStateContext(revealResolutionContext)) {
+              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
@@ -14897,7 +14894,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var fn = member as Function;
           e.Member = fn;
-          if (fn is TwoStateFunction && !IsTwoStateContext(resolutionContext)) {
+          if (fn is TwoStateFunction && !resolutionContext.IsTwoState) {
             reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
@@ -15463,21 +15460,16 @@ namespace Microsoft.Dafny {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
-        var previousInOneStateStatementContext = inOneStateStatementContext;
-        if (!IsTwoStateContext(resolutionContext)) {
-          inOneStateStatementContext = true;
-        }
         ResolveStatement(e.S, resolutionContext);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var r = e.S as UpdateStmt;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
-            if (call.Method is TwoStateLemma && !IsTwoStateContext(resolutionContext)) {
+            if (call.Method is TwoStateLemma && !resolutionContext.IsTwoState) {
               reporter.Error(MessageSource.Resolver, call, "two-state lemmas can only be used in two-state contexts");
             }
           }
         }
-        inOneStateStatementContext = previousInOneStateStatementContext;
 
         ResolveExpression(e.E, resolutionContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -15521,7 +15513,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       Label label = null;
-      if (!IsTwoStateContext(resolutionContext)) {
+      if (!resolutionContext.IsTwoState) {
         reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
       } else if (labelName != null) {
         label = dominatingStatementLabels.Find(labelName);
@@ -16752,7 +16744,7 @@ namespace Microsoft.Dafny {
         AddCallGraphEdgeForField(resolutionContext.CodeContext, field, rr);
       } else if (member is Function) {
         var fn = (Function)member;
-        if (fn is TwoStateFunction && !IsTwoStateContext(resolutionContext)) {
+        if (fn is TwoStateFunction && !resolutionContext.IsTwoState) {
           reporter.Error(MessageSource.Resolver, tok, "two-state function ('{0}') can only be called in a two-state context", member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
@@ -17292,7 +17284,7 @@ namespace Microsoft.Dafny {
         if (function is ExtremePredicate) {
           ((ExtremePredicate)function).Uses.Add(e);
         }
-        if (function is TwoStateFunction && !IsTwoStateContext(resolutionContext)) {
+        if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
           reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
         }
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
