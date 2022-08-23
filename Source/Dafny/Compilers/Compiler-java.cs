@@ -2254,7 +2254,6 @@ namespace Microsoft.Dafny.Compilers {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
-      Console.Write("javac " + string.Join(" ", files));
       var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
         CreateNoWindow = true,
         UseShellExecute = false,

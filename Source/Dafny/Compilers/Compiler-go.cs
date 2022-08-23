@@ -3614,7 +3614,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var args = string.Format("{0} \"{1}\"", verb, targetFilename) + DafnyOptions.O.ArgsStringExtra;
-      Console.Write(args);
       var psi = new ProcessStartInfo("go", args) {
         CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,

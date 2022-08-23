@@ -1151,7 +1151,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private string DeclareFormalString(string prefix, string name, Type type, IToken tok, bool isInParam) {
       if (isInParam) {
-        return String.Format("{0}{2} {1}", prefix, name, TypeName(type, null, tok));
+        var result = String.Format("{0}{2} {1}", prefix, name, TypeName(type, null, tok));
+        if (name == "__noArgsParameter") {
+          result += " __attribute__((unused))";
+        }
+
+        return result;
       } else {
         return null;
       }
