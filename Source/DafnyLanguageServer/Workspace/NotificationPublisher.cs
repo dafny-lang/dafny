@@ -5,16 +5,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Serilog.Core;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class NotificationPublisher : INotificationPublisher {
+    private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
     private readonly VerifierOptions verifierOptions;
 
-    public NotificationPublisher(ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
+      this.logger = logger;
       this.languageServer = languageServer;
       this.verifierOptions = verifierOptions.Value;
     }

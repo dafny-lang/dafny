@@ -1,12 +1,16 @@
 # Upcoming
 
 - feat: Command-line arguments available from Main() in Dafny programs (https://github.com/dafny-lang/dafny/pull/2594)
+
+# 3.8.0
+
 - fix: Use the right bitvector comparison in decrease checks
   (https://github.com/dafny-lang/dafny/pull/2512)
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
   (https://github.com/dafny-lang/dafny/pull/2416)
 - feat: Dafny now supports disjunctive (“or”) patterns in match statements and expressions.  Cases are separated by `|` characters.  Disjunctive patterns may not appear within other patterns and may not bind variables.
   (https://github.com/dafny-lang/dafny/pull/2448)
+- feat: The Dafny Language Server used by the VSCode IDE extension is now available as a NuGet package called `DafnyLanguageServer` (https://github.com/dafny-lang/dafny/pull/2600)
 - fix: Counterexamples - fix an integer parsing bug and correctly extract datatype and field names (https://github.com/dafny-lang/dafny/pull/2461)
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
   (https://github.com/dafny-lang/dafny/pull/2363)
@@ -17,6 +21,7 @@
   (https://github.com/dafny-lang/dafny/pull/2522)
 - feat: `predicate P(x: int): (y: bool) ...` is now valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
 - fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
+- fix: Perform well-definedness checks for ensures clauses of forall statements (https://github.com/dafny-lang/dafny/pull/2606)
 
 # 3.7.3
 
