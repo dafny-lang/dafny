@@ -19,7 +19,7 @@ function WalkState(str: string, s: Dummy): string {
 
 ## Answer
 
-In general, to prove termination of any recursive structure one needs to declare a 
+In general, to prove termination of any recursive structure, one needs to declare a 
 (well-founded) measure that decreases on each iteration or recursive invocation;
 because a well-founded measure has a lower limit, the recursion must eventually terminate.
 In many cases, Dafny will deduce a satisfactory (provable) measure to apply by default.
