@@ -1596,7 +1596,7 @@ namespace Microsoft.Dafny {
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
         req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null));
       }
-      mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
+      mod.Add(etran.HeapCastToIdentifierExpr);
       mod.Add(etran.Tick());
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
@@ -3648,7 +3648,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassDecl);
 
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+      builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -3738,7 +3738,7 @@ namespace Microsoft.Dafny {
 
       if (m is TwoStateLemma) {
         // $Heap := current$Heap;
-        var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)new ExpressionTranslator(this, predef, m.tok).HeapExpr;
+        var heap = ExpressionTranslator.HeapIdentifierExpr(predef, m.tok);
         builder.Add(Bpl.Cmd.SimpleAssign(m.tok, heap, new Bpl.IdentifierExpr(m.tok, "current$Heap", predef.HeapType)));
       }
 
@@ -4186,7 +4186,7 @@ namespace Microsoft.Dafny {
 
       // modifies $Heap, $Tick
       var mod = new List<Bpl.IdentifierExpr> {
-        (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)ordinaryEtran.HeapExpr,
+        ordinaryEtran.HeapCastToIdentifierExpr,
         etran.Tick()
       };
       // check that postconditions hold
@@ -4223,7 +4223,7 @@ namespace Microsoft.Dafny {
       builder.Add(new CommentCmd("AddWellformednessCheck for function " + f));
       if (f is TwoStateFunction) {
         // $Heap := current$Heap;
-        var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr;
+        var heap = ordinaryEtran.HeapCastToIdentifierExpr;
         builder.Add(Bpl.Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
         etran = ordinaryEtran;  // we no longer need the special heap names
       }
@@ -4421,7 +4421,7 @@ namespace Microsoft.Dafny {
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       // modifies $Heap, $Tick
       var mod = new List<Bpl.IdentifierExpr> {
-        (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
+        etran.HeapCastToIdentifierExpr,
         etran.Tick()
       };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
@@ -8834,7 +8834,7 @@ namespace Microsoft.Dafny {
             var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
             var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
             var heapRhs = ExpressionTranslator.UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
-            heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, heapRhs);
+            heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
           }
           CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
         }
@@ -8970,7 +8970,7 @@ namespace Microsoft.Dafny {
 
       // $Heap[$nw, alloc] := true;
       Bpl.Expr alloc = predef.Alloc(tok);
-      Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
+      Bpl.IdentifierExpr heap = etran.HeapCastToIdentifierExpr;
       Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
       builder.Add(cmd);
       if (extraCmd != null) {

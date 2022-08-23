@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
         locals.Add(tmpHeapVar);
         var tmpHeap = new Bpl.IdentifierExpr(token, tmpHeapVar);
         var generalEtran = new ExpressionTranslator(this, predef, token);
-        var theHeap = (Bpl.IdentifierExpr /*TODO: this cast is dubious*/)generalEtran.HeapExpr;
+        var theHeap = generalEtran.HeapCastToIdentifierExpr;
 
         // tmpHeap := $Heap;
         builder.Add(Bpl.Cmd.SimpleAssign(token, tmpHeap, theHeap));
