@@ -28,4 +28,4 @@ This is evident in the allowed conversions, as shown in this example code:
 The other important characteristic of `newtype`s is that they may have a different representation in the compilation target language.
 Subset types are always represented in the same way as the base type.  But a newtype may use a different representation.
 For example, the newtype defined above might use a `byte` representation in Java, whereas an `int` is a `BigInteger`.
-The representation of a newtype can be set by the program author using the `{:nativeType}` attribute.
+The representation of a newtype can be set by the program author using the [`{:nativeType}`](../DafnyRef/DafnyRef#sec-nativetype) attribute.
