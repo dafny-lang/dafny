@@ -1,14 +1,14 @@
 ---
-title: Is there a way to prevent Warning: note, this forall statement has no body  from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
+title: Is there a way to prevent "Warning: note, this forall statement has no body" from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
 ---
 
 ## Question
 
-Is there a way to prevent Warning: note, this forall statement has no body  from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
+Is there a way to prevent "Warning: note, this forall statement has no body" from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
 
 ## Answer
 
-The Dafny verifier allows you to omit the body of various constructs. For example, if you write a method without a body, the verifier will (check the well-formedness of the method specification, and will then) gladly check calls to the method against that specification. This is nice, because it lets you write the specification of a method and then start using it in other places, only to later return to filling in the body of the method.
+The Dafny verifier allows you to omit the body of various constructs. For example, if you write a method without a body, the verifier will gladly check calls to the method against that specification (after checking the well-formedness of the method specification). This is nice, because it lets you write the specification of a method and then start using it in other places, only to later return to filling in the body of the method.
 
 The verifier is happy with such a body-less thing, but the once verification is done and you’re asking Dafny to compile your program, the compiler will complain, because it doesn’t know how to synthesize code for the method specification you wrote.
 
