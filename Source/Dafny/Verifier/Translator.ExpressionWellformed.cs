@@ -1193,8 +1193,7 @@ namespace Microsoft.Dafny {
     }
 
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
-      BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs)
-    {
+      BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
       if (e.Exact) {
         var uniqueSuffix = "#Z" + defaultIdGenerator.FreshNumericId("#Z");
         var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, "#Z");
