@@ -34,13 +34,13 @@ final _else_ branch. So we can write
 ```dafny
 datatype Dummy = State1 | State2
 
-  function WalkState(str: string, s: Dummy): string 
-    decreases |str|, if s.State2? then 1 else 0
-  {
-    if str == [] then []
-    else if s.State1? then WalkState(str[1..], Dummy.State2)
-    else WalkState(str, Dummy.State1)
-  }
+function WalkState(str: string, s: Dummy): string 
+  decreases |str|, if s.State2? then 1 else 0
+{
+  if str == [] then []
+  else if s.State1? then WalkState(str[1..], Dummy.State2)
+  else WalkState(str, Dummy.State1)
+}
 ```
 which then proves without further user guidance.
 
