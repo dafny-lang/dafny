@@ -988,6 +988,17 @@ method Main() {
     }
 
     [Fact]
+    public void FormatterworksForIteratorsAfterDatatypes() {
+      FormatterWorksFor(@"
+datatype MG5 =  MG5(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
+iterator        MG6(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
+iterator        MG7(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
+
+iterator Iter0(x: int := y, y: int := 0) { }
+");
+    }
+
+    [Fact]
     public void FormatterWorksForMultipleModules() {
       FormatterWorksFor(@"
 module Outer.A {

@@ -1758,7 +1758,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      List<AttributedExpression/*!*/> yieldReq = new List<AttributedExpression/*!*/>();
      List<AttributedExpression/*!*/> yieldEns = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
-     var ownedTokens = new List<IToken>();
+     var ownedTokens = new List<IToken>(dmod.OwnedTokens);
      Attributes readsAttrs = null;
      Attributes modAttrs = null;
      Attributes decrAttrs = null;
@@ -1769,7 +1769,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
-  "iterator"                (. ownedTokens.Add(t); .)
+  "iterator"                (. ownedTokens.Add(t); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   IteratorName<out id>      (. ownedTokens.Add(t); .)
   (
@@ -1793,6 +1793,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              body, attrs, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
      iter.BodyEndTok = bodyEnd;
+     iter.StartToken = ownedTokens[0];
      iter.OwnedTokens = ownedTokens;
  .)
   .
