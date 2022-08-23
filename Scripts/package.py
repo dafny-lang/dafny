@@ -255,7 +255,7 @@ def check_version_cs(args):
     # Checking version.cs
     fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
     lines = fp.readlines()
-    verline = lines[5]
+    verline = lines[6]
     qstart = verline.index('"')
     qend = verline.index('"', qstart+1)
     lastdot = verline.rindex('.',qstart)
