@@ -10,16 +10,16 @@ Here is an example function:
 ```dafny
 datatype Dummy = State1 | State2
 
-  function WalkState(str: string, s: Dummy): string {
-    if str == [] then []
-    else if s.State1? then WalkState(str[1..], Dummy.State2)
-    else WalkState(str, Dummy.State1)
-  }
+function WalkState(str: string, s: Dummy): string {
+  if str == [] then []
+  else if s.State1? then WalkState(str[1..], Dummy.State2)
+  else WalkState(str, Dummy.State1)
+}
 ```
 
 ## Answer
 
-In general, to prove termination of any recursive structure one needs to declare a 
+In general, to prove termination of any recursive structure, one needs to declare a 
 ([well-founded](../DafnyRef/DafnyRef#sec-well-founded-orders)) measure that decreases on each iteration or recursive invocation;
 because a well-founded measure has no infinitely decreasing sequences, the recursion must eventually terminate.
 In many cases, Dafny will deduce a satisfactory (provable) measure to apply by default.
@@ -35,13 +35,13 @@ final _else_ branch. So we can write
 ```dafny
 datatype Dummy = State1 | State2
 
-  function WalkState(str: string, s: Dummy): string 
-    decreases |str|, if s.State2? then 1 else 0
-  {
-    if str == [] then []
-    else if s.State1? then WalkState(str[1..], Dummy.State2)
-    else WalkState(str, Dummy.State1)
-  }
+function WalkState(str: string, s: Dummy): string 
+  decreases |str|, if s.State2? then 1 else 0
+{
+  if str == [] then []
+  else if s.State1? then WalkState(str[1..], Dummy.State2)
+  else WalkState(str, Dummy.State1)
+}
 ```
 which then proves without further user guidance.
 

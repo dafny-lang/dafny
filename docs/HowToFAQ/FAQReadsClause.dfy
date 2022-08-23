@@ -3,5 +3,5 @@ class A {
   var x: string
 }
 
-type AA = z: A | z.x == "" witness * reads z
+type AA = a: A | a.x == "" witness * reads a
 

@@ -1,5 +1,5 @@
 ---
-title: Where do I put the reads clause?
+title: Where do I put the reads clause in a subset type?
 ---
 
 ## Question:
