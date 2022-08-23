@@ -1558,7 +1558,7 @@ namespace Microsoft.Dafny {
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
       if (InVerificationScope(iter)) {
-        AddIteratorWellformed(iter, proc);
+        AddWellformednessCheck(iter, proc);
       }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
@@ -1650,7 +1650,7 @@ namespace Microsoft.Dafny {
       if (!ens.Free) { this.assertionCount++; }
     }
 
-    void AddIteratorWellformed(IteratorDecl iter, Procedure proc) {
+    void AddWellformednessCheck(IteratorDecl iter, Procedure proc) {
       Contract.Requires(iter != null);
       Contract.Requires(proc != null);
       Contract.Requires(currentModule == null && codeContext == null);
@@ -4118,7 +4118,7 @@ namespace Microsoft.Dafny {
       return disjunction;
     }
 
-    private void AddWellformednessCheck(Function f) {
+    void AddWellformednessCheck(Function f) {
       Contract.Requires(f != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(f.EnclosingClass != null);

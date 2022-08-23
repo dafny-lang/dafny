@@ -920,7 +920,8 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is LetExpr) {
-        result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
+        CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
+        result = null;
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -1180,8 +1181,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr CheckWellformedLetExprWithResult(LetExpr e, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
-                                BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
+    void CheckWellformedLetExprWithResult(LetExpr e, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs)
+    {
       if (e.Exact) {
         var uniqueSuffix = "#Z" + defaultIdGenerator.FreshNumericId("#Z");
         var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, "#Z");
@@ -1199,7 +1201,6 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
-        result = null;
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =
@@ -1262,10 +1263,8 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(letBody.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
           }
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
-          result = null;
         }
       }
-      return result;
     }
 
     void CheckFrameWellFormed(WFOptions wfo, List<FrameExpression> fes, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
