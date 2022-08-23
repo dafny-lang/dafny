@@ -990,47 +990,28 @@ namespace Microsoft.Dafny {
           if (!Attributes.Contains(constant.Attributes, "opaque")) {
             // Nothing to do
           } else if (!RefinementToken.IsInherited(constant.tok, c.EnclosingModuleDefinition)) {
-            RewriteOpaqueFunctionUseFuel(constant, newDecls);
+            GenerateRevealLemma(constant, newDecls);
           }
         }
       }
       c.Members.AddRange(newDecls);
     }
 
-    private void RewriteOpaqueFunctionUseFuel(ConstantField c, List<MemberDecl> newDecls) {
+    private void GenerateRevealLemma(ConstantField c, List<MemberDecl> newDecls) {
       // That is, given:
-      //   function {:opaque} foo(x:int, y:int) : int
-      //     requires 0 <= x < 5;
-      //     requires 0 <= y < 5;
-      //     ensures foo(x, y) < 10;
-      //   { x + y }
+      //   const {:opaque} foo := x
       // We produce:
-      //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
-      //
-      // If "foo" is a two-state function, then "reveal_foo" will be declared as a two-state lemma.
-      //
-      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters appropriately
+      //   lemma {:axiom} {:auto_generated} reveal_foo()
+      //     ensures foo == 3
 
-      var cloner = new Cloner();
-
-      List<TypeParameter> typeVars = new List<TypeParameter>();
-      List<Type> optTypeArgs = new List<Type>();
-      foreach (TypeParameter tp in c.TypeArgs) {
-        typeVars.Add(cloner.CloneTypeParam(tp));
-        // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
-        // the fuel attribute. This might not be needed after fixing codeplex issue #172.
-        optTypeArgs.Add(new IntType());
-      }
-
-      // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
-      Attributes lemma_attrs = BuiltIns.AxiomAttribute();
-      lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
+      Attributes lemma_attrs = new Attributes("auto_generated", new List<Expression>(), null);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(c.tok, false) }, lemma_attrs);
+      AttributedExpression ensures = new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs));
       var reveal = new Lemma(c.tok, "reveal_" + c.Name, c.HasStaticKeyword, new List<TypeParameter>(),
         new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-        new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/
-        new List<AttributedExpression>(),
+        new Specification<FrameExpression>(new List<FrameExpression>(), null),
+        new List<AttributedExpression>() { ensures },
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       newDecls.Add(reveal);
       reveal.InheritVisibility(c, true);

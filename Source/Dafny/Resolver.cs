@@ -11089,8 +11089,15 @@ namespace Microsoft.Dafny {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
-            } else if (expr is NameSegment n) {
-              ResolveNameSegment(n, true, null, opts, true);
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment(expr as NameSegment, true, null, opts, true);
+              } else {
+                ResolveDotSuffix(expr as ExprDotName, true, null, opts, true);
+              }
+              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
+              s.ResolvedStatements.Add(call);
             } else {
               ResolveExpression(expr, opts);
             }
