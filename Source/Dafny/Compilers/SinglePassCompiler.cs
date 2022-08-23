@@ -2438,13 +2438,14 @@ namespace Microsoft.Dafny.Compilers {
           w.Write("{0}.", companion);
         }
         EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
-        w.Write("(" + args_name);
-        var sep = ", ";
+        w.Write("(");
+        var sep = "";
         if (receiver != null && customReceiver) {
           w.Write("{0}", IdName(receiver));
           sep = ", ";
         }
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
+        w.Write(sep + args_name);
         w.Write(")");
         EndStmt(w);
       }

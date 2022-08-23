@@ -226,7 +226,7 @@ namespace Microsoft.Dafny.Compilers {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
-      return wr.NewBlock($"public static void _StaticMain(string[] {argsParameterName})");
+      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<char>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {

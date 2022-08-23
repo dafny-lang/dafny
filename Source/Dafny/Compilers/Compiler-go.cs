@@ -137,8 +137,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
       var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
-      argsParameterName = "os.Args[1:]";
-      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
+      argsParameterName = "args";
+      return wr.NewNamedBlock("func (_this * {0}) Main(args _dafny.Seq)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
