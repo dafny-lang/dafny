@@ -2807,7 +2807,7 @@ namespace Microsoft.Dafny {
               scope.PushMarker();
               scope.AllowInstance = false;
               ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromTopLevel(dt));
+              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
               scope.PopMarker();
             }
             // resolve members
@@ -10159,7 +10159,7 @@ namespace Microsoft.Dafny {
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
-      ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromTopLevel(f));
+      ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromCodeContext(f));
       foreach (AttributedExpression e in f.Req) {
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
         Expression r = e.E;
@@ -10402,7 +10402,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
-          ResolveBlockStatement(m.Body, ResolutionContext.FromTopLevel(m));
+          ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
           dominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
         }
@@ -10559,7 +10559,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        ResolveBlockStatement(iter.Body, ResolutionContext.FromTopLevel(iter));
+        ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
         dominatingStatementLabels.PopMarker();
         SolveAllTypeConstraints();
       }
@@ -10769,11 +10769,11 @@ namespace Microsoft.Dafny {
     }
 
     public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
-      ResolveType(tok, type, ResolutionContext.FromTopLevel(topLevelContext), eopt, defaultTypeArguments);
+      ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), eopt, defaultTypeArguments);
     }
 
     public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
-      ResolveType(tok, type, ResolutionContext.FromTopLevel(topLevelContext), option, defaultTypeArguments);
+      ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), option, defaultTypeArguments);
     }
 
     public void ResolveType(IToken tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
@@ -14660,7 +14660,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Return a ResolutionContext appropriate for the body of "codeContext".
       /// </summary>
-      public static ResolutionContext FromTopLevel(ICodeContext codeContext) {
+      public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
         bool isTwoState;
         if (codeContext is NoContext || codeContext is DatatypeDecl) {
           isTwoState = false;
