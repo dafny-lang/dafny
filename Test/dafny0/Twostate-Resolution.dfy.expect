@@ -691,6 +691,18 @@ module BadRefinement refines RefinementBase {
     true
   }
 }
+
+module RevealInsideIterator {
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
+
+  function {:opaque} G(): int
+  {
+    2
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
