@@ -70,7 +70,7 @@ class DocumentObserver : IObserver<DafnyDocument> {
         return;
       }
 
-      logger.LogDebug($"Publishing notification for version {document.Version}.");
+      logger.LogInformation($"Publishing notification for version {document.Version}.");
       notificationPublisher.PublishNotifications(LastPublishedDocument, document);
       LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
     }
