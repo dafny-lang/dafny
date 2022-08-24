@@ -166,6 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public override CompilationView Snapshot() {
       return base.Snapshot() with {
         ImplementationsWereUpdated = true,
+        VerificationTree = VerificationTree,
         ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(ImplementationIdToView)
       };
     }
