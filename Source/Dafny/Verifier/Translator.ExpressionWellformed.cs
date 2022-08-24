@@ -307,8 +307,7 @@ namespace Microsoft.Dafny {
             CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
             // Check that the receiver is available in the state in which the dereference occurs
           }
-        } else if (e.Member is DatatypeDestructor) {
-          var dtor = (DatatypeDestructor)e.Member;
+        } else if (e.Member is DatatypeDestructor dtor) {
           var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
             ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
           if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
@@ -318,6 +317,9 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(GetToken(expr), correctConstructor,
               new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
           }
+          CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
+        } else if (e.Member is DatatypeDiscriminator discriminator) {
+          CheckNotGhostVariant(e, "discriminator", ((DatatypeDecl)discriminator.EnclosingClass).Ctors, builder, etran);
         }
         if (!e.Member.IsStatic) {
           if (e.Member is TwoStateFunction) {
@@ -1176,6 +1178,22 @@ namespace Microsoft.Dafny {
 
       // $Heap := tmpHeap;
       builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, tmpHeap));
+    }
+
+    private void CheckNotGhostVariant(MemberSelectExpr expr, string whatKind, List<DatatypeCtor> candidateCtors,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (expr.InCompiledContext) {
+        // to access a field of the datatype value, there must not be any possibility that the datatype
+        // variant is a ghost constructor
+        var enclosingGhostConstructors = candidateCtors.Where(ctor => ctor.IsGhost).ToList();
+        if (enclosingGhostConstructors.Count != 0) {
+          var obj = etran.TrExpr(expr.Obj);
+          var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
+            ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
+          builder.Add(Assert(GetToken(expr), notGhostCtor,
+            new PODesc.NotGhostVariant(whatKind, expr.Member.Name, DatatypeDestructor.PrintableCtorNameList(enclosingGhostConstructors, "or"))));
+        }
+      }
     }
 
     void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,

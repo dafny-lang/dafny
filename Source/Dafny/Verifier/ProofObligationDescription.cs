@@ -605,6 +605,26 @@ public class DestructorValid : ProofObligationDescription {
   }
 }
 
+public class NotGhostVariant : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"in a compiled context, {whatKind} '{dtorName}' is not applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+
+  public override string FailureDescription =>
+    $"in a compiled context, {whatKind} '{dtorName}' cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+
+  public override string ShortDescription => "not ghost variant";
+
+  private readonly string whatKind;
+  private readonly string dtorName;
+  private readonly string ctorNames;
+
+  public NotGhostVariant(string whatKind, string dtorName, string ctorNames) {
+    this.whatKind = whatKind;
+    this.dtorName = dtorName;
+    this.ctorNames = ctorNames;
+  }
+}
+
 
 //// Misc constraints
 

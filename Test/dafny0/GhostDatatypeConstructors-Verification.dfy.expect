@@ -1,3 +1,13 @@
+GhostDatatypeConstructors-Verification.dfy(30,11): Error: in a compiled context, discriminator 'D1?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+GhostDatatypeConstructors-Verification.dfy(41,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(43,14): Error: in a compiled context, destructor 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+GhostDatatypeConstructors-Verification.dfy(45,14): Error: in a compiled context, destructor 'w' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(47,14): Error: in a compiled context, destructor 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(56,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(71,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(84,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(87,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(107,9): Error: in a compiled context, discriminator 'C?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'A')
 GhostDatatypeConstructors-Verification.dfy(134,15): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 GhostDatatypeConstructors-Verification.dfy(143,8): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 GhostDatatypeConstructors-Verification.dfy(162,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
@@ -10,4 +20,4 @@ GhostDatatypeConstructors-Verification.dfy(214,14): Error: to be compilable, the
 GhostDatatypeConstructors-Verification.dfy(214,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 GhostDatatypeConstructors-Verification.dfy(236,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
-Dafny program verifier finished with 3 verified, 11 errors
+Dafny program verifier finished with 4 verified, 21 errors

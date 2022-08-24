@@ -10170,6 +10170,7 @@ namespace Microsoft.Dafny {
     public readonly string MemberName;
     [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
     [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
+    [FilledInDuringResolution] public bool InCompiledContext;
 
     /// <summary>
     /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that

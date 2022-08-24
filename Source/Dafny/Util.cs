@@ -831,6 +831,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is MemberSelectExpr selectExpr) {
+        selectExpr.InCompiledContext = true;
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");

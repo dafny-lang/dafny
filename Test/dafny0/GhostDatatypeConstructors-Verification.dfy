@@ -1,6 +1,6 @@
 // RUN: %dafny_0 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-/*
+
 module Types {
   datatype XY =
     | {:hello} D0(x: int)
@@ -55,11 +55,11 @@ module Ghost {
     case true =>
       x := xy.x; // error: xy is not a D0
     case true =>
-      y := xy.y; // error: compiled context cannot read .y
+      y := xy.y;
     case true =>
-      w := xy.w; // error: compiled context cannot read .w
+      w := xy.w;
     case true =>
-      z := xy.z; // error: compiled context cannot read .w of a G1
+      z := xy.z;
   }
 
   method M3(xy: XY)
@@ -99,7 +99,7 @@ module Members {
     method M() returns (r: int) {
       r := 3;
       if * {
-        r := r + n; // error: cannot use n if 'this' is a of a ghost variant
+        r := r + n; // it's fine to use the field "n"
       }
     }
 
@@ -124,7 +124,7 @@ module Members {
 }
 
 // TODO: resolve and verify update expressions
-*/
+
 module {:options "/functionSyntax:4"} Regressions {
   predicate P(x: int)
 
