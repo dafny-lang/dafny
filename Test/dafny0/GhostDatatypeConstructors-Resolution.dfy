@@ -232,3 +232,27 @@ module {:options "/functionSyntax:4"} Constructors {
       G0(true) // error: G0 is a ghost constructor
   }
 }
+
+module StmtExpr {
+  import opened Types
+
+  method CompiledMethod(xy: XY) returns (a: int) {
+    a :=
+      calc {
+        0;
+      ==  { // we're in a ghost context, so the following match constructs are allowed
+            var x;
+            x := match xy
+                case D0(_) => 0
+                case _ => 0;
+            match xy
+            case D0(_) => x := 0;
+            case any =>
+          }
+        0;
+      ==  { if xy.G1? { } else { } }
+        0;
+      }
+      20;
+  }
+}
