@@ -11108,6 +11108,10 @@ namespace Microsoft.Dafny {
                 ResolveDotSuffix(expr as ExprDotName, true, null, revealResolutionContext, true);
               }
               MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              //The revealed member is a function
+              if (callee.Member is Lemma && ((Lemma)callee.Member).Ens.Count == 0 || callee.Member is TwoStateLemma && ((TwoStateLemma)callee.Member).Ens.Count == 0) {
+                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              }
               var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
               s.ResolvedStatements.Add(call);
             } else {
