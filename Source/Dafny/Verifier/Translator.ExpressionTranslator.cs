@@ -18,6 +18,18 @@ namespace Microsoft.Dafny {
         // below), but also, the debugger may invoke HeapExpr and that will cause an increment as well.
         get { Statistics_HeapUses++; return _the_heap_expr; }
       }
+
+      /// <summary>
+      /// Return HeapExpr as an IdentifierExpr.
+      /// CAUTION: This getter should be used only if the caller "knows" that HeapExpr really is an IdentifierExpr.
+      /// </summary>
+      public Boogie.IdentifierExpr HeapCastToIdentifierExpr {
+        get {
+          Contract.Assume(HeapExpr is Boogie.IdentifierExpr);
+          return (Boogie.IdentifierExpr)HeapExpr;
+        }
+      }
+
       public readonly PredefinedDecls predef;
       public readonly Translator translator;
       public readonly string This;
@@ -69,8 +81,12 @@ namespace Microsoft.Dafny {
         this.stripLits = stripLits;
       }
 
+      public static Boogie.IdentifierExpr HeapIdentifierExpr(PredefinedDecls predef, Boogie.IToken heapToken) {
+        return new Boogie.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType);
+      }
+
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Boogie.IToken heapToken)
-        : this(translator, predef, new Boogie.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType)) {
+        : this(translator, predef, HeapIdentifierExpr(predef, heapToken)) {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heapToken != null);
