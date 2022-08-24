@@ -72,6 +72,48 @@ module Ghost {
     case true =>
       z := xy.z;
   }
+/*
+  method Update0(xy: XY) returns (r: XY)
+    requires xy.G1?
+  {
+    if
+    case true =>
+      r := xy.(x := 2); // error: xy is not a D0
+    case true =>
+      r := xy.(y := true); // error: compiled context cannot update .y
+    case true =>
+      r := xy.(w := 'w'); // error: compiled context cannot update .w
+  }
+
+  method Update1(xy: XY) returns (r: XY)
+    requires xy.G1?
+  {
+    if
+    case true =>
+      r := xy.(z := 2.2); // error: compiled context cannot update .w of a G1
+    case true =>
+      r := xy.(z := 2.2, y := true); // error: compiled context cannot update .w of a G1
+    case true =>
+      r := xy.(z := 2.2, w := 'w', y := true); // error: compiled context cannot update .w of a G1
+  }
+
+  method Update2(xy: XY) returns (ghost r: XY)
+    requires xy.G1?
+  {
+    if
+    case true =>
+      r := xy.(x := 2); // error: xy is not a D0
+    case true =>
+      r := xy.(y := true);
+    case true =>
+      r := xy.(w := 'w');
+    case true =>
+      r := xy.(z := 2.2);
+    case true =>
+      r := xy.(z := 2.2, y := true);
+    case true =>
+      r := xy.(z := 2.2, w := 'w', y := true);
+  }*/
 }
 
 module Initialization {
@@ -122,8 +164,6 @@ module Members {
     }
   }
 }
-
-// TODO: resolve and verify update expressions
 
 module {:options "/functionSyntax:4"} Regressions {
   predicate P(x: int)

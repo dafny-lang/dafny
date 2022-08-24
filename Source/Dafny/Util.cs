@@ -69,6 +69,24 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static string PrintableNameList(List<string> names, string grammaticalConjunction) {
+      Contract.Requires(names != null);
+      Contract.Requires(1 <= names.Count);
+      Contract.Requires(grammaticalConjunction != null);
+      var n = names.Count;
+      if (n == 1) {
+        return string.Format("'{0}'", names[0]);
+      } else if (n == 2) {
+        return string.Format("'{0}' {1} '{2}'", names[0], grammaticalConjunction, names[1]);
+      } else {
+        var s = "";
+        for (int i = 0; i < n - 1; i++) {
+          s += string.Format("'{0}', ", names[i]);
+        }
+        return s + string.Format("{0} '{1}'", grammaticalConjunction, names[n - 1]);
+      }
+    }
+
     public static string Repeat(int count, string s) {
       Contract.Requires(0 <= count);
       Contract.Requires(s != null);
@@ -837,6 +855,17 @@ namespace Microsoft.Dafny {
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
         }
+
+      } else if (expr is DatatypeUpdateExpr updateExpr) {
+        updateExpr.InCompiledContext = true;
+        foreach (var member in updateExpr.Members) {
+          if (member.IsGhost) {
+            reporter?.Error(MessageSource.Resolver, updateExpr, $"a ghost {member.WhatKind} is allowed only in specification contexts");
+            isCompilable = false;
+          }
+        }
+        // don't step into the desugared expression
+        return isCompilable;
 
       } else if (expr is FunctionCallExpr callExpr) {
         if (callExpr.Function != null) {

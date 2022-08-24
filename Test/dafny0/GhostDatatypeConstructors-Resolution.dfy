@@ -40,7 +40,7 @@ module Ghost {
     w := xy.w; // error: RHS is ghost, but LHS is not
     z := xy.z; // error: RHS is ghost, but LHS is not
   }
-  }
+}
 
 module {:options "/functionSyntax:4"} Match {
   import opened Types

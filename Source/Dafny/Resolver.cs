@@ -15000,10 +15000,10 @@ namespace Microsoft.Dafny {
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          List<DatatypeCtor> legalSourceConstructors;
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext, out legalSourceConstructors);
+          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext, out var members, out var legalSourceConstructors);
           if (let != null) {
             e.ResolvedExpression = let;
+            e.Members = members;
             e.LegalSourceConstructors = legalSourceConstructors;
             expr.Type = let.Type;
           }
@@ -15709,7 +15709,7 @@ namespace Microsoft.Dafny {
     /// Upon some resolution error, return null.
     /// </summary>
     Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
-      ResolutionContext resolutionContext, out List<DatatypeCtor> legalSourceConstructors) {
+      ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(dt != null);
@@ -15717,6 +15717,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       legalSourceConstructors = null;
+      members = new List<MemberDecl>();
 
       // First, compute the list of candidate result constructors, that is, the constructors
       // that have all of the mentioned destructors. Issue errors for duplicated names and for
@@ -15737,6 +15738,7 @@ namespace Microsoft.Dafny {
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
           } else {
+            members.Add(member);
             var destructor = (DatatypeDestructor)member;
             var intersection = new List<DatatypeCtor>(candidateResultCtors.Intersect(destructor.EnclosingCtors));
             if (intersection.Count == 0) {

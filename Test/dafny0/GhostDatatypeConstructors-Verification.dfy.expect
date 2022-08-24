@@ -5,19 +5,19 @@ GhostDatatypeConstructors-Verification.dfy(45,14): Error: in a compiled context,
 GhostDatatypeConstructors-Verification.dfy(47,14): Error: in a compiled context, destructor 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
 GhostDatatypeConstructors-Verification.dfy(56,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
 GhostDatatypeConstructors-Verification.dfy(71,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
-GhostDatatypeConstructors-Verification.dfy(84,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
-GhostDatatypeConstructors-Verification.dfy(87,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
-GhostDatatypeConstructors-Verification.dfy(107,9): Error: in a compiled context, discriminator 'C?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'A')
-GhostDatatypeConstructors-Verification.dfy(134,15): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(143,8): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(162,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(169,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(180,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(189,17): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(197,22): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(206,28): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(214,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(214,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-GhostDatatypeConstructors-Verification.dfy(236,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(126,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(129,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(149,9): Error: in a compiled context, discriminator 'C?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'A')
+GhostDatatypeConstructors-Verification.dfy(174,15): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(183,8): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(202,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(209,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(220,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(229,17): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(237,22): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(246,28): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(254,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(254,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+GhostDatatypeConstructors-Verification.dfy(276,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
 Dafny program verifier finished with 4 verified, 21 errors

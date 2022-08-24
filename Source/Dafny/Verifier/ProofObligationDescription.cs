@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 
@@ -607,21 +608,25 @@ public class DestructorValid : ProofObligationDescription {
 
 public class NotGhostVariant : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"in a compiled context, {whatKind} '{dtorName}' is not applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+    $"in a compiled context, {subject} is not applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
 
   public override string FailureDescription =>
-    $"in a compiled context, {whatKind} '{dtorName}' cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+    $"in a compiled context, {subject} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
 
   public override string ShortDescription => "not ghost variant";
 
-  private readonly string whatKind;
-  private readonly string dtorName;
+  private readonly string subject;
   private readonly string ctorNames;
 
-  public NotGhostVariant(string whatKind, string dtorName, string ctorNames) {
-    this.whatKind = whatKind;
-    this.dtorName = dtorName;
-    this.ctorNames = ctorNames;
+  public NotGhostVariant(string whatKind, string dtorName, List<DatatypeCtor> ctors) {
+    this.subject = $"{whatKind} '{dtorName}'";
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+  }
+
+  public NotGhostVariant(string whatKind, List<string> dtorNames, List<DatatypeCtor> ctors) {
+    var dtors = Util.PrintableNameList(dtorNames, "and");
+    this.subject = $"{whatKind} {dtors}";
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
   }
 }
 

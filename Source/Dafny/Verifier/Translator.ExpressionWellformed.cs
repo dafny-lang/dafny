@@ -1105,6 +1105,19 @@ namespace Microsoft.Dafny {
             new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
         }
 
+        if (e.InCompiledContext) {
+          // to access a field of the datatype value, there must not be any possibility that the datatype
+          // variant is a ghost constructor
+          var enclosingGhostConstructors = e.LegalSourceConstructors.Where(ctor => ctor.IsGhost).ToList();
+          if (enclosingGhostConstructors.Count != 0) {
+            var obj = etran.TrExpr(e.Root);
+            var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
+              ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
+            builder.Add(Assert(GetToken(expr), notGhostCtor,
+              new PODesc.NotGhostVariant("update of", e.Members.ConvertAll(member => member.Name), enclosingGhostConstructors)));
+          }
+        }
+
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
@@ -1191,7 +1204,7 @@ namespace Microsoft.Dafny {
           var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
             ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
           builder.Add(Assert(GetToken(expr), notGhostCtor,
-            new PODesc.NotGhostVariant(whatKind, expr.Member.Name, DatatypeDestructor.PrintableCtorNameList(enclosingGhostConstructors, "or"))));
+            new PODesc.NotGhostVariant(whatKind, expr.Member.Name, enclosingGhostConstructors)));
         }
       }
     }

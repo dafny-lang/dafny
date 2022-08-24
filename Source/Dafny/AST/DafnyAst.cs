@@ -5151,18 +5151,7 @@ namespace Microsoft.Dafny {
     static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
       Contract.Requires(ctors != null);
       Contract.Requires(grammaticalConjunction != null);
-      var n = ctors.Count;
-      if (n == 1) {
-        return string.Format("'{0}'", ctors[0].Name);
-      } else if (n == 2) {
-        return string.Format("'{0}' {1} '{2}'", ctors[0].Name, grammaticalConjunction, ctors[1].Name);
-      } else {
-        var s = "";
-        for (int i = 0; i < n - 1; i++) {
-          s += string.Format("'{0}', ", ctors[i].Name);
-        }
-        return s + string.Format("{0} '{1}'", grammaticalConjunction, ctors[n - 1].Name);
-      }
+      return Util.PrintableNameList(ctors.ConvertAll(ctor => ctor.Name), grammaticalConjunction);
     }
   }
 
@@ -12816,7 +12805,10 @@ namespace Microsoft.Dafny {
   public class DatatypeUpdateExpr : ConcreteSyntaxExpression {
     public readonly Expression Root;
     public readonly List<Tuple<IToken, string, Expression>> Updates;
+    [FilledInDuringResolution] public List<MemberDecl> Members;
     [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
+    [FilledInDuringResolution] public bool InCompiledContext;
+
     public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
       : base(tok) {
       Contract.Requires(tok != null);
