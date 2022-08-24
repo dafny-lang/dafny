@@ -994,7 +994,95 @@ datatype MG5 =  MG5(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int
 iterator        MG6(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
 iterator        MG7(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
 
-iterator Iter0(x: int := y, y: int := 0) { }
+iterator Iter0(x: int := y, y: int := 0)
+  requires true
+  yield requires true
+{ }
+");
+    }
+
+    [Fact]
+    public void FormatterworksForGhostVars() {
+      FormatterWorksFor(@"
+function Fu(): int
+{
+  ghost var p: () -> bool := P;  // error: cannot use a two-state function in this context
+  ghost var q: () -> bool := YY.Sp;  // error: cannot use a two-state function in this context
+  if P() then 5 else 7  // error: cannot use a two-state function here
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForIfCaseReturn() {
+      FormatterWorksFor(@"
+method Test() {
+  if
+  case true =>
+    var a := c.Plus(0);  // error: c not allocated in old state
+  case true =>
+    var a := c.Plus@A(0);  // error: c not allocated in state A
+    return 2;
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForEmptyDocument() {
+      FormatterWorksFor(@"
+/*
+module S0 refines R {
+  // This module defines a local g().  It takes precedence over the g() that
+  // comes from the (inherited) opened import
+
+  // this is no longer possible due to too many potential clashes and generally
+  // weird behaviour
+
+  function g(): int { 2 }
+*/
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForLongCommentsDocument() {
+      var testCase = @"
+module R {
+  /* Simple comment
+   * in a module
+   */
+  import opened LibA
+}
+/*
+module S0 refines R {
+  var x := 2
+    * 3;
+  // This module defines a local g().  It takes precedence over the g() that
+  // comes from the (inherited) opened import
+  // this is no longer possible due to too many potential clashes and generally
+  // weird behaviour
+
+  function g(): int { 2 }
+*/
+module V {
+  /** doclike comment
+    * in a module
+    */
+  import opened LibA
+  function g(): int { 4 }
+}
+";
+      FormatterWorksFor(testCase, testCase);
+    }
+
+    [Fact]
+    public void FormatterworksForRefinedMethod() {
+      FormatterWorksFor(@"
+method M... 
+{
+  if ... {}
+  else if (x == y) {}
+  else {}
+}
 ");
     }
 
@@ -1257,8 +1345,12 @@ method Test() {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
           Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
         }
-        var reprinted = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
-          IndentationFormatter.ForProgram(dafnyProgram));
+
+        var firstToken = dafnyProgram.GetFirstTopLevelToken();
+        var reprinted = firstToken != null && firstToken.line > 0 ?
+          TokenFormatter.__default.printSourceReindent(firstToken,
+          IndentationFormatter.ForProgram(dafnyProgram))
+          : programString;
         if (expectedProgram != reprinted && HelperString.Debug) {
           Console.Write(reprinted);
         }
@@ -1271,8 +1363,9 @@ method Test() {
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
         dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
-        var reprinted2 = TokenFormatter.__default.printSourceReindent(dafnyProgram.GetFirstTopLevelToken(),
-          IndentationFormatter.ForProgram(dafnyProgram));
+        firstToken = dafnyProgram.GetFirstTopLevelToken();
+        var reprinted2 = firstToken != null && firstToken.line > 0 ? TokenFormatter.__default.printSourceReindent(firstToken,
+          IndentationFormatter.ForProgram(dafnyProgram)) : reprinted;
         Assert.Equal(reprinted, reprinted2);
       }
     }

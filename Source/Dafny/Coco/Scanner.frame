@@ -480,7 +480,7 @@ public class Scanner {
     while (ch == ' ' ||
 -->scan1
     ) {
-      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
         if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
           triviaNewlines++;
         }

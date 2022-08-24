@@ -27,7 +27,7 @@ public class HelperString {
   }
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*\/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 
   /// Given a space around a token (input),
   /// * precededByNewline means it's a leading space that was preceded by a newline
@@ -69,15 +69,17 @@ public class HelperString {
           var doubleStar = commentType.StartsWith("/**");
           var originalComment = match.Groups["commentType"].Value;
           var currentIndentation = match.Groups["currentIndent"].Value;
-          var result = new Regex($@"(?<=\r?\n|\r(?!\n)){currentIndentation}(?<star>\s*\*)?").Replace(
+          var canIndentLinesStartingWithStar = true;
+          var result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<star>\s*\*)?").Replace(
             originalComment, match1 => {
-              if (match1.Groups["star"].Success) {
+              if (canIndentLinesStartingWithStar && match1.Groups["star"].Success) {
                 if (doubleStar) {
                   return indentationBefore + "  *";
                 } else {
                   return indentationBefore + " *";
                 }
               } else {
+                canIndentLinesStartingWithStar = false;
                 return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
               }
             });
@@ -228,7 +230,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       if (token.val is "}" && !PosToIndentLineBefore.ContainsKey(token.pos)) {
         SetClosingIndentedRegion(token, indent);
       }
-      if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant") {
+      if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant" or "yield") {
         SetOpeningIndentedRegion(token, indent2);
         commaIndent = indent2;
       }
@@ -793,6 +795,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       switch (stmt) {
         case CalcStmt calcStmt:
           return SetIndentCalcStmt(indent, calcStmt);
+        case SkeletonStatement skeletonStatement:
+          VisitOneStmt(skeletonStatement.S, ref unusedIndent);
+          return false;
         case BlockStmt blockStmt:
           return SetIndentBlockStmt(indent, blockStmt);
         case IfStmt ifStmt: {
@@ -801,8 +806,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
             Visit(ifStmt.Guard, indent);
             VisitBody(ifStmt.Thn, indent);
-            if (ifStmt.OwnedTokens.Count > 1) { // "else"
-              formatter.SetKeywordWithoutSurroundingIndentation(ifStmt.OwnedTokens[1], indent);
+            var elseToken = ifStmt.OwnedTokens.FirstOrDefault(token => token.val == "else");
+            if (elseToken != null) {
+              formatter.SetKeywordWithoutSurroundingIndentation(elseToken, indent);
             }
             VisitBody(ifStmt.Els, indent);
             return false;
@@ -1306,10 +1312,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var rightIndent = indent + SpaceTab;
       var commaIndent = indent + SpaceTab;
       var semicolonIndent = indent;
+      if (ownedTokens.Count > 0) {
+        semicolonIndent = formatter.GetTokenCol(ownedTokens[0], indent) - 1;
+      }
+
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "var": {
-              semicolonIndent = formatter.GetTokenCol(token, indent) - 1;
               if (IsFollowedByNewline(token)) {
                 formatter.SetOpeningIndentedRegion(token, indent);
               } else {

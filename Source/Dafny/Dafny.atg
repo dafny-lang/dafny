@@ -3193,7 +3193,7 @@ IfStmt<out Statement/*!*/ ifStmt>
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
-    | ellipsis                           (. guardEllipsis = t; .)
+    | ellipsis                           (. guardEllipsis = t; ownedTokens.Add(t); .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"                                          (. ownedTokens.Add(t); .)
@@ -3206,11 +3206,14 @@ IfStmt<out Statement/*!*/ ifStmt>
         els.Attributes = elsattrs;
        }
        if (guardEllipsis != null) {
-         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isBindingGuard, guard, thn, els), guardEllipsis, null);
+         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
+         ifStmt.OwnedTokens = ownedTokens;
+         ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
          ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els, attrs);
+         ifStmt.OwnedTokens = ownedTokens;
        }
-       ifStmt.OwnedTokens = ownedTokens;
+       
     .)
   )
   .
