@@ -36,13 +36,13 @@ namespace DafnyTestGeneration {
     public static string Stringify(this object root, bool showNullChildren = false) {
 
       var builder = new StringBuilder();
-      
+
       void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
         if (value == null) {
           builder.Append("null");
           return;
         }
-        
+
         if (value is IEnumerable<object> enumerable) {
           var sep = "";
           builder.Append("[ ");
@@ -68,21 +68,21 @@ namespace DafnyTestGeneration {
           return;
         }
 
-        var type = value.GetType();        
+        var type = value.GetType();
         if (type.Namespace.StartsWith("System")) {
           builder.Append(value);
           return;
         }
-        
+
         var properties = type.GetProperties();
         if (properties.Any(p => p.PropertyType.IsAssignableTo(typeof(IEnumerable<object>)))) {
-        
+
           if (visited.Contains(value)) {
             builder.Append("<visited>");
             return;
           }
           var newVisited = visited.Add(value);
-          
+
           builder.Append(type.Name + " { ");
           var objectSep = "";
           foreach (var property in properties) {
