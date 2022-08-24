@@ -24,6 +24,21 @@ namespace Microsoft.Dafny {
       return result;
     }
 
+    public override bool Parse(string[] arguments) {
+      int i;
+      for (i = 0; i < arguments.Length; i++) {
+        if (arguments[i] == "--") {
+          break;
+        }
+      }
+
+      if (i >= arguments.Length) {
+        return base.Parse(arguments);
+      }
+      MainArgs = arguments.Skip(i + 1).ToList();
+      return base.Parse(arguments.Take(i).ToArray());
+    }
+
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
@@ -308,14 +323,6 @@ namespace Microsoft.Dafny {
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
-            }
-
-            return true;
-          }
-
-        case "arg": {
-            if (ps.ConfirmArgumentCount(1)) {
-              MainArgs.Add(args[ps.i]);
             }
 
             return true;
@@ -1274,9 +1281,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
-/arg:<argument> (repeated)
-    When running the dafny program through /compile:3 or /compile:4, each individual
-    <argument> becomes an element of the array provided to the main function
+    A Main method can have at most one (non-ghost) argument of type `seq<string>`
+-- <arg1> <arg2> ...
+    When running a Dafny file through /compile:3 or /compile:4, '--' provides
+    all arguments after it to the Main function, at index starting at 1.
+    Index 0 is used to store the executable's name if it exists.
 /runAllTests:<n> (experimental)
     0 (default) - Annotates compiled methods with the {{:test}} attribute
         such that they can be tested using a testing framework
