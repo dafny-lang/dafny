@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -71,18 +72,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public Task<ResolvedCompilation?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<CompilationView?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
         return state.GetResolvedDocumentAsync();
       }
-      return Task.FromResult<ResolvedCompilation?>(null);
+      return Task.FromResult<CompilationView?>(null);
     }
 
-    public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<ResolvedCompilation?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.LastDocumentAsync!;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return Task.FromResult<ResolvedCompilation?>(null);
     }
 
     public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {

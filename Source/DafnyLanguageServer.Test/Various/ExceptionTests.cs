@@ -97,7 +97,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
@@ -117,11 +117,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public CompilationView CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<ParsedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new Exception("crash");
       }

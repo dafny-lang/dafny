@@ -95,17 +95,23 @@ public class CompilationManager {
   }
 
   private async Task<ResolvedCompilation> ResolveAsync() {
+    ParsedCompilation parsedCompilation;
     try {
-      var resolvedDocument = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
-      resolvedDocument.LastTouchedVerifiables = migratedLastTouchedVerifiables;
-      resolvedDocument.VerificationTree = migratedVerificationTree ?? resolvedDocument.VerificationTree;
-      notificationPublisher.PublishGutterIcons(resolvedDocument, false);
-      documentUpdates.OnNext(resolvedDocument);
-      return resolvedDocument;
+      parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      parsedCompilation.LastTouchedVerifiables = migratedLastTouchedVerifiables;
+      if (parsedCompilation is ResolvedCompilation resolvedCompilation) {
+        resolvedCompilation.VerificationTree = migratedVerificationTree ?? resolvedCompilation.VerificationTree;
+        notificationPublisher.PublishGutterIcons(resolvedCompilation, false);
+        documentUpdates.OnNext(parsedCompilation);
+        return resolvedCompilation;
+      }
+
     } catch (Exception e) {
       documentUpdates.OnError(e);
       throw;
     }
+    documentUpdates.OnNext(parsedCompilation);
+    throw new OperationCanceledException();
   }
 
   private async Task<TranslatedCompilation> TranslateAsync() {

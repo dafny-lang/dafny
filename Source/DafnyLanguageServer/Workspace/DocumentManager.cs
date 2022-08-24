@@ -32,7 +32,7 @@ public class DocumentManager {
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
-  public Task<DafnyDocument> LastDocumentAsync => CompilationManager.LastDocument;
+  public Task<ResolvedCompilation> LastDocumentAsync => CompilationManager.LastDocument;
 
   public DocumentManager(
     IServiceProvider services,
@@ -58,7 +58,7 @@ public class DocumentManager {
       VerifyOnOpen,
       ImmutableList.Create<Position>(),
       null);
-    observerSubscription = CompilationManager.DocumentUpdates.Subscribe(observer);
+    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.Snapshot()).Subscribe(observer);
   }
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -76,7 +76,7 @@ public class DocumentManager {
     var updatedText = textChangeProcessor.ApplyChange(CompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
     var lastPublishedDocument = observer.LastPublishedDocument;
-    var oldVerificationDiagnostics = lastPublishedDocument.ImplementationIdToView;
+    var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
     var migratedImplementationViews =
       oldVerificationDiagnostics == null ? null : MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
 
@@ -103,13 +103,13 @@ public class DocumentManager {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
-      FillMissingStateUsingLastPublishedDocument(documentChange, document, lastPublishedDocument, migratedImplementationViews));
+      FillMissingStateUsingLastPublishedDocument(documentChange, document.Snapshot(), lastPublishedDocument, migratedImplementationViews));
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
 
-  private DafnyDocument FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
-    DafnyDocument document, DafnyDocument lastPublishedDocument,
-    IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews) {
+  private CompilationView FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
+    CompilationView document, CompilationView lastPublishedDocument,
+    IReadOnlyDictionary<ImplementationId, ImplementationView> migratedImplementationViews) {
     if (!document.SymbolTable.Resolved) {
       document = document with {
         SymbolTable =
@@ -117,17 +117,18 @@ public class DocumentManager {
       };
     }
 
-    var migratedViews = document.ImplementationIdToView?.Select(kv => {
+    var migratedViews = document.ImplementationsWereUpdated ? document.ImplementationViews.Select(kv => {
       var value = kv.Value.Status < PublishedVerificationStatus.Error
         ? kv.Value with {
           Diagnostics = migratedImplementationViews?.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
         }
         : kv.Value;
       return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
-    }) ?? migratedImplementationViews;
-    document.ImplementationIdToView = migratedViews == null ? null : new(migratedViews);
+    }) : migratedImplementationViews;
 
-    return document;
+    return document with {
+      ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(migratedViews),
+    };
   }
 
   private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
@@ -164,13 +165,12 @@ public class DocumentManager {
   /// <summary>
   /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
   /// </summary>
-  public async Task<ResolvedCompilation?> GetResolvedDocumentAsync() {
+  public async Task<CompilationView?> GetResolvedDocumentAsync() {
     try {
       var resolvedDocument = await CompilationManager.ResolvedDocument;
     } catch (OperationCanceledException) {
     }
 
-    var result = observer.LastPublishedDocument;
-    return result as ResolvedCompilation;
+    return observer.LastPublishedDocument;
   }
 }

@@ -49,11 +49,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private class CompletionProcessor {
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DafnyDocument document;
+      private readonly CompilationView document;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, CompletionParams request, CancellationToken cancellationToken) {
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, CompilationView document, CompletionParams request, CancellationToken cancellationToken) {
         this.symbolGuesser = symbolGuesser;
         this.document = document;
         this.request = request;

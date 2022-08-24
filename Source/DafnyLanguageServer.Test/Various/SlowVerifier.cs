@@ -22,7 +22,7 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document, CancellationToken cancellationToken) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));

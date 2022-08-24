@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="Program">The compiled Dafny program.</param>
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
-  public class DafnyDocument { // TODO rename to DafnyDocument
+  public class DafnyDocument { // TODO rename to Compilation
     public DocumentTextBuffer TextDocumentItem { get; }
     
     public DocumentUri Uri => TextDocumentItem.Uri;
@@ -51,8 +51,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
-    public virtual DafnyDocument Snapshot() {
-      return new DafnyDocument(TextDocumentItem) {
+    public virtual CompilationView Snapshot() {
+      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(), 
+        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
+        false, false, 
+        ArraySegment<Diagnostic>.Empty, 
+        ImmutableList<Position>.Empty, 
+        new DocumentVerificationTree(TextDocumentItem)) {
         LastTouchedVerifiables = LastTouchedVerifiables,
       };
     }
@@ -63,8 +68,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   }
 
   public class ParsedCompilation : DafnyDocument {
-    public ParsedCompilation(DocumentTextBuffer textDocumentItem, 
-      Dafny.Program program) : base(textDocumentItem) {
+    private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
+
+    public ParsedCompilation(
+      DocumentTextBuffer textDocumentItem, 
+      Dafny.Program program,
+      IReadOnlyList<Diagnostic> parseDiagnostics) : base(textDocumentItem) {
+      this.parseDiagnostics = parseDiagnostics;
       Program = program;
     }
 
@@ -79,8 +89,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return documentUri == Uri;
     }
     
-    public override DafnyDocument Snapshot() {
-      return new ParsedCompilation(TextDocumentItem, Program) {
+    public override CompilationView Snapshot() {
+      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(), 
+        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
+        false, false, 
+        ArraySegment<Diagnostic>.Empty, 
+        ImmutableList<Position>.Empty, 
+        new DocumentVerificationTree(TextDocumentItem)) {
         LastTouchedVerifiables = LastTouchedVerifiables,
       };
     }
@@ -92,16 +107,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Dafny.Program program, 
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
       SymbolTable symbolTable, 
-      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program) 
+      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) 
     {
       ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
       SymbolTable = symbolTable;
       GhostDiagnostics = ghostDiagnostics;
       
-      VerificationTree = new DocumentVerificationTree(
-        TextDocumentItem.Uri.ToString(),
-        TextDocumentItem.NumberOfLines
-      );
+      VerificationTree = new DocumentVerificationTree(TextDocumentItem);
     }
 
     public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; }
@@ -110,8 +122,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
     
-    public override DafnyDocument Snapshot() {
-      return new ResolvedCompilation(TextDocumentItem, Program, ParseAndResolutionDiagnostics, SymbolTable, GhostDiagnostics) {
+    public override CompilationView Snapshot() {
+      return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics, 
+        SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
+        false, false, 
+        GhostDiagnostics, 
+        ImmutableList<Position>.Empty,
+        VerificationTree) {
         LastTouchedVerifiables = LastTouchedVerifiables,
       };
     }
@@ -132,7 +149,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IReadOnlyList<Diagnostic> ghostDiagnostics, 
       IReadOnlyList<IImplementationTask> verificationTasks,
       IVerificationProgressReporter gutterProgressReporter, 
-      List<Counterexample> counterexamples, Dictionary<ImplementationId, ImplementationView> implementationIdToView) 
+      List<Counterexample> counterexamples, 
+      Dictionary<ImplementationId, ImplementationView> implementationIdToView) 
       : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) 
     {
       VerificationTasks = verificationTasks;
@@ -141,12 +159,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ImplementationIdToView = implementationIdToView;
     }
     
+    public override CompilationView Snapshot() {
+      return base.Snapshot() with {
+        ImplementationsWereUpdated = true,
+        ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(ImplementationIdToView)
+      };
+    }
+    
     public override IEnumerable<Diagnostic> Diagnostics => base.Diagnostics.Concat(
       ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 
     public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
-    
-    public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter GutterProgressReporter { get; set; }
     public List<Counterexample> Counterexamples { get; set; }
     public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }

@@ -1,23 +1,19 @@
+
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DocumentObserver : IObserver<DafnyDocument> {
+class DocumentObserver : IObserver<CompilationView> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public DafnyDocument LastPublishedDocument {
+  public CompilationView LastPublishedDocument {
     get; private set;
   }
 
@@ -44,17 +40,17 @@ class DocumentObserver : IObserver<DafnyDocument> {
 
     var previousDiagnostics = LastPublishedDocument.LoadCanceled
       ? new Diagnostic[] { }
-      : LastPublishedDocument.ParseAndResolutionDiagnostics;
+      : LastPublishedDocument.ResolutionDiagnostics;
     var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
         exception,
       Severity = DiagnosticSeverity.Error,
-      Range = LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange()
+      Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedDocument with {
       LoadCanceled = false,
-      ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
+      ResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
     };
 
     OnNext(documentToPublish);
@@ -64,14 +60,14 @@ class DocumentObserver : IObserver<DafnyDocument> {
   }
 
   private readonly object lastPublishedDocumentLock = new();
-  public void OnNext(DafnyDocument document) {
+  public void OnNext(CompilationView view) {
     lock (lastPublishedDocumentLock) {
-      if (document.Version < LastPublishedDocument.Version) {
+      if (view.Version < LastPublishedDocument.Version) {
         return;
       }
 
-      notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-      LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
+      notificationPublisher.PublishNotifications(LastPublishedDocument, view);
+      LastPublishedDocument = view; // Snapshot before storing.
     }
   }
 }

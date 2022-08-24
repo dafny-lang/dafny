@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -39,6 +41,23 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
+    public static SymbolTable Empty(DocumentTextBuffer textDocument) {
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
+      return new SymbolTable(
+        null,
+        new CompilationUnit(new Dafny.Program(
+          textDocument.Uri.ToString(),
+          new LiteralModuleDecl(new DefaultModuleDecl(), null),
+          // BuiltIns cannot be initialized without Type.ResetScopes() before.
+          new BuiltIns(),
+          errorReporter
+        )),
+        new Dictionary<object, ILocalizableSymbol>(),
+        new Dictionary<ISymbol, SymbolLocation>(),
+        new IntervalTree<Position, ILocalizableSymbol>(),
+        symbolsResolved: false);
+    }
+    
     public SymbolTable(
         ILogger<SymbolTable> iLogger,
         CompilationUnit compilationUnit,

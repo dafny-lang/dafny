@@ -357,10 +357,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    string Identifier,
-    int Lines
-  ) : VerificationTree("Document", Identifier, Identifier, Identifier,
-    LinesToRange(Lines), new Position(0, 0)) {
+    DocumentTextBuffer TextDocumentItem
+  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
+    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
 
     public static Range LinesToRange(int lines) {
       return new Range(new Position(0, 0),

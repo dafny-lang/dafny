@@ -19,8 +19,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The unloaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
-
+    CompilationView CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    
+    
     /// <summary>
     /// Loads the specified document item of the language server and applies the necessary steps
     /// to generate a dafny document instance.
@@ -31,6 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<ResolvedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    Task<ParsedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
   }
 }
