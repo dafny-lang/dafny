@@ -112,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
     }
 
-    public void PublishGutterIcons(ResolvedCompilation document, bool verificationStarted) {
+    public void PublishGutterIcons(CompilationView document, bool verificationStarted) {
       if (!verifierOptions.GutterStatus) {
         return;
       }
@@ -122,11 +122,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      var errors = document.ParseAndResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.TextDocumentItem.NumberOfLines;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         document.Uri,
-        document.Version,
+        document.TextDocumentItem.Version!.Value,
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,

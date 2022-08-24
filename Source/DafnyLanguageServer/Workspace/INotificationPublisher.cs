@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Publishes the more precise real-time verification diagnostics to the connected LSP client
     /// </summary>
-    void PublishGutterIcons(ResolvedCompilation document, bool verificationStarted);
+    void PublishGutterIcons(CompilationView document, bool verificationStarted);
 
     /// <summary>
     /// Hides the previously published diagnostics of the specified dafny document.

@@ -13,6 +13,8 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -116,8 +118,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
       SymbolTable = symbolTable;
       GhostDiagnostics = ghostDiagnostics;
-      
-      VerificationTree = new DocumentVerificationTree(TextDocumentItem);
     }
 
     public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; }
@@ -132,35 +132,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         false, false, 
         GhostDiagnostics, 
         ImmutableList<Position>.Empty,
-        VerificationTree) {
+        new DocumentVerificationTree(TextDocumentItem)) {
         LastTouchedVerifiables = LastTouchedVerifiables,
       };
     }
-
-    /// <summary>
-    /// Contains the real-time status of all verification efforts.
-    /// Can be migrated from a previous document
-    /// The position and the range are never sent to the client.
-    /// </summary>
-    public VerificationTree VerificationTree { get; set; }
   }
 
   public class TranslatedCompilation : ResolvedCompilation {
-    public TranslatedCompilation(DocumentTextBuffer textDocumentItem, 
+    public TranslatedCompilation(
+      IServiceProvider services,
+      DocumentTextBuffer textDocumentItem,
       Dafny.Program program, 
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
       SymbolTable symbolTable, 
       IReadOnlyList<Diagnostic> ghostDiagnostics, 
       IReadOnlyList<IImplementationTask> verificationTasks,
-      IVerificationProgressReporter gutterProgressReporter, 
       List<Counterexample> counterexamples, 
-      Dictionary<ImplementationId, ImplementationView> implementationIdToView) 
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) 
-    {
+      Dictionary<ImplementationId, ImplementationView> implementationIdToView,
+      VerificationTree verificationTree)
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) {
+      VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
-      GutterProgressReporter = gutterProgressReporter;
       Counterexamples = counterexamples;
       ImplementationIdToView = implementationIdToView;
+
+      GutterProgressReporter = new VerificationProgressReporter(
+        services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
+        this,
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<INotificationPublisher>());
     }
     
     public override CompilationView Snapshot() {
@@ -173,6 +173,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public override IEnumerable<Diagnostic> Diagnostics => base.Diagnostics.Concat(
       ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 
+    /// <summary>
+    /// Contains the real-time status of all verification efforts.
+    /// Can be migrated from a previous document
+    /// The position and the range are never sent to the client.
+    /// </summary>
+    public VerificationTree VerificationTree { get; set; }
     public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
     public IVerificationProgressReporter GutterProgressReporter { get; set; }
     public List<Counterexample> Counterexamples { get; set; }

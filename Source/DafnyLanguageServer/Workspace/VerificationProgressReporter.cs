@@ -14,15 +14,14 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  private const int MaxLastTouchedMethods = 5;
 
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly ResolvedCompilation document;
+  private readonly TranslatedCompilation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    ResolvedCompilation document,
+    TranslatedCompilation document,
     ICompilationStatusNotificationPublisher statusPublisher,
     INotificationPublisher notificationPublisher
   ) {
@@ -44,13 +43,19 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Possibly migrates previous diagnostics
   /// </summary>
   public void RecomputeVerificationTree() {
-    var previousTrees = document.VerificationTree.Children;
+    UpdateTree(document, document.VerificationTree);
+  }
+
+  public static void UpdateTree(ParsedCompilation parsedCompilation, VerificationTree rootVerificationTree)
+  {
+    var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();
 
-    void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree) {
+    void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree)
+    {
       var position = verificationTree.Position;
       var previousTree = previousTrees.FirstOrDefault(
         oldNode => oldNode != null && oldNode.Position == position,
@@ -61,15 +66,16 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         verificationTree.StatusCurrent = CurrentStatus.Obsolete;
         verificationTree.Children = previousTree.Children;
       }
-      // Prevent duplicating trees, e.g. reveal lemmas that have the same position as the function. 
+
+      // Prevent duplicating trees, e.g. reveal lemmas that have the same position as the function.
       if (!recordedPositions.Contains(verificationTree.Position)) {
         result.Add(verificationTree);
         recordedPositions.Add(verificationTree.Position);
       }
     }
 
-    var documentFilePath = document.Uri.ToString();
-    foreach (var module in document.Program.Modules()) {
+    var documentFilePath = parsedCompilation.Uri.ToString();
+    foreach (var module in parsedCompilation.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -89,17 +95,20 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             }
           }
         }
+
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
             var memberWasNotIncluded = member.tok.Filename != documentFilePath;
             if (memberWasNotIncluded) {
               continue;
             }
+
             if (member is Field) {
               var constantHasNoBody = member.BodyEndTok.line == 0;
               if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
+
               var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "constant",
@@ -133,10 +142,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             }
           }
         }
+
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
           if (subsetTypeDecl.tok.Filename != documentFilePath) {
             continue;
           }
+
           var verificationTreeRange = subsetTypeDecl.StartToken.GetLspRange(subsetTypeDecl.EndToken);
           var verificationTree = new TopLevelDeclMemberVerificationTree(
             $"subset type",
@@ -149,17 +160,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
       }
     }
-    document.VerificationTree.Children = result;
-  }
 
-  public void UpdateLastTouchedMethodPositions(Range? lastChange) {
-    var newLastTouchedMethodPositions = document.LastTouchedVerifiables.ToList();
-    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && lastChange != null && node.Range.Contains(lastChange), null);
-    if (newlyTouchedVerificationTree != null) {
-      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
-    }
+    rootVerificationTree.Children = result;
   }
 
   /// <summary>
@@ -222,13 +224,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="verificationStarted">Whether verification already started at this point</param>
   /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(bool verificationStarted, DafnyDocument? dafnyDocument = null) {
+  public void ReportRealtimeDiagnostics(bool verificationStarted, ResolvedCompilation? dafnyDocument = null) {
     lock (LockProcessing) {
       dafnyDocument ??= document;
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      notificationPublisher.PublishGutterIcons(document, verificationStarted);
+      notificationPublisher.PublishGutterIcons(document.Snapshot(), verificationStarted);
     }
   }
 
@@ -425,19 +427,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-
-  /// <summary>
-  /// Helper to remember that a method tree was recently modified.
-  /// </summary>
-  /// <param name="methodPosition">The verification tree of the method that was recently modified</param>
-  /// <param name="newLastTouchedMethodPositions">The positions of recently touched methods</param>
-  private void RememberLastTouchedMethodPositions(Position methodPosition, List<Position> newLastTouchedMethodPositions) {
-    var index = newLastTouchedMethodPositions.IndexOf(methodPosition);
-    if (index != -1) {
-      newLastTouchedMethodPositions.RemoveAt(index);
-    }
-    newLastTouchedMethodPositions.Add(methodPosition);
-  }
 
   /// <summary>
   /// Given an implementation, returns the top-level verification tree.

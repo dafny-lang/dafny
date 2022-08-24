@@ -41,8 +41,12 @@ public class CompilationManager {
   public DocumentTextBuffer TextBuffer { get; }
   private readonly Range? lastChange;
   private readonly IServiceProvider services;
+
+  // TODO replace
   private readonly ImmutableList<Position> migratedLastTouchedVerifiables;
   private readonly bool verifyAllImmediately;
+
+  // TODO replace
   private readonly VerificationTree? migratedVerificationTree;
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -99,8 +103,14 @@ public class CompilationManager {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       parsedCompilation.LastTouchedVerifiables = migratedLastTouchedVerifiables;
       if (parsedCompilation is ResolvedCompilation resolvedCompilation) {
-        resolvedCompilation.VerificationTree = migratedVerificationTree ?? resolvedCompilation.VerificationTree;
-        notificationPublisher.PublishGutterIcons(resolvedCompilation, false);
+
+        // TODO, let gutter icon publications also used the published CompilationView.
+        var compilationView = resolvedCompilation.Snapshot();
+        compilationView = compilationView with {
+          VerificationTree = migratedVerificationTree ?? compilationView.VerificationTree
+        };
+        notificationPublisher.PublishGutterIcons(compilationView, false);
+
         documentUpdates.OnNext(parsedCompilation);
         return resolvedCompilation;
       }
@@ -144,16 +154,11 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    var progressReporter = CreateVerificationProgressReporter(loaded);
-    progressReporter.RecomputeVerificationTree();
-    progressReporter.UpdateLastTouchedMethodPositions(lastChange);
+    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
+    VerificationProgressReporter.UpdateTree(loaded, tree);
+    UpdateLastTouchedMethodPositions(loaded, lastChange, tree);
 
     var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
-    if (VerifierOptions.GutterStatus) {
-      progressReporter.ReportRealtimeDiagnostics(false, loaded);
-      progressReporter.ReportImplementationsBeforeVerification(
-        verificationTasks.Select(t => t.Implementation).ToArray());
-    }
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -167,22 +172,52 @@ public class CompilationManager {
       }
     }
 
-    var translated = new TranslatedCompilation(loaded.TextDocumentItem, loaded.Program,
+    var translated = new TranslatedCompilation(services,
+      loaded.TextDocumentItem, loaded.Program,
       loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
-      progressReporter, new(), initialViews);
+      new(),
+      initialViews,
+      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
+
+    translated.GutterProgressReporter.RecomputeVerificationTree();
+
+    if (VerifierOptions.GutterStatus) {
+      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, loaded);
+      translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
+        verificationTasks.Select(t => t.Implementation).ToArray());
+    }
+
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
-    translated.VerificationTree = loaded.VerificationTree;
 
     var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
-      implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+      implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     return translated;
   }
 
-  protected virtual VerificationProgressReporter CreateVerificationProgressReporter(ResolvedCompilation document) {
-    return new VerificationProgressReporter(
-      services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
-      document, statusPublisher, this.services.GetRequiredService<INotificationPublisher>());
+  private const int MaxLastTouchedMethods = 5;
+  private static void UpdateLastTouchedMethodPositions(DafnyDocument dafnyDocument, Range? lastChange, VerificationTree verificationTree)
+  {
+    var newLastTouchedMethodPositions = dafnyDocument.LastTouchedVerifiables.ToList();
+    var newlyTouchedVerificationTree = verificationTree.Children.FirstOrDefault(node =>
+      node != null && lastChange != null && node.Range.Contains(lastChange), null);
+    if (newlyTouchedVerificationTree != null) {
+      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
+      dafnyDocument.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+    }
+  }
+
+  /// <summary>
+  /// Helper to remember that a method tree was recently modified.
+  /// </summary>
+  /// <param name="methodPosition">The verification tree of the method that was recently modified</param>
+  /// <param name="newLastTouchedMethodPositions">The positions of recently touched methods</param>
+  private static void RememberLastTouchedMethodPositions(Position methodPosition, List<Position> newLastTouchedMethodPositions) {
+    var index = newLastTouchedMethodPositions.IndexOf(methodPosition);
+    if (index != -1) {
+      newLastTouchedMethodPositions.RemoveAt(index);
+    }
+    newLastTouchedMethodPositions.Add(methodPosition);
   }
 
   private static ImplementationId GetImplementationId(Implementation implementation) {
