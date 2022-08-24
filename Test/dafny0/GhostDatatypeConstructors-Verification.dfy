@@ -72,7 +72,7 @@ module Ghost {
     case true =>
       z := xy.z;
   }
-/*
+
   method Update0(xy: XY) returns (r: XY)
     requires xy.G1?
   {
@@ -90,11 +90,11 @@ module Ghost {
   {
     if
     case true =>
-      r := xy.(z := 2.2); // error: compiled context cannot update .w of a G1
+      r := xy.(z := 2.2); // error: compiled context cannot update .z of a G1
     case true =>
-      r := xy.(z := 2.2, y := true); // error: compiled context cannot update .w of a G1
+      r := xy.(z := 2.2, y := true); // error: compiled context cannot update .z/.y of a G1
     case true =>
-      r := xy.(z := 2.2, w := 'w', y := true); // error: compiled context cannot update .w of a G1
+      r := xy.(z := 2.2, w := 'w', y := true); // error: compiled context cannot update .z/.w/.y of a G1
   }
 
   method Update2(xy: XY) returns (ghost r: XY)
@@ -113,7 +113,7 @@ module Ghost {
       r := xy.(z := 2.2, y := true);
     case true =>
       r := xy.(z := 2.2, w := 'w', y := true);
-  }*/
+  }
 }
 
 module Initialization {

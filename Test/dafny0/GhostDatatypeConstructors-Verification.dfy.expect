@@ -5,6 +5,13 @@ GhostDatatypeConstructors-Verification.dfy(45,14): Error: in a compiled context,
 GhostDatatypeConstructors-Verification.dfy(47,14): Error: in a compiled context, destructor 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
 GhostDatatypeConstructors-Verification.dfy(56,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
 GhostDatatypeConstructors-Verification.dfy(71,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(81,14): Error: source of datatype update must be constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(83,14): Error: in a compiled context, update of 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1' or 'G0')
+GhostDatatypeConstructors-Verification.dfy(85,14): Error: in a compiled context, update of 'w' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(93,14): Error: in a compiled context, update of 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(95,14): Error: in a compiled context, update of 'z' and 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(97,14): Error: in a compiled context, update of 'z', 'w', and 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(105,14): Error: source of datatype update must be constructed by 'D0'
 GhostDatatypeConstructors-Verification.dfy(126,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
 GhostDatatypeConstructors-Verification.dfy(129,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
 GhostDatatypeConstructors-Verification.dfy(149,9): Error: in a compiled context, discriminator 'C?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'A')
@@ -20,4 +27,4 @@ GhostDatatypeConstructors-Verification.dfy(254,14): Error: to be compilable, the
 GhostDatatypeConstructors-Verification.dfy(254,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 GhostDatatypeConstructors-Verification.dfy(276,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
-Dafny program verifier finished with 4 verified, 21 errors
+Dafny program verifier finished with 4 verified, 28 errors
