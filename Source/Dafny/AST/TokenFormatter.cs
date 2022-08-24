@@ -1255,7 +1255,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             formatter.SetClosingIndentedRegion(token, indent);
             break;
           case "case":
-            formatter.SetDelimiterIndentedRegions(token, caseIndent);
+            formatter.SetOpeningIndentedRegion(token, caseIndent);
             break;
           case "=>":
             if (IsFollowedByNewline(token)) {

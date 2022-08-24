@@ -372,7 +372,9 @@ function topLevel(
     assert w != x;
     match x {
       case 1 =>
-        17
+        17 // This is the expected result
+
+      // This case is particularly useful
       case 3 =>
         18
       case y =>

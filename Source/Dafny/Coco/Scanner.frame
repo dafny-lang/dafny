@@ -472,8 +472,8 @@ public class Scanner {
       lastWasCr = false;
     } else {
       // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
-      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
-        triviaNewlines--;
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
+        triviaNewlines = 0;
         lastWasCr = (ch == '\r');
       }
     }

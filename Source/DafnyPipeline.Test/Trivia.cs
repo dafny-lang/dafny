@@ -26,7 +26,7 @@ namespace DafnyPipeline.Test {
         var programString = @"
 // Comment before
 module Test // Module docstring
-{}
+{} // Attached to }
 
 /** Trait docstring */
 trait Trait1 { }
@@ -36,6 +36,7 @@ trait Trait2 extends Trait1
 // Trait docstring
 { }
 // This is attached to trait2
+// This is also attached to trait2
 
 // This is attached to n
 type n = x: int | x % 2 == 0
