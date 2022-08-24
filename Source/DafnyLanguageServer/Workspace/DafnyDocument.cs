@@ -47,7 +47,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; init; } = null;
-    
+
+    public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
+
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
@@ -78,6 +80,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Program = program;
     }
 
+    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics;
+
     public Dafny.Program Program { get; }
 
     /// <summary>
@@ -90,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
     
     public override CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(), 
+      return new CompilationView(TextDocumentItem, parseDiagnostics,
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
         false, false, 
         ArraySegment<Diagnostic>.Empty, 
@@ -120,7 +124,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public SymbolTable SymbolTable { get; }
     public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
-    public virtual IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
+    public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
     
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics, 

@@ -32,7 +32,7 @@ public class DocumentManager {
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
-  public Task<ResolvedCompilation> LastDocumentAsync => CompilationManager.LastDocument;
+  public Task<ParsedCompilation> LastDocumentAsync => CompilationManager.LastDocument;
 
   public DocumentManager(
     IServiceProvider services,
@@ -77,8 +77,7 @@ public class DocumentManager {
 
     var lastPublishedDocument = observer.LastPublishedDocument;
     var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
-    var migratedImplementationViews =
-      oldVerificationDiagnostics == null ? null : MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
+    var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
 
     // TODO it would be simpler to store last touched positions at the DocumentState level, and always recompute the lastTouchedVerifiables from that.
     // Then we don't need to touch lastPublishedDocument.LastTouchedVerifiables which seems unreliable.

@@ -50,7 +50,7 @@ public class CompilationManager {
   private readonly ReplaySubject<DafnyDocument> documentUpdates = new();
   public IObservable<DafnyDocument> DocumentUpdates => documentUpdates;
 
-  public Task<ResolvedCompilation> ResolvedDocument { get; }
+  public Task<ParsedCompilation> ResolvedDocument { get; }
   public Task<TranslatedCompilation> TranslatedDocument { get; }
 
   public CompilationManager(IServiceProvider services,
@@ -94,10 +94,9 @@ public class CompilationManager {
     var _ = VerifyEverythingAsync();
   }
 
-  private async Task<ResolvedCompilation> ResolveAsync() {
-    ParsedCompilation parsedCompilation;
+  private async Task<ParsedCompilation> ResolveAsync() {
     try {
-      parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       parsedCompilation.LastTouchedVerifiables = migratedLastTouchedVerifiables;
       if (parsedCompilation is ResolvedCompilation resolvedCompilation) {
         resolvedCompilation.VerificationTree = migratedVerificationTree ?? resolvedCompilation.VerificationTree;
@@ -106,18 +105,23 @@ public class CompilationManager {
         return resolvedCompilation;
       }
 
+      documentUpdates.OnNext(parsedCompilation);
+      return parsedCompilation;
+
     } catch (Exception e) {
       documentUpdates.OnError(e);
       throw;
     }
-    documentUpdates.OnNext(parsedCompilation);
-    throw new OperationCanceledException();
   }
 
   private async Task<TranslatedCompilation> TranslateAsync() {
+    var parsedCompilation = await ResolvedDocument;
+    if (parsedCompilation is not ResolvedCompilation resolvedCompilation) {
+      throw new OperationCanceledException();
+    }
+
     try {
-      var resolvedDocument = await ResolvedDocument;
-      var translatedDocument = await PrepareVerificationTasksAsync(resolvedDocument, cancellationSource.Token);
+      var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
       documentUpdates.OnNext(translatedDocument);
       foreach (var task in translatedDocument.VerificationTasks!) {
         cancellationSource.Token.Register(task.Cancel);
@@ -167,6 +171,7 @@ public class CompilationManager {
       loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
       progressReporter, new(), initialViews);
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
+    translated.VerificationTree = loaded.VerificationTree;
 
     var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
       implementations.Contains(c.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
@@ -349,10 +354,12 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<ResolvedCompilation> LastDocument => TranslatedDocument.ContinueWith<Task<ResolvedCompilation>>(t => {
+  public Task<ParsedCompilation> LastDocument => TranslatedDocument.ContinueWith(
+    t => {
     if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD003
-      return verificationCompleted.Task.ContinueWith<Task<ResolvedCompilation>>(_ => Task.FromResult<ResolvedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
+      return verificationCompleted.Task.ContinueWith(
+        _ => Task.FromResult<ParsedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD003
     }
 
