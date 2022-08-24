@@ -1142,8 +1142,8 @@ namespace Microsoft.Dafny {
       // Statement. Since statement translation (in particular, translation of CallStmt's)
       // work directly on the global variable $Heap, we temporarily change its value here.
       if (etran.UsesOldHeap) {
-        BuildWithHeapAs(stmtExpr.S.Tok, "StmtExpr#", locals, builder,
-          etran, () => TrStmt(stmtExpr.S, builder, locals, etran));
+        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, builder,
+          () => TrStmt(stmtExpr.S, builder, locals, etran));
       } else {
         TrStmt(stmtExpr.S, builder, locals, etran);
       }
@@ -1158,8 +1158,8 @@ namespace Microsoft.Dafny {
     /// end of the code generated. (Any other exit would cause control flow to miss
     /// BuildWithHeapAs's assignment that restores the value of $Heap.)
     /// </summary>
-    void BuildWithHeapAs(IToken token, string heapVarSuffix, List<Variable> locals,
-      BoogieStmtListBuilder builder, ExpressionTranslator etran, System.Action build) {
+    void BuildWithHeapAs(IToken token, Bpl.Expr temporaryHeap, string heapVarSuffix, List<Variable> locals,
+      BoogieStmtListBuilder builder, System.Action build) {
       var suffix = CurrentIdGenerator.FreshId(heapVarSuffix);
       var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType));
       locals.Add(tmpHeapVar);
@@ -1170,7 +1170,7 @@ namespace Microsoft.Dafny {
       // tmpHeap := $Heap;
       builder.Add(Bpl.Cmd.SimpleAssign(token, tmpHeap, theHeap));
       // $Heap := etran.HeapExpr;
-      builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, etran.HeapExpr));
+      builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, temporaryHeap));
 
       build();
 
