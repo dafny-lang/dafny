@@ -533,6 +533,19 @@ class T {
 
 
     [Fact]
+    public void FormatWorksForMatchExpression() {
+      FormatterWorksFor(@"
+predicate bad(e:Maybe)
+{
+  forall i :: 0 <= i < 1 ==>
+    0 == match e
+         case Nothing =>
+           0
+         case Just => 0
+}");
+    }
+
+    [Fact]
     public void FormatWorksForTypes() {
       FormatterWorksFor(@"
 include ""test1""
@@ -580,18 +593,20 @@ datatype D =
   | D3(x: LongType< int,
                     int
        >)
-
+type NoWitness_EffectlessArrow<!A(!new), B> = f: A ~> B  // error: cannot find witness
+  | forall a :: f.reads(a) == {}
+ 
 type X = i : int
-       | i == 2 || i == 3 witness 2
+  | i == 2 || i == 3 witness 2
  
 //CommentY
 type Y =   i : int
-       |   // Comment
-           i == 2 || i == 3
-           // Comment2
-       witness
-           // Comment3
-           2
+  | // Comment
+    i == 2 || i == 3
+    // Comment2
+  witness
+    // Comment3
+    2
 //Comment4
 
 //CommentZ
@@ -1214,6 +1229,48 @@ lemma Test() {
     }
 
 
+    [Fact]
+    public void FormatterWorksForCalcAndIfElseNonNested() {
+      FormatterWorksFor(@"
+function test(i: nat): nat {
+  if i == 0 then 0 else
+  if i == 1 then 1 else
+  test(i - 1) + test(i - 2)
+}
+
+lemma test2() {
+  calc {
+      A;
+  ==> B;
+  ==> { Lemma(); }
+      C;
+  ==> // IsPrime_Alt
+      D;
+      E;
+  }
+  calc {
+    product(s);
+    x * y * product(s - {x} - {y});
+    /* TODO
+     */
+    // TODO
+    { assert y == PickLargest(s - {x}); }
+    x * product(s - {x});
+  }
+  calc {
+    A;
+    B;
+  ==> { Lemma(); }
+    C;
+  ==> // IsPrime_Alt
+    D;
+    E;
+  }
+}
+
+
+");
+    }
 
     [Fact]
     public void FormatterWorksForSmokeTest() {

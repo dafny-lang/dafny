@@ -3768,7 +3768,6 @@ CalcStmt<out Statement s>
                                                                stepOp = op;
                                                                resOp = maybeOp;
                                                                danglingOperator = opTok;
-                                                               ownedTokens.Add(opTok);
                                                              }
                                                           .)
     ]                                                     (. stepOps.Add(stepOp); .)

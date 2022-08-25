@@ -618,7 +618,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl redirectingTypeDecl) {
     SetOpeningIndentedRegion(redirectingTypeDecl.StartToken, indent);
     var indent2 = indent + SpaceTab;
-    var rightOfVerticalBarIndent = indent2;
+    var rightOfVerticalBarIndent = indent2 + SpaceTab;
     var verticalBarIndent = indent2;
     foreach (var token in redirectingTypeDecl.OwnedTokens) {
       switch (token.val) {
@@ -628,12 +628,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             break;
           }
         case "=": {
-            if (IsFollowedByNewline(token)) {
-              SetDelimiterInsideIndentedRegions(token, indent);
-            } else {
-              SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
-            }
-
+            SetDelimiterInsideIndentedRegions(token, indent);
             break;
           }
         case "|": {
@@ -1029,7 +1024,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 formatter.SetDelimiterIndentedRegions(token, openingIndent);
               } else {
                 openingIndent = formatter.PosToIndentLineBefore[token.pos];
-                formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                if (!formatter.PosToIndentBefore.ContainsKey(token.pos)) {
+                  formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                }
               }
 
               break;
@@ -1073,7 +1070,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                 if (!IsFollowedByNewline(token) &&
                     (token.val != "==" || token.Next.val != "#") &&
                     token.val != "#" &&
-                    token.val != "[") {
+                    token.val != "[" &&
+                    token.Next.val != "{") {
                   formatter.SetIndentations(token, sameLineBefore: indent);
                   innerCalcIndent = Math.Max(innerCalcIndent, formatter.GetRightAlignIndentAfter(token, indent));
                 }
@@ -1121,6 +1119,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             formatter.SetOpeningIndentedRegion(hintStep.StartToken, indent + SpaceTab);
           }
         }
+      }
+
+      foreach (var expression in calcStmt.Lines) {
+        formatter.SetIndentations(expression.StartToken, innerCalcIndent, innerCalcIndent, innerCalcIndent);
       }
 
       return true;
@@ -1242,13 +1244,17 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var matchCaseNoIndent = false;
       var caseIndent = indent;
       var afterArrowIndent = indent + SpaceTab;
+      // Need to ensure that the "case" is at least left aligned with the match/if/while keyword
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "if":
           case "while":
-          case "match":
-            formatter.SetOpeningIndentedRegion(token, indent);
-            break;
+          case "match": {
+              caseIndent = formatter.GetTokenCol(token, indent) - 1;
+              afterArrowIndent = caseIndent + SpaceTab;
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
           case "{":
             caseIndent = indent + SpaceTab;
             afterArrowIndent = caseIndent + SpaceTab;
@@ -1277,6 +1283,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     private bool ApplyITEFormatting(int indent, List<IToken> ownedTokens) {
+      var lineThen = 0;
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "if": {
@@ -1288,17 +1295,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
               break;
             }
-          case "else":
-          case "then": {
-              if (IsFollowedByNewline(token)) {
+          case "then":
+          case "else": {
+              if (token.val == "then") {
+                lineThen = token.line;
+              }
+              if (token.val == "else" && (token.Next.val == "if" || token.line == lineThen)) { // Don't indent the subexpression
+                formatter.SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
+              } else if (IsFollowedByNewline(token)) {
                 formatter.SetOpeningIndentedRegion(token, indent);
               } else {
-                if (token.val == "else" && token.Next.val == "if") { // Don't indent the subexpression
-                  formatter.SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
-                } else {
-                  var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
-                  formatter.SetIndentations(token, indent, indent, rightIndent);
-                }
+                var rightIndent = formatter.GetRightAlignIndentAfter(token, indent);
+                formatter.SetIndentations(token, indent, indent, rightIndent);
               }
 
               formatter.SetIndentations(token.Prev, after: indent);
