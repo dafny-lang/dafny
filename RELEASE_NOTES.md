@@ -1,6 +1,6 @@
 # Upcoming
 
-- feat: Support for `{:opaque}` attibute on `const`
+- feat: Support for the `{:opaque}` attibute on `const`
 
 
 # 3.8.0
