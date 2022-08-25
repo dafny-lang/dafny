@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Only one instance should exist of a specific version.
   /// Asynchronous compilation tasks use this instance to synchronise on
   ///
-  /// When verification starts, no new instances of DafnyDocument will be created for this version.
+  /// When verification starts, no new instances of Compilation will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {

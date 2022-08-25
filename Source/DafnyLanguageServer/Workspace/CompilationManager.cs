@@ -44,7 +44,7 @@ public class CompilationManager {
   private readonly bool verifyAllImmediately;
   private readonly IEnumerable<Range> changedRanges;
 
-  // TODO replace
+  // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -144,20 +144,9 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
-    VerificationProgressReporter.UpdateTree(loaded, tree);
-    var intervalTree = new IntervalTree<Position, Position>();
-    foreach (var childTree in tree.Children) {
-      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
-    }
-
-    var verifiableToPosition = changedRanges.
-      SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).
-      Distinct().Select((position, i) => (position, i)).
-      ToDictionary(k => k.position, k => k.i);
-
+    var verifiableToOrderIndex = GetVerifiableToOrderIndex(loaded);
     var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, verifiableToPosition, cancellationToken);
+      await verifier.GetVerificationTasksAsync(loaded, verifiableToOrderIndex, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -192,6 +181,20 @@ public class CompilationManager {
       implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     return translated;
+  }
+
+  private Dictionary<Position, int> GetVerifiableToOrderIndex(CompilationAfterResolution loaded) {
+    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
+    VerificationProgressReporter.UpdateTree(loaded, tree);
+    var intervalTree = new IntervalTree<Position, Position>();
+    foreach (var childTree in tree.Children) {
+      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+    }
+
+    var verifiableToPosition = changedRanges
+      .SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).Distinct()
+      .Select((position, i) => (position, i)).ToDictionary(k => k.position, k => k.i);
+    return verifiableToPosition;
   }
 
   private static ImplementationId GetImplementationId(Implementation implementation) {

@@ -103,9 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         errorReporter.GetDiagnostics(textDocument.Uri),
         symbolTable,
-        // canDoVerification,
         ghostDiagnostics
-        // , WasResolved: !errorReporter.HasErrors
         );
     }
 
