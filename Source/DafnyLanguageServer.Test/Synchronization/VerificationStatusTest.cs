@@ -81,7 +81,7 @@ function MultiplyByPlus(x: nat, y: nat): nat {
   }
 
   [TestMethod]
-  public async Task EmptyVerificationTaskListIsPublishedOnOpenButNotChange() {
+  public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
     var source = "method m1() {}";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -97,7 +97,8 @@ function MultiplyByPlus(x: nat, y: nat): nat {
       second = DateTime.Now;
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
-      await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status2.NamedVerifiables.Count);
       third = DateTime.Now;
     } catch (OperationCanceledException) {
       Console.WriteLine($"first: {first}, second: {second}, third: {third}");
