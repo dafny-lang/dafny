@@ -1,11 +1,9 @@
-﻿using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,38 +60,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public CompilationView CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-      return CreateDocumentWithEmptySymbolTable(
-        loggerFactory.CreateLogger<SymbolTable>(),
-        textDocument,
+      return CreateDocumentWithEmptySymbolTable(textDocument,
         new[] { new Diagnostic {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
           Message = "Resolution diagnostics have not been computed yet."
-        }},
-        parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
-        wasResolved: false,
-        loadCanceled: true
+        }}
       );
     }
-
-    // public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-    //   var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-    //   return CreateDocumentWithEmptySymbolTable(
-    //     loggerFactory.CreateLogger<SymbolTable>(),
-    //     textDocument,
-    //     new[] { new Diagnostic {
-    //       // This diagnostic never gets sent to the client,
-    //       // instead it forces the first computed diagnostics for a document to always be sent.
-    //       // The message here describes the implicit client state before the first diagnostics have been sent.
-    //       Message = "Resolution diagnostics have not been computed yet."
-    //     }},
-    //     parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
-    //     wasResolved: false,
-    //     loadCanceled: true
-    //   );
-    // }
 
     public async Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
@@ -112,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new CompilationAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
@@ -139,55 +114,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationView CreateDocumentWithEmptySymbolTable(
-      ILogger<SymbolTable> logger,
       DocumentTextBuffer textDocument,
-      IReadOnlyList<Diagnostic> diagnostics,
-      Dafny.Program program,
-      bool wasResolved,
-      bool loadCanceled
+      IReadOnlyList<Diagnostic> diagnostics
     ) {
       return new CompilationView(
         textDocument,
         diagnostics,
         SymbolTable.Empty(textDocument),
-        // false,
         new Dictionary<ImplementationId, ImplementationView>(),
-        false, loadCanceled,
+        false,
         Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(textDocument)
-      // wasResolved,
-      // loadCanceled
-      );
-    }
-
-    // private ResolvedCompilation CreateDocumentWithEmptySymbolTable(
-    //   ILogger<SymbolTable> logger,
-    //   DocumentTextBuffer textDocument,
-    //   IReadOnlyList<Diagnostic> diagnostics,
-    //   Dafny.Program program,
-    //   bool wasResolved,
-    //   bool loadCanceled
-    // ) {
-    //   return new ResolvedCompilation(
-    //     textDocument,
-    //     program,
-    //     diagnostics,
-    //     CreateEmptySymbolTable(program, logger),
-    //     // false,
-    //     Array.Empty<Diagnostic>()
-    //     // wasResolved,
-    //     // loadCanceled
-    //   );
-    // }
-
-    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
-      return new SymbolTable(
-        logger,
-        new CompilationUnit(program),
-        new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ISymbol, SymbolLocation>(),
-        new IntervalTree<Position, ILocalizableSymbol>(),
-        symbolsResolved: false
       );
     }
   }

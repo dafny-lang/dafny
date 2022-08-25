@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public virtual CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(),
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false, false,
+        false,
         ArraySegment<Diagnostic>.Empty,
         new DocumentVerificationTree(TextDocumentItem));
     }
@@ -73,19 +73,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Dafny.Program Program { get; }
 
-    /// <summary>
-    /// Checks if the given document uri is pointing to this dafny document.
-    /// </summary>
-    /// <param name="documentUri">The document uri to check.</param>
-    /// <returns><c>true</c> if the specified document uri points to the file represented by this document.</returns>
-    public bool IsDocument(DocumentUri documentUri) {
-      return documentUri == Uri;
-    }
-
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, parseDiagnostics,
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false, false,
+        false,
         ArraySegment<Diagnostic>.Empty,
         new DocumentVerificationTree(TextDocumentItem));
     }
@@ -112,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics,
         SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false, false,
+        false,
         GhostDiagnostics,
         new DocumentVerificationTree(TextDocumentItem));
     }

@@ -19,8 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IEnumerable<Diagnostic> ResolutionDiagnostics,
     SymbolTable SymbolTable,
     IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
-    bool ImplementationsWereUpdated,
-    bool LoadCanceled,
+    bool ImplementationsWereUpdated, // TODO needed?
     IEnumerable<Diagnostic> GhostDiagnostics,
     VerificationTree VerificationTree
     ) {

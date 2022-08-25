@@ -60,6 +60,7 @@ public class DocumentManager {
     observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.Snapshot()).Subscribe(observer);
   }
 
+  private const int MaxRememberedChanges = 100;
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
@@ -82,7 +83,7 @@ public class DocumentManager {
         ChangedRanges.Select(range =>
         relocator.RelocateRange(range, documentChange, CancellationToken.None)).
           Where(r => r != null)
-      ).ToList()!;
+      ).Take(MaxRememberedChanges).ToList()!;
 
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
@@ -99,11 +100,11 @@ public class DocumentManager {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
-      FillMissingStateUsingLastPublishedDocument(documentChange, document.Snapshot(), lastPublishedDocument, migratedImplementationViews));
+      FillMissingStateUsingLastPublishedView(documentChange, document.Snapshot(), lastPublishedDocument, migratedImplementationViews));
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
 
-  private CompilationView FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
+  private CompilationView FillMissingStateUsingLastPublishedView(DidChangeTextDocumentParams documentChange,
     CompilationView document, CompilationView lastPublishedDocument,
     IReadOnlyDictionary<ImplementationId, ImplementationView> migratedImplementationViews) {
     if (!document.SymbolTable.Resolved) {
