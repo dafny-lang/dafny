@@ -1156,6 +1156,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case BinaryExpr binaryExpr: {
             return ApplyBinaryExprFormatting(indent, binaryExpr);
           }
+        case LetOrFailExpr:
         case LetExpr:
           return SetIndentVarDeclStmt(indent, expr.OwnedTokens);
         case ITEExpr: {
@@ -1322,14 +1323,21 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private bool SetIndentVarDeclStmt(int indent, List<IToken> ownedTokens) {
       var rightIndent = indent + SpaceTab;
       var commaIndent = indent + SpaceTab;
-      var semicolonIndent = indent;
-      if (ownedTokens.Count > 0) {
-        semicolonIndent = formatter.GetTokenCol(ownedTokens[0], indent) - 1;
-      }
-
+      var afterSemicolonIndent = indent;
+      var hadGhost = false;
       foreach (var token in ownedTokens) {
         switch (token.val) {
+          case "ghost": {
+              afterSemicolonIndent = formatter.GetTokenCol(token, indent) - 1;
+              formatter.SetOpeningIndentedRegion(token, indent);
+              hadGhost = true;
+              break;
+            }
           case "var": {
+              if (!hadGhost) {
+                afterSemicolonIndent = formatter.GetTokenCol(token, indent) - 1;
+              }
+
               if (IsFollowedByNewline(token)) {
                 formatter.SetOpeningIndentedRegion(token, indent);
               } else {
@@ -1354,7 +1362,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
             break;
           case ";":
-            formatter.SetClosingIndentedRegionInside(token, semicolonIndent);
+            formatter.SetIndentations(token, afterSemicolonIndent + SpaceTab,
+              afterSemicolonIndent + SpaceTab, afterSemicolonIndent);
             break;
             // Otherwise, these are identifiers, We don't need to specify their indentation.
         }

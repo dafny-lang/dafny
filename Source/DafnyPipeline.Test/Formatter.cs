@@ -537,6 +537,20 @@ class T {
 // RUN
 
 include ""git-issue48-include.dfyi""
+
+");
+    }
+
+    [Fact]
+    public void FormatWorksForFirstNestedElephantAssignments() {
+      FormatterWorksFor(@"
+function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome): NatOutcome {
+  var expr1: nat :- (var x := if b then o1 else o2; x);
+  var use_expr1: nat := expr1;
+  var expr2 :- (var x := if b then o1 else o2; x);
+  var use_expr2: nat := expr2;
+  o2
+}
 ");
     }
 
