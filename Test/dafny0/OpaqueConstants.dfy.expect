@@ -1,0 +1,12 @@
+OpaqueConstants.dfy(10,18): Error: assertion might not hold
+OpaqueConstants.dfy(22,18): Error: assertion might not hold
+OpaqueConstants.dfy(50,16): Error: assertion might not hold
+OpaqueConstants.dfy(52,15): Error: assertion might not hold
+OpaqueConstants.dfy(54,15): Error: assertion might not hold
+OpaqueConstants.dfy(67,38): Error: assertion might not hold
+OpaqueConstants.dfy(76,21): Error: assertion might not hold
+OpaqueConstants.dfy(78,24): Error: assertion might not hold
+OpaqueConstants.dfy(80,24): Error: assertion might not hold
+OpaqueConstants.dfy(93,47): Error: assertion might not hold
+
+Dafny program verifier finished with 3 verified, 10 errors

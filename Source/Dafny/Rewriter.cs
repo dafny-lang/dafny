@@ -1007,11 +1007,13 @@ namespace Microsoft.Dafny {
       Attributes lemma_attrs = new Attributes("auto_generated", new List<Expression>(), null);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(c.tok, false) }, lemma_attrs);
-      AttributedExpression ensures = new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs));
+      var ens = new List<AttributedExpression>();
+      if (c.Rhs != null) {
+        ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
+      }
       var reveal = new Lemma(c.tok, "reveal_" + c.Name, c.HasStaticKeyword, new List<TypeParameter>(),
         new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-        new Specification<FrameExpression>(new List<FrameExpression>(), null),
-        new List<AttributedExpression>() { ensures },
+        new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       newDecls.Add(reveal);
       reveal.InheritVisibility(c, true);
