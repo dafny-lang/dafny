@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -100,7 +99,7 @@ public class CompilationManager {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var compilationView = parsedCompilation.Snapshot();
+      var compilationView = parsedCompilation.NotMigratedSnapshot();
       compilationView = compilationView with {
         VerificationTree = migratedVerificationTree ?? compilationView.VerificationTree
       };
@@ -209,7 +208,7 @@ public class CompilationManager {
   private async Task VerifyEverythingAsync() {
     var translatedDocument = await TranslatedDocument;
 
-    var implementationTasks = translatedDocument.VerificationTasks!;
+    var implementationTasks = translatedDocument.VerificationTasks;
     if (!implementationTasks.Any()) {
       FinishedNotifications(translatedDocument);
     }
@@ -233,11 +232,11 @@ public class CompilationManager {
     if (statusUpdates == null) {
       if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
-          dafnyDocument.GutterProgressReporter!.ReportAssertionBatchResult(
+          dafnyDocument.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
 
-        dafnyDocument.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation,
+        dafnyDocument.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
           completedCache.Result);
       }
 
@@ -248,7 +247,7 @@ public class CompilationManager {
     statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
       update => HandleStatusUpdate(dafnyDocument, implementationTask, update),
       () => {
-        if (dafnyDocument.VerificationTasks!.All(t => t.IsIdle)) {
+        if (dafnyDocument.VerificationTasks.All(t => t.IsIdle)) {
           FinishedNotifications(dafnyDocument);
         }
       });
@@ -264,7 +263,7 @@ public class CompilationManager {
         SetAllUnvisitedMethodsAsVerified(dafnyDocument);
       }
 
-      dafnyDocument.GutterProgressReporter!.ReportRealtimeDiagnostics(true, dafnyDocument);
+      dafnyDocument.GutterProgressReporter.ReportRealtimeDiagnostics(true, dafnyDocument);
     }
 
     NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
@@ -277,27 +276,27 @@ public class CompilationManager {
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
       if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportVerifyImplementationRunning(implementationTask.Implementation);
+        document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
       }
     }
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
-        document.Counterexamples!.Add(counterExample);
+        document.Counterexamples.Add(counterExample);
       }
 
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);
-      document.ImplementationIdToView![id] = view;
+      document.ImplementationIdToView[id] = view;
       if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+        document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
       }
       logger.LogInformation($"Verification of Boogie implementation {implementationTask.Implementation.Name} completed.");
     } else {
-      var existingView = document.ImplementationIdToView!.GetValueOrDefault(id) ??
+      var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
-      document.ImplementationIdToView![id] = existingView with { Status = status };
+      document.ImplementationIdToView[id] = existingView with { Status = status };
     }
 
     documentUpdates.OnNext(document);
@@ -367,10 +366,10 @@ public class CompilationManager {
   public Task<CompilationAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
-#pragma warning disable VSTHRD003
         return verificationCompleted.Task.ContinueWith(
+#pragma warning disable VSTHRD103
           _ => Task.FromResult<CompilationAfterParsing>(t.Result), TaskScheduler.Current).Unwrap();
-#pragma warning restore VSTHRD003
+#pragma warning restore VSTHRD103
       }
 
       return ResolvedDocument;

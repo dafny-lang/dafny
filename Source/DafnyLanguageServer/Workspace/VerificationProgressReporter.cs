@@ -221,7 +221,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? dafnyDocument = null) {
     lock (LockProcessing) {
       dafnyDocument ??= document;
-      notificationPublisher.PublishGutterIcons(document.Snapshot(), verificationStarted);
+      notificationPublisher.PublishGutterIcons(document.NotMigratedSnapshot(), verificationStarted);
     }
   }
 

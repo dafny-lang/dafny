@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Reactive.Concurrency;
-using System.Reactive.Subjects;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -28,15 +23,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// When verification starts, no new instances of DafnyDocument will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
-  /// <param name="TextDocumentItem">The text document represented by this dafny document.</param>
-  /// <param name="Errors">The diagnostics to report.</param>
-  /// <param name="GhostDiagnostics">The ghost state diagnostics of the document.</param>
-  /// <param name="Program">The compiled Dafny program.</param>
-  /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
-  /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public class Compilation {
     public DocumentTextBuffer TextDocumentItem { get; }
-
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
 
@@ -46,23 +34,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
 
+    public CompilationView NotMigratedSnapshot() {
+      return Snapshot(new CompilationView(TextDocumentItem, Array.Empty<Diagnostic>(),
+        SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        false, Array.Empty<Diagnostic>(),
+        new DocumentVerificationTree(TextDocumentItem)));
+    }
+
     /// <summary>
     /// Creates a clone of the DafnyDocument
     /// </summary>
-    public virtual CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(),
-        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false,
-        ArraySegment<Diagnostic>.Empty,
-        new DocumentVerificationTree(TextDocumentItem));
+    public virtual CompilationView Snapshot(CompilationView previousView) {
+      return previousView with {
+        TextDocumentItem = TextDocumentItem,
+        ImplementationsWereUpdated = false };
     }
   }
 
   public class CompilationAfterParsing : Compilation {
     private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
 
-    public CompilationAfterParsing(
-      DocumentTextBuffer textDocumentItem,
+    public CompilationAfterParsing(DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseDiagnostics) : base(textDocumentItem) {
       this.parseDiagnostics = parseDiagnostics;
@@ -73,22 +65,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Dafny.Program Program { get; }
 
-    public override CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, parseDiagnostics,
-        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false,
-        ArraySegment<Diagnostic>.Empty,
-        new DocumentVerificationTree(TextDocumentItem));
+    public override CompilationView Snapshot(CompilationView previousView) {
+      return previousView with {
+        ResolutionDiagnostics = parseDiagnostics
+      };
     }
   }
 
   public class CompilationAfterResolution : CompilationAfterParsing {
-    public CompilationAfterResolution(
-      DocumentTextBuffer textDocumentItem,
+    public CompilationAfterResolution(DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
       SymbolTable symbolTable,
-      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
+      IReadOnlyList<Diagnostic> ghostDiagnostics) :
+      base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty)
+    {
       ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
       SymbolTable = symbolTable;
       GhostDiagnostics = ghostDiagnostics;
@@ -100,12 +91,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
 
-    public override CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics,
-        SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
-        false,
-        GhostDiagnostics,
-        new DocumentVerificationTree(TextDocumentItem));
+    public override CompilationView Snapshot(CompilationView previousView) {
+      return previousView with {
+        ResolutionDiagnostics = ParseAndResolutionDiagnostics,
+        SymbolTable = SymbolTable.Resolved ? SymbolTable : previousView.SymbolTable,
+        GhostDiagnostics = GhostDiagnostics
+      };
     }
   }
 
@@ -134,11 +125,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<INotificationPublisher>());
     }
 
-    public override CompilationView Snapshot() {
-      return base.Snapshot() with {
+    public override CompilationView Snapshot(CompilationView previousView) {
+      var implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
+        var value = kv.Value.Status < PublishedVerificationStatus.Error
+          ? kv.Value with {
+            Diagnostics = previousView.ImplementationViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+          }
+          : kv.Value;
+        return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
+      });
+      return base.Snapshot(previousView) with {
         ImplementationsWereUpdated = true,
         VerificationTree = VerificationTree,
-        ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(ImplementationIdToView)
+        ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(implementationViewsWithMigratedDiagnostics)
       };
     }
 

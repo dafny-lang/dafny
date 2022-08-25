@@ -28,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="textDocument">The text document to load.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// 
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>

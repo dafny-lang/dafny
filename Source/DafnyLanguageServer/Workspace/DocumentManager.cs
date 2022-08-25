@@ -57,7 +57,7 @@ public class DocumentManager {
       VerifyOnOpen,
       ChangedRanges,
       null);
-    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.Snapshot()).Subscribe(observer);
+    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.NotMigratedSnapshot()).Subscribe(observer);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -78,6 +78,9 @@ public class DocumentManager {
     var lastPublishedDocument = observer.LastPublishedDocument;
     var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
     var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
+    lastPublishedDocument = lastPublishedDocument with {
+      ImplementationViews = migratedImplementationViews
+    };
 
     ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
         ChangedRanges.Select(range =>
@@ -100,7 +103,7 @@ public class DocumentManager {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
-      FillMissingStateUsingLastPublishedView(documentChange, document.Snapshot(), lastPublishedDocument, migratedImplementationViews));
+      document.Snapshot(lastPublishedDocument));
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
 

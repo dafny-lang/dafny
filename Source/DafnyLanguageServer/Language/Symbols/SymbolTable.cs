@@ -2,7 +2,6 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -44,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public static SymbolTable Empty(DocumentTextBuffer textDocument) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       return new SymbolTable(
-        null,
+        NullLogger<SymbolTable>.Instance,
         new CompilationUnit(new Dafny.Program(
           textDocument.Uri.ToString(),
           new LiteralModuleDecl(new DefaultModuleDecl(), null),
@@ -103,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Tries to get the location of the given symbol.
     /// </summary>
-    /// <param name="position">The symbol to get the location of.</param>
+    /// <param name="symbol">The symbol to get the location of.</param>
     /// <param name="location">The current location of the specified symbol, or <c>null</c> if no location of the given symbol is known.</param>
     /// <returns><c>true</c> if a location was found, otherwise <c>false</c>.</returns>
     public bool TryGetLocationOf(ISymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
