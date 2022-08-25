@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public virtual CompilationView Snapshot(CompilationView previousView) {
       return previousView with {
         TextDocumentItem = TextDocumentItem,
-        ImplementationsWereUpdated = false
+        ImplementationsWereUpdated = false,
       };
     }
   }
@@ -68,7 +68,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public override CompilationView Snapshot(CompilationView previousView) {
       return previousView with {
-        ResolutionDiagnostics = parseDiagnostics
+        TextDocumentItem = TextDocumentItem,
+        ResolutionDiagnostics = parseDiagnostics,
+        ImplementationsWereUpdated = false,
       };
     }
   }
@@ -93,6 +95,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public override CompilationView Snapshot(CompilationView previousView) {
       return previousView with {
+        TextDocumentItem = TextDocumentItem,
+        ImplementationsWereUpdated = false,
         ResolutionDiagnostics = ParseAndResolutionDiagnostics,
         SymbolTable = SymbolTable.Resolved ? SymbolTable : previousView.SymbolTable,
         GhostDiagnostics = GhostDiagnostics

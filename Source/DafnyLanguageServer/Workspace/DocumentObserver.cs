@@ -38,7 +38,6 @@ class DocumentObserver : IObserver<CompilationView> {
       return;
     }
 
-    var previousDiagnostics = LastPublishedDocument.Diagnostics;
     var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
@@ -47,7 +46,7 @@ class DocumentObserver : IObserver<CompilationView> {
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedDocument with {
-      ResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
+      ResolutionDiagnostics = new[] { internalErrorDiagnostic }
     };
 
     OnNext(documentToPublish);

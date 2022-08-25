@@ -76,10 +76,9 @@ public class DocumentManager {
     var updatedText = textChangeProcessor.ApplyChange(CompilationManager.TextBuffer, documentChange, CancellationToken.None);
 
     var lastPublishedDocument = observer.LastPublishedDocument;
-    var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
-    var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
     lastPublishedDocument = lastPublishedDocument with {
-      ImplementationViews = migratedImplementationViews
+      ImplementationViews = MigrateImplementationViews(documentChange, lastPublishedDocument.ImplementationViews),
+      SymbolTable = relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None)
     };
 
     ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
@@ -105,30 +104,6 @@ public class DocumentManager {
     var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
       document.Snapshot(lastPublishedDocument));
     observerSubscription = migratedUpdates.Subscribe(observer);
-  }
-
-  private CompilationView FillMissingStateUsingLastPublishedView(DidChangeTextDocumentParams documentChange,
-    CompilationView document, CompilationView lastPublishedDocument,
-    IReadOnlyDictionary<ImplementationId, ImplementationView> migratedImplementationViews) {
-    if (!document.SymbolTable.Resolved) {
-      document = document with {
-        SymbolTable =
-        relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None)
-      };
-    }
-
-    var migratedViews = document.ImplementationsWereUpdated ? document.ImplementationViews.Select(kv => {
-      var value = kv.Value.Status < PublishedVerificationStatus.Error
-        ? kv.Value with {
-          Diagnostics = migratedImplementationViews?.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-        }
-        : kv.Value;
-      return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
-    }) : migratedImplementationViews;
-
-    return document with {
-      ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(migratedViews),
-    };
   }
 
   private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
