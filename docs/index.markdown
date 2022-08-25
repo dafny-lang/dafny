@@ -23,6 +23,7 @@ This site contains links to Dafny documentation.
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
    * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
+   * [FAQs and explanations of error messages](HowToFAQ/index)
 * Detailed documents for programmers
    * [Dafny Reference Manual](DafnyRef/DafnyRef)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type

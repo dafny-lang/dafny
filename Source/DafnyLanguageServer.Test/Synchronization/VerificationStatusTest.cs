@@ -1,19 +1,41 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [TestClass]
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
+
+  [TestMethod]
+  public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}";
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    var fooPosition = fooSymbol.SelectionRange.Start;
+    var runSuccess = await client.RunSymbolVerification(documentItem, fooPosition, CancellationToken);
+    Assert.IsTrue(runSuccess);
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
 
   [TestMethod]
   public async Task FunctionByMethodIsSeenAsSingleVerifiable() {
@@ -64,13 +86,25 @@ function MultiplyByPlus(x: nat, y: nat): nat {
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, status1.NamedVerifiables.Count);
+    DateTime? first = null;
+    DateTime? second = null;
+    DateTime? third = null;
+    try {
+      first = DateTime.Now;
+      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status1.NamedVerifiables.Count);
 
-    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+      second = DateTime.Now;
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
-    var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, status2.NamedVerifiables.Count);
+      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      third = DateTime.Now;
+      Assert.AreEqual(0, status2.NamedVerifiables.Count);
+    } catch (OperationCanceledException) {
+      Console.WriteLine($"first: {first}, second: {second}, third: {third}");
+      Console.WriteLine(verificationStatusReceiver.History.Stringify());
+      throw;
+    }
   }
 
   [TestMethod]
