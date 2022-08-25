@@ -50,8 +50,8 @@ public class CompilationManager {
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly ReplaySubject<DafnyDocument> documentUpdates = new();
-  public IObservable<DafnyDocument> DocumentUpdates => documentUpdates;
+  private readonly ReplaySubject<Compilation> documentUpdates = new();
+  public IObservable<Compilation> DocumentUpdates => documentUpdates;
 
   public Task<ParsedCompilation> ResolvedDocument { get; }
   public Task<TranslatedCompilation> TranslatedDocument { get; }
@@ -303,7 +303,7 @@ public class CompilationManager {
     documentUpdates.OnNext(document);
   }
 
-  private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
+  private List<Diagnostic> GetDiagnosticsFromResult(Compilation document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));

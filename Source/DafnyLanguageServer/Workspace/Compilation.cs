@@ -34,21 +34,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="Program">The compiled Dafny program.</param>
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
-  public class DafnyDocument { // TODO rename to Compilation
+  public class Compilation {
     public DocumentTextBuffer TextDocumentItem { get; }
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
 
-    public DafnyDocument(DocumentTextBuffer textDocumentItem) {
+    public Compilation(DocumentTextBuffer textDocumentItem) {
       TextDocumentItem = textDocumentItem;
     }
-
-    // List of a few last touched method positions
-    // TODO, move to documentManager.
-
-    // Used to prioritize verification to one method and its dependencies
-    public Range? LastChange { get; init; } = null;
 
     public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
 
@@ -62,13 +56,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ArraySegment<Diagnostic>.Empty,
         new DocumentVerificationTree(TextDocumentItem));
     }
-
-    public bool CanDoVerification { get; }
-    public bool WasResolved { get; }
-    public bool LoadCanceled { get; } = false;
   }
 
-  public class ParsedCompilation : DafnyDocument {
+  public class ParsedCompilation : Compilation {
     private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
 
     public ParsedCompilation(

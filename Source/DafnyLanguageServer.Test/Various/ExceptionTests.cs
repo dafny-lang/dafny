@@ -99,7 +99,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document,
-      IDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");

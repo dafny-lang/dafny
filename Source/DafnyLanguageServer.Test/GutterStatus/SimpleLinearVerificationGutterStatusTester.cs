@@ -44,7 +44,7 @@ method Foo() ensures false { } ";
  .  | :}");
   }
 
-  [TestMethod]
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await VerifyTrace(@"
  .  |  |  |  I  I  |  | :predicate Ok() {

@@ -169,10 +169,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="implementations">The implementations to be verified</param>
   public virtual void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-    if (document.LoadCanceled) {
-      return;
-    }
-
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     foreach (var methodTree in document.VerificationTree.Children) {
@@ -225,9 +221,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public void ReportRealtimeDiagnostics(bool verificationStarted, ResolvedCompilation? dafnyDocument = null) {
     lock (LockProcessing) {
       dafnyDocument ??= document;
-      if (dafnyDocument.LoadCanceled) {
-        return;
-      }
       notificationPublisher.PublishGutterIcons(document.Snapshot(), verificationStarted);
     }
   }
@@ -258,9 +251,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="implementation">The implementation which is going to be verified next</param>
   public void ReportVerifyImplementationRunning(Implementation implementation) {
-    if (document.LoadCanceled) {
-      return;
-    }
 
     lock (LockProcessing) {
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
@@ -291,9 +281,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="implementation">The implementation it visited</param>
   /// <param name="verificationResult">The result of the verification</param>
   public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
-    if (document.LoadCanceled) {
-      return;
-    }
     var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
     if (targetMethodNode == null) {
       logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
@@ -336,9 +323,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="split">The split that was verified</param>
   /// <param name="result">The verification results for that split and per assert</param>
   public void ReportAssertionBatchResult(AssertionBatchResult batchResult) {
-    if (document.LoadCanceled) {
-      return;
-    }
     lock (LockProcessing) {
       var implementation = batchResult.Implementation;
       var result = batchResult.Result;
