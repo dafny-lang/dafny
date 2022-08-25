@@ -662,6 +662,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
             break;
           }
+        case "{": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "}": {
+            SetClosingIndentedRegion(token, indent);
+            break;
+          }
         case "*": {
             // Nothing to add here.
             break;

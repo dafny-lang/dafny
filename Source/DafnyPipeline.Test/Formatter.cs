@@ -1147,6 +1147,18 @@ abstract module C {
     }
 
     [Fact]
+    public void FormatterWorksForNewtypeWithMember() {
+      FormatterWorksFor(@"
+newtype Even = x : int | x % 2 == 0
+{
+  method {:timeLimitMultiplier 4} NewtypeTest(y:int) {
+    assert y == y;
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForExtremePredicates() {
       FormatterWorksFor(@"
 lemma Lemma(k: ORDINAL, r: real)
