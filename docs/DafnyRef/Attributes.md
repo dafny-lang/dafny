@@ -33,7 +33,7 @@ with no argument is interpreted as if it were true.
 
 ## 23.1. Attributes on top-level declarations
 
-### 23.1.1. `{:autocontracts}`
+### 23.1.1. `{:autocontracts}` {#sec-attributes-autocontracts}
 Dynamic frames [@Kassios:FM2006;@SmansEtAl:VeriCool;@SmansEtAl:ImplicitDynamicFrames;
 @LEINO:Dafny:DynamicFrames]
 are frame expressions that can vary dynamically during
