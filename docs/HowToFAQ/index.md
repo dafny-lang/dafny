@@ -35,7 +35,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
 - ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
 - ["How do labels in preconditions work?"](FAQPreconditionLabels)
-- ["What do attributes {:java "java", "lang"} mean? Where are attributes documented?"](FAQJavaAttribute)
+- ["Where are attributes documented?"](FAQAttribute)
 - ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
 - ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
 - ["Does Dafny have monadic error handling?"](FAQMonadic)

@@ -9,7 +9,7 @@ What is the `:-` operator? How does it work?
 ## Answer
 
 This operator is called the _elephant operator_ (because it has a trunk).
-It is used to write code that exits on failure (much like exceptions in other programming languages).
+It is used to write code that exits on failure (much like exceptions in other programming languages or the ? operator in Rust).
 The topic is discussed at length in
 the section of the reference manual on [Update with Failure statements](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-update-failure).
 

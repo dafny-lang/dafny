@@ -18,4 +18,4 @@ The three symbols in the question denote different sorts of types of functions:
 - `~>` denotes a _partial_ and possibly _heap-dependent_ function; it may have `requires` and `reads` clauses
 
 If a function is independent of the heap, it is useful to say so, either in its declaration or the type that describes it. The value returned by a heap-independent function depends only on its arguments and not on the program state; 
-thus it is easier to reason about its properties.
+thus it is easier to reason about its properties. Working with heap-dependent functions is much more difficult than with heap-independent functions, so use `->` or `-->` if you can. And note that Dafny does not support polymorphic arrow types.
