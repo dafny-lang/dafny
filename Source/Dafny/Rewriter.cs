@@ -1002,7 +1002,7 @@ namespace Microsoft.Dafny {
       //   const {:opaque} foo := x
       // We produce:
       //   lemma {:axiom} {:auto_generated} reveal_foo()
-      //     ensures foo == 3
+      //     ensures foo == x
 
       Attributes lemma_attrs = new Attributes("auto_generated", new List<Expression>(), null);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
