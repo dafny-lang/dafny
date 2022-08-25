@@ -196,7 +196,7 @@ public class ExpectContracts : IRewriter {
           // TODO: apparently the following isn't enough
           cs.MethodSelect.Member = newTarget;
           cs.MethodSelect.MemberName = newTarget.Name;
-          var resolved = (MemberSelectExpr)cs.MethodSelect;
+          var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
           resolved.MemberName = newTarget.Name;
         }
