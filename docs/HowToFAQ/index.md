@@ -55,5 +55,5 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What does `forall v :: v in vals ==> false` evaluate to if vals is non-empty?"](FAQTriggers)
 - ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
-- ["How do `{:split_here}` and `{:focus}` work to divide up a verification condition?"](FAQSplitHere)
+- ["How do `{:split_here}` and `{:focus}` work to divide up a proof?"](FAQSplitHere)
 - ["How does one declare a type to have a default initial value, say a type tagged with {:extern}?'](FAQDefaultInitialValue)

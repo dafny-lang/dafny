@@ -1,15 +1,15 @@
 ---
-title: How do `{:split_here}` and `{:focus}` work to divide up a verification condition?
+title: How do `{:split_here}` and `{:focus}` work to divide up a proof?
 ---
 
 ## Question
 
-How do `{:split_here}` and `{:focus}` work to divide up a verification condition?
+How do `{:split_here}` and `{:focus}` work to divide up a proof?
 
 ## Answer
 
 Verifying a method requires proving a large number of assertions.
-Dafny uses a backend prover (an SMT solver) to verify assertions. The prover may become better or worse at verifying an assertion if you also ask it to also verify another assertion. 
+Dafny uses a backend prover (an SMT solver) to verify assertions. The prover may become better or worse at verifying an assertion if you ask it to also verify another assertion. 
 Dafny allows you to split up a group of assertions into batches, where each batch is sent to the SMT solver separately, so the verification of each batch is not influenced by the others.
 
 
