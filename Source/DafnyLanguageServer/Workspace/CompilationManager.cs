@@ -177,12 +177,14 @@ public class CompilationManager {
       loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
+      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem)) {
+      LastTouchedVerifiables = loaded.LastTouchedVerifiables
+    };
 
     translated.GutterProgressReporter.RecomputeVerificationTree();
 
     if (VerifierOptions.GutterStatus) {
-      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, loaded);
+      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
       translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
         verificationTasks.Select(t => t.Implementation).ToArray());
     }

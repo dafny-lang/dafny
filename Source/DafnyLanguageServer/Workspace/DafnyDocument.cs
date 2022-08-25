@@ -45,6 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     // List of a few last touched method positions
+    // TODO, move to documentManager.
     public ImmutableList<Position> LastTouchedVerifiables { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
@@ -56,14 +57,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Creates a clone of the DafnyDocument
     /// </summary>
     public virtual CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(), 
-        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
-        false, false, 
-        ArraySegment<Diagnostic>.Empty, 
-        ImmutableList<Position>.Empty, 
-        new DocumentVerificationTree(TextDocumentItem)) {
-        LastTouchedVerifiables = LastTouchedVerifiables,
-      };
+      return new CompilationView(TextDocumentItem, Enumerable.Empty<Diagnostic>(),
+        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
+        false, false,
+        ArraySegment<Diagnostic>.Empty,
+        LastTouchedVerifiables,
+        new DocumentVerificationTree(TextDocumentItem));
     }
     
     public bool CanDoVerification { get; }
@@ -97,13 +96,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, parseDiagnostics,
-        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
-        false, false, 
-        ArraySegment<Diagnostic>.Empty, 
-        ImmutableList<Position>.Empty, 
-        new DocumentVerificationTree(TextDocumentItem)) {
-        LastTouchedVerifiables = LastTouchedVerifiables,
-      };
+        SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
+        false, false,
+        ArraySegment<Diagnostic>.Empty,
+        LastTouchedVerifiables,
+        new DocumentVerificationTree(TextDocumentItem));
     }
   }
 
@@ -127,14 +124,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
     
     public override CompilationView Snapshot() {
-      return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics, 
-        SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty, 
-        false, false, 
-        GhostDiagnostics, 
-        ImmutableList<Position>.Empty,
-        new DocumentVerificationTree(TextDocumentItem)) {
-        LastTouchedVerifiables = LastTouchedVerifiables,
-      };
+      return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics,
+        SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
+        false, false,
+        GhostDiagnostics,
+        LastTouchedVerifiables,
+        new DocumentVerificationTree(TextDocumentItem));
     }
   }
 

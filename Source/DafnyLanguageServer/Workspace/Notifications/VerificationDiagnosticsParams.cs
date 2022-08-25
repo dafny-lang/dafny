@@ -30,10 +30,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         DocumentUri uri,
         int version,
         VerificationTree[] verificationTrees,
-        Container<Diagnostic> diagnostics,
+        Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
-      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, diagnostics);
+      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, resolutionErrors);
       return new VerificationStatusGutter(uri, version, perLineStatus);
     }
 

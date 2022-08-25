@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [TestMethod]
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
 method Abs(x: int) returns (y: int)

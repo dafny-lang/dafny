@@ -31,8 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     
     public IEnumerable<Diagnostic> Diagnostics =>
       ResolutionDiagnostics.Concat(ImplementationViews.Values.Select(v => v.Diagnostics).SelectMany(x => x));
-    
-    
   }
 
   public class NotificationPublisher : INotificationPublisher {
@@ -122,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var errors = document.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.TextDocumentItem.NumberOfLines;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         document.Uri,

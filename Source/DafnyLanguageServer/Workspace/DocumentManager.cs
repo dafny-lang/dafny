@@ -20,7 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentManager {
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
-  private readonly INotificationPublisher notificationPublisher;
 
   private readonly IServiceProvider services;
   private readonly DocumentOptions documentOptions;
@@ -43,7 +42,6 @@ public class DocumentManager {
     this.documentOptions = documentOptions;
     this.verifierOptions = verifierOptions;
     this.relocator = services.GetRequiredService<IRelocator>();
-    this.notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
     observer = new DocumentObserver(services.GetRequiredService<ILogger<DocumentObserver>>(),
