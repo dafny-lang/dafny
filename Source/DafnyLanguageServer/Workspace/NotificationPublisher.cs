@@ -44,12 +44,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishNotifications(CompilationView previous, CompilationView document) {
-      if (document.LoadCanceled) {
-        // We leave the responsibility to shift the error locations to the LSP clients.
-        // Therefore, we do not republish the errors when the document (re-)load was canceled.
-        return;
-      }
-
       PublishVerificationStatus(previous, document);
       PublishDocumentDiagnostics(previous, document);
       PublishGhostDiagnostics(previous, document);
@@ -114,11 +108,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      if (document.LoadCanceled) {
-        // We leave the responsibility to shift the error locations to the LSP clients.
-        // Therefore, we do not republish the errors when the document (re-)load was canceled.
-        return;
-      }
       var errors = document.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.TextDocumentItem.NumberOfLines;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
