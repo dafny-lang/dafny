@@ -71,8 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
-      CancellationToken cancellationToken)
-    {
+      CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(
         async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
@@ -81,8 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationAfterParsing LoadInternal(DocumentTextBuffer textDocument,
-      CancellationToken cancellationToken)
-    {
+      CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);

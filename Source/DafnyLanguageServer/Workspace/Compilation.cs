@@ -47,7 +47,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public virtual CompilationView Snapshot(CompilationView previousView) {
       return previousView with {
         TextDocumentItem = TextDocumentItem,
-        ImplementationsWereUpdated = false };
+        ImplementationsWereUpdated = false
+      };
     }
   }
 
@@ -78,8 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
       SymbolTable symbolTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics) :
-      base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty)
-    {
+      base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
       ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
       SymbolTable = symbolTable;
       GhostDiagnostics = ghostDiagnostics;
