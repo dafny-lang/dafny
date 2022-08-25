@@ -418,8 +418,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueConstRewriter(this.reporter));
-      rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
+      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
@@ -11103,13 +11102,13 @@ namespace Microsoft.Dafny {
               }
             } else if (expr is NameSegment or ExprDotName) {
               if (expr is NameSegment) {
-                ResolveNameSegment(expr as NameSegment, true, null, revealResolutionContext, true);
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
               } else {
-                ResolveDotSuffix(expr as ExprDotName, true, null, revealResolutionContext, true);
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
               }
               MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
               if (callee == null) {
-              } else if ((callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom"))) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
                 //The revealed member is a function
                 reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
               } else {

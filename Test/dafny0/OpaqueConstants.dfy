@@ -3,45 +3,51 @@
 
 module Module {
   module M {
-    const {:opaque} Five := 5;
+    const {:opaque} Five := 5
   }
 
   method Test() {
-    assert M.Five == 5; // error: this is not known here
-    reveal M.Five;
-    assert M.Five == 5;  
+    if * {
+      assert M.Five == 5; // error: this is not known here
+    } else {
+      reveal M.Five;
+      assert M.Five == 5;
+    }
   }
 }
 
 module Class {
   class Class {
-    const {:opaque} Five := 5;
+    const {:opaque} Five := 5
   }
 
   method Test(c: Class) {
-    assert c.Five == 5; // error: this is not known here
-    reveal c.Five;
-    assert c.Five == 5;  
+    if * {
+      assert c.Five == 5; // error: this is not known here
+    } else {
+      reveal c.Five;
+      assert c.Five == 5;
+    }
   }
 }
 
 module TypeMembers {
   trait Tr {
-    const fav: bool;
-    const {:opaque} IsFavorite := fav;
-    static const {:opaque} Five := 5;
+    const fav: bool
+    const {:opaque} IsFavorite := fav
+    static const {:opaque} Five := 5
   }
 
   datatype Color = Carrot | Pumpkin
   {
     const {:opaque} IsFavorite := this == Pumpkin
-    static const {:opaque} Five := 5;
+    static const {:opaque} Five := 5
   }
 
   newtype Small = x | 30 <= x < 40 witness 30
   {
     const {:opaque} IsFavorite := this == 34
-    static const {:opaque} Five := 5;
+    static const {:opaque} Five := 5
   }
 
   method Test(tr: Tr, c: Color, s: Small) {
