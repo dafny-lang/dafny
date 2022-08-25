@@ -1,5 +1,7 @@
 # Upcoming
 
+# 3.8.0
+
 - fix: Use the right bitvector comparison in decrease checks
   (https://github.com/dafny-lang/dafny/pull/2512)
 - fix: Don't use native division and modulo operators for non-native int-based newtypes in Java and C#.
@@ -18,6 +20,7 @@
 - feat: `predicate P(x: int): (y: bool) ...` is now valid syntax (https://github.com/dafny-lang/dafny/pull/2454)
 - fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
 - fix: Perform well-definedness checks for ensures clauses of forall statements (https://github.com/dafny-lang/dafny/pull/2606)
+- fix: Resolution and verification of StmtExpr now pay attention to if the StmtExpr is inside an 'old' (https://github.com/dafny-lang/dafny/pull/2607)
 
 # 3.7.3
 
