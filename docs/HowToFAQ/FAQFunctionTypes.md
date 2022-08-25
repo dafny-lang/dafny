@@ -10,7 +10,8 @@ What is the meaning of and differences among `->`, `-->`, `~>`?
 
 These are all used in designating the type of functions; they are sometimes called _arrow types_.
 In each case, `A -> B` is the type of a function taking an argument of type `A` and producing a value of type `B`;
-`(A,B)->C` is a type of function that takes two arguments; `((A,B))->C` takes as argument a 2-tuple. 
+The function argument types can be enclosed in parentheses, and if the number of arguments is not 1 or the argument is a tuple type, then the argument types must be enclosed in parentheses. For example,
+`(A, B) -> C` is a type of function that takes two arguments; `((A, B)) -> C` takes as argument a 2-tuple.
 
 The three symbols in the question denote different sorts of types of functions:
 - `->` denotes a _total_ function that is independent of the heap; it may not have a `requires` clause (precondition) or a `reads` clause
