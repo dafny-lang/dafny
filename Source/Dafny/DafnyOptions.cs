@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
-    public bool DisallowConstructorCaseWithoutParenthesis = false;
+    public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
@@ -157,8 +157,6 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
-    // Working around the fact that xmlFilename is private
-    public string BoogieXmlFilename = null;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
@@ -519,8 +517,8 @@ namespace Microsoft.Dafny {
           PrintTooltips = true;
           return true;
 
-        case "warnMissingConstructorParenthesis":
-          DisallowConstructorCaseWithoutParenthesis = true;
+        case "warnMissingConstructorParentheses":
+          DisallowConstructorCaseWithoutParentheses = true;
           return true;
 
         case "autoTriggers": {
@@ -660,15 +658,6 @@ namespace Microsoft.Dafny {
 
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
-
-      if (VerificationLoggerConfigs.Any()) {
-        if (XmlSink != null) {
-          throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
-        }
-
-        BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
-      }
 
       Compiler ??= new CsharpCompiler();
 

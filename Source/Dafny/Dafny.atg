@@ -318,12 +318,18 @@ bool IsAlternative() {
       || la.kind == _case;
 }
 
-bool FollowedByColon() {
+bool IsParenIdentsColon() {
   IToken x = la;
-  while (IsIdentifier(x.kind) || x.kind == _openparen) {
-    x = scanner.Peek();
+  if(x.kind != _openparen) {
+    return false;
   }
-  return x.kind == _colon;
+  x = scanner.Peek();
+  var oneOrMoreIdentifiers = false;
+  while(IsIdentifier(x.kind)) {
+    x = scanner.Peek();
+    oneOrMoreIdentifiers = true;
+  }
+  return oneOrMoreIdentifiers && x.kind == _colon;
 }
 
 bool IsGets() {
@@ -992,7 +998,7 @@ Dafny
 		   var fileName = theOptions.UseBaseNameForFileName
                    ? Path.GetFileName(scanner.FullFilename) 
                    : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
-		   errors.Warning(defaultModule.tok, "File contains no code: " + fileName);
+		   errors.Warning(new Token(1, 1) { Filename = la.Filename }, "File contains no code");
 		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
@@ -1015,14 +1021,6 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); dmod.OwnedTokens.Add(t); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); dmod.OwnedTokens.Add(t); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); dmod.OwnedTokens.Add(t); .)
-  | "protected"
-    (. errors.Deprecated(t,
-         "the 'protected' modifier is no longer supported; " +
-         "to restrict access from outside the module, use a 'provides' clause in the module's export set; " +
-         "if you're trying to add conjuncts to a predicate in a refinement module, see " +
-         "Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy " +
-         "in the Dafny test suite on GitHub");
-    .)
   )
   .
 
@@ -1426,7 +1424,9 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors, List<IToken> ownedTokens
   DatatypeMemberName<out id>  (. ownedTokens.Add(id); .)
   [ FormalsOptionalIds<formals, ownedTokens> ]
   (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
-     ctor.BodyEndTok = t; 
+     ctor.StartToken = id;
+     ctor.BodyEndTok = t;
+     ctor.EndToken = t;
      ctors.Add(ctor); .)
   .
 
@@ -2432,7 +2432,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false, ownedTokens> ]
       Formals<true, true, isTwoState, true, formals, ownedTokens>
       ":"        (. ownedTokens.Add(t); ownedTokens.Add(t); .)
-      (  IF(FollowedByColon())
+      (  IF(IsParenIdentsColon())
          "("     (. ownedTokens.Add(t); ownedTokens.Add(t); .)
            GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
@@ -2454,9 +2454,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false, ownedTokens> ]
       [ Formals<true, true, isTwoState, true, formals, ownedTokens>
       ]
-      [ ":" (. ownedTokens.Add(t); .)
-        Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
-      ]
+      [ PredicateResult<"predicate", out result, ownedTokens> ]
     | ellipsis   (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
 
@@ -2474,8 +2472,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false, ownedTokens> ]
       [ KType<ref kType, ownedTokens> ]
       Formals<true, false, false, false, formals, ownedTokens>
-      [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
-      ]
+      [ PredicateResult<"least predicate", out result, ownedTokens> ]
     | ellipsis                 (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
 
@@ -2493,8 +2490,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false, ownedTokens> ]
       [ KType<ref kType, ownedTokens> ]
       Formals<true, false, false, false, formals, ownedTokens>
-      [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
-      ]
+      [ PredicateResult<"greatest predicate", out result, ownedTokens> ]
     | ellipsis                 (. signatureEllipsis = t; ownedTokens.Add(t); .)
     )
   )
@@ -2642,7 +2638,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      IToken tok = id;
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
+       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals, result,
                                  reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
@@ -2650,16 +2646,16 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals,
+       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals, result,
                          reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
+       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
                               reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
+       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
@@ -2700,6 +2696,26 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
     .)
     DecreasesClause<decreases, ref decAttrs, false, false, ownedTokens>
   }
+  .
+
+/*------------------------------------------------------------------------*/
+PredicateResult<.string name, out Formal result, List<IToken> ownedTokens.>
+= (. Type/*!*/ returnType = new BoolType();
+     result = null;
+  .)
+  ":" (. ownedTokens.Add(t); .)
+  (  IF(IsParenIdentsColon())
+     "(" (. ownedTokens.Add(t); .)
+       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+       (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
+          if(ty is not BoolType) {
+            SemErr(t, $"{name} return type should be bool, got {ty}");
+          }
+          result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+       .)
+     ")" (. ownedTokens.Add(t); .)
+     | Type<out returnType> (. SemErr(t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
+  )
   .
 
 /*------------------------------------------------------------------------*/

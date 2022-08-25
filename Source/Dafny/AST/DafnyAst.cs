@@ -62,19 +62,20 @@ namespace Microsoft.Dafny {
     public IToken WithVal(string val);  // create a new token by setting the given val.
   }
 
+  /// <summary>
+  /// Has one-indexed line and column fields
+  /// </summary>
   public record Token : IToken {
     public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
     public static readonly IToken NoToken = (IToken)new Token();
 
-    public Token() : this(0, 0) {
-    }
+    public Token() : this(0, 0) { }
 
     public Token(int linenum, int colnum) {
       this.line = linenum;
       this.col = colnum;
-      this.val = "anything so that it is nonnull";
+      this.val = "";
     }
-
 
     public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
@@ -82,8 +83,14 @@ namespace Microsoft.Dafny {
 
     public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
+    /// <summary>
+    /// One-indexed
+    /// </summary>
     public int col { get; set; } // Used by coco, so we can't rename it to Col
 
+    /// <summary>
+    /// One-indexed
+    /// </summary>
     public int line { get; set; } // Used by coco, so we can't rename it to Line
 
     public string val { get; set; } // Used by coco, so we can't rename it to Val
@@ -6221,9 +6228,10 @@ namespace Microsoft.Dafny {
     public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals,
+      Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6261,10 +6269,10 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
     public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
@@ -6294,10 +6302,10 @@ namespace Microsoft.Dafny {
   public class LeastPredicate : ExtremePredicate {
     public override string WhatKind { get { return "least predicate"; } }
     public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6305,10 +6313,10 @@ namespace Microsoft.Dafny {
   public class GreatestPredicate : ExtremePredicate {
     public override string WhatKind { get { return "greatest predicate"; } }
     public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
-      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6336,10 +6344,10 @@ namespace Microsoft.Dafny {
   public class TwoStatePredicate : TwoStateFunction {
     public override string WhatKind { get { return "twostate predicate"; } }
     public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
+                     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -10994,11 +11002,13 @@ namespace Microsoft.Dafny {
   }
 
   public class ConversionExpr : TypeUnaryExpr {
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public readonly string messagePrefix;
+    public ConversionExpr(IToken tok, Expression expr, Type toType, string messagePrefix = "")
       : base(tok, expr, toType) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
+      this.messagePrefix = messagePrefix;
     }
   }
 
@@ -11304,8 +11314,8 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();  // unexpected operator
       }
     }
-    public readonly Expression E0;
-    public readonly Expression E1;
+    public Expression E0;
+    public Expression E1;
     public enum AccumulationOperand { None, Left, Right }
     public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
     [ContractInvariantMethod]
@@ -12955,6 +12965,16 @@ namespace Microsoft.Dafny {
     public ParensExpression(IToken tok, Expression e)
       : base(tok) {
       E = e;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression == null) {
+          yield return E;
+        } else {
+          yield return ResolvedExpression;
+        }
+      }
     }
 
     public override IEnumerable<Expression> PreResolveSubExpressions {

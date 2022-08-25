@@ -16,28 +16,26 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
-    private readonly ITextDocumentLoader documentLoader;
 
-    public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, ITextDocumentLoader documentLoader, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
       this.logger = logger;
       this.documents = documents;
-      this.documentLoader = documentLoader;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var document = await documents.GetLastDocumentAsync(request.TextDocument);
-
-        if (document != null) {
-          var verificationTasks = document!.VerificationTasks;
+        var documentManager = documents.GetDocumentManager(request.TextDocument);
+        if (documentManager != null) {
+          var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
+          var verificationTasks = translatedDocument.VerificationTasks;
           if (verificationTasks != null) {
-            var entry = documents.Documents[request.TextDocument.Uri];
             foreach (var task in verificationTasks) {
-              documentLoader.Verify(entry, document, task, CancellationToken.None);
+              documentManager.CompilationManager.VerifyTask(translatedDocument, task);
             }
-            await entry.LastDocument;
           }
-          return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
+
+          var documentWithCounterExamples = await documentManager.LastDocumentAsync;
+          return new CounterExampleLoader(logger, documentWithCounterExamples!, request.CounterExampleDepth, cancellationToken)
             .GetCounterExamples();
         }
 
@@ -71,11 +69,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if (!document.Counterexamples.Any()) {
+        if (!document.Counterexamples!.Any()) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.Counterexamples)
+        var counterExamples = GetLanguageSpecificModels(document.Counterexamples!)
           .SelectMany(GetCounterExamples)
           .WithCancellation(cancellationToken)
           .ToArray();
@@ -101,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + variable.Type.InDafnyFormat(),
+            variable => variable.ShortName + ":" + DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
             variable => variable.Value
           )
         );
