@@ -73,8 +73,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return tasks.
         OrderBy(t => t.Implementation.Priority).
         CreateOrderedEnumerable(
-          t => implementationOrder.GetOrCreate(t.Implementation.tok.GetLspPosition(), () => -1),
-          null, true).
+          t => implementationOrder.GetOrCreate(t.Implementation.tok.GetLspPosition(), () => int.MaxValue),
+          null, false).
         ToList();
     }
 

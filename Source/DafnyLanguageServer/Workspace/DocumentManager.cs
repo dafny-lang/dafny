@@ -78,10 +78,11 @@ public class DocumentManager {
     var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
     var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
 
-    ChangedRanges = ChangedRanges.Select(range =>
+    ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
+        ChangedRanges.Select(range =>
         relocator.RelocateRange(range, documentChange, CancellationToken.None)).
-        Where(r => r != null).
-      Concat(documentChange.ContentChanges.Select(contentChange => contentChange.Range)).ToList()!;
+          Where(r => r != null)
+      ).ToList()!;
 
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);

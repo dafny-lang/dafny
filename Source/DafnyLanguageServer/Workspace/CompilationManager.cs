@@ -43,7 +43,7 @@ public class CompilationManager {
   private readonly IServiceProvider services;
 
   private readonly bool verifyAllImmediately;
-  private readonly IReadOnlyList<Range> changedRanges;
+  private readonly IEnumerable<Range> changedRanges;
 
   // TODO replace
   private readonly VerificationTree? migratedVerificationTree;
@@ -152,10 +152,10 @@ public class CompilationManager {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
     }
 
-    var changedNodes = changedRanges.SelectMany(changeRange => {
-      var subTrees = intervalTree.Query(changeRange.Start, changeRange.End);
-      return subTrees;
-    }).Distinct().Select((position, i) => (position, i)).ToDictionary(k => k.position, k => k.i);
+    var changedNodes = changedRanges.
+      SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).
+      Distinct().Select((position, i) => (position, i)).
+      ToDictionary(k => k.position, k => k.i);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, changedNodes, cancellationToken);
