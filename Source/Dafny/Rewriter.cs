@@ -971,56 +971,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class OpaqueConstRewriter : IRewriter {
-    public OpaqueConstRewriter(ErrorReporter reporter) : base(reporter) {
-    }
-
-    internal override void PreResolve(ModuleDefinition m) {
-      foreach (var d in m.TopLevelDecls) {
-        if (d is TopLevelDeclWithMembers) {
-          ProcessOpaqueClassConsts((TopLevelDeclWithMembers)d);
-        }
-      }
-    }
-
-    private void ProcessOpaqueClassConsts(TopLevelDeclWithMembers c) {
-      Contract.Requires(c != null);
-      List<MemberDecl> newDecls = new List<MemberDecl>();
-      foreach (MemberDecl member in c.Members) {
-        if (member is ConstantField constant) {
-          if (!Attributes.Contains(constant.Attributes, "opaque")) {
-            // Nothing to do
-          } else if (!RefinementToken.IsInherited(constant.tok, c.EnclosingModuleDefinition)) {
-            GenerateRevealLemma(constant, newDecls);
-          }
-        }
-      }
-      c.Members.AddRange(newDecls);
-    }
-
-    private void GenerateRevealLemma(ConstantField c, List<MemberDecl> newDecls) {
-      // That is, given:
-      //   const {:opaque} foo := x
-      // We produce:
-      //   lemma {:auto_generated} {:opaque_reveal} {:verify false} reveal_foo()
-      //     ensures foo == x
-
-      Attributes lemma_attrs = new Attributes("auto_generated", new List<Expression>(), null);
-      lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
-      lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(c.tok, false) }, lemma_attrs);
-      var ens = new List<AttributedExpression>();
-      if (c.Rhs != null) {
-        ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
-      }
-      var reveal = new Lemma(c.tok, "reveal_" + c.Name, c.HasStaticKeyword, new List<TypeParameter>(),
-        new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-        new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
-        new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
-      newDecls.Add(reveal);
-      reveal.InheritVisibility(c, true);
-    }
-  }
-
   /// <summary>
   /// For any function foo() with the :opaque attribute,
   /// hide the body, so that it can only be seen within its
