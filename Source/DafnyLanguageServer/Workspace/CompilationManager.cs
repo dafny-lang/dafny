@@ -102,18 +102,13 @@ public class CompilationManager {
     try {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
       parsedCompilation.LastTouchedVerifiables = migratedLastTouchedVerifiables;
-      if (parsedCompilation is ResolvedCompilation resolvedCompilation) {
 
-        // TODO, let gutter icon publications also used the published CompilationView.
-        var compilationView = resolvedCompilation.Snapshot();
-        compilationView = compilationView with {
-          VerificationTree = migratedVerificationTree ?? compilationView.VerificationTree
-        };
-        notificationPublisher.PublishGutterIcons(compilationView, false);
-
-        documentUpdates.OnNext(parsedCompilation);
-        return resolvedCompilation;
-      }
+      // TODO, let gutter icon publications also used the published CompilationView.
+      var compilationView = parsedCompilation.Snapshot();
+      compilationView = compilationView with {
+        VerificationTree = migratedVerificationTree ?? compilationView.VerificationTree
+      };
+      notificationPublisher.PublishGutterIcons(compilationView, false);
 
       documentUpdates.OnNext(parsedCompilation);
       return parsedCompilation;
