@@ -4,14 +4,14 @@ title: Is it possible to restrict a type parameter to be a reference type? I see
 
 ## Question
 
-Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite.
+Is it possible to restrict a type parameter to be a reference type? I see you can use `T(!new)` but I’m looking for the opposite.
 
 ## Answer
 
 No. The only restrictions available (as of version 3.7.3) are
-- T(==) - type supports equality
-- T(0) - type is auto-intializable
-- T(00) - type most be finite
-- T(!new) - type may **not** be a reference type
+- `T(==)` - type supports equality
+- `T(0)` - type is auto-initializable
+- `T(00)` - type is non-empty
+- `T(!new)` - type may **not** be a reference type or contain a reference type
 
 See the [appropriate section of the reference manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-type-parameter-variance) for more information.

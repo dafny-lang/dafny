@@ -22,7 +22,7 @@ the `assert` can be proved. The effect of the `reveal` is just as if an assumpti
 made at the point of the `reveal` statement.
 
 Note that if the `reveal` statement is in a `by`
-block of an assert-by statement, then the revealing is limited to the proof of the 
+block of an `assert by` statement, then the revealing is limited to the proof of the 
 corresponding `assert`.
 
 These same rules apply to labeled `assert` statements.
