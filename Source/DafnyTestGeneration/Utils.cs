@@ -1,11 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
@@ -69,7 +66,7 @@ namespace DafnyTestGeneration {
         }
 
         var type = value.GetType();
-        if (type.Namespace.StartsWith("System")) {
+        if (type.Namespace?.StartsWith("System") == true) {
           builder.Append(value);
           return;
         }
@@ -98,7 +95,6 @@ namespace DafnyTestGeneration {
           builder.Append(" }");
         } else {
           builder.Append(value);
-          return;
         }
       }
 
