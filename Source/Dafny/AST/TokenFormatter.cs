@@ -434,6 +434,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   private void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
+    if (topLevelDecl.tok is IncludeToken) {
+      return;
+    }
     var indent2 = indent + SpaceTab;
     if (topLevelDecl.StartToken.line > 0) {
       SetDelimiterIndentedRegions(topLevelDecl.BodyStartTok, indent);
