@@ -12,6 +12,17 @@ If you have questions that are not addressed here, be sure to communicate them t
 # FAQs
 ## Dafny language
 
+- ["How do I format a string?"](FAQStringOutput)
+- ["Where do I put the reads clause in a subset type?"](FAQReadsClause)
+- ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
+- ["What is the difference between a type and a newtype?"](FAQNewtype)
+- ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
+- ["Why does Dafny need an obvious assert?"](FAQNeedsAssert)
+- ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
+- ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
+- ["What is `-` on bitvectors?"](FAQBVNegation)
+- ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
+
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
 - ["When proving an iff (<==>), is there a nice way to prove this by proving each side of the implication separately without making 2 different lemmas?"](FAQIff)
