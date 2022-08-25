@@ -12,6 +12,16 @@ If you have questions that are not addressed here, be sure to communicate them t
 # FAQs
 ## Dafny language
 
+- ["How do I format a string?"](FAQStringOutput)
+- ["Where do I put the reads clause in a subset type?"](FAQReadsClause)
+- ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
+- ["What is the difference between a type and a newtype?"](FAQNewtype)
+- ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
+- ["Why does Dafny need an obvious assert?"](FAQNeedsAssert)
+- ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
+- ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
+- ["What is `-` on bitvectors?"](FAQBVNegation)
+- ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
 
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
@@ -24,6 +34,18 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."](FAQNoBody)
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
 
+- ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
+- ["How do labels in preconditions work?"](FAQPreconditionLabels)
+- ["Where are attributes documented?"](FAQAttribute)
+- ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
+- ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
+- ["Does Dafny have monadic error handling?"](FAQMonadic)
+- ["What is the `:-` operator?"](FAQElephant)
+- ["How does `:-` work? I'm getting an unexpected failure."](FAQElephant)
+- ["What is the meaning of and differences among `->`, `-->`, `~>`?"](FAQFunctionTypes)
+- ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
+- ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
+- ["A `seq` is an object reference, right?"](FAQReferences)
 
 - ["How do I pattern match against a head and tail of a sequence or against a set?"](FAQMatchOnSet)
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
