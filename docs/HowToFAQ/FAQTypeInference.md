@@ -25,7 +25,7 @@ class C<X(0)> {
     var x2: int := C.M(); // M() instantiated with int
 
     var x3 := C.M();      // error: type of x3 is underspecified
-    var x4: int := M();   // error: M() instantiated with X, but x1 has type int
+    var x4: int := M();   // error: M() instantiated with X, but x4 has type int
   }
 }
 ```
