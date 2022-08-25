@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         new IntervalTree<Position, ILocalizableSymbol>(),
         symbolsResolved: false);
     }
-    
+
     public SymbolTable(
         ILogger<SymbolTable> iLogger,
         CompilationUnit compilationUnit,

@@ -152,13 +152,13 @@ public class CompilationManager {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
     }
 
-    var changedNodes = changedRanges.
+    var verifiableToPosition = changedRanges.
       SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).
       Distinct().Select((position, i) => (position, i)).
       ToDictionary(k => k.position, k => k.i);
 
     var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, changedNodes, cancellationToken);
+      await verifier.GetVerificationTasksAsync(loaded, verifiableToPosition, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -366,13 +366,13 @@ public class CompilationManager {
 
   public Task<ParsedCompilation> LastDocument => TranslatedDocument.ContinueWith(
     t => {
-    if (t.IsCompletedSuccessfully) {
+      if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD003
-      return verificationCompleted.Task.ContinueWith(
-        _ => Task.FromResult<ParsedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
+        return verificationCompleted.Task.ContinueWith(
+          _ => Task.FromResult<ParsedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD003
-    }
+      }
 
-    return ResolvedDocument;
-  }, TaskScheduler.Current).Unwrap();
+      return ResolvedDocument;
+    }, TaskScheduler.Current).Unwrap();
 }

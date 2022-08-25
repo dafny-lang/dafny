@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int? Version => TextDocumentItem.Version;
-    
+
     public IEnumerable<Diagnostic> Diagnostics =>
       ResolutionDiagnostics.Concat(ImplementationViews.Values.Select(v => v.Diagnostics).SelectMany(x => x));
   }

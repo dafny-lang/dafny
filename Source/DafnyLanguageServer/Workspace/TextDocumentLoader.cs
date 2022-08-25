@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         loadCanceled: true
       );
     }
-    
+
     // public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
     //   var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
     //   return CreateDocumentWithEmptySymbolTable(
@@ -149,17 +149,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new CompilationView(
         textDocument,
         diagnostics,
-        SymbolTable.Empty(textDocument), 
+        SymbolTable.Empty(textDocument),
         // false,
         new Dictionary<ImplementationId, ImplementationView>(),
         false, loadCanceled,
         Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(textDocument)
-        // wasResolved,
-        // loadCanceled
+      // wasResolved,
+      // loadCanceled
       );
     }
-    
+
     // private ResolvedCompilation CreateDocumentWithEmptySymbolTable(
     //   ILogger<SymbolTable> logger,
     //   DocumentTextBuffer textDocument,

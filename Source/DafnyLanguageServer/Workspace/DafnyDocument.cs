@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public class DafnyDocument { // TODO rename to Compilation
     public DocumentTextBuffer TextDocumentItem { get; }
-    
+
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
 
@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ArraySegment<Diagnostic>.Empty,
         new DocumentVerificationTree(TextDocumentItem));
     }
-    
+
     public bool CanDoVerification { get; }
     public bool WasResolved { get; }
     public bool LoadCanceled { get; } = false;
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
 
     public ParsedCompilation(
-      DocumentTextBuffer textDocumentItem, 
+      DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseDiagnostics) : base(textDocumentItem) {
       this.parseDiagnostics = parseDiagnostics;
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public bool IsDocument(DocumentUri documentUri) {
       return documentUri == Uri;
     }
-    
+
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, parseDiagnostics,
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
@@ -103,12 +103,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class ResolvedCompilation : ParsedCompilation {
     public ResolvedCompilation(
-      DocumentTextBuffer textDocumentItem, 
-      Dafny.Program program, 
-      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
-      SymbolTable symbolTable, 
-      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) 
-    {
+      DocumentTextBuffer textDocumentItem,
+      Dafny.Program program,
+      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
+      SymbolTable symbolTable,
+      IReadOnlyList<Diagnostic> ghostDiagnostics) : base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
       ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
       SymbolTable = symbolTable;
       GhostDiagnostics = ghostDiagnostics;
@@ -119,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
     public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
-    
+
     public override CompilationView Snapshot() {
       return new CompilationView(TextDocumentItem, ParseAndResolutionDiagnostics,
         SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
@@ -133,12 +132,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public TranslatedCompilation(
       IServiceProvider services,
       DocumentTextBuffer textDocumentItem,
-      Dafny.Program program, 
-      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics, 
-      SymbolTable symbolTable, 
-      IReadOnlyList<Diagnostic> ghostDiagnostics, 
+      Dafny.Program program,
+      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
+      SymbolTable symbolTable,
+      IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
-      List<Counterexample> counterexamples, 
+      List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
       : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) {
@@ -153,7 +152,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<INotificationPublisher>());
     }
-    
+
     public override CompilationView Snapshot() {
       return base.Snapshot() with {
         ImplementationsWereUpdated = true,
@@ -161,7 +160,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ImplementationViews = new Dictionary<ImplementationId, ImplementationView>(ImplementationIdToView)
       };
     }
-    
+
     public override IEnumerable<Diagnostic> Diagnostics => base.Diagnostics.Concat(
       ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
 

@@ -46,16 +46,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     UpdateTree(document, document.VerificationTree);
   }
 
-  public static void UpdateTree(ParsedCompilation parsedCompilation, VerificationTree rootVerificationTree)
-  {
+  public static void UpdateTree(ParsedCompilation parsedCompilation, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();
 
-    void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree)
-    {
+    void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree) {
       var position = verificationTree.Position;
       var previousTree = previousTrees.FirstOrDefault(
         oldNode => oldNode != null && oldNode.Position == position,

@@ -336,6 +336,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static V GetOrDefault<K, V>(this IReadOnlyDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      return createValue();
+    }
+
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
       if (dictionary.TryGetValue(key, out var result)) {
         return result;
