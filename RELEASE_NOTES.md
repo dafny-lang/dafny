@@ -1,6 +1,6 @@
 # Upcoming
 
-- fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/issues/2640)
+- fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 
 # 3.8.0
 
