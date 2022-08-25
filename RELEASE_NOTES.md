@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/issues/2640)
+
 # 3.8.0
 
 - fix: Use the right bitvector comparison in decrease checks
