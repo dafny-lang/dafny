@@ -4861,7 +4861,7 @@ NameSegmentForTypeName<.out Expression e, bool inExpressionContext, List<IToken>
  */
 HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args, List<IToken> ownedTokens.>
 = (. Expression k; args = new List<ActualBinding>(); typeArgs = null; .)
-  "#"                                      (. id.val = id.val + "#"; ownedTokens.Add(t); .)
+  "#"                                      (. id.val = id.val + "#"; t.val = ""; t.pos = t.pos+1; t.col = t.col+1; ownedTokens.Add(t); .)
   [                                        (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs, ownedTokens>
   ]

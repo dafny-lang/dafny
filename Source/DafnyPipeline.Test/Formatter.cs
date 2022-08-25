@@ -1135,6 +1135,14 @@ module Outer.A {
 }");
     }
 
+    [Fact]
+    public void FormatterWorksForExtremePredicates() {
+      FormatterWorksFor(@"
+lemma Lemma(k: ORDINAL, r: real)
+  requires E.P(r)
+  requires E.P#[k](r)
+{}");
+    }
 
     [Fact]
     public void FormatterWorksForCommentAfterSubsetType() {
