@@ -186,6 +186,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   // 'sameLineBefore' is the hypothetical indentation of this token if it was on its own line
   // 'after' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   private void SetIndentations(IToken token, int before = -1, int sameLineBefore = -1, int after = -1) {
+    if (token is IncludeToken) { // Just ignore this token.
+      return;
+    }
     if (before >= 0) {
       PosToIndentBefore[token.pos] = before;
     }
@@ -469,6 +472,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.Members) {
+        if (member.tok is IncludeToken) {
+          continue;
+        }
         SetMemberIndentation(member, initialMemberIndent);
       }
     } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
@@ -569,7 +575,17 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   }
 
   private void SetAbstractModuleDecl(AbstractModuleDecl moduleDecl, int indent) {
-    var innerIndent = SetModuleDeclIndent(moduleDecl.OwnedTokens, indent);
+    foreach (var token in moduleDecl.OwnedTokens) {
+      switch (token.val) {
+        case "import": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case ":": {
+            break;
+          }
+      }
+    }
   }
 
   private void SetLiteralModuleDeclIndent(LiteralModuleDecl moduleDecl, int indent) {

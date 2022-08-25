@@ -1136,6 +1136,17 @@ module Outer.A {
     }
 
     [Fact]
+    public void FormatterWorksForAbstractModuleDecl() {
+      FormatterWorksFor(@"
+abstract module C {
+  export Body provides AF reveals g
+ 
+  import AF : A`Spec
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForExtremePredicates() {
       FormatterWorksFor(@"
 lemma Lemma(k: ORDINAL, r: real)
