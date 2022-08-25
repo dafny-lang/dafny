@@ -58,10 +58,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public class ParsedCompilation : Compilation {
+  public class CompilationAfterParsing : Compilation {
     private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
 
-    public ParsedCompilation(
+    public CompilationAfterParsing(
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseDiagnostics) : base(textDocumentItem) {
@@ -91,8 +91,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public class ResolvedCompilation : ParsedCompilation {
-    public ResolvedCompilation(
+  public class CompilationAfterResolution : CompilationAfterParsing {
+    public CompilationAfterResolution(
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
@@ -118,8 +118,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public class TranslatedCompilation : ResolvedCompilation {
-    public TranslatedCompilation(
+  public class CompilationAfterTranslation : CompilationAfterResolution {
+    public CompilationAfterTranslation(
       IServiceProvider services,
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,

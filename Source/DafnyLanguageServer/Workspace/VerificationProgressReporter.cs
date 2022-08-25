@@ -16,12 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class VerificationProgressReporter : IVerificationProgressReporter {
 
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly TranslatedCompilation document;
+  private readonly CompilationAfterTranslation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    TranslatedCompilation document,
+    CompilationAfterTranslation document,
     ICompilationStatusNotificationPublisher statusPublisher,
     INotificationPublisher notificationPublisher
   ) {
@@ -46,7 +46,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     UpdateTree(document, document.VerificationTree);
   }
 
-  public static void UpdateTree(ParsedCompilation parsedCompilation, VerificationTree rootVerificationTree) {
+  public static void UpdateTree(CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -218,7 +218,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="verificationStarted">Whether verification already started at this point</param>
   /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(bool verificationStarted, ResolvedCompilation? dafnyDocument = null) {
+  public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? dafnyDocument = null) {
     lock (LockProcessing) {
       dafnyDocument ??= document;
       notificationPublisher.PublishGutterIcons(document.Snapshot(), verificationStarted);

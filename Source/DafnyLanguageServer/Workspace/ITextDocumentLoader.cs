@@ -32,6 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<ParsedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
   }
 }

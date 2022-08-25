@@ -32,7 +32,7 @@ public class DocumentManager {
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
   public List<Range> ChangedRanges { get; set; } = new();
-  public Task<ParsedCompilation> LastDocumentAsync => CompilationManager.LastDocument;
+  public Task<CompilationAfterParsing> LastDocumentAsync => CompilationManager.LastDocument;
 
   public DocumentManager(
     IServiceProvider services,

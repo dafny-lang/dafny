@@ -98,7 +98,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document,
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution document,
       IReadOnlyDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
@@ -123,7 +123,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<ParsedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new Exception("crash");
       }

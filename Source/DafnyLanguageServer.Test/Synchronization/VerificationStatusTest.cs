@@ -354,7 +354,7 @@ method Bar() { assert true; }";
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = (TranslatedCompilation)(await Documents.GetLastDocumentAsync(documentId));
+    var lastDocument = (CompilationAfterTranslation)(await Documents.GetLastDocumentAsync(documentId));
     var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {

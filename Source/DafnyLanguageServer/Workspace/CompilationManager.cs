@@ -53,8 +53,8 @@ public class CompilationManager {
   private readonly ReplaySubject<Compilation> documentUpdates = new();
   public IObservable<Compilation> DocumentUpdates => documentUpdates;
 
-  public Task<ParsedCompilation> ResolvedDocument { get; }
-  public Task<TranslatedCompilation> TranslatedDocument { get; }
+  public Task<CompilationAfterParsing> ResolvedDocument { get; }
+  public Task<CompilationAfterTranslation> TranslatedDocument { get; }
 
   public CompilationManager(IServiceProvider services,
     VerifierOptions verifierOptions,
@@ -95,7 +95,7 @@ public class CompilationManager {
     var _ = VerifyEverythingAsync();
   }
 
-  private async Task<ParsedCompilation> ResolveAsync() {
+  private async Task<CompilationAfterParsing> ResolveAsync() {
     try {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
@@ -115,9 +115,9 @@ public class CompilationManager {
     }
   }
 
-  private async Task<TranslatedCompilation> TranslateAsync() {
+  private async Task<CompilationAfterTranslation> TranslateAsync() {
     var parsedCompilation = await ResolvedDocument;
-    if (parsedCompilation is not ResolvedCompilation resolvedCompilation) {
+    if (parsedCompilation is not CompilationAfterResolution resolvedCompilation) {
       throw new OperationCanceledException();
     }
 
@@ -135,8 +135,8 @@ public class CompilationManager {
     }
   }
 
-  public async Task<TranslatedCompilation> PrepareVerificationTasksAsync(
-    ResolvedCompilation loaded,
+  public async Task<CompilationAfterTranslation> PrepareVerificationTasksAsync(
+    CompilationAfterResolution loaded,
     CancellationToken cancellationToken) {
     if (loaded.ParseAndResolutionDiagnostics.Any(d =>
           d.Severity == DiagnosticSeverity.Error &&
@@ -172,7 +172,7 @@ public class CompilationManager {
       }
     }
 
-    var translated = new TranslatedCompilation(services,
+    var translated = new CompilationAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
       loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
@@ -221,13 +221,13 @@ public class CompilationManager {
     }
   }
 
-  private void SetAllUnvisitedMethodsAsVerified(TranslatedCompilation document) {
+  private void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation document) {
     foreach (var tree in document.VerificationTree.Children) {
       tree.SetVerifiedIfPending();
     }
   }
 
-  public bool VerifyTask(TranslatedCompilation dafnyDocument, IImplementationTask implementationTask) {
+  public bool VerifyTask(CompilationAfterTranslation dafnyDocument, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
@@ -256,7 +256,7 @@ public class CompilationManager {
     return true;
   }
 
-  private void FinishedNotifications(TranslatedCompilation dafnyDocument) {
+  private void FinishedNotifications(CompilationAfterTranslation dafnyDocument) {
     MarkVerificationFinished();
     if (VerifierOptions.GutterStatus) {
       // All unvisited trees need to set them as "verified"
@@ -270,7 +270,7 @@ public class CompilationManager {
     NotifyStatus(dafnyDocument.TextDocumentItem, dafnyDocument, cancellationSource.Token);
   }
 
-  private void HandleStatusUpdate(TranslatedCompilation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+  private void HandleStatusUpdate(CompilationAfterTranslation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
@@ -334,7 +334,7 @@ public class CompilationManager {
     }
   }
 
-  private void NotifyStatus(TextDocumentItem item, TranslatedCompilation document, CancellationToken cancellationToken) {
+  private void NotifyStatus(TextDocumentItem item, CompilationAfterTranslation document, CancellationToken cancellationToken) {
     var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
     logger.LogDebug($"Finished verification with {errorCount} errors.");
     var verified = errorCount == 0;
@@ -364,12 +364,12 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<ParsedCompilation> LastDocument => TranslatedDocument.ContinueWith(
+  public Task<CompilationAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD003
         return verificationCompleted.Task.ContinueWith(
-          _ => Task.FromResult<ParsedCompilation>(t.Result), TaskScheduler.Current).Unwrap();
+          _ => Task.FromResult<CompilationAfterParsing>(t.Result), TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD003
       }
 

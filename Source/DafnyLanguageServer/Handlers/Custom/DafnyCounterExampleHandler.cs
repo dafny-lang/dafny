@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
             documentManager.CompilationManager.VerifyTask(translatedDocument, task);
           }
 
-          var documentWithCounterExamples = (TranslatedCompilation)(await documentManager.LastDocumentAsync);
+          var documentWithCounterExamples = (CompilationAfterTranslation)(await documentManager.LastDocumentAsync);
           return new CounterExampleLoader(logger, documentWithCounterExamples, request.CounterExampleDepth, cancellationToken)
             .GetCounterExamples();
         }
@@ -55,11 +55,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       );
 
       private readonly ILogger logger;
-      private readonly TranslatedCompilation document;
+      private readonly CompilationAfterTranslation document;
       private readonly CancellationToken cancellationToken;
       private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, TranslatedCompilation document, int counterExampleDepth, CancellationToken cancellationToken) {
+      public CounterExampleLoader(ILogger logger, CompilationAfterTranslation document, int counterExampleDepth, CancellationToken cancellationToken) {
         this.logger = logger;
         this.document = document;
         this.cancellationToken = cancellationToken;

@@ -79,11 +79,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return Task.FromResult<CompilationView?>(null);
     }
 
-    public Task<ParsedCompilation?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.LastDocumentAsync!;
       }
-      return Task.FromResult<ParsedCompilation?>(null);
+      return Task.FromResult<CompilationAfterParsing?>(null);
     }
 
     public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {

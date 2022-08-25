@@ -95,21 +95,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     //   );
     // }
 
-    public async Task<ParsedCompilation> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public async Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
         TaskCreationOptions.None, ResolverScheduler);
     }
 
-    private ParsedCompilation LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    private CompilationAfterParsing LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return new ParsedCompilation(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+        return new CompilationAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
@@ -121,7 +121,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new ResolvedCompilation(
+      return new CompilationAfterResolution(
         textDocument,
         program,
         errorReporter.GetDiagnostics(textDocument.Uri),
