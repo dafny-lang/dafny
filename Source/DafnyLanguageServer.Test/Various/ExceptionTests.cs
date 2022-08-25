@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -97,12 +98,13 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document,
+      IDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
-      return verifier.GetVerificationTasksAsync(document, cancellationToken);
+      return verifier.GetVerificationTasksAsync(document, implementationOrder, cancellationToken);
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;

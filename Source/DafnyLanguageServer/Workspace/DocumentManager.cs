@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
@@ -10,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -31,6 +31,7 @@ public class DocumentManager {
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
+  public List<Range> ChangedRanges { get; set; } = new();
   public Task<ParsedCompilation> LastDocumentAsync => CompilationManager.LastDocument;
 
   public DocumentManager(
@@ -49,12 +50,12 @@ public class DocumentManager {
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
-    CompilationManager = new CompilationManager(services,
+    CompilationManager = new CompilationManager(
+      services,
       verifierOptions,
       document,
-      null,
       VerifyOnOpen,
-      ImmutableList.Create<Position>(),
+      ChangedRanges,
       null);
     observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.Snapshot()).Subscribe(observer);
   }
@@ -77,23 +78,20 @@ public class DocumentManager {
     var oldVerificationDiagnostics = lastPublishedDocument.ImplementationViews;
     var migratedImplementationViews = MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
 
-    // TODO it would be simpler to store last touched positions at the DocumentState level, and always recompute the lastTouchedVerifiables from that.
-    // Then we don't need to touch lastPublishedDocument.LastTouchedVerifiables which seems unreliable.
-    var migratedLastTouchedVerifiables =
-      relocator.RelocatePositions(lastPublishedDocument.LastTouchedVerifiables, documentChange, CancellationToken.None);
+    ChangedRanges = ChangedRanges.Select(range =>
+        relocator.RelocateRange(range, documentChange, CancellationToken.None)).
+        Where(r => r != null).
+      Concat(documentChange.ContentChanges.Select(contentChange => contentChange.Range)).ToList()!;
 
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
-
-    var lastChange = documentChange.ContentChanges.Select(contentChange => contentChange.Range).LastOrDefault();
 
     CompilationManager = new CompilationManager(
       services,
       verifierOptions,
       updatedText,
-      lastChange,
       VerifyOnChange,
-      migratedLastTouchedVerifiables,
+      ChangedRanges,
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );

@@ -22,7 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool ImplementationsWereUpdated,
     bool LoadCanceled,
     IEnumerable<Diagnostic> GhostDiagnostics,
-    ImmutableList<Position> LastTouchedVerifiables,
     VerificationTree VerificationTree
     ) {
 

@@ -7,6 +7,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using IntervalTree;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -39,12 +40,10 @@ public class CompilationManager {
   private VerifierOptions VerifierOptions { get; }
 
   public DocumentTextBuffer TextBuffer { get; }
-  private readonly Range? lastChange;
   private readonly IServiceProvider services;
 
-  // TODO replace
-  private readonly ImmutableList<Position> migratedLastTouchedVerifiables;
   private readonly bool verifyAllImmediately;
+  private readonly IReadOnlyList<Range> changedRanges;
 
   // TODO replace
   private readonly VerificationTree? migratedVerificationTree;
@@ -60,9 +59,8 @@ public class CompilationManager {
   public CompilationManager(IServiceProvider services,
     VerifierOptions verifierOptions,
     DocumentTextBuffer textBuffer,
-    Range? lastChange,
     bool verifyAllImmediately,
-    ImmutableList<Position> migratedLastTouchedVerifiables,
+    IReadOnlyList<Range> changedRanges,
     VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
@@ -73,10 +71,9 @@ public class CompilationManager {
 
     TextBuffer = textBuffer;
     this.services = services;
-    this.migratedLastTouchedVerifiables = migratedLastTouchedVerifiables;
     this.verifyAllImmediately = verifyAllImmediately;
+    this.changedRanges = changedRanges;
     this.migratedVerificationTree = migratedVerificationTree;
-    this.lastChange = lastChange;
     cancellationSource = new();
 
     ResolvedDocument = ResolveAsync();
@@ -101,7 +98,6 @@ public class CompilationManager {
   private async Task<ParsedCompilation> ResolveAsync() {
     try {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
-      parsedCompilation.LastTouchedVerifiables = migratedLastTouchedVerifiables;
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var compilationView = parsedCompilation.Snapshot();
@@ -151,9 +147,18 @@ public class CompilationManager {
 
     var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
     VerificationProgressReporter.UpdateTree(loaded, tree);
-    UpdateLastTouchedMethodPositions(loaded, lastChange, tree);
+    var intervalTree = new IntervalTree<Position, Position>();
+    foreach (var childTree in tree.Children) {
+      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+    }
 
-    var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+    var changedNodes = changedRanges.SelectMany(changeRange => {
+      var subTrees = intervalTree.Query(changeRange.Start, changeRange.End);
+      return subTrees;
+    }).Distinct().Select((position, i) => (position, i)).ToDictionary(k => k.position, k => k.i);
+
+    var verificationTasks =
+      await verifier.GetVerificationTasksAsync(loaded, changedNodes, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -172,9 +177,7 @@ public class CompilationManager {
       loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem)) {
-      LastTouchedVerifiables = loaded.LastTouchedVerifiables
-    };
+      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
 
     translated.GutterProgressReporter.RecomputeVerificationTree();
 
@@ -190,31 +193,6 @@ public class CompilationManager {
       implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
     cancellationToken.Register(() => subscription.Dispose());
     return translated;
-  }
-
-  private const int MaxLastTouchedMethods = 5;
-  private static void UpdateLastTouchedMethodPositions(DafnyDocument dafnyDocument, Range? lastChange, VerificationTree verificationTree)
-  {
-    var newLastTouchedMethodPositions = dafnyDocument.LastTouchedVerifiables.ToList();
-    var newlyTouchedVerificationTree = verificationTree.Children.FirstOrDefault(node =>
-      node != null && lastChange != null && node.Range.Contains(lastChange), null);
-    if (newlyTouchedVerificationTree != null) {
-      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      dafnyDocument.LastTouchedVerifiables = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
-    }
-  }
-
-  /// <summary>
-  /// Helper to remember that a method tree was recently modified.
-  /// </summary>
-  /// <param name="methodPosition">The verification tree of the method that was recently modified</param>
-  /// <param name="newLastTouchedMethodPositions">The positions of recently touched methods</param>
-  private static void RememberLastTouchedMethodPositions(Position methodPosition, List<Position> newLastTouchedMethodPositions) {
-    var index = newLastTouchedMethodPositions.IndexOf(methodPosition);
-    if (index != -1) {
-      newLastTouchedMethodPositions.RemoveAt(index);
-    }
-    newLastTouchedMethodPositions.Add(methodPosition);
   }
 
   private static ImplementationId GetImplementationId(Implementation implementation) {

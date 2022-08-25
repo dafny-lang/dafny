@@ -46,7 +46,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     // List of a few last touched method positions
     // TODO, move to documentManager.
-    public ImmutableList<Position> LastTouchedVerifiables { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; init; } = null;
@@ -61,7 +60,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
         false, false,
         ArraySegment<Diagnostic>.Empty,
-        LastTouchedVerifiables,
         new DocumentVerificationTree(TextDocumentItem));
     }
     
@@ -99,7 +97,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(TextDocumentItem), ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
         false, false,
         ArraySegment<Diagnostic>.Empty,
-        LastTouchedVerifiables,
         new DocumentVerificationTree(TextDocumentItem));
     }
   }
@@ -128,7 +125,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable, ImmutableDictionary<ImplementationId, ImplementationView>.Empty,
         false, false,
         GhostDiagnostics,
-        LastTouchedVerifiables,
         new DocumentVerificationTree(TextDocumentItem));
     }
   }

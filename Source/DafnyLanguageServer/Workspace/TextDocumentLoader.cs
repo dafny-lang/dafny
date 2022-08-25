@@ -154,7 +154,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new Dictionary<ImplementationId, ImplementationView>(),
         false, loadCanceled,
         Array.Empty<Diagnostic>(),
-        ImmutableList<Position>.Empty,
         new DocumentVerificationTree(textDocument)
         // wasResolved,
         // loadCanceled

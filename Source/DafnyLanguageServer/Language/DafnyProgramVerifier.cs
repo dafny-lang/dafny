@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -50,7 +51,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ResolvedCompilation document,
+      IDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -71,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return tasks.
         OrderBy(t => t.Implementation.Priority).
         CreateOrderedEnumerable(
-          t => document.LastTouchedVerifiables.IndexOf(t.Implementation.tok.GetLspPosition()),
+          t => implementationOrder.GetOrCreate(t.Implementation.tok.GetLspPosition(), () => -1),
           null, true).
         ToList();
     }
