@@ -531,6 +531,14 @@ class T {
 }");
     }
 
+    [Fact]
+    public void FormatWorksForSingleInclude() {
+      FormatterWorksFor(@"
+// RUN
+
+include ""git-issue48-include.dfyi""
+");
+    }
 
     [Fact]
     public void FormatWorksForMatchExpression() {
@@ -1268,7 +1276,7 @@ lemma test2() {
   }
 }
 
-
+// Last comment
 ");
     }
 

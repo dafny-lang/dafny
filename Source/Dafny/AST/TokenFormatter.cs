@@ -1581,6 +1581,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       out string indentationBefore, out bool indentationBeforeSet,
       out string lastIndentation, out bool lastIndentationSet,
       out string indentationAfter, out bool indentationAfterSet) {
+    if (token.kind == 0) {
+      currentIndentation = "";
+    }
     indentationBefore = currentIndentation;
     indentationBeforeSet = false;
     lastIndentation = currentIndentation;
