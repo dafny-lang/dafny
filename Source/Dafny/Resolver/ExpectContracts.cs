@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
-  private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations = new();
   private CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
@@ -112,7 +112,7 @@ public class ExpectContracts : IRewriter {
     }
 
     if (newDecl is not null) {
-      wrappedDeclarations.Add(decl, newDecl);
+      wrappedDeclarations.Add(decl.Name, (decl, newDecl));
     }
   }
 
@@ -139,8 +139,8 @@ public class ExpectContracts : IRewriter {
 
     // Add the generated wrappers to the module
     foreach (var (topLevelDecl, decl) in membersToWrap) {
-      if (wrappedDeclarations.ContainsKey(decl)) {
-        topLevelDecl.Members.Add(wrappedDeclarations[decl]);
+      if (wrappedDeclarations.ContainsKey(decl.Name)) {
+        topLevelDecl.Members.Add(wrappedDeclarations[decl.Name].Item2);
       }
     }
 
@@ -148,9 +148,9 @@ public class ExpectContracts : IRewriter {
   }
 
   class CallRedirector : TopDownVisitor<MemberDecl> {
-    private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations;
+    private readonly Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations;
 
-    public CallRedirector(Dictionary<MemberDecl, MemberDecl> wrappedDeclarations) {
+    public CallRedirector(Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations) {
       this.wrappedDeclarations = wrappedDeclarations;
     }
 
@@ -162,20 +162,26 @@ public class ExpectContracts : IRewriter {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
     }
 
-    private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
+    private bool ShouldCallWrapper(MemberDecl caller, string calleeName) {
+      if (!wrappedDeclarations.ContainsKey(calleeName)) {
+        return false;
+      }
+
+      var callee = wrappedDeclarations[calleeName].Item2;
       // TODO: make this configurable
       return (HasTestAttribute(caller) || HasExternAttribute(callee)) &&
-             wrappedDeclarations.ContainsKey(callee) &&
-             !wrappedDeclarations.ContainsValue(caller);
+             // TODO: check this in a better way
+             !caller.Name.EndsWith("_checked");
     }
 
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
+      // TODO: this pulls targets from the original module. Fix that.
       if (expr is FunctionCallExpr fce) {
-        if (ShouldCallWrapper(decl, fce.Function)) {
-          var target = fce.Function;
-          var newTarget = wrappedDeclarations[target];
-          Console.WriteLine($"Call (expression) to {target.Name} redirecting to {newTarget.Name}");
-          // TODO: apparently the following isn't enough
+        Console.WriteLine($"Function call to {fce.Function.Name}");
+        if (ShouldCallWrapper(decl, fce.Function.Name)) {
+          var targetName = fce.Function.Name;
+          var newTarget = wrappedDeclarations[targetName].Item2;
+          Console.WriteLine($"Call (expression) to {targetName} redirecting to {newTarget.Name}");
           fce.Function = (Function)newTarget;
           fce.Name = newTarget.Name;
           var resolved = (FunctionCallExpr)fce.Resolved;
@@ -188,12 +194,13 @@ public class ExpectContracts : IRewriter {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
+      // TODO: this pulls targets from the original module. Fix that.
       if (stmt is CallStmt cs) {
-        if (ShouldCallWrapper(decl, cs.Method)) {
-          var target = cs.MethodSelect.Member;
-          var newTarget = wrappedDeclarations[target];
-          Console.WriteLine($"Call (statement) to {target.Name} redirecting to {newTarget.Name}");
-          // TODO: apparently the following isn't enough
+        Console.WriteLine($"Method call to {cs.Method.Name}");
+        if (ShouldCallWrapper(decl, cs.Method.Name)) {
+          var targetName = cs.Method.Name;
+          var newTarget = wrappedDeclarations[targetName].Item2;
+          Console.WriteLine($"Call (statement) to {targetName} redirecting to {newTarget.Name}");
           cs.MethodSelect.Member = newTarget;
           cs.MethodSelect.MemberName = newTarget.Name;
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
@@ -206,14 +213,17 @@ public class ExpectContracts : IRewriter {
     }
   }
 
-  internal override void PostResolve(Program program) {
-    foreach (var moduleDefinition in program.Modules()) {
-      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-        foreach (var decl in topLevelDecl.Members) {
-          if (decl is ICallable callable) {
-            Console.WriteLine($"Visiting {decl.Name}");
-            callRedirector.Visit(callable, decl);
-          }
+  internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
+    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      // TODO: keep track of names
+      foreach (var decl in topLevelDecl.Members) { }
+    }
+
+    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      foreach (var decl in topLevelDecl.Members) {
+        if (decl is ICallable callable) {
+          Console.WriteLine($"Visiting {decl.Name}");
+          callRedirector.Visit(callable, decl);
         }
       }
     }
