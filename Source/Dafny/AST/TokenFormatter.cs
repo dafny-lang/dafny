@@ -352,7 +352,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   void SetStatementIndentation(Statement statement) {
     var visitor = new FormatterVisitor(this);
-    visitor.Visit(statement, GetIndentBefore(statement.Tok));
+    visitor.Visit(statement, 0);
   }
 
   private void SetFunctionIndentation(MemberDecl member, int indent, Function function) {
@@ -837,26 +837,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var indent = formatter.GetIndentBefore(firstToken);
       // Every function returns if traverse needs to occur (true) or if it already happened (false) 
       switch (stmt) {
+        case BlockStmt blockStmt:
+          return SetIndentBlockStmt(indent, blockStmt);
+        case IfStmt ifStmt:
+          return SetIndentIfStmt(ifStmt, indent);
         case CalcStmt calcStmt:
           return SetIndentCalcStmt(indent, calcStmt);
         case SkeletonStatement skeletonStatement:
           VisitOneStmt(skeletonStatement.S, ref unusedIndent);
           return false;
-        case BlockStmt blockStmt:
-          return SetIndentBlockStmt(indent, blockStmt);
-        case IfStmt ifStmt: {
-            if (ifStmt.OwnedTokens.Count > 0) {
-              formatter.SetOpeningIndentedRegion(ifStmt.OwnedTokens[0], indent);
-            }
-            Visit(ifStmt.Guard, indent);
-            VisitBody(ifStmt.Thn, indent);
-            var elseToken = ifStmt.OwnedTokens.FirstOrDefault(token => token.val == "else");
-            if (elseToken != null) {
-              formatter.SetKeywordWithoutSurroundingIndentation(elseToken, indent);
-            }
-            VisitBody(ifStmt.Els, indent);
-            return false;
-          }
         case AlternativeStmt alternativeStmt: {
             SetIndentMatchStmt(indent, alternativeStmt.OwnedTokens);
             VisitAlternatives(alternativeStmt.Alternatives, indent);
@@ -890,37 +879,87 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetIndentPrintRevealStmt(indent, stmt);
         case AssumeStmt:
         case ExpectStmt:
-        case AssertStmt: {
-            var ownedTokens = stmt.OwnedTokens;
-            foreach (var token in ownedTokens) {
-              switch (token.val) {
-                case "assume":
-                case "expect":
-                case "assert":
-                  formatter.SetOpeningIndentedRegion(token, indent);
-                  break;
-                case "}":
-                case "by":
-                  formatter.SetClosingIndentedRegion(token, indent);
-                  break;
-                case ";":
-                  formatter.SetClosingIndentedRegionInside(token, indent);
-                  break;
-                case "{":
-                  formatter.SetOpeningIndentedRegion(token, indent);
-                  break;
-              }
-            }
+        case AssertStmt:
+          return SetIndentAssertLikeStatement(stmt, indent);
+        case ModifyStmt modifyStmt:
+          return SetIndentModifyStatement(modifyStmt, indent);
 
-            if (stmt is AssertStmt { Proof: { StartToken: { } startToken } } assertStmt) {
-              formatter.SetOpeningIndentedRegion(startToken, indent);
-            }
-            break;
-          }
         default:
           formatter.SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
           formatter.SetIndentations(stmt.EndTok, -1, -1, indent);
           break;
+      }
+
+      return true;
+    }
+
+    private bool SetIndentIfStmt(IfStmt ifStmt, int indent) {
+      if (ifStmt.OwnedTokens.Count > 0) {
+        formatter.SetOpeningIndentedRegion(ifStmt.OwnedTokens[0], indent);
+      }
+
+      Visit(ifStmt.Guard, indent);
+      VisitBody(ifStmt.Thn, indent);
+      var elseToken = ifStmt.OwnedTokens.FirstOrDefault(token => token.val == "else");
+      if (elseToken != null) {
+        formatter.SetKeywordWithoutSurroundingIndentation(elseToken, indent);
+      }
+
+      VisitBody(ifStmt.Els, indent);
+      return false;
+    }
+
+    private bool SetIndentModifyStatement(ModifyStmt stmt, int indent) {
+      var ownedTokens = stmt.OwnedTokens;
+      var commaIndent = indent + SpaceTab;
+      var afterCommaIndent = commaIndent;
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "modifies":
+          case "modify":
+            if (IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indent);
+            } else {
+              formatter.SetAlign(indent, token, out afterCommaIndent, out commaIndent); ;
+            }
+            break;
+          case ",":
+            formatter.SetIndentations(token, afterCommaIndent, commaIndent, afterCommaIndent);
+            break;
+        }
+      }
+
+      if (stmt.Body != null && stmt.Body.StartToken.line > 0) {
+        formatter.SetOpeningIndentedRegion(stmt.Body.StartToken, indent);
+      }
+
+      return true;
+    }
+
+    private bool SetIndentAssertLikeStatement(Statement stmt, int indent) {
+      var ownedTokens = stmt.OwnedTokens;
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "assume":
+          case "expect":
+          case "assert":
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+          case "}":
+          case "by":
+            formatter.SetClosingIndentedRegion(token, indent);
+            break;
+          case ";":
+            formatter.SetClosingIndentedRegionInside(token, indent);
+            break;
+          case "{":
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+        }
+      }
+
+      if (stmt is AssertStmt { Proof: { StartToken: { } startToken } } assertStmt) {
+        formatter.SetOpeningIndentedRegion(startToken, indent);
       }
 
       return true;

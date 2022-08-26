@@ -1022,8 +1022,35 @@ module RefinedF refines BaseF {
       FormatterWorksFor(before, after);
     }
 
+
+
     [Fact]
-    public void IndentCorrectlyAModule() {
+    public void FormatterWorksForModifyStatements() {
+      FormatterWorksFor(@"
+method Test() {
+  modify x {
+    x := 2;
+  }
+  modify y,
+         x
+       , z
+  {
+    z := 2;
+  }
+
+  modify
+    y,
+    x
+    , z
+  {
+    z := 2;
+  }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForModules() {
       FormatterWorksFor(@"
 module Tests {
 class C {
@@ -1042,7 +1069,7 @@ module Tests {
     }
 
     [Fact]
-    public void ElephantOperatorIndentedCorrectly() {
+    public void FormatterWorksForElephantOperatorWithoutLHS() {
       FormatterWorksFor(@"
 method {:test} PassingTestUsingNoLHSAssignOrHalt() {
   :- // Comment 
@@ -1216,7 +1243,7 @@ module R1 refines Q {
     }
 
     [Fact]
-    public void CalcStatementsIndentedCorrectly() {
+    public void FormatterWorksForCalcStatements() {
       FormatterWorksFor(@"
 lemma Test() {
   calc {
