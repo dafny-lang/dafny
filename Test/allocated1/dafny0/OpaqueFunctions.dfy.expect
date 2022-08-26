@@ -25,7 +25,7 @@ OpaqueFunctions.dfy(261,11): Error: assertion might not hold
 OpaqueFunctions.dfy(326,16): Error: assertion might not hold
 OpaqueFunctions.dfy(328,15): Error: assertion might not hold
 OpaqueFunctions.dfy(330,15): Error: assertion might not hold
-OpaqueFunctions.dfy(343,46): Error: result of operation might violate newtype constraint for 'Small'
+OpaqueFunctions.dfy(343,38): Error: assertion might not hold
 OpaqueFunctions.dfy(350,15): Error: assertion might not hold
 OpaqueFunctions.dfy(352,15): Error: assertion might not hold
 OpaqueFunctions.dfy(354,15): Error: assertion might not hold

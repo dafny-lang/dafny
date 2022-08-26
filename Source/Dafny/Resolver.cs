@@ -418,7 +418,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
+      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
@@ -11142,6 +11142,21 @@ namespace Microsoft.Dafny {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                s.ResolvedStatements.Add(call);
+              }
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+              } else {
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+              }
+              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              if (callee == null) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+                //The revealed member is a function
+                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              } else {
+                var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
                 s.ResolvedStatements.Add(call);
               }
             } else {
