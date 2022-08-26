@@ -148,16 +148,9 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Diagnostic[] Diagnostics {
     get {
       var result = Document.Diagnostics.ToArray();
-      if (result.Length == 0) {
-        // For anonymous documents opened in VSCode
-        result = Document.Diagnostics.ToArray();
-      }
-
       return result;
     }
   }
-
-  public string DocumentUri => Document.Uri.GetFileSystemPath();
 
   private Dictionary<int, int>? codeLineToPos = null;
 

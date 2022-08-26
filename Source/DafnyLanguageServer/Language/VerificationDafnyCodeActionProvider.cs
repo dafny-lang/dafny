@@ -12,7 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 /// <summary>
 /// A verification quick fixers provides quick "fixes" for verification errors.
-/// For now, it offers to inline a failing postcondition if there is no "return" keyword.
+/// For now, it offers to inline a failing postcondition if its failure is
+/// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {

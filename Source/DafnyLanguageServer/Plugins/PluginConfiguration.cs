@@ -1,6 +1,5 @@
 ﻿// SPDX-License-Identifier: MIT
 using System;
-using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 

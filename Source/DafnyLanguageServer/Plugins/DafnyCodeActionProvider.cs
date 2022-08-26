@@ -38,13 +38,13 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
       return System.Array.Empty<DafnyCodeAction>();
     }
     var diagnostics = input.Diagnostics;
-    var result = new List<DafnyCodeAction>() { };
+    var result = new List<DafnyCodeAction>();
     foreach (var diagnostic in diagnostics) {
       if (diagnostic.Range.Start.Line <= selection.Start.Line &&
           selection.Start.Line <= diagnostic.Range.End.Line) {
-        var moreDafnyCodeActiones = GetDafnyCodeActions(input, diagnostic, selection);
-        if (moreDafnyCodeActiones != null) {
-          result.AddRange(moreDafnyCodeActiones);
+        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic, selection);
+        if (moreDafnyCodeActions != null) {
+          result.AddRange(moreDafnyCodeActions);
         }
       }
     }
@@ -53,11 +53,10 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   }
 
   /// <summary>
-  /// You can safely assume that input.Program is not null
+  /// Returns all code actions that can be applied to solve the given diagnostic
   /// </summary>
-  /// <param name="input"></param>
-  /// <param name="diagnostic"></param>
-  /// <param name="selection"></param>
-  /// <returns></returns>
+  /// <param name="input">The state of the document, containing the code and possibly the resolved program</param>
+  /// <param name="diagnostic">The diagnostic for which to provide a fix</param>
+  /// <param name="selection">Where the user's caret is</param>
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection);
 }
