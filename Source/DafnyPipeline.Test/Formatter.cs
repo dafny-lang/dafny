@@ -1220,12 +1220,14 @@ datatype Dt =
   // | ISet(iset<Dt>) //  This definition is not allowed because Dt appears in a non-strict/lax position
   // | IMap0(imap<Dt,int>) //  This definition is not allowed because Dt appears in a non-strict/lax position
   | IMap1(imap<int,Dt>)
+  // | Last case commented out
 
 method M4() {
   if {
     case true => even := noll as EvenInt;
     //case true => even := b67 as EvenInt;  // error: bv67 may be odd  // disabled because it doesn't terminate with 4.4.2 Z3
     case b67 as int % 2 == 0 => even := b67 as EvenInt;
+    // case false => // Let's forget about this case
   }
 }");
     }

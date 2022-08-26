@@ -46,6 +46,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     PosToIndentAfter = posToIndentAfter;
   }
 
+  private static bool FirstTokenOnLineIs(IToken token, Func<IToken, bool> predicate) {
+    if (token.Prev == null || token.Prev.line != token.line) {
+      return predicate(token);
+    }
+    return FirstTokenOnLineIs(token.Prev, predicate);
+  }
 
   /// Given a space around a token (input),
   /// * precededByNewline means it's a leading space that was preceded by a newline
@@ -98,20 +104,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         if (commentType.StartsWith("/*")) {
           var doubleStar = commentType.StartsWith("/**");
           var originalComment = match.Groups["commentType"].Value;
-          var currentIndentation = match.Groups["currentIndent"].Value;
           var canIndentLinesStartingWithStar = true;
           var result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<star>\s*\*)?").Replace(
             originalComment, match1 => {
               if (canIndentLinesStartingWithStar && match1.Groups["star"].Success) {
-                if (doubleStar) {
-                  return indentationBefore + "  *";
-                } else {
-                  return indentationBefore + " *";
-                }
-              } else {
-                canIndentLinesStartingWithStar = false;
-                return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
+                return indentationBefore + (doubleStar ? "  *" : " *");
               }
+
+              canIndentLinesStartingWithStar = false;
+              return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
             });
           previousMatchWasSingleLineCommentToAlign = false;
           return indentationBefore + result;
@@ -124,8 +125,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
           }
 
-          if (match.Groups["caseCommented"].Success && token.Next != null && token.Next.val == match.Groups["caseCommented"].Value) {
-            indentationBefore = new string(' ', GetTokenCol(token.Next, indentationBefore.Length) - 1);
+          var referenceToken = token.Next;
+          if (match.Groups["caseCommented"].Success && token.Next != null &&
+                (token.Next.val == match.Groups["caseCommented"].Value ||
+                 FirstTokenOnLineIs(token, t => {
+                   referenceToken = t;
+                   return t.val == match.Groups["caseCommented"].Value;
+                 })
+                 )) {
+            indentationBefore = new string(' ', GetTokenCol(referenceToken, indentationBefore.Length) - 1);
           }
 
           previousMatchWasSingleLineCommentToAlign = false;
