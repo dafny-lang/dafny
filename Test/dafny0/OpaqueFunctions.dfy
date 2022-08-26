@@ -340,7 +340,7 @@ module TypeMembers {
     case true =>
       if tr.IsFavorite() && c.IsFavorite() && s.IsFavorite() {
         reveal tr.IsFavorite(), c.IsFavorite(), s.IsFavorite();
-        assert !tr.fav || c == Carrot || s == 55;  // error: not true
+        assert !tr.fav || c == Carrot || s == 39;  // error: not true
       }
   }
 
