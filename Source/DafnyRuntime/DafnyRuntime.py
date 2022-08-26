@@ -34,6 +34,10 @@ def str(value) -> builtins.str:
 class Break(Exception):
     target: builtins.str
 
+@dataclass
+class Continue(Exception):
+    target: builtins.str
+
 class TailCall(Exception):
     pass
 
@@ -47,9 +51,26 @@ def label(name: builtins.str = None):
     except TailCall as g:
         if name is not None:
             raise g
+    except Continue as g:
+        raise g
+
+@contextmanager
+def c_label(name: builtins.str = None):
+    try:
+        yield
+    except Continue as g:
+        if g.target != name:
+            raise g
+    except Break as g:
+        raise g
+    except TailCall as g:
+        raise g
 
 def _break(name):
     raise Break(target=name)
+
+def _continue(name):
+    raise Continue(target=name)
 
 def _tail_call():
     raise TailCall()

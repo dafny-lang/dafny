@@ -45,8 +45,6 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.StaticConstants,
-      Feature.ContinueStatements,
-      Feature.ForLoops,
       Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.IntBoundedPool,
       Feature.NonSequentializableForallStatements,
@@ -104,6 +102,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
+      wr.WriteLine("from itertools import count");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
@@ -776,10 +775,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      if (createContinueLabel) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.ContinueStatements);
-      }
-      return wr.NewBlockPy($"with {DafnyRuntimeModule}.label(\"{label}\"):");
+      var manager = createContinueLabel ? "c_label" : "label";
+      return wr.NewBlockPy($"with {DafnyRuntimeModule}.{manager}(\"{label}\"):");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
@@ -791,7 +788,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.ContinueStatements);
+      wr.WriteLine($"{DafnyRuntimeModule}._continue(\"{label}\")");
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -829,7 +826,28 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.ForLoops);
+      var iterator = endVarName != null ? "range" : "count";
+      wr.Write($"for {IdName(loopIndex)} in {iterator}(");
+      var startWr = wr.Fork();
+      if (!goingUp) {
+        wr.Write("-1");
+      }
+      if (endVarName != null) {
+        wr.Write($", {endVarName}");
+        if (!goingUp) {
+          wr.Write("-1");
+        }
+      }
+      if (!goingUp) {
+        wr.Write(", -1");
+      }
+      wr.Write(")");
+
+      var bodyWr = wr.NewBlockPy($":");
+      bodyWr = EmitContinueLabel(labels, bodyWr);
+      TrStmtList(body, bodyWr);
+
+      return startWr;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
