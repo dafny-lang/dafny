@@ -804,7 +804,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Checks that "expr" is compilable and reports an error if it is not.
-    /// Also, update bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
+    /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
     /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
     /// must determine the value uniquely.
     /// Requires "expr" to have been successfully resolved.
