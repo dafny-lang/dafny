@@ -150,11 +150,11 @@ function method InterpExpr(e: Expr, ctx: Context): Result<(int, Context)> {
 
 We face the problem that the proof of the `Seq` case requires introducing the same
 intermediate values as the ones manipulated by the interpreter (like `ctx1`), so that we
-can *write* the recursive calls to `InterpExpr_Pure_WithLocals` (which give us our
+can *write* the recursive calls to `InterpExpr_Pure` (which give us our
 induction hypotheses):
 
 ```dafny
-lemma InterpExpr_Pure_WithLocals ... {
+lemma InterpExpr_Pure ... {
   match e
     case Seq(e1, e2) =>
       var res1 := InterpExpr(e1, ctx); // Duplicates the interpreter
@@ -184,7 +184,7 @@ the induction principle or not (see the [corresponding section](#section-increme
 
 ### First version of the induction principle - verifying `Pure`
 
-If you look carefully at the proof of `InterpExpr_Pure_WithLocals` in the previous
+If you look carefully at the proof of `InterpExpr_Pure` in the previous
 section, you will notice that the only important lines of code are the recursive calls
 applied on `e1` and `e2`. The remaining lines simply introduce variables like `ctx1` so
 that we can actually *write* those calls. We might want to factor out this structure once
@@ -223,7 +223,6 @@ An interesting thing with the above lemma is that its proof goes through automat
 We can write similar lemmas for the other cases of `Expr`, and finally make the final
 proof by induction in the following manner:
 
-<a id="interp-expr-pure-withlocals"></a>
 ```dafny
 lemma InterpExpr_Pure(e: Expr)
   ensures forall locals, ctx :: P(locals, ctx, e)
@@ -288,7 +287,7 @@ abstract module Induction {
   }
 ```
 
-In the case of `InterpExpr_Pure_WithLocals`, we would instantiate the `Induction` module in
+In the case of `InterpExpr_Pure`, we would instantiate the `Induction` module in
 the following manner:
 
 ```dafny
@@ -321,9 +320,9 @@ module Pure refines Induction {
 
 Stating an induction principle the way we did above allows to factorize a lot of work,
 but there are still some issues. First, the proof of `Induct_Seq` goes through
-automatically in this case, but other cases of the AST and other lemmas may require a bit
+automatically in this case, but other cases of the AST and other lemmas may need a bit
 of manual work, for instance by calling intermediate lemmas. In order to do so, we
-might want to access the different values manipulated by the interpreter (the intermediate
+might need to access the different values manipulated by the interpreter (the intermediate
 context `ctx1` for instance). Moreover, it uses forall quantifiers: the instantiation of
 those quantifiers can be unpredictable, and worse, can lead to context explosions when
 the proofs become more complex. For those reasons, we might want to be a bit more precise.
@@ -331,7 +330,7 @@ the proofs become more complex. For those reasons, we might want to be a bit mor
 The refinement we suggest (shown in the [code development](induction-principle/Pure.dfy)) works as follows. In order to
 manipulate the intermediate states, we need to talk about execution success and
 failures. Going back to the specific proof of
-[`InterpExpr_Pure_WithLocals`](#interp-expr-pure-withlocals), we split the
+[`InterpExpr_Pure`](#interpexpr-pure), we split the
 [`P`](#p-predicate) predicate as follows:
 
 ```dafny
@@ -385,16 +384,16 @@ SMT solvers can have unpredictable performance on resolving existential quantifi
 
 <br>
 
-We can then split the ``InterpExpr_Pure_WithLocals_Seq`` lemma into several cases:
+We can then split the ``InterpExpr_Pure_Seq`` lemma into several cases:
 
 ```dafny
 // Case 1: evaluating the first element in the sequence fails
-lemma InterpExpr_Pure_WithLocals_Seq_Fail(locals: set<string>, ctx: Context, e1: Expr, e2: Expr)
+lemma InterpExpr_Pure_Seq_Fail(locals: set<string>, ctx: Context, e1: Expr, e2: Expr)
   requires P_Fail(locals, ctx, e1)
   ensures P(locals, ctx, Seq(e1, e2))
 
 // Case 2: evaluating the first element in the sequence succeeds
-lemma InterpExpr_Pure_WithLocals_Seq_Succ(
+lemma InterpExpr_Pure_Seq_Succ(
   locals: set<string>, ctx: Context, e1: Expr, e2: Expr,
   ctx1: Context, v: int)
   requires P_Succ(locals, ctx, e1, ctx1, v) // `e1` evaluates to `v` in `ctx1`
@@ -407,15 +406,15 @@ lemmas. Moreover, when proving the result in the 2nd case (the most difficult on
 practice), we can directly reference the `ctx1` variable which is introduced as input to
 the lemma.
 
-Finally, the inductive proof of `InterpExpr_Pure_WithLocals` requires making a case
+Finally, the inductive proof of `InterpExpr_Pure` requires making a case
 disjunction on whether we have `P_Fail(locals, ctx, e1)` or `P_Succ(locals, ctx, e1, ctx1,
-v)` for some `ctx1` and `v` (we invite the reader to see the generic proof, for all `P`,
+v)` for some `ctx1` and `v` (the generic proof, performed for all `P`, is available
 in [`Induction`](induction-principle/Induction.dfy)).
 
 We invite the reader to have a look at the [code development](induction-principle/Pure.dfy). In practice, proving the
 correctness of `IsPure` simply required correctly instantiating the various definitions
 requested by the induction principle (i.e., `P`): all the proofs go through automatically.
-Writing those definitions takes a few lines of code, but is very straightforward. Moreover,
+Writing those definitions takes some lines of code, but is very straightforward. Moreover,
 updating the proofs is a lot easier when using the induction principle (see
 [`Incrementally expanding the language`](#section-increments)).
 
@@ -428,7 +427,7 @@ we want not to rely on forall quantifiers, because they are hard to work with an
 context saturate. More specifically, an interactive prover like Coq would more or less give
 us the [first, unrefined induction principle](#ind-step-seq-forall) we introduced earlier.
 
-More specifically, when trying to prove ``InterpExpr_Pure_WithLocals``, we would start
+More specifically, when trying to prove ``InterpExpr_Pure``, we would start
 with the goal:
 
 ```Coq
@@ -577,12 +576,14 @@ proofs go through automatically.
 
 
 <a id="section-increments"></a>
+
 ## Incrementally expanding the language
 
 We now study how incremental updates to the AST impact the induction
 principle and the proofs we have done so far.
 
 <a id="section-increments-seq"></a>
+
 ### A more general version of `Seq`: `Seq(expr, expr) ---> Seq(seq<Expr>)`
 
 The first modification we do is to transform the `Seq` case from `Seq(e1: Expr, e2: Expr)`
@@ -672,6 +673,7 @@ The proof of correctness of `IsPure` which doesn't use the induction principle
 case and introducing a proof about `InterpExprs`.
 
 <a id="section-increments-varseq"></a>
+
 ### Declaring or updating several variables at once: `var x, y, w := 1, 2, 3;`
 
 Now that we introduced a way of reasoning about sequences of expressions, we can update
@@ -707,6 +709,7 @@ be a big hassle, while the introduction of the induction principle drastically d
 the pain.
 
 <a id="pair-of-state"></a>
+
 ## A different kind of proof: manipulating a pair of states
 
 So far, we only studied proofs which require using one context. This changes if we add
@@ -729,7 +732,7 @@ to equal results (in the sense of this semantic equality, again), in the spirit 
 following predicate:
 
 ```dafny
-predicate EqValue(cv: Value, cv': Closure)
+predicate EqValue_Closure(cv: Closure, cv': Closure)
 {
   && |cv.vars| == |cv'.vars|
   && forall inputs, inputs' |
