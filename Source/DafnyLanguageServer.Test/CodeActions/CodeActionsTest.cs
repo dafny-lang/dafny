@@ -165,6 +165,8 @@ const x := 1;
         expectedDafnyCodeActionRange);
     }
 
+    private static Regex NewlineRegex = new Regex("\r?\n");
+
     private async Task TestIfCodeAction(string source, Range requestPosition, string expectedDafnyCodeActionTitle, string expectedDafnyCodeAction,
       Range expectedDafnyCodeActionRange) {
       var documentItem = CreateTestDocument(source);
@@ -187,7 +189,7 @@ const x := 1;
             var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
             Assert.IsNotNull(textDocumentEdit);
             var edit = textDocumentEdit.Edits.Single();
-            Assert.AreEqual(expectedDafnyCodeAction, edit.NewText);
+            Assert.AreEqual(NewlineRegex.Replace(expectedDafnyCodeAction, "\n"), NewlineRegex.Replace(edit.NewText, "\n"));
             Assert.AreEqual(expectedDafnyCodeActionRange, edit.Range);
           }
         }
