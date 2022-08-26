@@ -2,6 +2,7 @@
 
 - feat: Command-line arguments available from Main() in Dafny programs (https://github.com/dafny-lang/dafny/pull/2594)
 - feat: Support for the `{:opaque}` attibute on `const`
+- fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 
 # 3.8.0
 
