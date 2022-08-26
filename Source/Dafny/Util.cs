@@ -824,17 +824,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr selectExpr) {
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
-          string what;
-          switch (selectExpr.Member) {
-            case TwoStateFunction _:
-            case ExtremePredicate _:
-            case PrefixPredicate _:
-              what = selectExpr.Member.WhatKind;
-              break;
-            default:
-              what = "ghost " + selectExpr.Member.WhatKind;
-              break;
-          }
+          var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
         }
