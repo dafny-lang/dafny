@@ -27,7 +27,7 @@ public class HelperString {
   }
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|// ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 }
 
 public class IndentationFormatter : TokenFormatter.ITokenIndentations {
@@ -122,6 +122,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
               return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
             }
+          }
+
+          if (match.Groups["caseCommented"].Success && token.Next != null && token.Next.val == match.Groups["caseCommented"].Value) {
+            indentationBefore = new string(' ', GetTokenCol(token.Next, indentationBefore.Length) - 1);
           }
 
           previousMatchWasSingleLineCommentToAlign = false;
@@ -1244,33 +1248,30 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case LetOrFailExpr:
         case LetExpr:
           return SetIndentVarDeclStmt(indent, expr.OwnedTokens);
-        case ITEExpr: {
-            ApplyITEFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-        case NestedMatchExpr: {
-            SetIndentMatchStmt(indent, expr.OwnedTokens);
-            break;
-          }
-        case ComprehensionExpr: {
-            ApplyComprehensionExprFormatting(indent, expr.OwnedTokens);
-            break;
-          }
-        case ParensExpression: {
-            ApplyParensExpressionFormatting(indent, expr.OwnedTokens);
-            break;
-          }
+        case ITEExpr:
+          return SetIndentITE(indent, expr.OwnedTokens);
+        case NestedMatchExpr:
+          return SetIndentMatchStmt(indent, expr.OwnedTokens);
+        case ComprehensionExpr:
+          return SetIndentComprehensionExpr(indent, expr.OwnedTokens);
+        case ParensExpression:
+        case SeqDisplayExpr:
+        case MapDisplayExpr:
+        case SetDisplayExpr:
+          return SetIndentParensExpression(indent, expr.OwnedTokens);
       }
 
       return true;
     }
 
-    private void ApplyParensExpressionFormatting(int indent, List<IToken> ownedTokens) {
+    private bool SetIndentParensExpression(int indent, List<IToken> ownedTokens) {
       var itemIndent = indent + SpaceTab;
       var commaIndent = indent;
 
       foreach (var token in ownedTokens) {
         switch (token.val) {
+          case "[":
+          case "{":
           case "(": {
               if (IsFollowedByNewline(token)) {
                 formatter.SetIndentations(token, indent, indent, itemIndent);
@@ -1283,15 +1284,23 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               formatter.SetIndentations(token, itemIndent, commaIndent, itemIndent);
               break;
             }
+          case ":=": {
+              formatter.SetIndentations(token, itemIndent, itemIndent, itemIndent + SpaceTab);
+              break;
+            }
+          case "]":
+          case "}":
           case ")": {
               formatter.SetIndentations(token, itemIndent, commaIndent, commaIndent);
               break;
             }
         }
       }
+
+      return true;
     }
 
-    private void ApplyComprehensionExprFormatting(int indent, List<IToken> ownedTokens) {
+    private bool SetIndentComprehensionExpr(int indent, List<IToken> ownedTokens) {
       var afterAssignIndent = indent + SpaceTab;
       var alreadyAligned = false;
       var assignIndent = indent;
@@ -1324,6 +1333,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
         }
       }
+
+      return true;
     }
 
     private bool SetIndentMatchStmt(int indent, List<IToken> ownedTokens) {
@@ -1368,7 +1379,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;
     }
 
-    private bool ApplyITEFormatting(int indent, List<IToken> ownedTokens) {
+    private bool SetIndentITE(int indent, List<IToken> ownedTokens) {
       var lineThen = 0;
       foreach (var token in ownedTokens) {
         switch (token.val) {

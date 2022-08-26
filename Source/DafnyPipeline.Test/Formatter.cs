@@ -1213,6 +1213,57 @@ abstract module C {
     }
 
     [Fact]
+    public void FormatterWorksForCommentsOfCases() {
+      FormatterWorksFor(@"
+datatype Dt =
+  | Int(int)
+  // | ISet(iset<Dt>) //  This definition is not allowed because Dt appears in a non-strict/lax position
+  // | IMap0(imap<Dt,int>) //  This definition is not allowed because Dt appears in a non-strict/lax position
+  | IMap1(imap<int,Dt>)
+
+method M4() {
+  if {
+    case true => even := noll as EvenInt;
+    //case true => even := b67 as EvenInt;  // error: bv67 may be odd  // disabled because it doesn't terminate with 4.4.2 Z3
+    case b67 as int % 2 == 0 => even := b67 as EvenInt;
+  }
+}");
+    }
+
+    [Fact]
+    public void FormatterWorksForSeqSetMapDisplay() {
+      FormatterWorksFor(@"
+function method AlignSeq(): seq<seq<int>> {
+  [ [ 1, 2, 3 ],
+    [ 4,
+      5
+    , 6 ]
+  , [ 7, 8, 9 ] ]
+}
+
+function method AlignMap(): map<int, int> {
+  map[ 1 := 2,
+       2 := 3
+     , 4 := 5
+     , 6 :=
+         7
+     , 8
+       := 9 ]
+}
+
+function method AlignSet(): set<int> {
+  { 1,
+    2
+  , 3} + {
+    1,
+    2
+  , 3
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForNewtypeWithMember() {
       FormatterWorksFor(@"
 newtype Even = x : int | x % 2 == 0
