@@ -325,8 +325,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
       The (fully-qualified) name of the method to use as the executable entry point.
       Default is the method with the {:main} attribute, or else the method named 'Main'.
       A Main method can have at most one (non-ghost) argument of type `seq<string>`
-  -- <arg1> <arg2> ...
-      When running a Dafny file through /compile:3 or /compile:4, '--' provides
+  --args <arg1> <arg2> ...
+      When running a Dafny file through /compile:3 or /compile:4, '--args' provides
       all arguments after it to the Main function, at index starting at 1.
       Index 0 is used to store the executable's name if it exists.
   /runAllTests:<n> (experimental)
