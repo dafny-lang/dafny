@@ -28,6 +28,24 @@ public class HelperString {
 
   public static readonly Regex NewlineRegex =
     new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|//|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+}
+
+public class IndentationFormatter : TokenFormatter.ITokenIndentations {
+  public static int SpaceTab = 2;
+
+  public Dictionary<int, int> PosToIndentBefore;
+  public Dictionary<int, int> PosToIndentLineBefore;
+  public Dictionary<int, int> PosToIndentAfter;
+
+  private IndentationFormatter(
+    Dictionary<int, int> posToIndentBefore,
+    Dictionary<int, int> posToIndentLineBefore,
+    Dictionary<int, int> posToIndentAfter) {
+    PosToIndentBefore = posToIndentBefore;
+    PosToIndentLineBefore = posToIndentLineBefore;
+    PosToIndentAfter = posToIndentAfter;
+  }
+
 
   /// Given a space around a token (input),
   /// * precededByNewline means it's a leading space that was preceded by a newline
@@ -35,20 +53,32 @@ public class HelperString {
   /// changes the indentation so that on the lines before, it uses indentationBefore,
   /// and on the last line it uses lastIndentation
   /// If it's a trailing space, no indentation is added after the last \n because it would be handled by the next leading space.
-  public static string Reindent(string input, bool trailingTrivia, bool precededByNewline, string indentationBefore, string lastIndentation) {
+  public string Reindent(IToken token, bool trailingTrivia, bool precededByNewline, string indentationBefore, string lastIndentation) {
+    var input = trailingTrivia ? token.TrailingTrivia : token.LeadingTrivia;
     var commentExtra = "";
     // Invariant: Relative indentation inside a multi-line comment should be unchanged
+    var originalCommentCol = -1;
+    var newCommentCol = -1;
+    var previousMatchWasSingleLineCommentToAlign = false;
 
-    var result = NewlineRegex.Replace(input,
+    var result = HelperString.NewlineRegex.Replace(input,
       MaybeDebug(trailingTrivia, match => {
         if (match.Groups["trailingWhitespace"].Success) {
-          return RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
+          return HelperString.RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
         }
 
         var startOfString = match.Groups["previousChar"].Value == "";
         var commentType = match.Groups["commentType"].Value;
         if (startOfString && !precededByNewline) {
-          if (RemoveTrailingWhitespace && commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
+          if (commentType.StartsWith("//")) { // Possibly align consecutive // trailing comments
+            if (originalCommentCol == -1) {
+              originalCommentCol = token.col + token.val.Length + match.Groups["currentIndent"].Value.Length;
+              newCommentCol = GetTokenCol(token, 0) + token.val.Length + match.Groups["currentIndent"].Value.Length;
+              previousMatchWasSingleLineCommentToAlign = true;
+            }
+          }
+
+          if (HelperString.RemoveTrailingWhitespace && commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
             precededByNewline = true;
             return commentType;
           }
@@ -83,16 +113,26 @@ public class HelperString {
                 return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
               }
             });
+          previousMatchWasSingleLineCommentToAlign = false;
           return indentationBefore + result;
         }
 
         if (commentType.StartsWith("//")) {
+          if (previousMatchWasSingleLineCommentToAlign) {
+            if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
+              return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
+            }
+          }
+
+          previousMatchWasSingleLineCommentToAlign = false;
           return indentationBefore + match.Groups["commentType"].Value;
         }
 
         if (commentType.StartsWith("\r") || commentType.StartsWith("\n")) {
-          return (BlankNewlinesWithoutSpaces ? "" : indentationBefore) + match.Groups["commentType"].Value;
+          previousMatchWasSingleLineCommentToAlign = false;
+          return (HelperString.BlankNewlinesWithoutSpaces ? "" : indentationBefore) + match.Groups["commentType"].Value;
         }
+        previousMatchWasSingleLineCommentToAlign = false;
 
         // Last line
         return lastIndentation;
@@ -103,30 +143,12 @@ public class HelperString {
   }
 
   private static MatchEvaluator MaybeDebug(bool trailingTrivia, MatchEvaluator func) {
-    if (!Debug) {
+    if (!HelperString.Debug) {
       return func;
     } else {
       return (Match match) => trailingTrivia ? "[" + func(match) + "]" : "{" + func(match) + "}";
     }
   }
-}
-
-public class IndentationFormatter : TokenFormatter.ITokenIndentations {
-  public static int SpaceTab = 2;
-
-  public Dictionary<int, int> PosToIndentBefore;
-  public Dictionary<int, int> PosToIndentLineBefore;
-  public Dictionary<int, int> PosToIndentAfter;
-
-  private IndentationFormatter(
-    Dictionary<int, int> posToIndentBefore,
-    Dictionary<int, int> posToIndentLineBefore,
-    Dictionary<int, int> posToIndentAfter) {
-    PosToIndentBefore = posToIndentBefore;
-    PosToIndentLineBefore = posToIndentLineBefore;
-    PosToIndentAfter = posToIndentAfter;
-  }
-
 
   // Given a token, finds the indentation that was expected before it.
   // Used for frame expressions to initially copy the indentation of "reads", "requires", etc.

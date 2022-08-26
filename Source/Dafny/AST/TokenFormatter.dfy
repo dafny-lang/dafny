@@ -1,8 +1,8 @@
 module {:extern @"Microsoft.Dafny.Helpers"} {:options "-functionSyntax:4"} Helpers {
   import opened System
+  import opened MicrosoftDafny
   class {:extern "HelperString"} {:compile false} HelperString {
     static predicate FinishesByNewline(input: CsString)
-    static function Reindent(input: CsString, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
   }
 }
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
@@ -127,6 +127,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
       
       trait ITokenIndentations {
+        function Reindent(token: IToken, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
         // Returns -1 if no indentation is set
         method GetIndentation(token: IToken, currentIndentation: CsString)
           returns (
@@ -381,8 +382,8 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           assert forall t <- firstTokensUntilI :: s.Contains(t.val);
           assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
 
-          var newLeadingTrivia := HelperString.Reindent(token.LeadingTrivia, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
-          var newTrailingTrivia := HelperString.Reindent(token.TrailingTrivia, true, false, indentationAfter, indentationAfter);
+          var newLeadingTrivia := reindent.Reindent(token, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
+          var newTrailingTrivia := reindent.Reindent(token, true, false, indentationAfter, indentationAfter);
           leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
           // Had an error here: caught by an invariant
           //s := String.Concat(newTrivia, token.val);

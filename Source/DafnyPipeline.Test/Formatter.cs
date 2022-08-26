@@ -984,6 +984,45 @@ method AlternativeLoopStmt() {
     }
 
     [Fact]
+    public void FormatterWorksForAlignedSingleLineTrailingComments() {
+      var before = @"
+module RefinedF refines BaseF {
+  function f(): bool { false } // OK. Local f preferred over imported f
+                               // even if imported into refinement parent
+  lemma A() {
+  forall u: int {  // regression: the inferred ensures clause used to have
+                   // a problem with static const fields
+    B(u);
+  }
+  }
+
+  method DeclWithHavoc()
+  {
+    var b: int := *;  // error: technically fine, since b is never used, but here the compiler
+// This comment should be on its own line
+  }
+}";
+      var after = @"
+module RefinedF refines BaseF {
+  function f(): bool { false } // OK. Local f preferred over imported f
+                               // even if imported into refinement parent
+  lemma A() {
+    forall u: int {  // regression: the inferred ensures clause used to have
+                     // a problem with static const fields
+      B(u);
+    }
+  }
+
+  method DeclWithHavoc()
+  {
+    var b: int := *;  // error: technically fine, since b is never used, but here the compiler
+    // This comment should be on its own line
+  }
+}";
+      FormatterWorksFor(before, after);
+    }
+
+    [Fact]
     public void IndentCorrectlyAModule() {
       FormatterWorksFor(@"
 module Tests {
