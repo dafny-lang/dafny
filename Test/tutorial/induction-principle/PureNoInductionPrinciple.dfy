@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 include "Utils.dfy"
 include "AST.dfy"
 include "Interp.dfy"
@@ -17,8 +20,8 @@ module PureNoInductionPrinciple {
     Pure.ResultSameCtx(locals, ctx, res)
   }
 
-  lemma InterpExpr_Pure_WithLocals(e: Expr, locals: set<string>, ctx: Context)
-    requires Pure.IsPure_WithLocals(locals, e)
+  lemma InterpExpr_Pure(e: Expr, ctx: Context, locals: set<string> := {})
+    requires Pure.IsPure(e, locals)
     requires ctx.Keys >= locals
     ensures ResultSameCtx(locals, ctx, InterpExpr(e, ctx))
     decreases e, 1
@@ -30,7 +33,7 @@ module PureNoInductionPrinciple {
       case Bind(bvars, bvals, body) =>
         var res1 := InterpExprs(bvals, ctx); // Manual introduction
 
-        InterpExprs_Pure_WithLocals(bvals, locals, ctx); // Recursive call
+        InterpExprs_Pure(bvals, ctx, locals); // Recursive call
 
         if res1.Success? { // Manual introduction
           var (vs, ctx1) := res1.value; // Manual introduction
@@ -39,7 +42,7 @@ module PureNoInductionPrinciple {
           var locals' := (set x | x in bvars) + locals;
 
           // Below: pay attention to the arguments (`locals'`, `ctx2` for instance)!
-          InterpExpr_Pure_WithLocals(body, locals', ctx2); // Recursive call
+          InterpExpr_Pure(body, ctx2, locals'); // Recursive call
           
           // When the proofs fail, we often need to introduce more values,
           // just so that we can stare at them and write assertions. For instance:
@@ -55,36 +58,36 @@ module PureNoInductionPrinciple {
         else {}
 
       case Assign(avars, avals) =>
-        InterpExprs_Pure_WithLocals(avals, locals, ctx); // Recursive call
+        InterpExprs_Pure(avals, ctx, locals); // Recursive call
 
       case If(cond, thn, els) =>
         var res1 := InterpExpr(cond, ctx); // Manual introduction
-        InterpExpr_Pure_WithLocals(cond, locals, ctx); // Recursive call
+        InterpExpr_Pure(cond, ctx, locals); // Recursive call
 
         if res1.Success? { // Manual introduction
           var (condv, ctx1) := res1.value; // Manual introduction
 
-          InterpExpr_Pure_WithLocals(thn, locals, ctx1); // Recursive call
-          InterpExpr_Pure_WithLocals(els, locals, ctx1); // Recursive call
+          InterpExpr_Pure(thn, ctx1, locals); // Recursive call
+          InterpExpr_Pure(els, ctx1, locals); // Recursive call
         }
         else {}
 
       case Op(op, oe1, oe2) =>
         var res1 := InterpExpr(oe1, ctx); // Manual introduction
-        InterpExpr_Pure_WithLocals(oe1, locals, ctx); // Recursive call
+        InterpExpr_Pure(oe1, ctx, locals); // Recursive call
 
         if res1.Success? {
           var (v1, ctx1) := res1.value;
-          InterpExpr_Pure_WithLocals(oe2, locals, ctx1); // Recursive call
+          InterpExpr_Pure(oe2, ctx1, locals); // Recursive call
         }
         else {}
 
       case Seq(es) =>
-        InterpExprs_Pure_WithLocals(es, locals, ctx); // Recursive call
+        InterpExprs_Pure(es, ctx, locals); // Recursive call
   }
 
-  lemma InterpExprs_Pure_WithLocals(es: seq<Expr>, locals: set<string>, ctx: Context)
-    requires Pure.IsPure_Es_WithLocals(locals, es)
+  lemma InterpExprs_Pure(es: seq<Expr>, ctx: Context, locals: set<string> := {})
+    requires Pure.IsPure_Es(es, locals)
     requires ctx.Keys >= locals
     ensures ResultSameCtx(locals, ctx, InterpExprs(es, ctx))
     decreases es, 0
@@ -92,25 +95,14 @@ module PureNoInductionPrinciple {
     if es == [] {} // Manual test
     else {
       var res1 := InterpExpr(es[0], ctx); // Manual introduction
-      InterpExpr_Pure_WithLocals(es[0], locals, ctx); // Recursive call
+      InterpExpr_Pure(es[0], ctx, locals); // Recursive call
       
       if res1.Success? {
         var (v, ctx1) := res1.value; // Manual introduction
 
-        InterpExprs_Pure_WithLocals(es[1..], locals, ctx1);
+        InterpExprs_Pure(es[1..], ctx1, locals);
       }
       else {}
     }
-  }
-
-  lemma InterpExpr_Pure(e: Expr, ctx: Context)
-    requires Pure.IsPure(e)
-    ensures
-      match InterpExpr(e, ctx)
-        case Success((_, ctx')) => ctx' == ctx
-        case Failure => true
-    // The final theorem.
-  {
-    InterpExpr_Pure_WithLocals(e, {}, ctx);
   }
 }
