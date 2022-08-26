@@ -8831,7 +8831,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatMentionsCtorOfGhostVariantDatatype(s.Cases) != null;
+          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
           }

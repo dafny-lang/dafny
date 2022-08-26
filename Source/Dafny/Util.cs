@@ -832,7 +832,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr selectExpr) {
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
-          var what = selectExpr.Member.WhatKindMentionGhost; 
+          var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
         }
@@ -1003,9 +1003,9 @@ namespace Microsoft.Dafny {
         return chainingExpression.Operands.TrueForAll(ee => CheckIsCompilable(ee, codeContext));
 
       } else if (expr is MatchExpr matchExpr) {
-        var mc = FirstCaseThatMentionsCtorOfGhostVariantDatatype(matchExpr.Cases);
+        var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
         if (mc != null) {
-          reporter?.Error(MessageSource.Resolver, mc.tok, "match expression is not compilable, because it mentions a constructor from a ghost-variant datatype");
+          reporter?.Error(MessageSource.Resolver, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
           isCompilable = false;
         }
         // other conditions are checked below
@@ -1216,7 +1216,7 @@ namespace Microsoft.Dafny {
         return UsesSpecFeatures(((NestedMatchExpr)expr).ResolvedExpression);
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        if (UsesSpecFeatures(me.Source) || FirstCaseThatMentionsCtorOfGhostVariantDatatype(me.Cases) != null) {
+        if (UsesSpecFeatures(me.Source) || FirstCaseThatDependsOnGhostCtor(me.Cases) != null) {
           return true;
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
@@ -1258,8 +1258,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static MC FirstCaseThatMentionsCtorOfGhostVariantDatatype<MC>(List<MC> cases) where MC : MatchCase {
-      return cases.FirstOrDefault(cs => cs.Ctor.EnclosingDatatype.HasGhostVariant, null);
+    /// <summary>
+    /// Return the first ghost constructor listed in a case, or null, if there is none.
+    /// </summary>
+    public static MC FirstCaseThatDependsOnGhostCtor<MC>(List<MC> cases) where MC : MatchCase {
+      return cases.FirstOrDefault(kees => kees.Ctor.IsGhost, null);
     }
   }
 }
