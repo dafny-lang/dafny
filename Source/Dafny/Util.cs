@@ -854,6 +854,10 @@ namespace Microsoft.Dafny {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
+        } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
+          var what = selectExpr.Member.WhatKind;
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
+          return false;
         }
 
       } else if (expr is DatatypeUpdateExpr updateExpr) {
@@ -865,6 +869,13 @@ namespace Microsoft.Dafny {
           if (!member.IsGhost) {
             isCompilable = CheckIsCompilable(updateExpr.Updates[i].Item3, codeContext) && isCompilable;
           }
+        }
+        if (updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost)) {
+          var dtors = Util.PrintableNameList(updateExpr.Members.ConvertAll(dtor => dtor.Name), "and");
+          var ctorNames = DatatypeDestructor.PrintableCtorNameList(updateExpr.LegalSourceConstructors, "or");
+          reporter?.Error(MessageSource.Resolver, updateExpr,
+            $"in a compiled context, update of {dtors} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})");
+          isCompilable = false;
         }
         // don't step into the desugared expression
         return isCompilable;
@@ -1147,6 +1158,8 @@ namespace Microsoft.Dafny {
           return true;
         } else if (e.Member != null && e.Member.IsGhost) {
           return true;
+        } else if (e.Member is DatatypeDestructor dtor) {
+          return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
         } else {
           return false;
         }
@@ -1162,7 +1175,8 @@ namespace Microsoft.Dafny {
             return true;
           }
         }
-        return false;
+        return updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost);
+
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         return UsesSpecFeatures(e.Seq) ||

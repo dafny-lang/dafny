@@ -18,7 +18,7 @@ module Ghost {
     var x := xy.D0? && xy.x == 3;
     ghost var y := xy.G0? && xy.y;
     var yy;
-    yy := xy.G0? && xy.y; // error: RHS is ghost, but LHS is not
+    yy := xy.G0? && xy.y; // error (x2): RHS is ghost, but LHS is not
   }
 
   method M1(xy: XY)
@@ -27,9 +27,14 @@ module Ghost {
     // Even though the verifier will forbid use of .y and .w in compiled contexts,
     // the resolver allows them.
     var y, z, w;
-    y := xy.y;
-    w := xy.w;
+    y := xy.y; // error: .y implies a ghost constructor
+    w := xy.w; // error: .w implies a ghost constructor
     z := xy.z;
+
+    ghost var a, b, c;
+    a := xy.y;
+    b := xy.w;
+    c := xy.z;
   }
 
   method M2(ghost xy: XY)
@@ -39,6 +44,11 @@ module Ghost {
     y := xy.y; // error: RHS is ghost, but LHS is not
     w := xy.w; // error: RHS is ghost, but LHS is not
     z := xy.z; // error: RHS is ghost, but LHS is not
+
+    ghost var a, b, c;
+    a := xy.y;
+    b := xy.w;
+    c := xy.z;
   }
 }
 
@@ -254,5 +264,66 @@ module StmtExpr {
         0;
       }
       20;
+  }
+}
+
+module Updates {
+  datatype D =
+    | D0(c: int, n: int)
+    | ghost D1(c: int, x: int)
+    | ghost D2(c: int, x: int, y: int)
+    | ghost D3(c: int, x: int, y: int)
+
+  method Select0(d: D) returns (r: int)
+  {
+    r := d.c; // one constructor enclosing .c is non-ghost, so this is fine
+    r := d.n;
+    r := d.x; // error: RHS is ghost, LHS is not
+    r := d.y; // error: RHS is ghost, LHS is not
+  }
+
+  method Update0(d: D) returns (r: D)
+  {
+    r := d.(c := 2); // one constructor enclosing .c is non-ghost, so this is fine
+    r := d.(n := 2);
+    r := d.(x := 2); // error: RHS is ghost, LHS is not
+    r := d.(y := 2); // error: RHS is ghost, LHS is not
+
+    r := d.(c := 2, x := 2); // error: RHS is ghost, LHS is not
+    r := d.(c := 2, n := 2);
+    r := d.(x := 2, y := 2); // error: RHS is ghost, LHS is not
+  }
+
+  method Select1(d: D) returns (r: int)
+  {
+    var a := d.c;
+    var b := d.n;
+    var c := d.x;
+    var e := d.y;
+
+    r := a;
+    r := b;
+    r := c; // error: RHS is ghost, LHS is not
+    r := e; // error: RHS is ghost, LHS is not
+  }
+
+  method Update1(d: D) returns (r: D)
+  {
+    var a := d.(c := 2);
+    var b := d.(n := 2);
+    var c := d.(x := 2);
+    var e := d.(y := 2);
+
+    var f := d.(c := 2, x := 2);
+    var g := d.(c := 2, n := 2);
+    var h := d.(x := 2, y := 2);
+
+    r := a;
+    r := b;
+    r := c; // error: RHS is ghost, LHS is not
+    r := e; // error: RHS is ghost, LHS is not
+    r := f; // error: RHS is ghost, LHS is not
+    r := g;
+    r := h; // error: RHS is ghost, LHS is not
   }
 }
