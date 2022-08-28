@@ -858,10 +858,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeUpdateExpr updateExpr) {
         updateExpr.InCompiledContext = true;
-        foreach (var member in updateExpr.Members) {
-          if (member.IsGhost) {
-            reporter?.Error(MessageSource.Resolver, updateExpr, $"a ghost {member.WhatKind} is allowed only in specification contexts");
-            isCompilable = false;
+        isCompilable = CheckIsCompilable(updateExpr.Root, codeContext);
+        Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+        for (var i = 0; i < updateExpr.Updates.Count; i++) {
+          var member = (DatatypeDestructor)updateExpr.Members[i];
+          if (!member.IsGhost) {
+            isCompilable = CheckIsCompilable(updateExpr.Updates[i].Item3, codeContext) && isCompilable;
           }
         }
         // don't step into the desugared expression
@@ -1140,12 +1142,27 @@ namespace Microsoft.Dafny {
         MapDisplayExpr e = (MapDisplayExpr)expr;
         return e.Elements.Exists(p => UsesSpecFeatures(p.A) || UsesSpecFeatures(p.B));
       } else if (expr is MemberSelectExpr) {
-        MemberSelectExpr e = (MemberSelectExpr)expr;
-        if (e.Member != null) {
-          return cce.NonNull(e.Member).IsGhost || UsesSpecFeatures(e.Obj);
+        var e = (MemberSelectExpr)expr;
+        if (UsesSpecFeatures(e.Obj)) {
+          return true;
+        } else if (e.Member != null && e.Member.IsGhost) {
+          return true;
         } else {
           return false;
         }
+      } else if (expr is DatatypeUpdateExpr updateExpr) {
+        if (UsesSpecFeatures(updateExpr.Root)) {
+          return true;
+        }
+        Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+        for (var i = 0; i < updateExpr.Updates.Count; i++) {
+          var member = (DatatypeDestructor)updateExpr.Members[i];
+          // note, updating a ghost field does not make the expression ghost (cf. ghost let expressions)
+          if (!member.IsGhost && UsesSpecFeatures(updateExpr.Updates[i].Item3)) {
+            return true;
+          }
+        }
+        return false;
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         return UsesSpecFeatures(e.Seq) ||

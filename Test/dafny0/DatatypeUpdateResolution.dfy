@@ -43,3 +43,56 @@ module MainStuff {
     }
   }
 }
+
+module GhostExpressions {
+  datatype R = R(x: int, ghost y: int)
+
+  // source is ghost
+  method Test0(ghost r: R, g: int) returns (b: R) {
+    var a := r.(x := g); // the use of r makes RHS ghost
+    b := a; // error: RHS is ghost, LHS is not
+
+    b := r.(x := g); // error: RHS is ghost, LHS is not
+  }
+
+  // new value is ghost
+  method Test1(r: R, ghost g: int, h: int) returns (b: R) {
+    var a := r.(x := g); // the use of g makes RHS ghost
+    b := a; // error: RHS is ghost, LHS is not
+
+    b := r.(x := g); // error: RHS is ghost, LHS is not
+
+    var c := r.(y := g);
+    b := c;
+    b := r.(y := g);
+
+    var d := if r.x == 3 then r.(x := g, y := h) else r.(y := h, x := g); // the use of g makes RHS ghost
+    b := d; // error: RHS is ghost, LHS is not
+    b := r.(x := g, y := h); // error: RHS is ghost, LHS is not
+    b := r.(y := h, x := g); // error: RHS is ghost, LHS is not
+
+    var e := if r.x == 3 then r.(x := h, y := g) else r.(y := g, x := h);
+    b := e;
+    b := r.(x := h, y := g);
+    b := r.(y := g, x := h);
+  }
+
+  // field is ghost
+  method Test2(r: R, g: int) returns (b: R) {
+    // In the following, since y is ghost, the update operations are really just no-ops in the compiled code.
+    var a := r.(y := g);
+    b := a;
+
+    b := r.(y := g);
+  }
+
+  // one of the fields is ghost
+  method Test3(r: R, g: int) returns (b: R) {
+    // In the following, since y is ghost, the updates of y are really just no-ops in the compiled code.
+    var a := if g == 3 then r.(x := g, y := g) else r.(y := g, x := g);
+    b := a;
+
+    b := r.(x := g, y := g);
+    b := r.(y := g, x := g);
+  }
+}

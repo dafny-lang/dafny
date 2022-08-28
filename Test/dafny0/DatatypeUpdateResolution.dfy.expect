@@ -3,4 +3,11 @@ DatatypeUpdateResolution.dfy(14,40): Error: member '40' does not exist in dataty
 DatatypeUpdateResolution.dfy(18,63): Error: duplicate update member 'otherbool'
 DatatypeUpdateResolution.dfy(20,25): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'otherbool' does not belong to 'MyNumericConstructor')
 DatatypeUpdateResolution.dfy(29,12): Error: member 'Make?' is not a destructor in datatype 'Dt'
-5 resolution/type errors detected in DatatypeUpdateResolution.dfy
+DatatypeUpdateResolution.dfy(53,9): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(55,9): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(61,9): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(63,17): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(70,9): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(71,17): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(72,25): Error: a ghost variable is allowed only in specification contexts
+12 resolution/type errors detected in DatatypeUpdateResolution.dfy
