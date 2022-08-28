@@ -3,10 +3,10 @@
 
 module Types {
   datatype XY =
-    | {:hello} D0(x: int)
-    | ghost {:bye} G0(y: bool)
+    | {:testAttr0} D0(x: int)
+    | ghost {:testAttr1} G0(y: bool)
     | ghost G1(y: bool, z: real, w: char)
-    | {:yep} D1(z: real)
+    | {:testAttr2} D1(z: real)
 
   datatype Wrapper<A> = Wrapper(A)
 }

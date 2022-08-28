@@ -3,10 +3,10 @@
 
 module Types {
   datatype XY =
-    | {:hello} D0(x: int)
-    | ghost {:bye} G0(y: bool)
+    | D0(x: int)
+    | ghost G0(y: bool)
     | ghost G1(y: bool, z: real, w: char)
-    | {:yep} D1(z: real)
+    | D1(z: real, y: bool)
 
   class Cl { }
 
@@ -35,14 +35,12 @@ module Ghost {
   method M1(xy: XY)
     requires xy.G1?
   {
-    var x, y, z, w;
+    var x, y, z;
     if
     case true =>
       x := xy.x; // error: xy is not a D0
     case true =>
       y := xy.y; // error: compiled context cannot read .y
-    case true =>
-      w := xy.w; // error: compiled context cannot read .w
     case true =>
       z := xy.z; // error: compiled context cannot read .w of a G1
   }
@@ -81,8 +79,6 @@ module Ghost {
       r := xy.(x := 2); // error: xy is not a D0
     case true =>
       r := xy.(y := true); // error: compiled context cannot update .y
-    case true =>
-      r := xy.(w := 'w'); // error: compiled context cannot update .w
   }
 
   method Update1(xy: XY) returns (r: XY)
@@ -93,8 +89,6 @@ module Ghost {
       r := xy.(z := 2.2); // error: compiled context cannot update .z of a G1
     case true =>
       r := xy.(z := 2.2, y := true); // error: compiled context cannot update .z/.y of a G1
-    case true =>
-      r := xy.(z := 2.2, w := 'w', y := true); // error: compiled context cannot update .z/.w/.y of a G1
   }
 
   method Update2(xy: XY) returns (ghost r: XY)
@@ -162,131 +156,5 @@ module Members {
         r := x;
       }
     }
-  }
-}
-
-module {:options "/functionSyntax:4"} Regressions {
-  predicate P(x: int)
-
-  method M0(ghost y: int) returns (r: int)
-    requires P(y)
-  {
-    var gg := (var x :| P(x); x) == 0; // error: x might not be unique (gg is considered non-ghost)
-    if gg {
-      r := 0;
-    }
-  }
-
-  method M1(ghost y: int) returns (r: int)
-    requires P(y)
-  {
-    if (var x :| P(x); x) == 0 { // error: x might not be unique
-      r := 0;
-    }
-  }
-
-  method M2(ghost y: int)
-    requires P(y)
-  {
-    // the following "if" statement is ghost
-    if (var x :| P(x); x) == 0 {
-    }
-  }
-
-  method M3(y: int) returns (r: int)
-    requires P(y)
-  {
-    if
-    case 2 < y =>
-      r := 0;
-    case (var x :| P(x); x) == 0 => // error: x might not be unique
-    case true =>
-  }
-
-  method M4(ghost y: int)
-    requires P(y)
-  {
-    while (var x :| P(x); x) == 0 { // error: x might not be unique
-      break;
-    }
-  }
-
-  method M5(y: int)
-    requires P(y)
-  {
-    while
-    case 2 < y =>
-      break;
-    case (var x :| P(x); x) == 0 => // error: x might not be unique
-      break;
-    case true =>
-      break;
-  }
-
-  method M6(ghost y: int) returns (r: int)
-    requires P(y)
-  {
-    for i := if (var x :| P(x); x) == 0 then 3 else 2 to 25 { // error: x might not be unique
-      r := 0;
-    }
-  }
-
-  method M7(ghost y: int) returns (r: int)
-    requires P(y)
-  {
-    for i := 0 to if (var x :| P(x); x) == 0 then 3 else 2 { // error: x might not be unique
-      r := 0;
-    }
-  }
-
-  method M8(a: array<int>, y: int)
-    requires P(y)
-    modifies a
-  {
-    forall i | 0 <= i < if (var x :| P(x); x) == 0 then a.Length else 0 { // error: x might not be unique
-      a[i] := 0;
-    }
-  }
-
-  method M9(y: int) returns (r: int)
-    requires P(y)
-  {
-    match if (var x :| P(x); x) == 0 then 3 else 0 // error: x might not be unique
-    case 0 =>
-    case 1 =>
-      r := 0;
-    case _ =>
-  }
-
-  method M10(y: int)
-    requires P(y)
-  {
-    // Here, the entire match statement is ghost
-    match if (var x :| P(x); x) == 0 then 3 else 0
-    case 0 =>
-    case 1 =>
-    case _ =>
-  }
-
-  datatype Color = Red | Blue | Green
-
-  method M11(c: Color, y: int) returns (r: int)
-    requires P(y)
-  {
-    match if (var x :| P(x); x) == 0 then c else c // error: x might not be unique
-    case Red =>
-    case Green =>
-      r := 0;
-    case Blue =>
-  }
-
-  method M12(c: Color, y: int)
-    requires P(y)
-  {
-    // Here, the entire match statement is ghost
-    match if (var x :| P(x); x) == 0 then c else c
-    case Red =>
-    case Green =>
-    case Blue =>
   }
 }
