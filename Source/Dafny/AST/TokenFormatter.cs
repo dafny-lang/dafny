@@ -722,7 +722,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     } else if (redirectingTypeDecl is NewtypeDecl newtypeDecl) {
       SetExpressionIndentation(newtypeDecl.Constraint);
       SetExpressionIndentation(newtypeDecl.Witness);
-      SetTypeIndentation(newtypeDecl.Var.SyntacticType);
+      if (newtypeDecl.Var != null) {
+        SetTypeIndentation(newtypeDecl.Var.SyntacticType);
+      }
       SetIndentations(newtypeDecl.EndToken, after: indent);
     } else if (redirectingTypeDecl is TypeSynonymDecl typeSynonymDecl) {
       SetIndentations(typeSynonymDecl.EndToken, after: indent);

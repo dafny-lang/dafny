@@ -878,6 +878,8 @@ class TestClass {
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp ExternDefs.h ""%s"" > ""%t""
 // RUN: %diff ""%s.expect"" ""%t""
 
+newtype y = int
+
 newtype uint32 = i:int | 0 <= i < 0x100000000
 
 method ReturnTuple() returns (x:(uint32,uint32))
