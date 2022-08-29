@@ -711,9 +711,9 @@ namespace Microsoft.Dafny.Compilers {
 
         // When accessing a static member, leave off the type arguments
         if (member != null) {
-          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok);
+          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok, erased);
         } else {
-          return TypeName_UDT(s, udt, wr, udt.tok);
+          return TypeName_UDT(s, udt, wr, udt.tok, erased);
         }
       } else if (xType is SetType) {
         var argType = ((SetType)xType).Arg;
@@ -820,13 +820,14 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(variance.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
-      if (typeArgs.Count != 0) {
+      if (typeArgs.Count != 0 && !omitTypeArguments) {
         for (var i = 0; i < typeArgs.Count; i++) {
           var v = variance[i];
           var ta = typeArgs[i];
@@ -1377,7 +1378,7 @@ namespace Microsoft.Dafny.Compilers {
         if (member != null && (member.IsStatic || NeedsCustomReceiver(member)) && member.EnclosingClass.TypeArgs.Count != 0) {
           return IdProtect(udt.FullCompanionCompileName);
         } else {
-          return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok);
+          return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok, false);
         }
       } else {
         return TypeName(type, wr, tok, member);
@@ -3111,7 +3112,7 @@ namespace Microsoft.Dafny.Compilers {
               bareArray =
                 $"(Object{Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
             } else {
-              bareArray = $"new {TypeName(elType, wr, tok)}{Repeat("[0]", arrayClass.Dims)}";
+              bareArray = $"new {TypeName(elType, wr, tok, false, true)}{Repeat("[0]", arrayClass.Dims)}";
             }
             if (arrayClass.Dims > 1) {
               arrays.Add(arrayClass.Dims);

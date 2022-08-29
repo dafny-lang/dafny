@@ -1551,7 +1551,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments = false) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass

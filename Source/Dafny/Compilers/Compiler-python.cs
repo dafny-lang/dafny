@@ -655,7 +655,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
-        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       return fullCompileName;
     }
 

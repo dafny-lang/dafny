@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
 
-    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, ConcreteSyntaxTree wr, IToken tok) {
+    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments = false) {
       Contract.Requires(fullCompileName != null);
       Contract.Requires(udt != null);
       Contract.Requires(wr != null);
@@ -278,9 +278,10 @@ namespace Microsoft.Dafny.Compilers {
       var cl = udt.ResolvedClass;
       var typeParams = SelectNonGhost(cl, cl.TypeArgs);
       var typeArgs = SelectNonGhost(cl, udt.TypeArgs);
-      return TypeName_UDT(fullCompileName, typeParams.ConvertAll(tp => tp.Variance), typeArgs, wr, tok);
+      return TypeName_UDT(fullCompileName, typeParams.ConvertAll(tp => tp.Variance), typeArgs, wr, tok, omitTypeArguments);
     }
-    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok);
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments);
     protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IToken tok) {
       Contract.Requires(cls != null);
