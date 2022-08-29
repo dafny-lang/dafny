@@ -3,7 +3,7 @@
 - feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
-
+- fix: Better messages on hovering failing postconditions in IDE (https://github.com/dafny-lang/dafny/pull/2654)
 
 # 3.8.0
 
