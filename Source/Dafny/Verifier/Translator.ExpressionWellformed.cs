@@ -899,6 +899,37 @@ namespace Microsoft.Dafny {
               }
             }
             break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+            CheckWellformed(e.E1, options, locals, builder, etran);
+            if (e.InCompiledContext) {
+              if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
+                // everything's fine
+              } else if (!e.E0.Type.SupportsEquality) {
+                Contract.Assert(e.E0.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
+                var dt = e.E0.Type.AsIndDatatype;
+                Contract.Assert(dt != null); // only inductive datatypes support equality partially
+
+                // to compare the datatype values for equality, there must not be any possibility that either of the datatype
+                // variants is a ghost constructor
+                var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
+                Contract.Assert(ghostConstructors.Count != 0);
+
+                void checkOperand(Expression operand) {
+                  var value = etran.TrExpr(operand);
+                  var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
+                    ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
+                  builder.Add(Assert(GetToken(expr), notGhostCtor,
+                    new PODesc.NotGhostVariant("equality", ghostConstructors)));
+                }
+
+                checkOperand(e.E0);
+                checkOperand(e.E1);
+              }
+
+
+            }
+            break;
           default:
             CheckWellformed(e.E1, options, locals, builder, etran);
             break;

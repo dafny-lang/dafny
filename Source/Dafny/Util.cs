@@ -957,6 +957,7 @@ namespace Microsoft.Dafny {
         return CheckIsCompilable(stmtExpr.E, codeContext);
 
       } else if (expr is BinaryExpr binaryExpr) {
+        binaryExpr.InCompiledContext = true;
         switch (binaryExpr.ResolvedOp_PossiblyStillUndetermined) {
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:

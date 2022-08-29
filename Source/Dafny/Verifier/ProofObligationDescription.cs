@@ -618,6 +618,11 @@ public class NotGhostVariant : ProofObligationDescription {
   private readonly string subject;
   private readonly string ctorNames;
 
+  public NotGhostVariant(string subject, List<DatatypeCtor> ctors) {
+    this.subject = subject;
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+  }
+
   public NotGhostVariant(string whatKind, string dtorName, List<DatatypeCtor> ctors) {
     this.subject = $"{whatKind} '{dtorName}'";
     this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");

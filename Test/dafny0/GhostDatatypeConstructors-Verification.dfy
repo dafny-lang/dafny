@@ -158,3 +158,44 @@ module Members {
     }
   }
 }
+
+module {:options "/functionSyntax:4"} EqualitySupport {
+  import opened Types
+
+  method M(xy: XY, selector: int) returns (a: int)
+  {
+    if xy == xy { // this is okay, because the "if" statement is ghost
+    }
+
+    if xy == xy { // error: XY only partially supports equality
+      a := 3;
+    }
+  }
+
+  method N(xy: XY, selector: int) returns (a: int)
+    requires xy.D0? || xy.D1?
+  {
+    if xy == xy { // fine
+      a := 3;
+    }
+  }
+
+  datatype Enum = ghost EnumA | EnumB
+  {
+    predicate P() {
+      this != EnumB // error: XY only partially supports equality
+    }
+
+    predicate Q()
+      requires EnumB?
+    {
+      this != EnumB
+    }
+
+    predicate R()
+      requires !EnumA?
+    {
+      this != EnumB
+    }
+  }
+}

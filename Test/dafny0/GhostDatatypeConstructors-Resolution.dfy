@@ -196,16 +196,24 @@ module {:options "/functionSyntax:4"} Match {
   }
 }
 
-module EqualitySupport {
+module {:options "/functionSyntax:4"} EqualitySupport {
   import opened Types
 
   method M(xy: XY) returns (a: int) {
     if xy == xy { // this is okay, because the "if" statement is ghost
     }
 
-    if xy == xy { // error: XY does not support equality
+    if xy == xy { // this is fine (but the verifier would give an error)
       a := 3;
     }
+
+    if Eq(xy, xy) { // error: XY does not support equality
+      a := 4;
+    }
+  }
+
+  function Eq<T(==)>(x: T, y: T): bool {
+    x == y
   }
 }
 
@@ -325,5 +333,40 @@ module Updates {
     r := f; // error: RHS is ghost, LHS is not
     r := g;
     r := h; // error: RHS is ghost, LHS is not
+  }
+}
+
+module {:options "/functionSyntax:4"} EnumTests0 {
+  datatype Enum = ghost EnumA | EnumB
+  {
+    predicate P() {
+      this != EnumA // error: ghost constructor not allowed in compiled code
+    }
+  }
+
+  datatype TotallyGhost = ghost Ctor0 | ghost Ctor1
+  {
+    predicate P() {
+      this != Ctor0 // error: ghost constructor not allowed in compiled code
+    }
+  }
+}
+
+module {:options "/functionSyntax:4"} EnumTests1 {
+  datatype Enum = ghost EnumA | EnumB
+  {
+    predicate P() {
+      this == this // the resolver is fine with this, but the verifier will complain
+    }
+    predicate Q() {
+      this != EnumB // the resolver is fine with this, but the verifier will complain
+    }
+  }
+
+  datatype TotallyGhost = ghost Ctor0 | ghost Ctor1
+  {
+    predicate P() {
+      this == this // error: ghost equality not allowed in compiled code
+    }
   }
 }

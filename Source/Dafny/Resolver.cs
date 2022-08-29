@@ -8152,9 +8152,9 @@ namespace Microsoft.Dafny {
                 // that's cool
               } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
-              } else if (!t0.SupportsEquality) {
+              } else if (!t0.PartiallySupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-              } else if (!t1.SupportsEquality) {
+              } else if (!t1.PartiallySupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
               }
               break;
@@ -8265,32 +8265,6 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      private bool CanCompareWith(Expression expr) {
-        Contract.Requires(expr != null);
-        if (expr.Type.SupportsEquality) {
-          return true;
-        }
-        expr = expr.Resolved;
-        if (expr is DatatypeValue) {
-          var e = (DatatypeValue)expr;
-          for (int i = 0; i < e.Ctor.Formals.Count; i++) {
-            if (e.Ctor.Formals[i].IsGhost) {
-              return false;
-            } else if (!CanCompareWith(e.Arguments[i])) {
-              return false;
-            }
-          }
-          return true;
-        } else if (expr is DisplayExpression) {
-          var e = (DisplayExpression)expr;
-          return e.Elements.Count == 0;
-        } else if (expr is MapDisplayExpr) {
-          var e = (MapDisplayExpr)expr;
-          return e.Elements.Count == 0;
-        }
-        return false;
-      }
-
       public void VisitType(IToken tok, Type type, bool inGhostContext) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
@@ -8398,6 +8372,31 @@ namespace Microsoft.Dafny {
         }
         return "";
       }
+    }
+
+    public static bool CanCompareWith(Expression expr) {
+      Contract.Requires(expr != null);
+      if (expr.Type.SupportsEquality) {
+        return true;
+      }
+      expr = expr.Resolved;
+      if (expr is DatatypeValue datatypeValue && !datatypeValue.Ctor.IsGhost) {
+        for (var i = 0; i < datatypeValue.Ctor.Formals.Count; i++) {
+          if (datatypeValue.Ctor.Formals[i].IsGhost) {
+            return false;
+          } else if (!CanCompareWith(datatypeValue.Arguments[i])) {
+            return false;
+          }
+        }
+        return true;
+      } else if (expr is DisplayExpression) {
+        var e = (DisplayExpression)expr;
+        return e.Elements.Count == 0;
+      } else if (expr is MapDisplayExpr) {
+        var e = (MapDisplayExpr)expr;
+        return e.Elements.Count == 0;
+      }
+      return false;
     }
 
     #endregion CheckTypeCharacteristics
