@@ -40,7 +40,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
     var someTasksAreRunning = false;
     var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
     foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= documentManager.CompilationManager.Verify(translatedDocument, taskToRun);
+      someTasksAreRunning |= documentManager.CompilationManager.VerifyTask(translatedDocument, taskToRun);
     }
     return someTasksAreRunning;
   }

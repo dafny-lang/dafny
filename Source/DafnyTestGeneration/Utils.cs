@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,7 +66,7 @@ namespace DafnyTestGeneration {
       new Resolver(program).ResolveProgram(program);
       return program;
     }
-
+    
     /// <summary>
     /// Deep clone a Boogie program.
     /// </summary>
@@ -142,6 +144,13 @@ namespace DafnyTestGeneration {
         func.ByMethodBody = new BlockStmt(new Token(), new Token(),
           new List<Statement> { returnStatement });
       }
-    }
+      
+      public static string Stringify(this object value) {
+      if (value is IEnumerable<object> enumerable) {
+        return string.Join(", ", enumerable.Select(Stringify));
+      }
+
+      return value.ToString()!;
+      }
   }
 }

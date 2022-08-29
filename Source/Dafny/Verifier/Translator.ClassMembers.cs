@@ -679,7 +679,7 @@ namespace Microsoft.Dafny {
 
         if (!(m is TwoStateLemma)) {
           // play havoc with the heap according to the modifies clause
-          builder.Add(new Boogie.HavocCmd(m.tok, new List<Boogie.IdentifierExpr> { (Boogie.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+          builder.Add(new Boogie.HavocCmd(m.tok, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
           // assume the usual two-state boilerplate information
           foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
             if (tri.IsFree) {
@@ -753,20 +753,20 @@ namespace Microsoft.Dafny {
 
       if (m is TwoStateLemma) {
         // $Heap := current$Heap;
-        var heap = (Boogie.IdentifierExpr /*TODO: this cast is somewhat dubious*/)new ExpressionTranslator(this, predef, m.tok).HeapExpr;
+        var heap = ExpressionTranslator.HeapIdentifierExpr(predef, m.tok);
         builder.Add(Boogie.Cmd.SimpleAssign(m.tok, heap, new Boogie.IdentifierExpr(m.tok, "current$Heap", predef.HeapType)));
       }
 
 
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < m.Ins.Count; i++) {
-        //get corresponsing formal in the class
+        // get corresponding formal in the class
         var ie = new IdentifierExpr(m.Ins[i].tok, m.Ins[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Ins[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Ins[i], ie);
       }
       for (int i = 0; i < m.Outs.Count; i++) {
-        //get corresponsing formal in the class
+        // get corresponding formal in the class
         var ie = new IdentifierExpr(m.Outs[i].tok, m.Outs[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Outs[i], ie);
@@ -888,7 +888,7 @@ namespace Microsoft.Dafny {
       }
       // modifies $Heap, $Tick
       var mod = new List<Boogie.IdentifierExpr> {
-        (Boogie.IdentifierExpr/*TODO: this cast is rather dubious*/)ordinaryEtran.HeapExpr,
+        ordinaryEtran.HeapCastToIdentifierExpr,
         etran.Tick()
       };
       var ens = new List<Boogie.Ensures>();
@@ -914,7 +914,7 @@ namespace Microsoft.Dafny {
 
       if (f is TwoStateFunction) {
         // $Heap := current$Heap;
-        var heap = (Boogie.IdentifierExpr /*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr;
+        var heap = ordinaryEtran.HeapCastToIdentifierExpr;
         builder.Add(Boogie.Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
         etran = ordinaryEtran;  // we no longer need the special heap names
       }
@@ -1406,7 +1406,7 @@ namespace Microsoft.Dafny {
           index++;
         }
       }
-      mod.Add((Boogie.IdentifierExpr/*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr);
+      mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
       mod.Add(etran.Tick());
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
