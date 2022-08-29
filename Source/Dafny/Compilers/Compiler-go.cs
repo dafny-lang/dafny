@@ -119,11 +119,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      var dafnyArgs = "dafnyArgs";
-      wBody.WriteLine("var size = len(os.Args)");
-      wBody.WriteLine($"var {dafnyArgs} []interface{{}} = make([]interface{{}}, size)");
-      wBody.WriteLine($"for i, item := range os.Args {{ {dafnyArgs}[i] = {GetHelperModuleName()}.SeqOfString(item) }}");
-      wBody.WriteLine("{0}.{1}({2}.SeqOf({3}...))", companion, idName, GetHelperModuleName(), dafnyArgs);
+      wBody.WriteLine("{0}.{1}({2}.FromMainArguments(os.Args))", companion, idName, GetHelperModuleName());
       Coverage.EmitTearDown(wBody);
     }
 
@@ -135,10 +131,9 @@ namespace Microsoft.Dafny.Compilers {
       return body;
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
-      argsParameterName = "args";
-      return wr.NewNamedBlock("func (_this * {0}) Main(args _dafny.Seq)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
+      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Seq)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {

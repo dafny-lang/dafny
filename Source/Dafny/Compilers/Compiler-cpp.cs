@@ -144,17 +144,12 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine("DafnySequence<DafnySequence<char>> dafnyArgs((uint64)argc);");
-      tryWr.WriteLine("for(int i = 0; i < argc; i++) {");
-      tryWr.WriteLine("  std::string s = argv[i];");
-      tryWr.WriteLine("  dafnyArgs.start[i] = DafnySequenceFromString(s);");
-      tryWr.WriteLine("}");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafnyArgs);", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }

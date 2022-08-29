@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitTearDown(wr);
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
       return wr.NewBlock($"static Main({argsParameterName})");
     }

@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, ref string argsParameterName);
+    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -2412,8 +2412,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
-        var args_name = STATIC_ARGS_NAME;
-        w = CreateStaticMain(cw, ref args_name);
+        w = CreateStaticMain(cw, STATIC_ARGS_NAME);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
@@ -2445,7 +2444,7 @@ namespace Microsoft.Dafny.Compilers {
           sep = ", ";
         }
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
-        w.Write(sep + args_name);
+        w.Write(sep + STATIC_ARGS_NAME);
         w.Write(")");
         EndStmt(w);
       }

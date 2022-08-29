@@ -222,7 +222,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
@@ -3325,10 +3325,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length + 1];");
-      wBody.WriteLine($"dafnyArgs[0] = Dafny.Sequence<char>.FromString(\"dotnet\");");
-      wBody.WriteLine($"for(var i = 0; i < args.Length; i++) dafnyArgs[i+1] = Dafny.Sequence<char>.FromString(args[i]);");
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromArray(dafnyArgs)));");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromMainArguments(args)));");
       Coverage.EmitTearDown(wBody);
     }
 

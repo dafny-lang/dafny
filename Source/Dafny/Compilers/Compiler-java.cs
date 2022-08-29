@@ -342,13 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine(@"@SuppressWarnings(""unchecked"")");
-      wBody.WriteLine($"dafny.TypeDescriptor<dafny.DafnySequence<? extends Character>> type = dafny.DafnySequence.<Character>_typeDescriptor(dafny.TypeDescriptor.CHAR);");
-      wBody.WriteLine($"dafny.Array<dafny.DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);");
-      wBody.WriteLine($"dafnyArgs.set(0, dafny.DafnySequence.asString(\"java\"));");
-      wBody.WriteLine($"for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, dafny.DafnySequence.asString(args[i]));");
-      wBody.WriteLine($"dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> result = dafny.DafnySequence.fromArray(type, dafnyArgs);");
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main(result); }} );");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.FromMainArguments(args)); }} );");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -4001,7 +3995,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, ref string argsParameterName) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> {argsParameterName})");
     }
