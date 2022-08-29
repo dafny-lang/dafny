@@ -4516,7 +4516,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool IsRecordType {
-      get { return this is IndDatatypeDecl && Ctors.Count == 1; }
+      get { return this is IndDatatypeDecl && Ctors.Count == 1 && !Ctors[0].IsGhost; }
     }
 
     public bool HasGhostVariant => Ctors.Any(ctor => ctor.IsGhost);

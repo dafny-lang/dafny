@@ -259,6 +259,9 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       foreach (var ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.

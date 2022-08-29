@@ -1864,6 +1864,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         var filename = $"{ModulePath}/{DtCtorDeclarationName(ctor)}.java";
         var wr = wrx.NewFile(filename);
         FileCount += 1;

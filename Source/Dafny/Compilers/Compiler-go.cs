@@ -679,6 +679,9 @@ namespace Microsoft.Dafny.Compilers {
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), companionTypeName);
 
       foreach (var ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         var ctorStructName = name + "_" + ctor.CompileName;
         wr.WriteLine();
         var wStruct = wr.NewNamedBlock("type {0} struct", ctorStructName);

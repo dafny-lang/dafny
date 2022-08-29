@@ -836,6 +836,9 @@ namespace Microsoft.Dafny.Compilers {
 
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         var wr = wrx.NewNamedBlock(
           $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);

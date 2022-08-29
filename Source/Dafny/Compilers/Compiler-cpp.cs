@@ -327,7 +327,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // Optimize a not-uncommon case
-      if (dt.Ctors.Count == 1) {
+      if (dt.IsRecordType) {
         var ctor = dt.Ctors[0];
         var ws = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
 
@@ -394,6 +394,9 @@ namespace Microsoft.Dafny.Compilers {
 
         /*** Create one struct for each constructor ***/
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            continue;
+          }
           string structName = DatatypeSubStructName(ctor);
           var wstruct = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members

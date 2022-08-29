@@ -336,6 +336,9 @@ namespace Microsoft.Dafny.Compilers {
       // query properties
       var i = 0;
       foreach (var ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         // collect the names of non-ghost arguments
         var argNames = new List<string>();
         var k = 0;
