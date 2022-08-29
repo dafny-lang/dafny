@@ -182,8 +182,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
 
       var currentlyHoveringPostcondition =
-        !(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
-          returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position));
+        assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+          !returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position);
 
       var obsolescence = assertionNode.StatusCurrent switch {
         CurrentStatus.Current => "",
@@ -245,6 +245,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (currentlyHoveringPostcondition) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
           ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          : "");
+      }
+
+      if (assertionNode.GetCounterExample() is CallCounterexample) {
+        information += "  \n" + (assertionNode.SecondaryPosition != null
+          ? $"Failing precondition: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 
