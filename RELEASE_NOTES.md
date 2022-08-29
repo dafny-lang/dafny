@@ -2,6 +2,7 @@
 
 - feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
+- fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 
 
