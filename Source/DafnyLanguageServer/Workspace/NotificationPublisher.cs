@@ -9,28 +9,9 @@ using System.Linq;
 using System.Net.Mime;
 using Microsoft.Extensions.Logging;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Options;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public record CompilationView(
-    DocumentTextBuffer TextDocumentItem,
-    IEnumerable<Diagnostic> ResolutionDiagnostics,
-    SymbolTable SymbolTable,
-    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
-    bool ImplementationsWereUpdated,
-    IEnumerable<Diagnostic> GhostDiagnostics,
-    VerificationTree VerificationTree
-    ) {
-
-    public DocumentUri Uri => TextDocumentItem.Uri;
-    public int? Version => TextDocumentItem.Version;
-
-    public IEnumerable<Diagnostic> Diagnostics =>
-      ResolutionDiagnostics.Concat(ImplementationViews.Values.Select(v => v.Diagnostics).SelectMany(x => x));
-  }
-
   public class NotificationPublisher : INotificationPublisher {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
