@@ -139,7 +139,8 @@ public class DocumentManager {
 
   public void Save() {
     if (VerifyOnSave) {
-      VerifyAll();
+      Compilation.MarkVerificationStarted();
+      var _ = VerifyEverythingAsync();
     }
   }
 
@@ -163,16 +164,6 @@ public class DocumentManager {
     return observer.LastPublishedState;
   }
 
-
-  public void VerifyAll() {
-    if (VerifyOnChange) {
-      return;
-    }
-
-    Compilation.MarkVerificationStarted();
-    var _ = VerifyEverythingAsync();
-  }
-
   private async Task VerifyEverythingAsync() {
     var translatedDocument = await Compilation.TranslatedDocument;
 
@@ -184,7 +175,7 @@ public class DocumentManager {
 
     lock (ChangedRanges) {
       var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
-      ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Take(MaxRememberedChangedVerifiables).ToList();
+      ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct().Take(MaxRememberedChangedVerifiables).ToList();
       ChangedRanges = new List<Range>();
     }
 
@@ -209,7 +200,6 @@ public class DocumentManager {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
     }
 
-    return changedRanges
-      .SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).Distinct();
+    return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
   }
 }
