@@ -246,8 +246,8 @@ x=13 y=14
 x=13 y=14 b=yes
 true false
 true false
-map[12 := 6, 13 := 6, 14 := 7]
-map[16 := 12, 17 := 13, 18 := 14]
+map[14 := 7, 12 := 6, 13 := 6]
+map[18 := 14, 17 := 13, 16 := 12]
 false false false false
 true true true true
 XP returned: 0 false
