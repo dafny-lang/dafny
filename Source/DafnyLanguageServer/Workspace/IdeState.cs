@@ -8,7 +8,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 /// <summary>
-/// Contains information from multiple documents to provide the client with as much information as possible.
+/// Contains information from the latest document, and from older documents if some information is missing,
+/// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
   DocumentTextBuffer TextDocumentItem,
