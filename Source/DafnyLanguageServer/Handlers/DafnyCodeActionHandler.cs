@@ -41,7 +41,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// <summary>
   /// Returns the fixes along with a unique identifier
   /// </summary>
-  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DafnyDocument document, CodeActionParams request) {
+  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DocumentAfterParsing document, CodeActionParams request) {
     var id = 0;
     return fixers.SelectMany(fixer => {
       var fixerInput = new DafnyCodeActionInput(document);
@@ -134,8 +134,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  public DafnyCodeActionInput(
-    DafnyDocument document) {
+  public DafnyCodeActionInput(DocumentAfterParsing document) {
     Document = document;
   }
 
@@ -143,7 +142,7 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public int Version => Document.Version;
   public string Code => Document.TextDocumentItem.Text;
   public Dafny.Program Program => Document.Program;
-  public DafnyDocument Document { get; }
+  public DocumentAfterParsing Document { get; }
 
   public Diagnostic[] Diagnostics {
     get {
