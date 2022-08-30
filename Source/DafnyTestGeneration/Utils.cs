@@ -52,7 +52,7 @@ namespace DafnyTestGeneration {
           }
 
           if (sep != "") {
-            builder.AppendLine("");
+            builder.AppendLine();
             builder.Append(new String(' ', indentation));
           }
           builder.Append("]");
