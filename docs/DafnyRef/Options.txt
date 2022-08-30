@@ -284,6 +284,12 @@ Usage: Dafny [ option ... ] [ filename ... ]
       Path prints path-coverage tests for the given program.
       Using /definiteAssignment:3 and /loopUnroll is highly recommended when
       generating tests.
+      Please also consider using /prune, which generates more test at the cost
+      of weaker test correctness guarantees
+  /generateTestOracle:<None|Spec>
+      Determines the kind of oracles generated for the tests.
+      None is the default and has no effect (the test contains no runtime checks).
+      Spec asks the tool to generate runtime checks based on method specification
   /warnDeadCode
       Use block-coverage tests to warn about potential dead code.
   /generateTestSeqLengthLimit:<n>
@@ -296,6 +302,17 @@ Usage: Dafny [ option ... ] [ filename ... ]
       0 is the default. When used in conjunction with /testTargetMethod, this
       argument specifies the depth up to which all non-tested methods should be
       inlined.
+  /generateTestPrintBpl:<fileName>
+      Print the Boogie code after all transformations to a specified file
+  /generateTestPrintStats:<fileName>
+      Create a json file with the summary statistics about the generated tests
+  /generateTestPrintTargets<filename>
+      Print JSON object of all target methods and their number of hits
+  /generateTestVerbose
+      Print various info as comments for debugging
+  /generateTestMinimization:<Random|Topological|Optimal>
+      Use a given test minimization strategy. 
+      Reported statistics might be off if this is used alongside inlining.
   
   ---- Compilation options ---------------------------------------------------
   
