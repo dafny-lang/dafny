@@ -12847,6 +12847,7 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public List<MemberDecl> Members;
     [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
     [FilledInDuringResolution] public bool InCompiledContext;
+    [FilledInDuringResolution] public Expression ResolvedCompiledExpression; // see comment for Resolver.ResolveDatatypeUpdate
 
     public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
       : base(tok) {

@@ -877,7 +877,8 @@ namespace Microsoft.Dafny {
             $"in a compiled context, update of {dtors} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})");
           isCompilable = false;
         }
-        // don't step into the desugared expression
+        // switch to the desugared expression for compiled contexts, but don't step into it
+        updateExpr.ResolvedExpression = updateExpr.ResolvedCompiledExpression;
         return isCompilable;
 
       } else if (expr is FunctionCallExpr callExpr) {

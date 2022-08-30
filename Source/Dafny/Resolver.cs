@@ -14999,12 +14999,15 @@ namespace Microsoft.Dafny {
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext, out var members, out var legalSourceConstructors);
-          if (let != null) {
-            e.ResolvedExpression = let;
+          var (ghostLet, compiledLet) = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext,
+            out var members, out var legalSourceConstructors);
+          Contract.Assert((ghostLet == null) == (compiledLet == null));
+          if (ghostLet != null) {
+            e.ResolvedExpression = ghostLet; // this might be replaced by e.ResolvedCompiledExpression in CheckIsCompilable
+            e.ResolvedCompiledExpression = compiledLet;
             e.Members = members;
             e.LegalSourceConstructors = legalSourceConstructors;
-            expr.Type = let.Type;
+            expr.Type = ghostLet.Type;
           }
         }
 
@@ -15706,8 +15709,17 @@ namespace Microsoft.Dafny {
     /// Attempts to rewrite a datatype update into more primitive operations, after doing the appropriate resolution checks.
     /// Upon success, returns that rewritten expression and sets "legalSourceConstructors".
     /// Upon some resolution error, return null.
+    ///
+    /// Actually, the method returns two expressions (or returns "(null, null)"). The first expression is the desugaring to be
+    /// used when the DatatypeUpdateExpr is used in a ghost context. The second is to be used for a compiled context. In either
+    /// case, "legalSourceConstructors" contains both ghost and compiled constructors.
+    ///
+    /// The reason for computing both desugarings here is that it's too early to tell if the DatatypeUpdateExpr is being used in
+    /// a ghost or compiled context. This is a consequence of doing the deguaring so early. But it's also convenient to do the
+    /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
+    /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -15759,7 +15771,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (candidateResultCtors.Count == 0) {
-        return null;
+        return (null, null);
       }
 
       // Check that every candidate result constructor has given a name to all of its parameters.
@@ -15773,26 +15785,42 @@ namespace Microsoft.Dafny {
         }
       }
       if (hasError) {
-        return null;
+        return (null, null);
       }
 
       // The legal source constructors are the candidate result constructors. (Yep, two names for the same thing.)
       legalSourceConstructors = candidateResultCtors;
       Contract.Assert(1 <= legalSourceConstructors.Count);
 
-      // Rewrite the datatype update root.(x := X, y := Y, ...) to:
-      //     var d := root;
-      //     var x := X;  // EXCEPT: don't do this for ghost fields
-      //     var y := Y;
-      //     ..
-      //     if d.CandidateResultConstructor0 then
-      //       CandidateResultConstructor0(x, y, ..., d.f0, d.f1, ...)  // for a ghost field x, use the expression X directly
-      //     else if d.CandidateResultConstructor1 then
-      //       CandidateResultConstructor0(x, y, ..., d.g0, d.g1, ...)
-      //     ...
-      //     else
-      //       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
-      //
+      var desugaringForGhostContext = DesugarDatatypeUpdate(tok, root, dt, candidateResultCtors, rhsBindings, resolutionContext);
+      var nonGhostConstructors = candidateResultCtors.Where(ctor => !ctor.IsGhost).ToList();
+      if (nonGhostConstructors.Count == candidateResultCtors.Count) {
+        return (desugaringForGhostContext, desugaringForGhostContext);
+      }
+      var desugaringForCompiledContext = DesugarDatatypeUpdate(tok, root, dt, nonGhostConstructors, rhsBindings, resolutionContext);
+      return (desugaringForGhostContext, desugaringForCompiledContext);
+    }
+
+    /// <summary>
+    // Rewrite the datatype update root.(x := X, y := Y, ...) to:
+    ///     var d := root;
+    ///     var x := X;  // EXCEPT: don't do this for ghost fields
+    ///     var y := Y;
+    ///     ..
+    ///     if d.CandidateResultConstructor0 then
+    ///       CandidateResultConstructor0(x, y, ..., d.f0, d.f1, ...)  // for a ghost field x, use the expression X directly
+    ///     else if d.CandidateResultConstructor1 then
+    ///       CandidateResultConstructor0(x, y, ..., d.g0, d.g1, ...)
+    ///     ...
+    ///     else
+    ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
+    /// </summary>
+    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
+      Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings, ResolutionContext resolutionContext) {
+
+      if (candidateResultCtors.Count == 0) {
+        return root;
+      }
       Expression rewrite = null;
       // Create a unique name for d', the variable we introduce in the let expression
       var dName = FreshTempVarName("dt_update_tmp#", resolutionContext.CodeContext);
@@ -15819,7 +15847,9 @@ namespace Microsoft.Dafny {
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
         var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
-        ResolveDatatypeValue(resolutionContext, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
+        // in the following line, resolve to root.Type, so that type parameters get filled in appropriately
+        ResolveDatatypeValue(resolutionContext, ctor_call, dt, root.Type.NormalizeExpand());
+
         if (body == null) {
           body = ctor_call;
         } else {
@@ -15828,7 +15858,7 @@ namespace Microsoft.Dafny {
           body = new ITEExpr(tok, false, guard, ctor_call, body);
         }
       }
-      Contract.Assert(body != null);  // because there was at least one element in candidateResultCtors
+      Contract.Assert(body != null); // because there was at least one element in candidateResultCtors
 
       // Wrap the let's around body
       rewrite = body;
