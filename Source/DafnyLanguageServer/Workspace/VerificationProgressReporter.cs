@@ -284,8 +284,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
-  /// <param name="split">The split that was verified</param>
-  /// <param name="result">The verification results for that split and per assert</param>
   public void ReportAssertionBatchResult(AssertionBatchResult batchResult) {
     lock (LockProcessing) {
       var implementation = batchResult.Implementation;

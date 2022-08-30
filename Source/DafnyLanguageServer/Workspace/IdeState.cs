@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -16,6 +17,7 @@ public record IdeState(
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
+  IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IEnumerable<Diagnostic> GhostDiagnostics,
   VerificationTree VerificationTree
