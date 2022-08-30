@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -50,7 +51,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+      CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -63,17 +65,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var tasks = translated.SelectMany(t => {
+      return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      });
-      return tasks.
-        OrderBy(t => t.Implementation.Priority).
-        CreateOrderedEnumerable(
-          t => document.LastTouchedVerifiables.IndexOf(t.Implementation.tok.GetLspPosition()),
-          null, true).
-        ToList();
+      }).ToList();
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;

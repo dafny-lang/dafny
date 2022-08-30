@@ -871,6 +871,8 @@ namespace DafnyServer.CounterexampleGeneration {
       return result;
     }
 
+    private const string PleaseEnableModelCompressFalse = "Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.";
+
     /// <summary>
     /// Return the name of the field represented by the given element.
     /// Special care is required if the element represents an array index
@@ -893,16 +895,24 @@ namespace DafnyServer.CounterexampleGeneration {
         Model.FuncTuple dimTuple;
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
+          if (dimTuple == null) {
+            Console.Out.WriteLine(PleaseEnableModelCompressFalse);
+            continue;
+          }
           indices[i] = dimTuple.Args[0];
         } else {
           dimTuple = fMultiIndexField.AppWithResult(elt);
+          if (dimTuple == null) {
+            Console.Out.WriteLine(PleaseEnableModelCompressFalse);
+            continue;
+          }
           indices[i] = dimTuple.Args[1];
           elt = dimTuple.Args[0];
         }
       }
       return new List<string>() {
         "[" + string.Join(",",
-          indices.ToList().ConvertAll(element => element.ToString())) + "]"
+          indices.ToList().ConvertAll(element => element == null ? "null" : element.ToString())) + "]"
       };
     }
 
