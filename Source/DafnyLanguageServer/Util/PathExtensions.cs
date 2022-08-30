@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// </summary>
     /// <param name="document">The document to get the file path of.</param>
     /// <returns>The file path.</returns>
-    public static string GetFilePath(this DafnyDocument document) {
+    public static string GetFilePath(this Document document) {
       return GetFilePath(document.Uri);
     }
 
