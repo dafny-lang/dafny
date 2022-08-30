@@ -125,7 +125,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       GutterProgressReporter = new VerificationProgressReporter(
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<INotificationPublisher>());
     }
 

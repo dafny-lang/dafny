@@ -46,7 +46,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DocumentAfterTranslation document, Position requestPosition) {
-    return document.VerificationTasks!.Where(t => {
+    return document.VerificationTasks.Where(t => {
       var lspPosition = t.Implementation.tok.GetLspPosition();
       return lspPosition.Equals(requestPosition);
     });

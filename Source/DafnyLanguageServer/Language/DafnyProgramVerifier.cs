@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
-      IReadOnlyDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
+      CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -65,17 +65,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var tasks = translated.SelectMany(t => {
+      return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      });
-      return tasks.
-        OrderBy(t => t.Implementation.Priority).
-        CreateOrderedEnumerable(
-          t => implementationOrder.GetOrDefault(t.Implementation.tok.GetLspPosition(), () => int.MaxValue),
-          null, false).
-        ToList();
+      }).ToList();
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;

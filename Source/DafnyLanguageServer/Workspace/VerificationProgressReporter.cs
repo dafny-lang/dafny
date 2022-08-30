@@ -1,10 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -15,27 +12,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
 
-  private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly DocumentAfterTranslation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DocumentAfterTranslation document,
-    ICompilationStatusNotificationPublisher statusPublisher,
     INotificationPublisher notificationPublisher
   ) {
     this.document = document;
-    this.statusPublisher = statusPublisher;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
-  }
-
-  /// <summary>
-  /// Sends a more precise verification status message to the client's status bar
-  /// </summary>
-  public void ReportProgress(string message) {
-    statusPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
   }
 
   /// <summary>
@@ -225,27 +212,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  // TODO for backwards compatibility. No longer needed when the IDE switches to the textDocument/verificationStatus API
-  /// <summary>
-  /// Helper to send a more precise verification status message, including
-  /// - The number of methods already verified
-  /// - The total number of methods
-  /// - The methods being currently verified
-  /// - Some extra information 
-  /// </summary>
-  /// <param name="extra">Usually the name of the method whose check was just finished, if any</param>
-  private void ReportMethodsBeingVerified(string extra = "") {
-    var pending = document.VerificationTree.Children
-      .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
-      .OrderBy(diagnostic => diagnostic.StartTime)
-      .Select(diagnostic => diagnostic.DisplayName)
-      .ToList();
-    var total = document.VerificationTree.Children.Count;
-    var verified = document.VerificationTree.Children.Count(diagnostic => diagnostic.Finished);
-    var message = string.Join(", ", pending) + (!pending.Any() ? extra.Trim() : extra);
-    ReportProgress($"{verified}/{total} {message}");
-  }
-
   /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
@@ -260,7 +226,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
           targetMethodNode.Start();
-          ReportMethodsBeingVerified();
         }
 
         if (implementationNode == null) {
@@ -305,7 +270,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           };
         } else {
           targetMethodNode.Stop();
-          ReportMethodsBeingVerified($" ({targetMethodNode.DisplayName} finished)");
           // Later, will be overriden by individual outcomes
           targetMethodNode.StatusVerification = finalOutcome;
         }

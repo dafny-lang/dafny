@@ -98,13 +98,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
-      IReadOnlyDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
-      return verifier.GetVerificationTasksAsync(document, implementationOrder, cancellationToken);
+      return verifier.GetVerificationTasksAsync(document, cancellationToken);
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;

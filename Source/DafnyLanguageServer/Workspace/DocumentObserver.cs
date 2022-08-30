@@ -13,7 +13,7 @@ class DocumentObserver : IObserver<IdeState> {
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public IdeState LastPublishedDocument {
+  public IdeState LastPublishedState {
     get; private set;
   }
 
@@ -22,7 +22,7 @@ class DocumentObserver : IObserver<IdeState> {
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
     DocumentTextBuffer document) {
-    LastPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
+    LastPublishedState = loader.CreateUnloaded(document, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
@@ -45,7 +45,7 @@ class DocumentObserver : IObserver<IdeState> {
       Severity = DiagnosticSeverity.Error,
       Range = new Range(0, 0, 0, 1)
     };
-    var documentToPublish = LastPublishedDocument with {
+    var documentToPublish = LastPublishedState with {
       ResolutionDiagnostics = new[] { internalErrorDiagnostic }
     };
 
@@ -58,12 +58,12 @@ class DocumentObserver : IObserver<IdeState> {
   private readonly object lastPublishedDocumentLock = new();
   public void OnNext(IdeState snapshot) {
     lock (lastPublishedDocumentLock) {
-      if (snapshot.Version < LastPublishedDocument.Version) {
+      if (snapshot.Version < LastPublishedState.Version) {
         return;
       }
 
-      notificationPublisher.PublishNotifications(LastPublishedDocument, snapshot);
-      LastPublishedDocument = snapshot;
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
+      LastPublishedState = snapshot;
     }
   }
 }

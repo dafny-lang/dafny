@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using IntervalTree;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -41,9 +40,6 @@ public class Compilation {
   public DocumentTextBuffer TextBuffer { get; }
   private readonly IServiceProvider services;
 
-  private readonly bool verifyAllImmediately;
-  private readonly IEnumerable<Range> changedRanges;
-
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
 
@@ -58,8 +54,6 @@ public class Compilation {
   public Compilation(IServiceProvider services,
     VerifierOptions verifierOptions,
     DocumentTextBuffer textBuffer,
-    bool verifyAllImmediately,
-    IReadOnlyList<Range> changedRanges,
     VerificationTree? migratedVerificationTree) {
     VerifierOptions = verifierOptions;
     logger = services.GetRequiredService<ILogger<Compilation>>();
@@ -70,28 +64,11 @@ public class Compilation {
 
     TextBuffer = textBuffer;
     this.services = services;
-    this.verifyAllImmediately = verifyAllImmediately;
-    this.changedRanges = changedRanges;
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
 
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
-
-    if (verifyAllImmediately) {
-      var _ = VerifyEverythingAsync();
-    } else {
-      MarkVerificationFinished();
-    }
-  }
-
-  public void VerifyAll() {
-    if (verifyAllImmediately) {
-      return;
-    }
-
-    MarkVerificationStarted();
-    var _ = VerifyEverythingAsync();
   }
 
   private async Task<DocumentAfterParsing> ResolveAsync() {
@@ -144,9 +121,8 @@ public class Compilation {
       throw new TaskCanceledException();
     }
 
-    var verifiableToOrderIndex = GetVerifiableToOrderIndex(loaded);
     var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, verifiableToOrderIndex, cancellationToken);
+      await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -183,20 +159,6 @@ public class Compilation {
     return translated;
   }
 
-  private Dictionary<Position, int> GetVerifiableToOrderIndex(DocumentAfterResolution loaded) {
-    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
-    VerificationProgressReporter.UpdateTree(loaded, tree);
-    var intervalTree = new IntervalTree<Position, Position>();
-    foreach (var childTree in tree.Children) {
-      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
-    }
-
-    var verifiableToPosition = changedRanges
-      .SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End)).Distinct()
-      .Select((position, i) => (position, i)).ToDictionary(k => k.position, k => k.i);
-    return verifiableToPosition;
-  }
-
   private static ImplementationId GetImplementationId(Implementation implementation) {
     var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
@@ -206,21 +168,6 @@ public class Compilation {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
     return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
-  }
-
-  private async Task VerifyEverythingAsync() {
-    var translatedDocument = await TranslatedDocument;
-
-    var implementationTasks = translatedDocument.VerificationTasks;
-    if (!implementationTasks.Any()) {
-      FinishedNotifications(translatedDocument);
-    }
-
-    statusPublisher.SendStatusNotification(translatedDocument.TextDocumentItem, CompilationStatus.VerificationStarted);
-
-    foreach (var implementationTask in implementationTasks) {
-      VerifyTask(translatedDocument, implementationTask);
-    }
   }
 
   private void SetAllUnvisitedMethodsAsVerified(DocumentAfterTranslation document) {
@@ -258,7 +205,7 @@ public class Compilation {
     return true;
   }
 
-  private void FinishedNotifications(DocumentAfterTranslation document) {
+  public void FinishedNotifications(DocumentAfterTranslation document) {
     MarkVerificationFinished();
     if (VerifierOptions.GutterStatus) {
       // All unvisited trees need to set them as "verified"
@@ -268,8 +215,6 @@ public class Compilation {
 
       document.GutterProgressReporter.ReportRealtimeDiagnostics(true, document);
     }
-
-    NotifyStatus(document.TextDocumentItem, document, cancellationSource.Token);
   }
 
   private void HandleStatusUpdate(DocumentAfterTranslation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
@@ -336,23 +281,10 @@ public class Compilation {
     }
   }
 
-  private void NotifyStatus(TextDocumentItem item, DocumentAfterTranslation document, CancellationToken cancellationToken) {
-    var errorCount = document.ImplementationIdToView.Values.Sum(r => r.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
-    logger.LogDebug($"Finished verification with {errorCount} errors.");
-    var verified = errorCount == 0;
-    var compilationStatusAfterVerification = verified
-      ? CompilationStatus.VerificationSucceeded
-      : CompilationStatus.VerificationFailed;
-    statusPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
-      cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
-  }
-
   public void CancelPendingUpdates() {
     MarkVerificationFinished();
     cancellationSource.Cancel();
   }
-
-  public bool Idle => verificationCompleted.Task.IsCompleted;
 
   private TaskCompletionSource verificationCompleted = new();
 
