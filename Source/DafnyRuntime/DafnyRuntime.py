@@ -116,6 +116,12 @@ class Seq(tuple):
     def __hash__(self) -> int:
         return hash(tuple(self))
 
+    def __lt__(self, other):
+        return len(self) < len(other) and self == other[:len(self)]
+
+    def __le__(self, other):
+        return len(self) <= len(other) and self == other[:len(self)]
+
 class Array(list):
     @classmethod
     def empty(cls, dims):
@@ -184,6 +190,10 @@ class MultiSet(Counter):
     @property
     def keys(self):
         return Set(key for key in self if self[key] > 0)
+
+    @property
+    def Elements(self):
+        return self.elements()
 
     @property
     def UniqueElements(self):

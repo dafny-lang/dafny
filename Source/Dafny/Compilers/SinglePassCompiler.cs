@@ -1075,8 +1075,9 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
     protected ConcreteSyntaxTree CreateIIFE_ExprBody(string bvName, Type bvType, IToken bvTok, Expression rhs,
       bool inLetExprBody, Type bodyType, IToken bodyTok, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var innerScope = wStmts.Fork();
       CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, ref wStmts, out var wrRhs, out var wrBody);
-      TrExpr(rhs, wrRhs, inLetExprBody, wStmts);
+      TrExpr(rhs, wrRhs, inLetExprBody, innerScope);
       return wrBody;
     }
 
@@ -4687,7 +4688,7 @@ namespace Microsoft.Dafny.Compilers {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-              var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
+              var rhsName = $"_pat_let{GetUniqueAstNumber(e)}_{i}";
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, ref wStmts);
               w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
             }
