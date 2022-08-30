@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     /// <summary>
-    /// Creates a snapshot of the Document
+    /// Collects information to present to the IDE
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
