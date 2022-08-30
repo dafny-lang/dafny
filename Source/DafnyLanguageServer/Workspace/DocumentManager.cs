@@ -93,9 +93,8 @@ public class DocumentManager {
     lock (ChangedRanges) {
       ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
         ChangedRanges.Select(range =>
-            relocator.RelocateRange(range, documentChange, CancellationToken.None)).
-          Where(r => r != null)
-      ).Take(MaxRememberedChanges).ToList()!;
+            relocator.RelocateRange(range, documentChange, CancellationToken.None))).
+          Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
     var migratedVerificationTree =
@@ -185,8 +184,8 @@ public class DocumentManager {
 
     lock (ChangedRanges) {
       var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
-      ChangedRanges = new List<Range>();
       ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Take(MaxRememberedChangedVerifiables).ToList();
+      ChangedRanges = new List<Range>();
     }
 
     var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
