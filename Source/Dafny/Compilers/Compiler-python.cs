@@ -1207,8 +1207,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      var strings = indices.Select(index => Expr(indices[0], inLetExprBody, wStmts).ToString());
+      Contract.Assert(indices != null);  // follows from precondition
+      var strings = indices.Select(index => Expr(index, inLetExprBody, wStmts).ToString());
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
