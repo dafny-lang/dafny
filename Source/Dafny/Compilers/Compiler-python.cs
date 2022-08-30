@@ -25,6 +25,12 @@ namespace ExtensionMethods {
 
 namespace Microsoft.Dafny.Compilers {
   public class PythonCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      if (DafnyOptions.O.CoverageLegendFile != null) {
+        Imports.Add("DafnyProfiling");
+      }
+    }
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
     public override string TargetLanguage => "Python";
@@ -81,6 +87,7 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + _dafny.str(e.message) + \"\\n\")");
+      Coverage.EmitTearDown(wr);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
