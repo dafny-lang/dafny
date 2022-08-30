@@ -1492,7 +1492,10 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
        td.StartToken = dmod.FirstToken;
        td.EndToken = t;
     .)
-  )             (. td.TokenWithTrailingDocString = t; .)
+  )  (. if (td != null) {
+          td.TokenWithTrailingDocString = t;
+        }
+     .)
   .
 
 /*------------------------------------------------------------------------*/
