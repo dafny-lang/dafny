@@ -76,11 +76,11 @@ public class Compilation {
       var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var compilationView = parsedCompilation.InitialIdeState();
-      compilationView = compilationView with {
-        VerificationTree = migratedVerificationTree ?? compilationView.VerificationTree
+      var state = parsedCompilation.InitialIdeState();
+      state = state with {
+        VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
-      notificationPublisher.PublishGutterIcons(compilationView, false);
+      notificationPublisher.PublishGutterIcons(state, false);
 
       documentUpdates.OnNext(parsedCompilation);
       return parsedCompilation;

@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static FileVerificationStatus? GetFileVerificationStatus(IdeState state) {
       if (!state.ImplementationsWereUpdated) {
         /*
-         CompilationAfterResolution.Snapshot() gets migrated ImplementationViews.
+         DocumentAfterResolution.Snapshot() gets migrated ImplementationViews.
          It has to get migrated Diagnostics inside ImplementationViews, otherwise we get incorrect diagnostics.
          However, migrating the ImplementationId's may mean we lose verifiable symbols, which we don't want at this point. TODO: why not?
          To prevent publishing file verification status unless the current document has been translated,
