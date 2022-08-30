@@ -6,7 +6,7 @@ from fractions import Fraction
 from collections import Counter
 from functools import reduce
 from types import GeneratorType, FunctionType
-from itertools import chain, combinations
+from itertools import chain, combinations, count
 import copy
 
 class classproperty(property):
@@ -185,6 +185,10 @@ class MultiSet(Counter):
     def keys(self):
         return Set(key for key in self if self[key] > 0)
 
+    @property
+    def UniqueElements(self):
+        return self.keys
+
     def isdisjoint(self, other):
         return frozenset(self.keys).isdisjoint(frozenset(other.keys))
 
@@ -361,6 +365,26 @@ def quantifier(vals, frall, pred):
 
 def AllChars():
     return (chr(i) for i in range(0x10000))
+
+def AllBooleans():
+    return [False, True]
+
+def IntegerRange(lo, hi):
+    if lo is None:
+        return count(hi-1, -1)
+    elif hi is None:
+        return count(lo)
+    return range(lo, hi)
+
+class Doubler:
+    def __init__(self, start):
+        self.start = start
+    def __iter__(self):
+        return self
+    def __next__(self):
+        self.start *= 2
+        return self.start
+    __call__ = __next__
 
 class defaults:
     bool = staticmethod(lambda: False)
