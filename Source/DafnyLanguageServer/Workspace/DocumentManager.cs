@@ -25,14 +25,14 @@ public class DocumentManager {
   private readonly DocumentOptions documentOptions;
   private readonly VerifierOptions verifierOptions;
   private readonly DocumentObserver observer;
-  public CompilationManager CompilationManager { get; private set; }
+  public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
 
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
   public List<Range> ChangedRanges { get; set; } = new();
-  public Task<CompilationAfterParsing> LastDocumentAsync => CompilationManager.LastDocument;
+  public Task<DocumentAfterParsing> LastDocumentAsync => Compilation.LastDocument;
 
   public DocumentManager(
     IServiceProvider services,
@@ -50,21 +50,21 @@ public class DocumentManager {
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
-    CompilationManager = new CompilationManager(
+    Compilation = new Compilation(
       services,
       verifierOptions,
       document,
       VerifyOnOpen,
       ChangedRanges,
       null);
-    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.NotMigratedSnapshot()).Subscribe(observer);
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.NotMigratedSnapshot()).Subscribe(observer);
   }
 
   private const int MaxRememberedChanges = 100;
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-    var oldVer = CompilationManager.TextBuffer.Version;
+    var oldVer = Compilation.TextBuffer.Version;
     var newVer = documentChange.TextDocument.Version;
     var documentUri = documentChange.TextDocument.Uri;
     if (oldVer >= newVer) {
@@ -72,12 +72,12 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    CompilationManager.CancelPendingUpdates();
-    var updatedText = textChangeProcessor.ApplyChange(CompilationManager.TextBuffer, documentChange, CancellationToken.None);
+    Compilation.CancelPendingUpdates();
+    var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
 
     var lastPublishedDocument = observer.LastPublishedDocument;
     lastPublishedDocument = lastPublishedDocument with {
-      ImplementationViews = MigrateImplementationViews(documentChange, lastPublishedDocument.ImplementationViews),
+      ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedDocument.ImplementationIdToView),
       SymbolTable = relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None)
     };
 
@@ -90,7 +90,7 @@ public class DocumentManager {
     var migratedVerificationTree =
       relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
-    CompilationManager = new CompilationManager(
+    Compilation = new Compilation(
       services,
       verifierOptions,
       updatedText,
@@ -101,7 +101,7 @@ public class DocumentManager {
     );
 
     observerSubscription.Dispose();
-    var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
+    var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
       document.Snapshot(lastPublishedDocument));
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
@@ -125,14 +125,14 @@ public class DocumentManager {
 
   public void Save() {
     if (VerifyOnSave) {
-      CompilationManager.VerifyAll();
+      Compilation.VerifyAll();
     }
   }
 
   public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+    Compilation.CancelPendingUpdates();
     try {
-      await CompilationManager.LastDocument;
+      await Compilation.LastDocument;
     } catch (TaskCanceledException) {
     }
   }
@@ -140,9 +140,9 @@ public class DocumentManager {
   /// <summary>
   /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
   /// </summary>
-  public async Task<CompilationView?> GetResolvedDocumentAsync() {
+  public async Task<DocumentSnapshot?> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedDocument = await CompilationManager.ResolvedDocument;
+      var resolvedDocument = await Compilation.ResolvedDocument;
     } catch (OperationCanceledException) {
     }
 

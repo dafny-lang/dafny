@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
-    public CompilationView CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public DocumentSnapshot CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       return CreateDocumentWithEmptySymbolTable(textDocument,
         new[] { new Diagnostic {
           // This diagnostic never gets sent to the client,
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<CompilationAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
+    public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         TaskCreationOptions.None, ResolverScheduler);
     }
 
-    private CompilationAfterParsing LoadInternal(DocumentTextBuffer textDocument,
+    private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return new CompilationAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+        return new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new CompilationAfterResolution(textDocument,
+      return new DocumentAfterResolution(textDocument,
         program,
         errorReporter.GetDiagnostics(textDocument.Uri),
         symbolTable,
@@ -113,11 +113,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private CompilationView CreateDocumentWithEmptySymbolTable(
+    private DocumentSnapshot CreateDocumentWithEmptySymbolTable(
       DocumentTextBuffer textDocument,
       IReadOnlyList<Diagnostic> diagnostics
     ) {
-      return new CompilationView(
+      return new DocumentSnapshot(
         textDocument,
         diagnostics,
         SymbolTable.Empty(textDocument),

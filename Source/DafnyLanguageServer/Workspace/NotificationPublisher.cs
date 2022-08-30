@@ -23,13 +23,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.verifierOptions = verifierOptions.Value;
     }
 
-    public void PublishNotifications(CompilationView previous, CompilationView document) {
+    public void PublishNotifications(DocumentSnapshot previous, DocumentSnapshot document) {
       PublishVerificationStatus(previous, document);
       PublishDocumentDiagnostics(previous, document);
       PublishGhostDiagnostics(previous, document);
     }
 
-    private void PublishVerificationStatus(CompilationView previousDocument, CompilationView document) {
+    private void PublishVerificationStatus(DocumentSnapshot previousDocument, DocumentSnapshot document) {
       var notification = GetFileVerificationStatus(document);
       if (notification == null) {
         // Do not publish verification status while resolving
@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus? GetFileVerificationStatus(CompilationView document) {
+    private static FileVerificationStatus? GetFileVerificationStatus(DocumentSnapshot document) {
       if (!document.ImplementationsWereUpdated) {
         /*
          CompilationAfterResolution.Snapshot() gets migrated ImplementationViews.
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return null;
       }
       return new FileVerificationStatus(document.TextDocumentItem.Uri, document.TextDocumentItem.Version,
-        GetNamedVerifiableStatuses(document.ImplementationViews));
+        GetNamedVerifiableStatuses(document.ImplementationIdToView));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new[] { first, second }.Min();
     }
 
-    private void PublishDocumentDiagnostics(CompilationView previousDocument, CompilationView document) {
+    private void PublishDocumentDiagnostics(DocumentSnapshot previousDocument, DocumentSnapshot document) {
       var diagnosticParameters = GetPublishDiagnosticsParams(document);
       var previousParams = GetPublishDiagnosticsParams(previousDocument);
       if (previousParams.Version > diagnosticParameters.Version ||
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(CompilationView document) {
+    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(DocumentSnapshot document) {
       return new PublishDiagnosticsParams {
         Uri = document.TextDocumentItem.Uri,
         Version = document.TextDocumentItem.Version,
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
     }
 
-    public void PublishGutterIcons(CompilationView document, bool verificationStarted) {
+    public void PublishGutterIcons(DocumentSnapshot document, bool verificationStarted) {
       if (!verifierOptions.GutterStatus) {
         return;
       }
@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
-    private void PublishGhostDiagnostics(CompilationView previousDocument, CompilationView document) {
+    private void PublishGhostDiagnostics(DocumentSnapshot previousDocument, DocumentSnapshot document) {
 
       var newParams = GetGhostness(document);
       var previousParams = GetGhostness(previousDocument);
@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(newParams);
     }
 
-    private static GhostDiagnosticsParams GetGhostness(CompilationView document) {
+    private static GhostDiagnosticsParams GetGhostness(DocumentSnapshot document) {
       return new GhostDiagnosticsParams {
         Uri = document.TextDocumentItem.Uri,
         Version = document.TextDocumentItem.Version,

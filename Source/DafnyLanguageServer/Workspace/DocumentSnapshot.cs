@@ -7,11 +7,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public record CompilationView(
+public record DocumentSnapshot(
   DocumentTextBuffer TextDocumentItem,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
-  IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
+  IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
   bool ImplementationsWereUpdated,
   IEnumerable<Diagnostic> GhostDiagnostics,
   VerificationTree VerificationTree
@@ -21,5 +21,5 @@ public record CompilationView(
   public int? Version => TextDocumentItem.Version;
 
   public IEnumerable<Diagnostic> Diagnostics =>
-    ResolutionDiagnostics.Concat(ImplementationViews.Values.Select(v => v.Diagnostics).SelectMany(x => x));
+    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.Select(v => v.Diagnostics).SelectMany(x => x));
 }

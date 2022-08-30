@@ -15,22 +15,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
     }
 
-    public bool TryGetSymbolBefore(CompilationView document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
+    public bool TryGetSymbolBefore(DocumentSnapshot document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
       (symbol, _) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return symbol != null;
     }
 
-    public bool TryGetTypeBefore(CompilationView document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+    public bool TryGetTypeBefore(DocumentSnapshot document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
       (_, typeSymbol) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return typeSymbol != null;
     }
 
     private class Guesser {
       private readonly ILogger logger;
-      private readonly CompilationView document;
+      private readonly DocumentSnapshot document;
       private readonly CancellationToken cancellationToken;
 
-      public Guesser(ILogger logger, CompilationView document, CancellationToken cancellationToken) {
+      public Guesser(ILogger logger, DocumentSnapshot document, CancellationToken cancellationToken) {
         this.logger = logger;
         this.document = document;
         this.cancellationToken = cancellationToken;

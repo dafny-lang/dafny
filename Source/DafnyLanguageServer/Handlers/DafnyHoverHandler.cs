@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(CompilationView document, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(DocumentSnapshot document, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
       foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (node.Range.Contains(position)) {

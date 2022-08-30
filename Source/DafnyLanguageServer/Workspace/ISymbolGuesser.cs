@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns><c>true</c> if a symbol could be resolved.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    bool TryGetSymbolBefore(CompilationView document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol);
+    bool TryGetSymbolBefore(DocumentSnapshot document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol);
 
     /// <summary>
     /// Tries to resolve the type of the symbol that is right before the given position.
@@ -30,6 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns><c>true</c> if a type symbol could be resolved.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    bool TryGetTypeBefore(CompilationView document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol);
+    bool TryGetTypeBefore(DocumentSnapshot document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol);
   }
 }

@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new[] { location };
     }
 
-    private static LocationOrLocationLink? GetLspLocation(CompilationView document, ISymbol symbol) {
+    private static LocationOrLocationLink? GetLspLocation(DocumentSnapshot document, ISymbol symbol) {
       if (document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
           Uri = location.Uri,

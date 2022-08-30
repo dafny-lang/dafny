@@ -8,12 +8,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DocumentObserver : IObserver<CompilationView> {
+class DocumentObserver : IObserver<DocumentSnapshot> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public CompilationView LastPublishedDocument {
+  public DocumentSnapshot LastPublishedDocument {
     get; private set;
   }
 
@@ -56,14 +56,14 @@ class DocumentObserver : IObserver<CompilationView> {
   }
 
   private readonly object lastPublishedDocumentLock = new();
-  public void OnNext(CompilationView view) {
+  public void OnNext(DocumentSnapshot snapshot) {
     lock (lastPublishedDocumentLock) {
-      if (view.Version < LastPublishedDocument.Version) {
+      if (snapshot.Version < LastPublishedDocument.Version) {
         return;
       }
 
-      notificationPublisher.PublishNotifications(LastPublishedDocument, view);
-      LastPublishedDocument = view; // Snapshot before storing.
+      notificationPublisher.PublishNotifications(LastPublishedDocument, snapshot);
+      LastPublishedDocument = snapshot;
     }
   }
 }

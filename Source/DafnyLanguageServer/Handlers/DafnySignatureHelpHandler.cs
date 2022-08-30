@@ -40,11 +40,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private class SignatureHelpProcessor {
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly CompilationView document;
+      private readonly DocumentSnapshot document;
       private readonly SignatureHelpParams request;
       private readonly CancellationToken cancellationToken;
 
-      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, CompilationView document, SignatureHelpParams request, CancellationToken cancellationToken) {
+      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DocumentSnapshot document, SignatureHelpParams request, CancellationToken cancellationToken) {
         this.symbolGuesser = symbolGuesser;
         this.document = document;
         this.request = request;

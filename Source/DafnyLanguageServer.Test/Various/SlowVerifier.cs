@@ -23,7 +23,7 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution document,
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
     IReadOnlyDictionary<Position, int> implementationOrder, CancellationToken cancellationToken) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {

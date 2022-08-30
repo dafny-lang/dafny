@@ -16,12 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class VerificationProgressReporter : IVerificationProgressReporter {
 
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly CompilationAfterTranslation document;
+  private readonly DocumentAfterTranslation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    CompilationAfterTranslation document,
+    DocumentAfterTranslation document,
     ICompilationStatusNotificationPublisher statusPublisher,
     INotificationPublisher notificationPublisher
   ) {
@@ -46,7 +46,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     UpdateTree(document, document.VerificationTree);
   }
 
-  public static void UpdateTree(CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
+  public static void UpdateTree(DocumentAfterParsing parsedDocument, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -72,8 +72,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = parsedCompilation.Uri.ToString();
-    foreach (var module in parsedCompilation.Program.Modules()) {
+    var documentFilePath = parsedDocument.Uri.ToString();
+    foreach (var module in parsedDocument.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -217,11 +217,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   /// <param name="verificationStarted">Whether verification already started at this point</param>
-  /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? dafnyDocument = null) {
+  /// <param name="document">The document to send. Can be a previous document</param>
+  public void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution? document = null) {
     lock (LockProcessing) {
-      dafnyDocument ??= document;
-      notificationPublisher.PublishGutterIcons(document.NotMigratedSnapshot(), verificationStarted);
+      document ??= this.document;
+      notificationPublisher.PublishGutterIcons(this.document.NotMigratedSnapshot(), verificationStarted);
     }
   }
 
