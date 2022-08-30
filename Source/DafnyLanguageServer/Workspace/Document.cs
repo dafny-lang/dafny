@@ -34,8 +34,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
 
-    public DocumentSnapshot NotMigratedSnapshot() {
-      return Snapshot(new DocumentSnapshot(TextDocumentItem, Array.Empty<Diagnostic>(),
+    public IdeState InitialIdeState() {
+      return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
         SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         false, Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(TextDocumentItem)));
@@ -44,8 +44,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Creates a snapshot of the Document
     /// </summary>
-    public virtual DocumentSnapshot Snapshot(DocumentSnapshot previousSnapshot) {
-      return previousSnapshot with {
+    public virtual IdeState ToIdeState(IdeState previousState) {
+      return previousState with {
         TextDocumentItem = TextDocumentItem,
         ImplementationsWereUpdated = false,
       };
@@ -66,8 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Dafny.Program Program { get; }
 
-    public override DocumentSnapshot Snapshot(DocumentSnapshot previousSnapshot) {
-      return previousSnapshot with {
+    public override IdeState ToIdeState(IdeState previousState) {
+      return previousState with {
         TextDocumentItem = TextDocumentItem,
         ResolutionDiagnostics = parseDiagnostics,
         ImplementationsWereUpdated = false,
@@ -93,12 +93,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
 
-    public override DocumentSnapshot Snapshot(DocumentSnapshot previousSnapshot) {
-      return previousSnapshot with {
+    public override IdeState ToIdeState(IdeState previousState) {
+      return previousState with {
         TextDocumentItem = TextDocumentItem,
         ImplementationsWereUpdated = false,
         ResolutionDiagnostics = ParseAndResolutionDiagnostics,
-        SymbolTable = SymbolTable.Resolved ? SymbolTable : previousSnapshot.SymbolTable,
+        SymbolTable = SymbolTable.Resolved ? SymbolTable : previousState.SymbolTable,
         GhostDiagnostics = GhostDiagnostics
       };
     }
@@ -129,16 +129,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<INotificationPublisher>());
     }
 
-    public override DocumentSnapshot Snapshot(DocumentSnapshot previousSnapshot) {
+    public override IdeState ToIdeState(IdeState previousState) {
       var implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
         var value = kv.Value.Status < PublishedVerificationStatus.Error
           ? kv.Value with {
-            Diagnostics = previousSnapshot.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+            Diagnostics = previousState.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
           }
           : kv.Value;
         return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
       });
-      return base.Snapshot(previousSnapshot) with {
+      return base.ToIdeState(previousState) with {
         ImplementationsWereUpdated = true,
         VerificationTree = VerificationTree,
         ImplementationIdToView = new Dictionary<ImplementationId, ImplementationView>(implementationViewsWithMigratedDiagnostics)

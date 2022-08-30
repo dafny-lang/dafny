@@ -10,13 +10,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
     /// </summary>
-    /// <param name="document">The document whose diagnostics should be published.</param>
-    void PublishNotifications(DocumentSnapshot previous, DocumentSnapshot document);
+    /// <param name="state">The document whose diagnostics should be published.</param>
+    void PublishNotifications(IdeState previousState, IdeState state);
 
     /// <summary>
     /// Publishes the more precise real-time verification diagnostics to the connected LSP client
     /// </summary>
-    void PublishGutterIcons(DocumentSnapshot document, bool verificationStarted);
+    void PublishGutterIcons(IdeState state, bool verificationStarted);
 
     /// <summary>
     /// Hides the previously published diagnostics of the specified dafny document.

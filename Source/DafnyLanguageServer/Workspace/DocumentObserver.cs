@@ -8,12 +8,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DocumentObserver : IObserver<DocumentSnapshot> {
+class DocumentObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public DocumentSnapshot LastPublishedDocument {
+  public IdeState LastPublishedDocument {
     get; private set;
   }
 
@@ -56,7 +56,7 @@ class DocumentObserver : IObserver<DocumentSnapshot> {
   }
 
   private readonly object lastPublishedDocumentLock = new();
-  public void OnNext(DocumentSnapshot snapshot) {
+  public void OnNext(IdeState snapshot) {
     lock (lastPublishedDocumentLock) {
       if (snapshot.Version < LastPublishedDocument.Version) {
         return;

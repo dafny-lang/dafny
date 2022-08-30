@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
-    public DocumentSnapshot CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       return CreateDocumentWithEmptySymbolTable(textDocument,
         new[] { new Diagnostic {
           // This diagnostic never gets sent to the client,
@@ -113,11 +113,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private DocumentSnapshot CreateDocumentWithEmptySymbolTable(
+    private IdeState CreateDocumentWithEmptySymbolTable(
       DocumentTextBuffer textDocument,
       IReadOnlyList<Diagnostic> diagnostics
     ) {
-      return new DocumentSnapshot(
+      return new IdeState(
         textDocument,
         diagnostics,
         SymbolTable.Empty(textDocument),

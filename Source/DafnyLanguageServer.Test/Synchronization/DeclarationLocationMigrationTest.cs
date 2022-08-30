@@ -18,8 +18,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     // TODO The "BodyEndToken" used by the CreateDeclarationDictionary.CreateDeclarationDictionary()
     //      does not incorporate the closing braces.
 
-    private bool TryFindSymbolDeclarationByName(DocumentSnapshot document, string symbolName, out SymbolLocation location) {
-      location = document.SymbolTable.Locations
+    private bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location) {
+      location = state.SymbolTable.Locations
         .WithCancellation(CancellationToken)
         .Where(entry => entry.Key.Name == symbolName)
         .Select(entry => entry.Value)

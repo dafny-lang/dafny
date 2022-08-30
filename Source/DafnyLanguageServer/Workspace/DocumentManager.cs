@@ -57,7 +57,7 @@ public class DocumentManager {
       VerifyOnOpen,
       ChangedRanges,
       null);
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.NotMigratedSnapshot()).Subscribe(observer);
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -102,7 +102,7 @@ public class DocumentManager {
 
     observerSubscription.Dispose();
     var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
-      document.Snapshot(lastPublishedDocument));
+      document.ToIdeState(lastPublishedDocument));
     observerSubscription = migratedUpdates.Subscribe(observer);
   }
 
@@ -140,7 +140,7 @@ public class DocumentManager {
   /// <summary>
   /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
   /// </summary>
-  public async Task<DocumentSnapshot?> GetSnapshotAfterResolutionAsync() {
+  public async Task<IdeState?> GetSnapshotAfterResolutionAsync() {
     try {
       var resolvedDocument = await Compilation.ResolvedDocument;
     } catch (OperationCanceledException) {

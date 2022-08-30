@@ -67,9 +67,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(DocumentSnapshot document, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+      foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
           var information = "";
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
-              node.Filename == document.Uri.ToString()) {
+              node.Filename == state.Uri.ToString()) {
             areMethodStatistics = true;
             return GetTopLevelInformation(node, orderedAssertionBatches);
           }

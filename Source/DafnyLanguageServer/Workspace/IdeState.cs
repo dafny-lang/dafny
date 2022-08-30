@@ -7,7 +7,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public record DocumentSnapshot(
+/// <summary>
+/// Contains information from multiple documents to provide the client with as much information as possible.
+/// </summary>
+public record IdeState(
   DocumentTextBuffer TextDocumentItem,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,

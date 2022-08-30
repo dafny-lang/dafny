@@ -40,19 +40,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private class SignatureHelpProcessor {
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DocumentSnapshot document;
+      private readonly IdeState state;
       private readonly SignatureHelpParams request;
       private readonly CancellationToken cancellationToken;
 
-      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DocumentSnapshot document, SignatureHelpParams request, CancellationToken cancellationToken) {
+      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, IdeState state, SignatureHelpParams request, CancellationToken cancellationToken) {
         this.symbolGuesser = symbolGuesser;
-        this.document = document;
+        this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
       }
 
       public SignatureHelp? Process() {
-        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(state, GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);

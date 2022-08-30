@@ -72,11 +72,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public Task<DocumentSnapshot?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
         return state.GetSnapshotAfterResolutionAsync();
       }
-      return Task.FromResult<DocumentSnapshot?>(null);
+      return Task.FromResult<IdeState?>(null);
     }
 
     public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {

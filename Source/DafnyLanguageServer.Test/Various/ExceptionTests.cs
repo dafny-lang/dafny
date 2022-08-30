@@ -119,7 +119,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public DocumentSnapshot CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
