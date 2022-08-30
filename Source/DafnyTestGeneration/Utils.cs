@@ -19,7 +19,7 @@ namespace DafnyTestGeneration {
   public static class Utils {
 
     public static Type UseFullName(Type type) {
-      return DafnyModelTypeUtils.ReplaceType(type, _ => true, type => 
+      return DafnyModelTypeUtils.ReplaceType(type, _ => true, type =>
         new UserDefinedType(new Token(), type?.ResolvedClass?.FullName ?? type.Name, type.TypeArgs));
     }
 
@@ -38,7 +38,7 @@ namespace DafnyTestGeneration {
       replacements["_System.object"] =
         new UserDefinedType(new Token(), "object", new List<Type>());
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
-        type => replacements.ContainsKey(type.Name) ? 
+        type => replacements.ContainsKey(type.Name) ?
           replacements[type.Name] :
           new UserDefinedType(type.tok, type.Name, type.TypeArgs));
     }
@@ -66,7 +66,7 @@ namespace DafnyTestGeneration {
       new Resolver(program).ResolveProgram(program);
       return program;
     }
-    
+
     /// <summary>
     /// Deep clone a Boogie program.
     /// </summary>
@@ -84,7 +84,7 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintFile = oldPrintFile;
       return copy;
     }
-    
+
     public static string GetStringRepresentation(Microsoft.Boogie.Program program) {
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       var oldPrintFile = DafnyOptions.O.PrintFile;
@@ -96,7 +96,7 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintFile = oldPrintFile;
       return output.ToString();
     }
-    
+
     private class AddByMethodRewriter : IRewriter {
 
       protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
@@ -133,7 +133,7 @@ namespace DafnyTestGeneration {
         if (DafnyOptions.O.TestGenOptions.Fuel != null) {
           func.Attributes = RemoveAttribute(func.Attributes, "fuel");
           func.Attributes = new Attributes("fuel",
-          new List<Expression>() { new LiteralExpr(new Token(),  (int) DafnyOptions.O.TestGenOptions.Fuel) }, 
+          new List<Expression>() { new LiteralExpr(new Token(), (int)DafnyOptions.O.TestGenOptions.Fuel) },
           func.Attributes);
         }
         if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
@@ -144,13 +144,14 @@ namespace DafnyTestGeneration {
         func.ByMethodBody = new BlockStmt(new Token(), new Token(),
           new List<Statement> { returnStatement });
       }
-      
-      public static string Stringify(this object value) {
+    }
+
+    public static string Stringify(this object value) {
       if (value is IEnumerable<object> enumerable) {
         return string.Join(", ", enumerable.Select(Stringify));
       }
 
       return value.ToString()!;
-      }
+    }
   }
 }

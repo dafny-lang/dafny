@@ -11,7 +11,7 @@ namespace Microsoft.Dafny {
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
     public enum Oracles { None, Spec };
-    public enum Minimizations {Topological, Optimal, Random};
+    public enum Minimizations { Topological, Optimal, Random };
     public Modes Mode = Modes.None;
     public Oracles Oracle = Oracles.None;
     public Minimizations Minimization = Minimizations.Topological;
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
           WarnDeadCode = true;
           Mode = Modes.Block;
           return true;
-        
+
         case "noPrune":
           noPrune = true;
           return true;
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
             };
           }
           return true;
-        
+
         case "generateTestMinimization":
           if (ps.ConfirmArgumentCount(1)) {
             Minimization = args[ps.i] switch {
@@ -84,7 +84,7 @@ namespace Microsoft.Dafny {
             SeqLengthLimit = (uint)limit;
           }
           return true;
-        
+
         case "generateTestFuel":
           var fuel = 0;
           if (ps.GetIntArgument(ref fuel)) {
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny {
             PrintStats = args[ps.i];
           }
           return true;
-        
+
         case "generateTestVerbose":
           Verbose = true;
           return true;
@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
 
         // Maximum number of tests to generate.
         case "generateTestMaxTests":
-          var numMaxTests = -1;  
+          var numMaxTests = -1;
           if (ps.GetIntArgument(ref numMaxTests)) {
             maxTests = numMaxTests;
           }

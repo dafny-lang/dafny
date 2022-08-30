@@ -14,7 +14,7 @@ namespace DafnyTestGeneration {
   /// that fail when a particular basic block is visited
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
-    
+
     private Implementation? implementation; // the implementation currently traversed
     private Program? program; // the original program
 
@@ -38,8 +38,8 @@ namespace DafnyTestGeneration {
       var procedureName = ImplementationToTarget?.VerboseName ??
                           implementation.VerboseName;
       node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
-      var record = ProgramModification.GetProgramModification(program, implementation, 
-        new HashSet<int>() {node.UniqueId}, ExtractCapturedStates(node),
+      var record = ProgramModification.GetProgramModification(program, implementation,
+        new HashSet<int>() { node.UniqueId }, ExtractCapturedStates(node),
           procedureName, $"{procedureName.Split(" ")[0]}(block#{node.UniqueId})");
 
       node.cmds.RemoveAt(node.cmds.Count - 1);
@@ -105,7 +105,7 @@ namespace DafnyTestGeneration {
                   path.CounterexampleStatus ==
                   ProgramModification.Status.Success &&
                   path.coversBlocks.IsSupersetOf(blockIds))
-                .FirstOrDefault((ProgramModification) null);
+                .FirstOrDefault((ProgramModification)null);
               if (substitution == null) {
                 var path = new PathBasedModifier.Path(node,
                   pathDescription.Select(block => variables[block]),

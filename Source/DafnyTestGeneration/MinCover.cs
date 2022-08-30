@@ -64,7 +64,7 @@ public static class MinCover {
       implementation.Blocks.Where(block => block.TransferCmd is ReturnCmd);
     var loopHeads = GetLoopHeads(implementation);
     foreach (var block in implementation.Blocks) {
-      if (block.TransferCmd is not GotoCmd gotoCmd){
+      if (block.TransferCmd is not GotoCmd gotoCmd) {
         continue; // this is a return block
       }
       foreach (var path in vars) {
@@ -76,7 +76,7 @@ public static class MinCover {
         }
       }
     }
-    
+
     // Exactly one return block per path
     foreach (var path in vars) {
       model.AddExactlyOne(returnBlocks.Select(block => path[block]));
@@ -92,12 +92,12 @@ public static class MinCover {
     // Try solving the problem
     CpSolver solver = new CpSolver();
     CpSolverStatus status = solver.Solve(model);
-    if ((status == CpSolverStatus.ModelInvalid || 
-         status == CpSolverStatus.Unknown) && 
+    if ((status == CpSolverStatus.ModelInvalid ||
+         status == CpSolverStatus.Unknown) &&
         DafnyOptions.O.TestGenOptions.Verbose) {
       Console.WriteLine("// Solver returned " + status + " status");
     }
-    if (status == CpSolverStatus.ModelInvalid || 
+    if (status == CpSolverStatus.ModelInvalid ||
         status == CpSolverStatus.Unknown ||
         status == CpSolverStatus.Infeasible) {
       if (minPaths >= implementation.Blocks.Count) {
@@ -108,7 +108,7 @@ public static class MinCover {
       }
       return GetMinCover(implementation, infeasiblePaths, minPaths + 1);
     }
-    
+
     // Reconstruct and simplify the paths
     HashSet<HashSet<Block>> solution = new();
     HashSet<Block> coveredBlocks = new();
@@ -128,5 +128,5 @@ public static class MinCover {
     }
     return solution;
   }
-  
+
 }

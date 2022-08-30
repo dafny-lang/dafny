@@ -181,7 +181,7 @@ public class CsharpSynthesizer {
       //                           "for method {1}", ErrorWriter,
       //  methodName, lastSynthesizedMethod.Name);
     }
-    
+
     var tmpId = compiler.idGenerator.FreshId("tmp");
     wr.Format($"{objectToMockName[receiver]}.Setup({tmpId} => {tmpId}.{methodName}(");
 

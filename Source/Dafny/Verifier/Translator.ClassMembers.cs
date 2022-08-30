@@ -955,7 +955,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        
+
         var impl = AddImplementationWithVerboseName(f.tok, proc,
           Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
           implOutParams, localVariables, stmts, kv);

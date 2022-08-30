@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
 
-namespace Microsoft.Dafny.LanguageServer.Handlers; 
+namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ILogger<DafnyCodeActionHandler> logger;

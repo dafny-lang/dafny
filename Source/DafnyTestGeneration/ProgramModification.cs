@@ -16,7 +16,7 @@ namespace DafnyTestGeneration {
   /// visited / path is taken.
   /// </summary>
   public class ProgramModification {
-    
+
     private static Dictionary<string, ProgramModification>
       IdToModification = new();
 
@@ -48,7 +48,7 @@ namespace DafnyTestGeneration {
     }
 
     private ProgramModification(Program program, Implementation impl,
-      HashSet<int> coversBlocks, HashSet<string> capturedStates, 
+      HashSet<int> coversBlocks, HashSet<string> capturedStates,
       string procedure, string uniqueId) {
       Implementation = impl;
       CounterexampleStatus = Status.Untested;
@@ -97,7 +97,7 @@ namespace DafnyTestGeneration {
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
     public async Task<string?> GetCounterExampleLog() {
-      if (CounterexampleStatus != Status.Untested || 
+      if (CounterexampleStatus != Status.Untested ||
           (coversBlocks.Count != 0 && IsCovered)) {
         return counterexampleLog;
       }
@@ -114,7 +114,7 @@ namespace DafnyTestGeneration {
       var writer = new StringWriter();
       var result = Task.WhenAny(engine.InferAndVerify(writer, program,
           new PipelineStatistics(), null,
-          _ => { }, guid), 
+          _ => { }, guid),
         Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit))).Result;
       program = null; // allows to garbage collect what is no longer needed
       CounterexampleStatus = Status.Failure;
@@ -163,8 +163,8 @@ namespace DafnyTestGeneration {
       }
       return counterexampleLog;
     }
-    
-    public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique=true) {
+
+    public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Extracting the test for {UniqueId} from the counterexample...");
@@ -179,7 +179,7 @@ namespace DafnyTestGeneration {
       }
       var duplicate = ModificationsForImplementation(Implementation)
         .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
-        .FirstOrDefault((ProgramModification) null);
+        .FirstOrDefault((ProgramModification)null);
       if (duplicate == null) {
         return testMethod;
       }
@@ -194,17 +194,17 @@ namespace DafnyTestGeneration {
     private static IEnumerable<ProgramModification>
       ModificationsForImplementation(Implementation implementation) =>
       IdToModification.Values.Where(modification =>
-        modification.Implementation == implementation || 
+        modification.Implementation == implementation ||
         DafnyOptions.O.TestGenOptions.TargetMethod != null);
 
-    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists=false) {
+    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
         !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.All(blockId =>
         relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
     }
 
-    public static int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists=false) {
+    public static int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
         !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       var blockIds = implementation.Blocks.Where(block => block.Cmds.Count != 0)

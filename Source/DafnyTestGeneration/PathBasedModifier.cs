@@ -21,7 +21,7 @@ namespace DafnyTestGeneration {
         path.AssertPath();
         var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
         yield return ProgramModification.GetProgramModification(p, path.Impl,
-          new HashSet<int>(), new HashSet<string>(), name, 
+          new HashSet<int>(), new HashSet<string>(), name,
           $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
         path.NoAssertPath();
       }
@@ -32,7 +32,7 @@ namespace DafnyTestGeneration {
     /// and then populate the paths field.
     /// </summary>
     public override Implementation VisitImplementation(Implementation node) {
-      if (!ImplementationIsToBeTested(node) || 
+      if (!ImplementationIsToBeTested(node) ||
           !dafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
         return node;
       }
@@ -56,14 +56,14 @@ namespace DafnyTestGeneration {
         // variable declaration:
         var variable = GetNewLocalVariable(node, Type.Bool, varName);
         // set variable to false when visiting a block
-        block.cmds.Insert(0, new AssignCmd(new Token(), 
-          new List<AssignLhs>() {new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable))} , 
-          new List<Expr>(){new LiteralExpr(new Token(), false)}));
+        block.cmds.Insert(0, new AssignCmd(new Token(),
+          new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
+          new List<Expr>() { new LiteralExpr(new Token(), false) }));
         blockToVariable[block] = variable;
         // initialization:
-        node.Blocks[0].cmds.Insert(0, new AssignCmd(new Token(), 
-          new List<AssignLhs>() {new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable))} , 
-          new List<Expr>(){new LiteralExpr(new Token(), true)}));
+        node.Blocks[0].cmds.Insert(0, new AssignCmd(new Token(),
+          new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
+          new List<Expr>() { new LiteralExpr(new Token(), true) }));
       }
       return blockToVariable;
     }
@@ -82,7 +82,7 @@ namespace DafnyTestGeneration {
       if (currSet.Contains(blockToVariable[block])) {
         return;
       }
-      
+
       // if the block contains a return command, it is the last one in the path:
       if (block.TransferCmd is ReturnCmd) {
         paths.Add(new Path(impl, currList, block));
@@ -107,9 +107,9 @@ namespace DafnyTestGeneration {
       private readonly List<Block> returnBlocks; // block(s) where the path ends
 
       internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlocks)
-        :this(impl, path, new List<Block>() {returnBlocks}) {
+        : this(impl, path, new List<Block>() { returnBlocks }) {
       }
-      
+
       internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks) {
         Impl = impl;
         this.path = new();
@@ -132,7 +132,7 @@ namespace DafnyTestGeneration {
             new List<Expr>()
               { condition, new IdentifierExpr(new Token(), path[i]) });
         }
-        
+
         foreach (var returnBlock in returnBlocks) {
           returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
         }

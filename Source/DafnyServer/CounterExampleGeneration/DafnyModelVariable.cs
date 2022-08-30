@@ -92,7 +92,7 @@ namespace DafnyServer.CounterexampleGeneration {
     public string CanonicalName() {
       return state.Model.CanonicalName(Element);
     }
-    
+
     public virtual string Value {
       get {
         var result = state.Model.CanonicalName(Element);
@@ -147,7 +147,7 @@ namespace DafnyServer.CounterexampleGeneration {
         return false;
       }
 
-      return other.Element == Element && 
+      return other.Element == Element &&
              other.state == state &&
              other.Name == Name;
     }
@@ -161,15 +161,14 @@ namespace DafnyServer.CounterexampleGeneration {
 
     public readonly DafnyModelVariable Original;
 
-    internal DuplicateVariable(DafnyModelState state, 
+    internal DuplicateVariable(DafnyModelState state,
       DafnyModelVariable original, string newName, DafnyModelVariable parent)
-      : base(state, original.Element, newName, parent) 
-    {
+      : base(state, original.Element, newName, parent) {
       Original = original;
     }
 
     public override string Value => Original.ShortName;
-    
+
     public override Dictionary<string, List<DafnyModelVariable>> Children => Original.Children;
 
     public override IEnumerable<DafnyModelVariable> GetExpansion() {
@@ -186,10 +185,9 @@ namespace DafnyServer.CounterexampleGeneration {
     // Dafny integers are unbounded, hence using strings for seq indices:
     private readonly Dictionary<string, DafnyModelVariable> seqElements;
 
-    internal SeqVariable(DafnyModelState state, Model.Element element, 
+    internal SeqVariable(DafnyModelState state, Model.Element element,
       string name, DafnyModelVariable parent)
-      : base(state, element, name, parent) 
-    {
+      : base(state, element, name, parent) {
       seqLength = null;
       seqElements = new Dictionary<string, DafnyModelVariable>();
     }
@@ -244,8 +242,8 @@ namespace DafnyServer.CounterexampleGeneration {
     public readonly Dictionary<DafnyModelVariable, DafnyModelVariable>
       Mappings = new();
 
-    internal MapVariable(DafnyModelState state, Model.Element element, 
-      string name, DafnyModelVariable parent) 
+    internal MapVariable(DafnyModelState state, Model.Element element,
+      string name, DafnyModelVariable parent)
       : base(state, element, name, parent) { }
 
     public override string Value {

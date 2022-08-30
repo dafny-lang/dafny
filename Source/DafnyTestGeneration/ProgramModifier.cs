@@ -75,7 +75,7 @@ namespace DafnyTestGeneration {
       program = annotator.VisitProgram(program);
       AddAxioms(program);
       if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
-        File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl, 
+        File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(program));
       }
       if (DafnyOptions.O.TestGenOptions.Verbose) {
@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
       (ImplementationToTarget == null || toModify.Contains(impl.Name)) &&
-      impl.Name.StartsWith("Impl$$") && !impl.Name.EndsWith("__ctor") && 
+      impl.Name.StartsWith("Impl$$") && !impl.Name.EndsWith("__ctor") &&
       !dafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 
     /// <summary>
@@ -146,17 +146,17 @@ namespace DafnyTestGeneration {
       program.Typecheck(DafnyOptions.O);
       return program;
     }
-    
+
     private static AssumeCmd GetAssumePrintCmd(List<object> data) {
       // first insert separators between the things being printed
       var toPrint = new List<object>();
-      data.Iter(obj => toPrint.AddRange(new List<object> {obj, " | "}));
+      data.Iter(obj => toPrint.AddRange(new List<object> { obj, " | " }));
       if (toPrint.Count() != 0) {
         toPrint.RemoveAt(toPrint.Count() - 1);
       }
       // now create the assume command
       var annotation = new QKeyValue(new Token(), "print", toPrint, null);
-      return new AssumeCmd(new Token(), 
+      return new AssumeCmd(new Token(),
         new LiteralExpr(new Token(), true), annotation);
     }
 
@@ -200,7 +200,7 @@ namespace DafnyTestGeneration {
         var calleName = $"Impl$${node.Name.Split("$").Last()}";
         var calleeProc = program?.Procedures
           .Where(f => f.Name == calleName)
-          .FirstOrDefault((Procedure) null);
+          .FirstOrDefault((Procedure)null);
         if (calleeProc == null) {
           return node; // Can happen if included modules are not verified
         }
@@ -343,7 +343,7 @@ namespace DafnyTestGeneration {
         node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
 
         // record parameter values:
-        data = new List<object> { "Impl", node.VerboseName.Split(" ")[0]};
+        data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
         var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
@@ -353,13 +353,13 @@ namespace DafnyTestGeneration {
         } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if ((DafnyOptions.O.TestGenOptions.TestInlineDepth > 0) && 
-                   (modifier.toModify.Contains(node.Name))) {
+        } else if ((DafnyOptions.O.TestGenOptions.TestInlineDepth > 0) &&
+                   modifier.toModify.Contains(node.Name)) {
           // This method is inlined
           var depthExpression =
             new LiteralExpr(new Token(), BigNum.FromInt(1));
-          var attribute = new QKeyValue(new Token(), "inline", 
-            new List<object>(){depthExpression}, null);
+          var attribute = new QKeyValue(new Token(), "inline",
+            new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
           node.Attributes = attribute;
         }
@@ -399,7 +399,7 @@ namespace DafnyTestGeneration {
       private IdentifierExpr? TryConvertFunctionCall(NAryExpr call) {
         Procedure? proc = currProgram?.Procedures
           .Where(f => f.Name == "Impl$$" + call.Fun.FunctionName)
-          .FirstOrDefault((Procedure) null);
+          .FirstOrDefault((Procedure)null);
         if (proc == null) {
           return null; // this function is not a function-by-method
         }
@@ -450,7 +450,7 @@ namespace DafnyTestGeneration {
         var identifierExpr = TryConvertFunctionCall(funcCall);
         return identifierExpr ?? newNode;
       }
-      
+
       public override QuantifierExpr VisitQuantifierExpr(QuantifierExpr node) {
         return node;
       }
@@ -549,8 +549,8 @@ namespace DafnyTestGeneration {
         Procedure? findProcedure =
           procedureMap.GetValueOrDefault("Impl$$" + node.Fun.FunctionName,
             null);
-        if (currAssignCmd == null || 
-            findFunction == null || 
+        if (currAssignCmd == null ||
+            findFunction == null ||
             findProcedure == null) {
           return base.VisitNAryExpr(node);
         }
@@ -572,7 +572,7 @@ namespace DafnyTestGeneration {
       public override QuantifierExpr VisitQuantifierExpr(QuantifierExpr node) {
         return node;
       }
-      
+
       public override Cmd VisitAssignCmd(AssignCmd node) {
         currAssignCmd = node;
         node = (AssignCmd)base.VisitAssignCmd(node);
@@ -599,7 +599,7 @@ namespace DafnyTestGeneration {
 
         Function? func = currProgram.Functions
           .Where(f => f.Name == expr.Fun.FunctionName[..^CanCallSuffix.Length])
-          .FirstOrDefault((Function) null);
+          .FirstOrDefault((Function)null);
         if (func == null) {
           return node;
         }
@@ -665,7 +665,7 @@ namespace DafnyTestGeneration {
       }
 
     }
-    
+
     private class RemoveChecks : StandardVisitor {
 
       public override Block VisitBlock(Block node) {
@@ -686,7 +686,7 @@ namespace DafnyTestGeneration {
         node.Ensures = newEnsures;
         return node;
       }
-      
+
       public override Program VisitProgram(Program node) {
         VisitDeclarationList(node.TopLevelDeclarations.ToList<Declaration>());
         node = Utils.DeepCloneProgram(node);

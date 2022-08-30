@@ -6,9 +6,9 @@ using Newtonsoft.Json;
 
 namespace DafnyTestGeneration {
   public class StatsPrinter {
-    
+
     private readonly List<Dictionary<string, string>> accumulatedStats = new();
-    
+
     private static string GetFullDafnyNameFromImpl(Implementation impl) {
       int endOfName = impl.VerboseName.IndexOf(' ');
       return impl.VerboseName[..endOfName];
@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
         record["blocksCovered"] =
           ProgramModification.NumberOfBlocksCovered(implementation).ToString();
         record["blocksCoveredByTests"] =
-          ProgramModification.NumberOfBlocksCovered(implementation, onlyIfTestsExists:true).ToString();
+          ProgramModification.NumberOfBlocksCovered(implementation, onlyIfTestsExists: true).ToString();
         record["failedQueries"] =
           ProgramModification.ModificationsWithStatus(implementation,
             ProgramModification.Status.Failure).ToString();
