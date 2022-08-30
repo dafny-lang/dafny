@@ -44,6 +44,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     client.OpenDocument(documentItem);
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, crashDiagnostics.Length);
+    Assert.AreEqual(new Range(0, 0, 0, 1), crashDiagnostics[0].Range);
     Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
