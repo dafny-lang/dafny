@@ -418,7 +418,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
+      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
@@ -8510,6 +8510,7 @@ namespace Microsoft.Dafny {
           var s = (RevealStmt)stmt;
           s.ResolvedStatements.Iter(ss => Visit(ss, true, "a reveal statement"));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
@@ -8674,6 +8675,11 @@ namespace Microsoft.Dafny {
           }
           // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
           s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+          }
 
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
@@ -8683,6 +8689,13 @@ namespace Microsoft.Dafny {
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+            }
+          }
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
@@ -8706,6 +8719,11 @@ namespace Microsoft.Dafny {
               s.IsGhost = true;
             }
           }
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+          }
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
@@ -8725,6 +8743,13 @@ namespace Microsoft.Dafny {
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+            }
+          }
 
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
@@ -8752,6 +8777,14 @@ namespace Microsoft.Dafny {
               s.IsGhost = true;
             }
           }
+          if (!s.IsGhost) {
+            // If there were features in the bounds that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Start, codeContext);
+            if (s.End != null) {
+              ExpressionTester.CheckIsCompilable(resolver, s.End, codeContext);
+            }
+          }
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -8771,6 +8804,10 @@ namespace Microsoft.Dafny {
                 Error(s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
               }
             }
+
+            // If there were features in the range that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Range, codeContext);
           }
 
         } else if (stmt is ModifyStmt) {
@@ -8802,10 +8839,17 @@ namespace Microsoft.Dafny {
           }
           s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the source expression that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
+          }
+
         } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
           Visit(s.ResolvedStatement, mustBeErasable, proofContext);
           s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
+
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
           s.IsGhost = mustBeErasable;
@@ -11102,6 +11146,21 @@ namespace Microsoft.Dafny {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                s.ResolvedStatements.Add(call);
+              }
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+              } else {
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+              }
+              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              if (callee == null) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+                //The revealed member is a function
+                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              } else {
+                var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
                 s.ResolvedStatements.Add(call);
               }
             } else {

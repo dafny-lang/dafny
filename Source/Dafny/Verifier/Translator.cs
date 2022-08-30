@@ -1535,9 +1535,9 @@ namespace Microsoft.Dafny {
     static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope);
+      return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
-    static bool IsOpaqueFunction(Function f) {
+    static bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
       return Attributes.Contains(f.Attributes, "opaque");
     }
@@ -6575,7 +6575,9 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
-            sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            if (!IsOpaque(cf)) {
+              sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            }
           }
           sink.AddTopLevelDeclaration(ff);
 
