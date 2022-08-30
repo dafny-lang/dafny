@@ -152,12 +152,18 @@ public class DocumentManager {
     }
   }
 
-  /// <summary>
-  /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
-  /// </summary>
-  public async Task<IdeState?> GetSnapshotAfterResolutionAsync() {
+  public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedDocument = await Compilation.ResolvedDocument;
+      await Compilation.ResolvedDocument;
+    } catch (OperationCanceledException) {
+    }
+
+    return observer.LastPublishedState;
+  }
+
+  public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
+    try {
+      await Compilation.LastDocument;
     } catch (OperationCanceledException) {
     }
 
