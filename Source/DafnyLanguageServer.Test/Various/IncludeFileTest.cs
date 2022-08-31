@@ -13,7 +13,7 @@ public class IncludeFileTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
   public async Task MethodWhosePostConditionFailsAndDependsOnIncludedFile() {
-    var temp = Path.GetTempFileName() + ".dfy";
+    var temp = (Path.GetTempFileName() + ".dfy").Replace("\\", "/");
     Console.WriteLine("temp file is: " + temp);
     var producer = @"
 function Foo(x: int): bool {
