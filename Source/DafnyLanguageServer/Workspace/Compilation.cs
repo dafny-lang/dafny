@@ -196,7 +196,7 @@ public class Compilation {
     MarkVerificationStarted();
     statusUpdates.Catch<IVerificationStatus, Exception>(e => {
       logger.LogError(e, "Caught error in statusUpdates observable.");
-      return Observable.Empty<IVerificationStatus>();      
+      return Observable.Empty<IVerificationStatus>();
     }).ObserveOn(verificationUpdateScheduler).Subscribe(
       update => HandleStatusUpdate(document, implementationTask, update),
       () => {
