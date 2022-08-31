@@ -71,25 +71,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetResolvedDocumentAsync();
+        return state.GetSnapshotAfterResolutionAsync()!;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return Task.FromResult<IdeState?>(null);
     }
 
-    public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.LastDocumentAsync!;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return Task.FromResult<DocumentAfterParsing?>(null);
     }
 
     public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<CompilationManager> Documents => documents.Values.Select(m => m.CompilationManager);
+    public IEnumerable<Compilation> Documents => documents.Values.Select(m => m.Compilation);
 
   }
 }
