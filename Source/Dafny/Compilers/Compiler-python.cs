@@ -568,7 +568,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
-      wr.WriteLine($"{DafnyRuntimeModule}._tail_call()");
+      wr.WriteLine($"raise {DafnyRuntimeModule}.TailCall()");
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
@@ -773,15 +773,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
-      if (label != null) {
-        wr.WriteLine($"{DafnyRuntimeModule}._break(\"{label}\")");
-      } else {
-        wr.WriteLine("break");
-      }
+      wr.WriteLine(label != null ? $"raise {DafnyRuntimeModule}.Break(\"{label}\")" : "break");
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
-      wr.WriteLine($"{DafnyRuntimeModule}._continue(\"{label}\")");
+      wr.WriteLine($"raise {DafnyRuntimeModule}.Continue(\"{label}\")");
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -819,28 +815,22 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      var iterator = endVarName != null ? "range" : "count";
-      wr.Write($"for {IdName(loopIndex)} in {iterator}(");
-      var startWr = wr.Fork();
-      if (!goingUp) {
-        wr.Write("-1");
+      string iterator;
+      var lowWr = new ConcreteSyntaxTree();
+      string argumentRemainder;
+      if (endVarName == null) {
+        iterator = "count";
+        argumentRemainder = goingUp ? "" : "-1, -1";
+      } else {
+        iterator = "range";
+        argumentRemainder = goingUp ? $", {endVarName}" : $"-1, {endVarName}-1, -1";
       }
-      if (endVarName != null) {
-        wr.Write($", {endVarName}");
-        if (!goingUp) {
-          wr.Write("-1");
-        }
-      }
-      if (!goingUp) {
-        wr.Write(", -1");
-      }
-      wr.Write(")");
-
+      wr.Format($"for {IdName(loopIndex)} in {iterator}({lowWr}{argumentRemainder})");
       var bodyWr = wr.NewBlockPy($":");
       bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
-      return startWr;
+      return lowWr;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
