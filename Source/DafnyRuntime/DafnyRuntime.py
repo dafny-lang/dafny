@@ -30,7 +30,6 @@ def string_of(value) -> str:
     else:
         return str(value)
 
-
 @dataclass
 class Break(Exception):
     target: builtins.str
