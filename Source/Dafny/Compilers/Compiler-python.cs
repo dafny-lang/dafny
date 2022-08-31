@@ -217,13 +217,25 @@ namespace Microsoft.Dafny.Compilers {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");
         var w = btw.NewBlockPy(
           $"def AllSingletonConstructors(cls):");
-        w.WriteLine($"return [{dt.Ctors.Select(ctor => $"{DtCtorDeclarationName(ctor, false)}()").Comma()}]");
+        var values = dt.Ctors.Select(ctor => {
+          if (ctor.IsGhost) {
+            return ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok);
+          } else {
+            return $"{DtCtorDeclarationName(ctor, false)}()";
+          }
+        });
+        w.WriteLine($"return [{values.Comma()}]");
       }
 
       btw.WriteLine($"@classmethod");
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
-      var arguments = dt.GetGroundingCtor().Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
-      wDefault.WriteLine($"return {DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})");
+      var groundingCtor = dt.GetGroundingCtor();
+      if (groundingCtor.IsGhost) {
+        wDefault.WriteLine($"return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+      } else {
+        var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+        wDefault.WriteLine($"return {DtCtorDeclarationName(groundingCtor, false)}({arguments})");
+      }
 
       // Ensures the string representation from the constructor is chosen
       btw.NewBlockPy("def __repr__(self) -> str:")
@@ -265,7 +277,9 @@ namespace Microsoft.Dafny.Compilers {
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
-        var argList = ctor.Destructors.Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+        var argList = ctor.Destructors.Where(dtor => !dtor.IsGhost)
+          .Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})")
+          .Comma();
         var namedtuple = $"NamedTuple(\'{ctorName}\', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -418,8 +432,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      return !member.IsStatic && (member.EnclosingClass is NewtypeDecl
-                                  || (member.EnclosingClass is TraitDecl && member is ConstantField { Rhs: { } }));
+      if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
+        return member is ConstantField { Rhs: { } };
+      }
+      return base.NeedsCustomReceiver(member);
     }
 
     private void DeclareField(string name, bool isStatic, bool isConst, Type type, IToken tok, string rhs,
@@ -593,6 +609,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+
+      if (usePlaceboValue) {
+        return "None";
+      }
+
       var xType = type.NormalizeExpandKeepConstraints();
 
       if (xType.IsObjectQ) {
