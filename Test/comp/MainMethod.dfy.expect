@@ -108,3 +108,30 @@ Nt: static
 
 Dafny program verifier did not attempt verification
 Nt: 0 2
+
+Dafny program verifier did not attempt verification
+Cl: static
+
+Dafny program verifier did not attempt verification
+Cl: 2 0.0 false
+
+Dafny program verifier did not attempt verification
+Tr: static
+
+Dafny program verifier did not attempt verification
+Dt: static
+
+Dafny program verifier did not attempt verification
+Dt: Dt.Dt0(2, false)
+
+Dafny program verifier did not attempt verification
+Co: static
+
+Dafny program verifier did not attempt verification
+Co: Co.CoMore
+
+Dafny program verifier did not attempt verification
+Nt: static
+
+Dafny program verifier did not attempt verification
+Nt: 0 2
