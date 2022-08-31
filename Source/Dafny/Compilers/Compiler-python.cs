@@ -1591,13 +1591,17 @@ namespace Microsoft.Dafny.Compilers {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-      var psi = new ProcessStartInfo("python3", targetFilename + DafnyOptions.O.ArgsStringExtra) {
+      var psi = new ProcessStartInfo("python3") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
+      psi.ArgumentList.Add(targetFilename);
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
 
       try {
         using var pythonProcess = Process.Start(psi);

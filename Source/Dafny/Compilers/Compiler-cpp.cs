@@ -2501,12 +2501,16 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.ArgsStringExtra) {
+      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true,
+        RedirectStandardError = true
       };
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
+
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
         outputWriter.WriteLine(proc.StandardOutput.ReadLine());

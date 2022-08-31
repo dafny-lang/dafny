@@ -3608,14 +3608,18 @@ namespace Microsoft.Dafny.Compilers {
         verb = string.Format("build -o \"{0}\"", output);
       }
 
-      var args = string.Format("{0} \"{1}\"", verb, targetFilename) + DafnyOptions.O.ArgsStringExtra;
-      var psi = new ProcessStartInfo("go", args) {
+      var psi = new ProcessStartInfo("go") {
         CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,
         RedirectStandardInput = false,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
+      psi.ArgumentList.Add(verb);
+      psi.ArgumentList.Add(targetFilename);
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
