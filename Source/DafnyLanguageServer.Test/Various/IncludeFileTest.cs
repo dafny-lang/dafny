@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using DafnyTestGeneration;
@@ -13,6 +14,7 @@ public class IncludeFileTest : ClientBasedLanguageServerTest {
   [TestMethod]
   public async Task MethodWhosePostConditionFailsAndDependsOnIncludedFile() {
     var temp = Path.GetTempFileName() + ".dfy";
+    Console.WriteLine("temp file is: " + temp);
     var producer = @"
 function Foo(x: int): bool {
   x == 2
