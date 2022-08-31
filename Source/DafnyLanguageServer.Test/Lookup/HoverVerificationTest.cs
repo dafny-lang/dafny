@@ -167,7 +167,7 @@ method Test1() {
 method Test2(i: int)
   requires i > 0 {
 
-}", "testfile.dfy", CompilationStatus.VerificationFailed);
+}", "testfile.dfy");
       await AssertHoverMatches(documentItem, (1, 10),
         @"???
 Failing precondition:???"
