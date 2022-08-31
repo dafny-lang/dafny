@@ -29,6 +29,7 @@ static class CommandRegistry {
     UseBaseFileNameOption.Instance,
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
+    BoogiePrintOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {

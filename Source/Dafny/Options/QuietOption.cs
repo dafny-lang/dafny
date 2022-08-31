@@ -2,7 +2,7 @@ namespace Microsoft.Dafny;
 
 public class QuietOption : BooleanOption {
   public static readonly QuietOption Instance = new();
-  public override bool Hidden => true;
+  public override bool Hidden => false;
   public override object DefaultValue => false;
   public override string LongName => "quiet";
   public override string Category => "Compilation options";
