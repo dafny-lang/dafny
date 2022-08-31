@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // To enable this in cs we needed to implement DowncastClone for datatypes.
 // Java avoids this problem by not even allowing traits in datatypes.
