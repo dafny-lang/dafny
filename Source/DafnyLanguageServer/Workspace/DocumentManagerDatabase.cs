@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -74,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetSnapshotAfterResolutionAsync();
+        return state.GetSnapshotAfterResolutionAsync()!;
       }
       return Task.FromResult<IdeState?>(null);
     }
