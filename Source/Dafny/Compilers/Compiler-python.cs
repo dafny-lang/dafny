@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.NewBlockPy("try:")
         .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
-        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + _dafny.str(e.message) + \"\\n\")");
+        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + {DafnyRuntimeModule}.string_of(e.message) + \"\\n\")");
       Coverage.EmitTearDown(wr);
     }
 
@@ -179,10 +179,11 @@ namespace Microsoft.Dafny.Compilers {
         : "";
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
-      var args = typeParameters.Where(NeedsTypeDescriptor).Comma(tp => tp.CompileName);
+      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
+      var args = relevantTypeParameters.Comma(tp => tp.CompileName);
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var block = methodWriter.NewBlockPy(header: $"def  __init__(self{args}):", close: BlockStyle.Newline);
-      foreach (var tp in typeParameters.Where(NeedsTypeDescriptor)) {
+      foreach (var tp in relevantTypeParameters) {
         block.WriteLine("self.{0} = {0}", tp.CompileName);
       }
       var constructorWriter = block.Fork();
@@ -248,7 +249,7 @@ namespace Microsoft.Dafny.Compilers {
           .WriteLine("self.c = None");
         get.WriteLine("return self.d");
         w.NewBlockPy("def __dafnystr__(self) -> str:")
-          .WriteLine($"return {DafnyRuntimeModule}.str(self._get())");
+          .WriteLine($"return {DafnyRuntimeModule}.string_of(self._get())");
         foreach (var destructor in from ctor in dt.Ctors
                                    let index = 0
                                    from dtor in ctor.Destructors
@@ -268,8 +269,8 @@ namespace Microsoft.Dafny.Compilers {
         // Class-level fields don't work in all python version due to metaclasses.
         // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
         var argList = ctor.Destructors.Where(d => !d.IsGhost)
-          .Select(d => $"(\'{IdProtect(d.CompileName)}\', Any)").Comma();
-        var namedtuple = $"NamedTuple(\'{ctorName}\', [{argList}])";
+          .Select(d => $"('{IdProtect(d.CompileName)}', Any)").Comma();
+        var namedtuple = $"NamedTuple('{ctorName}', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
@@ -295,7 +296,7 @@ namespace Microsoft.Dafny.Compilers {
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"{{{DafnyRuntimeModule}.str(self.{IdProtect(f.CompileName)})}}")
+        .Select(f => $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}")
         .Comma();
 
       if (args.Length > 0 && dt is not CoDatatypeDecl) {
@@ -322,36 +323,28 @@ namespace Microsoft.Dafny.Compilers {
       return $"{(full ? dt.FullCompileName : dt.CompileName)}_{ctor.CompileName}";
     }
 
-    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+    protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
+      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(d), d, wr);
       var w = cw.MethodWriter;
-      var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
-      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        w.WriteLine("@staticmethod");
-        var block = w.NewBlockPy("def default():");
-        var wStmts = block.Fork();
-        block.Write("return ");
-        TrExpr(nt.Witness, block, false, wStmts);
+      var udt = UserDefinedType.FromTopLevelDecl(d.tok, d);
+      w.WriteLine("@staticmethod");
+      var block = w.NewBlockPy("def default():");
+      var wStmts = block.Fork();
+      block.Write("return ");
+      if (witnessKind == SubsetTypeDecl.WKind.Compiled) {
+        TrExpr(witness, block, false, wStmts);
       } else {
-        w.WriteLine($"default = staticmethod(lambda: {TypeInitializationValue(udt, wr, nt.tok, false, false)})");
+        block.Write(TypeInitializationValue(udt, wr, d.tok, false, false));
       }
-
       return cw;
     }
 
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
+      return DeclareType(nt, nt.WitnessKind, nt.Witness, wr);
+    }
+
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
-      var w = cw.MethodWriter;
-      var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        w.WriteLine("@staticmethod");
-        var block = w.NewBlockPy("def default():");
-        var wStmts = block.Fork();
-        block.Write("return ");
-        TrExpr(sst.Witness, block, false, wStmts);
-      } else {
-        w.WriteLine($"default = staticmethod(lambda: {TypeInitializationValue(udt, wr, sst.tok, false, false)})");
-      }
+      DeclareType(sst, sst.WitnessKind, sst.Witness, wr);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -1666,7 +1659,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlockPy("try:");
       TrStmt(body, tryBlock);
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
-      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = _dafny.str(e.message)");
+      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = {DafnyRuntimeModule}.string_of(e.message)");
       TrStmt(recoveryBody, exceptBlock);
     }
 

@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
-    // when a document (re-load) was canceled (DafnyDocument.LoadCanceled).
+    // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
     private const int MaxRequestExecutionTimeMs = 180_000;
 

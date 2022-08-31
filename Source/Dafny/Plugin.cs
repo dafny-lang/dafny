@@ -13,18 +13,18 @@ public interface Plugin {
 }
 
 public class ConfiguredPlugin : Plugin {
-  private readonly PluginConfiguration configuration;
+  public PluginConfiguration Configuration { get; }
 
   public ConfiguredPlugin(PluginConfiguration configuration) {
-    this.configuration = configuration;
+    Configuration = configuration;
   }
 
   public IEnumerable<Compiler> GetCompilers() {
-    return configuration.GetCompilers();
+    return Configuration.GetCompilers();
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
-    return configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
+    return Configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
   }
 }
 
@@ -51,7 +51,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       // get to this point if we have not found a `PluginConfiguration` either,
       // so no need to check for one here.
       if (Rewriters.Length == 0 && Compilers.Length == 0) {
-        throw new Exception($"Plugin {assembly.Location} does not contain any supported plugins.  " +
+        throw new Exception($"Plugin {assembly.Location} does not contain any supported plugin classes.  " +
                             "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
                             $"- ${typeof(Plugins.Compiler).FullName}\n" +
@@ -70,6 +70,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       errorReporter => (Rewriter)Activator.CreateInstance(type, errorReporter);
 
     private Func<Compiler>[] Compilers { get; init; }
+
     Func<Compiler> CreateCompilerFactory(System.Type type) =>
       () => (Compiler)Activator.CreateInstance(type);
 

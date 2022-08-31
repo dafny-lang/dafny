@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -42,6 +44,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
         return namedVerifiableStatus;
       }
     }
+  }
+
+  public async Task<IEnumerable<DocumentSymbol>> RequestDocumentSymbol(TextDocumentItem documentItem) {
+    var things = await client.RequestDocumentSymbol(
+      new DocumentSymbolParams {
+        TextDocument = documentItem.Uri,
+      },
+      CancellationToken
+    ).ToTask();
+
+    return things.Select(t => t.DocumentSymbol!);
   }
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {

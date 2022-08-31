@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
-      logger.LogTrace("received hover request for {Document}", request.TextDocument);
+      logger.LogDebug("received hover request for {Document}", request.TextDocument);
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
@@ -67,45 +67,48 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(DafnyDocument document, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-        if (node.Range.Contains(position)) {
-          var assertionBatchCount = node.AssertionBatchCount;
-          var information = "";
-          var orderedAssertionBatches =
-            node.AssertionBatches
-              .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
-              .ToList();
-          foreach (var assertionBatch in orderedAssertionBatches) {
-            if (!assertionBatch.Range.Contains(position)) {
-              continue;
-            }
+      foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+        if (!node.Range.Contains(position)) {
+          continue;
+        }
 
-            var assertionIndex = 0;
-            var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
-            foreach (var assertionNode in assertions) {
-              if (assertionNode.Range.Contains(position) ||
-                  assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-                if (information != "") {
-                  information += "\n\n";
-                }
-                information += GetAssertionInformation(position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
+        var assertionBatchCount = node.AssertionBatchCount;
+        var information = "";
+        var orderedAssertionBatches =
+          node.AssertionBatches
+            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
+            .ToList();
+
+        foreach (var assertionBatch in orderedAssertionBatches) {
+          if (!assertionBatch.Range.Contains(position)) {
+            continue;
+          }
+
+          var assertionIndex = 0;
+          var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
+          foreach (var assertionNode in assertions) {
+            if (assertionNode.Range.Contains(position) ||
+                assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
+              if (information != "") {
+                information += "\n\n";
               }
-
-              assertionIndex++;
+              information += GetAssertionInformation(position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
             }
-          }
 
-          if (information != "") {
-            return information;
+            assertionIndex++;
           }
-          // Ok no assertion here. Maybe a method?
-          if (node.Position.Line == position.Line &&
-              node.Filename == document.Uri.ToString()) {
-            areMethodStatistics = true;
-            return GetTopLevelInformation(node, orderedAssertionBatches);
-          }
+        }
+
+        if (information != "") {
+          return information;
+        }
+        // Ok no assertion here. Maybe a method?
+        if (node.Position.Line == position.Line &&
+            node.Filename == state.Uri.ToString()) {
+          areMethodStatistics = true;
+          return GetTopLevelInformation(node, orderedAssertionBatches);
         }
       }
 
@@ -122,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       var assertionBatchesToReport =
-        node.AssertionBatches.Values.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
+        orderedAssertionBatches.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
       if (assertionBatchesToReport.Count == 0 && node.Finished) {
         information += "No assertions.";
       } else if (assertionBatchesToReport.Count >= 1) {
@@ -132,7 +135,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
 
         information += "  \n";
-        if (assertionBatchesToReport.Count == 1) {
+        if (orderedAssertionBatches.Count == 1) {
           var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
           var numberOfAssertions = orderedAssertionBatches.First().NumberOfAssertions;
           information +=
