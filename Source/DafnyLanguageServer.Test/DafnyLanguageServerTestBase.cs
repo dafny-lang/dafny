@@ -53,7 +53,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
 
-    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
+    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
 
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
@@ -122,9 +123,10 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
-        .AddConsole()
+        .AddFilter("OmniSharp", LogLevel.Warning)
+        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
         .SetMinimumLevel(LogLevel.Debug)
-        .AddFilter("OmniSharp", LogLevel.Warning);
+        .AddConsole();
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
