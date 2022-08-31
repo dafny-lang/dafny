@@ -260,3 +260,5 @@ module Older {
   function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
   twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
 }
+
+newtype T {}
