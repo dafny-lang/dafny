@@ -5,9 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -39,8 +37,9 @@ static class CommandRegistry {
 
   static CommandRegistry() {
     AddCommand(new VerifyCommand());
-    AddCommand(new IntegrateCommand());
     AddCommand(new RunCommand());
+    AddCommand(new BuildCommand());
+    AddCommand(new IntegrateCommand());
   }
 
   [CanBeNull]
