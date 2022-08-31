@@ -37,7 +37,7 @@
 | [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^compiler-sequence-display-nolambda-note] |  X  |  X  |  X  |  X  |  |  X  |
 | [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |
 | [Static constants](#sec-constant-field-declarations) |  X  |  X  |  X  |  X  |  |  X  |
-| [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  |  X  |
+| [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  |  X  |
 | [Tuples with more than 20 arguments](#sec-tuple-types) |  |  X  |  X  |  |  X  |  X  |
 

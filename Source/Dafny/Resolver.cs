@@ -418,7 +418,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueFunctionRewriter(this.reporter));
+      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
@@ -2807,7 +2807,7 @@ namespace Microsoft.Dafny {
               scope.PushMarker();
               scope.AllowInstance = false;
               ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromTopLevel(dt));
+              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
               scope.PopMarker();
             }
             // resolve members
@@ -8508,6 +8508,7 @@ namespace Microsoft.Dafny {
           var s = (RevealStmt)stmt;
           s.ResolvedStatements.Iter(ss => Visit(ss, true, "a reveal statement"));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
@@ -8672,6 +8673,11 @@ namespace Microsoft.Dafny {
           }
           // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
           s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+          }
 
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
@@ -8681,6 +8687,13 @@ namespace Microsoft.Dafny {
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+            }
+          }
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
@@ -8704,6 +8717,11 @@ namespace Microsoft.Dafny {
               s.IsGhost = true;
             }
           }
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+          }
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
@@ -8723,6 +8741,13 @@ namespace Microsoft.Dafny {
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+            }
+          }
 
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
@@ -8750,6 +8775,14 @@ namespace Microsoft.Dafny {
               s.IsGhost = true;
             }
           }
+          if (!s.IsGhost) {
+            // If there were features in the bounds that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Start, codeContext);
+            if (s.End != null) {
+              ExpressionTester.CheckIsCompilable(resolver, s.End, codeContext);
+            }
+          }
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -8769,6 +8802,10 @@ namespace Microsoft.Dafny {
                 Error(s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
               }
             }
+
+            // If there were features in the range that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Range, codeContext);
           }
 
         } else if (stmt is ModifyStmt) {
@@ -8800,10 +8837,17 @@ namespace Microsoft.Dafny {
           }
           s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the source expression that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
+          }
+
         } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
           Visit(s.ResolvedStatement, mustBeErasable, proofContext);
           s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
+
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
           s.IsGhost = mustBeErasable;
@@ -10159,7 +10203,7 @@ namespace Microsoft.Dafny {
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
-      ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromTopLevel(f));
+      ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromCodeContext(f));
       foreach (AttributedExpression e in f.Req) {
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
         Expression r = e.E;
@@ -10177,7 +10221,7 @@ namespace Microsoft.Dafny {
           scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
         }
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
-        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction).WithInsideFunctionPostcondition(true));
+        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
         if (f.Result != null) {
@@ -10402,7 +10446,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
-          ResolveBlockStatement(m.Body, ResolutionContext.FromTopLevel(m));
+          ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
           dominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
         }
@@ -10559,7 +10603,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        ResolveBlockStatement(iter.Body, ResolutionContext.FromTopLevel(iter));
+        ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
         dominatingStatementLabels.PopMarker();
         SolveAllTypeConstraints();
       }
@@ -10769,11 +10813,11 @@ namespace Microsoft.Dafny {
     }
 
     public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
-      ResolveType(tok, type, ResolutionContext.FromTopLevel(topLevelContext), eopt, defaultTypeArguments);
+      ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), eopt, defaultTypeArguments);
     }
 
     public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
-      ResolveType(tok, type, ResolutionContext.FromTopLevel(topLevelContext), option, defaultTypeArguments);
+      ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), option, defaultTypeArguments);
     }
 
     public void ResolveType(IToken tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
@@ -11085,7 +11129,7 @@ namespace Microsoft.Dafny {
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
-            var revealResolutionContext = resolutionContext.WithInsideReveal(true);
+            var revealResolutionContext = resolutionContext with { InReveal = true };
             if (expr is ApplySuffix) {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
@@ -11098,6 +11142,21 @@ namespace Microsoft.Dafny {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                s.ResolvedStatements.Add(call);
+              }
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+              } else {
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+              }
+              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              if (callee == null) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+                //The revealed member is a function
+                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              } else {
+                var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
                 s.ResolvedStatements.Add(call);
               }
             } else {
@@ -13668,7 +13727,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
         Contract.Assert(!resolutionContext.InFirstPhaseConstructor);  // divided bodies are never nested
         foreach (Statement ss in div.BodyInit) {
-          ResolveStatementWithLabels(ss, resolutionContext.WithInsideFirstPhaseConstructor(true));
+          ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
         }
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
@@ -14630,28 +14689,14 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    public class ResolutionContext {
-      public readonly ICodeContext CodeContext;
-      public readonly bool IsTwoState;
-      public readonly bool InOld; // implies !IsTwoState
-      public readonly bool InReveal;
-      public readonly bool InFunctionPostcondition;
-      public readonly bool InFirstPhaseConstructor; // implies codeContext is Constructor
+    public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
+      bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
+
+      // Invariants:
+      // InOld implies !IsTwoState
+      // InFirstPhaseConstructor implies codeContext is Constructor
 
       public bool IsGhost => CodeContext.IsGhost;
-
-      private ResolutionContext(ICodeContext codeContext, bool isTwoState, bool inOld, bool inReveal, bool inFunctionPostcondition,
-        bool inFirstPhaseConstructor) {
-        Contract.Requires(codeContext != null);
-        this.CodeContext = codeContext;
-        this.IsTwoState = isTwoState;
-        this.InOld = inOld;
-        this.InReveal = inReveal;
-        this.InFunctionPostcondition = inFunctionPostcondition;
-        this.InFirstPhaseConstructor = inFirstPhaseConstructor;
-        Contract.Assert(!InOld || !IsTwoState); // InOld ==> !IsTwoState
-        Contract.Assert(!InFirstPhaseConstructor || CodeContext is Constructor);
-      }
 
       public ResolutionContext(ICodeContext codeContext, bool isTwoState)
         : this(codeContext, isTwoState, false, false, false, false) {
@@ -14660,7 +14705,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Return a ResolutionContext appropriate for the body of "codeContext".
       /// </summary>
-      public static ResolutionContext FromTopLevel(ICodeContext codeContext) {
+      public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
         bool isTwoState;
         if (codeContext is NoContext || codeContext is DatatypeDecl) {
           isTwoState = false;
@@ -14677,41 +14722,6 @@ namespace Microsoft.Dafny {
           return this;
         }
         return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithTwoState(bool isTwoState) {
-        if (this.IsTwoState == isTwoState) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, isTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideOld(bool insideOld) {
-        if (this.InOld == insideOld) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, insideOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideReveal(bool insideReveal) {
-        if (this.InReveal == insideReveal) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, insideReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideFunctionPostcondition(bool insideFunctionPostcondition) {
-        if (this.InFunctionPostcondition == insideFunctionPostcondition) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, insideFunctionPostcondition, InFirstPhaseConstructor);
-      }
-
-      public ResolutionContext WithInsideFirstPhaseConstructor(bool insideFirstPhaseConstructor) {
-        if (this.InFirstPhaseConstructor == insideFirstPhaseConstructor) {
-          return this;
-        }
-        return new ResolutionContext(CodeContext, IsTwoState, InOld, InReveal, InFunctionPostcondition, insideFirstPhaseConstructor);
       }
     }
 
@@ -15040,7 +15050,7 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "old", resolutionContext);
-        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false).WithInsideOld(true));
+        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
         expr.Type = e.E.Type;
 
       } else if (expr is UnchangedExpr) {
@@ -16454,7 +16464,7 @@ namespace Microsoft.Dafny {
 
       // resolve the LHS expression
       // LHS should not be reveal lemma
-      ResolutionContext nonRevealOpts = resolutionContext.WithInsideReveal(false);
+      ResolutionContext nonRevealOpts = resolutionContext with { InReveal = false };
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
       } else if (expr.Lhs is ExprDotName) {

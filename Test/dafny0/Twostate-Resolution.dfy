@@ -478,13 +478,13 @@ module TwoStateAt {
   method UseOrdinaryOpaque() {
     label L:
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     reveal OrdinaryOpaque@L();  // error: @ can only be applied to something two-state (error message can be improved)
   }
   function FuncUseOrdinaryOpaque(): int {
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     10
   }
@@ -492,19 +492,19 @@ module TwoStateAt {
   method UseOpaque() {
     label L:
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     reveal Opaque@L();  // error: all parameters in a reveal must be implicit, including labels
   }
   function FuncUseOpaque(): int {
     reveal Opaque();  // error: cannot call two-state lemma in one-state function
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }
   twostate function TwoFuncUseOpaque(): int {
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }

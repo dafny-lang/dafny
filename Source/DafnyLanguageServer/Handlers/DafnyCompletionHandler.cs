@@ -39,6 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
+      logger.LogDebug("Completion params received");
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
@@ -49,13 +50,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private class CompletionProcessor {
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DafnyDocument document;
+      private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, CompletionParams request, CancellationToken cancellationToken) {
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, IdeState state, CompletionParams request, CancellationToken cancellationToken) {
         this.symbolGuesser = symbolGuesser;
-        this.document = document;
+        this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
       }
@@ -69,14 +70,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private string GetTriggerCharacter() {
         // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        var documentText = document.TextDocumentItem.Text;
+        var documentText = state.TextDocumentItem.Text;
         int absolutePosition = request.Position.ToAbsolutePosition(documentText, cancellationToken) - 1;
         return documentText[absolutePosition].ToString();
       }
 
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
-        if (symbolGuesser.TryGetTypeBefore(document, GetDotPosition(), cancellationToken, out var typeSymbol)) {
+        if (symbolGuesser.TryGetTypeBefore(state, GetDotPosition(), cancellationToken, out var typeSymbol)) {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {
