@@ -5,10 +5,12 @@
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
 - fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
 - fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
-- fix: Prevent LSP server from exiting when a crash occurs
-- fix: Fix bug where LSP server would not show diagnostics that referred to included files
+- fix: Prevent LSP server from exiting when a crash occurs (https://github.com/dafny-lang/dafny/pull/2664)
+- fix: Fix bug where LSP server would not show diagnostics that referred to included files (https://github.com/dafny-lang/dafny/pull/2664)
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 - fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
+
+
 # 3.8.0
 
 - fix: Use the right bitvector comparison in decrease checks
