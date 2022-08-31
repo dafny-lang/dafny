@@ -34,6 +34,10 @@ def string_of(value) -> str:
 class Break(Exception):
     target: str
 
+@dataclass
+class Continue(Exception):
+    target: str
+
 class TailCall(Exception):
     pass
 
@@ -48,11 +52,13 @@ def label(name: str = None):
         if name is not None:
             raise g
 
-def _break(name):
-    raise Break(target=name)
-
-def _tail_call():
-    raise TailCall()
+@contextmanager
+def c_label(name: str = None):
+    try:
+        yield
+    except Continue as g:
+        if g.target != name:
+            raise g
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):

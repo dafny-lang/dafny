@@ -3038,7 +3038,7 @@ namespace Microsoft.Dafny.Compilers {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, BlockStyle.Brace);
+        var wElse = EmitBlock(wr);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -3055,7 +3055,7 @@ namespace Microsoft.Dafny.Compilers {
           // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
-          guardWriter.Write("true");
+          guardWriter.Write(True);
           EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
@@ -3064,17 +3064,16 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(s.Guard, guardWriter, false, wStmts);
         }
 
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
+      } else if (stmt is AlternativeLoopStmt loopStmt) {
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
+          Error(loopStmt.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
         }
-        if (s.Alternatives.Count != 0) {
+        if (loopStmt.Alternatives.Count != 0) {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
-          whileGuardWriter.Write("true");
-          w = EmitContinueLabel(s.Labels, w);
-          foreach (var alternative in s.Alternatives) {
+          whileGuardWriter.Write(True);
+          w = EmitContinueLabel(loopStmt.Labels, w);
+          foreach (var alternative in loopStmt.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var wStmts = wr.Fork();
             var thn = EmitIf(out guardWriter, true, w);
@@ -3082,7 +3081,7 @@ namespace Microsoft.Dafny.Compilers {
             Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
-          var wElse = w.NewBlock("");
+          var wElse = EmitBlock(w);
           {
             EmitBreak(null, wElse);
           }
