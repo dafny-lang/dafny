@@ -1136,18 +1136,8 @@ namespace Microsoft.Dafny {
             new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
         }
 
-        if (e.InCompiledContext) {
-          // to access a field of the datatype value, there must not be any possibility that the datatype
-          // variant is a ghost constructor
-          var enclosingGhostConstructors = e.LegalSourceConstructors.Where(ctor => ctor.IsGhost).ToList();
-          if (enclosingGhostConstructors.Count != 0) {
-            var obj = etran.TrExpr(e.Root);
-            var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
-              ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
-            builder.Add(Assert(GetToken(expr), notGhostCtor,
-              new PODesc.NotGhostVariant("update of", e.Members.ConvertAll(member => member.Name), enclosingGhostConstructors)));
-          }
-        }
+        CheckNotGhostVariant(e.InCompiledContext, expr, e.Root, "update of", e.Members,
+          e.LegalSourceConstructors, builder, etran);
 
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
@@ -1226,16 +1216,23 @@ namespace Microsoft.Dafny {
 
     private void CheckNotGhostVariant(MemberSelectExpr expr, string whatKind, List<DatatypeCtor> candidateCtors,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      if (expr.InCompiledContext) {
-        // to access a field of the datatype value, there must not be any possibility that the datatype
-        // variant is a ghost constructor
+      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, new List<MemberDecl>() { expr.Member },
+        candidateCtors, builder, etran);
+    }
+
+    private void CheckNotGhostVariant(bool inCompiledContext, Expression exprUsedForToken, Expression datatypeValue,
+      string whatKind, List<MemberDecl> members, List<DatatypeCtor> candidateCtors, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (inCompiledContext) {
+        // check that there is no possibility that the datatype variant is a ghost constructor
         var enclosingGhostConstructors = candidateCtors.Where(ctor => ctor.IsGhost).ToList();
         if (enclosingGhostConstructors.Count != 0) {
-          var obj = etran.TrExpr(expr.Obj);
+          var obj = etran.TrExpr(datatypeValue);
           var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
-            ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
-          builder.Add(Assert(GetToken(expr), notGhostCtor,
-            new PODesc.NotGhostVariant(whatKind, expr.Member.Name, enclosingGhostConstructors)));
+            ctor => Bpl.Expr.Not(FunctionCall(exprUsedForToken.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
+          builder.Add(Assert(GetToken(exprUsedForToken), notGhostCtor,
+            new PODesc.NotGhostVariant(whatKind,
+              Util.PrintableNameList(members.ConvertAll(member => member.Name), "and"),
+              enclosingGhostConstructors)));
         }
       }
     }
