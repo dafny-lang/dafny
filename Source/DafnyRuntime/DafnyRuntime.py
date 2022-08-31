@@ -32,17 +32,17 @@ def string_of(value) -> str:
 
 @dataclass
 class Break(Exception):
-    target: builtins.str
+    target: str
 
 @dataclass
 class Continue(Exception):
-    target: builtins.str
+    target: str
 
 class TailCall(Exception):
     pass
 
 @contextmanager
-def label(name: builtins.str = None):
+def label(name: str = None):
     try:
         yield
     except Break as g:
@@ -55,7 +55,7 @@ def label(name: builtins.str = None):
         raise g
 
 @contextmanager
-def c_label(name: builtins.str = None):
+def c_label(name: str = None):
     try:
         yield
     except Continue as g:
@@ -80,10 +80,10 @@ class Seq(tuple):
         if __iterable is None:
             __iterable = []
         self.isStr = isStr \
-                     or isinstance(__iterable, builtins.str) \
+                     or isinstance(__iterable, str) \
                      or (isinstance(__iterable, Seq) and __iterable.isStr) \
                      or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, builtins.str) and len(e) == 1 for e in __iterable)
+                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
                          and len(__iterable) > 0)
 
     @property
