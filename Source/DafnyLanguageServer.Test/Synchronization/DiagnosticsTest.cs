@@ -20,7 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
-
     [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
       var source = "";

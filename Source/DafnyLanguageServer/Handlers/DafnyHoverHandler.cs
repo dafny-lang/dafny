@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
-      logger.LogInformation("received hover request for {Document}", request.TextDocument);
+      logger.LogDebug("received hover request for {Document}", request.TextDocument);
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
