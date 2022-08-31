@@ -14,7 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverVerificationTest : DafnyLanguageServerTestBase {
-    private const int MaxTestExecutionTimeMs = 10000;
+    private const int MaxTestExecutionTimeMs = 30000;
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
