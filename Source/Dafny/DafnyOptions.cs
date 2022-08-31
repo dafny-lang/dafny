@@ -224,7 +224,6 @@ namespace Microsoft.Dafny {
       var args = ps.args; // convenient synonym
       switch (name) {
 
-          return true;
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
