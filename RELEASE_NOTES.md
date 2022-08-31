@@ -6,6 +6,7 @@
 - fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 - fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
+- feat: Introduced ghost constructors in datatypes. One use of these is when working with uninitialized storage, see https://github.com/dafny-lang/rfcs/pull/11.
 
 # 3.8.0
 
