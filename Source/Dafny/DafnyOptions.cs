@@ -224,11 +224,6 @@ namespace Microsoft.Dafny {
       var args = ps.args; // convenient synonym
       switch (name) {
 
-        case "rprint":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrintResolvedFile = args[ps.i];
-          }
-
           return true;
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
@@ -921,9 +916,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Overall reporting and printing ----------------------------------------
 
 /stats        Print interesting statistics about the Dafny files supplied.
-/rprint:<file>
-    print Dafny program after resolving it
-    (use - as <file> to print to console)
 /printIncludes:<None|Immediate|Transitive>
     None is the default.
     Immediate prints files included by files listed on the command line
