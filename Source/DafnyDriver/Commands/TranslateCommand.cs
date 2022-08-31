@@ -3,8 +3,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class IntegrateCommand : ICommandSpec {
-  public string Name => "integrate";
+class TranslateCommand : ICommandSpec {
+  public string Name => "translate";
   public string Description => "Generate source and build files in a specified target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
     dafnyOptions.EmitExecutable = false;
@@ -17,7 +17,7 @@ class IntegrateCommand : ICommandSpec {
       OutputOption.Instance,
       TargetOption.Instance,
       NoVerifyOption.Instance,
-      // CompileVerboseOption.Instance,
+      QuietOption.Instance,
       UseRuntimeLibOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 }

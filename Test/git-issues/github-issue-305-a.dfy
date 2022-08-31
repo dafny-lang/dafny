@@ -1,4 +1,4 @@
-// RUN: %baredafny integrate "%s" > "%t"
+// RUN: %baredafny translate --quiet "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

@@ -24,7 +24,6 @@ static class CommandRegistry {
     LibraryOption.Instance,
     ShowSnippetsOption.Instance,
     PluginOption.Instance,
-    CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
     BoogieOption.Instance,
     PreludeOption.Instance,
     UseBaseFileNameOption.Instance,
@@ -40,7 +39,7 @@ static class CommandRegistry {
     AddCommand(new VerifyCommand());
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
-    AddCommand(new IntegrateCommand());
+    AddCommand(new TranslateCommand());
   }
 
   [CanBeNull]
