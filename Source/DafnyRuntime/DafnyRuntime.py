@@ -14,9 +14,9 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    builtins.print(str(value), end="")
+    builtins.print(string_of(value), end="")
 
-def str(value) -> builtins.str:
+def string_of(value) -> str:
     if hasattr(value, '__dafnystr__'):
         return value.__dafnystr__()
     elif value is None:
@@ -24,25 +24,25 @@ def str(value) -> builtins.str:
     elif isinstance(value, bool):
         return "true" if value else "false"
     elif isinstance(value, tuple):
-        return '(' + ', '.join(map(str, value)) + ')'
+        return '(' + ', '.join(map(string_of, value)) + ')'
     elif isinstance(value, FunctionType):
         return "Function"
     else:
-        return builtins.str(value)
+        return str(value)
 
 @dataclass
 class Break(Exception):
-    target: builtins.str
+    target: str
 
 @dataclass
 class Continue(Exception):
-    target: builtins.str
+    target: str
 
 class TailCall(Exception):
     pass
 
 @contextmanager
-def label(name: builtins.str = None):
+def label(name: str = None):
     try:
         yield
     except Break as g:
@@ -55,7 +55,7 @@ def label(name: builtins.str = None):
         raise g
 
 @contextmanager
-def c_label(name: builtins.str = None):
+def c_label(name: str = None):
     try:
         yield
     except Continue as g:
@@ -80,10 +80,10 @@ class Seq(tuple):
         if __iterable is None:
             __iterable = []
         self.isStr = isStr \
-                     or isinstance(__iterable, builtins.str) \
+                     or isinstance(__iterable, str) \
                      or (isinstance(__iterable, Seq) and __iterable.isStr) \
                      or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, builtins.str) and len(e) == 1 for e in __iterable)
+                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
                          and len(__iterable) > 0)
 
     @property
@@ -94,10 +94,10 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def __dafnystr__(self) -> builtins.str:
+    def __dafnystr__(self) -> str:
         if self.isStr:
             return ''.join(self)
-        return '[' + ', '.join(map(str, self)) + ']'
+        return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
         return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
@@ -129,8 +129,8 @@ class Array(list):
             return Array()
         return Array([Array.empty(dims-1)])
 
-    def __dafnystr__(self) -> builtins.str:
-        return '[' + ', '.join(map(str, self)) + ']'
+    def __dafnystr__(self) -> str:
+        return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __len__(self):
         l = super().__len__()
@@ -150,8 +150,8 @@ class Set(frozenset):
         s = list(self)
         return map(Set, chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
-    def __dafnystr__(self) -> builtins.str:
-        return '{' + ', '.join(map(str, self)) + '}'
+    def __dafnystr__(self) -> str:
+        return '{' + ', '.join(map(string_of, self)) + '}'
 
     def union(self, other):
         return Set(super().union(self, other))
@@ -169,8 +169,8 @@ class Set(frozenset):
         return Set(super().__sub__(other))
 
 class MultiSet(Counter):
-    def __dafnystr__(self) -> builtins.str:
-        return 'multiset{' + ', '.join(map(str, self.elements())) + '}'
+    def __dafnystr__(self) -> str:
+        return 'multiset{' + ', '.join(map(string_of, self.elements())) + '}'
 
     def __len__(self):
         return reduce(lambda acc, key: acc + self[key], self, 0)
@@ -226,8 +226,8 @@ class MultiSet(Counter):
         return self[item] > 0
 
 class Map(dict):
-    def __dafnystr__(self) -> builtins.str:
-        return 'map[' + ', '.join(map(lambda i: f'{str(i[0])} := {str(i[1])}', self.items)) + ']'
+    def __dafnystr__(self) -> str:
+        return 'map[' + ', '.join(map(lambda i: f'{string_of(i[0])} := {string_of(i[1])}', self.items)) + ']'
 
     @property
     def Elements(self):

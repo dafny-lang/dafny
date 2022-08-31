@@ -54,7 +54,6 @@ function GetConstant2(): int {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
@@ -75,7 +74,6 @@ function GetConstant(): int {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
