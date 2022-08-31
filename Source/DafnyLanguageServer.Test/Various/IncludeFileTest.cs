@@ -1,5 +1,6 @@
 using System.IO;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -27,7 +28,7 @@ ensures Foo(x) {{
     var documentItem2 = CreateTestDocument(consumer);
     client.OpenDocument(documentItem2);
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
-    Assert.AreEqual(1, verificationDiagnostics.Length);
+    Assert.AreEqual(1, verificationDiagnostics.Length, verificationDiagnostics.Stringify());
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 }
