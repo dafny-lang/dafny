@@ -842,7 +842,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
-      return wr.NewBlockPy($"for {indexVar} in iter({DafnyRuntimeModule}.Doubler({start})):");
+      return wr.NewBlockPy($"for {indexVar} in {DafnyRuntimeModule}.Doubler({start}):");
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
@@ -1201,7 +1201,6 @@ namespace Microsoft.Dafny.Compilers {
       // sets the convertE1_to_int out parameter to true. This compiler always sets that to false, however,
       // so this method is only called for non-sequentializable forall statements.
       TrParenExpr("int", expr, wr, inLetExprBody, wStmts);
-
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
@@ -1599,23 +1598,16 @@ namespace Microsoft.Dafny.Compilers {
 
     [CanBeNull]
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
-      string typeTest;
-      if (boundVarType.IsRefType) {
-        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-          typeTest = True;
-        } else {
-          typeTest = $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
-        }
-        if (boundVarType.IsNonNullRefType) {
-          typeTest = $"{tmpVarName} is not None and {typeTest}";
-        } else {
-          typeTest = $"{tmpVarName} is None or {typeTest}";
-        }
-      } else {
-        typeTest = True;
+      if (!boundVarType.IsRefType) {
+        return null;
       }
 
-      return typeTest == True ? null : typeTest;
+      var typeTest = boundVarType.IsObject || boundVarType.IsObjectQ
+        ? True
+        : $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
+      return boundVarType.IsNonNullRefType
+        ? $"{tmpVarName} is not None and {typeTest}"
+        : $"{tmpVarName} is None or {typeTest}";
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
