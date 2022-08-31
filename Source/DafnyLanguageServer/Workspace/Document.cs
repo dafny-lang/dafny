@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -37,6 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IdeState InitialIdeState() {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
         SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(TextDocumentItem)));
     }
@@ -140,6 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return base.ToIdeState(previousState) with {
         ImplementationsWereUpdated = true,
         VerificationTree = VerificationTree,
+        Counterexamples = new List<Counterexample>(Counterexamples),
         ImplementationIdToView = new Dictionary<ImplementationId, ImplementationView>(implementationViewsWithMigratedDiagnostics)
       };
     }

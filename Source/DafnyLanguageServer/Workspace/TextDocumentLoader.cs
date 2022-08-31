@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -122,6 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         diagnostics,
         SymbolTable.Empty(textDocument),
         new Dictionary<ImplementationId, ImplementationView>(),
+        Array.Empty<Counterexample>(),
         false,
         Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(textDocument)
