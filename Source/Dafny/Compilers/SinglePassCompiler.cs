@@ -1713,10 +1713,18 @@ namespace Microsoft.Dafny.Compilers {
       // One of the limitations in many target language encodings are restrictions to instance members. If an
       // instance member can't be directly expressed in the target language, we make it a static member with an
       // additional first argument specifying the `this`, giving it a `CustomReceiver`.
-      return !member.IsStatic
-             && (member.EnclosingClass is NewtypeDecl
-                 || (member.EnclosingClass is TraitDecl
-                     && member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } }));
+      if (member.IsStatic) {
+        return false;
+      } else if (member.EnclosingClass is NewtypeDecl) {
+        return true;
+      } else if (member.EnclosingClass is TraitDecl) {
+        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
+      } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
+        // An undefined value "o" cannot use this o.F(...) form in most languages.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost);
+      } else {
+        return false;
+      }
     }
 
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
@@ -1880,6 +1888,8 @@ namespace Microsoft.Dafny.Compilers {
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
+            // A trait field is just declared, not initialized. Any other field gets a default value if field's type is an auto-init type and
+            // gets a placebo value if the field's type is not an auto-init type.
             var rhs = c is TraitDecl ? null : PlaceboValue(f.Type, errorWr, f.tok, true);
             classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, rhs, f);
           }
@@ -2766,7 +2776,18 @@ namespace Microsoft.Dafny.Compilers {
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
 
+    /// <summary>
+    /// If "type" is an auto-init type, then return a default value, else return a placebo value.
+    /// </summary>
     protected string PlaceboValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+      if (type.HasCompilableValue) {
+        return DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
+      } else {
+        return ForcePlaceboValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
+      }
+    }
+
+    protected string ForcePlaceboValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -2774,8 +2795,7 @@ namespace Microsoft.Dafny.Compilers {
 
       type = type.NormalizeExpandKeepConstraints();
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      bool usePlaceboValue = !type.HasCompilableValue;
-      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     protected string DefaultValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
@@ -2787,7 +2807,8 @@ namespace Microsoft.Dafny.Compilers {
 
       type = type.NormalizeExpandKeepConstraints();
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      return TypeInitializationValue(type, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors);
+      var usePlaceboValue = type.AsDatatype?.GetGroundingCtor().IsGhost == true;
+      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -4728,7 +4749,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr, wStmts);
             foreach (var bv in e.BoundVars) {
-              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, PlaceboValue(bv.Type, wr, bv.tok, true), w);
+              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, ForcePlaceboValue(bv.Type, wr, bv.tok, true), w);
             }
             TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
             EmitReturnExpr(e.Body, e.Body.Type, true, w);

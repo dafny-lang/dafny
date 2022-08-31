@@ -736,9 +736,13 @@ namespace Microsoft.Dafny.Compilers {
         var wDefault = wr.NewBlock($") {name}");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
-        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-        var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
-        EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
+        if (groundingCtor.IsGhost) {
+          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+        } else {
+          var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
+          var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
+          EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
+        }
         wDefault.WriteLine();
       }
 
@@ -751,6 +755,9 @@ namespace Microsoft.Dafny.Compilers {
         wSingles = wSingles.NewNamedBlock("switch i");
         var i = 0;
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            continue;
+          }
           wSingles.WriteLine("case {0}: return {1}.{2}(), true", i, FormatCompanionName(name), FormatDatatypeConstructorName(ctor.CompileName));
           i++;
         }
@@ -759,8 +766,9 @@ namespace Microsoft.Dafny.Compilers {
 
       // destructors
       foreach (var ctor in dt.Ctors) {
-        foreach (var dtor in ctor.Destructors) {
-          if (dtor.EnclosingCtors[0] == ctor) {
+        foreach (var dtor in ctor.Destructors.Where(dtor => dtor.EnclosingCtors[0] == ctor)) {
+          var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
+          if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               wr.WriteLine();
@@ -770,13 +778,20 @@ namespace Microsoft.Dafny.Compilers {
                 wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
-                for (int i = 0; i < n - 1; i++) {
+                var compiledConstructorsProcessed = 0;
+                for (var i = 0; i < n; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                  wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
+                  if (ctor_i.IsGhost) {
+                    continue;
+                  }
+                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                    wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
+                  } else {
+                    wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
+                  }
+                  compiledConstructorsProcessed++;
                 }
-                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
-                wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n - 1]), DatatypeFieldName(arg));
               }
             }
           }
@@ -792,6 +807,9 @@ namespace Microsoft.Dafny.Compilers {
         w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            continue;
+          }
           var wCase = w.NewNamedBlock("case {0}:", structOfCtor(ctor));
           var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
           if (dt is CoDatatypeDecl) {
@@ -832,6 +850,9 @@ namespace Microsoft.Dafny.Compilers {
 
         wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            continue;
+          }
           var wCase = wEquals.NewNamedBlock("case {0}:", structOfCtor(ctor));
 
           var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
@@ -1105,7 +1126,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = concreteWriter;
         string receiver = isStatic || customReceiver ? FormatCompanionTypeName(ownerName) : ownerName;
         if (member != null && member.EnclosingClass is DatatypeDecl) {
-          wr.Write("func ({0} {1}) ", isStatic ? "_static" : "_this", receiver);
+          wr.Write("func ({0} {1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
         } else {
           wr.Write("func ({0} *{1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
         }

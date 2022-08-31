@@ -8380,7 +8380,7 @@ namespace Microsoft.Dafny {
         return true;
       }
       expr = expr.Resolved;
-      if (expr is DatatypeValue datatypeValue && !datatypeValue.Ctor.IsGhost) {
+      if (expr is DatatypeValue datatypeValue && !datatypeValue.Ctor.EnclosingDatatype.HasGhostVariant) {
         for (var i = 0; i < datatypeValue.Ctor.Formals.Count; i++) {
           if (datatypeValue.Ctor.Formals[i].IsGhost) {
             return false;

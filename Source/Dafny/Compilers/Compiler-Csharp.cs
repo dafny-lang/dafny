@@ -517,15 +517,19 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var groundingCtor = dt.GetGroundingCtor();
-      if (dt is CoDatatypeDecl) {
-        var wCo = wDefault;
-        wDefault = new ConcreteSyntaxTree();
-        wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
-      }
+      if (groundingCtor.IsGhost) {
+        wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+      } else {
+        if (dt is CoDatatypeDecl) {
+          var wCo = wDefault;
+          wDefault = new ConcreteSyntaxTree();
+          wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
+        }
 
-      wDefault.Write(DtCreateName(groundingCtor));
-      var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
-      wDefault.Write($"({nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok))})");
+        wDefault.Write(DtCreateName(groundingCtor));
+        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
+        wDefault.Write($"({nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok))})");
+      }
 
       EmitTypeDescriptorMethod(dt, wr);
 
@@ -536,6 +540,9 @@ namespace Microsoft.Dafny.Compilers {
 
       // create methods
       foreach (var ctor in dt.Ctors) {
+        if (ctor.IsGhost) {
+          continue;
+        }
         wr.Write($"public static {DtTypeName(dt)} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
@@ -548,6 +555,9 @@ namespace Microsoft.Dafny.Compilers {
         // omit the is_ property for tuples, since it cannot be used syntactically in the language
       } else {
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            continue;
+          }
           interfaceTree.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
 
           var returnValue = dt.IsRecordType
@@ -566,7 +576,11 @@ namespace Microsoft.Dafny.Compilers {
         var wGet = w.NewBlock("get");
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
-          wGet.WriteLine($"yield return {DtT_protected}.{DtCreateName(ctor)}();");
+          if (ctor.IsGhost) {
+            wGet.WriteLine($"yield return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wGet, dt.tok)};");
+          } else {
+            wGet.WriteLine($"yield return {DtT_protected}.{DtCreateName(ctor)}();");
+          }
         }
       }
 
@@ -697,8 +711,9 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
         var index = 0;
-        foreach (var dtor in ctor.Destructors) {
-          if (dtor.EnclosingCtors[0] == ctor) {
+        foreach (var dtor in ctor.Destructors.Where(dtor => dtor.EnclosingCtors[0] == ctor)) {
+          var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
+          if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
               var DtorM = arg.HasName ? "_" + arg.CompileName : FieldName(arg, index);
@@ -730,18 +745,23 @@ namespace Microsoft.Dafny.Compilers {
                   wGet.WriteLine("var d = this;");
                 }
 
-                var n = dtor.EnclosingCtors.Count;
-                for (int i = 0; i < n - 1; i++) {
+                var compiledConstructorsProcessed = 0;
+                for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  if (ctor_i.IsGhost) {
+                    continue;
+                  }
                   var type = $"{dt.CompileName}_{ctor_i.CompileName}{DtT_TypeArgs}";
                   // TODO use pattern matching to replace cast.
-                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdProtect(DtorM)}; }}");
+                  var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
+                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                    wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
+                  } else {
+                    wGet.WriteLine(returnTheValue);
+                  }
+                  compiledConstructorsProcessed++;
                 }
-
-                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
-                wGet.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdProtect(DtorM)};");
               }
               index++;
             }
@@ -1032,6 +1052,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     string DtCreateName(DatatypeCtor ctor) {
+      Contract.Assert(!ctor.IsGhost); // there should never be an occasion to ask for a ghost constructor
       if (ctor.EnclosingDatatype.IsRecordType) {
         return "create";
       } else {

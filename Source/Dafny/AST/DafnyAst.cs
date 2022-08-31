@@ -2893,18 +2893,15 @@ namespace Microsoft.Dafny {
           // an inductive datatype with at least one non-ghost constructor where every argument of a non-ghost constructor
           // totally supports equality.
           var hasNonGhostConstructor = false;
-          var hasGhostConstructor = false;
           foreach (var ctor in dt.Ctors) {
-            if (ctor.IsGhost) {
-              hasGhostConstructor = true;
-            } else {
+            if (!ctor.IsGhost) {
               hasNonGhostConstructor = true;
               if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
                 return false;
               }
             }
           }
-          Contract.Assert(hasGhostConstructor); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
+          Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
           return hasNonGhostConstructor;
         }
         return totalEqualitySupport;

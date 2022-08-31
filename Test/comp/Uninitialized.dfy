@@ -94,10 +94,83 @@ method Main() {
   assert s.Elements == [10, 12] && x == 11;
   var count := s.Count();
   assert count == 2;
-  print x, " ", count, "\n";
+  print x, " ", count, "\n"; // 11 2
 
   var s' := new Stacks.Stack<Empty>();
   count := s'.Count();
   assert count == 0;
-  print count, "\n";
+  print count, "\n"; // 0
+
+  EnumerationTests.Test();
+  DestructorTests.Test();
+}
+
+module {:options "/functionSyntax:4"} EnumerationTests {
+  datatype Enum = ghost EnumA | EnumB
+  {
+    const N := 13
+
+    predicate Is(n: nat) {
+      N == n
+    }
+  }
+
+  datatype AllGhost = ghost Ctor0 | ghost Ctor1
+  {
+    const N := 13
+
+    predicate Is(n: nat) {
+      N == n
+    }
+  }
+
+  method Test() {
+    var e := PickEnumValue();
+    var s: seq<Enum>;
+    s := [e];
+    print |s|, "\n"; // 1
+
+    var g, sg;
+    g := PickAllGhostValue();
+    sg := [g];
+    print |sg|, "\n"; // 1
+  }
+
+  method PickEnumValue() returns (r: Enum) {
+    if e: Enum :| e.Is(13) {
+      r := e;
+    }
+  }
+
+  method PickAllGhostValue() returns (r: AllGhost) {
+    if ag: AllGhost :| ag.Is(13) {
+      r := ag;
+    }
+  }
+}
+
+module {:options "/functionSyntax:4"} DestructorTests {
+  datatype WithCommonDestructors<A, B> =
+    | CtorA(a: A, x: int)
+    | ghost CtorAB(a: A, b: B)
+    | CtorB(b: B, y: int, ghost z: int)
+
+  method Test() {
+    var wcd := CtorA(true, 7);
+    print wcd.a, " "; // true
+    wcd := wcd.(a := false);
+    print wcd.a, " ", wcd.x, "\n"; // false 7
+
+    wcd := CtorB(2.11, 9, 100);
+    print wcd.b, " "; // 2.11
+    wcd := wcd.(b := 2.13);
+    print wcd.b, " ", wcd.y, "\n"; // 2.13 9
+
+    wcd := wcd.(y := 11, z := 101);
+    print wcd.y, " "; // 11
+    wcd := wcd.(z := 102, y := 12);
+    print wcd.y, " "; // 12
+    wcd := wcd.(z := 103);
+    print wcd.y, "\n"; // 12
+  }
 }
