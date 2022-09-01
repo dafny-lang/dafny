@@ -9,7 +9,7 @@ Here is example code that produces this error:
 
 
 When a _such-that_ (`:|`) initialization is used, Dafny must be able to establish that there is at least one value
-that satisfies the predicate given on the RHS. In this case if the map `m` is empty, there is no such value,
+that satisfies the predicate given on the RHS. In this case, if the map `m` is empty, there is no such value,
 so the error message results.
 
 If you add a precondition that the map is non-empty, then the error is gone:
