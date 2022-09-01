@@ -1155,7 +1155,7 @@ method ComputeFib(n: nat) returns (b: nat)
 {
   var i := 1;
   var a := 0;
-      b := 1;
+  b := 1;
   while i < n
     invariant 0 < i <= n
     invariant a == fib(i - 1)
@@ -1170,7 +1170,7 @@ method ComputeFib(n: nat) returns (b: nat)
 ```dafny
   var i := 1;
   var a := 0;
-      b := 1;
+  b := 1;
   while i < n
     invariant 0 < i <= n
     invariant a == fib(i - 1)
@@ -1209,7 +1209,7 @@ method ComputeFib(n: nat) returns (b: nat)
   if n == 0 { return 0; }
   var i: int := 1;
   var a := 0;
-      b := 1;
+  b := 1;
   while i < n
     invariant 0 < i <= n
     invariant a == fib(i - 1)
@@ -1228,7 +1228,7 @@ method ComputeFib(n: nat) returns (b: nat)
   if n == 0 { return 0; }
   var i: int := 1;
   var a := 0;
-      b := 1;
+  b := 1;
   while i < n
     invariant 0 < i <= n
     invariant a == fib(i - 1)
@@ -1267,7 +1267,7 @@ method ComputeFib(n: nat) returns (b: nat)
   if n == 0 { return 0; }
   var i: int := 1;
   var a := 0;
-      b := 1;
+  b := 1;
   while i < n
     invariant 0 < i <= n
     invariant a == fib(i - 1)
@@ -1302,7 +1302,7 @@ method ComputeFib(n: nat) returns (b: nat)
 {
   var i: int := 0;
   var a := 1;
-      b := 0;
+  b := 0;
   while i < n
     // Fill in the invariants here.
   {
@@ -1977,7 +1977,7 @@ deduced from the loop invariant:
 
 ```dafny
   invariant forall i ::
-             0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
+    0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
 ```
 
 When `low == high`, the negated

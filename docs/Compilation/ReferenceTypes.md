@@ -57,7 +57,7 @@ no fields and no implementations.
 The compilation of (non-reference) Dafny types to target types is many-to-one.
 For example, a subset type
 ```dafny
-  type Odd = x: int | x % 2 == 1
+type Odd = x: int | x % 2 == 1
 ```
 
 compiles to the same thing as the base type `int` does. For this reason,

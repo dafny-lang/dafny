@@ -592,7 +592,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 ```
 
@@ -627,7 +627,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
@@ -682,7 +682,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
@@ -741,7 +741,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
@@ -798,7 +798,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
@@ -824,9 +824,9 @@ prove that the path is invalid when these conditions do not hold. We can use an 
 this:
 
 ```dafny
-  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-    (further proof)
-  }
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  (further proof)
+}
 ```
 
 If the path is at least two elements long, the first element is `root`, and the last is
@@ -846,11 +846,11 @@ cannot be a path because this mirrors the definition of `path`. Thus we only hav
 if the first link is valid. We can express this with another `if` statement:
 
 ```dafny
-  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-    if p[1] in p[0].next {
-      (yet further proof)
-    }
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  if p[1] in p[0].next {
+    (yet further proof)
   }
+}
 ```
 
 Here comes the induction. We know that `p[0] == root` and `p[1] in p[0].next`. We also know from
@@ -900,7 +900,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
