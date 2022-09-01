@@ -45,16 +45,10 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.StaticConstants,
-      Feature.ContinueStatements,
-      Feature.ForLoops,
-      Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.IntBoundedPool,
-      Feature.NonSequentializableForallStatements,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.SubsetTypeTests,
-      Feature.SubtypeConstraintsInQuantifiers,
-      Feature.ExactBoundedPool,
       Feature.MethodSynthesis
     };
 
@@ -72,6 +66,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string StmtTerminator { get => ""; }
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
+    protected override string Conj { get => "and"; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
@@ -104,6 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
+      wr.WriteLine("from itertools import count");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
@@ -569,7 +565,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
-      wr.WriteLine($"{DafnyRuntimeModule}._tail_call()");
+      wr.WriteLine($"raise {DafnyRuntimeModule}.TailCall()");
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
@@ -769,22 +765,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      if (createContinueLabel) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.ContinueStatements);
-      }
-      return wr.NewBlockPy($"with {DafnyRuntimeModule}.label(\"{label}\"):");
+      var manager = createContinueLabel ? "c_label" : "label";
+      return wr.NewBlockPy($"with {DafnyRuntimeModule}.{manager}(\"{label}\"):");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
-      if (label != null) {
-        wr.WriteLine($"{DafnyRuntimeModule}._break(\"{label}\")");
-      } else {
-        wr.WriteLine("break");
-      }
+      wr.WriteLine(label != null ? $"raise {DafnyRuntimeModule}.Break(\"{label}\")" : "break");
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.ContinueStatements);
+      wr.WriteLine($"raise {DafnyRuntimeModule}.Continue(\"{label}\")");
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -822,7 +812,22 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.ForLoops);
+      string iterator;
+      var lowWr = new ConcreteSyntaxTree();
+      string argumentRemainder;
+      if (endVarName == null) {
+        iterator = "count";
+        argumentRemainder = goingUp ? "" : "-1, -1";
+      } else {
+        iterator = "range";
+        argumentRemainder = goingUp ? $", {endVarName}" : $"-1, {endVarName}-1, -1";
+      }
+      wr.Format($"for {IdName(loopIndex)} in {iterator}({lowWr}{argumentRemainder})");
+      var bodyWr = wr.NewBlockPy($":");
+      bodyWr = EmitContinueLabel(labels, bodyWr);
+      TrStmtList(body, bodyWr);
+
+      return lowWr;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
@@ -837,7 +842,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.AssignSuchThatWithNonFiniteBounds);
+      return wr.NewBlockPy($"for {indexVar} in {DafnyRuntimeModule}.Doubler({start}):");
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
@@ -845,7 +850,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.AssignSuchThatWithNonFiniteBounds);
+      wr.WriteLine($"{varName} -= 1");
     }
 
     protected override string GetQuantifierName(string bvType) {
@@ -867,7 +872,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
         out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+      collectionWriter = new ConcreteSyntaxTree();
+      return wr.Format($"for {boundVarName} in {collectionWriter}:").NewBlockPy();
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -989,15 +995,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+      wr.Write("[]");
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+      var wrTuple = new ConcreteSyntaxTree();
+      wr.FormatLine($"{ingredients}.append(({wrTuple}))");
+      return wrTuple;
     }
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+      wr.Write("{0}[{1}]", prefix, i);
     }
 
     protected override string IdProtect(string name) {
@@ -1029,6 +1037,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
       wr.Write(isTailRecursive ? "_this" : "self");
+    }
+
+    protected override void EmitNull(Type _, ConcreteSyntaxTree wr) {
+      wr.Write("None");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
@@ -1178,8 +1190,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      var strings = indices.Select(index => Expr(indices[0], inLetExprBody, wStmts).ToString());
+      Contract.Assert(indices != null);  // follows from precondition
+      var strings = indices.Select(index => Expr(index, inLetExprBody, wStmts).ToString());
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
@@ -1188,7 +1200,7 @@ namespace Microsoft.Dafny.Compilers {
       // This is also used for bit shift operators, or more generally any binary operation where CompileBinOp()
       // sets the convertE1_to_int out parameter to true. This compiler always sets that to false, however,
       // so this method is only called for non-sequentializable forall statements.
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+      TrParenExpr("int", expr, wr, inLetExprBody, wStmts);
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
@@ -1427,7 +1439,9 @@ namespace Microsoft.Dafny.Compilers {
           opString = "in"; break;
 
         case BinaryExpr.ResolvedOpcode.NotInSet:
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInSeq:
+        case BinaryExpr.ResolvedOpcode.NotInMap:
           opString = "not in"; break;
 
         case BinaryExpr.ResolvedOpcode.Intersection:
@@ -1478,11 +1492,11 @@ namespace Microsoft.Dafny.Compilers {
       var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
       var elseExpr = Expr(els, inLetExprBody, wStmts);
       var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
-      wr.Format($"{castedThenExpr} if {Expr(guard, inLetExprBody, wStmts)} else {castedElseExpr}");
+      wr.Format($"({castedThenExpr} if {Expr(guard, inLetExprBody, wStmts)} else {castedElseExpr})");
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.AssignSuchThatWithNonFiniteBounds);
+      wr.Write($"{varName} == 0");
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -1584,11 +1598,16 @@ namespace Microsoft.Dafny.Compilers {
 
     [CanBeNull]
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
-      if (boundVarType.IsRefType) {
-        throw new UnsupportedFeatureException(tok, Feature.SubtypeConstraintsInQuantifiers);
+      if (!boundVarType.IsRefType) {
+        return null;
       }
 
-      return True;
+      var typeTest = boundVarType.IsObject || boundVarType.IsObjectQ
+        ? True
+        : $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
+      return boundVarType.IsNonNullRefType
+        ? $"{tmpVarName} is not None and {typeTest}"
+        : $"{tmpVarName} is None or {typeTest}";
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
@@ -1596,17 +1615,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
-      wr.Write("range(");
+      wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
       wLo = wr.Fork();
       wr.Write(", ");
       wHi = wr.Fork();
       wr.Write(')');
-      return AsNativeType(type) != null ? type : new IntType();
+      return new IntType();
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.ExactBoundedPool);
+      wr.Write("[");
+      TrExpr(e, wr, inLetExprBody, wStmts);
+      wr.Write("]");
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
