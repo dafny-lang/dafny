@@ -1,5 +1,5 @@
 ---
-title: A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Please explain.
+title: A module A has names from an `import opened` of another module B, but if C imports A, it does not get those names. Please explain.
 ---
 
 ## Question
