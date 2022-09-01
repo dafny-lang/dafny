@@ -4,7 +4,7 @@ title: What does {:termination false} do on trait? It looks like it is required 
 
 ## Question
 
-What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules.
+What does `{:termination false}` do on trait? It looks like it is required if I want to extend traits from other modules.
 
 ## Answer
 
