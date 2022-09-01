@@ -42,6 +42,6 @@ The origin of this situation has to do with the interaction of current decreases
 
 Dafny decreases clauses were designed before the language had dynamic dispatch via trait members. As such, decreases clauses are made to be as simple as possible within each module, and decreases clauses are unnecessary across modules. When dynamic dispatch was added to the language, a draconian restriction was put in place to maintain soundness, namely to disallow dynamic dispatch across module boundaries. This is enforced by insisting that a class that implements a trait is declared in the same module that declares the trait.
 
-The draconian restriction outlaws the useful case where a trait is placed in a library. Indeed, we are seeing this in dafny-lang/libraries now. So, Dafny supports a way for users to lift the draconian restriction and instead take responsibility themselves for termination of dynamically dispatched calls via a trait--it is to mark the trait with {:termination false}.
+The draconian restriction outlaws the useful case where a trait is placed in a library. Indeed, we are seeing this in [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries/) now. So, Dafny supports a way for users to lift the draconian restriction and instead take responsibility themselves for termination of dynamically dispatched calls via a trait--it is to mark the trait with `{:termination false}`.
 
 The status of solutions to this problem are discussed [here](https://github.com/dafny-lang/dafny/issues/1588).
