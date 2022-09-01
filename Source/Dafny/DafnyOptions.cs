@@ -979,21 +979,18 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Input configuration ---------------------------------------------------
 
 /dprelude:<file>
-
-    Choose the Dafny prelude file
+    Choose the Dafny prelude file.
 
 /stdin
-
     Read standard input and treat it as an input .dfy file.
 
 ---- Plugins ---------------------------------------------------------------
 
 /plugin:<path to one assembly>[ <arguments>]
-
     (experimental) One path to an assembly that contains at least one
     instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
     can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
-    receive arguments More information about what plugins do and how
+    receive arguments. More information about what plugins do and how
     define them:
 
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
@@ -1001,66 +998,55 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Overall reporting and printing ----------------------------------------
 
 /stats
-
     Print interesting statistics about the Dafny files supplied.
 
 /dprint:<file>
-
-    Print the Dafny program after parsing it (use - as <file> to print
-    to the console)
+    Print the Dafny program after parsing it. (Use - as <file> to print
+    to the console.)
 
 /rprint:<file>
-
-    Print the Dafny program after resolving it (use - as <file> to print
-    to the console)
+    Print the Dafny program after resolving it. (Use - as <file> to print
+    to the console.)
 
 /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-
-    Everything is the default. DllEmbed prints the source that will be
-    included in a compiled dll. NoIncludes disables printing of
-    {{:verify false}} methods incorporated via the include mechanism, as
-    well as datatypes and fields included from other files. NoGhost
-    disables printing of functions, ghost methods, and proof statements
-    in implementation methods. It also disables anything NoIncludes
-    disables.
+    Everything (default) - Print everything listed below.
+    DllEmbed - print the source that will be included in a compiled dll.
+    NoIncludes - disable printing of {{:verify false}} methods
+        incorporated via the include mechanism, as well as datatypes and
+        fields included from other files.
+    NoGhost - disable printing of functions, ghost methods, and proof
+        statements in implementation methods. It also disables anything
+        NoIncludes disables.
 
 /printIncludes:<None|Immediate|Transitive>
-
     None is the default. Immediate prints files included by files listed
     on the command line Transitive recurses on the files printed by
     Immediate Immediate and Transitive will exit after printing.
 
 /view:<view1, view2>
-
     Print the filtered views of a module after it is resolved (/rprint).
     If print before the module is resolved (/dprint), then everything in
     the module is printed. If no view is specified, then everything in
     the module is printed.
 
 /showSnippets:<n>
-
     0 (default) - Don't show source code snippets for Dafny messages.
     1 - Show a source code snippet for each Dafny message.
 
 /funcCallGraph
-
     Print out the function call graph. Format is: func,mod=callee*
 
 /pmtrace
-
     Print pattern-match compiler debug info.
 
 /titrace
-
     Print type-inference debug info.
 
 /printTooltips
-
     Dump additional positional information (displayed as mouse-over
     tooltips by the VS Code plugin) to stdout as 'Info' messages.
 
 /diagnosticsFormat:<text|json>
-
     Choose how to report errors, warnings, and info messages.
 
     text (default) - Use human readable output
@@ -1069,15 +1055,12 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Language feature selection --------------------------------------------
 
 /noIncludes
-
-    Ignore include directives
+    Ignore include directives.
 
 /noExterns
-
-    Ignore extern and dllimport attributes
+    Ignore extern and dllimport attributes.
 
 /functionSyntax:<version>
-
     The syntax for functions is changing from Dafny version 3 to version
     4. This switch gives early access to the new syntax, and also
     provides a mode to help with migration.
@@ -1110,7 +1093,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         Predicates are always ghost and are written `predicate`.
 
 /quantifierSyntax:<version>
-
     The syntax for quantification domains is changing from Dafny version
     3 to version 4, more specifically where quantifier ranges (|
     <Range>) are allowed. This switch gives early access to the new
@@ -1126,12 +1108,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     both syntax versions.
 
 /disableScopes
-
     Treat all export sets as 'export reveal *'. i.e. don't hide function
     bodies or type definitions during translation.
 
 /allowGlobals
-
     Allow the implicit class '_default' to contain fields, instance
     functions, and instance methods. These class members are declared at
     the module scope, outside of explicit classes. This command-line
@@ -1143,43 +1123,35 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Warning selection -----------------------------------------------------
 
 /warnShadowing
-
     Emits a warning if the name of a declared variable caused another
     variable to be shadowed.
 
 /warnMissingConstructorParenthesis
-
     Emits a warning when a constructor name in a case pattern is not
     followed by parentheses.
 
 /deprecation:<n>
-
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
     2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
-
     Treat warnings as errors.
 
 ---- Verification options -------------------------------------------------
 
 /dafnyVerify:<n>
-
     0 - Stop after resolution and typechecking.
     1 - Continue on to verification and compilation.
 
 /verifyAllModules
-
     Verify modules that come from an include directive.
 
 /separateModuleOutput
-
     Output verification results for each module separately, rather than
     aggregating them after they are all finished.
 
 /verificationLogger:<configuration string>
-
     Logs verification results to the given test result logger. The
     currently supported loggers are `trx`, `csv`, and `text`. These are
     the XML-based format commonly used for test results for .NET
@@ -1204,7 +1176,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     of especially expensive assertions.
 
 /mimicVerificationOf:<Dafny version>
-
     Let Dafny attempt to mimic the verification as it was in a previous
     version of Dafny. Useful during migration to a newer version of
     Dafny when a Dafny program has proofs, such as methods or lemmas,
@@ -1216,12 +1187,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     prevent classes of verification instability)
 
 /noCheating:<n>
-
     0 (default) - Allow assume statements and free invariants.
     1 - Treat all assumptions as asserts, and drop free.
 
 /induction:<n>
-
     0 - Never do induction, not even when attributes request it.
     1 - Only apply induction when attributes request it.
     2 - Apply induction as requested (by attributes) and also for
@@ -1231,7 +1200,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     4 (default) - Apply induction as requested, and for lemmas.
 
 /inductionHeuristic:<n>
-
     0 - Least discriminating induction heuristic (that is, lean toward
         applying induction more often).
     1,2,3,4,5 - Levels in between, ordered as follows as far as how
@@ -1239,7 +1207,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     6 (default) - Most discriminating.
 
 /trackPrintEffects:<n>
-
     0 (default) - Every compiled method, constructor, and iterator,
        whether or not it bears a {{:print}} attribute, may have print
        effects.
@@ -1247,7 +1214,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
        print effects only if it is marked with {{:print}}.
 
 /allocated:<n>
-
     Specify defaults for where Dafny should assert and assume
     allocated(x) for various parameters x, local variables x, bound
     variables x, etc. Lower <n> may require more manual allocated(x)
@@ -1271,7 +1237,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         allocatedness.
 
 /definiteAssignment:<n>
-
     0 - Ignores definite-assignment rules. This mode is for testing
         only--it is not sound.
     1 (default) - Enforces definite-assignment rules for compiled
@@ -1287,15 +1252,12 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         the program.
 
 /noAutoReq
-
     Ignore autoReq attributes.
 
 /autoReqPrint:<file>
-
     Print out requirements that were automatically generated by autoReq.
 
 /noNLarith
-
     Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
 
     Results in more manual work, but also produces more predictable
@@ -1303,7 +1265,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     future. For now, it takes precedence of /arith.)
 
 /arith:<n>
-
     (experimental) Adjust how Dafny interprets arithmetic operations.
 
     0 - Use Boogie/Z3 built-ins for all arithmetic operations.
@@ -1323,28 +1284,23 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         associativity of *.
 
 /autoTriggers:<n>
-
     0 - Do not generate {{:trigger}} annotations for user-level
         quantifiers.
-
     1 (default) - Add a {{:trigger}} to each user-level quantifier.
         Existing annotations are preserved.
 
 /rewriteFocalPredicates:<n>
-
     0 - Don't rewrite predicates in the body of prefix lemmas.
     1 (default) - In the body of prefix lemmas, rewrite any use of a
         focal predicate P to P#[_k-1].
 
 /extractCounterexample
-
     If verification fails, report a detailed counterexample for the
     first failing assertion. Requires specifying the /mv option as well
     as /proverOpt:O:model_compress=false and
     /proverOpt:O:model.completion=true.
 
 /countVerificationErrors:<n>
-
     (deprecated)
 
     0 - Set exit code to 0 regardless of the presence of any other errors.
@@ -1357,20 +1313,18 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Compilation options ---------------------------------------------------
 
 /compile:<n>  0 - Do not compile Dafny program.
-
     1 (default) - Upon successful verification of the Dafny program,
-        compile it to the designated target language (/noVerify
-        automatically counts as failed verification)
+        compile it to the designated target language. (/noVerify
+        automatically counts as failed verification.)
     2 - Always attempt to compile Dafny program to the target language,
-        regardless of verification outcome
+        regardless of verification outcome.
     3 - If there is a Main method and there are no verification errors
         and /noVerify is not used, compiles program in memory (i.e.,
-        does not write an output file) and runs it
+        does not write an output file) and runs it.
     4 - Like (3), but attempts to compile and run regardless of
-        verification outcome
+        verification outcome.
 
 /compileTarget:<lang>
-
     cs (default) - Compile to .NET via C#.
     go - Compile to Go.
     js - Compile to JavaScript.
@@ -1384,13 +1338,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     features like traits or co-inductive types.
 
 /Main:<name>
-
     Specify the (fully-qualified) name of the method to use as the
     executable entry point. Default is the method with the {{:main}}
     attribute, or else the method named 'Main'.
 
 /runAllTests:<n> (experimental)
-
     0 (default) - Annotates compiled methods with the {{:test}}
         attribute such that they can be tested using a testing framework
         in the target language (e.g. xUnit for C#).
@@ -1401,13 +1353,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         this main method!
 
 /compileVerbose:<n>
-
     0 - Don't print status of compilation to the console.
     1 (default) - Print information such as files being written by the
         compiler to the console.
 
 /spillTargetCode:<n>
-
     Explicitly writes the code in the target language to a file. This is
     not necessary to run a Dafny program, but may be of interest when
     building multi-language programs or for debugging.
@@ -1427,23 +1377,19 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /spillTargetCode:0 behaves the same way as /spillTargetCode:1.
 
 /out:<file>
-
     Specify the filename and location for the generated target language
     files.
 
 /coverage:<file>
-
     The compiler emits branch-coverage calls and outputs into <file> a
     legend that gives a description of each source-location identifier
-    used in the branch-coverage calls. (use - as <file> to print to the
-    console)
+    used in the branch-coverage calls. (Use - as <file> to print to the
+    console.)
 
 /optimize
-
     Produce optimized C# code by passing the /optimize flag to csc.exe.
 
 /optimizeResolution:<n>
-
     0 - Resolve and translate all methods.
     1 - Translate methods only in the call graph of current verification
         target.
@@ -1451,12 +1397,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         non-included Dafny sources.
 
 /useRuntimeLib
-
     Refer to a pre-built DafnyRuntime.dll in the compiled assembly
     rather than including DafnyRuntime.cs verbatim.
 
 /library:<file>
-
     The contents of this file and any files it includes can be
     referenced from other files as if they were included. However, these
     contents are skipped during code generation and verification. This
