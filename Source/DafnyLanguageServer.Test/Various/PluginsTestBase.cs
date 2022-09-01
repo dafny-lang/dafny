@@ -35,7 +35,12 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var standardLibraries = new List<string>()
     {
       "DafnyPipeline",
+      "System",
+      "netstandard",
+      "OmniSharp.Extensions.LanguageServer",
+      "OmniSharp.Extensions.LanguageProtocol",
       "System.Console",
+      "DafnyLanguageServer",
       "System.Runtime",
       "Boogie.Core",
       "System.Collections"
