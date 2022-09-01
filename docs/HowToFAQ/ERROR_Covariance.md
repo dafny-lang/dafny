@@ -18,7 +18,7 @@ produces
 ```
 
 The problem is that the code is trying to convert a `formula<neg>` to a `formula<real>`.
-While a `neg` is a subtype of `real`, that does not dictate a subtype relationship between
+While a `neg` is a subtype of `real`, that does not imply a subtype relationship between
 `formula<neg>` and `formula<real>`.
 That relationship must be declared in the definition of `formula`.
 By default, the definition of a generic type is _non-variant_, meaning there is no
