@@ -45,3 +45,19 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
+
+
+
+# Error explanations
+
+
+- ["function precondition might not hold"](ERROR_SeqComp)
+- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads)
+- ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
+- ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
+- [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
+- ["Warning: File contains no code: ..."](ERROR_NoCode)
+- ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
+- ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
+- ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) -> seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
+
