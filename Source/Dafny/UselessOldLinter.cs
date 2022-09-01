@@ -11,27 +11,27 @@ using System.Reactive;
 
 namespace Microsoft.Dafny {
 
-  class Linter : IRewriter {
+  public class UselessOldLinter : IRewriter {
     internal override void PostResolve(Program program) {
       base.PostResolve(program);
       foreach (var moduleDefinition in program.Modules()) {
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
           foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new LinterVisitor(this.Reporter);
+            var visitor = new UselessOldLinterVisitor(this.Reporter);
             visitor.Visit(callable, Unit.Default);
           }
         }
       }
     }
 
-    public Linter(ErrorReporter reporter) : base(reporter) {
+    public UselessOldLinter(ErrorReporter reporter) : base(reporter) {
     }
   }
 
-  class LinterVisitor : TopDownVisitor<Unit> {
+  class UselessOldLinterVisitor : TopDownVisitor<Unit> {
     private readonly ErrorReporter reporter;
 
-    public LinterVisitor(ErrorReporter reporter) {
+    public UselessOldLinterVisitor(ErrorReporter reporter) {
       this.reporter = reporter;
     }
 

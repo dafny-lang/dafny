@@ -441,7 +441,7 @@ namespace Microsoft.Dafny {
         rewriters.Add(new ConstructorWarning(reporter));
       }
 
-      rewriters.Add(new Linter(reporter));
+      rewriters.Add(new UselessOldLinter(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
