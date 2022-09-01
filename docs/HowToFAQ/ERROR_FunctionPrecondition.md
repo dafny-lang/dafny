@@ -4,17 +4,17 @@ title: "Error: possible violation of function precondition for op(v)"
 
 Here is code that provoked this error (though the error message as been made more specific in later releases):
 ```dafny
- function Eval(): string -> bool {
-    EvalOperator(Dummy)
-  }
+function Eval(): string -> bool {
+   EvalOperator(Dummy)
+}
 
-  function EvalOperator(op: string -> bool): string -> bool 
-  {
-    (v: string) => op(v)
-  }
+function EvalOperator(op: string -> bool): string -> bool 
+{
+  (v: string) => op(v)
+}
 
-  function method Dummy(str: string): bool
-    requires str == []
+function method Dummy(str: string): bool
+  requires str == []
 ```
 
 The problem has to do with [arrow types](../../DafnyRef/DafnyRef#sec-arrow-types).
