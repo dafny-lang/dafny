@@ -4129,6 +4129,9 @@ namespace Microsoft.Dafny {
     }
     public virtual string FullName {
       get {
+        if (EnclosingModuleDefinition is null) {
+          return Name;
+        }
         return EnclosingModuleDefinition.FullName + "." + Name;
       }
     }
