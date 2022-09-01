@@ -824,9 +824,9 @@ prove that the path is invalid when these conditions do not hold. We can use an 
 this:
 
 ```dafny
-  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-    (further proof)
-  }
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  (further proof)
+}
 ```
 
 If the path is at least two elements long, the first element is `root`, and the last is
