@@ -627,7 +627,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-    path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
   reads graph
