@@ -846,11 +846,11 @@ cannot be a path because this mirrors the definition of `path`. Thus we only hav
 if the first link is valid. We can express this with another `if` statement:
 
 ```dafny
-  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-    if p[1] in p[0].next {
-      (yet further proof)
-    }
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  if p[1] in p[0].next {
+    (yet further proof)
   }
+}
 ```
 
 Here comes the induction. We know that `p[0] == root` and `p[1] in p[0].next`. We also know from
