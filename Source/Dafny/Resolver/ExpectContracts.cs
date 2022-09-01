@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -9,8 +10,8 @@ namespace Microsoft.Dafny;
 
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
-  private readonly Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations = new();
-  private CallRedirector callRedirector;
+  private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private CallRedirector callRedirector = new();
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
 
@@ -57,11 +58,17 @@ public class ExpectContracts : IRewriter {
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
-    // TODO: make this more discriminating
-    // TODO: could work for ghost statements eventually
     return !decl.IsGhost && decl is not Constructor;
   }
 
+  /// <summary>
+  /// Create a wrapper for the given function or method declaration that
+  /// dynamically checks all of its preconditions, calls it, and checks
+  /// all of its postconditions before returning. The new wrapper will
+  /// later be added as a sibling of the original declaration.
+  /// </summary>
+  /// <param name="parent">The declaration containing the on to be wrapped.</param>
+  /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok; // TODO: do better
 
@@ -112,7 +119,7 @@ public class ExpectContracts : IRewriter {
     }
 
     if (newDecl is not null) {
-      wrappedDeclarations.Add(decl.Name, (decl, newDecl));
+      wrappedDeclarations.Add(decl, newDecl);
     }
   }
 
@@ -121,7 +128,7 @@ public class ExpectContracts : IRewriter {
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
-    // Find module members to wrap
+    // Find module members to wrap.
     foreach (var moduleDefinition in program.RawModules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
@@ -132,27 +139,21 @@ public class ExpectContracts : IRewriter {
       }
     }
 
-    // Generate a wrapper for each of the members identified above
+    // Generate a wrapper for each of the members identified above.
     foreach (var (topLevelDecl, decl) in membersToWrap) {
       GenerateWrapper(topLevelDecl, decl);
     }
 
-    // Add the generated wrappers to the module
+    // Add the generated wrappers to the module.
     foreach (var (topLevelDecl, decl) in membersToWrap) {
-      if (wrappedDeclarations.ContainsKey(decl.Name)) {
-        topLevelDecl.Members.Add(wrappedDeclarations[decl.Name].Item2);
+      if (wrappedDeclarations.ContainsKey(decl)) {
+        topLevelDecl.Members.Add(wrappedDeclarations[decl]);
       }
     }
-
-    callRedirector = new CallRedirector(wrappedDeclarations);
   }
 
   class CallRedirector : TopDownVisitor<MemberDecl> {
-    private readonly Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations;
-
-    public CallRedirector(Dictionary<string, (MemberDecl, MemberDecl)> wrappedDeclarations) {
-      this.wrappedDeclarations = wrappedDeclarations;
-    }
+    internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
 
     private bool HasTestAttribute(MemberDecl decl) {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
@@ -162,12 +163,12 @@ public class ExpectContracts : IRewriter {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
     }
 
-    private bool ShouldCallWrapper(MemberDecl caller, string calleeName) {
-      if (!wrappedDeclarations.ContainsKey(calleeName)) {
+    private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
+      // If there's no wrapper for the callee, don't try to call it.
+      if (!newRedirections.ContainsKey(callee)) {
         return false;
       }
 
-      var callee = wrappedDeclarations[calleeName].Item2;
       // TODO: make this configurable
       return (HasTestAttribute(caller) || HasExternAttribute(callee)) &&
              // TODO: check this in a better way
@@ -175,15 +176,13 @@ public class ExpectContracts : IRewriter {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
-      // TODO: this pulls targets from the original module. Fix that.
       if (expr is FunctionCallExpr fce) {
-        Console.WriteLine($"Function call to {fce.Function.Name}");
-        if (ShouldCallWrapper(decl, fce.Function.Name)) {
-          var targetName = fce.Function.Name;
-          var newTarget = wrappedDeclarations[targetName].Item2;
-          Console.WriteLine($"Call (expression) to {targetName} redirecting to {newTarget.Name}");
-          fce.Function = (Function)newTarget;
-          fce.Name = newTarget.Name;
+        var f = fce.Function;
+        var targetName = f.Name;
+        //Console.WriteLine($"Function call to {targetName}");
+        if (ShouldCallWrapper(decl, f)) {
+          var newTarget = newRedirections[f];
+          Console.WriteLine($"Call (expression) to {f.FullName} redirecting to {newTarget.FullName}");
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
           resolved.Name = newTarget.Name;
@@ -194,15 +193,13 @@ public class ExpectContracts : IRewriter {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
-      // TODO: this pulls targets from the original module. Fix that.
       if (stmt is CallStmt cs) {
-        Console.WriteLine($"Method call to {cs.Method.Name}");
-        if (ShouldCallWrapper(decl, cs.Method.Name)) {
-          var targetName = cs.Method.Name;
-          var newTarget = wrappedDeclarations[targetName].Item2;
-          Console.WriteLine($"Call (statement) to {targetName} redirecting to {newTarget.Name}");
-          cs.MethodSelect.Member = newTarget;
-          cs.MethodSelect.MemberName = newTarget.Name;
+        var m = cs.Method;
+        var targetName = m.Name;
+        //Console.WriteLine($"Method call to {m.FullName}");
+        if (ShouldCallWrapper(decl, m)) {
+          var newTarget = newRedirections[m];
+          Console.WriteLine($"Call (statement) to {m.FullName} redirecting to {newTarget.FullName}");
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
           resolved.MemberName = newTarget.Name;
@@ -214,15 +211,27 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
+    Dictionary<string, MemberDecl> newDeclarationsByName = new();
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      // TODO: keep track of names
-      foreach (var decl in topLevelDecl.Members) { }
+      // Keep track of current declarations by name to avoid redirecting
+      // calls to functions or methods from obsolete modules (those that
+      // existed prior to processing by CompilationCloner).
+      foreach (var decl in topLevelDecl.Members) {
+        //Console.WriteLine(($"Adding {decl.FullName}"));
+        newDeclarationsByName.Add(decl.FullName, decl);
+      }
+    }
+
+    foreach (var (caller, callee) in wrappedDeclarations) {
+      callRedirector.newRedirections.Add(
+        newDeclarationsByName[caller.FullName],
+        newDeclarationsByName[callee.FullName]);
     }
 
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
-          Console.WriteLine($"Visiting {decl.Name}");
+          //Console.WriteLine($"Visiting {decl.FullName}");
           callRedirector.Visit(callable, decl);
         }
       }
