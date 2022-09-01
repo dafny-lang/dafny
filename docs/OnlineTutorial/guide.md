@@ -852,9 +852,9 @@ can do something like implement the mathematical Fibonacci function:
 ``` {.edit}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                 fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 ```
 
@@ -873,9 +873,9 @@ We can start by defining a method like the following:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                 fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
@@ -1146,9 +1146,9 @@ Using a parallel assignment, we can write a loop that performs this operation:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
@@ -1199,9 +1199,9 @@ of the loop. The completed Fibonacci method becomes:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
@@ -1255,9 +1255,9 @@ and `b == fib(i)`, which together imply the postcondition, `b == fib(n)`.
 ``` {.editonly}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                 fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)  // Do not change this postcondition
@@ -1293,9 +1293,9 @@ method ComputeFib(n: nat) returns (b: nat)
 ``` {.editonly}
 function fib(n: nat): nat
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
@@ -1445,9 +1445,9 @@ in the unnecessary annotation for the fib function:
 function fib(n: nat): nat
   decreases n
 {
-  if n == 0 then 0 else
-  if n == 1 then 1 else
-                 fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 ```
 
