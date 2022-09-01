@@ -15,7 +15,7 @@ might also contain a reference type if `X` is a type that can contain a referenc
 
 
 If you’re getting the “no reference” error, then you’re either trying to write an unbounded quantifier over a type that may contain references, or you’re trying to use a type that may contain references to instantiate a type parameter restricted to no-reference types.
-Type characteristics that a type parameter must satisfy are written in parentheses after the type name; and are separated by commas. For example, to say that a type parameter `X` must not contain any references, you would declare it as `X(!new)`. To further ensure it supports compile-time equality, you would declare it as `X(!new, ==)`.
+Type characteristics that a type parameter must satisfy are written in parentheses after the type name and are separated by commas. For example, to say that a type parameter `X` must not contain any references, you would declare it as `X(!new)`. To further ensure it supports compile-time equality, you would declare it as `X(!new,==)`.
 Presumably, you’re trying to instantiate a type parameter like `X(!new)` with a type that may contain references.
 
 There is more discussion of type parameter characteristics in the [reference manual](../../DafnyRef/DafnyRef#sec-type-parameters).
