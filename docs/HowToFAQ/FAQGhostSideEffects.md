@@ -8,7 +8,7 @@ How can ghost code call methods with side effects?
 
 ## Answer
 
-Ghost code may not have any effect on non-ghost code, but ghost code can have effects on ghost code.
+Ghost code may not have any effect on non-ghost state, but ghost code can have effects on ghost state.
 So a ghost method may modify ghost fields, as long as the specifications list the appropriate fields in
 the appropriate modifies clauses. The example code below demonstrates this:
 

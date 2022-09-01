@@ -10,7 +10,8 @@ Is there a nice way to turn a set into a seq?
 
 There is as yet no built-in simple function but there are various idioms that can accomplish this task.
 
-Within a method (where you can use a while loop), try `var set acc = {}; while s != {} { var x :| x in s; acc := acc + [x] }`
+Within a method (where you can use a while loop), try `var acc: seq<int> := []; 
+  while s != {} { var x: int :| x in s; acc := acc + [x]; s := s - {x}; }`
 
 You could use a function-by-method to encapsulate the above in a function.
 

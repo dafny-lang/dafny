@@ -39,5 +39,7 @@ method Main() {
   }
 }
 ```
+Here the method `MoveNext` and the field `xs` (and others) are automatically created, 
+as decribed in the [reference manual](../DafnyRef/DafnyRef#sec-iterator-types).
 
 Note that the syntax of iterators is under discussion in the Dafny development team and may change or have additional alternatives in the future.
