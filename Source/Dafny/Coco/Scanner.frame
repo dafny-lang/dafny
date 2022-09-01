@@ -307,11 +307,11 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(fileName != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
-    pt = tokens = new Token();  // first token is a dummy
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = new Token(); // dummy because t is a non-null field
     try {
       Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -325,11 +325,11 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false) : base() {
+  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
-    pt = tokens = new Token();  // first token is a dummy
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;

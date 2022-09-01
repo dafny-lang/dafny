@@ -171,10 +171,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      var candidateTokens = new List<IToken>() { DefaultModuleDef.GetFirstTopLevelToken() };
-      candidateTokens.AddRange(DefaultModuleDef.PrefixNamedModules.Select(
-        module => module.Item2.ModuleDef.GetFirstTopLevelToken()));
-      return candidateTokens.Where(token => token != null && token.line > 0).MinBy(token => token.pos);
+      return DefaultModule.RootToken.Next;
     }
   }
 
@@ -3514,6 +3511,7 @@ namespace Microsoft.Dafny {
       return Signature;
     }
     public int Height;
+    public Token RootToken = new Token();
 
     public readonly bool Opened;
 

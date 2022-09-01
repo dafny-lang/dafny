@@ -174,7 +174,7 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: module.RootToken);
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
@@ -888,7 +888,7 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  bullet = '\u2022'.
+  bullet = '\u2022'. // •
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -949,7 +949,7 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
-  neqAlt = '\u2260'.
+  neqAlt = '\u2260'. // ≠
   star = '*'.
   at = '@'.
   notIn = "!in" CONTEXT (nonidchar).

@@ -74,6 +74,7 @@ method Test() {
     [Fact]
     public void FormatterWorksForModulesClassesSpecsForallWhileForLoopIfWhile() {
       FormatterWorksFor(@"
+import opened Test
 module Test {
   method f1<T, U>(a: T, b: U)
   
