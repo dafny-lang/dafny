@@ -1,5 +1,6 @@
 # Upcoming
 
+- fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 
 # 3.8.1
 
