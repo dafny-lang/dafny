@@ -16,7 +16,7 @@ producing
 
 ## Answer
 
-You are writing a Java/C declaration. In Dafny declarations have the form `name: type`, so
+You are writing a Java/C parameter declaration. In Dafny, parameter declarations have the form `name: type`, so
 ```dafny
 method test(i: int) { ... }
 ```
