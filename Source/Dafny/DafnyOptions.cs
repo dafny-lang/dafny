@@ -979,7 +979,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Input configuration ---------------------------------------------------
 
 /dprelude:<file>
-    choose Dafny prelude file
+    Choose the Dafny prelude file
 /stdin
     Read standard input and treat it as an input .dfy file.
 
@@ -996,11 +996,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /stats        Print interesting statistics about the Dafny files supplied.
 /dprint:<file>
-    print Dafny program after parsing it
-    (use - as <file> to print to console)
+    Print the Dafny program after parsing it
+    (use - as <file> to print to the console)
 /rprint:<file>
-    print Dafny program after resolving it
-    (use - as <file> to print to console)
+    Print the Dafny program after resolving it
+    (use - as <file> to print to the console)
 /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
     Everything is the default.
     DllEmbed prints the source that will be included in a compiled dll.
@@ -1019,14 +1019,14 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     is printed.
     If no view is specified, then everything in the module is printed.
 /showSnippets:<n>
-    0 (default) - don't show source code snippets for Dafny messages
-    1 - show a source code snippet for each Dafny message
+    0 (default) - Don't show source code snippets for Dafny messages.
+    1 - Show a source code snippet for each Dafny message.
 /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
-/pmtrace      print pattern-match compiler debug info
-/titrace      print type-inference debug info
+/pmtrace      Print pattern-match compiler debug info
+/titrace      Print type-inference debug info
 /printTooltips
     Dump additional positional information (displayed as mouse-over tooltips by
-    the VS plugin) to stdout as 'Info' messages.
+    the VS Code plugin) to stdout as 'Info' messages.
 /diagnosticsFormat:<text|json>
     Choose how to report errors, warnings, and info messages.
     text (default): Use human readable output
@@ -1054,12 +1054,12 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         `function method` and `predicate method` as parsing errors. So, change
         those to just `function` and `predicate`. Now, your program uses version 4
         syntax and has the exact same meaning as your previous version 3 program.
-    experimentalDefaultGhost - like migration3to4, but allow `function` and
+    experimentalDefaultGhost - Like migration3to4, but allow `function` and
         `predicate` as alternatives to declaring ghost functions and predicates,
-        respectively
-    experimentalDefaultCompiled - like migration3to4, but allow `function` and
+        respectively.
+    experimentalDefaultCompiled - Like migration3to4, but allow `function` and
         `predicate` as alternatives to declaring compiled functions and predicates,
-        respectively
+        respectively.
     experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
         Ghost functions are written `ghost function`. Predicates are always ghost
         and are written `predicate`.
@@ -1086,23 +1086,23 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Warning selection -----------------------------------------------------
 
 /warnShadowing  Emits a warning if the name of a declared variable caused another variable
-    to be shadowed
+    to be shadowed.
 /warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
-    is not followed by parentheses
+    is not followed by parentheses.
 /deprecation:<n>
-    0 - don't give any warnings about deprecated features
-    1 (default) - show warnings about deprecated features
-    2 - also point out where there's new simpler syntax
+    0 - Don't give any warnings about deprecated features.
+    1 (default) - Show warnings about deprecated features.
+    2 - Also point out where there's new simpler syntax.
 /warningsAsErrors
     Treat warnings as errors.
 
 ---- Verification options -------------------------------------------------
 
 /dafnyVerify:<n>
-    0 - stop after typechecking
-    1 - continue on to translation, verification, and compilation
+    0 - Stop after resolution and typechecking.
+    1 - Continue on to verification and compilation.
 /verifyAllModules
-    Verify modules that come from an include directive
+    Verify modules that come from an include directive.
 /separateModuleOutput
     Output verification results for each module separately, rather than
     aggregating them after they are all finished.
@@ -1135,22 +1135,22 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
     Accepted versions are: 3.3 (note that this turns off features that prevent classes of verification instability)
 /noCheating:<n>
-    0 (default) - allow assume statements and free invariants
-    1 - treat all assumptions as asserts, and drop free.
+    0 (default) - Allow assume statements and free invariants.
+    1 - Treat all assumptions as asserts, and drop free.
 /induction:<n>
-    0 - never do induction, not even when attributes request it
-    1 - only apply induction when attributes request it
-    2 - apply induction as requested (by attributes) and also
-        for heuristically chosen quantifiers
-    3 - apply induction as requested, and for
-        heuristically chosen quantifiers and lemmas
-    4 (default) - apply induction as requested, and for lemmas
+    0 - Never do induction, not even when attributes request it.
+    1 - Only apply induction when attributes request it.
+    2 - Apply induction as requested (by attributes) and also
+        for heuristically chosen quantifiers.
+    3 - Apply induction as requested, and for
+        heuristically chosen quantifiers and lemmas.
+    4 (default) - Apply induction as requested, and for lemmas.
 /inductionHeuristic:<n>
-    0 - least discriminating induction heuristic (that is, lean
-        toward applying induction more often)
-    1,2,3,4,5 - levels in between, ordered as follows as far as
-        how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
-    6 (default) - most discriminating
+    0 - Least discriminating induction heuristic (that is, lean
+        toward applying induction more often).
+    1,2,3,4,5 - Levels in between, ordered as follows as far as
+        how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6.
+    6 (default) - Most discriminating.
 /trackPrintEffects:<n>
     0 (default) - Every compiled method, constructor, and iterator, whether or not
        it bears a {{:print}} attribute, may have print effects.
@@ -1175,21 +1175,21 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         even bound variables in quantifiers.  This option is
         the easiest to use for heapful code.
     3 - (default) Frugal use of heap parameters.
-    4 - mode 3 but with alloc antecedents when ranges don't imply
+    4 - Mode 3 but with alloc antecedents when ranges don't imply
         allocatedness.
 /definiteAssignment:<n>
-    0 - ignores definite-assignment rules; this mode is for testing only--it is
-        not sound
-    1 (default) - enforces definite-assignment rules for compiled variables and fields
+    0 - Ignores definite-assignment rules; this mode is for testing only--it is
+        not sound.
+    1 (default) - Enforces definite-assignment rules for compiled variables and fields
         whose types do not support auto-initialization and for ghost variables
-        and fields whose type is possibly empty
-    2 - enforces definite-assignment for all non-yield-parameter
-        variables and fields, regardless of their types
-    3 - like 2, but also performs checks in the compiler that no nondeterministic
+        and fields whose type is possibly empty.
+    2 - Enforces definite-assignment for all non-yield-parameter
+        variables and fields, regardless of their types.
+    3 - Like 2, but also performs checks in the compiler that no nondeterministic
         statements are used; thus, a program that passes at this level 3 is one
         that the language guarantees that values seen during execution will be
-        the same in every run of the program
-/noAutoReq    Ignore autoReq attributes
+        the same in every run of the program.
+/noAutoReq    Ignore autoReq attributes.
 /autoReqPrint:<file>
     Print out requirements that were automatically generated by autoReq.
 /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
@@ -1209,9 +1209,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     6 - Like 5, and introduce axioms that distribute + over *.
     7 - like 6, and introduce facts that associate literals arguments of *.
     8 - Like 7, and introduce axiom for the connection between *,/,%.
-    9 - Like 8, and introduce axioms for sign of multiplication
+    9 - Like 8, and introduce axioms for sign of multiplication.
     10 - Like 9, and introduce axioms for commutativity and
-        associativity of *
+        associativity of *.
 /autoTriggers:<n>
     0 - Do not generate {{:trigger}} annotations for user-level quantifiers.
     1 (default) - Add a {{:trigger}} to each user-level quantifier. Existing
@@ -1235,30 +1235,30 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Compilation options ---------------------------------------------------
 
-/compile:<n>  0 - do not compile Dafny program
-    1 (default) - upon successful verification of the Dafny
+/compile:<n>  0 - Do not compile Dafny program.
+    1 (default) - Upon successful verification of the Dafny
         program, compile it to the designated target language
         (/noVerify automatically counts as failed verification)
-    2 - always attempt to compile Dafny program to the target
+    2 - Always attempt to compile Dafny program to the target
         language, regardless of verification outcome
-    3 - if there is a Main method and there are no verification
+    3 - If there is a Main method and there are no verification
         errors and /noVerify is not used, compiles program in
         memory (i.e., does not write an output file) and runs it
-    4 - like (3), but attempts to compile and run regardless of
+    4 - Like (3), but attempts to compile and run regardless of
         verification outcome
 /compileTarget:<lang>
-    cs (default) - Compilation to .NET via C#
-    go - Compilation to Go
-    js - Compilation to JavaScript
-    java - Compilation to Java
-    py - Compilation to Python
-    cpp - Compilation to C++
+    cs (default) - Compile to .NET via C#.
+    go - Compile to Go.
+    js - Compile to JavaScript.
+    java - Compile to Java.
+    py - Compile to Python.
+    cpp - Compile to C++.
 
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
 /Main:<name>
-    The (fully-qualified) name of the method to use as the executable entry point.
+    Specify the (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
 /runAllTests:<n> (experimental)
     0 (default) - Annotates compiled methods with the {{:test}} attribute
@@ -1270,13 +1270,13 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         Note that /compile:3 or 4 must be provided as well to actually execute
         this main method!
 /compileVerbose:<n>
-    0 - don't print status of compilation to the console
-    1 (default) - print information such as files being written by
-        the compiler to the console
+    0 - Don't print status of compilation to the console.
+    1 (default) - Print information such as files being written by
+        the compiler to the console.
 /spillTargetCode:<n>
-    This option concerns the textual representation of the target program.
-    This representation is of no interest when working with only Dafny code,
-    but may be of interest in cross-language situations.
+    Explicitly writes the code in the target language to a file.
+    This is not necessary to run a Dafny program, but may be of interest when
+    building multi-language programs or for debugging.
     0 (default) - Don't make any extra effort to write the textual target program
         (but still compile it, if /compile indicates to do so).
     1 - Write the textual target program, if it is being compiled.
@@ -1288,20 +1288,19 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     textual target program as part of compilation, in which case /spillTargetCode:0
     behaves the same way as /spillTargetCode:1.
 /out:<file>
-    filename and location for the generated target language files
+    Specify the filename and location for the generated target language files.
 /coverage:<file>
     The compiler emits branch-coverage calls and outputs into
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
-/optimize     Produce optimized C# code, meaning:
-      - passes /optimize flag to csc.exe.
+/optimize     Produce optimized C# code by passing the /optimize flag to csc.exe.
 /optimizeResolution:<n>
-    0 - Resolve and translate all methods
-    1 - Translate methods only in the call graph of current verification target
-    2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
+    0 - Resolve and translate all methods.
+    1 - Translate methods only in the call graph of current verification target.
+    2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources.
 /useRuntimeLib
-    Refer to pre-built DafnyRuntime.dll in compiled assembly rather
+    Refer to a pre-built DafnyRuntime.dll in the compiled assembly rather
     than including DafnyRuntime.cs verbatim.
 /library:<file>
     The contents of this file and any files it includes can be referenced from other files as if they were included. 
