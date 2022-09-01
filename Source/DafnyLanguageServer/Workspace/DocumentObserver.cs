@@ -62,7 +62,7 @@ class DocumentObserver : IObserver<IdeState> {
         return;
       }
 
-      logger.LogDebug($"Publishing notification for version {snapshot.Version}.");
+      logger.LogDebug($"Publishing notification for {snapshot.Uri} version {snapshot.Version}.");
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
     }

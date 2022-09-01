@@ -285,7 +285,6 @@ public class Compilation {
   }
 
   public void CancelPendingUpdates() {
-    MarkVerificationFinished();
     cancellationSource.Cancel();
   }
 

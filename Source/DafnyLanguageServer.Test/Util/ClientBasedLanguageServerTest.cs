@@ -168,7 +168,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
       }
     }
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
