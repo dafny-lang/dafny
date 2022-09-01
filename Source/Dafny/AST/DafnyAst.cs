@@ -6823,7 +6823,8 @@ namespace Microsoft.Dafny {
     public virtual IToken RangeToken {
       get {
         if (rangeToken == null) {
-          rangeToken = new RangeToken(Tok, EndTok);
+          // Need a special case for the elephant operator to avoid end < start 
+          rangeToken = new RangeToken(Tok, Tok.pos > EndTok.pos ? Tok : EndTok);
         }
         return rangeToken;
       }
