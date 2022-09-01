@@ -48,6 +48,49 @@ method Test() {
 ");
     }
 
+
+
+    [Fact]
+    public void FormatterWorksForArguments() {
+      FormatterWorksFor(@"
+method Test()
+  ensures Binds(x) ==
+          Bind(y)
+{
+  me(func(arg(1, 2)));
+
+  me(func(arg(1,
+              2)));
+
+  me(func(arg(1,
+              2
+             ,3
+          )
+     )
+  );
+
+  me(func(arg(
+            1, 2)));
+
+  me(func(
+       arg(
+         1, 2)));
+
+  me(
+    func(
+      arg(
+        1, 2)),
+    func2());
+  me
+  (func
+   (arg
+    (1
+    ,2)),
+   func2());
+}
+");
+    }
+
     [Fact]
     public void FormatterWorksForAssignments() {
       FormatterWorksFor(@"method test() {
@@ -1148,7 +1191,7 @@ module S0 refines R {
 
   function g(): int { 2 }
 */
-");
+", null, true);
     }
 
     [Fact]
@@ -1557,7 +1600,7 @@ method Test() {
       FormatterWorksFor(test, test);
     }
 
-    private void FormatterWorksFor(string testCase, string expectedProgramString = null) {
+    private void FormatterWorksFor(string testCase, string expectedProgramString = null, bool expectNoToken = false) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
@@ -1581,6 +1624,9 @@ method Test() {
         }
 
         var firstToken = dafnyProgram.GetFirstTopLevelToken();
+        if (firstToken == null && !expectNoToken) {
+          Assert.False(true, "Did not find a first token");
+        }
         var reprinted = firstToken != null && firstToken.line > 0 ?
           TokenFormatter.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram))

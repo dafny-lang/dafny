@@ -171,7 +171,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return DefaultModule.RootToken.Next;
+      return DefaultModule.RootToken.Next.kind == 0 ? null : // End of file token
+         DefaultModule.RootToken.Next;
     }
   }
 

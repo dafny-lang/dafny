@@ -268,7 +268,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         SetClosingIndentedRegion(token, indent);
       }
       if (token.val is "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant" or "yield") {
-        SetOpeningIndentedRegion(token, indent2);
+        if (IsFollowedByNewline(token)) {
+          SetOpeningIndentedRegion(token, indent2);
+        } else {
+          SetIndentations(token, indent2, indent2, indent2 + token.val.Length + 1);
+        }
+
         commaIndent = indent2;
       }
     }

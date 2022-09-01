@@ -26,8 +26,8 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    if (documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
-      var lastDocument = await documentEntry.LastDocument;
+    var lastDocument = await documents.GetResolvedDocumentAsync(request.TextDocument.Uri);
+    if (lastDocument != null) {
       var firstToken = lastDocument.Program.GetFirstTopLevelToken();
       string result;
       if (firstToken == null) {
