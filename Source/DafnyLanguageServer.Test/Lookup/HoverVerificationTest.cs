@@ -14,7 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverVerificationTest : DafnyLanguageServerTestBase {
-    private const int MaxTestExecutionTimeMs = 10000;
+    private const int MaxTestExecutionTimeMs = 30000;
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
@@ -96,7 +96,7 @@ This is the only assertion in [batch](???) #2 of 3 in method f
       await AssertHoverMatches(documentItem, (2, 12),
         @"<span style='color:green'>**Success:**</span> assertion always holds  
 This is the only assertion in [batch](???) #3 of 3 in method f  
-[Batch](???) #3 resource usage: ??? RU  "
+[Batch](???) #3 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
         @"**Verification performance metrics for method f**:
@@ -129,7 +129,7 @@ This is assertion #2 of 2 in [batch](???) #1 of 2 in function f
       await AssertHoverMatches(documentItem, (3, 26),
         @"[**Error:**](???) assertion might not hold  
 This is assertion #1 of 2 in [batch](???) #2 of 2 in function f  
-[Batch](???) #2 resource usage: ??? RU  "
+[Batch](???) #2 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
         @"**Verification performance metrics for function f**:
@@ -147,7 +147,6 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function f
 method f(x: int) {
   print x;
 }", "testfile.dfy");
-      await Task.Delay(100); // Just time for the diagnostics to be updated
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -159,12 +158,28 @@ No assertions."
 
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MeaningfulMessageForFailingPreconditions() {
+      var documentItem = await GetDocumentItem(@"
+method Test1() {
+    Test2(0);  // Hover #1
+}
+
+method Test2(i: int)
+  requires i > 0 {
+
+}", "testfile.dfy");
+      await AssertHoverMatches(documentItem, (1, 10),
+        @"???
+Failing precondition:???"
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithOneAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
   assert false;
 }", "testfile1.dfy");
-      await Task.Delay(100); // Just time for the diagnostics to be updated
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -181,7 +196,6 @@ method f(x: int) {
   assert false;
   assert false;
 }", "testfile2.dfy");
-      await Task.Delay(100); // Just time for the diagnostics to be updated
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -208,7 +222,6 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
   }
   assert {:split_here} true;
 } ", "testfileSlow.dfy");
-      await Task.Delay(100); // Just time for the diagnostics to be updated
       await AssertHoverMatches(documentItem, (0, 22),
         @"**Verification performance metrics for method SquareRoot2NotRational**:
 
