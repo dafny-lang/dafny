@@ -299,10 +299,10 @@ method Multiply(x: int, y: int) returns (product: int)
       ApplyChange(ref documentItem, new Range((8, 30), (8, 31)), "+");
 
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
