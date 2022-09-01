@@ -1,12 +1,12 @@
 # Upcoming
 
+- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
 
 # 3.8.1
 
 - feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
 - fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
-- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
 - fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
 - fix: Prevent LSP server from exiting when a crash occurs (https://github.com/dafny-lang/dafny/pull/2664)
 - fix: Fix bug where LSP server would not show diagnostics that referred to included files (https://github.com/dafny-lang/dafny/pull/2664)
