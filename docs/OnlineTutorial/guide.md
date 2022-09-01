@@ -1977,7 +1977,7 @@ deduced from the loop invariant:
 
 ```dafny
   invariant forall i ::
-             0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
+    0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
 ```
 
 When `low == high`, the negated
