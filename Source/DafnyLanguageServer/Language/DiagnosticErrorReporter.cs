@@ -104,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             try {
               var content = File.ReadAllText(fileName);
               message = FormatRelated(content.Substring(range.StartToken.pos, rangeLength));
-            } catch (FileNotFoundException) {
+            } catch (IOException) {
               message = message + "(could not open file " + fileName + ")";
             } catch (ArgumentOutOfRangeException) {
               message = "Related location (could not read position in file " + fileName + ")";
