@@ -1,5 +1,5 @@
 ---
-title: I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?
+title: I just realized that a function I was compiling had a type error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?
 ---
 
 ## Question
