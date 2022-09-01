@@ -1882,7 +1882,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             return disjunction;
           }
         }
-        return Boogie.Expr.Gt(Boogie.Expr.SelectTok(tok, TrExpr(s), elmtBox), Boogie.Expr.Literal(0));
+        var result = Boogie.Expr.Gt(Boogie.Expr.SelectTok(tok, TrExpr(s), elmtBox), Boogie.Expr.Literal(0));
+        result.tok = tok;
+        return result;
       }
 
       /// <summary>
