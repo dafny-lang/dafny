@@ -315,7 +315,10 @@ public class Compilation {
       if (t.IsCompletedSuccessfully) {
         return verificationCompleted.Task.ContinueWith(
 #pragma warning disable VSTHRD103
-          _ => Task.FromResult<DocumentAfterParsing>(t.Result), TaskScheduler.Current).Unwrap();
+          verificationCompletedTask => {
+            logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
+            return Task.FromResult<DocumentAfterParsing>(t.Result);
+          }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
       }
 
