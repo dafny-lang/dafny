@@ -131,13 +131,13 @@ associative:
 method m()
 {
   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
-    (a + b) + c == a + (b + c);
+         (a + b) + c == a + (b + c);
 }
 ```
 
 ```dafny
   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
-    (a + b) + c == a + (b + c);
+         (a + b) + c == a + (b + c);
 ```
 
 but that the Z3 theorem prover will not realize this unless
