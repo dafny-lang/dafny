@@ -1019,9 +1019,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         NoIncludes disables.
 
 /printIncludes:<None|Immediate|Transitive>
-    None is the default. Immediate prints files included by files listed
-    on the command line Transitive recurses on the files printed by
-    Immediate Immediate and Transitive will exit after printing.
+    None (default) - Print nothing.
+    Immediate - Print files included by files listed on the command line.
+    Transitive - Recurses on the files printed by Immediate.
+
+    Immediate and Transitive will exit after printing.
 
 /view:<view1, view2>
     Print the filtered views of a module after it is resolved (/rprint).
