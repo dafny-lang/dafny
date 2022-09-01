@@ -10,8 +10,7 @@ languages like Java and Python, except they can be sequences of arbitrary
 types, rather than only characters. Sequence types are written:
 
 ```dafny
-  seq<int>
-```
+seq<int>
 
 for a sequence of integers, for example.
 For example, this function takes a sequence as a parameter:
