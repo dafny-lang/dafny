@@ -1,6 +1,9 @@
 # Upcoming
 
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
+- fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
+- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
+
 
 # 3.8.1
 
