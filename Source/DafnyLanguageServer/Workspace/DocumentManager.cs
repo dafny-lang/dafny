@@ -29,6 +29,7 @@ public class DocumentManager {
   private readonly DocumentObserver observer;
   public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
+  private readonly ILogger<DocumentManager> logger;
 
   private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
   private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
@@ -43,6 +44,7 @@ public class DocumentManager {
     VerifierOptions verifierOptions,
     DocumentTextBuffer document) {
     this.services = services;
+    this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
     this.documentOptions = documentOptions;
     this.verifierOptions = verifierOptions;
     this.relocator = services.GetRequiredService<IRelocator>();
@@ -154,8 +156,10 @@ public class DocumentManager {
 
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      await Compilation.ResolvedDocument;
+      var resolvedDocument = await Compilation.ResolvedDocument;
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, observer.LastPublishedState.Version = {observer.LastPublishedState.Version}");
     } catch (OperationCanceledException) {
+      logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
     }
 
     return observer.LastPublishedState;
