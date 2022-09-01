@@ -3654,6 +3654,25 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
+The operator `<` is defined for two operands of the same datataype.
+It means _is contained in_. For example, in the code
+```dafny
+datatype X = T(t: X) | I(i: int)
+method comp() {
+  var x: X := T(I(0));
+  var y: X := I(0);
+  var z: X := I(1);
+  assert x.t < x;
+  assert y < x;
+  assert z < x;
+}
+```
+`x` is a datatype value that holds a `T` variant, which holds a `I` variant, which holds an integer `0`.
+The value `x.t` is a portion of the datatype structure denoted by `x`, so `x.t < x` is true.
+Datatype values are immutable mathematical values, so the value of `y` is identical to the value of
+`x.t`, so `y < x` is true also, even though `y` is constructed from the ground up, rather than as
+a portion of `x`. However, `z` is different than either `y` or `x.t` and consequently `z < x` is false.
+Note that only `<` is defined; not `<=` or `>` or `>=`.
 
 ## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 
