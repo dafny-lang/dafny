@@ -1,23 +1,19 @@
+
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DocumentObserver : IObserver<DafnyDocument> {
+class DocumentObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public DafnyDocument LastPublishedDocument {
+  public IdeState LastPublishedState {
     get; private set;
   }
 
@@ -26,7 +22,7 @@ class DocumentObserver : IObserver<DafnyDocument> {
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
     DocumentTextBuffer document) {
-    LastPublishedDocument = loader.CreateUnloaded(document, CancellationToken.None);
+    LastPublishedState = loader.CreateUnloaded(document, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
@@ -42,19 +38,15 @@ class DocumentObserver : IObserver<DafnyDocument> {
       return;
     }
 
-    var previousDiagnostics = LastPublishedDocument.LoadCanceled
-      ? new Diagnostic[] { }
-      : LastPublishedDocument.ParseAndResolutionDiagnostics;
     var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
         exception,
       Severity = DiagnosticSeverity.Error,
-      Range = LastPublishedDocument.Program.GetFirstTopLevelToken().GetLspRange()
+      Range = new Range(0, 0, 0, 1)
     };
-    var documentToPublish = LastPublishedDocument with {
-      LoadCanceled = false,
-      ParseAndResolutionDiagnostics = previousDiagnostics.Concat(new[] { internalErrorDiagnostic }).ToList()
+    var documentToPublish = LastPublishedState with {
+      ResolutionDiagnostics = new[] { internalErrorDiagnostic }
     };
 
     OnNext(documentToPublish);
@@ -64,14 +56,15 @@ class DocumentObserver : IObserver<DafnyDocument> {
   }
 
   private readonly object lastPublishedDocumentLock = new();
-  public void OnNext(DafnyDocument document) {
+  public void OnNext(IdeState snapshot) {
     lock (lastPublishedDocumentLock) {
-      if (document.Version < LastPublishedDocument.Version) {
+      if (snapshot.Version < LastPublishedState.Version) {
         return;
       }
 
-      notificationPublisher.PublishNotifications(LastPublishedDocument, document);
-      LastPublishedDocument = document.Snapshot(); // Snapshot before storing.
+      logger.LogDebug($"Publishing notification for version {snapshot.Version}.");
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
+      LastPublishedState = snapshot;
     }
   }
 }
