@@ -169,10 +169,11 @@ public class ExpectContracts : IRewriter {
         return false;
       }
 
-      // TODO: make this configurable
-      return (HasTestAttribute(caller) || HasExternAttribute(callee)) &&
-             // TODO: check this in a better way
-             !caller.Name.EndsWith("_checked");
+      var opts = DafnyOptions.O.TestContracts;
+      return ((HasTestAttribute(caller) && opts == DafnyOptions.ContractTestingMode.TestAttribute) ||
+              (HasExternAttribute(callee) && opts == DafnyOptions.ContractTestingMode.ExternAttribute)) &&
+             // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
+             !newRedirections.ContainsValue(caller);
     }
 
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {

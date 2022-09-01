@@ -81,6 +81,12 @@ namespace Microsoft.Dafny {
       NoGhost
     }
 
+    public enum ContractTestingMode {
+      None,
+      TestAttribute,
+      ExternAttribute
+    }
+
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
@@ -117,6 +123,7 @@ namespace Microsoft.Dafny {
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; } = new();
+    public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -630,6 +637,19 @@ namespace Microsoft.Dafny {
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
+        case "testContracts":
+          // TODO: support more than one argument
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("Tests")) {
+              TestContracts = ContractTestingMode.TestAttribute;
+            } else if (args[ps.i].Equals("Externs")) {
+              TestContracts = ContractTestingMode.ExternAttribute;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1319,6 +1339,16 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     However, these contents are skipped during code generation and verification.
     This option is useful in a diamond dependency situation, 
     to prevent code from the bottom dependency from being generated more than once.
+
+/testContracts:<Tests|Externs>
+    Enable run-time testing of compiled function or method contracts in
+    certain situations.
+
+    Tests - Check contracts on functions and methods when calling them
+        directly from methods marked with the :test attribute.
+    Externs - Check contracts when calling functions or methods marked
+        with the :extern attribute.
+
 
 ----------------------------------------------------------------------------
 
