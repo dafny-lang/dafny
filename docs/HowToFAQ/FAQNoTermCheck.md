@@ -1,5 +1,5 @@
 ---
-title: Can I ask dafny to not check termination of a function?
+title: Can I ask Dafny to not check termination of a function?
 ---
 
 ## Question
