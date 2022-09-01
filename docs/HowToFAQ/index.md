@@ -45,3 +45,18 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
+
+
+# Errors
+
+- ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
+- ["rbrace expected"](ERROR_Rbrace)
+- ["closeparen expected"](ERROR_CloseParen)
+- ["cannot establish the existence of LHS values that satisfy the such-that predicate"](ERROR_NoLHS)
+- ["type parameter 0 (K) passed to type A must support no references"](ERROR_NoReferenceTypeParameter)
+- ["a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"](ERROR_ModifiesValue)
+- ["name of datatype (String) is used as a function"](ERROR_DataTypeName)
+- ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
+- ["type ? does not have a member IsFailure"](ERROR_IsFailure)
+- ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
+
