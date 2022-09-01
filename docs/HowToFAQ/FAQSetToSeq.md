@@ -1,5 +1,5 @@
 ---
-title: Is there a nice way to turn a set into a seq?
+title: Is there a nice way to turn a `set` into a `seq`?
 ---
 
 ## Question
