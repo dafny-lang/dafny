@@ -198,10 +198,20 @@ public class Compilation {
       logger.LogError(e, "Caught error in statusUpdates observable.");
       return Observable.Empty<IVerificationStatus>();
     }).ObserveOn(verificationUpdateScheduler).Subscribe(
-      update => HandleStatusUpdate(document, implementationTask, update),
+      update => {
+        try {
+          HandleStatusUpdate(document, implementationTask, update);
+        } catch (Exception e) {
+          logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
+        }
+      },
       () => {
-        if (document.VerificationTasks.All(t => t.IsIdle)) {
-          FinishedNotifications(document);
+        try {
+          if (document.VerificationTasks!.All(t => t.IsIdle)) {
+            FinishedNotifications(document);
+          }
+        } catch (Exception e) {
+          logger.LogCritical(e, "Caught exception in statusUpdates OnCompleted.");
         }
       });
 
