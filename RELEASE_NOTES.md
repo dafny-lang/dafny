@@ -1,5 +1,6 @@
 # Upcoming
 
+- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
 
 # 3.8.1
 
