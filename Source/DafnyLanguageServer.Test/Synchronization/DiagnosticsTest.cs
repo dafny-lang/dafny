@@ -582,6 +582,58 @@ method t10() { assert false; }".TrimStart();
       }
     }
 
+
+
+    [TestMethod]
+    public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
+      var source = @"
+module {:options ""/functionSyntax:4""} Library {
+  // Library
+  datatype Option<T> = Some(value: T) | None
+  datatype Result<T> = Success(value: T) | Failure(s: string, pos: int) {
+    predicate IsFailure() {
+      Failure?
+    }
+    function PropagateFailure<U>(): Result<U>
+      requires IsFailure()
+    {
+      Failure(s, pos)
+    }
+    function Extract(): T
+      requires !IsFailure()
+    {
+      value
+    }
+  }
+}
+module Parser {
+  import opened Library
+
+  datatype Parser = Parser(expected: string) | Log(p: Parser, message: string)
+  {
+    method {:termination false} Parse(s: string, i: nat)
+      returns (result: Result<(string, nat)>)
+    {
+      if Log? {
+        var v1 :- p.Parse(s, i); // Removing this line makes the language server not crash anymore.
+      }
+      
+      result := Failure(""bam"", i);
+    }
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      diagnosticsReceiver.ClearHistory();
+      var documentItem = CreateTestDocument(source, $"test1.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken.None);
+      Assert.AreEqual(0, diagnostics.Count(diagnostic =>
+        diagnostic.Severity != DiagnosticSeverity.Information &&
+        diagnostic.Severity != DiagnosticSeverity.Hint), $"Expected no issue");
+    }
+
     [TestMethod]
     public async Task OpeningDocumentWithTimeoutReportsTimeoutDiagnostic() {
       var source = @"
