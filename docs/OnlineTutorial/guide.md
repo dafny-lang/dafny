@@ -1302,7 +1302,7 @@ method ComputeFib(n: nat) returns (b: nat)
 {
   var i: int := 0;
   var a := 1;
-      b := 0;
+  b := 0;
   while i < n
     // Fill in the invariants here.
   {
