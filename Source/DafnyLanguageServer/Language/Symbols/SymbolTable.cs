@@ -2,9 +2,10 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -38,6 +39,23 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public bool Resolved { get; }
 
     private readonly DafnyLangTypeResolver typeResolver;
+
+    public static SymbolTable Empty(DocumentTextBuffer textDocument) {
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
+      return new SymbolTable(
+        NullLogger<SymbolTable>.Instance,
+        new CompilationUnit(new Dafny.Program(
+          textDocument.Uri.ToString(),
+          new LiteralModuleDecl(new DefaultModuleDecl(), null),
+          // BuiltIns cannot be initialized without Type.ResetScopes() before.
+          new BuiltIns(),
+          errorReporter
+        )),
+        new Dictionary<object, ILocalizableSymbol>(),
+        new Dictionary<ISymbol, SymbolLocation>(),
+        new IntervalTree<Position, ILocalizableSymbol>(),
+        symbolsResolved: false);
+    }
 
     public SymbolTable(
         ILogger<SymbolTable> iLogger,
@@ -84,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Tries to get the location of the given symbol.
     /// </summary>
-    /// <param name="position">The symbol to get the location of.</param>
+    /// <param name="symbol">The symbol to get the location of.</param>
     /// <param name="location">The current location of the specified symbol, or <c>null</c> if no location of the given symbol is known.</param>
     /// <returns><c>true</c> if a location was found, otherwise <c>false</c>.</returns>
     public bool TryGetLocationOf(ISymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
