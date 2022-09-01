@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -18,7 +19,6 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
-
 
     [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
@@ -575,7 +575,7 @@ method t10() { assert false; }".TrimStart();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length, "Old to new history was:" + diagnosticsReceiver.History.Stringify());
+        Assert.AreEqual(5, diagnostics.Length, $"Iteration is {i}, Old to new history was: {diagnosticsReceiver.History.Stringify()}");
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
@@ -845,10 +845,10 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
-      Assert.AreEqual(first.Length, second.Length);
-      foreach (var t in first.Zip(second)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message);
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
+      Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
+      foreach (var t in expected.Zip(actual)) {
+        Assert.AreEqual(t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
