@@ -3659,9 +3659,9 @@ It means _is properly contained in_. For example, in the code
 ```dafny
 datatype X = T(t: X) | I(i: int)
 method comp() {
-  var x: X := T(I(0));
-  var y: X := I(0);
-  var z: X := I(1);
+  var x := T(I(0));
+  var y := I(0);
+  var z := I(1);
   assert x.t < x;
   assert y < x;
   assert !(x < x);
