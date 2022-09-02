@@ -8,16 +8,16 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class DocumentObserver : IObserver<IdeState> {
+class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
-  public IdeState LastPublishedState {
-    get; private set;
-  }
+  private readonly object lastPublishedStateLock = new();
 
-  public DocumentObserver(ILogger logger,
+  public IdeState LastPublishedState { get; private set; }
+
+  public IdeStateObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
@@ -55,14 +55,14 @@ class DocumentObserver : IObserver<IdeState> {
     telemetryPublisher.PublishUnhandledException(exception);
   }
 
-  private readonly object lastPublishedDocumentLock = new();
   public void OnNext(IdeState snapshot) {
-    lock (lastPublishedDocumentLock) {
+    logger.LogDebug($"IdeStateObserver.OnNext entered, threadId: {Thread.CurrentThread.ManagedThreadId}");
+    lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
         return;
       }
 
-      logger.LogDebug($"Publishing notification for version {snapshot.Version}.");
+      logger.LogDebug($"Publishing notification for {snapshot.Uri} version {snapshot.Version}.");
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
     }
