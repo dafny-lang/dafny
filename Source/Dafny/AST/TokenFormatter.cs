@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Triggers;
@@ -1058,15 +1059,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case "reveal":
           case "print":
             if (IsFollowedByNewline(token)) {
-              formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              formatter.SetOpeningIndentedRegion(token, indent);
             } else {
-              formatter.SetIndentations(token, indent, indent, -1);
-              innerIndent = formatter.GetRightAlignIndentAfter(token, indent);
-              commaIndent = formatter.GetRightAlignIndentDelimiter(token, indent);
-              formatter.SetIndentations(token, -1, -1, innerIndent);
+              formatter.SetAlign(indent, token, out innerIndent, out commaIndent);
             }
-
-            formatter.SetOpeningIndentedRegion(token, indent);
             break;
           case ",":
             formatter.SetIndentations(token, innerIndent, commaIndent, innerIndent);
@@ -1269,11 +1265,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetIndentMatchStmt(indent, expr.OwnedTokens);
         case ComprehensionExpr:
           return SetIndentComprehensionExpr(indent, expr.OwnedTokens);
+        case UnaryExpr:
+        case OldExpr:
+        case UnchangedExpr:
         case ParensExpression:
         case SeqDisplayExpr:
         case MapDisplayExpr:
         case SetDisplayExpr:
           return SetIndentParensExpression(indent, expr.OwnedTokens);
+        case ApplySuffix applySuffix: {
+            var reindent = formatter.GetTokenCol(applySuffix.StartToken, indent) - 1;
+            return SetIndentParensExpression(reindent, expr.OwnedTokens);
+          }
       }
 
       return true;
@@ -1306,7 +1309,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case "]":
           case "}":
           case ")": {
-              formatter.SetIndentations(token, itemIndent, commaIndent, commaIndent);
+              formatter.SetIndentations(token, itemIndent, indent, indent);
               break;
             }
         }
@@ -1563,9 +1566,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         Visit(binaryExpr.E0, indent);
         Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + SpaceTab);
         return false;
+      } else {
+        foreach (var token in binaryExpr.OwnedTokens) {
+          formatter.SetIndentations(token, indent, indent, indent);
+        }
+        Visit(binaryExpr.E0, indent);
+        Visit(binaryExpr.E1, indent);
+        return false;
       }
-
-      return true;
     }
   }
 

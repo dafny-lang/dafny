@@ -312,7 +312,7 @@ public class Scanner {
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
       Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
       this._buffer = new Buffer(stream, false);
@@ -330,7 +330,7 @@ public class Scanner {
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;
     this.FullFilename = fullFilename;

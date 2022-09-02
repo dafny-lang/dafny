@@ -3177,7 +3177,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
 
     ";"                             (. ownedTokens.Add(t); .)
     (. s = new VarDeclPattern(e.tok, e.tok, pat, e, isGhost);
-       s.OwnedTokens = ownedTokens; .)
+       s.OwnedTokens = ownedTokens;
+       s.StartToken = ownedTokens[0]; .)
   )
   .
 
@@ -4156,7 +4157,7 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
   Factor<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
-    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); e0.OwnedTokens = new List<IToken>(){x}; .)
   }
   .
 
@@ -4283,29 +4284,44 @@ ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;
      e = dummyExpr;
+     var ownedTokens = new List<IToken>();
   .)
   ( LiteralExpression<out e>
-  | "this"                                     (. e = new ThisExpr(t); .)
-  | "allocated"                                (. x = t; .)
-    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
-  | "fresh"                                    (. x = t; IToken atLabel = null; .)
-    [ "@" LabelName<out atLabel> ]
-    "(" Expression<out e, true, true> ")"      (. e = new FreshExpr(x, e, atLabel?.val); .)
-  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; .)
-    [ "@" LabelName<out atLabel> ]
-    "("
+  | "this"                                     (. e = new ThisExpr(t); ownedTokens.Add(t); .)
+  | "allocated"                                (. x = t; ownedTokens.Add(t); .)
+    "("                                        (. ownedTokens.Add(t); .)
+    Expression<out e, true, true>
+    ")"                                        (. ownedTokens.Add(t);
+                                                  e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
+  | "fresh"                                    (. x = t; IToken atLabel = null; ownedTokens.Add(t); .)
+    [ "@"                                      (. ownedTokens.Add(t); .)
+      LabelName<out atLabel>                   (. ownedTokens.Add(atLabel); .)
+    ]
+    "("                                        (. ownedTokens.Add(t); .)
+    Expression<out e, true, true>
+    ")"                                        (. e = new FreshExpr(x, e, atLabel?.val); ownedTokens.Add(t); .)
+  | "unchanged"                                (. x = t; ownedTokens.Add(t); FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; .)
+    [ "@"                                      (. ownedTokens.Add(t); .)
+      LabelName<out atLabel>                   (. ownedTokens.Add(atLabel); .)
+    ]
+    "("                                        (. ownedTokens.Add(t); .)
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
-      { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
+      { ","                                    (. ownedTokens.Add(t); .)
+        FrameExpression<out fe, false, false>  (. mod.Add(fe); .)
       }
-    ")"                                        (. e = new UnchangedExpr(x, mod, atLabel?.val); .)
-  | "old"                                      (. x = t; IToken atLabel = null; .)
-    [ "@" LabelName<out atLabel> ]
-    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, atLabel?.val); .)
-  | "|"                                        (. x = t; .)
+    ")"                                        (. ownedTokens.Add(t); e = new UnchangedExpr(x, mod, atLabel?.val); .)
+  | "old"                                      (. x = t; IToken atLabel = null; ownedTokens.Add(t); .)
+    [ "@"                                      (. ownedTokens.Add(t); .)
+      LabelName<out atLabel>                   (. ownedTokens.Add(atLabel); .)
+    ]
+    "("                                        (. ownedTokens.Add(t); .)
+    Expression<out e, true, true>
+    ")"                                        (. ownedTokens.Add(t); e = new OldExpr(x, e, atLabel?.val); .)
+  | "|"                                        (. x = t; ownedTokens.Add(t); .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
-    "|"
+    "|"                                        (. ownedTokens.Add(t); .)
   | ParensExpression<out e>
-  )
+  ) (. if(!(e is ParensExpression)) { e.OwnedTokens = ownedTokens; } .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -5003,11 +5019,13 @@ Suffix<ref Expression e>
          }
          e.OwnedTokens = ownedTokens;
       .)
-  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); ownedTokens.Add(t); .)
+  | "("                                    (. IToken openParen = t;
+                                              var args = new List<ActualBinding>();
+                                              ownedTokens.Add(t); .)
     [ ActualBindings<args, ownedTokens> ]
     ")"                                    (. ownedTokens.Add(t);
                                               e = new ApplySuffix(openParen, null, e, args, t);
-                                              e.OwnedTokens.Add(t);
+                                              e.OwnedTokens = ownedTokens;
                                            .)
   )
   .

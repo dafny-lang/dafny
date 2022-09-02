@@ -54,32 +54,28 @@ method Test() {
     public void FormatterWorksForArguments() {
       FormatterWorksFor(@"
 method Test()
-  ensures Binds(x) ==
-          Bind(y)
 {
-  me(func(arg(1, 2)));
+  me(func(arg(3,
+              4)));
 
-  me(func(arg(1,
-              2)));
-
-  me(func(arg(1,
-              2
-             ,3
+  me(func(arg(5,
+              6
+             ,7
           )
      )
   );
 
   me(func(arg(
-            1, 2)));
+            8, 9)));
 
   me(func(
        arg(
-         1, 2)));
+         10, 11)));
 
   me(
     func(
       arg(
-        1, 2)),
+        12, 13)),
     func2());
   me
   (func
@@ -258,6 +254,9 @@ module Test {
     method Weird()
       returns (x: int)
       // One in the docstring
+      
+      ensures Binds(x) ==
+              Bind(y)
       ensures &&  x > 1
               && 
                   x > 2
@@ -1131,9 +1130,15 @@ method {:test} PassingTestUsingNoLHSAssignOrHalt() {
 // Sanity check
 method Main() {
   print FunctionMethodSyntax.CompiledFunction()
-    + GhostFunctionSyntax.CompiledFunction()
-    + StillGhostFunctionSyntax.CompiledFunction()
-    + BackToDefault.CompiledFunction();
+        + GhostFunctionSyntax.CompiledFunction()
+        + StillGhostFunctionSyntax.CompiledFunction()
+        + BackToDefault.CompiledFunction();
+  
+  print
+    NFunctionMethodSyntax.CompiledFunction()
+    + NGhostFunctionSyntax.CompiledFunction()
+    + NStillGhostFunctionSyntax.CompiledFunction()
+    + NBackToDefault.CompiledFunction();
 }
 ");
     }
@@ -1153,8 +1158,32 @@ iterator Iter0(x: int := y, y: int := 0)
     }
 
     [Fact]
-    public void FormatterworksForGhostVars() {
+    public void FormatterWorksForVarsAndGhostVarsAndUnchanged() {
       FormatterWorksFor(@"
+twostate predicate BadVariations(c: Twostate, d: Twostate, e: Twostate, f: Twostate)
+{
+  && unchanged(
+       this,
+       c
+     )
+  && old(
+       c.c
+     ) == c.c
+  && fresh(
+       c.c
+     )
+  && allocated(
+       c.c
+     )
+}
+lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  ensures Bind(Return(x), f) == f(x)
+{
+  var State(h) := State(s => (x, s));
+  var State(g2) := f(x);
+  calc {}
+}
+
 function Fu(): int
 {
   ghost var p: () -> bool := P;  // error: cannot use a two-state function in this context

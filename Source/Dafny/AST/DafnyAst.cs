@@ -171,7 +171,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return DefaultModule.RootToken.Next.kind == 0 ? null : // End of file token
+      return (DefaultModule.RootToken.Next == null || DefaultModule.RootToken.Next.kind == 0) ? null : // End of file token
          DefaultModule.RootToken.Next;
     }
   }
@@ -13338,6 +13338,17 @@ namespace Microsoft.Dafny {
       Bindings = new ActualBindings(args);
       if (closeParen != null) {
         FormatTokens = new[] { closeParen };
+      }
+    }
+
+    public override IEnumerable<Expression> PreResolveSubExpressions {
+      get {
+        yield return Lhs;
+        if (Bindings.ArgumentBindings != null) {
+          foreach (var binding in Bindings.ArgumentBindings) {
+            yield return binding.Actual;
+          }
+        }
       }
     }
   }
