@@ -1718,9 +1718,25 @@ method Test() {
       }
   }
   var i := 0;
+  while i == 1
+    decreases
+      10 - i,
+      1
+      , 2
+  {
+  }
+  while
+    decreases
+      310 - i,
+      31
+      , 32
+  {
+  }
   label Loop:
   while
-    decreases 10 - i
+    decreases 11 - i,
+              12
+            , 23
   {
     case i < 10 =>
       if i == 929 {

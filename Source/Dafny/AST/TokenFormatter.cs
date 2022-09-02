@@ -1481,6 +1481,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var matchCaseNoIndent = false;
       var caseIndent = indent;
       var afterArrowIndent = indent + SpaceTab;
+      var decreasesElemIndent = indent + SpaceTab + SpaceTab;
+      var commaIndent = decreasesElemIndent;
       // Need to ensure that the "case" is at least left aligned with the match/if/while keyword
       foreach (var token in ownedTokens) {
         switch (token.val) {
@@ -1516,6 +1518,25 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
 
             break;
+          case ",": { // For decreases clauses
+              formatter.SetIndentations(token, decreasesElemIndent, commaIndent, decreasesElemIndent);
+              break;
+            }
+          case "decreases": {
+              if (IsFollowedByNewline(token)) {
+                formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+                decreasesElemIndent = indent + SpaceTab + SpaceTab;
+                commaIndent = decreasesElemIndent;
+              } else {
+                formatter.SetAlign(indent + SpaceTab, token, out decreasesElemIndent, out commaIndent);
+              }
+
+              break;
+            }
+          case "invariant": {
+              formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+              break;
+            }
         }
       }
 
@@ -1617,22 +1638,41 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
 
       var loopStarted = false;
-      for (var i = 0; i < ownedTokens.Count; i++) {
-        var token = ownedTokens[i];
-        if (token.val == "label") {
-          formatter.SetOpeningIndentedRegion(token, indent);
-          continue;
-        }
-        if (token.val == "while" || token.val == "forall") {
-          loopStarted = true;
-          formatter.SetOpeningIndentedRegion(token, indent);
-          continue;
-        }
+      var decreasesElemIndent = indent + SpaceTab;
+      var commaIndent = indent + SpaceTab;
+      foreach (var token in ownedTokens) {
+        switch (token.val) {
+          case "label": {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case "while":
+          case "forall": {
+              loopStarted = true;
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case ",": { // For decreases clauses
+              formatter.SetIndentations(token, decreasesElemIndent, commaIndent, decreasesElemIndent);
+              break;
+            }
+          case "decreases": {
+              if (IsFollowedByNewline(token)) {
+                formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+                decreasesElemIndent = indent + SpaceTab + SpaceTab;
+                commaIndent = decreasesElemIndent;
+              } else {
+                formatter.SetAlign(indent + SpaceTab, token, out decreasesElemIndent, out commaIndent);
+              }
 
-        if (!loopStarted) {
-          continue;
+              break;
+            }
+          case "ensures":
+          case "invariant": {
+              formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+              break;
+            }
         }
-        formatter.SetOpeningIndentedRegion(ownedTokens[i], indent + SpaceTab);
       }
 
       if (body != null) {

@@ -2048,7 +2048,7 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
                  bool allowWildcard, bool allowLambda, List<IToken> ownedTokens.>
 = "decreases"               (. ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  DecreasesList<decreases, allowWildcard, allowLambda>
+  DecreasesList<decreases, allowWildcard, allowLambda, ownedTokens>
   OldSemi
   .
 
@@ -2058,8 +2058,8 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
                   List<IToken> ownedTokens.>
 = "reads"
   (. FrameExpression fe; ownedTokens.Add(t); .)
-  PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
-  { "," (. ownedTokens.Add(t); .)
+  PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>      (. reads.Add(fe); .)
+  { ","                                                                        (. ownedTokens.Add(t); .)
     PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
@@ -3417,10 +3417,11 @@ LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref
   .
 
 /*------------------------------------------------------------------------*/
-DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.>
+DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda, List<IToken> ownedTokens.>
 = (. Expression e; .)
   PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
-  { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
+  { ","                                                           (. ownedTokens.Add(t); .)
+    PossiblyWildExpression<out e, allowLambda, allowWildcard>     (. decreases.Add(e); .)
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
        SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
