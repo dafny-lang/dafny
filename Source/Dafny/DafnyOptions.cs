@@ -1307,7 +1307,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     1 (default) - Emit usual exit code (cf. beginning of the help message).
 
 ---- Test generation options -----------------------------------------------
-
 {TestGenOptions.Help}
 
 ---- Compilation options ---------------------------------------------------

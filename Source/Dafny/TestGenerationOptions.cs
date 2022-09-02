@@ -81,8 +81,7 @@ namespace Microsoft.Dafny {
 /generateTestInlineDepth:<n>
     0 is the default. When used in conjunction with /testTargetMethod,
     this argument specifies the depth up to which all non-tested methods
-    should be inlined.
-";
+    should be inlined.";
 
   }
 }
