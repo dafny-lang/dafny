@@ -36,11 +36,6 @@ public class DocumentManager {
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
-  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
-    await workCompletedForCurrentVersion.WaitAsync();
-    workCompletedForCurrentVersion.Release();
-    return await Compilation.LastDocument;
-  }
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
 
@@ -132,6 +127,8 @@ public class DocumentManager {
       document.ToIdeState(lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
     logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
+
+    Compilation.Start();
   }
 
   private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
@@ -165,6 +162,12 @@ public class DocumentManager {
       await Compilation.LastDocument;
     } catch (TaskCanceledException) {
     }
+  }
+
+  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
+    await workCompletedForCurrentVersion.WaitAsync();
+    workCompletedForCurrentVersion.Release();
+    return await Compilation.LastDocument;
   }
 
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {

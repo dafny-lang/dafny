@@ -44,6 +44,7 @@ public class Compilation {
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
 
+  private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
   private readonly Subject<Document> documentUpdates = new();
@@ -74,8 +75,13 @@ public class Compilation {
     TranslatedDocument = TranslateAsync();
   }
 
+  public void Start() {
+    started.TrySetResult();
+  }
+
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
+      await started.Task;
       var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
