@@ -26,22 +26,22 @@ proofs are very common. For example, we may have the following loop:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-      invariant 0 <= i <= n
-   {
-      // do something interesting
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+    invariant 0 <= i <= n
+  {
+    // do something interesting
+     i := i + 1;
+  }
 }
 ```
 
-```
+```dafny
 while i < n
-   invariant 0 <= i <= n
+  invariant 0 <= i <= n
 {
-   // do something interesting
-   i := i + 1;
+  // do something interesting
+  i := i + 1;
 }
 ```
 
@@ -52,14 +52,14 @@ measure. Dafny sees that there is no explicit decreases annotation, so it tries
 to guess one. It sees that the loop condition is a comparison of the form `A < B`,
  for some `A` and `B`, so it makes the guess:
 
-```
-   decreases B - A
+```dafny
+  decreases B - A
 ```
 
 in this case:
 
-```
-   decreases n - i
+```dafny
+  decreases n - i
 ```
 
 If we add this annotation to the loop, it continues to
@@ -70,23 +70,23 @@ not execute again when the termination measure is negative. So we could write:
 ``` {.editonly}
 method m()
 {
-   var i, n := 0, 11;
-   while i < n
-      decreases n - i
-   {
-      // do something interesting
-      i := i + 5;
-   }
+  var i, n := 0, 11;
+  while i < n
+    decreases n - i
+  {
+    // do something interesting
+    i := i + 5;
+  }
 }
 ```
 
-```
+```dafny
 var i, n := 0, 11;
 while i < n
-   decreases n - i
+  decreases n - i
 {
-   // do something interesting
-   i := i + 5;
+  // do something interesting
+  i := i + 5;
 }
 ```
 
@@ -105,7 +105,7 @@ Most recursive functions/methods are self-recursive:
 ``` {.edit}
 function fac(n: nat): nat
 {
-   if n == 0 then 1 else n * fac(n-1)
+  if n == 0 then 1 else n * fac(n-1)
 }
 ```
 
@@ -114,8 +114,8 @@ functions which are recursive, they just call themselves with smaller values of
 the parameters, so the parameters decreasing is the default guess. The
 decreases annotation can be made explicit by adding:
 
-```
-   decreases n
+```dafny
+  decreases n
 ```
 
 to the function declaration.
@@ -126,14 +126,14 @@ the following method:
 
 ``` {.edit}
 method hail(N: nat)
-   decreases *
+  decreases *
 {
-   var n := N;
-   while 1 < n
-      decreases *
-   {
-      n := if n % 2 == 0 then n / 2 else n * 3 + 1;
-   }
+  var n := N;
+  while 1 < n
+    decreases *
+  {
+    n := if n % 2 == 0 then n / 2 else n * 3 + 1;
+  }
 }
 ```
 
@@ -160,11 +160,11 @@ uses a pair of integers to prove termination:
 
 ``` {.edit}
 function Ack(m: nat, n: nat): nat
-   decreases m, n
+  decreases m, n
 {
-   if m == 0 then n + 1
-   else if n == 0 then Ack(m - 1, 1)
-   else Ack(m - 1, Ack(m, n - 1))
+  if m == 0 then n + 1
+  else if n == 0 then Ack(m - 1, 1)
+  else Ack(m - 1, Ack(m, n - 1))
 }
 ```
 
@@ -196,14 +196,14 @@ consider this pair of recursively defined parity predicates:
 
 ``` {.edit}
 predicate even(n: nat)
-   ensures even(n) <==> n % 2 == 0
+  ensures even(n) <==> n % 2 == 0
 {
-   if n == 0 then true else odd(n-1)
+  if n == 0 then true else odd(n-1)
 }
 predicate odd(n: nat)
-   ensures odd(n) <==> n % 2 != 0
+  ensures odd(n) <==> n % 2 != 0
 {
-   if n == 0 then false else even(n-1)
+  if n == 0 then false else even(n-1)
 }
 ```
 
