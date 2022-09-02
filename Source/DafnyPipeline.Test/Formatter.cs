@@ -1208,6 +1208,29 @@ method Test() {
 }
 ");
     }
+
+
+    [Fact]
+    public void FormatterWorksForElephantOperatorInMatch() {
+      FormatterWorksFor(@"
+method execute_external_method(n:nat, m:nat) returns (r:Status)
+{
+  match n { // match statement is essential to reproduce the bug
+    case 0 =>            
+      :- Func1(); // elephant operator is essential to reproduce the bug
+      match m {
+        case 1 =>
+          :- Func1();
+        case _ =>
+          return Success;
+      }
+    case _ =>
+      return Success;
+  }
+}
+");
+    }
+
     [Fact]
     public void FormatterWorksForBraceAfterArrowAndSimilar() {
       FormatterWorksFor(@"
@@ -1236,6 +1259,7 @@ method Test() {
 }
 ");
     }
+
     [Fact]
     public void FormatterWorksForEmptyDocument() {
       FormatterWorksFor(@"

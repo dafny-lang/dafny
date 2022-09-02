@@ -1080,6 +1080,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var ownedTokens = stmt.OwnedTokens;
       var rightIndent = indent + SpaceTab;
       var commaIndent = indent + SpaceTab;
+      var opIndentDefault =
+        stmt is AssignOrReturnStmt assignStmt && assignStmt.Lhss.Count == 0
+          ? indent : indent + SpaceTab;
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case ",":
@@ -1098,7 +1101,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               } else {
                 var opIndent = formatter.PosToIndentLineBefore.ContainsKey(token.pos)
                   ? formatter.PosToIndentLineBefore[token.pos]
-                  : indent + SpaceTab;
+                  : opIndentDefault;
                 formatter.SetAlign(opIndent, token, out rightIndent, out commaIndent);
               }
 
