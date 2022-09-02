@@ -24,7 +24,7 @@ that use them.
 Specification clauses typically appear in a sequence. They all begin with a 
 keyword and do not end with semicolons.
 
-## 5.1. Specification Clauses
+## 5.1. Specification Clauses {#sec-specification-clauses}
 
 
 Within expressions in specification clauses, you can use
