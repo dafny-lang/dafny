@@ -1308,7 +1308,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Test generation options -----------------------------------------------
 {TestGenOptions.Help}
-
 ---- Compilation options ---------------------------------------------------
 
 /compile:<n>
