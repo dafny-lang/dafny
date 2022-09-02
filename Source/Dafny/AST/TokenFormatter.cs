@@ -1112,6 +1112,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
       }
 
+      var rhss = stmt is UpdateStmt updateStmt ? updateStmt.Rhss
+        : stmt is AssignOrReturnStmt assignOrReturnStmt ? assignOrReturnStmt.Rhss : new List<AssignmentRhs>();
+
+      foreach (var rhs in rhss) {
+        SetIndentParensExpression(rightIndent, rhs.OwnedTokens);
+      }
+
       return true;
     }
 

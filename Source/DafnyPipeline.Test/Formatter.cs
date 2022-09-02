@@ -1181,6 +1181,8 @@ lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
 {
   var State(h) := State(s => (x, s));
   var State(g2) := f(x);
+  var x := new A[2](i =>
+                    i + 1);
   calc {}
 }
 
