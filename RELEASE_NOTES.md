@@ -3,6 +3,7 @@
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 - fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
+- feat: generate warning when 'old' has no effect
 
 
 # 3.8.1
@@ -16,7 +17,6 @@
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 - fix: Better messages on hovering failing postconditions in IDE (https://github.com/dafny-lang/dafny/pull/2654)
 - fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
-
 
 # 3.8.0
 
