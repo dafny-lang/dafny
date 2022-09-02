@@ -70,6 +70,8 @@ The language itself draws pieces of influence from:
 
 # Contributors
 
+Information and instructions for potential contributors are provided [here](CONTRIBUTING).
+
 To enforce some basic style conventions, we've adopted [pre-commit](https://pre-commit.com/).  We're
 using [their default hooks](https://github.com/pre-commit/pre-commit-hooks).  When you clone
 Dafny, install pre-commit as per [the instructions](https://pre-commit.com/#install).
