@@ -238,7 +238,7 @@ namespace Microsoft.Dafny.Compilers {
       wMoveNext.NewBlockPy("try:")
         .WriteLine("next(self._iter)")
         .WriteLine("return True");
-      wMoveNext.NewBlockPy("except StopIteration:")
+      wMoveNext.NewBlockPy("except (StopIteration, TypeError) as e:")
         .WriteLine("return False");
 
       return w.NewBlockPy("def TheIterator(self):");
