@@ -176,6 +176,7 @@ public class Compilation {
     }
   }
 
+  private int runningVerificationJobs = 0;
   public bool VerifyTask(DocumentAfterTranslation document, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
@@ -193,11 +194,9 @@ public class Compilation {
       return false;
     }
 
+    Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
-    statusUpdates.Catch<IVerificationStatus, Exception>(e => {
-      logger.LogError(e, "Caught error in statusUpdates observable.");
-      return Observable.Empty<IVerificationStatus>();
-    }).ObserveOn(verificationUpdateScheduler).Subscribe(
+    statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
       update => {
         try {
           HandleStatusUpdate(document, implementationTask, update);
@@ -205,16 +204,26 @@ public class Compilation {
           logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
         }
       },
-      () => {
-        try {
-          if (document.VerificationTasks.All(t => t.IsIdle)) {
-            logger.LogDebug("Calling FinishedNotifications because all verification tasks are idle.");
-            FinishedNotifications(document);
-          }
-        } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception in statusUpdates OnCompleted.");
+      e => {
+        logger.LogError(e, "Caught error in statusUpdates observable.");
+        StatusUpdateHandlerFinally();
+      },
+      StatusUpdateHandlerFinally
+    );
+
+    void StatusUpdateHandlerFinally()
+    {
+      try {
+        var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+        if (remainingJobs == 0) {
+          logger.LogDebug("Calling FinishedNotifications because there are no remaining verification jobs.");
+          FinishedNotifications(document);
         }
-      });
+      }
+      catch (Exception e) {
+        logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+      }
+    }
 
     return true;
   }
