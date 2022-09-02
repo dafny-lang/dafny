@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -66,6 +67,8 @@ public class Compilation {
     this.services = services;
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
+
+    MarkVerificationFinished();
 
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
@@ -216,7 +219,7 @@ public class Compilation {
       try {
         var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
         if (remainingJobs == 0) {
-          logger.LogDebug("Calling FinishedNotifications because there are no remaining verification jobs.");
+          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {document.Version}.");
           FinishedNotifications(document);
         }
       } catch (Exception e) {

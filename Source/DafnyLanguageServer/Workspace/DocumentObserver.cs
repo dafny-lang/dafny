@@ -13,8 +13,12 @@ class DocumentObserver : IObserver<IdeState> {
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
+  private readonly object lastPublishedStateLock = new();
+  private volatile IdeState lastPublishedState;
+
   public IdeState LastPublishedState {
-    get; private set;
+    get => lastPublishedState;
+    private set => lastPublishedState = value;
   }
 
   public DocumentObserver(ILogger logger,
@@ -55,9 +59,8 @@ class DocumentObserver : IObserver<IdeState> {
     telemetryPublisher.PublishUnhandledException(exception);
   }
 
-  private readonly object lastPublishedDocumentLock = new();
   public void OnNext(IdeState snapshot) {
-    lock (lastPublishedDocumentLock) {
+    lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
         return;
       }

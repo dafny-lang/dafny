@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.LastDocumentAsync!;
+        return databaseEntry.GetLastDocumentAsync()!;
       }
       return Task.FromResult<DocumentAfterParsing?>(null);
     }
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<Compilation> Documents => documents.Values.Select(m => m.Compilation);
+    public IEnumerable<DocumentManager> Documents => documents.Values;
 
   }
 }

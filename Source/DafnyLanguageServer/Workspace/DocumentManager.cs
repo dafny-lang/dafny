@@ -36,7 +36,13 @@ public class DocumentManager {
   private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
-  public Task<DocumentAfterParsing> LastDocumentAsync => Compilation.LastDocument;
+  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
+    await workCompletedForCurrentVersion.WaitAsync();
+    workCompletedForCurrentVersion.Release();
+    return await Compilation.LastDocument;
+  }
+
+  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
 
   public DocumentManager(
     IServiceProvider services,
@@ -61,13 +67,14 @@ public class DocumentManager {
       document,
       null);
 
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
+
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
     } else {
-      Compilation.MarkVerificationFinished();
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
     }
-
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -82,6 +89,9 @@ public class DocumentManager {
       throw new InvalidOperationException(
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
+
+    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
 
     Compilation.CancelPendingUpdates();
     var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
@@ -113,13 +123,15 @@ public class DocumentManager {
     if (VerifyOnChange) {
       var _ = VerifyEverythingAsync();
     } else {
-      Compilation.MarkVerificationFinished();
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
     }
 
     observerSubscription.Dispose();
     var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
       document.ToIdeState(lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
+    logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
   }
 
   private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
@@ -141,8 +153,9 @@ public class DocumentManager {
 
   public void Save() {
     if (VerifyOnSave) {
-      Compilation.MarkVerificationStarted();
-      var _ = VerifyEverythingAsync();
+      logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+      var _1 = workCompletedForCurrentVersion.WaitAsync();
+      var _2 = VerifyEverythingAsync();
     }
   }
 
@@ -167,7 +180,7 @@ public class DocumentManager {
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
     try {
-      await Compilation.LastDocument;
+      await GetLastDocumentAsync();
     } catch (OperationCanceledException) {
     }
 
@@ -175,30 +188,34 @@ public class DocumentManager {
   }
 
   private async Task VerifyEverythingAsync() {
-    var translatedDocument = await Compilation.TranslatedDocument;
+    try {
+      var translatedDocument = await Compilation.TranslatedDocument;
 
-    var implementationTasks = translatedDocument.VerificationTasks;
+      var implementationTasks = translatedDocument.VerificationTasks;
 
-    if (!implementationTasks.Any()) {
-      Compilation.FinishedNotifications(translatedDocument);
-    }
+      if (!implementationTasks.Any()) {
+        Compilation.FinishedNotifications(translatedDocument);
+      }
 
-    lock (ChangedRanges) {
-      var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
-      ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct().Take(MaxRememberedChangedVerifiables).ToList();
-      ChangedRanges = new List<Range>();
-    }
+      lock (ChangedRanges) {
+        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
+        ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
+          .Take(MaxRememberedChangedVerifiables).ToList();
+        ChangedRanges = new List<Range>();
+      }
 
-    var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-    var orderedTasks = implementationTasks.
-      OrderBy(t => t.Implementation.Priority).
-      CreateOrderedEnumerable(
+      var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+      var orderedTasks = implementationTasks.OrderBy(t => t.Implementation.Priority).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Implementation.tok.GetLspPosition(), () => int.MaxValue),
-        null, false).
-      ToList();
+        null, false).ToList();
 
-    foreach (var implementationTask in orderedTasks) {
-      Compilation.VerifyTask(translatedDocument, implementationTask);
+      foreach (var implementationTask in orderedTasks) {
+        Compilation.VerifyTask(translatedDocument, implementationTask);
+      }
+    }
+    finally {
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
     }
   }
 
