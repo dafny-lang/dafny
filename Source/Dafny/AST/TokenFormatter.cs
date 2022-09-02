@@ -495,7 +495,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     } else if (topLevelDecl is LiteralModuleDecl moduleDecl) {
       SetLiteralModuleDeclIndent(moduleDecl, indent);
     } else if (topLevelDecl is TopLevelDeclWithMembers declWithMembers) {
-      if (declWithMembers is DatatypeDecl datatypeDecl) {
+      if (declWithMembers is OpaqueTypeDecl opaqueTypeDecl) {
+        SetOpaqueTypeDeclIndent(indent, opaqueTypeDecl);
+      } else if (declWithMembers is DatatypeDecl datatypeDecl) {
         SetDatatypeDeclIndent(indent, datatypeDecl);
       } else if (declWithMembers is RedirectingTypeDecl redirectingTypeDecl) {
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
@@ -734,6 +736,65 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       SetIndentations(newtypeDecl.EndToken, after: indent);
     } else if (redirectingTypeDecl is TypeSynonymDecl typeSynonymDecl) {
       SetIndentations(typeSynonymDecl.EndToken, after: indent);
+    }
+  }
+
+  private void SetOpaqueTypeDeclIndent(int indent, OpaqueTypeDecl opaqueTypeDecl) {
+    var indent2 = indent + SpaceTab;
+    var typeArgumentIndent = indent2;
+    var commaIndent = indent2;
+    var rightIndent = indent2;
+    foreach (var token in opaqueTypeDecl.OwnedTokens) {
+      switch (token.val) {
+        case "type": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "=": {
+            if (IsFollowedByNewline(token)) {
+              SetDelimiterInsideIndentedRegions(token, indent2);
+            } else {
+              SetAlign(indent2, token, out typeArgumentIndent, out _);
+            }
+
+            break;
+          }
+        case "<": {
+            if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, typeArgumentIndent);
+              commaIndent = typeArgumentIndent;
+              rightIndent = commaIndent + SpaceTab;
+            } else {
+              SetAlign(typeArgumentIndent + SpaceTab, token, out rightIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ">": {
+            SetIndentations(token.Prev, after: rightIndent);
+            SetClosingIndentedRegionAligned(token, rightIndent, typeArgumentIndent);
+            break;
+          }
+        case ",": {
+            SetIndentations(token, rightIndent, commaIndent, rightIndent);
+            break;
+          }
+        case ";": {
+            break;
+          }
+        case "{": {
+            SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "}": {
+            SetClosingIndentedRegion(token, indent);
+            break;
+          }
+      }
+    }
+
+    if (opaqueTypeDecl.EndToken.TrailingTrivia.Trim() == "") {
+      SetIndentations(opaqueTypeDecl.EndToken, after: indent);
     }
   }
 

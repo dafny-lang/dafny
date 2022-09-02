@@ -1402,6 +1402,13 @@ newtype Even = x : int | x % 2 == 0
     assert y == y;
   }
 }
+
+type Opaque<
+    Y>
+{
+  static const Static: Y
+  const Instance: Y
+}
 ");
     }
 
