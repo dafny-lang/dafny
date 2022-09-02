@@ -17,7 +17,7 @@ This is often easier than writing the code, because annotations are shorter and
 more direct. For example, the following fragment of annotation in Dafny says
 that every element of the array is strictly positive:
 
-```
+```dafny
 forall k: int :: 0 <= k < a.Length ==> 0 < a[k]
 ```
 
@@ -46,10 +46,10 @@ might be called procedures, or functions, but in Dafny the term "function" is
 reserved for a different concept that we will cover later. A method is declared
 in the following way:
 
-```
+```dafny
 method Abs(x: int) returns (y: int)
 {
-   ...
+  ...
 }
 ```
 
@@ -60,10 +60,10 @@ are required for each parameter and return value, and follow each name after a
 colon (`:`). Also, the return values are named, and there
 can be multiple return values, as in below:
 
-```
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-   ...
+  ...
 }
 ```
 
@@ -75,22 +75,22 @@ assignments, `if` statements, loops, other method calls, `return` statements, et
 For example, the `MultipleReturns` method may be
 implemented as:
 
-``` {.editonly}
+```dafny {.editonly}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-   more := x + y;
-   less := x - y;
-   // comments: are not strictly necessary.
-   /* unless you want to keep your sanity. */
+  more := x + y;
+  less := x - y;
+  // comments: are not strictly necessary.
+  /* unless you want to keep your sanity. */
 }
 ```
 
-```
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-   more := x + y;
-   less := x - y;
-   // comments: are not strictly necessary.
+  more := x + y;
+  less := x - y;
+  // comments: are not strictly necessary.
 }
 ```
 
@@ -108,14 +108,14 @@ parameters are used), or they can take a list of values to return. There are
 also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
-``` {.edit}
+```dafny {.edit}
 method Abs(x: int) returns (y: int)
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
@@ -153,23 +153,23 @@ condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
 
-``` {.editonly}
+```dafny {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   ...
+  ...
 }
 ```
 
@@ -191,11 +191,11 @@ method might lead one to guess the following postconditions:
 
 ``` {.edit}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x
-   ensures x < more
+  ensures less < x
+  ensures x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
@@ -203,30 +203,30 @@ The postcondition can also be written:
 
 ``` {.editonly}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x && x < more
+  ensures less < x && x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
-```
-   ensures less < x && x < more
+```dafny
+  ensures less < x && x < more
 ```
 
 or even:
 
 ``` {.editonly}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   ensures less < x < more
+  ensures less < x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
-```
-   ensures less < x < more
+```dafny
+  ensures less < x < more
 ```
 
 because of the chaining comparison operator syntax in Dafny.
@@ -270,11 +270,11 @@ as below:
 
 ``` {.edit}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-   requires 0 < y
-   ensures less < x < more
+  requires 0 < y
+  ensures less < x < more
 {
-   more := x + y;
-   less := x - y;
+  more := x + y;
+  less := x - y;
 }
 ```
 
@@ -302,7 +302,7 @@ method Max(a: int, b: int) returns (c: int)
 }
 ```
 
-```
+```dafny
 method Max(a: int, b: int) returns (c: int)
 ```
 
@@ -327,16 +327,16 @@ example, the following is a trivial use of an assertion inside a dummy method:
 ``` {.editonly}
 method Testing()
 {
-   assert 2 < 3;
-   // Try "asserting" something that is not true.
-   // What does Dafny output?
+  assert 2 < 3;
+  // Try "asserting" something that is not true.
+  // What does Dafny output?
 }
 ```
 
-```
+```dafny
 method Testing()
 {
-   assert 2 < 3;
+  assert 2 < 3;
 }
 ```
 
@@ -359,12 +359,12 @@ of an initialized, explicitly typed variable declaration:
 ``` {.editonly}
 method m()
 {
-   var x: int := 5;
+  var x: int := 5;
 }
 ```
 
-```
-   var x: int := 5;
+```dafny
+  var x: int := 5;
 ```
 
 The type annotation can be dropped in this case:
@@ -372,12 +372,12 @@ The type annotation can be dropped in this case:
 ``` {.editonly}
 method m()
 {
-   var x := 5;
+  var x := 5;
 }
 ```
 
-```
-   var x := 5;
+```dafny
+  var x := 5;
 ```
 
 Multiple variables can be declared at once:
@@ -385,12 +385,12 @@ Multiple variables can be declared at once:
 ``` {.editonly}
 method m()
 {
-   var x, y, z: bool := 1, 2, true;
+  var x, y, z: bool := 1, 2, true;
 }
 ```
 
-```
-   var x, y, z: bool := 1, 2, true;
+```dafny
+  var x, y, z: bool := 1, 2, true;
 ```
 
 Explicit type declarations only apply to the immediately
@@ -404,27 +404,27 @@ call to `Abs` as follows:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
+  var v := Abs(3);
+  assert 0 <= v;
 }
 ```
 
-```
+```dafny
 // use definition of Abs() from before.
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
+  var v := Abs(3);
+  assert 0 <= v;
 }
 ```
 
@@ -451,7 +451,7 @@ method Testing() {
 }
 ```
 
-```
+```dafny
 method Testing() { ... }
 ```
 
@@ -463,24 +463,24 @@ changing the existing one) to say:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  assert v == 3;
 }
 ```
 
-```
-   assert v == 3;
+```dafny
+  assert v == 3;
 ```
 
 we find that Dafny cannot prove our assertion, and gives an
@@ -506,24 +506,24 @@ postconditions. In the `Abs` case, we might have written:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   // this stil does not verify, but now it is actually not true:
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  // this stil does not verify, but now it is actually not true:
+  assert v == 3;
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 ```
 
@@ -532,21 +532,21 @@ program fragment:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
+  ensures 0 <= y
 {
-   y := 0;
+  y := 0;
 }
 method Testing()
 {
-   var v := Abs(3);
-   assert 0 <= v;
-   assert v == 3;
+  var v := Abs(3);
+  assert 0 <= v;
+  assert v == 3;
 }
 ```
 
-```
-   var v := Abs(3);
-   assert v == 3;
+```dafny
+  var v := Abs(3);
+  assert v == 3;
 ```
 
 would not be true in this case. Dafny is considering, in an
@@ -558,23 +558,23 @@ can partially do this with the following:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
 {
-   // body as before
+  // body as before
 }
 ```
 
@@ -597,25 +597,25 @@ to make the following complete annotation covering all cases:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   // body as before
+  // body as before
 }
 ```
 
@@ -626,18 +626,18 @@ and somewhat shorter, way of saying the same thing:
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   ensures 0 <= y && (y == x || y == -x)
+  ensures 0 <= y && (y == x || y == -x)
 {
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
-   ensures 0 <= y && (y == x || y == -x)
+```dafny
+  ensures 0 <= y && (y == x || y == -x)
 ```
 
 In general, there can be many ways to write down a given property. Most of the
@@ -657,21 +657,21 @@ of doing this: functions.
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   // Add a precondition here.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
-   // Simplify the body to just one return statement
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  // Simplify the body to just one return statement
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int) { ... }
 ```
 
@@ -685,36 +685,36 @@ method Abs(x: int) returns (y: int) { ... }
 
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
-   // Add a precondition here so that the method verifies.
-   // Don't change the postconditions.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here so that the method verifies.
+  // Don't change the postconditions.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
   y:= x + 2;
 }
 method Abs2(x: int) returns (y: int)
-   // Add a precondition here so that the method verifies.
-   // Don't change the postconditions.
-   ensures 0 <= y
-   ensures 0 <= x ==> y == x
-   ensures x < 0 ==> y == -x
+  // Add a precondition here so that the method verifies.
+  // Don't change the postconditions.
+  ensures 0 <= y
+  ensures 0 <= x ==> y == x
+  ensures x < 0 ==> y == -x
 {
   y:= x + 1;
 }
 ```
 
-```
+```dafny
 method Abs(x: int) returns (y: int) { ... }
 ```
 
 
 ## Functions
 
-```
+```dafny
 function abs(x: int): int
 {
-   ...
+  ...
 }
 ```
 
@@ -729,7 +729,7 @@ expression is like the ternary operator in other languages.
 ``` {.edit}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 ```
 
@@ -742,16 +742,16 @@ So we can write:
 ``` {.editonly}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 method m()
 {
-   assert abs(3) == 3;
+  assert abs(3) == 3;
 }
 ```
 
-```
-   assert abs(3) == 3;
+```dafny
+  assert abs(3) == 3;
 ```
 
 In fact, not only can we write this statement directly
@@ -771,22 +771,22 @@ actually `3`.
 ``` {.editonly}
 function max(a: int, b: int): int
 {
-   // Fill in an expression here.
+  // Fill in an expression here.
 }
 method Testing() {
   // Add assertions to check max here.
 }
 ```
 
-```
+```dafny
 function max(a: int, b: int): int { ... }
 ```
 
 One caveat of functions is that not only can they appear in
 annotations, they can only appear in annotations. One cannot write:
 
-```
-   var v := abs(3);
+```dafny
+  var v := abs(3);
 ```
 
 as this is not an annotation. Functions are never part of
@@ -805,14 +805,14 @@ reference for details).
 ``` {.editonly}
 function max(a: int, b: int): int
 {
-   // Use your code from Exercise 4
+  // Use your code from Exercise 4
 }
 method Testing() {
   // Add assertions to check max here. Be sure to capture it to a local variable
 }
 ```
 
-```
+```dafny
 function max(a: int, b: int): int { ... }
 ```
 
@@ -827,21 +827,21 @@ function max(a: int, b: int): int { ... }
 ``` {.editonly}
 function abs(x: int): int
 {
-   if x < 0 then -x else x
+  if x < 0 then -x else x
 }
 method Abs(x: int) returns (y: int)
   // Use abs here, then confirm the method still verifies.
 {
-   // Then change this body to also use abs.
-   if x < 0 {
-      return -x;
-   } else {
-      return x;
-   }
+  // Then change this body to also use abs.
+  if x < 0 {
+    return -x;
+  } else {
+    return x;
+  }
 }
 ```
 
-```
+```dafny
 function abs(x: int): int
 ```
 
@@ -852,9 +852,9 @@ can do something like implement the mathematical Fibonacci function:
 ``` {.edit}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 ```
 
@@ -873,20 +873,20 @@ We can start by defining a method like the following:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   // ...
+  // ...
 }
 ```
 
-```
+```dafny
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
 }
 ```
@@ -900,20 +900,20 @@ via a *`while` loop*. A while loop looks like the following:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
-   var i := 0;
-   while i < n
-   {
-      i := i + 1;
-   }
+```dafny
+  var i := 0;
+  while i < n
+  {
+    i := i + 1;
+  }
 ```
 
 This is a trivial loop that just increments `i` until it reaches `n`. This will form
@@ -940,22 +940,22 @@ its own keyword, to the loop:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
+  var i := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
-   var i := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
+```dafny
+  var i := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
 ```
 
 When you specify an invariant, Dafny proves two things: the
@@ -977,24 +977,24 @@ sees this fact as well:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i: int := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
-   assert i == n;
+  var i: int := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
+  assert i == n;
 }
 ```
 
-```
-   var i: int := 0;
-   while i < n
-      invariant 0 <= i
-   {
-      i := i + 1;
-   }
-   assert i == n;
+```dafny
+  var i: int := 0;
+  while i < n
+    invariant 0 <= i
+  {
+    i := i + 1;
+  }
+  assert i == n;
 ```
 
 We find that this assertion fails. As far as Dafny knows, it
@@ -1010,22 +1010,22 @@ might be the following:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i: int := 0;
-   while i < n
-      invariant 0 <= i < n
-   {
-      i := i + 1;
-   }
+  var i: int := 0;
+  while i < n
+    invariant 0 <= i < n
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
-   var i := 0;
-   while i < n
-      invariant 0 <= i < n
-   {
-      i := i + 1;
-   }
+```dafny
+  var i := 0;
+  while i < n
+    invariant 0 <= i < n
+  {
+    i := i + 1;
+  }
 ```
 
 This does not verify, as Dafny complains that the invariant
@@ -1040,18 +1040,18 @@ our invariant, and repairing it is relatively easy:
 ``` {.editonly}
 method m(n: nat)
 {
-   var i: int := 0;
-   while i < n
-      invariant 0 <= i <= n
-   {
-      i := i + 1;
-   }
+  var i: int := 0;
+  while i < n
+    invariant 0 <= i <= n
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
+```dafny
 ...
-   invariant 0 <= i <= n
+  invariant 0 <= i <= n
 ...
 ```
 
@@ -1070,18 +1070,18 @@ has executed.
 ``` {.editonly}
 method m(n: nat)
 {
-   var i: int := 0;
-   while i < n
-      invariant 0 <= i <= n  // Change this. What happens?
-   {
-      i := i + 1;
-   }
-   assert i == n;
+  var i: int := 0;
+  while i < n
+    invariant 0 <= i <= n  // Change this. What happens?
+  {
+    i := i + 1;
+  }
+  assert i == n;
 }
 ```
 
-```
-   invariant 0 <= i <= n+2
+```dafny
+  invariant 0 <= i <= n+2
 ```
 
 
@@ -1093,18 +1093,18 @@ method m(n: nat)
 ``` {.editonly}
 method m(n: nat)
 {
-   var i: int := 0;
-   while i < n  // Change this. What happens?
-      invariant 0 <= i <= n
-   {
-      i := i + 1;
-   }
-   assert i == n;
+  var i: int := 0;
+  while i < n  // Change this. What happens?
+    invariant 0 <= i <= n
+  {
+    i := i + 1;
+  }
+  assert i == n;
 }
 ```
 
-```
-   while i != n ...
+```dafny
+  while i != n ...
 ```
 
 
@@ -1125,8 +1125,8 @@ reach another number, often an argument or the length of an array or sequence.
 So we have that the variable `b`, which is conveniently
 our out parameter, will be the current Fibonacci number:
 
-```
-   invariant b == fib(i)
+```dafny
+  invariant b == fib(i)
 ```
 
 We also note that in our algorithm, we can compute any Fibonacci
@@ -1135,8 +1135,8 @@ number. So we want a way of tracking the previous Fibonacci number, which we
 will call `a`. Another invariant will express that
 number's relation to the loop counter. The invariants are:
 
-```
-   invariant a == fib(i - 1)
+```dafny
+  invariant a == fib(i - 1)
 ```
 
 At each step of the loop, the two values are summed to get
@@ -1146,39 +1146,39 @@ Using a parallel assignment, we can write a loop that performs this operation:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   var i := 1;
-   var a := 0;
-       b := 1;
-   while i < n
-      invariant 0 < i <= n
-      invariant a == fib(i - 1)
-      invariant b == fib(i)
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+  var i := 1;
+  var a := 0;
+  b := 1;
+  while i < n
+    invariant 0 < i <= n
+    invariant a == fib(i - 1)
+    invariant b == fib(i)
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 }
 ```
 
-```
-   var i := 1;
-   var a := 0;
-       b := 1;
-   while i < n
-      invariant 0 < i <= n
-      invariant a == fib(i - 1)
-      invariant b == fib(i)
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+```dafny
+  var i := 1;
+  var a := 0;
+  b := 1;
+  while i < n
+    invariant 0 < i <= n
+    invariant a == fib(i - 1)
+    invariant b == fib(i)
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 ```
 
 Here `a` is the trailing number, and `b` is the leading number.
@@ -1199,44 +1199,44 @@ of the loop. The completed Fibonacci method becomes:
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   if n == 0 { return 0; }
-   var i: int := 1;
-   var a := 0;
-       b := 1;
-   while i < n
-      invariant 0 < i <= n
-      invariant a == fib(i - 1)
-      invariant b == fib(i)
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+  if n == 0 { return 0; }
+  var i: int := 1;
+  var a := 0;
+  b := 1;
+  while i < n
+    invariant 0 < i <= n
+    invariant a == fib(i - 1)
+    invariant b == fib(i)
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 }
 ```
 
-```
+```dafny
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   if n == 0 { return 0; }
-   var i: int := 1;
-   var a := 0;
-       b := 1;
-   while i < n
-      invariant 0 < i <= n
-      invariant a == fib(i - 1)
-      invariant b == fib(i)
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+  if n == 0 { return 0; }
+  var i: int := 1;
+  var a := 0;
+  b := 1;
+  while i < n
+    invariant 0 < i <= n
+    invariant a == fib(i - 1)
+    invariant b == fib(i)
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 }
 ```
 
@@ -1255,31 +1255,31 @@ and `b == fib(i)`, which together imply the postcondition, `b == fib(n)`.
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)  // Do not change this postcondition
+  ensures b == fib(n)  // Do not change this postcondition
 {
-   // Change the method body to instead use c as described.
-   // You will need to change both the initialization and the loop.
-   if n == 0 { return 0; }
-   var i: int := 1;
-   var a := 0;
-       b := 1;
-   while i < n
-      invariant 0 < i <= n
-      invariant a == fib(i - 1)
-      invariant b == fib(i)
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+  // Change the method body to instead use c as described.
+  // You will need to change both the initialization and the loop.
+  if n == 0 { return 0; }
+  var i: int := 1;
+  var a := 0;
+  b := 1;
+  while i < n
+    invariant 0 < i <= n
+    invariant a == fib(i - 1)
+    invariant b == fib(i)
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 }
 ```
 
-```
+```dafny
 method ComputeFib(n: nat) returns (b: nat)
 ```
 
@@ -1293,26 +1293,26 @@ method ComputeFib(n: nat) returns (b: nat)
 ``` {.editonly}
 function fib(n: nat): nat
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 method ComputeFib(n: nat) returns (b: nat)
-   ensures b == fib(n)
+  ensures b == fib(n)
 {
-   var i: int := 0;
-   var a := 1;
-       b := 0;
-   while i < n
-      // Fill in the invariants here.
-   {
-      a, b := b, a + b;
-      i := i + 1;
-   }
+  var i: int := 0;
+  var a := 1;
+  b := 0;
+  while i < n
+    // Fill in the invariants here.
+  {
+    a, b := b, a + b;
+    i := i + 1;
+  }
 }
 ```
 
-```
+```dafny
 method ComputeFib(n: nat) returns (b: nat)
 ```
 
@@ -1351,23 +1351,23 @@ keyword, of course):
 ``` {.editonly}
 method m ()
 {
-   var i := 20;
-   while 0 < i
-      invariant 0 <= i
-      decreases i
-   {
-      i := i - 1;
-   }
+  var i := 20;
+  while 0 < i
+    invariant 0 <= i
+    decreases i
+  {
+    i := i - 1;
+  }
 }
 ```
 
-```
-   while 0 < i
-      invariant 0 <= i
-      decreases i
-   {
-      i := i - 1;
-   }
+```dafny
+  while 0 < i
+    invariant 0 <= i
+    decreases i
+  {
+    i := i - 1;
+  }
 ```
 
 Here Dafny has all the ingredients it needs to prove
@@ -1380,23 +1380,23 @@ bound. A simple trick for dealing with this situation is given below:
 ``` {.editonly}
 method m()
 {
-   var i, n := 0, 20;
-   while i < n
-      invariant 0 <= i <= n
-      decreases n - i
-   {
-      i := i + 1;
-   }
+  var i, n := 0, 20;
+  while i < n
+    invariant 0 <= i <= n
+    decreases n - i
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
-   while i < n
-      invariant 0 <= i <= n
-      decreases n - i
-   {
-      i := i + 1;
-   }
+```dafny
+  while i < n
+    invariant 0 <= i <= n
+    decreases n - i
+  {
+    i := i + 1;
+  }
 ```
 
 This is actually Dafny's guess for this situation, as it
@@ -1420,17 +1420,17 @@ each other, and neither is fixed.
 ``` {.editonly}
 method m()
 {
-   var i, n := 0, 20;
-   while i != n
-      decreases n - i
-   {
-      i := i + 1;
-   }
+  var i, n := 0, 20;
+  while i != n
+    decreases n - i
+  {
+    i := i + 1;
+  }
 }
 ```
 
-```
-   while i != n
+```dafny
+  while i != n
 ```
 
 
@@ -1443,19 +1443,19 @@ in the unnecessary annotation for the fib function:
 
 ``` {.editonly}
 function fib(n: nat): nat
-   decreases n
+  decreases n
 {
-   if n == 0 then 0 else
-   if n == 1 then 1 else
-                  fib(n - 1) + fib(n - 2)
+  if n == 0 then 0
+  else if n == 1 then 1
+  else fib(n - 1) + fib(n - 2)
 }
 ```
 
-```
+```dafny
 function fib(n: nat): nat
-   decreases n
+  decreases n
 {
-   ...
+  ...
 }
 ```
 
@@ -1493,18 +1493,18 @@ that index. This might be expressed as follows:
 
 ``` {.editonly}
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
 {
-   // Can you write code that satisfies the postcondition?
-   // Hint: you can do it with one statement.
+  // Can you write code that satisfies the postcondition?
+  // Hint: you can do it with one statement.
 }
 ```
 
-```
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
 {
-   // Open in editor for a challenge...
+  // Open in editor for a challenge...
 }
 ```
 
@@ -1538,12 +1538,12 @@ universal quantifier, wrapped in an assertion, is given below:
 ``` {.editonly}
 method m()
 {
-   assert forall k :: k < k + 1;
+  assert forall k :: k < k + 1;
 }
 ```
 
-```
-   assert forall k :: k < k + 1;
+```dafny
+  assert forall k :: k < k + 1;
 ```
 
 A quantifier introduces a temporary name for each element of
@@ -1561,8 +1561,8 @@ used to quantify over all elements in an array or data structure. We do this
 for arrays by using the implication operator to make the quantified property
 trivially true for values which are not indices:
 
-```
-   assert forall k :: 0 <= k < a.Length ==> ...a[k]...;
+```dafny
+  assert forall k :: 0 <= k < a.Length ==> ...a[k]...;
 ```
 
 This says that some property holds for each element of the
@@ -1574,8 +1574,8 @@ set of integers it must consider to only those that are indices into the array.
 With a quantifier, saying the key is not in the array is
 straightforward:
 
-```
-   forall k :: 0 <= k < a.Length ==> a[k] != key
+```dafny
+  forall k :: 0 <= k < a.Length ==> a[k] != key
 ```
 
 Thus our method postconditions become (with the addition of the
@@ -1583,19 +1583,19 @@ non-nullity precondition on `a`):
 
 ``` {.editonly}
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
 {
-   // There are many ways to fill this in. Can you write one?
+  // There are many ways to fill this in. Can you write one?
 }
 ```
 
-```
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
 {
-   ...
+  ...
 }
 ```
 
@@ -1604,27 +1604,27 @@ but perhaps the easiest is a linear search, implemented below:
 
 ``` {.editonly}
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
 {
-   index := 0;
-   while index < a.Length
-   {
-      if a[index] == key { return; }
-      index := index + 1;
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+  {
+    if a[index] == key { return; }
+    index := index + 1;
+  }
+  index := -1;
 }
 ```
 
-```
-   index := 0;
-   while index < a.Length
-   {
-      if a[index] == key { return; }
-      index := index + 1;
-   }
-   index := -1;
+```dafny
+  index := 0;
+  while index < a.Length
+  {
+    if a[index] == key { return; }
+    index := index + 1;
+  }
+  index := -1;
 ```
 
 As you can see, we have omitted the loop invariants on the
@@ -1637,22 +1637,22 @@ postcondition, we can use a quantifier to express this property:
 
 ``` {.editonly}
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
 {
-   index := 0;
-   while index < a.Length
-      invariant forall k :: 0 <= k < index ==> a[k] != key
-   {
-      if a[index] == key { return; }
-      index := index + 1;
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+    invariant forall k :: 0 <= k < index ==> a[k] != key
+  {
+    if a[index] == key { return; }
+    index := index + 1;
+  }
+  index := -1;
 }
 ```
 
-```
-   invariant forall k :: 0 <= k < index ==> a[k] != key
+```dafny
+  invariant forall k :: 0 <= k < index ==> a[k] != key
 ```
 
 This says that everything before, but excluding, the current
@@ -1679,18 +1679,18 @@ The complete method is given below:
 
 ``` {.edit}
 method Find(a: array<int>, key: int) returns (index: int)
-   ensures 0 <= index ==> index < a.Length && a[index] == key
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
+  ensures 0 <= index ==> index < a.Length && a[index] == key
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
 {
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index <= a.Length
-      invariant forall k :: 0 <= k < index ==> a[k] != key
-   {
-      if a[index] == key { return; }
-      index := index + 1;
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index <= a.Length
+    invariant forall k :: 0 <= k < index ==> a[k] != key
+  {
+    if a[index] == key { return; }
+    index := index + 1;
+  }
+  index := -1;
 }
 ```
 
@@ -1703,14 +1703,14 @@ method Find(a: array<int>, key: int) returns (index: int)
 
 ``` {.editonly}
 method FindMax(a: array<int>) returns (i: int)
-   // Annotate this method with pre- and postconditions
-   // that ensure it behaves as described.
+  // Annotate this method with pre- and postconditions
+  // that ensure it behaves as described.
 {
-   // Fill in the body that calculates the INDEX of the maximum.
+  // Fill in the body that calculates the INDEX of the maximum.
 }
 ```
 
-```
+```dafny
 method FindMax(a: array<int>) returns (i: int)
 ```
 
@@ -1739,8 +1739,8 @@ predicate, but the easiest is to use a quantifier over the indices of the
 array. We can write a quantifier that expresses the property, "if `x` is before
 `y` in the array, then `x <= y`," as a quantifier over two bound variables:
 
-```
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+```dafny
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 ```
 
 Here we have two bound variables, `j`
@@ -1753,9 +1753,9 @@ as:
 
 ``` {.edit}
 predicate sorted(a: array<int>)
-   requires a != null
+  requires a != null
 {
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 ```
 
@@ -1782,18 +1782,18 @@ framing is essential to making the verification process feasible.
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   requires a != null
-   reads a
+  requires a != null
+  reads a
 {
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 ```
 
-```
+```dafny
 predicate sorted(a: array<int>)
-   ...
-   reads a
-   ...
+  ...
+  reads a
+  ...
 ```
 
 A `reads` annotation is not a boolean expression, like the
@@ -1839,14 +1839,14 @@ distinction between the reference itself and the value it points to.)
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   requires a != null
-   reads a
+  requires a != null
+  reads a
 {
-   // Fill in a new body here.
+  // Fill in a new body here.
 }
 ```
 
-```
+```dafny
 predicate sorted(a: array<int>)
 ```
 
@@ -1858,15 +1858,15 @@ predicate sorted(a: array<int>)
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   reads a
+  reads a
 {
-   // Change this definition to treat null arrays as "not sorted".
-   // (i.e. return false for null arrays)
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  // Change this definition to treat null arrays as "not sorted".
+  // (i.e. return false for null arrays)
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 ```
 
-```
+```dafny
 predicate sorted(a: array<int>)
 ```
 
@@ -1877,26 +1877,26 @@ Predicates are usually used to make other annotations clearer:
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   requires a != null
-   reads a
+  requires a != null
+  reads a
 {
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-   requires a != null && 0 <= a.Length && sorted(a)
-   ensures 0 <= index ==> index < a.Length && a[index] == value
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
+  requires a != null && 0 <= a.Length && sorted(a)
+  ensures 0 <= index ==> index < a.Length && a[index] == value
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
-   // This one is a little harder. What should go here?
+  // This one is a little harder. What should go here?
 }
 ```
 
-```
+```dafny
 method BinarySearch(a: array<int>, key: int) returns (index: int)
-   requires a != null && sorted(a)
-   ensures ...
+  requires a != null && sorted(a)
+  ensures ...
 {
-   ...
+  ...
 }
 ```
 
@@ -1908,62 +1908,52 @@ search. The method body is given below:
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   requires a != null
-   reads a
+  requires a != null
+  reads a
 {
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-   requires a != null && 0 <= a.Length && sorted(a)
-   ensures 0 <= index ==> index < a.Length && a[index] == value
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
+  requires a != null && 0 <= a.Length && sorted(a)
+  ensures 0 <= index ==> index < a.Length && a[index] == value
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
-   var low, high := 0, a.Length;
-   while low < high
-      invariant 0 <= low <= high <= a.Length
-      invariant forall i ::
-         0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
-   {
-      var mid := (low + high) / 2;
-      if a[mid] < value
-      {
-         low := mid + 1;
-      }
-      else if value < a[mid]
-      {
-         high := mid;
-      }
-      else
-      {
-         return mid;
-      }
-   }
-   return -1;
+  var low, high := 0, a.Length;
+  while low < high
+    invariant 0 <= low <= high <= a.Length
+    invariant forall i ::
+      0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
+  {
+    var mid := (low + high) / 2;
+    if a[mid] < value {
+      low := mid + 1;
+    } else if value < a[mid] {
+      high := mid;
+    } else {
+      return mid;
+    }
+  }
+  return -1;
 }
 ```
 
-```
-   var low, high := 0, a.Length;
-   while low < high
-      invariant 0 <= low <= high <= a.Length
-      invariant forall i ::
-         0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
-   {
-      var mid := (low + high) / 2;
-      if a[mid] < value
-      {
-         low := mid + 1;
-      }
-      else if value < a[mid]
-      {
-         high := mid;
-      }
-      else
-      {
-         return mid;
-      }
-   }
-   return -1;
+```dafny
+  var low, high := 0, a.Length;
+  while low < high
+    invariant 0 <= low <= high <= a.Length
+    invariant forall i ::
+      0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
+  {
+    var mid := (low + high) / 2;
+    if a[mid] < value {
+      low := mid + 1;
+    } else if value < a[mid] {
+      high := mid;
+    } else {
+      return mid;
+    }
+  }
+  return -1;
 ```
 
 This is a fairly standard binary search implementation. First we
@@ -1985,9 +1975,9 @@ when `low == high`, the loop exits. But this means that
 no elements are left in the search range, so the key was not found. This can be
 deduced from the loop invariant:
 
-```
-   invariant forall i ::
-               0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
+```dafny
+  invariant forall i ::
+    0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
 ```
 
 When `low == high`, the negated
@@ -2007,41 +1997,36 @@ ourselves.
 
 ``` {.editonly}
 predicate sorted(a: array<int>)
-   requires a != null
-   reads a
+  requires a != null
+  reads a
 {
-   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
+  forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-   requires a != null && 0 <= a.Length && sorted(a)
-   ensures 0 <= index ==> index < a.Length && a[index] == value
-   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
+  requires a != null && 0 <= a.Length && sorted(a)
+  ensures 0 <= index ==> index < a.Length && a[index] == value
+  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
-   var low, high := 0, a.Length;
-   while low < high
-      invariant 0 <= low <= high <= a.Length
-      invariant forall i ::
+  var low, high := 0, a.Length;
+  while low < high
+    invariant 0 <= low <= high <= a.Length
+    invariant forall i ::
          0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
-   {
-      var mid := (low + high) / 2;
-      if a[mid] < value
-      {
-         low := mid + 1;
-      }
-      else if value < a[mid]
-      {
-         high := mid;
-      }
-      else
-      {
-         return mid;
-      }
-   }
-   return -1;
+  {
+    var mid := (low + high) / 2;
+    if a[mid] < value {
+      low := mid + 1;
+    } else if value < a[mid] {
+      high := mid;
+    } else {
+      return mid;
+    }
+  }
+  return -1;
 }
 ```
 
-```
+```dafny
 method BinarySearch(a: array<int>, value: int) returns (index: int)
 ```
 

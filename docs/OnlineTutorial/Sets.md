@@ -8,8 +8,8 @@ sequences, sets are immutable value types. This allows them to be used easily
 in annotations, without involving the heap, as a set cannot be modified once
 it has been created. A set has the type:
 
-```
-   set<int>
+```dafny
+  set<int>
 ```
 
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
@@ -17,20 +17,20 @@ for a set of integers, for example. In general, sets can be of almost any type, 
 ``` {.editonly}
 method m()
 {
-   var s1 := {}; // the empty set
-   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
-   assert s2 == {1,1,2,3,3,3,3}; // same as before
-   assert s1 != s2;  // sets with different elements are different
-   var s3, s4 := {1,2}, {1,4};
+  var s1 := {}; // the empty set
+  var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
+  assert s2 == {1,1,2,3,3,3,3}; // same as before
+  assert s1 != s2;  // sets with different elements are different
+  var s3, s4 := {1,2}, {1,4};
 }
 ```
 
-```
-   var s1 := {}; // the empty set
-   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
-   assert s2 == {1,1,2,3,3,3,3}; // same as before
-   assert s1 != s2;  // sets with different elements are different
-   var s3, s4 := {1,2}, {1,4};
+```dafny
+  var s1 := {}; // the empty set
+  var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
+  assert s2 == {1,1,2,3,3,3,3}; // same as before
+  assert s1 != s2;  // sets with different elements are different
+  var s3, s4 := {1,2}, {1,4};
 ```
 
 The set formed by the display is the expected set, containing just
@@ -41,19 +41,19 @@ New sets can be created from existing ones using the common set operations:
 ``` {.editonly}
 method m()
 {
-   var s1 := {};
-   var s2 := {1, 2, 3};
-   var s3, s4 := {1,2}, {1,4};
-   assert s2 + s4 == {1,2,3,4}; // set union
-   assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
-   assert s2 - s3 == {3}; // set difference
+  var s1 := {};
+  var s2 := {1, 2, 3};
+  var s3, s4 := {1,2}, {1,4};
+  assert s2 + s4 == {1,2,3,4}; // set union
+  assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
+  assert s2 - s3 == {3}; // set difference
 }
 ```
 
-```
-   assert s2 + s4 == {1,2,3,4}; // set union
-   assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
-   assert s2 - s3 == {3}; // set difference
+```dafny
+  assert s2 + s4 == {1,2,3,4}; // set union
+  assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
+  assert s2 - s3 == {3}; // set difference
 ```
 
 Note that because sets can only contain at most one of each element,
@@ -67,18 +67,18 @@ meanings:
 ``` {.editonly}
 method m()
 {
-   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
-   assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
-   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
-   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
+  assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
+  assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
+  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
+  assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 }
 ```
 
-```
-   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
-   assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
-   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
-   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
+```dafny
+  assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
+  assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
+  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
+  assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 ```
 
 Sets, like sequences, support the `in` and `!in` operators, to
@@ -87,18 +87,18 @@ test element membership. For example:
 ``` {.editonly}
 method m()
 {
-   assert 5 in {1,3,4,5};
-   assert 1 in {1,3,4,5};
-   assert 2 !in {1,3,4,5};
-   assert forall x :: x !in {};
+  assert 5 in {1,3,4,5};
+  assert 1 in {1,3,4,5};
+  assert 2 !in {1,3,4,5};
+  assert forall x :: x !in {};
 }
 ```
 
-```
-   assert 5 in {1,3,4,5};
-   assert 1 in {1,3,4,5};
-   assert 2 !in {1,3,4,5};
-   assert forall x :: x !in {};
+```dafny
+  assert 5 in {1,3,4,5};
+  assert 1 in {1,3,4,5};
+  assert 2 !in {1,3,4,5};
+  assert forall x :: x !in {};
 ```
 
 Sets are used in several annotations, including reads and modifies
@@ -123,8 +123,8 @@ A useful way to create sets is using a set comprehension. This defines
 a new set by including `f(x)`
 in the set for all `x` of type `T` that satisfy `p(x)`:
 
-```
-   set x: T | p(x) :: f(x)
+```dafny
+  set x: T | p(x) :: f(x)
 ```
 
 This defines a set in a manner reminiscent of a universal quantifier (`forall`). As with quanifiers,
@@ -137,12 +137,12 @@ usually has the same type as the resulting set, but it does not need to. As an e
 ``` {.editonly}
 method m()
 {
-   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
+  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 }
 ```
 
-```
-   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
+```dafny
+  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
@@ -150,12 +150,12 @@ If the function is the identity, then the expression can be written with a parti
 ``` {.editonly}
 method m()
 {
-   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
+  assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 }
 ```
 
-```
-   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
+```dafny
+  assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 ```
 
 To reason about general, non-identity functions in set comprehensions, Dafny may need some help.
@@ -164,13 +164,13 @@ For example, the following is true, but Dafny cannot prove it:
 ``` {.editonly}
 method m()
 {
-   // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
-   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+  // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
+  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
 ```
 
-```
-   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+```dafny
+  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 ```
 
 To help Dafny prove this assertion, you can precede it with the assertion
