@@ -16,7 +16,6 @@ trait Spec<U> {
     requires Valid()
     modifies Repr
     ensures Valid()
-    ensures Repr == old(Repr)
     decreases Repr
 }
 
@@ -46,7 +45,6 @@ class Impl<T> extends Spec<T> {
     requires Valid()
     modifies Repr
     ensures Valid()
-    ensures Repr == old(Repr)
     decreases Repr
   {
     if done || hasFailed {
@@ -82,7 +80,6 @@ class AnotherImpl<T> extends Spec<seq<T>> {
     requires Valid()
     modifies Repr
     ensures Valid()
-    ensures Repr == old(Repr)
     decreases Repr
   { }
 }
@@ -106,6 +103,5 @@ class FixedImpl extends Spec<int> {
     requires Valid()
     modifies Repr
     ensures Valid()
-    ensures Repr == old(Repr)
     decreases Repr
 }
