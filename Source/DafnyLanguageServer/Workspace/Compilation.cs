@@ -86,7 +86,7 @@ public class Compilation {
       notificationPublisher.PublishGutterIcons(state, false);
 
       documentUpdates.OnNext(documentAfterParsing);
-      logger.LogDebug("Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task.");
+      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
       return documentAfterParsing;
 
     } catch (Exception e) {
