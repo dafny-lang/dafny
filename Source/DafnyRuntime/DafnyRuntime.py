@@ -374,12 +374,12 @@ def IntegerRange(lo, hi):
 class Doubler:
     def __init__(self, start):
         self.start = start
+
     def __iter__(self):
-        return self
-    def __next__(self):
-        self.start *= 2
-        return self.start
-    __call__ = __next__
+        i = self.start
+        while True:
+            yield i
+            i *= 2
 
 class defaults:
     bool = staticmethod(lambda: False)
