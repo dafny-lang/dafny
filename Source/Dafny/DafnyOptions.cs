@@ -1050,7 +1050,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /diagnosticsFormat:<text|json>
     Choose how to report errors, warnings, and info messages.
-
     text (default) - Use human readable output
     json - Print each message as a JSON object, one per line.
 
@@ -1304,7 +1303,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /countVerificationErrors:<n>
     (deprecated)
-
     0 - Set exit code to 0 regardless of the presence of any other errors.
     1 (default) - Emit usual exit code (cf. beginning of the help message).
 
@@ -1314,10 +1312,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Compilation options ---------------------------------------------------
 
-/compile:<n>  0 - Do not compile Dafny program.
+/compile:<n>
+    0 - Do not compile Dafny program.
     1 (default) - Upon successful verification of the Dafny program,
         compile it to the designated target language. (/noVerify
-        automatically counts as failed verification.)
+        automatically counts as a failed verification.)
     2 - Always attempt to compile Dafny program to the target language,
         regardless of verification outcome.
     3 - If there is a Main method and there are no verification errors
@@ -1360,8 +1359,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         compiler to the console.
 
 /spillTargetCode:<n>
-    Explicitly writes the code in the target language to a file. This is
-    not necessary to run a Dafny program, but may be of interest when
+    Explicitly writes the code in the target language to one or more files.
+    This is not necessary to run a Dafny program, but may be of interest when
     building multi-language programs or for debugging.
 
     0 (default) - Don't make any extra effort to write the textual
