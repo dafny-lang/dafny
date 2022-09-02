@@ -70,6 +70,8 @@ public class DocumentManager {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
     }
+
+    Compilation.Start();
   }
 
   private const int MaxRememberedChanges = 100;
