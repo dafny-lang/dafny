@@ -324,8 +324,9 @@ public class Compilation {
   public Task<DocumentAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
-        return verificationCompleted.Task.ContinueWith(
 #pragma warning disable VSTHRD103
+        logger.LogDebug($"LastDocument will return document version {t.Result.Version}");
+        return verificationCompleted.Task.ContinueWith(
           verificationCompletedTask => {
             logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
             return Task.FromResult<DocumentAfterParsing>(t.Result);
