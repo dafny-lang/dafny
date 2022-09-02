@@ -574,7 +574,7 @@ code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)`
+### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
@@ -666,7 +666,7 @@ Here are some examples:
 {% include_relative examples/Example-TP.dfy %}
 ```
 
-## 8.2. Type parameter variance
+## 8.2. Type parameter variance {#sec-type-parameter-variance}
 
 Type parameters have several different variance and cardinality properties.
 These properties of type parameters are designated in a generic type definition.
@@ -3564,7 +3564,7 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-## 19.1. Inductive datatypes
+## 19.1. Inductive datatypes {#sec-inductive-datatypes}
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
