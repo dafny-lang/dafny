@@ -26,7 +26,7 @@ public class DocumentManager {
   private readonly IServiceProvider services;
   private readonly DocumentOptions documentOptions;
   private readonly VerifierOptions verifierOptions;
-  private readonly DocumentObserver observer;
+  private readonly IdeStateObserver observer;
   public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
@@ -56,7 +56,7 @@ public class DocumentManager {
     this.relocator = services.GetRequiredService<IRelocator>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
-    observer = new DocumentObserver(services.GetRequiredService<ILogger<DocumentObserver>>(),
+    observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
