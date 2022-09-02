@@ -60,7 +60,7 @@ class IdeStateObserver : IObserver<IdeState> {
   }
 
   public void OnNext(IdeState snapshot) {
-    logger.LogDebug($"IdeStateObserver.OnNext entered");
+    logger.LogDebug($"IdeStateObserver.OnNext entered, threadId: {Thread.CurrentThread.ManagedThreadId}");
     lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
         return;

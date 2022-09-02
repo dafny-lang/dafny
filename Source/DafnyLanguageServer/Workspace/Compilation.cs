@@ -85,8 +85,8 @@ public class Compilation {
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
+      logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
       documentUpdates.OnNext(documentAfterParsing);
-      logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}.");
       logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
       return documentAfterParsing;
 

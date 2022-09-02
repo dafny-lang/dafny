@@ -170,7 +170,8 @@ public class DocumentManager {
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
       var resolvedDocument = await Compilation.ResolvedDocument;
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, observer.LastPublishedState.Version = {observer.LastPublishedState.Version}");
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, " +
+                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
       logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
     }
