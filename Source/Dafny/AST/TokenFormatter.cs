@@ -1334,6 +1334,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetIndentITE(indent, expr.OwnedTokens);
         case NestedMatchExpr:
           return SetIndentMatchStmt(indent, expr.OwnedTokens);
+        case LambdaExpr lambaExpression:
+          return SetIndentLambdaExpr(indent, lambaExpression);
         case ComprehensionExpr:
           return SetIndentComprehensionExpr(indent, expr.OwnedTokens);
         case UnaryExpr:
@@ -1348,6 +1350,55 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             var reindent = formatter.GetTokenCol(applySuffix.StartToken, indent) - 1;
             return SetIndentParensExpression(reindent, expr.OwnedTokens);
           }
+      }
+
+      return true;
+    }
+
+    private bool SetIndentLambdaExpr(int indent, LambdaExpr lambdaExpr) {
+      var itemIndent = indent + SpaceTab;
+      var commaIndent = indent;
+      var firstSpec = true;
+      var specIndent = indent + SpaceTab;
+      foreach (var token in lambdaExpr.OwnedTokens) {
+        switch (token.val) {
+          case "(": {
+              if (IsFollowedByNewline(token)) {
+                formatter.SetIndentations(token, indent, indent, itemIndent);
+              } else {
+                formatter.SetAlign(indent, token, out itemIndent, out commaIndent);
+              }
+
+              break;
+            }
+          case ")": {
+              formatter.SetIndentations(token, itemIndent, indent, itemIndent);
+              break;
+            }
+          case ",": {
+              formatter.SetIndentations(token, itemIndent, commaIndent, itemIndent);
+              break;
+            }
+          case "requires":
+          case "reads": {
+              if (firstSpec) {
+                specIndent = formatter.GetTokenCol(token, indent) - 1;
+                firstSpec = false;
+              }
+              formatter.SetIndentations(token, specIndent, specIndent, specIndent + SpaceTab);
+              break;
+            }
+          case "=>": {
+              formatter.SetIndentations(token, itemIndent, indent, indent + SpaceTab);
+              break;
+            }
+        }
+      }
+
+      foreach (var bv in lambdaExpr.BoundVars) {
+        if (bv.SyntacticType != null) {
+          formatter.SetTypeIndentation(bv.SyntacticType);
+        }
       }
 
       return true;

@@ -4367,19 +4367,21 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      Expression body = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
-  | "("                                      (. x = t; .)
+  | "("                                      (. x = t; ownedTokens.Add(t); .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
-        { "," IdentTypeOptional<out bv>      (. bvs.Add(bv); .)
+        { ","                                (. ownedTokens.Add(t); .)
+          IdentTypeOptional<out bv>          (. bvs.Add(bv); .)
         }
       ]
-    ")"
+    ")"                                      (. ownedTokens.Add(t); .)
   )
   LambdaSpec<ref reads, ref req, ownedTokens>
-  "=>"
+  "=>"                                       (. ownedTokens.Add(t); .)
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, t, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
+     e.OwnedTokens = ownedTokens;
   .)
   .
 

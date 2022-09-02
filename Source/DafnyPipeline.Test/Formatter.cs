@@ -1182,7 +1182,7 @@ lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
   var State(h) := State(s => (x, s));
   var State(g2) := f(x);
   var x := new A[2](i =>
-                    i + 1);
+                      i + 1);
   calc {}
 }
 
@@ -1408,6 +1408,56 @@ type Opaque<
 {
   static const Static: Y
   const Instance: Y
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForAdvancedClosures() {
+      FormatterWorksFor(@"
+function method Twice<A>(f : A ~> A): A ~> A
+{
+  x requires f.requires(x) && f.requires(f(x))
+    reads f.reads(x), if f.requires(x) then f.reads(f(x)) else {}
+  => f(f(x))
+}
+
+function method Apply'<A,B>(f: A ~> B) : A ~> B
+{
+  x reads f.reads(x)
+    requires f.requires(x)
+  => f(x)
+}
+
+function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
+{
+  x reads g.reads(x)
+    reads if g.requires(x) then f.reads(g(x)) else {}
+    requires g.requires(x)
+    requires f.requires(g(x))
+  => f(g(x))
+}
+
+method LRead() {
+  var o : object?;
+  var f : Ref<() ~> bool>;
+  f := new Ref<() ~> bool>;
+  f.val := () reads f
+              reads f.val.reads()
+              reads if o in f.val.reads() then {} else {o}
+           => true;
+}
+
+function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
+  requires PreZ(f, TreeData(t0))
+  reads PreZ.reads(f, TreeData(t0))
+  decreases t0
+{
+  var Branch(x, ts) := t0;
+  var g := t requires t in ListData(ts) && PreZ(f, TreeData(t))
+             reads set x, y | x in TreeData(t) && y in f.reads(x) :: y
+           => TreeMapZ(t, f);
+  Branch(f(x), MapZ(ts, g))
 }
 ");
     }
