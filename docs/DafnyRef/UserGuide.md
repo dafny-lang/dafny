@@ -112,7 +112,7 @@ working directory. A command-line argument not matching a known option is consid
 the language that the dafny files are being compiled to.
 
 The command `Dafny.exe /?` gives the current set of options supported
-by the tool. The most commonly used options are described in [Section 25.9](#sec-command-line-options).
+by the tool. The most commonly used options are described in [Section 27](#sec-command-line-options).
 
 - Options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
