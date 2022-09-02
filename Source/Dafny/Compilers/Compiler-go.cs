@@ -3568,9 +3568,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      string verb;
+      List<string> verb = new();
       if (run) {
-        verb = "run";
+        verb.Add("run");
       } else {
         string output;
         var outputToFile = !DafnyOptions.O.RunAfterCompile;
@@ -3605,7 +3605,9 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        verb = string.Format("build -o \"{0}\"", output);
+        verb.Add("build");
+        verb.Add("-o");
+        verb.Add(output);
       }
 
       var psi = new ProcessStartInfo("go") {
@@ -3615,7 +3617,9 @@ namespace Microsoft.Dafny.Compilers {
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
-      psi.ArgumentList.Add(verb);
+      foreach (var verbArg in verb) {
+        psi.ArgumentList.Add(verbArg);
+      }
       psi.ArgumentList.Add(targetFilename);
       foreach (var arg in DafnyOptions.O.MainArgs) {
         psi.ArgumentList.Add(arg);
