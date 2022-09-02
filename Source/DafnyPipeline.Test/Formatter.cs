@@ -1208,7 +1208,34 @@ method Test() {
 }
 ");
     }
-
+    [Fact]
+    public void FormatterWorksForBraceAfterArrowAndSimilar() {
+      FormatterWorksFor(@"
+function Test(): int {
+  match s
+  case None => (
+    var x := 2;
+    x
+  )
+  case Some => (
+    match m
+    case O => 1
+  )
+}
+method Test() {
+  match s {
+    case
+      1 => {
+      print ""k"";
+    }
+    case 2
+      =>
+    case 3 => {
+    }
+  }
+}
+");
+    }
     [Fact]
     public void FormatterWorksForEmptyDocument() {
       FormatterWorksFor(@"

@@ -1389,7 +1389,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             formatter.SetOpeningIndentedRegion(token, caseIndent);
             break;
           case "=>":
-            if (IsFollowedByNewline(token)) {
+            if (token.Next.val == "{" || token.Next.val == "(") {
+              // The block will already indent this
+              formatter.SetIndentations(token, caseIndent, caseIndent, caseIndent);
+            } else if (IsFollowedByNewline(token)) {
               formatter.SetIndentations(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
             } else {
               formatter.SetIndentations(token, afterArrowIndent, afterArrowIndent);
