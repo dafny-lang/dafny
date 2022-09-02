@@ -29,6 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           }
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();
+          logger.LogWarning("counter-examples retrieved IDE state");
           return new CounterExampleLoader(logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 

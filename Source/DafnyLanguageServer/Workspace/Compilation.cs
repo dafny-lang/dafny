@@ -207,7 +207,8 @@ public class Compilation {
       },
       () => {
         try {
-          if (document.VerificationTasks!.All(t => t.IsIdle)) {
+          if (document.VerificationTasks.All(t => t.IsIdle)) {
+            logger.LogDebug("Calling FinishedNotifications because all verification tasks are idle.");
             FinishedNotifications(document);
           }
         } catch (Exception e) {
@@ -253,7 +254,6 @@ public class Compilation {
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
       }
-      logger.LogInformation($"Verification of Boogie implementation {implementationTask.Implementation.Name} completed.");
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
@@ -301,12 +301,14 @@ public class Compilation {
   private TaskCompletionSource verificationCompleted = new();
 
   public void MarkVerificationStarted() {
+    logger.LogDebug("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
+    logger.LogDebug("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 
