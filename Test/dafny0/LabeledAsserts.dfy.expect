@@ -1,3 +1,5 @@
+LabeledAsserts.dfy(63,9): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+LabeledAsserts.dfy(63,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 LabeledAsserts.dfy(25,11): Error: assertion might not hold
 LabeledAsserts.dfy(27,18): Error: assertion might not hold
 LabeledAsserts.dfy(28,18): Error: assertion might not hold

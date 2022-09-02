@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -43,9 +44,10 @@ public class Compilation {
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
 
+  private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly ReplaySubject<Document> documentUpdates = new();
+  private readonly Subject<Document> documentUpdates = new();
   public IObservable<Document> DocumentUpdates => documentUpdates;
 
   public Task<DocumentAfterParsing> ResolvedDocument { get; }
@@ -67,23 +69,32 @@ public class Compilation {
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
 
+    MarkVerificationFinished();
+
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
   }
 
+  public void Start() {
+    started.TrySetResult();
+  }
+
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
-      var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      await started.Task;
+      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = parsedCompilation.InitialIdeState();
+      var state = documentAfterParsing.InitialIdeState();
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
-      documentUpdates.OnNext(parsedCompilation);
-      return parsedCompilation;
+      logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+      documentUpdates.OnNext(documentAfterParsing);
+      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
+      return documentAfterParsing;
 
     } catch (Exception e) {
       documentUpdates.OnError(e);
@@ -176,6 +187,7 @@ public class Compilation {
     }
   }
 
+  private int runningVerificationJobs = 0;
   public bool VerifyTask(DocumentAfterTranslation document, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
@@ -193,11 +205,9 @@ public class Compilation {
       return false;
     }
 
+    Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
-    statusUpdates.Catch<IVerificationStatus, Exception>(e => {
-      logger.LogError(e, "Caught error in statusUpdates observable.");
-      return Observable.Empty<IVerificationStatus>();
-    }).ObserveOn(verificationUpdateScheduler).Subscribe(
+    statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
       update => {
         try {
           HandleStatusUpdate(document, implementationTask, update);
@@ -205,15 +215,24 @@ public class Compilation {
           logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
         }
       },
-      () => {
-        try {
-          if (document.VerificationTasks!.All(t => t.IsIdle)) {
-            FinishedNotifications(document);
-          }
-        } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception in statusUpdates OnCompleted.");
+      e => {
+        logger.LogError(e, "Caught error in statusUpdates observable.");
+        StatusUpdateHandlerFinally();
+      },
+      StatusUpdateHandlerFinally
+    );
+
+    void StatusUpdateHandlerFinally() {
+      try {
+        var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+        if (remainingJobs == 0) {
+          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {document.Version}.");
+          FinishedNotifications(document);
         }
-      });
+      } catch (Exception e) {
+        logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+      }
+    }
 
     return true;
   }
@@ -253,7 +272,6 @@ public class Compilation {
       if (VerifierOptions.GutterStatus) {
         document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
       }
-      logger.LogInformation($"Verification of Boogie implementation {implementationTask.Implementation.Name} completed.");
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
@@ -295,28 +313,33 @@ public class Compilation {
   }
 
   public void CancelPendingUpdates() {
-    MarkVerificationFinished();
     cancellationSource.Cancel();
   }
 
   private TaskCompletionSource verificationCompleted = new();
 
   public void MarkVerificationStarted() {
+    logger.LogDebug("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
+    logger.LogDebug("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 
   public Task<DocumentAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
-        return verificationCompleted.Task.ContinueWith(
 #pragma warning disable VSTHRD103
-          _ => Task.FromResult<DocumentAfterParsing>(t.Result), TaskScheduler.Current).Unwrap();
+        logger.LogDebug($"LastDocument will return document version {t.Result.Version}");
+        return verificationCompleted.Task.ContinueWith(
+          verificationCompletedTask => {
+            logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
+            return Task.FromResult<DocumentAfterParsing>(t.Result);
+          }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
       }
 
