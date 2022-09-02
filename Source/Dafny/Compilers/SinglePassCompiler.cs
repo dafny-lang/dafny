@@ -2979,16 +2979,22 @@ namespace Microsoft.Dafny.Compilers {
             Error(s.Tok, "nondeterministic if statement forbidden by /definiteAssignment:3 option", wr);
           }
           // we can compile the branch of our choice
+          ConcreteSyntaxTree guardWriter;
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            wr = wr.NewBlock("if (!false) ");
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var thenWriter = EmitIf(out guardWriter, false, wr);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
-            wr.WriteLine("if (!false) { }");
+            thenWriter = EmitIf(out guardWriter, false, thenWriter);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
+            TrStmtList(new List<Statement>(), thenWriter);
           } else {
             // let's compile the "then" branch
-            wr = wr.NewBlock("if (true) ");
+            wr = EmitIf(out guardWriter, false, wr);
+            guardWriter.Write(True);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
