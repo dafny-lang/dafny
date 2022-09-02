@@ -1,4 +1,4 @@
-# 2. Lexical and Low Level Grammar {#seci-lexical-grammar}
+# 2. Lexical and Low Level Grammar {#sec-lexical-grammar}
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
@@ -87,7 +87,7 @@ let you reconstruct the original grammar.
 
 <!-- TODO: grammar hyperlinks are not implemented -->
 
-## 2.1. Dafny Input {#sec-unicode} 
+## 2.1. Dafny Input {#sec-unicode}
 
 Dafny source code files are readable text encoded as UTF-8 Unicode
 (because this is what the Coco/R-generated scanner and parser read).
