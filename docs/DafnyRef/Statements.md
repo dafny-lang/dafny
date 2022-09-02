@@ -961,7 +961,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 5.6](#sec-loop-specification).
+These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1152,7 +1152,7 @@ The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
 
-## 20.14. Loop Specifications {#sec-loop-specification}
+## 20.14. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
