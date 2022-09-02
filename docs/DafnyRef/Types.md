@@ -3673,7 +3673,7 @@ The value `x.t` is a portion of the datatype structure denoted by `x`, so `x.t <
 Datatype values are immutable mathematical values, so the value of `y` is identical to the value of
 `x.t`, so `y < x` is true also, even though `y` is constructed from the ground up, rather than as
 a portion of `x`. However, `z` is different than either `y` or `x.t` and consequently `z < x` is not provable.
-Furthermore, `<` does not include `==`, so `x ==x` is false.
+Furthermore, `<` does not include `==`, so `x < x` is false.
 
 Note that only `<` is defined; not `<=` or `>` or `>=`.
 
