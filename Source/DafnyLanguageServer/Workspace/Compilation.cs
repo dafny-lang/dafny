@@ -46,7 +46,7 @@ public class Compilation {
 
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly ReplaySubject<Document> documentUpdates = new();
+  private readonly Subject<Document> documentUpdates = new();
   public IObservable<Document> DocumentUpdates => documentUpdates;
 
   public Task<DocumentAfterParsing> ResolvedDocument { get; }

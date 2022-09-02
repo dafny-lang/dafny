@@ -14,12 +14,8 @@ class IdeStateObserver : IObserver<IdeState> {
   private readonly INotificationPublisher notificationPublisher;
 
   private readonly object lastPublishedStateLock = new();
-  private volatile IdeState lastPublishedState;
 
-  public IdeState LastPublishedState {
-    get => lastPublishedState;
-    private set => lastPublishedState = value;
-  }
+  public IdeState LastPublishedState { get; private set; }
 
   public IdeStateObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
