@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyTestGeneration;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -894,13 +895,12 @@ method test2() {
 
       var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
       foreach (var t in expected.Zip(actual)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message, t.Second.ToString());
+        Assert.AreEqual(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
@@ -933,7 +933,8 @@ method Foo() {
       var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     [TestMethod]
@@ -951,7 +952,8 @@ module Foo {
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     /**
