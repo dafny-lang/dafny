@@ -430,7 +430,7 @@ and the type of the first LHS expression must be assignable from the return type
 
 The following subsections show various uses and alternatives.
 
-### 20.7.1. Failure compatible types
+### 20.7.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
 ```dafny

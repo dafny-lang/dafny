@@ -53,7 +53,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((7, 10), out var symbol));
       Assert.AreEqual("x", symbol.Name);
     }
@@ -93,7 +92,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((7, 10), out var symbol));
       Assert.AreEqual("x", symbol.Name);
     }
@@ -141,7 +139,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((22, 10), out var symbol));
       Assert.AreEqual("y", symbol.Name);
     }
@@ -181,7 +178,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((16, 10), out var symbol));
       Assert.AreEqual("y", symbol.Name);
     }
@@ -209,7 +205,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((6, 10), out var symbol));
       Assert.AreEqual("x", symbol.Name);
     }
@@ -237,7 +232,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((6, 9), out var symbol));
       Assert.AreEqual("x", symbol.Name);
     }
@@ -269,7 +263,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsFalse(document.SymbolTable.TryGetSymbolAt((6, 9), out var _));
       Assert.AreEqual(lookupCountBefore - 1, document.SymbolTable.LookupTree.Count);
     }
@@ -308,7 +301,6 @@ class Test {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((12, 7), out var symbol));
       Assert.AreEqual("x", symbol.Name);
     }
