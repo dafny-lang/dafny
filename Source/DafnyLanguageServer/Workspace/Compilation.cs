@@ -73,17 +73,18 @@ public class Compilation {
 
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
-      var parsedCompilation = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = parsedCompilation.InitialIdeState();
+      var state = documentAfterParsing.InitialIdeState();
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
-      documentUpdates.OnNext(parsedCompilation);
-      return parsedCompilation;
+      documentUpdates.OnNext(documentAfterParsing);
+      logger.LogDebug("Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task.");
+      return documentAfterParsing;
 
     } catch (Exception e) {
       documentUpdates.OnError(e);
