@@ -58,6 +58,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId);
 
-    IEnumerable<Compilation> Documents { get; }
+    IEnumerable<DocumentManager> Documents { get; }
   }
 }
