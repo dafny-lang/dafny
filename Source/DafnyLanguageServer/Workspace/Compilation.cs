@@ -211,16 +211,14 @@ public class Compilation {
       StatusUpdateHandlerFinally
     );
 
-    void StatusUpdateHandlerFinally()
-    {
+    void StatusUpdateHandlerFinally() {
       try {
         var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
         if (remainingJobs == 0) {
           logger.LogDebug("Calling FinishedNotifications because there are no remaining verification jobs.");
           FinishedNotifications(document);
         }
-      }
-      catch (Exception e) {
+      } catch (Exception e) {
         logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
       }
     }
