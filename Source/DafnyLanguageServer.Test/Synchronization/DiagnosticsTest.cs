@@ -8,16 +8,17 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
-
 
     [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
@@ -570,14 +571,67 @@ method t10() { assert false; }".TrimStart();
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
       for (int i = 0; i < 10; i++) {
+        diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual(5, diagnostics.Length, $"Iteration is {i}, Old to new history was: {diagnosticsReceiver.History.Stringify()}");
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
       }
+    }
+
+
+
+    [TestMethod]
+    public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
+      var source = @"
+module {:options ""/functionSyntax:4""} Library {
+  // Library
+  datatype Option<T> = Some(value: T) | None
+  datatype Result<T> = Success(value: T) | Failure(s: string, pos: int) {
+    predicate IsFailure() {
+      Failure?
+    }
+    function PropagateFailure<U>(): Result<U>
+      requires IsFailure()
+    {
+      Failure(s, pos)
+    }
+    function Extract(): T
+      requires !IsFailure()
+    {
+      value
+    }
+  }
+}
+module Parser {
+  import opened Library
+
+  datatype Parser = Parser(expected: string) | Log(p: Parser, message: string)
+  {
+    method {:termination false} Parse(s: string, i: nat)
+      returns (result: Result<(string, nat)>)
+    {
+      if Log? {
+        var v1 :- p.Parse(s, i); // Removing this line makes the language server not crash anymore.
+      }
+      
+      result := Failure(""bam"", i);
+    }
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      diagnosticsReceiver.ClearHistory();
+      var documentItem = CreateTestDocument(source, $"test1.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken.None);
+      Assert.AreEqual(0, diagnostics.Count(diagnostic =>
+        diagnostic.Severity != DiagnosticSeverity.Information &&
+        diagnostic.Severity != DiagnosticSeverity.Hint), $"Expected no issue");
     }
 
     [TestMethod]
@@ -843,10 +897,10 @@ method test2() {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
-      Assert.AreEqual(first.Length, second.Length);
-      foreach (var t in first.Zip(second)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message);
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
+      Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
+      foreach (var t in expected.Zip(actual)) {
+        Assert.AreEqual(t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 

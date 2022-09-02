@@ -6,7 +6,7 @@ from fractions import Fraction
 from collections import Counter
 from functools import reduce
 from types import GeneratorType, FunctionType
-from itertools import chain, combinations
+from itertools import chain, combinations, count
 import copy
 
 class classproperty(property):
@@ -14,9 +14,9 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    builtins.print(str(value), end="")
+    builtins.print(string_of(value), end="")
 
-def str(value) -> builtins.str:
+def string_of(value) -> str:
     if hasattr(value, '__dafnystr__'):
         return value.__dafnystr__()
     elif value is None:
@@ -24,25 +24,25 @@ def str(value) -> builtins.str:
     elif isinstance(value, bool):
         return "true" if value else "false"
     elif isinstance(value, tuple):
-        return '(' + ', '.join(map(str, value)) + ')'
+        return '(' + ', '.join(map(string_of, value)) + ')'
     elif isinstance(value, FunctionType):
         return "Function"
     else:
-        return builtins.str(value)
+        return str(value)
 
 @dataclass
 class Break(Exception):
-    target: builtins.str
+    target: str
 
 @dataclass
 class Continue(Exception):
-    target: builtins.str
+    target: str
 
 class TailCall(Exception):
     pass
 
 @contextmanager
-def label(name: builtins.str = None):
+def label(name: str = None):
     try:
         yield
     except Break as g:
@@ -51,39 +51,24 @@ def label(name: builtins.str = None):
     except TailCall as g:
         if name is not None:
             raise g
-    except Continue as g:
-        raise g
 
 @contextmanager
-def c_label(name: builtins.str = None):
+def c_label(name: str = None):
     try:
         yield
     except Continue as g:
         if g.target != name:
             raise g
-    except Break as g:
-        raise g
-    except TailCall as g:
-        raise g
-
-def _break(name):
-    raise Break(target=name)
-
-def _continue(name):
-    raise Continue(target=name)
-
-def _tail_call():
-    raise TailCall()
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         if __iterable is None:
             __iterable = []
         self.isStr = isStr \
-                     or isinstance(__iterable, builtins.str) \
+                     or isinstance(__iterable, str) \
                      or (isinstance(__iterable, Seq) and __iterable.isStr) \
                      or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, builtins.str) and len(e) == 1 for e in __iterable)
+                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
                          and len(__iterable) > 0)
 
     @property
@@ -94,10 +79,10 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def __dafnystr__(self) -> builtins.str:
+    def __dafnystr__(self) -> str:
         if self.isStr:
             return ''.join(self)
-        return '[' + ', '.join(map(str, self)) + ']'
+        return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
         return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
@@ -116,6 +101,12 @@ class Seq(tuple):
     def __hash__(self) -> int:
         return hash(tuple(self))
 
+    def __lt__(self, other):
+        return len(self) < len(other) and self == other[:len(self)]
+
+    def __le__(self, other):
+        return len(self) <= len(other) and self == other[:len(self)]
+
 class Array(list):
     @classmethod
     def empty(cls, dims):
@@ -123,8 +114,8 @@ class Array(list):
             return Array()
         return Array([Array.empty(dims-1)])
 
-    def __dafnystr__(self) -> builtins.str:
-        return '[' + ', '.join(map(str, self)) + ']'
+    def __dafnystr__(self) -> str:
+        return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __len__(self):
         l = super().__len__()
@@ -144,8 +135,8 @@ class Set(frozenset):
         s = list(self)
         return map(Set, chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
-    def __dafnystr__(self) -> builtins.str:
-        return '{' + ', '.join(map(str, self)) + '}'
+    def __dafnystr__(self) -> str:
+        return '{' + ', '.join(map(string_of, self)) + '}'
 
     def union(self, other):
         return Set(super().union(self, other))
@@ -163,8 +154,8 @@ class Set(frozenset):
         return Set(super().__sub__(other))
 
 class MultiSet(Counter):
-    def __dafnystr__(self) -> builtins.str:
-        return 'multiset{' + ', '.join(map(str, self.elements())) + '}'
+    def __dafnystr__(self) -> str:
+        return 'multiset{' + ', '.join(map(string_of, self.elements())) + '}'
 
     def __len__(self):
         return reduce(lambda acc, key: acc + self[key], self, 0)
@@ -184,6 +175,14 @@ class MultiSet(Counter):
     @property
     def keys(self):
         return Set(key for key in self if self[key] > 0)
+
+    @property
+    def Elements(self):
+        return self.elements()
+
+    @property
+    def UniqueElements(self):
+        return self.keys
 
     def isdisjoint(self, other):
         return frozenset(self.keys).isdisjoint(frozenset(other.keys))
@@ -212,8 +211,8 @@ class MultiSet(Counter):
         return self[item] > 0
 
 class Map(dict):
-    def __dafnystr__(self) -> builtins.str:
-        return 'map[' + ', '.join(map(lambda i: f'{str(i[0])} := {str(i[1])}', self.items)) + ']'
+    def __dafnystr__(self) -> str:
+        return 'map[' + ', '.join(map(lambda i: f'{string_of(i[0])} := {string_of(i[1])}', self.items)) + ']'
 
     @property
     def Elements(self):
@@ -361,6 +360,26 @@ def quantifier(vals, frall, pred):
 
 def AllChars():
     return (chr(i) for i in range(0x10000))
+
+def AllBooleans():
+    return [False, True]
+
+def IntegerRange(lo, hi):
+    if lo is None:
+        return count(hi-1, -1)
+    elif hi is None:
+        return count(lo)
+    return range(lo, hi)
+
+class Doubler:
+    def __init__(self, start):
+        self.start = start
+
+    def __iter__(self):
+        i = self.start
+        while True:
+            yield i
+            i *= 2
 
 class defaults:
     bool = staticmethod(lambda: False)
