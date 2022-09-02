@@ -1,4 +1,4 @@
-# 20. Statements
+# 20. Statements {#sec-statements}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 NonLabeledStmt =
@@ -236,7 +236,7 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 20.3. Block Statement
+## 20.3. Block Statement {#sec-block-statement}
 ````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
@@ -808,7 +808,7 @@ function usesTuple() : int
 
 The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
 
-## 20.9. Guards
+## 20.9. Guards {#sec-guards}
 ````grammar
 Guard = ( "*"
         | "(" "*" ")"
@@ -824,7 +824,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 20.10. Binding Guards
+## 20.10. Binding Guards {#sec-binding-guards}
 ````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional }
@@ -1162,7 +1162,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 20.14.1. Loop invariants
+### 20.14.1. Loop invariants {sec-loop-invariants}
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -2177,7 +2177,7 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 20.24. Skeleton Statement
+## 20.24. Skeleton Statement {#sec-skeleton-statement}
 ````grammar
 SkeletonStmt =
   ellipsis

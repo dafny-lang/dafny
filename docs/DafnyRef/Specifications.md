@@ -1,4 +1,4 @@
-# 5. Specifications
+# 5. Specifications {#sec-specifications}
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -623,7 +623,7 @@ Examples of iterators, including iterator specifications, are given in
 - a yield requires clause is a precondition for calling `MoveNext`
 - a yield ensures clause is a postcondition for calling `MoveNext`
 
-## 5.6. Loop Specification
+## 5.6. Loop Specification {#sec-loop-specification}
 ````grammar
 LoopSpec =
   { InvariantClause_

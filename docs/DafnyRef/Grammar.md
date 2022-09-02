@@ -1,4 +1,4 @@
-# 2. Lexical and Low Level Grammar
+# 2. Lexical and Low Level Grammar {#seci-lexical-grammar}
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
@@ -87,7 +87,7 @@ let you reconstruct the original grammar.
 
 <!-- TODO: grammar hyperlinks are not implemented -->
 
-## 2.1. Dafny Input {#sec-unicode}
+## 2.1. Dafny Input {#sec-unicode} 
 
 Dafny source code files are readable text encoded as UTF-8 Unicode
 (because this is what the Coco/R-generated scanner and parser read).
@@ -101,7 +101,7 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## 2.2. Tokens and whitespace
+## 2.2. Tokens and whitespace {#sec-tokens}
 The characters used in a Dafny program fall into four groups:
 
 * White space characters
@@ -234,7 +234,7 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-## 2.4. Comments
+## 2.4. Comments {#sec-comments}
 Comments are in two forms.
 
 * They may go from `/*` to `*/` .
@@ -284,7 +284,7 @@ As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.5.1. Reserved Words
+### 2.5.1. Reserved Words {sec-reserved-words}
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
@@ -324,7 +324,7 @@ is the type of two-dimensional arrays, etc.
 Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
 ordinary identifier.
 
-### 2.5.2. Identifiers
+### 2.5.2. Identifiers {#sec-identifiers}
 
 ````grammar
 ident = nondigitIdChar { idchar } - charToken - reservedword
@@ -335,7 +335,7 @@ are not identifiers if they look like a character literal
 or a reserved word (including array or bit-vector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### 2.5.3. Digits
+### 2.5.3. Digits {#sec-digits}
 ````grammar
 digits = digit {['_'] digit}
 ````
@@ -355,7 +355,7 @@ decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
-### 2.5.4. Escaped Character
+### 2.5.4. Escaped Character {#sec-escaped-characters}
 In this section the "\\" characters are literal.
 ````grammar
 escapedChar =
@@ -369,7 +369,7 @@ to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
-### 2.5.5. Character Constant Token
+### 2.5.5. Character Constant Token {#sec-character-constant-token}
 ````grammar
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
@@ -381,7 +381,7 @@ in its character, string, and verbatim strings constants and in its comments](#s
 constant has type `char`.
 
 
-### 2.5.6. String Constant Token
+### 2.5.6. String Constant Token {#sec-string-constant-token}
 ````grammar
 stringToken =
     '"' { stringChar | escapedChar }  '"'
@@ -399,7 +399,7 @@ the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 Within a verbatim string constant, a backslash character represents itself and is not the first character of an `escapedChar`.
 
-### 2.5.7. Ellipsis
+### 2.5.7. Ellipsis {#sec-ellipsis}
 ````grammar
 ellipsis = "..."
 ````
@@ -621,7 +621,7 @@ QuantifierVarDecl(allowLemma, allowLambda) =
     [ | Expression(allowLemma, allowLambda) ]
 ````
 
-### 2.6.6. Numeric Literals
+### 2.6.6. Numeric Literals {#sec-numeric-literals}
 ````grammar
 Nat = ( digits | hexdigits )
 ````
