@@ -2194,9 +2194,8 @@ namespace Microsoft.Dafny.Compilers {
       return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
     }
 
-    protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
+    protected int WriteRuntimeTypeDescriptorsFormals(List<TypeArgumentInstantiation> typeParams,
       ConcreteSyntaxTree wr, ref string prefix, Func<TypeParameter, string> formatter) {
-      Contract.Requires(member != null);
       Contract.Requires(typeParams != null);
       Contract.Requires(prefix != null);
       Contract.Requires(wr != null);

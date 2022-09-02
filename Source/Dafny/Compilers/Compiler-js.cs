@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -669,7 +669,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var sep = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
