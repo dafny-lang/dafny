@@ -207,7 +207,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), false,
         IdName(iter), iter.TypeArgs, iter, null, iter.tok, wr) as ClassWriter;
-      Debug.Assert(cw != null, nameof(cw) + " != null");
+      Contracts.Assert(cw != null, nameof(cw) + " != null");
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
       // here come the fields
