@@ -272,7 +272,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         if (IsFollowedByNewline(token)) {
           SetOpeningIndentedRegion(token, indent2);
         } else {
-          SetIndentations(token, indent2, indent2, indent2 + token.val.Length + 1);
+          SetAlign(indent2, token, out rightIndent, out commaIndent);
+          //SetIndentations(token, indent2, indent2, indent2 + token.val.Length + 1);
         }
 
         commaIndent = indent2;
@@ -894,7 +895,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     return indentationFormatter;
   }
 
-  private static Regex FollowedByNewlineRegex = new Regex("^[ \t]*[\r\n/]");
+  private static Regex FollowedByNewlineRegex = new Regex("^[ \t]*([\r\n]|//)");
 
   public static bool IsFollowedByNewline(IToken token) {
     return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);

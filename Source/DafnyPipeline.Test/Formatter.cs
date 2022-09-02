@@ -400,6 +400,14 @@ method topLevel(
     [Fact]
     public void FormatterWorksForFunctionsIfExprAndMatchCases() {
       FormatterWorksFor(@"
+function Zipper2<T>(a: List<T>, b: List<T>): List<T>
+  decreases /* max(a,b) */ if a < b then b else a,
+            /* min(a,b) */ if a < b then a else b
+{
+  match a
+  case Nil => b
+  case Cons(x, c) => List.Cons(x, Zipper2(b, c))
+}
 function topLevel(
     x: int,
     y: int
