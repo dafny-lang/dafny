@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
-    public async Task FunctionCallAndGotoOnDeclaration() {
+    public async Task FunctionCall() {
       var source = @"
 function FibonacciSpec(n: nat): nat {
   if (n == 0) then 0
@@ -38,45 +38,10 @@ function FibonacciSpec(n: nat): nat {
       
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var fibonacciSpec = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
-      var location = fibonacciSpec.Location;
+      var definition = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
+      var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
-      
-      var fibonacciSpecOnItself = (await RequestDefinition(documentItem, (0, 12)).AsTask());
-      Assert.IsFalse(fibonacciSpecOnItself.Any());
-      
-      var nOnItself = (await RequestDefinition(documentItem, (0, 23)).AsTask());
-      Assert.IsFalse(nOnItself.Any());
-    }
-
-    [TestMethod]
-    public async Task Regression() {
-      var source = @"
-datatype Identity<T> = Identity(value: T)
-datatype Colors = Red | Green | Blue
-
-function Foo(value: Identity<Colors>): bool {
-  match value {
-    case Identity(Red()) => true
-    case Identity(Green) => false // Warning
-    case Identity(Blue()) => false
-  }
-}".TrimStart();
-      
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var matchSource = (await RequestDefinition(documentItem, (4, 10)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, matchSource.Location.Uri);
-      Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location.Range);
-        
-      var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, identity.Location.Uri);
-      Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location.Range);
-      
-      var green = (await RequestDefinition(documentItem, (6, 20)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, green.Location.Uri);
-      Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location.Range);
     }
     
     [TestMethod]
@@ -96,12 +61,10 @@ module Consumer {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var usizeReference = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, usizeReference.Location.Uri);
-      Assert.AreEqual(new Range((2, 7), (2, 12)), usizeReference.Location.Range);
-      
-      var lengthDefinition = (await RequestDefinition(documentItem, (9, 10)).AsTask());
-      Assert.IsFalse(lengthDefinition.Any());
+      var definition = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((2, 7), (2, 12)), location.Range);
     }
 
     [TestMethod]
