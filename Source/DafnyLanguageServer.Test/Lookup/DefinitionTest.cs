@@ -28,6 +28,62 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
+    public async Task JumpToExternModule() {
+      var source = @"
+module {:extern} Provider {
+  newtype nat64 = x: int | 0 <= x <= 0xffff_ffff_ffff_ffff
+  type usize = nat64
+}
+
+module Consumer {
+  import opened Provider
+
+  method DoIt() {
+    var length: usize := 3;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var definition = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task JumpToOtherModule() {
+      var source = @"
+module Provider {
+  class A {
+    var x: int;
+
+    constructor() {}
+
+    function method GetX(): int
+      reads this
+    {
+      this.x
+    }
+  }
+}
+
+module Consumer {
+  import opened Provider
+
+  method DoIt() returns (x: int) {
+    var a := new A();
+    return a.GetX();
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var definition = (await RequestDefinition(documentItem, (19, 14)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+
+    [TestMethod]
     public async Task DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation() {
       var source = @"
 method DoIt() returns (x: int) {
