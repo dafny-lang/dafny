@@ -2173,7 +2173,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType {
+public class UserDefinedType : NonProxyType, INode, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2551,6 +2551,12 @@ public class UserDefinedType : NonProxyType {
     }
 
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
+  }
+
+  public IToken Start => tok;
+  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return Enumerable.Repeat(ResolvedClass, 1);
   }
 }
 

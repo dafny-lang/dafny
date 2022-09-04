@@ -15,6 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeState(
   DocumentTextBuffer TextDocumentItem,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
+  NewSymbolTable NewSymbolTable,
   SymbolTable SymbolTable,
   IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,

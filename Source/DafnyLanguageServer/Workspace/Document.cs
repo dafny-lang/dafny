@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState() {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        NewSymbolTable.Empty(), SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(TextDocumentItem)));
@@ -83,13 +83,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
+      NewSymbolTable? newSymbolTable,
       SymbolTable symbolTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, symbolTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;

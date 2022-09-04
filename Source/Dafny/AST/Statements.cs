@@ -2,11 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Drawing.Imaging;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration {
+public abstract class Statement : IAttributeBearingDeclaration, INode {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
@@ -149,6 +150,9 @@ public abstract class Statement : IAttributeBearingDeclaration {
       return rangeToken;
     }
   }
+
+  public IToken Start => Tok;
+  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public class LList<T> {
@@ -683,6 +687,8 @@ public class VarDeclStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Locals.Concat<INode>(new [] {Update});
 }
 
 public class VarDeclPattern : Statement {
@@ -928,7 +934,7 @@ public class AssignStmt : Statement {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : IVariable, IAttributeBearingDeclaration, INode {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
@@ -1019,6 +1025,17 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   IToken IVariable.Tok {
     get {
       return Tok;
+    }
+  }
+
+  public IToken Start => Tok;
+  public IEnumerable<INode> Children {
+    get {
+      if (type is UserDefinedType udt) {
+        return new[] {udt};
+      }
+
+      return Enumerable.Empty<INode>();
     }
   }
 }

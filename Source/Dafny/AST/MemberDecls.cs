@@ -365,6 +365,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateRight_Concat,
   }
 
+  public override IEnumerable<INode> Children => SubExpressions;
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
@@ -650,6 +652,7 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
+  public override IEnumerable<INode> Children => Body.SubStatements;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;

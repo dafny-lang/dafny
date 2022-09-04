@@ -22,7 +22,16 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public class Program {
+  public interface IHasReferences : INode {
+    public IEnumerable<INode> GetResolvedDeclarations();
+  }
+
+  public interface INode {
+    IToken Start { get; }
+    IEnumerable<INode> Children { get; }
+  }
+  
+  public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -84,6 +93,9 @@ namespace Microsoft.Dafny {
     public IToken GetFirstTopLevelToken() {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
+
+    public IToken Start => this.GetFirstTopLevelToken();
+    public IEnumerable<INode> Children => RawModules();
   }
 
   public class Include : IComparable {

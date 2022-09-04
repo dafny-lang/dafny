@@ -28,6 +28,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
+    public async Task FunctionCall() {
+      var source = @"
+function FibonacciSpec(n: nat): nat {
+  if (n == 0) then 0
+  else if (n == 1) then 1
+  else FibonacciSpec(n - 1) + FibonacciSpec(n - 2)
+}".TrimStart();
+      
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var definition = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
+    }
+    
+    [TestMethod]
     public async Task JumpToExternModule() {
       var source = @"
 module {:extern} Provider {
@@ -47,7 +64,7 @@ module Consumer {
       var definition = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+      Assert.AreEqual(new Range((2, 7), (2, 12)), location.Range);
     }
 
     [TestMethod]

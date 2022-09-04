@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration {
+public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, INode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -131,7 +131,14 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration {
     return Name;
   }
 
-  internal FreshIdGenerator IdGenerator = new FreshIdGenerator();
+  internal FreshIdGenerator IdGenerator = new();
+  public IToken Start => tok;
+  public virtual IEnumerable<INode> Children {
+    get {
+      
+      return Enumerable.Empty<INode>();
+    }
+  }
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -594,7 +601,7 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration {
+public class ModuleDefinition : INode, INamedRegion, IAttributeBearingDeclaration {
   public readonly IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
@@ -913,6 +920,9 @@ public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration {
         .Where(tok => tok.line > 0)
       ).FirstOrDefault(Token.NoToken);
   }
+
+  public IToken Start => tok;
+  public IEnumerable<INode> Children => TopLevelDecls;
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1016,6 +1026,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   public bool AllowsAllocation => true;
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
@@ -1106,6 +1117,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
       types.Add(u);
     }
     return types;
+  }
+
+  public override IEnumerable<INode> Children {
+    get {
+      return Members;
+    }
   }
 
   /// <summary>

@@ -149,7 +149,7 @@ public class Compilation {
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ParseAndResolutionDiagnostics, loaded.NewSymbolTable, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));

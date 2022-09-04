@@ -59,29 +59,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
-        var enclosingSymbol = state.SymbolTable.GetEnclosingSymbol(position, cancellationToken);
-        ISymbol? currentDesignator = null;
-        ISymbol? currentDesignatorType = null;
-        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
-          cancellationToken.ThrowIfCancellationRequested();
-          var currentDesignatorName = memberAccessChain[currentMemberAccess];
-          if (currentMemberAccess == 0) {
-            if (currentDesignatorName == "this") {
-              // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
-              currentDesignator = GetEnclosingType(enclosingSymbol);
-            } else {
-              currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
-            }
-          } else {
-            currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
-          }
-          if (currentDesignator == null || !state.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
-            logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
-              currentMemberAccess, memberAccessChain);
-            return (currentDesignator, null);
-          }
-        }
-        return (currentDesignator, currentDesignatorType);
+        return (null, null);
+        // var enclosingSymbol = state.SymbolTable.GetEnclosingSymbol(position, cancellationToken);
+        // ISymbol? currentDesignator = null;
+        // ISymbol? currentDesignatorType = null;
+        // for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
+        //   cancellationToken.ThrowIfCancellationRequested();
+        //   var currentDesignatorName = memberAccessChain[currentMemberAccess];
+        //   if (currentMemberAccess == 0) {
+        //     if (currentDesignatorName == "this") {
+        //       // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
+        //       currentDesignator = GetEnclosingType(enclosingSymbol);
+        //     } else {
+        //       currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
+        //     }
+        //   } else {
+        //     currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
+        //   }
+        //   if (currentDesignator == null || !state.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+        //     logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
+        //       currentMemberAccess, memberAccessChain);
+        //     return (currentDesignator, null);
+        //   }
+        // }
+        // return (currentDesignator, currentDesignatorType);
       }
 
       private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {

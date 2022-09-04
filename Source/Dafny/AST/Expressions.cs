@@ -9,7 +9,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
-public abstract class Expression {
+public abstract class Expression : INode {
   public readonly IToken tok;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -808,6 +808,9 @@ public abstract class Expression {
     var le = this as StringLiteralExpr;
     return le == null ? null : le.Value as string;
   }
+
+  public IToken Start => tok;
+  public IEnumerable<INode> Children => SubExpressions;
 }
 
 /// <summary>
@@ -1620,7 +1623,7 @@ public class ApplyExpr : Expression {
   }
 }
 
-public class FunctionCallExpr : Expression {
+public class FunctionCallExpr : Expression, IHasReferences {
   public readonly string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
@@ -1739,6 +1742,9 @@ public class FunctionCallExpr : Expression {
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return Enumerable.Repeat(Function, 1);
+  }
 }
 
 public class SeqConstructionExpr : Expression {

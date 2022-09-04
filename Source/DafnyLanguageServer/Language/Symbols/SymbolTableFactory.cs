@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -19,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
+    
     public SymbolTable CreateFrom(Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, program, declarations, compilationUnit, cancellationToken);
@@ -43,6 +45,26 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         designatorVisitor.SymbolLookup,
         symbolsResolved
       );
+    }
+    
+    public NewSymbolTable CreateFrom(Dafny.Program program, Document document, CancellationToken cancellationToken) {
+      var visited = new HashSet<INode>();
+      var remaining = new Stack<INode>();
+      remaining.Push(program);
+      while (remaining.Any()) {
+        var next = remaining.Pop();
+        if (!visited.Add(next)) {
+          continue;
+        }
+        foreach (var child in next.Children) {
+          remaining.Push(child);
+        }
+      }
+
+      var x = visited.OfType<IHasReferences>()
+        .SelectMany(r => r.GetResolvedDeclarations().Select(declaration => ((INode)r, declaration))).ToList();
+
+      return new NewSymbolTable(document, x);
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
