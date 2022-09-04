@@ -61,10 +61,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      var x = visited.OfType<IHasReferences>()
+      var usages = visited.OfType<IHasReferences>()
         .SelectMany(r => r.GetResolvedDeclarations().Select(declaration => ((INode)r, declaration))).ToList();
 
-      return new NewSymbolTable(document, x);
+      return new NewSymbolTable(document, usages);
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {

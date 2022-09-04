@@ -152,7 +152,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   }
 
   public IToken Start => Tok;
-  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 }
 
 public class LList<T> {
@@ -362,7 +362,7 @@ public class RevealStmt : Statement {
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement {
+public class BreakStmt : Statement, IHasReferences {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -393,6 +393,10 @@ public class BreakStmt : Statement {
     Contract.Requires(1 <= breakAndContinueCount);
     this.BreakAndContinueCount = breakAndContinueCount;
     this.IsContinue = isContinue;
+  }
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new[] {TargetStmt};
   }
 }
 
@@ -535,7 +539,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs {
+public class TypeRhs : AssignmentRhs, INode {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -644,6 +648,9 @@ public class TypeRhs : AssignmentRhs {
       }
     }
   }
+
+  public IToken Start => Tok;
+  public IEnumerable<INode> Children => new[] {EType, Type}.OfType<UserDefinedType>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -2009,6 +2016,8 @@ public class MatchCaseStmt : MatchCase {
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Body));
   }
+
+  public override IEnumerable<INode> Children => body;
 
   public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

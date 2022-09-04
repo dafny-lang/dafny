@@ -2173,7 +2173,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType, INode, IHasReferences {
+public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);

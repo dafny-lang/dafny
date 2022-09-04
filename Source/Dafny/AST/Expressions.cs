@@ -810,7 +810,7 @@ public abstract class Expression : INode {
   }
 
   public IToken Start => tok;
-  public IEnumerable<INode> Children => SubExpressions;
+  public virtual IEnumerable<INode> Children => SubExpressions;
 }
 
 /// <summary>
@@ -996,7 +996,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression {
+public class DatatypeValue : Expression, IHasReferences {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -1035,6 +1035,10 @@ public class DatatypeValue : Expression {
 
   public override IEnumerable<Expression> SubExpressions {
     get { return Arguments; }
+  }
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return Enumerable.Repeat(Ctor, 1);
   }
 }
 
@@ -1104,7 +1108,7 @@ public class ImplicitThisExpr_ConstructorCall : ImplicitThisExpr {
   }
 }
 
-public class IdentifierExpr : Expression {
+public class IdentifierExpr : Expression, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -1129,6 +1133,10 @@ public class IdentifierExpr : Expression {
     Name = v.Name;
     Var = v;
     Type = v.Type;
+  }
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return Enumerable.Repeat(Var, 1);
   }
 }
 
@@ -1261,7 +1269,7 @@ public class SeqDisplayExpr : DisplayExpression {
   }
 }
 
-public class MemberSelectExpr : Expression {
+public class MemberSelectExpr : Expression, IHasReferences {
   public readonly Expression Obj;
   public readonly string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -1480,6 +1488,10 @@ public class MemberSelectExpr : Expression {
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new[] {Member};
+  }
 }
 
 public class SeqSelectExpr : Expression {
@@ -3298,7 +3310,7 @@ public class CasePattern<VT> where VT : IVariable {
   }
 }
 
-public abstract class MatchCase {
+public abstract class MatchCase : IHasReferences {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
@@ -3317,6 +3329,12 @@ public abstract class MatchCase {
     this.Ctor = ctor;
     this.Arguments = arguments;
   }
+
+  public IToken Start => tok;
+  public abstract IEnumerable<INode> Children { get; }
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new[] {Ctor};
+  }
 }
 
 public class MatchCaseExpr : MatchCase {
@@ -3327,6 +3345,8 @@ public class MatchCaseExpr : MatchCase {
   void ObjectInvariant() {
     Contract.Invariant(body != null);
   }
+
+  public override IEnumerable<INode> Children => new[] {body};
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
@@ -3493,7 +3513,7 @@ ExtendedPattern is either:
 2 - An IdPattern of a string and a list of ExtendedPattern, representing either
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
-public abstract class ExtendedPattern {
+public abstract class ExtendedPattern : INode {
   public readonly IToken Tok;
   public bool IsGhost;
 
@@ -3502,6 +3522,9 @@ public abstract class ExtendedPattern {
     this.Tok = tok;
     this.IsGhost = isGhost;
   }
+
+  public IToken Start => Tok;
+  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3510,6 +3533,8 @@ public class DisjunctivePattern : ExtendedPattern {
     Contract.Requires(alternatives != null && alternatives.Count > 0);
     this.Alternatives = alternatives;
   }
+
+  public override IEnumerable<INode> Children => Alternatives;
 }
 
 public class LitPattern : ExtendedPattern {
@@ -3567,14 +3592,18 @@ public class LitPattern : ExtendedPattern {
   public override string ToString() {
     return Printer.ExprToString(OrigLit);
   }
+
+  public override IEnumerable<INode> Children => new[] {OrigLit};
 }
 
-public class IdPattern : ExtendedPattern {
+public class IdPattern : ExtendedPattern, IHasReferences {
   public bool HasParenthesis { get; }
   public readonly String Id;
   public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
+  [FilledInDuringResolution]
+  public DatatypeCtor Ctor;
 
   public bool IsWildcardPattern =>
     Arguments == null && Id.StartsWith("_");
@@ -3609,9 +3638,14 @@ public class IdPattern : ExtendedPattern {
       return string.Format("{0}({1})", Id, String.Join(", ", cps));
     }
   }
+
+  public override IEnumerable<INode> Children => Arguments;
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new INode[] { Ctor}.Where(x => x != null);
+  }
 }
 
-public abstract class NestedMatchCase {
+public abstract class NestedMatchCase : INode {
   public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
 
@@ -3621,6 +3655,9 @@ public abstract class NestedMatchCase {
     this.Tok = tok;
     this.Pat = pat;
   }
+
+  public IToken Start => Tok;
+  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3633,6 +3670,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     this.Body = body;
     this.Attributes = attrs;
   }
+
+  public override IEnumerable<INode> Children => new INode[] {Body, Pat}.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3649,7 +3688,8 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Body = body;
     this.Attributes = attrs;
   }
-
+  
+  public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes.Args);
 }
 
 public class NestedMatchStmt : ConcreteSyntaxStatement {
@@ -3706,6 +3746,9 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.UsesOptionalBraces = usesOptionalBraces;
     this.Attributes = attrs;
   }
+
+
+  public override IEnumerable<INode> Children => Cases.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -3811,7 +3854,7 @@ public class AttributedExpression : IAttributeBearingDeclaration {
   }
 }
 
-public class FrameExpression {
+public class FrameExpression : IHasReferences {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
@@ -3834,6 +3877,12 @@ public class FrameExpression {
     this.tok = tok;
     E = e;
     FieldName = fieldName;
+  }
+
+  public IToken Start => tok;
+  public IEnumerable<INode> Children => new[] {E};
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new[] {Field};
   }
 }
 
@@ -3911,7 +3960,7 @@ public class TypeExpr : ParensExpression {
   }
 }
 
-public class DatatypeUpdateExpr : ConcreteSyntaxExpression {
+public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences {
   public readonly Expression Root;
   public readonly List<Tuple<IToken, string, Expression>> Updates;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
@@ -3938,6 +3987,10 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression {
         }
       }
     }
+  }
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return LegalSourceConstructors;
   }
 }
 

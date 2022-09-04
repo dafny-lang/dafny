@@ -354,7 +354,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable {
+  public interface IVariable : INode {
     string Name {
       get;
     }
@@ -464,9 +464,12 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
+
+    public IToken Start => throw new NotImplementedException();
+    public IEnumerable<INode> Children => throw new NotImplementedException();
   }
 
-  public abstract class NonglobalVariable : IVariable {
+  public abstract class NonglobalVariable : IVariable, INode {
     public readonly IToken tok;
     readonly string name;
 
@@ -585,6 +588,9 @@ namespace Microsoft.Dafny {
       this.type = type;
       this.isGhost = isGhost;
     }
+
+    public IToken Start => tok;
+    public IEnumerable<INode> Children => Enumerable.Empty<INode>();
   }
 
   public class Formal : NonglobalVariable {

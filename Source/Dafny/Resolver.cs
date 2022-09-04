@@ -12871,6 +12871,7 @@ namespace Microsoft.Dafny {
         // Check if the head of the pattern is a constructor or a variable
         if (ctors.TryGetValue(idpat.Id, out ctor)) {
           /* =[3]= */
+          idpat.Ctor = ctor;
           if (ctor != null && idpat.Arguments == null && ctor.Formals.Count == 0) {
             // nullary constructor without () -- so convert it to a constructor
             idpat.MakeAConstructor();

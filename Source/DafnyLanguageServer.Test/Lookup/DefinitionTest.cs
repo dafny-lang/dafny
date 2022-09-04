@@ -43,6 +43,31 @@ function FibonacciSpec(n: nat): nat {
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
     }
+
+    [TestMethod]
+    public async Task Regression() {
+      var source = @"
+datatype Identity<T> = Identity(value: T)
+datatype Colors = Red | Green | Blue
+
+function Foo(value: Identity<Colors>): bool {
+  match value {
+    case Identity(Red()) => true
+    case Identity(Green) => false // Warning
+    case Identity(Blue()) => false
+  }
+}".TrimStart();
+      
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
+      Assert.AreEqual(documentItem.Uri, identity.Location.Uri);
+      Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location.Range);
+      
+      var green = (await RequestDefinition(documentItem, (6, 20)).AsTask()).Single();
+      Assert.AreEqual(documentItem.Uri, green.Location.Uri);
+      Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location.Range);
+    }
     
     [TestMethod]
     public async Task JumpToExternModule() {
