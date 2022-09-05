@@ -132,7 +132,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   }
 
   internal FreshIdGenerator IdGenerator = new();
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public virtual IEnumerable<INode> Children {
     get {
       
@@ -503,7 +503,7 @@ public class ExportSignature : IHasReferences {
     return Id;
   }
 
-  public IToken Start => Tok;
+  public IToken NameToken => Tok;
   public IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<INode> GetResolvedDeclarations() {
     return new[] {Decl};
@@ -927,7 +927,7 @@ public class ModuleDefinition : INode, INamedRegion, IAttributeBearingDeclaratio
       ).FirstOrDefault(Token.NoToken);
   }
 
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public IEnumerable<INode> Children => TopLevelDecls;
 }
 

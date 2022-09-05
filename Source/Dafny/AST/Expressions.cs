@@ -809,7 +809,7 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public virtual IEnumerable<INode> Children => SubExpressions;
 }
 
@@ -3330,7 +3330,7 @@ public abstract class MatchCase : IHasReferences {
     this.Arguments = arguments;
   }
 
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public abstract IEnumerable<INode> Children { get; }
   public IEnumerable<INode> GetResolvedDeclarations() {
     return new[] {Ctor};
@@ -3523,7 +3523,7 @@ public abstract class ExtendedPattern : INode {
     this.IsGhost = isGhost;
   }
 
-  public IToken Start => Tok;
+  public IToken NameToken => Tok;
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -3656,7 +3656,7 @@ public abstract class NestedMatchCase : INode {
     this.Pat = pat;
   }
 
-  public IToken Start => Tok;
+  public IToken NameToken => Tok;
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -3880,7 +3880,7 @@ public class FrameExpression : IHasReferences {
     FieldName = fieldName;
   }
 
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] {E};
   public IEnumerable<INode> GetResolvedDeclarations() {
     return new[] {Field};

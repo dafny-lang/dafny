@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
   }
 
   public interface INode {
-    IToken Start { get; }
+    IToken NameToken { get; }
     IEnumerable<INode> Children { get; }
   }
   
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
 
-    public IToken Start => this.GetFirstTopLevelToken();
+    public IToken NameToken => this.GetFirstTopLevelToken();
     public IEnumerable<INode> Children => RawModules();
   }
 
@@ -465,7 +465,7 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public IToken Start => throw new NotImplementedException();
+    public IToken NameToken => throw new NotImplementedException();
     public IEnumerable<INode> Children => throw new NotImplementedException();
   }
 
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
       this.isGhost = isGhost;
     }
 
-    public IToken Start => tok;
+    public IToken NameToken => tok;
     public IEnumerable<INode> Children => Enumerable.Empty<INode>();
   }
 

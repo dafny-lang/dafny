@@ -55,15 +55,16 @@ public class NewSymbolTable {
   }
   
   public NewSymbolTable(Document document, IReadOnlyList<(INode usage, INode declaration)> usages) {
-    Declarations = usages.ToDictionary(k => k.usage, k => k.declaration);
-    Usages = usages.GroupBy(u => u.declaration).ToDictionary(
+    var safeUsages = usages.Where(k => k.declaration.NameToken.Filename != null).ToList();
+    Declarations = safeUsages.ToDictionary(k => k.usage, k => k.declaration);
+    Usages = safeUsages.GroupBy(u => u.declaration).ToDictionary(
       g => g.Key, 
       g => (ISet<INode>)g.Select(k => k.usage).ToHashSet());
     NodePositions = new IntervalTree<Position, INode>();
-    var symbols = usages.Select(u => u.declaration).Concat(usages.Select(u => u.usage)).
-      Where(u => u.Start.Filename == document.Uri.ToString()).Distinct();
+    var symbols = safeUsages.Select(u => u.declaration).Concat(usages.Select(u => u.usage)).
+      Where(u => u.NameToken.Filename == document.Uri.ToString()).Distinct();
     foreach (var symbol in symbols) {
-      var range = symbol.Start.GetLspRange();
+      var range = symbol.NameToken.GetLspRange();
       NodePositions.Add(range.Start, range.End, symbol);
     }
   }
@@ -75,15 +76,15 @@ public class NewSymbolTable {
   public ISet<Location> GetUsages(Position position) {
     return NodePositions.Query(position).
       SelectMany(node => Usages.GetOrDefault(node, () => new HashSet<INode>())).
-      Select(u => new Location { Uri = u.Start.Filename, Range = u.Start.GetLspRange() }).ToHashSet();
+      Select(u => new Location { Uri = u.NameToken.Filename, Range = u.NameToken.GetLspRange() }).ToHashSet();
   }
 
   public Location? GetDeclaration(Position position) {
     return NodePositions.Query(position).Select(node => Declarations.GetOrDefault<INode, INode?>(node, () => null))
       .Where(x => x != null).Select(
         n => new Location { 
-          Uri = DocumentUri.From(n!.Start.Filename), 
-          Range = n.Start.GetLspRange()
+          Uri = DocumentUri.From(n!.NameToken.Filename),
+          Range = n.NameToken.GetLspRange()
         }).FirstOrDefault();
   }
 }

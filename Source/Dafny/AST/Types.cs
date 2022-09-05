@@ -2553,7 +2553,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IToken Start => tok;
+  public IToken NameToken => tok;
   public IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<INode> GetResolvedDeclarations() {
     return Enumerable.Repeat(ResolvedClass, 1);

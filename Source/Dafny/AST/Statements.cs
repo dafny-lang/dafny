@@ -151,7 +151,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     }
   }
 
-  public IToken Start => Tok;
+  public IToken NameToken => Tok;
   public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 }
 
@@ -490,6 +490,9 @@ public abstract class AssignmentRhs {
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
+
+  public IToken NameToken => Tok;
+  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -1035,7 +1038,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
     }
   }
 
-  public IToken Start => Tok;
+  public IToken NameToken => Tok;
   public IEnumerable<INode> Children {
     get {
       if (type is UserDefinedType udt) {
