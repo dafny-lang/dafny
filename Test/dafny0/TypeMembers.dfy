@@ -112,7 +112,7 @@ datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
   static method P(x: int) returns (y: int) {
     y := x + g;
   }
-  twostate predicate Toop() { old(this) == this }
+  twostate predicate Toop() { old(this) == this } // warning: old has no effect
   twostate lemma Tool() { }
   least predicate IndP() { true }
   greatest predicate CoP() { true }

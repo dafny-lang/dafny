@@ -1,10 +1,19 @@
 # Upcoming
 
+- fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
+- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
+- feat: generate warning when 'old' has no effect
+
+# 3.8.1
+
 - feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
 - fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
 - fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
+- fix: Prevent LSP server from exiting when a crash occurs (https://github.com/dafny-lang/dafny/pull/2664)
+- fix: Fix bug where LSP server would not show diagnostics that referred to included files (https://github.com/dafny-lang/dafny/pull/2664)
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
+- fix: Better messages on hovering failing postconditions in IDE (https://github.com/dafny-lang/dafny/pull/2654)
 - fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
 - feat: Introduced ghost constructors in datatypes. One use of these is when working with uninitialized storage, see https://github.com/dafny-lang/rfcs/pull/11. (https://github.com/dafny-lang/dafny/pull/2666)
 
