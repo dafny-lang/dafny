@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
-    public async Task FunctionCall() {
+    public async Task FunctionCallAndGotoOnDeclaration() {
       var source = @"
 function FibonacciSpec(n: nat): nat {
   if (n == 0) then 0
@@ -38,10 +38,16 @@ function FibonacciSpec(n: nat): nat {
       
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
-      var location = definition.Location;
+      var fibonacciSpec = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
+      var location = fibonacciSpec.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
+      
+      var fibonacciSpecOnItself = (await RequestDefinition(documentItem, (0, 12)).AsTask());
+      Assert.IsFalse(fibonacciSpecOnItself.Any());
+      
+      var nOnItself = (await RequestDefinition(documentItem, (0, 23)).AsTask());
+      Assert.IsFalse(nOnItself.Any());
     }
 
     [TestMethod]
@@ -60,6 +66,10 @@ function Foo(value: Identity<Colors>): bool {
       
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var matchSource = (await RequestDefinition(documentItem, (4, 10)).AsTask()).Single();
+      Assert.AreEqual(documentItem.Uri, matchSource.Location.Uri);
+      Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location.Range);
+        
       var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
       Assert.AreEqual(documentItem.Uri, identity.Location.Uri);
       Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location.Range);

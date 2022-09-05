@@ -4,6 +4,7 @@ using System.Linq;
 using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -79,7 +80,11 @@ public class NewSymbolTable {
 
   public Location? GetDeclaration(Position position) {
     return NodePositions.Query(position).Select(node => Declarations.GetOrDefault<INode, INode?>(node, () => null))
-      .Where(x => x != null).Select(n => new Location { Uri = n!.Start.Filename, Range = n.Start.GetLspRange() }).FirstOrDefault();
+      .Where(x => x != null).Select(
+        n => new Location { 
+          Uri = DocumentUri.From(n!.Start.Filename), 
+          Range = n.Start.GetLspRange()
+        }).FirstOrDefault();
   }
 }
 
