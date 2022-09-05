@@ -74,7 +74,7 @@ jobs:
     - name: Build Dafny
       run: |
         dotnet build dafny/Source/Dafny.sln
-        dotnet build -f netstandard2.0 Source/DafnyRuntime/DafnyRuntime.csproj
+        dotnet build -f netstandard2.0 dafny/Source/DafnyRuntime/DafnyRuntime.csproj
         rm dafny/Binaries/*.nupkg
     - name: Create release NuGet package (for uploading)
       if: ${{ !inputs.prerelease }}
