@@ -941,7 +941,7 @@ public class AssignStmt : Statement {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration, INode {
+public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
