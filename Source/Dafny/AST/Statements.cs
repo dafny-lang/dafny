@@ -1039,15 +1039,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children {
-    get {
-      if (type is UserDefinedType udt) {
-        return new[] {udt};
-      }
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public IEnumerable<INode> Children => type.Nodes;
 }
 
 /// <summary>

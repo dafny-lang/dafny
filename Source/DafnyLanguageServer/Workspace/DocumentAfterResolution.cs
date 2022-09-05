@@ -75,12 +75,12 @@ public class NewSymbolTable {
 
   public ISet<Location> GetUsages(Position position) {
     return NodePositions.Query(position).
-      SelectMany(node => Usages.GetOrDefault(node, () => new HashSet<INode>())).
+      SelectMany(node => Usages.GetOrDefault(node, () => (ISet<INode>)new HashSet<INode>())).
       Select(u => new Location { Uri = u.NameToken.Filename, Range = u.NameToken.GetLspRange() }).ToHashSet();
   }
 
   public Location? GetDeclaration(Position position) {
-    return NodePositions.Query(position).Select(node => Declarations.GetOrDefault<INode, INode?>(node, () => null))
+    return NodePositions.Query(position).Select(node => Declarations.GetOrDefault(node, () => (INode?)null))
       .Where(x => x != null).Select(
         n => new Location { 
           Uri = DocumentUri.From(n!.NameToken.Filename),

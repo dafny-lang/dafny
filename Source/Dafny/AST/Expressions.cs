@@ -4179,7 +4179,7 @@ public class ChainingExpression : ConcreteSyntaxExpression {
 ///   * Rather than the current SeqSelectExpr/MultiSelectExpr split of forms 3 and 4, it would
 ///     seem more natural to refactor these into 3: IndexSuffixExpr and 4: RangeSuffixExpr.
 /// </summary>
-abstract public class SuffixExpr : ConcreteSyntaxExpression {
+public abstract class SuffixExpr : ConcreteSyntaxExpression {
   public readonly Expression Lhs;
   public SuffixExpr(IToken tok, Expression lhs)
     : base(tok) {
@@ -4187,6 +4187,8 @@ abstract public class SuffixExpr : ConcreteSyntaxExpression {
     Contract.Requires(lhs != null);
     Lhs = lhs;
   }
+
+  public override IEnumerable<INode> Children => new[] { Lhs };
 }
 
 public class NameSegment : ConcreteSyntaxExpression {
@@ -4232,6 +4234,8 @@ public class ApplySuffix : SuffixExpr {
   public readonly IToken CloseParen;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
+
+  public override IEnumerable<INode> Children => base.Children.Concat(Args ?? Enumerable.Empty<INode>());
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

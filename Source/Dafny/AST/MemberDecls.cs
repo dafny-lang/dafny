@@ -365,7 +365,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => SubExpressions.Concat<INode>(Formals).Concat(new [] { Result});
+  public override IEnumerable<INode> Children => SubExpressions.Concat<INode>(Formals).Concat(ResultType.Nodes);
 
   public override IEnumerable<Expression> SubExpressions {
     get {

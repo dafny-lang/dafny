@@ -590,7 +590,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+    public IEnumerable<INode> Children => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
