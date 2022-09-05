@@ -469,7 +469,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<INode> Children => throw new NotImplementedException();
   }
 
-  public abstract class NonglobalVariable : IVariable, INode {
+  public abstract class NonglobalVariable : IVariable {
     public readonly IToken tok;
     readonly string name;
 

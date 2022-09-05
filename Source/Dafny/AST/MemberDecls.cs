@@ -92,6 +92,7 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
+
 public class Field : MemberDecl {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
@@ -293,7 +294,6 @@ public class ConstantField : SpecialField, ICallable {
   public bool AllowsAllocation => true;
 }
 
-
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public override string WhatKind => "function";
 
@@ -365,7 +365,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> Children => SubExpressions.Concat<INode>(Formals).Concat(new [] { Result});
 
   public override IEnumerable<Expression> SubExpressions {
     get {
