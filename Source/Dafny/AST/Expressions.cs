@@ -3885,7 +3885,7 @@ public class FrameExpression : IHasReferences {
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] {E};
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {Field};
+    return new[] {Field}.Where(x => x != null);
   }
 }
 

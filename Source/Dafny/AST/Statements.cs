@@ -698,7 +698,7 @@ public class VarDeclStmt : Statement {
     }
   }
 
-  public override IEnumerable<INode> Children => Locals.Concat<INode>(new [] {Update});
+  public override IEnumerable<INode> Children => Locals.Concat<INode>(SubStatements);
 }
 
 public class VarDeclPattern : Statement {

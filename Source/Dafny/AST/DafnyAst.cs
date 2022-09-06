@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => this.GetFirstTopLevelToken();
-    public IEnumerable<INode> Children => RawModules();
+    public IEnumerable<INode> Children => new [] { DefaultModule };
   }
 
   public class Include : IComparable {

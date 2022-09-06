@@ -132,10 +132,15 @@ module Consumer {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
-      var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((2, 7), (2, 12)), location.Range);
+      var usizeReference = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
+      Assert.AreEqual(documentItem.Uri, usizeReference.Location.Uri);
+      Assert.AreEqual(new Range((2, 7), (2, 12)), usizeReference.Location.Range);
+      
+      var lengthDefinition = (await RequestDefinition(documentItem, (9, 10)).AsTask());
+      Assert.IsFalse(lengthDefinition.Any());
+
+      var providerImport = (await RequestDefinition(documentItem, (6, 16)).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 17), (0, 25)), providerImport.Location.Range);
     }
 
     [TestMethod]
