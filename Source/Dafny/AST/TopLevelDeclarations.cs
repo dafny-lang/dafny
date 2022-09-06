@@ -1127,7 +1127,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<INode> Children {
     get {
-      return Members;
+      return Members.Concat(ParentTraits.SelectMany(parentTrait => parentTrait.Nodes));
     }
   }
 
@@ -1458,6 +1458,8 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
       Destructors.Count == 0 || // this is until resolution
       Destructors.Count == Formals.Count);  // after resolution
   }
+
+  public override IEnumerable<INode> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
@@ -1979,6 +1981,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
     }
   }
 
+  public override IEnumerable<INode> Children => base.Children.Concat(Rhs.Nodes);
+
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
@@ -2056,6 +2060,9 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     Witness = witness;
     WitnessKind = witnessKind;
   }
+
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Constraint });
+
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }

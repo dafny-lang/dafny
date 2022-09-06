@@ -1959,6 +1959,8 @@ public abstract class TypeUnaryExpr : UnaryExpr {
     ToType = toType;
   }
 
+  public override IEnumerable<INode> Children => base.Children.Concat(ToType.Nodes);
+
   public override IEnumerable<Type> ComponentTypes {
     get {
       yield return ToType;
@@ -3639,7 +3641,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments;
+  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
   public IEnumerable<INode> GetResolvedDeclarations() {
     return new INode[] { Ctor}.Where(x => x != null);
   }
@@ -3689,7 +3691,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
   
-  public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes.Args);
+  public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchStmt : ConcreteSyntaxStatement {
@@ -3746,10 +3748,6 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.UsesOptionalBraces = usesOptionalBraces;
     this.Attributes = attrs;
   }
-
-
-  public override IEnumerable<INode> Children => new [] {Source}.Concat<INode>(Cases).
-    Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -3896,6 +3894,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
+  public override IEnumerable<INode> Children => new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {

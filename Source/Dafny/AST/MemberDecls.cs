@@ -92,7 +92,6 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
-
 public class Field : MemberDecl {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
@@ -103,6 +102,8 @@ public class Field : MemberDecl {
     Contract.Invariant(Type != null);
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
+
+  public override IEnumerable<INode> Children => Type.Nodes;
 
   public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
     : this(tok, name, false, isGhost, true, true, type, attributes) {

@@ -21,7 +21,7 @@ public abstract class Type {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public IEnumerable<INode> Nodes {
+  public virtual IEnumerable<INode> Nodes {
     get {
       if (this is UserDefinedType udt) {
         return new[] {udt};
@@ -2021,6 +2021,8 @@ public class ArrowType : UserDefinedType {
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
+  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
@@ -2411,6 +2413,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Assert(udt.TypeArgs.Count == 1);  // holds true of all array types
     return udt.TypeArgs[0];
   }
+
+  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
 
   [Pure]
   public override string TypeName(ModuleDefinition context, bool parseAble) {

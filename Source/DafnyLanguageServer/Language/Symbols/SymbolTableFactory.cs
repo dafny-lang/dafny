@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
 
         if (next.Children.Any(c => c == null)) {
-          Console.Write("");
+          Console.Error.WriteLine($"null children in next of type {next.GetType()}");
         }
         foreach (var child in next.Children) {
           remaining.Push(child);
