@@ -36,3 +36,12 @@ Dafny program verifier did not attempt verification
 true false 7
 2.11 2.13 9
 11 12 12
+
+Dafny program verifier did not attempt verification
+11 2
+0
+1
+1
+true false 7
+2.11 2.13 9
+11 12 12
