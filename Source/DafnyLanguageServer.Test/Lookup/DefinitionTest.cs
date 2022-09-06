@@ -167,6 +167,12 @@ module Consumer {
     var a := new A();
     return a.GetX();
   }
+}
+
+module Consumer2 {
+  import Provider
+
+  type A2 = Provider.A
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -175,6 +181,9 @@ module Consumer {
 
       var xInFrame = (await RequestDefinition(documentItem, (7, 17)).AsTask()).Single();
       Assert.AreEqual(new Range((2, 8), (2, 9)), xInFrame.Location!.Range);
+
+      var providerQualifier = (await RequestDefinition(documentItem, (26, 14)).AsTask()).Single();
+      Assert.AreEqual(new Range((24, 9), (24, 17)), providerQualifier.Location!.Range);
     }
 
     [TestMethod]

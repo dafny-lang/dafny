@@ -2184,7 +2184,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType, IHasReferences {
+public class UserDefinedType : NonProxyType, INode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2567,10 +2567,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
-  public IEnumerable<INode> GetResolvedDeclarations() {
-    return Enumerable.Repeat(ResolvedClass, 1);
-  }
+  public IEnumerable<INode> Children => new [] { NamePath };
 }
 
 public abstract class TypeProxy : Type {

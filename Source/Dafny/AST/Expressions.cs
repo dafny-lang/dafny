@@ -1154,7 +1154,7 @@ public class AutoGhostIdentifierExpr : IdentifierExpr {
 /// <summary>
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
-class Resolver_IdentifierExpr : Expression {
+class Resolver_IdentifierExpr : Expression, IHasReferences {
   public readonly TopLevelDecl Decl;
   public readonly List<Type> TypeArgs;
   [ContractInvariantMethod]
@@ -1164,6 +1164,8 @@ class Resolver_IdentifierExpr : Expression {
     Contract.Invariant(TypeArgs.Count == Decl.TypeArgs.Count);
     Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
   }
+
+  public override IEnumerable<INode> Children => TypeArgs.SelectMany(ta => ta.Nodes);
 
   public abstract class ResolverType : Type {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
@@ -1204,6 +1206,10 @@ class Resolver_IdentifierExpr : Expression {
     : this(tok, tp, new List<Type>()) {
     Contract.Requires(tok != null);
     Contract.Requires(tp != null);
+  }
+
+  public IEnumerable<INode> GetResolvedDeclarations() {
+    return new [] {Decl};
   }
 }
 
@@ -4213,6 +4219,12 @@ public class NameSegment : ConcreteSyntaxExpression {
 public class ExprDotName : SuffixExpr {
   public readonly string SuffixName;
   public readonly List<Type> OptTypeArguments;
+
+  /// <summary>
+  /// Because the resolved expression only points to the final resolved declaration,
+  /// but not the declaration of the Lhs, we must also include the Lhs.
+  /// </summary>
+  public override IEnumerable<INode> Children => new[] { Lhs, ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

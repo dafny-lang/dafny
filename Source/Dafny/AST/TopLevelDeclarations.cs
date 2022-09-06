@@ -2025,7 +2025,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
 }
 
-public class TypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl, RevealableTypeDecl {
+public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   public TypeSynonymDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
     : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
     this.NewSelfSynonym();
