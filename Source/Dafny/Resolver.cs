@@ -12677,6 +12677,15 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.MatchCompilerDebug) {
         Console.WriteLine("DEBUG: Done CompileNestedMatchExpr at line {0}", mti.Tok.line);
       }
+
+      // TODO should this re-use the above code, and does this duplicate errors?
+      // Resolve the still nested match case statement, to be used by the Dafny compiler LSP server.
+      foreach (var casee in e.Cases) {
+        scope.PushMarker();
+        CheckLinearNestedMatchCase(e.Source.Type, casee, resolutionContext);
+        ResolveExpression(casee.Body, resolutionContext);
+        scope.PopMarker();
+      }
     }
 
     /// <summary>

@@ -3751,7 +3751,7 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.Attributes = attrs;
   }
 
-  // public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
