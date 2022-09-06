@@ -153,7 +153,7 @@ module Provider {
     constructor() {}
 
     function method GetX(): int
-      reads this
+      reads this`x
     {
       this.x
     }
@@ -170,10 +170,11 @@ module Consumer {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (19, 14)).AsTask()).Single();
-      var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+      var getXCall = (await RequestDefinition(documentItem, (19, 13)).AsTask()).Single();
+      Assert.AreEqual(new Range((6, 20), (6, 24)), getXCall.Location!.Range);
+
+      var xInFrame = (await RequestDefinition(documentItem, (7, 17)).AsTask()).Single();
+      Assert.AreEqual(new Range((2, 8), (2, 9)), xInFrame.Location!.Range);
     }
 
     [TestMethod]
