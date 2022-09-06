@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
-    public async Task MatchExpr() {
+    public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
 datatype Option<+U> = None | Some(val: U) {
 
@@ -37,7 +37,12 @@ datatype Option<+U> = None | Some(val: U) {
     case None => None
     case Some(x) => Some(f(x))
   }
-}".TrimStart();
+}
+
+datatype A = A {
+  static method create() returns (ret: A)
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var noneCreation = (await RequestDefinition(documentItem, (4, 19)).AsTask()).Single();
