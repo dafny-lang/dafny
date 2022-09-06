@@ -83,15 +83,17 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
+      var dafnyArgs = "dafnyArgs";
       wr.NewBlockPy("try:")
-        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}()");
+        .WriteLine($"{dafnyArgs} = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
+        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod))}({dafnyArgs})");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + {DafnyRuntimeModule}.string_of(e.message) + \"\\n\")");
       Coverage.EmitTearDown(wr);
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      return ((ClassWriter)cw).MethodWriter.NewBlockPy("def Main():");
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
+      return ((ClassWriter)cw).MethodWriter.NewBlockPy($"def Main({argsParameterName}):");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
@@ -1695,14 +1697,17 @@ namespace Microsoft.Dafny.Compilers {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-
-      var psi = new ProcessStartInfo("python3", targetFilename) {
+      var psi = new ProcessStartInfo("python3") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
+      psi.ArgumentList.Add(targetFilename);
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
 
       try {
         using var pythonProcess = Process.Start(psi);

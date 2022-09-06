@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::__Main);");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.FromMainArguments(args)); }} );");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -2278,13 +2278,17 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename)) {
+      var psi = new ProcessStartInfo("java") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
+      psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
@@ -3995,9 +3999,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock("public static void __Main()");
+      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,

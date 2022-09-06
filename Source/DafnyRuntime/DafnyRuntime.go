@@ -10,6 +10,15 @@ import (
   "runtime"
 )
 
+func FromMainArguments(args []string) Seq {
+  var size = len(args)
+  var dafnyArgs []interface{} = make([]interface{}, size)
+  for i, item := range args {
+    dafnyArgs[i] = SeqOfString(item)
+  }
+  return SeqOf(dafnyArgs...)
+}
+
 /******************************************************************************
  * Generic values
  ******************************************************************************/
