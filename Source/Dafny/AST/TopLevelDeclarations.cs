@@ -1313,7 +1313,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     Contract.Invariant(1 <= Ctors.Count);
   }
 
-  public override IEnumerable<INode> Children => Ctors.Concat<INode>(Members);
+  public override IEnumerable<INode> Children => Ctors.Concat<INode>(base.Children);
 
   public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)

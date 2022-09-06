@@ -22,8 +22,9 @@ using System.Linq;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public class RefinementToken : TokenWrapper {
+  public class RefinementToken : TokenWrapper, IToken {
     public readonly ModuleDefinition InheritingModule;
+
     public RefinementToken(IToken tok, ModuleDefinition m)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -39,15 +40,18 @@ namespace Microsoft.Dafny {
         if (r == null || r.InheritingModule != m) {
           return false;
         }
+
         // continue to check Inner
         tok = n.Inner;
       }
+
       var rtok = tok as RefinementToken;
       return rtok != null && rtok.InheritingModule == m;
     }
+
     public override string Filename {
-      get { return WrappedToken.Filename + "[" + InheritingModule.Name + "]"; }
-      set { throw new NotSupportedException(); }
+      get => WrappedToken.Filename + "[" + InheritingModule.Name + "]";
+      set => throw new NotSupportedException();
     }
   }
 

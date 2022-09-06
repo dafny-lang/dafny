@@ -1,17 +1,14 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
@@ -42,11 +39,22 @@ datatype Option<+U> = None | Some(val: U) {
 datatype A = A {
   static method create() returns (ret: A)
 }
+datatype Result<T, E> = Ok(value: T) | Err(error: E) {
+  function method PropagateFailure<U>(): Result<U, E>
+    requires Err?
+  {
+    Err(this.error)
+  }
+}
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+
+    var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var noneCreation = (await RequestDefinition(documentItem, (4, 19)).AsTask()).Single();
       Assert.AreEqual(new Range((0, 22), (0, 26)), noneCreation.Location.Range);
+
+      var errorInThisDotError = (await RequestDefinition(documentItem, (16, 15)).AsTask()).Single();
+      Assert.AreEqual(new Range((12, 43), (12, 48)), errorInThisDotError.Location.Range);
     }
 
     [TestMethod]
