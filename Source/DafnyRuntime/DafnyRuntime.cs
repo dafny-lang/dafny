@@ -914,6 +914,17 @@ namespace Dafny {
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
+
+    public static ISequence<ISequence<char>> FromMainArguments(string[] args) {
+      Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length + 1];
+      dafnyArgs[0] = Dafny.Sequence<char>.FromString("dotnet");
+      for (var i = 0; i < args.Length; i++) {
+        dafnyArgs[i + 1] = Dafny.Sequence<char>.FromString(args[i]);
+      }
+
+      return Sequence<ISequence<char>>.FromArray(dafnyArgs);
+    }
+
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is ISequence<U> th) {
         return th;
