@@ -163,19 +163,17 @@ namespace Microsoft.Dafny.Compilers {
         // Allow the library name to be "" to import built-in things like the error type
         if (pkgName != "") {
           import.SuppressDummy = true;
-          AddImport(import);
         }
-        return new ConcreteSyntaxTree(); // ignore contents of extern module
-      } else {
-        var filename = string.Format("{0}/{0}.go", pkgName);
-        var w = wr.NewFile(filename);
-        ModuleName = moduleName;
-        EmitModuleHeader(w);
-
-        AddImport(import);
-
-        return w;
       }
+      
+      var filename = string.Format("{0}/{0}.go", pkgName);
+      var w = wr.NewFile(filename);
+      ModuleName = moduleName;
+      EmitModuleHeader(w);
+
+      AddImport(import);
+
+      return w;
     }
 
     protected override void FinishModule() {
@@ -208,7 +206,7 @@ namespace Microsoft.Dafny.Compilers {
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: true);
     }
 
-    // TODO Consider splitting this into two functions; most things seem to bepassing includeRtd: false and includeEquals: false.
+    // TODO Consider splitting this into two functions; most things seem to be passing includeRtd: false and includeEquals: false.
     private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //

@@ -1,5 +1,5 @@
 
-all: verify cs java build
+all: verify cs java py js build
 
 verify:
 	dafny /compile:0 /definiteAssignment:3 src/dafnyRuntime.dfy
@@ -15,6 +15,9 @@ py: verify
 	
 go: verify
 	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:go /out:../DafnyRuntime/generated
+
+js: verify
+	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:js /out:../DafnyRuntime/generated
 
 build:
 	dotnet build ../DafnyRuntime

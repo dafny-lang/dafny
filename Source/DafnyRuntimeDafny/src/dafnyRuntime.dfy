@@ -294,6 +294,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   // the class' methods, since Dafny ensures that all values satisfy the invariant.
   // But if you Put(t), you don't get to assume that a subsequent Get() will return t.
   // This accurately models the nondeterminism inherent to data races.
+  //
+  // Compilers could special case this type to inline declarations and avoid
+  // the cost of allocation and indirection, e.g. by replacing a `const fooBox: AtomicBox<T>`
+  // with a direct `volitile T fooBox;` in the target language.
   class {:extern} AtomicBox<!T> {
 
     ghost const inv: T -> bool
@@ -311,7 +315,13 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   // TODO: Need custom compiler/runtime code to connect things like HashCode(), Equals() and ToString()
   // to the native versions of those concepts, adjusting for names and native string types.
-  // How to deal with iteration?
+  // The answer is likely to make sure all target languages support classes with a mix of Dafny- and 
+  // target language-defined methods (which Go doesn't yet support, and I don't think C++ does either).
+  // If we ever target a language that really can't support this, the worst case option is to
+  // not rely on built-in functionality that requires those built-in methods to be implemented.
+  //
+  // TODO: How to deal with iteration (for quantification)? Again we could rely on target-language
+  // code to add iterator() implementations as necessary...
   //
   // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
@@ -415,6 +425,8 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   // TODO: this would be safe(r) if we used a datatype instead, but still not guaranteed.
   // Is there a decent solution in every target language?
+  // TODO: Eliminate this, so that it is sound to provide a native language implementation
+  // (in particular, wrapping a native string type as a seq<char>).
   lemma {:axiom} SequenceTypeIsClosed<T>(e: Sequence<T>) 
     ensures
       || e is ArraySequence<T>
@@ -617,12 +629,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
         && s.Value() == value
     }
 
-    ghost predicate Call(s: Sequence<T>) {
-      && s.size < size
-      && s.Valid()
-      && s.Value() == value
-    }
-
     constructor(wrapped: Sequence<T>) 
       requires wrapped.Valid()
       requires 1 <= wrapped.size
@@ -766,5 +772,12 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     newValue.Update(i, t);
     var newValueFrozen := newValue.Freeze(newValue.Length());
     ret := new ArraySequence(newValueFrozen);
+  }
+
+  // Testing
+
+  method MultiDimentionalArrays() {
+    var a := new int[3,4,5] ((i,j,k) => 0);
+    a[1,1,1] := 42;
   }
 }
