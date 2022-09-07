@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+if [ $# -lt 2 ]; then
+    echo "Usage: git cp <src> <dst>"
+    exit 1
+fi
+
 src=$1
 dst=$2
 temp_branch=git-cp-$RANDOM
