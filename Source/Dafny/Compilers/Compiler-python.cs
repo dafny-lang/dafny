@@ -49,7 +49,6 @@ namespace Microsoft.Dafny.Compilers {
     private readonly List<string> Imports = new() { "module_" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.IntBoundedPool,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.SubsetTypeTests,
@@ -886,7 +885,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.IntBoundedPool);
+      wr.WriteLine($"{varName} += 1");
     }
 
     protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr) {
