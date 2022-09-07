@@ -24,6 +24,21 @@ namespace Microsoft.Dafny {
       return result;
     }
 
+    public override bool Parse(string[] arguments) {
+      int i;
+      for (i = 0; i < arguments.Length; i++) {
+        if (arguments[i] == "--args") {
+          break;
+        }
+      }
+
+      if (i >= arguments.Length) {
+        return base.Parse(arguments);
+      }
+      MainArgs = arguments.Skip(i + 1).ToList();
+      return base.Parse(arguments.Take(i).ToArray());
+    }
+
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
@@ -86,6 +101,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
+    public List<string> MainArgs = new List<string>();
 
     public Compiler Compiler;
     public bool CompileVerbose = true;
@@ -281,7 +297,7 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  arguments = ParsePluginArguments(argumentsString);
+                  arguments = ParseInnerArguments(argumentsString);
                 }
                 Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
@@ -640,7 +656,7 @@ namespace Microsoft.Dafny {
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
-    private static string[] ParsePluginArguments(string argumentsString) {
+    private static string[] ParseInnerArguments(string argumentsString) {
       var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
       var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
       return splitter.Matches(argumentsString).Select(
@@ -1337,10 +1353,13 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     features like traits or co-inductive types.
 
 /Main:<name>
-    Specify the (fully-qualified) name of the method to use as the
-    executable entry point. Default is the method with the {{:main}}
-    attribute, or else the method named 'Main'.
-
+    Specify the (fully-qualified) name of the method to use as the executable entry point.
+    Default is the method with the {{:main}} attribute, or else the method named 'Main'.
+    A Main method can have at most one (non-ghost) argument of type `seq<string>`
+--args <arg1> <arg2> ...
+    When running a Dafny file through /compile:3 or /compile:4, '--args' provides
+    all arguments after it to the Main function, at index starting at 1.
+    Index 0 is used to store the executable's name if it exists.
 /runAllTests:<n> (experimental)
     0 (default) - Annotates compiled methods with the {{:test}}
         attribute such that they can be tested using a testing framework
