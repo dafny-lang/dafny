@@ -49,7 +49,6 @@ namespace Microsoft.Dafny.Compilers {
     private readonly List<string> Imports = new() { "module_" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis
