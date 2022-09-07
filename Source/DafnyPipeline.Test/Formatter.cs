@@ -1363,10 +1363,17 @@ method TheBreaker_AllGood(M: int, N: int, O: int)
     }
 
     [Fact]
-    public void FormatterWorksForIfStar() {
+    public void FormatterWorksForSkeletonStatement() {
       FormatterWorksFor(@"
 module ModifyStmtBreak1 refines ModifyStmtBreak0 {
   method W... {
+    while true
+      ...
+    while ...
+      invariant k == x;
+    {
+      k := k + 1;
+    }
     modify ... {
       if * {
         break;

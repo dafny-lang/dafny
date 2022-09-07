@@ -3341,7 +3341,11 @@ WhileStmt<out Statement stmt>
         }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
       }
-      stmt.OwnedTokens = ownedTokens;
+      if(stmt is SkeletonStatement skeleton) {
+        skeleton.S.OwnedTokens = ownedTokens;
+      } else {
+        stmt.OwnedTokens = ownedTokens;
+      }
     .)
   )
   .
@@ -3579,11 +3583,13 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
     ";"                                        (. ownedTokens.Add(t); .)
   )
   (. if (dotdotdot != null) {
-       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs), dotdotdot, null);
+       s = new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs);
+       s.OwnedTokens = ownedTokens;
+       s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssertStmt(x, t, e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s.OwnedTokens = ownedTokens;
      }
-     s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -3603,11 +3609,13 @@ ExpectStmt<out Statement/*!*/ s>
     Expression<out m, false, true>]
   ";"                                          (. ownedTokens.Add(t); .)
   (. if (dotdotdot != null) {
-       s = new SkeletonStatement(new ExpectStmt(x, t, new LiteralExpr(x, true), m, attrs), dotdotdot, null);
+       s = new ExpectStmt(x, t, new LiteralExpr(x, true), m, attrs);
+       s.OwnedTokens = ownedTokens;
+       s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(x, t, e, m, attrs);
+       s.OwnedTokens = ownedTokens;
      }
-     s.OwnedTokens = ownedTokens;
   .)
   .
 
@@ -3625,11 +3633,13 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"                                          (. ownedTokens.Add(t); .)
   (. if (dotdotdot != null) {
-       s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
+       s = new AssumeStmt(x, t, new LiteralExpr(x, true), attrs);
+       s.OwnedTokens = ownedTokens;
+       s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssumeStmt(x, t, e, attrs);
+       s.OwnedTokens = ownedTokens;
      }
-     s.OwnedTokens = ownedTokens;
   .)
   .
 

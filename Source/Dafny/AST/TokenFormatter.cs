@@ -975,7 +975,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetIndentIfStmt(ifStmt, indent);
         case CalcStmt calcStmt:
           return SetIndentCalcStmt(indent, calcStmt);
-        case SkeletonStatement skeletonStatement:
+        case SkeletonStatement:
           return true;
         case AlternativeStmt alternativeStmt: {
             SetIndentMatchStmt(indent, alternativeStmt.OwnedTokens);
@@ -1125,7 +1125,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         formatter.SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
       }
 
-      formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
+      if (whileStmt.EndTok.val == "}") {
+        formatter.SetClosingIndentedRegion(whileStmt.EndTok, indent);
+      }
+
       return false;
     }
 
@@ -1778,6 +1781,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
               break;
             }
+          case "...": {
+              formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              break;
+            }
           case "ensures":
           case "invariant": {
               formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
@@ -1788,7 +1795,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
       if (body != null) {
         formatter.SetDelimiterIndentedRegions(body.Tok, indent);
-        formatter.SetClosingIndentedRegion(body.EndTok, indent);
+        if (body.EndTok.val == "}") {
+          formatter.SetClosingIndentedRegion(body.EndTok, indent);
+        }
+
         Visit(body, indent);
       }
     }
