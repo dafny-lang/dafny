@@ -12,6 +12,15 @@ using Microsoft.Dafny.Helpers;
 using Xunit;
 
 namespace DafnyPipeline.Test {
+
+  // Simple test cases (FormatterWorksFor with only one argument)
+  // consist of removing all the indentation from the program,
+  // adding it through the formatter, and checking if we obtain the initial result
+  //
+  // Advanced test cases consist of passing the program and its expected result after indentation
+  //
+  // Every test is performed with all three newline styles
+  // Every formatter program is formatted again to verify that it stays the same.
   [Collection("Singleton Test Collection - Formatter")]
   public class Formatter {
     enum Newlines {
@@ -1346,6 +1355,130 @@ abstract module C {
   import AF : A`Spec
 }
 ");
+    }
+
+    [Fact]
+    public void FormatterWorksForCommentsHoldingTogether() {
+      FormatterWorksFor(@"
+   const x := 2;     /* start of comment
+  These words aligned:  start */
+
+const y := 3;", @"
+const x := 2;      /* start of comment
+These words aligned:  start */
+
+const y := 3;");
+
+      FormatterWorksFor(@"
+const x := 4;
+    /* start of comment
+  end of comment
+ should stay aligned*/
+const y := 5;", @"
+const x := 4;
+   /* start of comment
+ end of comment
+should stay aligned*/
+const y := 5;");
+
+      FormatterWorksFor(@"
+const x := 6;
+
+    /* start of comment
+  end of comment
+ should stay aligned*/
+const y := 7;", @"
+const x := 6;
+
+   /* start of comment
+ end of comment
+should stay aligned*/
+const y := 7;");
+    }
+
+
+    [Fact]
+    public void FormatterWorksForMultilineCommentsStartingWithRowOfStars() {
+      FormatterWorksFor(@"
+/***********
+ * These are test cases for monotonicity of the the _k parameter.  However, monotonicity
+ * does not appear to be useful in the test suite, and it is possible that the axioms
+ * about monotonicity are expensive performance-wise.  Therefore, the monotonicity axioms
+ * are currently not produced--they are controled by #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT.
+ ***********/
+function test(): int
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForChainingEquality() {
+      FormatterWorksFor(@"
+
+lemma SeventeenIsNotEven()
+  ensures !Even(N(17))
+{
+  assert Even(N(17))
+      == Even(N(15)) ==
+         Even(N(13)) ==
+         Even(N(11))
+      == 
+         Even(N(9))
+      == Even(N(7))
+      == Even(N(5))
+       < Even(N(3))
+      == Even(N(1))
+      == false;
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForAligningThenAndElseIfAligned() {
+      var testCase = @"
+predicate Valid()
+{
+  data.Length == N &&
+  (N == 0 ==> len == start == 0 && Contents == []) &&
+  (N != 0 ==> len <= N && start < N) &&
+  Contents == if start + len <= N then data[start..start+len]
+                                  else data[start..] + data[..start+len-N]
+}
+";
+      FormatterWorksFor(testCase, testCase);
+    }
+
+    [Fact]
+    public void FormatterWorksForConsecutiveComments() {
+      var testCase = @"
+abstract module M0 {
+  /******* State *******/
+  type State(!new)
+  function DomSt(st: State): set<Path>
+  function GetSt(p: Path, st: State): Artifact
+    requires p in DomSt(st);
+
+  // cached part of state
+  type HashValue
+  function DomC(st: State): set<HashValue>
+  function Hash(p: Path): HashValue
+  /* Note, in this version of the formalization and proof, we only record which things are in the
+     cache.  The actual cache values can be retrieved from the system state.
+  type Cmd
+  function GetC(h: HashValue, st: State): Cmd
+  */
+  function UpdateC(cmd: string, deps: set<Path>, exps: set<string>, st: State): State
+
+  /******* Semantics *******/
+    
+  /******* Function 'build' *******/
+  function build(prog: Program, st: State, useCache: bool): Tuple<Expression, State>
+    requires Legal(prog.stmts);
+  {
+    do(prog.stmts, st, EmptyEnv(), useCache)
+  }
+}
+";
+      FormatterWorksFor(testCase, testCase);
     }
 
     [Fact]

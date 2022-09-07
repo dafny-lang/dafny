@@ -4007,6 +4007,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
      List<BinaryExpr.Opcode> ops = null;
      List<IToken> opLocs = null;
      List<Expression/*?*/> prefixLimits = null;
+     var ownedTokens = new List<IToken>();
      Expression k;
      int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
                     // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
@@ -4018,7 +4019,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   ShiftTerm<out e0, allowLemma, allowLambda, allowBitwiseOps>
                                    (. e = e0; .)
   [ IF(IsRelOp())  /* read a RelationalExpression as far as possible */
-    RelOp<out x, out op, out k>
+    RelOp<out x, out op, out k, ownedTokens>
     ShiftTerm<out e1, allowLemma, allowLambda, allowBitwiseOps>
                                    (. if (k == null) {
                                         e = new BinaryExpr(x, op, e0, e1);
@@ -4052,7 +4053,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                         }
                                       }
                                    .)
-      RelOp<out x, out op, out k>  (. switch (op) {
+      RelOp<out x, out op, out k, ownedTokens>  (. switch (op) {
                                         case BinaryExpr.Opcode.Eq:
                                           if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); kind = 3; }
                                           break;
@@ -4085,30 +4086,39 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   ]
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
+       e.OwnedTokens = ownedTokens;
      }
   .)
   .
 
 /*------------------------------------------------------------------------*/
-RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
+RelOp<.out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k, List<IToken> ownedTokens.>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
      x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
      IToken y;
      k = null;
   .)
-  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
-  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
-  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
-  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
-  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
-  | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
-  | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
+  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; ownedTokens.Add(t); .)
+    [ "#"          (. ownedTokens.Add(t); .)
+      "["          (. ownedTokens.Add(t); .)
+      Expression<out k, true, true>
+      "]"          (. ownedTokens.Add(t); .)
+      ]
+  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; ownedTokens.Add(t);  .)
+  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; ownedTokens.Add(t);  .)
+  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; ownedTokens.Add(t);  .)
+  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; ownedTokens.Add(t);  .)
+  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; ownedTokens.Add(t);  .)
+    [ "#"          (. ownedTokens.Add(t); .)
+      "["          (. ownedTokens.Add(t); .)
+      Expression<out k, true, true>
+      "]"          (. ownedTokens.Add(t); .)
+      ]
+  | "in"           (. x = t;  op = BinaryExpr.Opcode.In; ownedTokens.Add(t); .)
+  | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; ownedTokens.Add(t); .)
   | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is greedy
        so if "!!" is a valid token, we won't be able to scan it as two "!" when needed: */
-    "!"            (. x = t;  y = Token.NoToken; .)
+    "!"            (. x = t;  y = Token.NoToken; ownedTokens.Add(t); .)
     [ IF(la.val == "!")
       "!"          (. y = t; .)
     ]              (. if (y == Token.NoToken) {
@@ -4121,9 +4131,9 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
                         op = BinaryExpr.Opcode.Disjoint;
                       }
                    .)
-  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; ownedTokens.Add(t);  .)
+  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; ownedTokens.Add(t);  .)
+  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; ownedTokens.Add(t);  .)
   )
   .
 

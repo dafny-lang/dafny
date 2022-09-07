@@ -80,7 +80,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           if (commentType.StartsWith("//")) { // Possibly align consecutive // trailing comments
             if (originalCommentCol == -1) {
               originalCommentCol = token.col + token.val.Length + match.Groups["currentIndent"].Value.Length;
-              newCommentCol = GetTokenCol(token, 0) + token.val.Length + match.Groups["currentIndent"].Value.Length;
+              newCommentCol = GetNewTokenCol(token, 0) + token.val.Length + match.Groups["currentIndent"].Value.Length;
               previousMatchWasSingleLineCommentToAlign = true;
             }
           }
@@ -89,7 +89,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             precededByNewline = true;
             return commentType;
           }
-          return match.Groups[0].Value;
+          if (!commentType.StartsWith("/*")) {
+            return match.Groups[0].Value;
+          }
         }
 
         if (commentType.Length == 0) {//End of the string. Do we indent or not?
@@ -103,20 +105,68 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
 
         if (commentType.StartsWith("/*")) {
-          var doubleStar = commentType.StartsWith("/**");
+          var doubleStar = commentType.StartsWith("/**") && !commentType.StartsWith("/***");
           var originalComment = match.Groups["commentType"].Value;
-          var canIndentLinesStartingWithStar = true;
-          var result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<star>\s*\*)?").Replace(
-            originalComment, match1 => {
-              if (canIndentLinesStartingWithStar && match1.Groups["star"].Success) {
-                return indentationBefore + (doubleStar ? "  *" : " *");
-              }
 
-              canIndentLinesStartingWithStar = false;
-              return indentationBefore + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
-            });
+          var absoluteOriginalIndent = match.Groups["currentIndent"].Length;
+          var newAbsoluteIndent = indentationBefore.Length;
+          if (!precededByNewline) { // It has to be the trailing trivia of that token.
+            absoluteOriginalIndent = token.col - 1 + token.val.Length + absoluteOriginalIndent;
+            newAbsoluteIndent = GetNewTokenCol(token, indentationBefore.Length) + token.val.Length - 1 + match.Groups["currentIndent"].Length;
+          }
+          var relativeIndent = newAbsoluteIndent - absoluteOriginalIndent;
+          var initialRelativeIndent = relativeIndent;
+          var tryAgain = true;
+          string result = "";
+          // This loop executes at most two time. The second time is necessary only if the indentation before the first /* decreases
+          // and there were items that would have been moved into a negative column.
+          // e.g.
+          //
+          // const x := 2;
+          //     /* Start of comment
+          //   end of comment */
+          //
+          // would be, after the first iteration
+          //
+          // const x := 2;
+          // /* Start of comment
+          // end of comment */
+          //
+          // which breaks the alignment. So with `tryAgain`, it  corrects the offset so that the comment becomes:
+          //
+          // const x := 2;
+          //   /* Start of comment
+          // end of comment */
+          //
+          while (tryAgain)
+          // decreases newAbsoluteIndent - relativeIndent
+          {
+            var canIndentLinesStartingWithStar = true;
+            tryAgain = false;
+            result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<existingIndent>[ \t]*)(?<star>\*)?").Replace(
+              originalComment, match1 => {
+                if (canIndentLinesStartingWithStar && match1.Groups["star"].Success) {
+                  return indentationBefore + (doubleStar ? "  *" : " *");
+                }
+                canIndentLinesStartingWithStar = false;
+                // Reindent in block:
+                var newIndent = match1.Groups["existingIndent"].Value.Length + relativeIndent;
+                if (newIndent < 0) {
+                  relativeIndent -= newIndent;
+                  tryAgain = true;
+                  newIndent = 0;
+                }
+
+                return new string(' ', newIndent) + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
+              });
+          }
+
           previousMatchWasSingleLineCommentToAlign = false;
-          return indentationBefore + result;
+          if (precededByNewline) {
+            return new string(' ', absoluteOriginalIndent + relativeIndent) + result;
+          }
+          return new string(' ', match.Groups["currentIndent"].Length + relativeIndent - initialRelativeIndent)
+             + result;
         }
 
         if (commentType.StartsWith("//")) {
@@ -134,7 +184,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
                    return t.val == match.Groups["caseCommented"].Value;
                  })
                  )) {
-            indentationBefore = new string(' ', GetTokenCol(referenceToken, indentationBefore.Length) - 1);
+            indentationBefore = new string(' ', GetNewTokenCol(referenceToken, indentationBefore.Length) - 1);
           }
 
           previousMatchWasSingleLineCommentToAlign = false;
@@ -188,7 +238,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   // Get the precise column this token will be at after reformatting.
   // Requires all tokens before to have been formatted.
-  private int GetTokenCol(IToken token, int indent) {
+  private int GetNewTokenCol(IToken token, int indent) {
     var previousTrivia = token.Prev != null ? token.Prev.TrailingTrivia : "";
     previousTrivia += token.LeadingTrivia;
     var lastNL = previousTrivia.LastIndexOf('\n');
@@ -211,7 +261,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
     // No newline, so no re-indentation.
     if (token.Prev != null) {
-      return GetTokenCol(token.Prev, indent) + token.Prev.val.Length + previousTrivia.Length;
+      return GetNewTokenCol(token.Prev, indent) + token.Prev.val.Length + previousTrivia.Length;
     }
 
     return token.col;
@@ -294,11 +344,11 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   // returns the indent so that everything after it is aligned with the first token.
   private int GetRightAlignIndentAfter(IToken token, int indentFallback) {
     var trailingSpace = GetTrailingSpace(token);
-    return GetTokenCol(token, indentFallback) - 1 + token.val.Length + trailingSpace;
+    return GetNewTokenCol(token, indentFallback) - 1 + token.val.Length + trailingSpace;
   }
 
   private int GetRightAlignIndentDelimiter(IToken token, int indentFallback) {
-    return GetTokenCol(token, indentFallback) - 1 + token.val.Length - 1;
+    return GetNewTokenCol(token, indentFallback) - 1 + token.val.Length - 1;
   }
 
   void SetTypeIndentation(Type type) {
@@ -1325,9 +1375,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var firstToken = expr.StartToken;
       var indent = formatter.GetIndentBefore(firstToken);
       switch (expr) {
-        case BinaryExpr binaryExpr: {
-            return ApplyBinaryExprFormatting(indent, binaryExpr);
-          }
+        case ChainingExpression chainingExpr:
+          return SetChainingExprIndent(indent, chainingExpr);
+        case BinaryExpr binaryExpr:
+          return SetBinaryExprIndent(indent, binaryExpr);
         case LetOrFailExpr:
         case LetExpr:
           return SetIndentVarDeclStmt(indent, expr.OwnedTokens);
@@ -1348,7 +1399,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case SetDisplayExpr:
           return SetIndentParensExpression(indent, expr.OwnedTokens);
         case ApplySuffix applySuffix: {
-            var reindent = formatter.GetTokenCol(applySuffix.StartToken, indent) - 1;
+            var reindent = formatter.GetNewTokenCol(applySuffix.StartToken, indent) - 1;
             return SetIndentParensExpression(reindent, expr.OwnedTokens);
           }
       }
@@ -1383,7 +1434,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case "requires":
           case "reads": {
               if (firstSpec) {
-                specIndent = formatter.GetTokenCol(token, indent) - 1;
+                specIndent = formatter.GetNewTokenCol(token, indent) - 1;
                 firstSpec = false;
               }
               formatter.SetIndentations(token, specIndent, specIndent, specIndent + SpaceTab);
@@ -1490,7 +1541,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case "if":
           case "while":
           case "match": {
-              caseIndent = formatter.GetTokenCol(token, indent) - 1;
+              caseIndent = formatter.GetNewTokenCol(token, indent) - 1;
               afterArrowIndent = caseIndent + SpaceTab;
               formatter.SetOpeningIndentedRegion(token, indent);
               break;
@@ -1546,6 +1597,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
     private bool SetIndentITE(int indent, List<IToken> ownedTokens) {
       var lineThen = 0;
+      var colThen = 0;
+      IToken thenToken = null;
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "if": {
@@ -1561,8 +1614,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case "else": {
               if (token.val == "then") {
                 lineThen = token.line;
+                colThen = token.col;
+                thenToken = token;
               }
-              if (token.val == "else" && (token.Next.val == "if" || token.line == lineThen)) { // Don't indent the subexpression
+
+              if (token.val == "else" && token.col == colThen) {
+                // We keep the alignment.
+                var newElseIndent = formatter.GetNewTokenCol(thenToken, indent) - 1;
+                formatter.SetDelimiterIndentedRegions(token, newElseIndent);
+              } else if (token.val == "else" && (token.Next.val == "if" || token.line == lineThen)) { // Don't indent the subexpression
                 formatter.SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
               } else if (IsFollowedByNewline(token)) {
                 formatter.SetOpeningIndentedRegion(token, indent);
@@ -1589,14 +1649,14 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       foreach (var token in ownedTokens) {
         switch (token.val) {
           case "ghost": {
-              afterSemicolonIndent = formatter.GetTokenCol(token, indent) - 1;
+              afterSemicolonIndent = formatter.GetNewTokenCol(token, indent) - 1;
               formatter.SetOpeningIndentedRegion(token, indent);
               hadGhost = true;
               break;
             }
           case "var": {
               if (!hadGhost) {
-                afterSemicolonIndent = formatter.GetTokenCol(token, indent) - 1;
+                afterSemicolonIndent = formatter.GetNewTokenCol(token, indent) - 1;
               }
 
               if (IsFollowedByNewline(token)) {
@@ -1683,13 +1743,34 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       }
     }
 
-    private bool ApplyBinaryExprFormatting(int indent, BinaryExpr binaryExpr) {
+    private bool SetChainingExprIndent(int indent, ChainingExpression chainingExpression) {
+      // Chaining expressions try to align their values if possible
+      var itemIndent = formatter.GetNewTokenCol(chainingExpression.Operands[0].StartToken, indent) - 1;
+
+      foreach (var token in chainingExpression.OwnedTokens) {
+        switch (token.val) {
+          case "[":
+            break;
+          case "#":
+            break;
+          case "]":
+            break;
+          default:
+            formatter.SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
+            break;
+        }
+      }
+
+      return true;
+    }
+
+    private bool SetBinaryExprIndent(int indent, BinaryExpr binaryExpr) {
       if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
         // Alignment required.
         if (binaryExpr.OwnedTokens.Count == 2) {
           var firstToken = binaryExpr.OwnedTokens[0];
           var secondToken = binaryExpr.OwnedTokens[1];
-          indent = formatter.GetTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
+          indent = formatter.GetNewTokenCol(firstToken, formatter.GetIndentBefore(firstToken)) - 1;
           var c = 0;
           while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
             c++;
@@ -1705,7 +1786,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             formatter.SetIndentations(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
           } else if (binaryExpr.OwnedTokens.Count > 0) {
             var startToken = binaryExpr.StartToken;
-            var newIndent = formatter.GetTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
+            var newIndent = formatter.GetNewTokenCol(startToken, formatter.GetIndentBefore(startToken)) - 1;
             formatter.SetIndentations(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
           }
         }
