@@ -1363,6 +1363,23 @@ method TheBreaker_AllGood(M: int, N: int, O: int)
     }
 
     [Fact]
+    public void FormatterWorksForIfStar() {
+      FormatterWorksFor(@"
+module ModifyStmtBreak1 refines ModifyStmtBreak0 {
+  method W... {
+    modify ... {
+      if * {
+        break;
+      } else {
+        break L;
+      }
+    }
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForDividedBlockStmt() {
       FormatterWorksFor(@"
 class X {

@@ -8852,6 +8852,12 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Statement> PreResolveSubStatements {
+      get {
+        yield return S;
+      }
+    }
   }
 
   /// <summary>

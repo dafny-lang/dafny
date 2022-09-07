@@ -976,8 +976,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         case CalcStmt calcStmt:
           return SetIndentCalcStmt(indent, calcStmt);
         case SkeletonStatement skeletonStatement:
-          VisitOneStmt(skeletonStatement.S, ref unusedIndent);
-          return false;
+          return true;
         case AlternativeStmt alternativeStmt: {
             SetIndentMatchStmt(indent, alternativeStmt.OwnedTokens);
             VisitAlternatives(alternativeStmt.Alternatives, indent);
