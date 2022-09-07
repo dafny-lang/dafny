@@ -49,7 +49,6 @@ namespace Microsoft.Dafny.Compilers {
     private readonly List<string> Imports = new() { "module_" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis
     };
@@ -1278,7 +1277,8 @@ namespace Microsoft.Dafny.Compilers {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
         binder = IdProtect(lam.BoundVars[0].CompileName);
       } else {
-        throw new UnsupportedFeatureException(expr.tok, Feature.SequenceConstructionsWithNonLambdaInitializers);
+        binder = ProtectedFreshId("x");
+        valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts).Write($"({binder})");
       }
       wr.Write($"{DafnySeqClass}([{valueExpression} for {binder} in range({Expr(expr.N, inLetExprBody, wStmts)})])");
     }
