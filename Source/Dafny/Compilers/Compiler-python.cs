@@ -648,7 +648,7 @@ namespace Microsoft.Dafny.Compilers {
                     }
                     if (td is NonNullTypeDecl decl) {
                       if (decl.Class is ArrayClassDecl arr) {
-                        return $"{DafnyArrayClass}(None, {arr.Dims})";
+                        return $"{DafnyArrayClass}(None, {Enumerable.Repeat("0", arr.Dims).Comma()})";
                       }
                       return "None";
                     }
