@@ -1401,6 +1401,16 @@ class X {
     }
 
     [Fact]
+    public void FormatterWorksForDatatypeWithVerticalBarAfterwards() {
+      FormatterWorksFor(@"
+datatype Lindgren =
+  Pippi(Node) |
+  Longstocking(seq<object>, Lindgren) |
+  HerrNilsson
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

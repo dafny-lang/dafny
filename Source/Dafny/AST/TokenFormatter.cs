@@ -853,6 +853,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var indent2 = indent + SpaceTab;
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + SpaceTab;
+    if (datatypeDecl.OwnedTokens.TrueForAll(token =>
+          token.val != "|" || IsFollowedByNewline(token))) {
+      rightOfVerticalBarIndent = indent2;
+    }
     var commaIndent = indent2;
     var rightIndent = indent2;
     foreach (var token in datatypeDecl.OwnedTokens) {
@@ -863,7 +867,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           }
         case "=": {
             if (IsFollowedByNewline(token)) {
-              SetDelimiterInsideIndentedRegions(token, indent2);
+              SetIndentations(token, rightOfVerticalBarIndent, indent + SpaceTab, rightOfVerticalBarIndent);
             } else {
               SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
             }
