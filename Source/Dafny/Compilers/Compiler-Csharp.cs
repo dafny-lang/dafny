@@ -1176,8 +1176,9 @@ namespace Microsoft.Dafny.Compilers {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
 
-      public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl /*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
+      public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody,
+        MemberDecl member /*?*/, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, Writer(false, createBody, member));
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
@@ -1295,8 +1296,8 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
-      wr.Write($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name}");
+    protected ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
+      wr.Write($"{Keywords(createBody)}{TypeName(resultType, wr, tok)} {name}");
       if (createBody) {
         var w = wr.NewBlock();
         var wGet = w.NewBlock("get");

@@ -444,8 +444,9 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
-      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
+      public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody,
+        MemberDecl member /*?*/, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, Writer(false, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
@@ -482,16 +483,16 @@ namespace Microsoft.Dafny.Compilers {
       TrExpr(rhs, w, inLetExprBody, wStmts);
     }
 
-    public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
+    public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok,
       bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
-      wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      wr.Write($"public {TypeName(resultType, wr, tok)} {name}()");
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
         wGet = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
       }
-      wr.Write("public {0}void set_{1}({2} value)", isStatic ? "static " : "", name, TypeName(resultType, wr, tok));
+      wr.Write($"public void set_{name}({TypeName(resultType, wr, tok)} value)");
       if (createBody) {
         setterWriter = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {

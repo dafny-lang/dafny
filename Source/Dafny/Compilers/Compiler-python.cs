@@ -46,10 +46,9 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
-    private readonly List<string> Imports = new List<string> { "module_" };
+    private readonly List<string> Imports = new() { "module_" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.StaticConstants,
       Feature.IntBoundedPool,
       Feature.SequenceUpdateExpressions,
       Feature.SequenceConstructionsWithNonLambdaInitializers,
@@ -439,9 +438,9 @@ namespace Microsoft.Dafny.Compilers {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
 
-      public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
-          bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, methodWriter: MethodWriter);
+      public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
+        bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+        return Compiler.CreateGetterSetter(name, createBody, out setterWriter, methodWriter: MethodWriter);
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
@@ -469,11 +468,7 @@ namespace Microsoft.Dafny.Compilers {
       fieldWriter.WriteLine();
     }
 
-    private ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
-      bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
-      if (isStatic) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.StaticConstants);
-      }
+    private ConcreteSyntaxTree CreateGetterSetter(string name, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
       methodWriter.WriteLine("@property");
       var getterWriter = methodWriter.NewBlockPy(header: $"def {name}(self):");
       methodWriter.WriteLine($"@{name}.setter");
