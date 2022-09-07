@@ -132,7 +132,7 @@ class Array:
         return self.length(0)
 
     def __getitem__(self, key):
-        if isinstance(key, slice) or not isinstance(key, Iterable):
+        if not isinstance(key, Iterable):
             return self.arr[key]
         arr = self.arr
         for i in key:
