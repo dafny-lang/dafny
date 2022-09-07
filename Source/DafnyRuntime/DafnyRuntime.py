@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
 from collections import Counter
+from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from itertools import chain, combinations, count
@@ -107,22 +108,62 @@ class Seq(tuple):
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
 
-class Array(list):
-    @classmethod
-    def empty(cls, dims):
-        if dims <= 1:
-            return Array()
-        return Array([Array.empty(dims-1)])
+class Array:
+    class Box(list):
+        def __dafnystr__(self) -> str:
+            return '[' + ', '.join(map(string_of, self)) + ']'
+
+    def __init__(self, initValue, *dims):
+        fresh = not isinstance(initValue, Array.Box)
+        self.arr = initValue if fresh else initValue.content
+        self.dims = list(dims)
+        if fresh:
+            for i in reversed(self.dims):
+                self.arr = Array.Box([copy.deepcopy(self.arr) for _ in range(i)])
 
     def __dafnystr__(self) -> str:
-        return '[' + ', '.join(map(string_of, self)) + ']'
+        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+
+    def __str__(self):
+        return self.__dafnystr__()
+
+    def length(self, i):
+        return self.dims[i] if i < len(self.dims) else None
 
     def __len__(self):
-        l = super().__len__()
-        # Hack to enable "empty" matrices
-        if l == 1 and isinstance(self[0], Array) and len(self[0]) == 0:
-            return 0
-        return l
+        return self.length(0)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self.arr[key]
+        arr = self.arr
+        dims = self.dims
+        if not isinstance(key, Iterable):
+            key = (key,)
+        elif len(dims) < len(key):
+            return None
+        for i in key:
+            if dims[0] == 0:
+                return None
+            arr = arr[i]
+            dims = dims[1:]
+        return arr if not dims else Array(arr, dims)
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, Iterable):
+            self.arr[key] = value
+            return
+        if len(self.dims) < len(key):
+            return
+        arr = self.arr
+        dims = self.dims
+        (*init, last) = key
+        for i in init:
+            if dims[0] == 0:
+                return
+            arr = arr[i]
+            dims = dims[1:]
+        arr[last] = value
 
 class Set(frozenset):
     @property
@@ -341,12 +382,6 @@ def euclidian_modulus(a, b):
         return a % bp
     c = (-a) % bp
     return c if c == 0 else bp - c
-
-def newArray(initValue, *dims):
-    b = initValue
-    for i in reversed(list(dims)):
-        b = [copy.deepcopy(b) for _ in range(i)]
-    return b
 
 @dataclass
 class HaltException(Exception):

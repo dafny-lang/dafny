@@ -646,7 +646,7 @@ namespace Microsoft.Dafny.Compilers {
                     }
                     if (td is NonNullTypeDecl decl) {
                       if (decl.Class is ArrayClassDecl arr) {
-                        return $"{DafnyArrayClass}.empty({arr.Dims})";
+                        return $"{DafnyArrayClass}(None, {arr.Dims})";
                       }
                       return "None";
                     }
@@ -896,19 +896,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
-      if (dimensions.Count == 1) {
-        // handle the common case of 1-dimensional arrays separately
-        wr.Write($"{DafnyArrayClass}([{initValue} for _ in range");
-        TrParenExpr(dimensions[0], wr, false, wStmts);
-        wr.Write("])");
-      } else {
-        wr.Write($"{DafnyRuntimeModule}.newArray({initValue}");
-        foreach (var dim in dimensions) {
-          wr.Write(", ");
-          TrExpr(dim, wr, false, wStmts);
-        }
-        wr.Write(")");
+      wr.Write($"{DafnyArrayClass}({initValue}");
+      foreach (var dim in dimensions) {
+        wr.Write(", ");
+        TrExpr(dim, wr, false, wStmts);
       }
+      wr.Write(")");
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
@@ -1103,11 +1096,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          preString = "len(";
-          postString = ")";
-          if (idParam != null && (int)idParam > 0) {
-            postString = string.Concat(Enumerable.Repeat("[0]", (int)idParam)) + postString;
-          }
+          var dim = idParam is int d and > 0 ? d : 0;
+          compiledName = $"length({dim})";
           break;
         default:
           Contract.Assert(false); // unexpected ID
@@ -1187,11 +1177,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
-      Contract.Assert(indices != null && 1 <= indices.Count);
+      Contract.Assert(indices is { Count: >= 1 });
       var w = wr.Fork();
-      foreach (var index in indices) {
-        wr.Write($"[{index}]");
-      }
+      wr.Write($"[{indices.Comma()}]");
       return w;
     }
 
