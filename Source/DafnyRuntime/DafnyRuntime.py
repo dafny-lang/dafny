@@ -114,12 +114,10 @@ class Array:
             return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __init__(self, initValue, *dims):
-        fresh = not isinstance(initValue, Array.Box)
-        self.arr = initValue if fresh else initValue.content
+        self.arr = initValue
         self.dims = list(dims)
-        if fresh:
-            for i in reversed(self.dims):
-                self.arr = Array.Box([copy.deepcopy(self.arr) for _ in range(i)])
+        for i in reversed(self.dims):
+            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
 
     def __dafnystr__(self) -> str:
         return '[' + ', '.join(map(string_of, self.arr)) + ']'
@@ -134,36 +132,25 @@ class Array:
         return self.length(0)
 
     def __getitem__(self, key):
-        if isinstance(key, slice):
+        if isinstance(key, slice) or not isinstance(key, Iterable):
             return self.arr[key]
         arr = self.arr
-        dims = self.dims
-        if not isinstance(key, Iterable):
-            key = (key,)
-        elif len(dims) < len(key):
-            return None
         for i in key:
-            if dims[0] == 0:
-                return None
             arr = arr[i]
-            dims = dims[1:]
-        return arr if not dims else Array(arr, dims)
+        return arr
 
     def __setitem__(self, key, value):
         if not isinstance(key, Iterable):
             self.arr[key] = value
             return
-        if len(self.dims) < len(key):
-            return
         arr = self.arr
-        dims = self.dims
-        (*init, last) = key
-        for i in init:
-            if dims[0] == 0:
+        j = len(key)
+        for i in key:
+            if j <= 1:
+                arr[i] = value
                 return
             arr = arr[i]
-            dims = dims[1:]
-        arr[last] = value
+            j -= 1
 
 class Set(frozenset):
     @property
