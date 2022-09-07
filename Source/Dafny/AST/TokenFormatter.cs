@@ -1026,18 +1026,24 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     private bool SetIndentIfStmt(IfStmt ifStmt, int indent) {
-      if (ifStmt.OwnedTokens.Count > 0) {
-        formatter.SetOpeningIndentedRegion(ifStmt.OwnedTokens[0], indent);
+      foreach (var token in ifStmt.OwnedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
+        switch (token.val) {
+          case "if": {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case "else": {
+              formatter.SetKeywordWithoutSurroundingIndentation(token, indent);
+              VisitBody(ifStmt.Els, indent);
+              break;
+            }
+        }
       }
-
       Visit(ifStmt.Guard, indent);
       VisitBody(ifStmt.Thn, indent);
-      var elseToken = ifStmt.OwnedTokens.FirstOrDefault(token => token.val == "else");
-      if (elseToken != null) {
-        formatter.SetKeywordWithoutSurroundingIndentation(elseToken, indent);
-      }
-
-      VisitBody(ifStmt.Els, indent);
       return false;
     }
 
@@ -1046,6 +1052,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var commaIndent = indent + SpaceTab;
       var afterCommaIndent = commaIndent;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "modifies":
           case "modify":
@@ -1078,6 +1087,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private bool SetIndentAssertLikeStatement(Statement stmt, int indent) {
       var ownedTokens = stmt.OwnedTokens;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "assume":
           case "expect":
@@ -1141,6 +1153,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var forReached = false;
       var specification = false;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         if (token.val == "for") {
           formatter.SetOpeningIndentedRegion(token, indent);
           forReached = true;
@@ -1174,6 +1189,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var commaIndent = indent + SpaceTab;
       var innerIndent = indent + SpaceTab;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "reveal":
           case "print":
@@ -1203,6 +1221,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         stmt is AssignOrReturnStmt assignStmt && assignStmt.Lhss.Count == 0
           ? indent : indent + SpaceTab;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case ",":
             formatter.SetDelimiterSpeciallyIndentedRegions(token, commaIndent, rightIndent);
@@ -1247,6 +1268,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     private bool SetIndentBlockStmt(int indent, BlockStmt blockStmt) {
       var openingIndent = indent;
       foreach (var token in blockStmt.OwnedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "{": {
               if (!formatter.PosToIndentLineBefore.ContainsKey(token.pos)) {
@@ -1284,6 +1308,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var innerCalcIndent = indent + SpaceTab;
       // First phase: We get the alignment
       foreach (var token in calcStmt.OwnedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "calc":
           case ";":
@@ -1544,6 +1571,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var commaIndent = decreasesElemIndent;
       // Need to ensure that the "case" is at least left aligned with the match/if/while keyword
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "if":
           case "while":
@@ -1654,6 +1684,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var afterSemicolonIndent = indent;
       var hadGhost = false;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
           case "ghost": {
               afterSemicolonIndent = formatter.GetNewTokenCol(token, indent) - 1;
@@ -1700,6 +1733,18 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       return true;
     }
 
+    private bool FormatLabelTokens(IToken token, int indent) {
+      if (token.val == "label") {
+        formatter.SetOpeningIndentedRegion(token, indent);
+      } else if (token.val == ":" && token.Prev.Prev.val == "label") {
+        formatter.SetClosingIndentedRegion(token, indent);
+      } else if (token.Prev.val != "label") {
+        return false;
+      }
+
+      return true;
+    }
+
     private void FormatLikeLoop(List<IToken> ownedTokens, Statement body, int indent) {
       if (ownedTokens.Count > 0) {
         formatter.SetOpeningIndentedRegion(ownedTokens[0], indent);
@@ -1709,11 +1754,10 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
       var decreasesElemIndent = indent + SpaceTab;
       var commaIndent = indent + SpaceTab;
       foreach (var token in ownedTokens) {
+        if (FormatLabelTokens(token, indent)) {
+          continue;
+        }
         switch (token.val) {
-          case "label": {
-              formatter.SetOpeningIndentedRegion(token, indent);
-              break;
-            }
           case "while":
           case "forall": {
               loopStarted = true;

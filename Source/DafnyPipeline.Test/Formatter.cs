@@ -1347,6 +1347,22 @@ module Outer.A {
     }
 
     [Fact]
+    public void FormatterWorksForLabelsBeforeIf() {
+      FormatterWorksFor(@"
+
+method TheBreaker_AllGood(M: int, N: int, O: int)
+{
+  label MyLabelBlock:
+  label MyLabelBlockAgain:
+  if (*) {
+    a := 15; break;
+  }
+  assert M <= i || b == 12 || e == 37;
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForDividedBlockStmt() {
       FormatterWorksFor(@"
 class X {
