@@ -452,7 +452,7 @@ public class YieldStmt : ProduceStmt {
   }
 }
 
-public abstract class AssignmentRhs {
+public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
 
   private Attributes attributes;
@@ -513,6 +513,8 @@ public class ExprRhs : AssignmentRhs {
       yield return Expr;
     }
   }
+
+  public override IEnumerable<INode> Children => new[] { Expr };
 }
 
 /// <summary>
@@ -653,7 +655,7 @@ public class TypeRhs : AssignmentRhs, INode {
   }
 
   public IToken Start => Tok;
-  public IEnumerable<INode> Children => new[] {EType, Type}.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children => new[] {EType, Type}.OfType<UserDefinedType>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -661,6 +663,7 @@ public class HavocRhs : AssignmentRhs {
     : base(tok) {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public class VarDeclStmt : Statement {
