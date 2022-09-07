@@ -4137,6 +4137,9 @@ namespace Microsoft.Dafny {
     }
     public string FullSanitizedName {
       get {
+        if (EnclosingModuleDefinition is null) {
+          return SanitizedName;
+        }
         return EnclosingModuleDefinition.SanitizedName + "." + SanitizedName;
       }
     }
