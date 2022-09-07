@@ -40,7 +40,13 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
       // That means DafnyCore is the best reference since it directly contains
       // all the Microsoft.Dafny elements.
       "DafnyCore",
+      "DafnyPipeline",
+      "System",
+      "netstandard",
+      "OmniSharp.Extensions.LanguageServer",
+      "OmniSharp.Extensions.LanguageProtocol",
       "System.Console",
+      "DafnyLanguageServer",
       "System.Runtime",
       "Boogie.Core",
       "System.Collections"

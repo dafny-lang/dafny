@@ -9,6 +9,13 @@
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
+<<<<<<< HEAD
+=======
+      <VersionPrefix>3.8.1.40901</VersionPrefix>
+
+      <PackAsTool>true</PackAsTool>
+      <ToolCommandName>dafny</ToolCommandName>
+>>>>>>> d0ec2eda815663d9560db84bc07adfb040807df7
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 

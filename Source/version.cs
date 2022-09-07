@@ -3,5 +3,6 @@ using System.Reflection;
 // When changing this, also be sure to change it in the following files:
 // * Source/Dafny/Dafny.csproj
 // * Source/DafnyPipeline/DafnyPipeline.csproj
-[assembly: AssemblyVersion("3.8.0.40729")]
-[assembly: AssemblyFileVersion("3.8.0.40729")]
+// * Source/DafnyLanguageServer/DafnyLanguageServer.csproj
+[assembly: AssemblyVersion("3.8.1.40901")]
+[assembly: AssemblyFileVersion("3.8.1.40901")]
