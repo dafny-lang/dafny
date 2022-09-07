@@ -95,25 +95,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          // We can do better than that.
           var tokenUri = tokenForMessage.GetDocumentUri();
           if (tokenUri == entryDocumentUri) {
             message = FormatRelated(entryDocumentsource.Substring(range.StartToken.pos, rangeLength));
           } else {
             var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
+            message = "";
             try {
-              var file = File.OpenRead(fileName);
-              var toRead = new byte[rangeLength];
-              file.Read(toRead, range.StartToken.pos, rangeLength);
-              file.Close();
-              var read = toRead.ToString();
-              if (read != null) {
-                message = FormatRelated(read);
-              } else {
-                message = "Related location (could not read file " + fileName + ")";
-              }
-            } catch (FileNotFoundException) {
+              var content = File.ReadAllText(fileName);
+              message = FormatRelated(content.Substring(range.StartToken.pos, rangeLength));
+            } catch (IOException) {
               message = message + "(could not open file " + fileName + ")";
+            } catch (ArgumentOutOfRangeException) {
+              message = "Related location (could not read position in file " + fileName + ")";
+            }
+            if (message == "") {
+              message = "Related location (could not read file " + fileName + ")";
             }
           }
         }

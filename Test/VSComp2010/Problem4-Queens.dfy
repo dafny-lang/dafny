@@ -74,7 +74,6 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
                   boardSoFar <= B
                   ==>
                   (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
-  ensures (forall B, p :: IsConsistent(B, p) <==> old(IsConsistent(B, p)));
   decreases N - |boardSoFar|;
 {
   var pos := |boardSoFar|;

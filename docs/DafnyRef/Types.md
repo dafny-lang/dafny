@@ -574,7 +574,7 @@ code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)`
+### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
@@ -666,7 +666,7 @@ Here are some examples:
 {% include_relative examples/Example-TP.dfy %}
 ```
 
-## 8.2. Type parameter variance
+## 8.2. Type parameter variance {#sec-type-parameter-variance}
 
 Type parameters have several different variance and cardinality properties.
 These properties of type parameters are designated in a generic type definition.
@@ -3564,7 +3564,7 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-## 19.1. Inductive datatypes
+## 19.1. Inductive datatypes {#sec-inductive-datatypes}
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
@@ -3654,6 +3654,31 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
+The operator `<` is defined for two operands of the same datataype.
+It means _is properly contained in_. For example, in the code
+```dafny
+datatype X = T(t: X) | I(i: int)
+method comp() {
+  var x := T(I(0));
+  var y := I(0);
+  var z := I(1);
+  assert x.t < x;
+  assert y < x;
+  assert !(x < x);
+  assert z < x; // FAILS
+}
+```
+`x` is a datatype value that holds a `T` variant, which holds a `I` variant, which holds an integer `0`.
+The value `x.t` is a portion of the datatype structure denoted by `x`, so `x.t < x` is true.
+Datatype values are immutable mathematical values, so the value of `y` is identical to the value of
+`x.t`, so `y < x` is true also, even though `y` is constructed from the ground up, rather than as
+a portion of `x`. However, `z` is different than either `y` or `x.t` and consequently `z < x` is not provable.
+Furthermore, `<` does not include `==`, so `x < x` is false.
+
+Note that only `<` is defined; not `<=` or `>` or `>=`.
+
+Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
+`z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
 ## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 
