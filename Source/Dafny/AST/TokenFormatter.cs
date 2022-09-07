@@ -1058,6 +1058,13 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case ",":
             formatter.SetIndentations(token, afterCommaIndent, commaIndent, afterCommaIndent);
             break;
+          case "{":
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+          case "}":
+          case ";":
+            formatter.SetClosingIndentedRegion(token, indent);
+            break;
         }
       }
 

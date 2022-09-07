@@ -1347,6 +1347,20 @@ module Outer.A {
     }
 
     [Fact]
+    public void FormatterWorksForDividedBlockStmt() {
+      FormatterWorksFor(@"
+class X {
+  constructor Init(x: nat)
+  {
+    modify `c;
+    new;
+    a := a + b;
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
