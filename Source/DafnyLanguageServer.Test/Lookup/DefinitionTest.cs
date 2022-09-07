@@ -128,6 +128,7 @@ module Consumer {
 
   method DoIt() {
     var length: usize := 3;
+    length := 4;
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
@@ -140,7 +141,10 @@ module Consumer {
       Assert.IsFalse(lengthDefinition.Any());
 
       var providerImport = (await RequestDefinition(documentItem, (6, 16)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 17), (0, 25)), providerImport.Location.Range);
+      Assert.AreEqual(new Range((0, 17), (0, 25)), providerImport.Location!.Range);
+
+      var lengthAssignment = (await RequestDefinition(documentItem, (10, 7)).AsTask()).Single();
+      Assert.AreEqual(new Range((9, 8), (9, 14)), lengthAssignment.Location!.Range);
     }
 
     [TestMethod]

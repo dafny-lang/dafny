@@ -795,6 +795,8 @@ public class UpdateStmt : ConcreteUpdateStatement {
     get { return ResolvedStatements; }
   }
 
+  public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss);
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Lhss));
