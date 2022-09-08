@@ -12871,6 +12871,10 @@ namespace Microsoft.Dafny {
         // Check if the head of the pattern is a constructor or a variable
         if (ctors.TryGetValue(idpat.Id, out ctor)) {
           /* =[3]= */
+          if (ctor != null && idpat.Arguments == null && ctor.Formals.Count != 0) {
+            this.reporter.Warning(MessageSource.Resolver, pat.Tok,
+              $"Variable name '{pat}' has the same name as a datatype constructor that's in scope at this location");
+          }
           if (ctor != null && idpat.Arguments == null && ctor.Formals.Count == 0) {
             // nullary constructor without () -- so convert it to a constructor
             idpat.MakeAConstructor();

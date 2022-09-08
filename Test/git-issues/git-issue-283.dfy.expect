@@ -1,14 +1,24 @@
+git-issue-283.dfy(102,21): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
+git-issue-283.dfy(108,19): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
 
 Dafny program verifier finished with 9 verified, 0 errors
+git-issue-283.dfy(102,21): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
+git-issue-283.dfy(108,19): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
 
 Dafny program verifier did not attempt verification
 Done
+git-issue-283.dfy(102,21): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
+git-issue-283.dfy(108,19): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
 
 Dafny program verifier did not attempt verification
 Done
+git-issue-283.dfy(102,21): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
+git-issue-283.dfy(108,19): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
 
 Dafny program verifier did not attempt verification
 Done
+git-issue-283.dfy(102,21): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
+git-issue-283.dfy(108,19): Warning: Variable name 'C2' has the same name as a datatype constructor that's in scope at this location
 
 Dafny program verifier did not attempt verification
 Done
