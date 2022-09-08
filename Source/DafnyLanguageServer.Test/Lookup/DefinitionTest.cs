@@ -58,6 +58,27 @@ datatype Result<T, E> = Ok(value: T) | Err(error: E) {
     }
 
     [TestMethod]
+    public async Task StaticFunctionCall() {
+      var source = @"
+trait E {
+  static function method Foo(): E
+}
+
+function Bar(): E {
+  E.Foo()
+}
+".TrimStart();
+
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var eReference = (await RequestDefinition(documentItem, (5, 2)).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 6), (0, 7)), eReference.Location!.Range);
+
+      var fooReference = (await RequestDefinition(documentItem, (5, 4)).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 25), (1, 28)), fooReference.Location!.Range);
+    }
+
+    [TestMethod]
     public async Task FunctionCallAndGotoOnDeclaration() {
       var source = @"
 function FibonacciSpec(n: nat): nat {

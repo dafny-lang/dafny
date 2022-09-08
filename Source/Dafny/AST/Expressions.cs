@@ -883,6 +883,8 @@ public class StaticReceiverExpr : LiteralExpr {
   public override bool IsImplicit {
     get { return Implicit; }
   }
+
+  public override IEnumerable<INode> Children => base.Children.Concat(Type.Nodes);
 }
 
 public class LiteralExpr : Expression {

@@ -294,7 +294,7 @@ public class ConstantField : SpecialField, ICallable {
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs });
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
 }
 
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
