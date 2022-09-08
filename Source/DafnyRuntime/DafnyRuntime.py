@@ -144,13 +144,9 @@ class Array:
             self.arr[key] = value
             return
         arr = self.arr
-        j = len(key)
-        for i in key:
-            if j <= 1:
-                arr[i] = value
-                return
+        for i in range(len(key)-1):
             arr = arr[i]
-            j -= 1
+        arr[key[-1]] = value
 
 class Set(frozenset):
     @property
