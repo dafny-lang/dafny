@@ -12,6 +12,7 @@ public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
   private readonly Dictionary<MemberDecl, string> fullNames = new();
+  private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
   private CallRedirector callRedirector = new();
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
@@ -123,6 +124,7 @@ public class ExpectContracts : IRewriter {
     }
 
     if (newDecl is not null) {
+      newDecl.Attributes = null;
       wrappedDeclarations.Add(decl, newDecl);
       callRedirector.AddFullName(newDecl, decl.FullName + "_checked");
     }
@@ -227,22 +229,29 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-    Dictionary<string, MemberDecl> newDeclarationsByName = new();
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
       // Keep track of current declarations by name to avoid redirecting
       // calls to functions or methods from obsolete modules (those that
       // existed prior to processing by CompilationCloner).
       foreach (var decl in topLevelDecl.Members) {
-        //Console.WriteLine(($"Adding {decl.FullName}"));
-        newDeclarationsByName.Add(decl.FullName, decl);
+        var noCompileName = decl.FullName.Replace("_Compile", "");
+        //Console.WriteLine(($"Adding {noCompileName}"));
+        newDeclarationsByName.Add(noCompileName, decl);
       }
     }
 
     foreach (var (caller, callee) in wrappedDeclarations) {
+      var callerFullName = caller.FullName;
       var calleeFullName = callRedirector.newFullNames[callee];
-      callRedirector.newRedirections.Add(
-        newDeclarationsByName[caller.FullName],
-        newDeclarationsByName[calleeFullName]);
+      //Console.WriteLine($"Looking up {caller.FullName} -> {calleeFullName}");
+      if (newDeclarationsByName.ContainsKey(callerFullName) &&
+          newDeclarationsByName.ContainsKey(calleeFullName)) {
+        var callerDecl = newDeclarationsByName[caller.FullName];
+        var calleeDecl = newDeclarationsByName[calleeFullName];
+        if (!callRedirector.newRedirections.ContainsKey(callerDecl)) {
+          callRedirector.newRedirections.Add(callerDecl, calleeDecl);
+        }
+      }
     }
 
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
