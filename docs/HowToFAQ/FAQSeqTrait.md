@@ -26,4 +26,4 @@ method m() {
 }
 ```
 
-In fact, Dafny will generally infer a common type for you in the case of sequence concatentation.
+In fact, Dafny will generally infer a common type for you in the case of sequence concatetation.
