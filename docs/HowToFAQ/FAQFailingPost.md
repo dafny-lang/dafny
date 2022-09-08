@@ -13,7 +13,7 @@ a typical reason is that there are other exit paths from the method or function.
 harder to spot exit path is the `:-` let-or-fail assignment.
 Here is a sketch of that kind of problem:
 
-```
+```dafny
 method test(MyClass o) returns (r: Wrappers.Result<int>)
   modifies o;
   ensures o.ok == true;
