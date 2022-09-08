@@ -35,17 +35,20 @@ namespace Microsoft.Dafny {
       bool dontCare0 = false, dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT);
+      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT, false);
     }
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap) {
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, bool includeStatements = false) {
       Contract.Requires(expr != null);
       Contract.Requires(fvs != null);
       bool dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT);
+      ComputeFreeVariables(expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT, includeStatements);
     }
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis) {
+    public static void ComputeFreeVariables(Expression expr,
+      ISet<IVariable> fvs,
+      ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis,
+      bool includeStatements) {
       Contract.Requires(expr != null);
 
       if (expr is ThisExpr) {
@@ -113,8 +116,13 @@ namespace Microsoft.Dafny {
       // visit subexpressions
       bool uHeap = false, uOldHeap = false;
       Type uThis = null;
+      if (expr is StmtExpr stmtExpr && includeStatements) {
+        foreach (var subExpression in stmtExpr.S.SubExpressionsIncludingTransitiveSubStatements) {
+          ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
+        }
+      }
       foreach (var subExpression in expr.SubExpressions) {
-        ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis);
+        ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
       }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
       usesThis = usesThis ?? uThis;

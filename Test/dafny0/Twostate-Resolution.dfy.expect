@@ -691,6 +691,18 @@ module BadRefinement refines RefinementBase {
     true
   }
 }
+
+module RevealInsideIterator {
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
+
+  function {:opaque} G(): int
+  {
+    2
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
@@ -724,7 +736,7 @@ Twostate-Resolution.dfy(166,34): Error: two-state function ('Sp') can only be ca
 Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be called in a two-state context
 Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
-Twostate-Resolution.dfy(230,30): Error: ghost fields are allowed only in specification contexts
+Twostate-Resolution.dfy(230,30): Error: a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
 Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
@@ -741,19 +753,19 @@ Twostate-Resolution.dfy(445,20): Error: no label 'After' in scope at this time
 Twostate-Resolution.dfy(452,17): Error: an @-label can only be applied to a two-state function
 Twostate-Resolution.dfy(453,14): Error: an @-label can only be applied to a two-state lemma
 Twostate-Resolution.dfy(459,19): Error: an @-label can only be applied to a two-state function
-Twostate-Resolution.dfy(481,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(481,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
 Twostate-Resolution.dfy(482,26): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(483,26): Error: an @-label can only be applied to a two-state lemma
-Twostate-Resolution.dfy(487,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(487,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
 Twostate-Resolution.dfy(488,26): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(495,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(495,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(496,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(497,19): Error: to reveal a two-state function, do not list any parameters or @-labels
 Twostate-Resolution.dfy(500,17): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(501,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(501,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(507,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(535,22): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older

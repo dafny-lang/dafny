@@ -1,12 +1,18 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
@@ -14,18 +20,91 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}";
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    var fooPosition = fooSymbol.SelectionRange.Start;
+    var runSuccess = await client.RunSymbolVerification(documentItem, fooPosition, CancellationToken);
+    Assert.IsTrue(runSuccess);
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task FunctionByMethodIsSeenAsSingleVerifiable() {
+    var source = @"
+function MultiplyByPlus(x: nat, y: nat): nat {
+  x * y
+} by method {
+  var result: nat := 0;
+  for i := 0 to x 
+    invariant result == i * y {
+    result := result + y;
+  }
+  return result;
+}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var header = (await RequestDocumentSymbol(documentItem)).Single().SelectionRange;
+    var diagnostic = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(0, diagnostic.Length);
+    await WaitForStatus(header, PublishedVerificationStatus.Running, CancellationToken);
+    await WaitForStatus(header, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task NoDuplicateStaleMessages() {
+    var source = "method m1() { assert false; }";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var foundStale = false;
+    while (true) {
+      var statusNotification = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var status = statusNotification.NamedVerifiables.Single().Status;
+      if (status >= PublishedVerificationStatus.Error) {
+        break;
+      }
+
+      if (status == PublishedVerificationStatus.Stale) {
+        Assert.IsFalse(foundStale);
+        foundStale = true;
+      }
+    }
+  }
+
+  [TestMethod]
   public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
     var source = "method m1() {}";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, status1.NamedVerifiables.Count);
+    DateTime? first = null;
+    DateTime? second = null;
+    DateTime? third = null;
+    try {
+      first = DateTime.Now;
+      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status1.NamedVerifiables.Count);
 
-    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+      second = DateTime.Now;
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
-    var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, status2.NamedVerifiables.Count);
+      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status2.NamedVerifiables.Count);
+      third = DateTime.Now;
+    } catch (OperationCanceledException) {
+      Console.WriteLine($"first: {first}, second: {second}, third: {third}");
+      Console.WriteLine(verificationStatusReceiver.History.Stringify());
+      throw;
+    }
   }
 
   [TestMethod]
@@ -291,8 +370,8 @@ method Bar() { assert true; }";
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = await Documents.GetLastDocumentAsync(documentId);
-    var symbols = lastDocument!.ImplementationIdToView!.Select(id => id.Key.NamedVerificationTask).ToHashSet();
+    var lastDocument = (DocumentAfterTranslation)(await Documents.GetLastDocumentAsync(documentId));
+    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
