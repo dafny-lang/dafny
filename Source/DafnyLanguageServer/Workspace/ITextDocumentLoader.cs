@@ -19,7 +19,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The unloaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+
 
     /// <summary>
     /// Loads the specified document item of the language server and applies the necessary steps
@@ -27,22 +28,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="textDocument">The text document to load.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// 
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
-    Task PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Verifies the given document.
-    /// </summary>
-    /// <param name="document">The document to verify.</param>
-    /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task VerifyAllTasksAsync(IDocumentEntry entry, DafnyDocument document, CancellationToken cancellationToken);
-
-    bool Verify(IDocumentEntry entry, DafnyDocument document, IImplementationTask implementationTask, CancellationToken cancellationToken);
+    Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
   }
 }

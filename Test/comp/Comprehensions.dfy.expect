@@ -240,3 +240,63 @@ null
 false true
 true true
 3
+
+Dafny program verifier did not attempt verification
+x=13 y=14
+x=13 y=14 b=yes
+true false
+true false
+map[14 := 7, 12 := 6, 13 := 6]
+map[18 := 14, 17 := 13, 16 := 12]
+false false false false
+true true true true
+XP returned: 0 false
+after: 0 before: 0
+after: 2 before: 2
+XM returned: 16
+0 12 3 8
+0 12 3 8
+0 12 3 8
+0 12 3 8
+[1, 1, 1, 1]
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[0, 1, 4, 9, 16, 25, 36, 49]
+[0, 1, 2, 3, 4, 5, 6, 7]
+4 4 2 2 0 4 2 true
+5 4 2 2 0 4 2 true
+5 5 3 3 1 5 3 true
+2 2 1 1 0 2 false true
+3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
+the intersection is {null}
+there are 3 elements in the union
+true true true
+false false false
+true true true
+false false false
+4 3 2 1
+true true true true
+4 3 2 1
+true true true true
+false false false false
+false false false false
+true true true true
+false false false false
+true true true true
+false true
+false true
+null
+false true
+true true
+3

@@ -17,7 +17,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <VersionPrefix>3.7.3.40719</VersionPrefix>
+    <VersionPrefix>3.8.1.40901</VersionPrefix>
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

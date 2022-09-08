@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::__Main);");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.FromMainArguments(args)); }} );");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -526,7 +526,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
         sep = ", ";
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)), " "));
       wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       var sep = "";
-      var argCount = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      var argCount = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, tok, true, wr);
         sep = ", ";
@@ -1773,11 +1773,11 @@ namespace Microsoft.Dafny.Compilers {
       }
       var groundingCtor = dt.GetGroundingCtor();
       var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-      var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
+      var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
       EmitDatatypeValue(dt, groundingCtor, null, dt is CoDatatypeDecl, arguments, wDefault);
 
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
-      arguments = Util.Comma(usedTypeArgs, tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
+      arguments = usedTypeArgs.Comma(tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
       EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
 
       // create methods
@@ -1828,7 +1828,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost && arg.HasName) {
               var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
               if (dt.IsRecordType) {
-                wDtor.WriteLine($"return this.{IdName(arg)};");
+                wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
               } else {
                 wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
                 var n = dtor.EnclosingCtors.Count;
@@ -1836,12 +1836,12 @@ namespace Microsoft.Dafny.Compilers {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
-                    ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
+                    ctor_i.CompileName, DtT_TypeArgs, FieldName(arg, i));
                 }
 
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
                 wDtor.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
+                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{FieldName(arg, 0)};");
               }
             }
           }
@@ -1906,7 +1906,7 @@ namespace Microsoft.Dafny.Compilers {
       var i = 0;
       foreach (Formal arg in ctor.Formals) {
         if (!arg.IsGhost) {
-          wr.WriteLine($"public {TypeName(arg.Type, wr, arg.tok)} {FormalName(arg, i)};");
+          wr.WriteLine($"public {TypeName(arg.Type, wr, arg.tok)} {FieldName(arg, i)};");
           i++;
         }
       }
@@ -1917,7 +1917,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            w.WriteLine($"this.{FormalName(arg, i)} = {FormalName(arg, i)};");
+            w.WriteLine($"this.{FieldName(arg, i)} = {FormalName(arg, i)};");
             i++;
           }
         }
@@ -1938,9 +1938,9 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
         w.Write("return true");
         i = 0;
-        foreach (Formal arg in ctor.Formals) {
+        foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
+            var nm = FieldName(arg, i);
             w.Write(" && ");
             if (IsDirectlyComparable(arg.Type)) {
               w.Write($"this.{nm} == o.{nm}");
@@ -1961,7 +1961,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
+            string nm = FieldName(arg, i);
             w.Write("hash = ((hash << 5) + hash) + ");
             if (IsJavaPrimitiveType(arg.Type)) {
               w.WriteLine($"{BoxedTypeName(arg.Type, w, Token.NoToken)}.hashCode(this.{nm});");
@@ -2002,7 +2002,7 @@ namespace Microsoft.Dafny.Compilers {
                   w.WriteLine($"{tempVar}.append(\", \");");
                 }
                 w.Write($"{tempVar}.append(");
-                var memberName = FormalName(arg, i);
+                var memberName = FieldName(arg, i);
                 if (IsJavaPrimitiveType(arg.Type)) {
                   w.Write($"this.{memberName}");
                 } else {
@@ -2058,6 +2058,13 @@ namespace Microsoft.Dafny.Compilers {
         return "create";
       }
       return "create_" + ctor.CompileName;
+    }
+
+    private string FieldName(Formal formal, int i) {
+      Contract.Requires(formal != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return IdProtect("_" + (formal.HasName ? formal.CompileName : "a" + i));
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2168,7 +2175,6 @@ namespace Microsoft.Dafny.Compilers {
         case "new":
         case "package":
         case "private":
-        case "protected":
         case "public":
         case "return":
         case "short":
@@ -2272,13 +2278,17 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename)) {
+      var psi = new ProcessStartInfo("java") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
+      psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
@@ -3214,7 +3224,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (int.TryParse(dtor.Name, out _)) {
         dtorName = $"dtor_{dtor.Name}()";
       } else {
-        dtorName = FormalName(dtor, formalNonGhostIndex);
+        dtorName = FieldName(dtor, formalNonGhostIndex);
       }
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
@@ -3989,9 +3999,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock("public static void __Main()");
+      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends Character>> {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
