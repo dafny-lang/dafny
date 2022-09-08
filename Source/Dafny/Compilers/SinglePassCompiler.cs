@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr);
+    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
-      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
+      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
       /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
@@ -343,6 +343,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string StmtTerminator { get => ";"; }
     protected virtual string True { get => "true"; }
     protected virtual string False { get => "false"; }
+    protected virtual string Conj { get => "&&"; }
     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
@@ -1074,8 +1075,9 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
     protected ConcreteSyntaxTree CreateIIFE_ExprBody(string bvName, Type bvType, IToken bvTok, Expression rhs,
       bool inLetExprBody, Type bodyType, IToken bodyTok, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var innerScope = wStmts.Fork();
       CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, ref wStmts, out var wrRhs, out var wrBody);
-      TrExpr(rhs, wrRhs, inLetExprBody, wStmts);
+      TrExpr(rhs, wrRhs, inLetExprBody, innerScope);
       return wrBody;
     }
 
@@ -1410,7 +1412,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         if (createBody) {
           setterWriter = block;
           return block;
@@ -1530,7 +1532,7 @@ namespace Microsoft.Dafny.Compilers {
               foreach (MemberDecl member in c.Members) {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
-                  if (!IsPermittedAsMain(mainMethod, out string reason)) {
+                  if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
                     ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
@@ -1570,7 +1572,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
@@ -1611,7 +1613,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
@@ -1624,11 +1626,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static bool IsPermittedAsMain(Method m, out String reason) {
+    public static bool IsPermittedAsMain(Program program, Method m, out String reason) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
       //    The method takes no non-ghost parameters and no type parameters
+      //      except at most one array of type "array<string>"
       //    The enclosing type does not take any type parameters
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // In addition, either:
@@ -1670,8 +1673,22 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (!m.Ins.TrueForAll(f => f.IsGhost)) {
-        reason = "the method has non-ghost parameters";
-        return false;
+        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
+        if (nonGhostFormals.Count > 1) {
+          reason = "the method has two or more non-ghost parameters";
+          return false;
+        }
+        var typeOfUniqueFormal = nonGhostFormals[0].Type.NormalizeExpandKeepConstraints();
+        if (typeOfUniqueFormal.AsSeqType is not { } seqType ||
+            seqType.Arg.AsSeqType is not { } subSeqType ||
+            !subSeqType.Arg.IsCharType) {
+          reason = "the method's non-ghost argument type should be an seq<string>, got " + typeOfUniqueFormal;
+          return false;
+        }
+      } else {
+        // Need to manually insert the args.
+        var argsType = new SeqType(new SeqType(new CharType()));
+        m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";
@@ -1736,10 +1753,9 @@ namespace Microsoft.Dafny.Compilers {
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
-      if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
+      if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        foreach (var memberx in inheritedMembers) {
-          var member = (memberx as Function)?.ByMethodDecl ?? memberx;
+        foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -1768,7 +1784,7 @@ namespace Microsoft.Dafny.Compilers {
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet, true);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, true, member, out wSet, true);
             {
               var sw = EmitReturnExpr(wGet);
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
@@ -1876,7 +1892,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (c is TraitDecl) {
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
             var rhs = c is TraitDecl ? null : PlaceboValue(f.Type, errorWr, f.tok, true);
@@ -1982,7 +1998,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         ConcreteSyntaxTree wSet;
-        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, false, member, out wSet, false);
+        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, member, out wSet, false);
         Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
       } else if (member is Function) {
         var fn = ((Function)member).Original;
@@ -2194,9 +2210,8 @@ namespace Microsoft.Dafny.Compilers {
       return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
     }
 
-    protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
+    protected int WriteRuntimeTypeDescriptorsFormals(List<TypeArgumentInstantiation> typeParams,
       ConcreteSyntaxTree wr, ref string prefix, Func<TypeParameter, string> formatter) {
-      Contract.Requires(member != null);
       Contract.Requires(typeParams != null);
       Contract.Requires(prefix != null);
       Contract.Requires(wr != null);
@@ -2359,6 +2374,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public const string STATIC_ARGS_NAME = "args";
+
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
@@ -2395,7 +2412,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
-        w = CreateStaticMain(cw);
+        w = CreateStaticMain(cw, STATIC_ARGS_NAME);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
@@ -2427,6 +2444,7 @@ namespace Microsoft.Dafny.Compilers {
           sep = ", ";
         }
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
+        w.Write(sep + STATIC_ARGS_NAME);
         w.Write(")");
         EndStmt(w);
       }
@@ -2821,19 +2839,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrStmtNonempty(Statement stmt, ConcreteSyntaxTree wr) {
+    void TrStmtNonempty(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
-      TrStmt(stmt, wr);
+      TrStmt(stmt, wr, wStmts);
       if (stmt.IsGhost) {
         TrStmtList(new List<Statement>(), EmitBlock(wr));
-
       }
     }
 
-    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
+    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
+
+      wStmts ??= wr.Fork();
 
       if (stmt.IsGhost) {
         return;
@@ -2896,7 +2915,6 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
 
-          var wStmts = wr.Fork();
           var wStmtsPre = wStmts.Fork();
           var lvalues = new List<ILvalue>();
           foreach (Expression lhs in lhss) {
@@ -2910,7 +2928,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
+        Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
@@ -2918,7 +2936,6 @@ namespace Microsoft.Dafny.Compilers {
         } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
           TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
         } else {
-          var wStmts = wr.Fork();
           var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
           wStmts = wr.Fork();
           var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, stmt.Tok);
@@ -2956,7 +2973,6 @@ namespace Microsoft.Dafny.Compilers {
         var s = (ExpectStmt)stmt;
         // TODO there's potential here to use target-language specific features such as exceptions
         // to make it more target-language idiomatic and improve performance
-        var wStmts = wr.Fork();
         ConcreteSyntaxTree guardWriter;
         ConcreteSyntaxTree bodyWriter = EmitIf(out guardWriter, false, wr);
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
@@ -2979,16 +2995,22 @@ namespace Microsoft.Dafny.Compilers {
             Error(s.Tok, "nondeterministic if statement forbidden by /definiteAssignment:3 option", wr);
           }
           // we can compile the branch of our choice
+          ConcreteSyntaxTree guardWriter;
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            wr = wr.NewBlock("if (!false) ");
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var thenWriter = EmitIf(out guardWriter, false, wr);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
-            wr.WriteLine("if (!false) { }");
+            thenWriter = EmitIf(out guardWriter, false, thenWriter);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
+            TrStmtList(new List<Statement>(), thenWriter);
           } else {
             // let's compile the "then" branch
-            wr = wr.NewBlock("if (true) ");
+            wr = EmitIf(out guardWriter, false, wr);
+            guardWriter.Write(True);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -2999,7 +3021,6 @@ namespace Microsoft.Dafny.Compilers {
           }
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
-          var wStmts = wr.Fork();
           var thenWriter = EmitIf(out guardWriter, s.Els != null || coverageForElse, wr);
           TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, guardWriter, false, wStmts);
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
@@ -3018,7 +3039,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
           if (s.Els != null) {
-            TrStmtNonempty(s.Els, wr);
+            TrStmtNonempty(s.Els, wr, wStmts);
           }
         }
 
@@ -3029,7 +3050,6 @@ namespace Microsoft.Dafny.Compilers {
         }
         foreach (var alternative in s.Alternatives) {
           ConcreteSyntaxTree guardWriter;
-          var wStmts = wr.Fork();
           var thn = EmitIf(out guardWriter, true, wr);
           TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, guardWriter, false, wStmts);
           if (alternative.IsBindingGuard) {
@@ -3038,7 +3058,7 @@ namespace Microsoft.Dafny.Compilers {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, BlockStyle.Brace);
+        var wElse = EmitBlock(wr);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -3055,34 +3075,31 @@ namespace Microsoft.Dafny.Compilers {
           // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
-          guardWriter.Write("true");
+          guardWriter.Write(True);
           EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var wStmts = wr.Fork();
           var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
           TrExpr(s.Guard, guardWriter, false, wStmts);
         }
 
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
+      } else if (stmt is AlternativeLoopStmt loopStmt) {
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
+          Error(loopStmt.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
         }
-        if (s.Alternatives.Count != 0) {
+        if (loopStmt.Alternatives.Count != 0) {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
-          whileGuardWriter.Write("true");
-          w = EmitContinueLabel(s.Labels, w);
-          foreach (var alternative in s.Alternatives) {
+          whileGuardWriter.Write(True);
+          w = EmitContinueLabel(loopStmt.Labels, w);
+          foreach (var alternative in loopStmt.Alternatives) {
             ConcreteSyntaxTree guardWriter;
-            var wStmts = wr.Fork();
             var thn = EmitIf(out guardWriter, true, w);
             TrExpr(alternative.Guard, guardWriter, false, wStmts);
             Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
-          var wElse = w.NewBlock("");
+          var wElse = EmitBlock(w);
           {
             EmitBreak(null, wElse);
           }
@@ -3100,7 +3117,6 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
-        var wStmts = wr.Fork();
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         TrExpr(s.Start, startExprWriter, false, wStmts);
 
@@ -3392,10 +3408,9 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree guardWriter = new ConcreteSyntaxTree();
       var wStmts = guardWriter.Fork();
       wr = EmitIf(out guardWriter, false, wr);
-      foreach (var bv in bvs) {
-        var bvConstraints = Resolver.GetImpliedTypeConstraint(bv, bv.Type);
+      foreach (var bvConstraints in bvs.Select(bv => Resolver.GetImpliedTypeConstraint(bv, bv.Type))) {
         TrParenExpr(bvConstraints, guardWriter, false, wStmts);
-        guardWriter.Write(" && ");
+        guardWriter.Write($" {Conj} ");
       }
       TrParenExpr(range, guardWriter, false, wStmts);
 
@@ -3698,7 +3713,7 @@ namespace Microsoft.Dafny.Compilers {
         var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
         wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
         if (needIterLimit) {
-          var varName = string.Format("{0}_{1}", iterLimit, i);
+          var varName = $"{iterLimit}_{i}";
           ConcreteSyntaxTree isZeroWriter;
           var thn = EmitIf(out isZeroWriter, false, wr);
           EmitIsZero(varName, isZeroWriter);
@@ -4695,7 +4710,7 @@ namespace Microsoft.Dafny.Compilers {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-              var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
+              var rhsName = $"_pat_let{GetUniqueAstNumber(e)}_{i}";
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, ref wStmts);
               w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
             }

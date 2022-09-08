@@ -1,3 +1,6 @@
+OpaqueTypeWithMembers.dfy(26,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+OpaqueTypeWithMembers.dfy(64,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+OpaqueTypeWithMembers.dfy(94,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 OpaqueTypeWithMembers.dfy(83,36): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(84,51): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(87,9): Error: index out of range

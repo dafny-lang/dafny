@@ -58,6 +58,7 @@ namespace Microsoft.Dafny.Compilers {
     private static List<Import> StandardImports =
       new List<Import> {
         new Import { Name = "_dafny", Path = "dafny" },
+        new Import { Name = "os", Path = "os" },
       };
     private static string DummyTypeName = "Dummy__";
 
@@ -118,7 +119,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine("{0}.{1}()", companion, idName);
+      wBody.WriteLine("{0}.{1}({2}.FromMainArguments(os.Args))", companion, idName, GetHelperModuleName());
       Coverage.EmitTearDown(wBody);
     }
 
@@ -130,9 +131,9 @@ namespace Microsoft.Dafny.Compilers {
       return body;
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
-      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
+      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Seq)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -196,7 +197,11 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
       if (!import.SuppressDummy) {
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
+        if (id == "os") {
+          importDummyWriter.WriteLine("var _ = os.Args");
+        } else {
+          importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
+        }
       }
     }
 
@@ -1035,8 +1040,8 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, ClassName, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
+      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, member, ClassName, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
         // FIXME: This should probably be done in Compiler.DeclareField().
@@ -1111,7 +1116,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write("{0}(", name);
       var prefix = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
       if (customReceiver) {
         wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok, member.EnclosingClass), wr, tok));
       }
@@ -1316,14 +1321,14 @@ namespace Microsoft.Dafny.Compilers {
       return CreateFunction(name, new List<TypeArgumentInstantiation>(), new List<Formal>(), resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance, false);
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName,
+    protected ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, string ownerName,
       out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance) {
 
-      var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
+      var getterWriter = CreateGetter(name, resultType, tok, false, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
       var valueParam = new Formal(tok, "value", resultType, true, false, null);
       setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() { valueParam }, new List<Formal>(), null,
-        new List<Formal>() { valueParam }, new List<Formal>(), null, tok, isStatic, createBody, ownerName, member,
+        new List<Formal>() { valueParam }, new List<Formal>(), null, tok, false, createBody, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
       return getterWriter;
     }
@@ -3563,9 +3568,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      string verb;
+      List<string> verb = new();
       if (run) {
-        verb = "run";
+        verb.Add("run");
       } else {
         string output;
         var outputToFile = !DafnyOptions.O.RunAfterCompile;
@@ -3600,17 +3605,25 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        verb = string.Format("build -o \"{0}\"", output);
+        verb.Add("build");
+        verb.Add("-o");
+        verb.Add(output);
       }
 
-      var args = string.Format("{0} \"{1}\"", verb, targetFilename);
-      var psi = new ProcessStartInfo("go", args) {
+      var psi = new ProcessStartInfo("go") {
         CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,
         RedirectStandardInput = false,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
+      foreach (var verbArg in verb) {
+        psi.ArgumentList.Add(verbArg);
+      }
+      psi.ArgumentList.Add(targetFilename);
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.

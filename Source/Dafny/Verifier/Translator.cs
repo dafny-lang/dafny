@@ -1535,9 +1535,9 @@ namespace Microsoft.Dafny {
     static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope);
+      return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
-    static bool IsOpaqueFunction(Function f) {
+    static bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
       return Attributes.Contains(f.Attributes, "opaque");
     }
@@ -1968,7 +1968,7 @@ namespace Microsoft.Dafny {
         bool dontCare0 = false, dontCare1 = false;
         var dontCareHeapAt = new HashSet<Label>();
         foreach (var e in f.Decreases.Expressions) {
-          FreeVariablesUtil.ComputeFreeVariables(e, FVs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref usesThis);
+          FreeVariablesUtil.ComputeFreeVariables(e, FVs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref usesThis, false);
         }
 
         var allFormals = new List<Formal>();
@@ -6575,7 +6575,9 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
-            sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            if (!IsOpaque(cf)) {
+              sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+            }
           }
           sink.AddTopLevelDeclaration(ff);
 
@@ -9131,7 +9133,7 @@ namespace Microsoft.Dafny {
             bool usesHeap = false, usesOldHeap = false;
             var FVsHeapAt = new HashSet<Label>();
             Type usesThis = null;
-            FreeVariablesUtil.ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
+            FreeVariablesUtil.ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
             var FTVs = new HashSet<TypeParameter>();
             foreach (var bv in e.BoundVars) {
               FVs.Remove(bv);
@@ -10568,7 +10570,7 @@ namespace Microsoft.Dafny {
       bool usesHeap = false, usesOldHeap = false;
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
-      FreeVariablesUtil.ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
+      FreeVariablesUtil.ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
       return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
     }
 

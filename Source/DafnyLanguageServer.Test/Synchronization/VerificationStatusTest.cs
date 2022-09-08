@@ -98,8 +98,8 @@ function MultiplyByPlus(x: nat, y: nat): nat {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
       var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      third = DateTime.Now;
       Assert.AreEqual(0, status2.NamedVerifiables.Count);
+      third = DateTime.Now;
     } catch (OperationCanceledException) {
       Console.WriteLine($"first: {first}, second: {second}, third: {third}");
       Console.WriteLine(verificationStatusReceiver.History.Stringify());
@@ -370,8 +370,8 @@ method Bar() { assert true; }";
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = await Documents.GetLastDocumentAsync(documentId);
-    var symbols = lastDocument!.ImplementationIdToView!.Select(id => id.Key.NamedVerificationTask).ToHashSet();
+    var lastDocument = (DocumentAfterTranslation)(await Documents.GetLastDocumentAsync(documentId));
+    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

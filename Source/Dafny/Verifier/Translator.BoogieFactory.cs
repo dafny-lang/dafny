@@ -643,9 +643,11 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       Bpl.Expr len0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
       Bpl.Expr len1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-      return Bpl.Expr.And(
+      var result = Bpl.Expr.And(
         Bpl.Expr.Lt(len0, len1),
         FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
+      result.tok = tok;
+      return result;
     }
 
     Bpl.Expr ArrayLength(Bpl.IToken tok, Bpl.Expr arr, int totalDims, int dim) {
