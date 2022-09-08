@@ -1,4 +1,4 @@
-include "CSharpDafnyASTModel.dfy"
+    include "CSharpDafnyASTModel.dfy"
 include "CSharpInterop.dfy"
 include "CSharpDafnyInterop.dfy"
 include "CSharpDafnyASTInterop.dfy"
@@ -95,58 +95,58 @@ module CompilerRewriter {
       import Shallow
 
       predicate MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool)
-      // This predicate gives us the conditions for which, if we deeply apply `f` to all
-      // the children of an expression, then the resulting expression satisfies the pre
-      // of `f` (i.e., we can call `f` on it).
-      //
-      // Given `e`, `e'`, if:
-      // - `e` and `e'` have the same constructor
-      // - `e` satisfies the pre of `f`
-      // - all the children of `e'` deeply satisfy the post of `f`
-      // Then:
-      // - `e'` satisfies the pre of `f`
+        // This predicate gives us the conditions for which, if we deeply apply `f` to all
+        // the children of an expression, then the resulting expression satisfies the pre
+        // of `f` (i.e., we can call `f` on it).
+        //
+        // Given `e`, `e'`, if:
+        // - `e` and `e'` have the same constructor
+        // - `e` satisfies the pre of `f`
+        // - all the children of `e'` deeply satisfy the post of `f`
+        // Then:
+        // - `e'` satisfies the pre of `f`
       {
         forall e, e' ::
-           && Exprs.ConstructorsMatch(e, e')
-           && f.requires(e)
-           && Deep.AllChildren_Expr(e', post)
-           ==> f.requires(e')
+        && Exprs.ConstructorsMatch(e, e')
+        && f.requires(e)
+        && Deep.AllChildren_Expr(e', post)
+        ==> f.requires(e')
       }
 
       predicate TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool)
-      // This predicate gives us the conditions for which, if we deeply apply `f` to an
-      // expression, the resulting expression satisfies the postcondition we give for `f`.
-      //
-      // Given `e`, if:
-      // - all the children of `e` deeply satisfy the post of `f`
-      // - `e` satisfies the pre of `f`
-      // Then:
-      // - `f(e)` deeply satisfies the post of `f`
+        // This predicate gives us the conditions for which, if we deeply apply `f` to an
+        // expression, the resulting expression satisfies the postcondition we give for `f`.
+        //
+        // Given `e`, if:
+        // - all the children of `e` deeply satisfy the post of `f`
+        // - `e` satisfies the pre of `f`
+        // Then:
+        // - `f(e)` deeply satisfies the post of `f`
       {
         forall e: Expr | Deep.AllChildren_Expr(e, post) && f.requires(e) ::
-          Deep.All_Expr(f(e), post)
+                                                           Deep.All_Expr(f(e), post)
       }
 
       predicate TransformerShallowPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool)
-      // `f` relates its input and its output with `rel`.
+        // `f` relates its input and its output with `rel`.
       {
         forall e | f.requires(e) :: rel(e, f(e))
       }
 
       predicate TransformerDeepPreservesRel(f: Expr --> Expr, rel: (Expr, Expr) -> bool)
-      // This predicate is quite general, but is to be used in the following setting:
-      // if we apply `f` on all the children of `e`, leading to an expression `e'`, then we
-      // can relate `e` and `f(e')` with `rel`.
+        // This predicate is quite general, but is to be used in the following setting:
+        // if we apply `f` on all the children of `e`, leading to an expression `e'`, then we
+        // can relate `e` and `f(e')` with `rel`.
       {
         forall e, e' ::
-           && Exprs.ConstructorsMatch(e, e')
-           && f.requires(e')
-           && All_Rel_Forall(rel, e.Children(), e'.Children())
-           ==> rel(e, f(e'))
+        && Exprs.ConstructorsMatch(e, e')
+        && f.requires(e')
+        && All_Rel_Forall(rel, e.Children(), e'.Children())
+        ==> rel(e, f(e'))
       }
 
       predicate IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool, rel: (Expr,Expr) -> bool)
-      // Predicate for ``BottomUpTransformer``
+        // Predicate for ``BottomUpTransformer``
       {
         && TransformerMatchesPrePost(f, post)
         && MapChildrenPreservesPre(f, post)
@@ -172,13 +172,13 @@ module CompilerRewriter {
 
       // FIXME(CPC): Move to equivs (use a datatype to make this a member function)
       predicate RelCanBeMapLifted(rel: (Expr, Expr) -> bool)
-      // In many situations, the binary relation between the input and the output is transitive
-      // and can be lifted through the map function.
+        // In many situations, the binary relation between the input and the output is transitive
+        // and can be lifted through the map function.
       {
         forall e, e' ::
-           && Exprs.ConstructorsMatch(e, e')
-           && All_Rel_Forall(rel, e.Children(), e'.Children())
-           ==> rel(e, e')
+        && Exprs.ConstructorsMatch(e, e')
+        && All_Rel_Forall(rel, e.Children(), e'.Children())
+        ==> rel(e, e')
       }
 
       predicate RelIsTransitive<T(!new)>(rel: (T, T) -> bool) {
@@ -202,7 +202,7 @@ module CompilerRewriter {
         ensures Deep.AllChildren_Expr(e', tr.post)
         ensures Exprs.ConstructorsMatch(e, e')
         ensures All_Rel_Forall(tr.rel, e.Children(), e'.Children())
-      // Apply a transformer bottom-up on the children of an expression.
+        // Apply a transformer bottom-up on the children of an expression.
       {
         // Not using datatype updates below to ensure that we get a warning if a
         // type gets new arguments
@@ -248,8 +248,8 @@ module CompilerRewriter {
 
       function method Map_Expr_Transformer'(tr: BottomUpTransformer) :
         (tr': Transformer_<Expr,Expr>)
-      // We can write aggregated statements only in lemmas.
-      // This forced me to cut this definition into pieces...
+        // We can write aggregated statements only in lemmas.
+        // This forced me to cut this definition into pieces...
       {
         TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
            e' => Deep.All_Expr(e', tr.post),
@@ -286,8 +286,8 @@ module CompilerRewriter {
 
       function method Map_Expr_Transformer(tr: BottomUpTransformer) :
         (tr': ExprTransformer)
-      // Given a bottom-up transformer `tr`, return a transformer which applies `tr` in
-      // a bottom-up manner.
+        // Given a bottom-up transformer `tr`, return a transformer which applies `tr` in
+        // a bottom-up manner.
       {
         var tr': Transformer_<Expr,Expr> := Map_Expr_Transformer'(tr);
         Map_Expr_Transformer'_Lem(tr);
@@ -299,7 +299,7 @@ module CompilerRewriter {
         requires Deep.All_Method(m, tr.f.requires)
         ensures Deep.All_Method(m', tr.post)
         ensures tr.rel(m.methodBody, m'.methodBody)
-      // Apply a transformer to a method, in a bottom-up manner.
+        // Apply a transformer to a method, in a bottom-up manner.
       {
         Shallow.Map_Method(m, Map_Expr_Transformer(tr))
       }
@@ -309,7 +309,7 @@ module CompilerRewriter {
         requires Deep.All_Program(p, tr.f.requires)
         ensures Deep.All_Program(p', tr.post)
         ensures tr.rel(p.mainMethod.methodBody, p'.mainMethod.methodBody)
-      // Apply a transformer to a program, in a bottom-up manner.
+        // Apply a transformer to a program, in a bottom-up manner.
       {
         Shallow.Map_Program(p, Map_Expr_Transformer(tr))
       }
@@ -348,8 +348,8 @@ module CompilerRewriter {
 
     // TODO: not sure it was worth making this opaque
     predicate {:opaque} GEqCtx(
-      eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context
-    )
+        eq_value: (WV,WV) -> bool, ctx: Context, ctx': Context
+      )
       requires WellFormedContext(ctx)
       requires WellFormedContext(ctx')
     {
@@ -358,7 +358,7 @@ module CompilerRewriter {
     }
 
     predicate GEqState(
-      eq_value: (WV,WV) -> bool, ctx: State, ctx': State)
+        eq_value: (WV,WV) -> bool, ctx: State, ctx': State)
     {
       GEqCtx(eq_value, ctx.locals, ctx'.locals)
     }
@@ -369,10 +369,10 @@ module CompilerRewriter {
     }
 
     predicate GEqInterpResult<T(0)>(
-      eq_ctx: (State,State) -> bool, eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
-    // Interpretation results are equivalent.
-    // "G" stands for "generic".
-    // TODO: be a bit more precise in the error case, especially in case of "out of fuel".
+        eq_ctx: (State,State) -> bool, eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
+      // Interpretation results are equivalent.
+      // "G" stands for "generic".
+      // TODO: be a bit more precise in the error case, especially in case of "out of fuel".
     {
       match (res, res') {
         case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
@@ -389,10 +389,10 @@ module CompilerRewriter {
       : (r: PureInterpResult<WV>)
       requires fn.Closure?
       requires |fn.vars| == |argvs|
-    // Small utility, very similar to ``InterpFunctionCall``, which we use to factorize
-    // the definitions. The opaque attribute is maybe not necessary anymore, but as the
-    // proofs work with it, we might as well keep it (it is easier to remove an opaque
-    // attribute, than to add one and fix the proofs by adding the proper calls to ``reveal``).
+      // Small utility, very similar to ``InterpFunctionCall``, which we use to factorize
+      // the definitions. The opaque attribute is maybe not necessary anymore, but as the
+      // proofs work with it, we might as well keep it (it is easier to remove an opaque
+      // attribute, than to add one and fix the proofs by adding the proper calls to ``reveal``).
     {
       var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
       var Return(val, ctx) :- InterpExpr(fn.body, env, ctx);
@@ -401,26 +401,26 @@ module CompilerRewriter {
 
     predicate EqValue(v: WV, v': WV)
       decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 1
-    // Equivalence between values.
-    //
-    // Two values are equivalent if:
-    // - they are not closures and are equal/have equivalent children values
-    // - they are closures and, when applied to equivalent inputs, they return equivalent outputs
-    //
-    // Rk.: we could write the predicate in a simpler manner by using `==` in case the values are not
-    // closures, but we prepare the terrain for a more general handling of collections.
-    //
-    // Rk.: for now, we assume the termination. This function terminates because the size of the
-    // type of the values decreases, the interesting case being the closures (see ``EqValue_Closure``).
-    // Whenever we find a closure `fn_ty = (ty_0, ..., ty_n) -> ret_ty`, we need to call ``EqValue``
-    // on valid inputs (with types `ty_i < fn_ty`) and on its output (with type `ret_ty < fn_ty`).
-    //
-    // Rk.: I initially wanted to make the definition opaque to prevent context saturation, because
-    // in most situations we don't need to know the content of EqValue.
-    // However it made me run into the following issue:
-    // BUG(https://github.com/dafny-lang/dafny/issues/2260)
-    // As ``EqValue`` appears a lot in foralls, using the `reveal` trick seemed too cumbersome
-    // to be a valid option.
+      // Equivalence between values.
+      //
+      // Two values are equivalent if:
+      // - they are not closures and are equal/have equivalent children values
+      // - they are closures and, when applied to equivalent inputs, they return equivalent outputs
+      //
+      // Rk.: we could write the predicate in a simpler manner by using `==` in case the values are not
+      // closures, but we prepare the terrain for a more general handling of collections.
+      //
+      // Rk.: for now, we assume the termination. This function terminates because the size of the
+      // type of the values decreases, the interesting case being the closures (see ``EqValue_Closure``).
+      // Whenever we find a closure `fn_ty = (ty_0, ..., ty_n) -> ret_ty`, we need to call ``EqValue``
+      // on valid inputs (with types `ty_i < fn_ty`) and on its output (with type `ret_ty < fn_ty`).
+      //
+      // Rk.: I initially wanted to make the definition opaque to prevent context saturation, because
+      // in most situations we don't need to know the content of EqValue.
+      // However it made me run into the following issue:
+      // BUG(https://github.com/dafny-lang/dafny/issues/2260)
+      // As ``EqValue`` appears a lot in foralls, using the `reveal` trick seemed too cumbersome
+      // to be a valid option.
     {
       match (v, v') {
         case (Bool(b), Bool(b')) => b == b'
@@ -468,41 +468,41 @@ module CompilerRewriter {
       requires v.Closure?
       requires v'.Closure?
       decreases ValueTypeHeight(v) + ValueTypeHeight(v'), 0
-    // Equivalence between values: closure case.
-    //
-    // See ``EqValue``.
-    //
-    // Rk.: contrary to ``EqValue``, it seems ok to make ``EqValue_Closure`` opaque.
+      // Equivalence between values: closure case.
+      //
+      // See ``EqValue``.
+      //
+      // Rk.: contrary to ``EqValue``, it seems ok to make ``EqValue_Closure`` opaque.
     {
       var Closure(ctx, vars, body) := v;
       var Closure(ctx', vars', body') := v';
       && |vars| == |vars'|
       && (
-      forall env: Environment, argvs: seq<WV>, argvs': seq<WV> |
-        && |argvs| == |argvs'| == |vars| // no partial applications are allowed in Dafny
-        // We need the argument types to be smaller than the closure types, to prove termination.\
-        // In effect, the arguments types should be given by the closure's input types.
-        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
-        && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
-        && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
-        var res := InterpCallFunctionBody(v, env, argvs);
-        var res' := InterpCallFunctionBody(v', env, argvs');
-        // We can't use naked functions in recursive setting: this forces us to write the expanded
-        // match rather than using an auxiliary function like `EqPureInterpResult`.
-        match (res, res') {
-          case (Success(ov), Success(ov')) =>
-            // We need to assume those assertions to prove termination: the value returned by a closure
-            // has a type which is smaller than the closure type (its type is given by the closure return
-            // type)
-            assume ValueTypeHeight(ov) < ValueTypeHeight(v);
-            assume ValueTypeHeight(ov') < ValueTypeHeight(v');
-            EqValue(ov, ov')
-          case (Failure(_), Failure(_)) =>
-            true
-          case _ =>
-            false
-        }
-      )
+           forall env: Environment, argvs: seq<WV>, argvs': seq<WV> |
+           && |argvs| == |argvs'| == |vars| // no partial applications are allowed in Dafny
+              // We need the argument types to be smaller than the closure types, to prove termination.\
+              // In effect, the arguments types should be given by the closure's input types.
+           && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
+           && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
+           && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
+              var res := InterpCallFunctionBody(v, env, argvs);
+              var res' := InterpCallFunctionBody(v', env, argvs');
+              // We can't use naked functions in recursive setting: this forces us to write the expanded
+              // match rather than using an auxiliary function like `EqPureInterpResult`.
+              match (res, res') {
+                case (Success(ov), Success(ov')) =>
+                  // We need to assume those assertions to prove termination: the value returned by a closure
+                  // has a type which is smaller than the closure type (its type is given by the closure return
+                  // type)
+                  assume ValueTypeHeight(ov) < ValueTypeHeight(v);
+                  assume ValueTypeHeight(ov') < ValueTypeHeight(v');
+                  EqValue(ov, ov')
+                case (Failure(_), Failure(_)) =>
+                  true
+                case _ =>
+                  false
+              }
+         )
     }
 
     predicate EqState(ctx: State, ctx': State)
@@ -518,7 +518,7 @@ module CompilerRewriter {
     }
 
     predicate EqInterpResult<T(0)>(
-      eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
+        eq_value: (T,T) -> bool, res: InterpResult<T>, res': InterpResult<T>)
     {
       GEqInterpResult(Mk_EqState(EqValue), eq_value, res, res')
     }
@@ -528,7 +528,7 @@ module CompilerRewriter {
       requires HasEqValue(v)
       requires HasEqValue(v')
       ensures v == v'
-    // If values are equivalent and have a decidable equality, they are necessarily equal.
+      // If values are equivalent and have a decidable equality, they are necessarily equal.
     {
       reveal EqValue_Closure();
     }
@@ -546,8 +546,8 @@ module CompilerRewriter {
       requires SupportsInterp(e)
       requires EqState(ctx, ctx')
       ensures EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e, env, ctx'))
-    // The proof should be similar to ``EqInterp_Expr_CanBeMapLifted_Lem`` (and actually
-    // simpler), but I'm not sure how to efficiently factorize the two.
+      // The proof should be similar to ``EqInterp_Expr_CanBeMapLifted_Lem`` (and actually
+      // simpler), but I'm not sure how to efficiently factorize the two.
     {
       assume false; // TODO: prove
     }
@@ -624,28 +624,28 @@ module CompilerRewriter {
           var res' := InterpCallFunctionBody(v, env, argvs');
           EqPureInterpResultValue(res, res')
       {
-          var res := InterpCallFunctionBody(v, env, argvs);
-          var res' := InterpCallFunctionBody(v, env, argvs');
+        var res := InterpCallFunctionBody(v, env, argvs);
+        var res' := InterpCallFunctionBody(v, env, argvs');
 
-          assert EqCtx(ctx, ctx) by {
-            // It would be difficult to call a lemma like ``EqState_Refl_Lem`` here, because
-            // of termination issues. However, we have that the values in the closure context
-            // are smaller than the closure value itself, which allows us to recursively call
-            // ``EqValue``.
-            forall x | x in ctx ensures EqValue(ctx[x], ctx[x]) {
-              EqValue_Refl_Lem(ctx[x]);
-            }
-            reveal GEqCtx();
+        assert EqCtx(ctx, ctx) by {
+          // It would be difficult to call a lemma like ``EqState_Refl_Lem`` here, because
+          // of termination issues. However, we have that the values in the closure context
+          // are smaller than the closure value itself, which allows us to recursively call
+          // ``EqValue``.
+          forall x | x in ctx ensures EqValue(ctx[x], ctx[x]) {
+            EqValue_Refl_Lem(ctx[x]);
           }
+          reveal GEqCtx();
+        }
 
-          var ctx1 := BuildCallState(ctx, vars, argvs);
-          var ctx1' := BuildCallState(ctx, vars, argvs');
-          BuildCallState_EqState_Lem(ctx, ctx, vars, argvs, argvs');
-          assert EqState(ctx1, ctx1');
+        var ctx1 := BuildCallState(ctx, vars, argvs);
+        var ctx1' := BuildCallState(ctx, vars, argvs');
+        BuildCallState_EqState_Lem(ctx, ctx, vars, argvs, argvs');
+        assert EqState(ctx1, ctx1');
 
-          reveal InterpCallFunctionBody();
-          EqInterp_Expr_EqState_Lem(body, env, ctx1, ctx1');
-          assert EqPureInterpResultValue(res, res');
+        reveal InterpCallFunctionBody();
+        EqInterp_Expr_EqState_Lem(body, env, ctx1, ctx1');
+        assert EqPureInterpResultValue(res, res');
       }
     }
 
@@ -714,39 +714,39 @@ module CompilerRewriter {
           var res2 := InterpCallFunctionBody(v2, env, argvs2);
           EqPureInterpResultValue(res0, res2)
       {
-          var res0 := InterpCallFunctionBody(v0, env, argvs0);
-          var res2 := InterpCallFunctionBody(v2, env, argvs2);
+        var res0 := InterpCallFunctionBody(v0, env, argvs0);
+        var res2 := InterpCallFunctionBody(v2, env, argvs2);
 
-          // Termination issue: we need to assume that the arguments' types have the
-          // proper height. In practice, if the program is properly type checked, we
-          // have:
-          // - `TypeOf(v0) == TypeOf(v1) == TypeOf(v2)`
-          // - `forall i, TypeOf(argvs0[i]) == TypeOf(argvs2[i])1
-          // so the assumption is trivially true.
-          assume (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs0[i]) < ValueTypeHeight(v1));
+        // Termination issue: we need to assume that the arguments' types have the
+        // proper height. In practice, if the program is properly type checked, we
+        // have:
+        // - `TypeOf(v0) == TypeOf(v1) == TypeOf(v2)`
+        // - `forall i, TypeOf(argvs0[i]) == TypeOf(argvs2[i])1
+        // so the assumption is trivially true.
+        assume (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs0[i]) < ValueTypeHeight(v1));
 
-          forall i | 0 <= i < |vars0| ensures EqValue(argvs0[i], argvs0[i]) {
-            EqValue_Refl_Lem(argvs0[i]);
-          }
+        forall i | 0 <= i < |vars0| ensures EqValue(argvs0[i], argvs0[i]) {
+          EqValue_Refl_Lem(argvs0[i]);
+        }
 
-          var res1 := InterpCallFunctionBody(v1, env, argvs0);
-          if res0.Success? {
-            var ov0 := res0.value;
-            var ov1 := res1.value;
-            var ov2 := res2.value;
+        var res1 := InterpCallFunctionBody(v1, env, argvs0);
+        if res0.Success? {
+          var ov0 := res0.value;
+          var ov1 := res1.value;
+          var ov2 := res2.value;
 
-            // Termination - same as above: if the program is well-typed, this is
-            // trivially true.
-            assume ValueTypeHeight(ov0) < ValueTypeHeight(v0);
+          // Termination - same as above: if the program is well-typed, this is
+          // trivially true.
+          assume ValueTypeHeight(ov0) < ValueTypeHeight(v0);
 
-            EqValue_Trans_Lem(ov0, ov1, ov2);
+          EqValue_Trans_Lem(ov0, ov1, ov2);
 
-            assert EqPureInterpResultValue(res0, res2);
-          }
-          else {
-            assert res1.Failure?;
-            assert res2.Failure?;
-          }
+          assert EqPureInterpResultValue(res0, res2);
+        }
+        else {
+          assert res1.Failure?;
+          assert res2.Failure?;
+        }
       }
     }
 
@@ -776,22 +776,22 @@ module CompilerRewriter {
 
     lemma EqValue_HasEqValue_Eq_Forall_Lem()
       ensures forall v:WV, v':WV | EqValue(v, v') ::
-        && (HasEqValue(v) == HasEqValue(v'))
-        && (HasEqValue(v) ==> v == v')
-    // This is one of the important lemmas for the proofs of equivalence.
-    // The reason is that the interpreter often checks that some values
-    // have a decidable equality (for instance, before inserting a value in
-    // a set). When doing equivalence proofs, for instance to prove that the
-    // same instruction evaluated in equivalent contexts generates equivalent
-    // results, we often want:
-    // - to know that the check succeeds in both cases, or fails in both cases
-    // - to know that if it succeeded, then the valuevs are equal
+                                   && (HasEqValue(v) == HasEqValue(v'))
+                                   && (HasEqValue(v) ==> v == v')
+      // This is one of the important lemmas for the proofs of equivalence.
+      // The reason is that the interpreter often checks that some values
+      // have a decidable equality (for instance, before inserting a value in
+      // a set). When doing equivalence proofs, for instance to prove that the
+      // same instruction evaluated in equivalent contexts generates equivalent
+      // results, we often want:
+      // - to know that the check succeeds in both cases, or fails in both cases
+      // - to know that if it succeeded, then the valuevs are equal
     {
       forall v:WV, v':WV | EqValue(v, v')
         ensures
-        && (HasEqValue(v) == HasEqValue(v'))
-        && (HasEqValue(v) ==> v == v') {
-          EqValue_HasEqValue_Eq_Lem(v, v');
+          && (HasEqValue(v) == HasEqValue(v'))
+          && (HasEqValue(v) ==> v == v') {
+        EqValue_HasEqValue_Eq_Lem(v, v');
       }
     }
 
@@ -914,14 +914,14 @@ module CompilerRewriter {
 
     // TODO: make opaque?
     predicate GEqInterp(eq: Equivs, e: Exprs.T, e': Exprs.T)
-    // This is the important, generic equivalence relation over expressions.
+      // This is the important, generic equivalence relation over expressions.
     {
       SupportsInterp(e) ==>
-      (&& SupportsInterp(e')
-       && forall env, ctx, ctx' | eq.eq_state(ctx, ctx') ::
-         GEqInterpResult(eq.eq_state, eq.eq_value,
-                         InterpExpr(e, env, ctx),
-                         InterpExpr(e', env, ctx')))
+        (&& SupportsInterp(e')
+         && forall env, ctx, ctx' | eq.eq_state(ctx, ctx') ::
+                                    GEqInterpResult(eq.eq_state, eq.eq_value,
+                                                    InterpExpr(e, env, ctx),
+                                                    InterpExpr(e', env, ctx')))
     }
 
     function Mk_EqInterp(eq: Equivs): (Expr, Expr) -> bool {
@@ -930,7 +930,7 @@ module CompilerRewriter {
 
     // TODO: make opaque?
     predicate EqInterp(e: Exprs.T, e': Exprs.T)
-    // The important equivalence relation over expressions.
+      // The important equivalence relation over expressions.
     {
       GEqInterp(EQ(EqValue, Mk_EqState(EqValue)), e, e')
     }
@@ -942,8 +942,8 @@ module CompilerRewriter {
         forall env, ctx, ctx' | EqState(ctx, ctx')
           ensures
             EqInterpResultValue(
-                         InterpExpr(e, env, ctx),
-                         InterpExpr(e, env, ctx'))
+              InterpExpr(e, env, ctx),
+              InterpExpr(e, env, ctx'))
         {
           EqInterp_Expr_EqState_Lem(e, env, ctx, ctx');
         }
@@ -1025,22 +1025,22 @@ module CompilerRewriter {
       requires EqState(ctx, ctx')
       ensures SupportsInterp(e')
       ensures EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx'))
-    // We use this lemma because sometimes quantifiers are are not triggered.
+      // We use this lemma because sometimes quantifiers are are not triggered.
     {}
 
     lemma InterpExprs_GEqInterp_Lem(
-      eq: Equivs, es: seq<Expr>, es': seq<Expr>, env: Environment, ctx: State, ctx': State)
+        eq: Equivs, es: seq<Expr>, es': seq<Expr>, env: Environment, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
       requires All_Rel_Forall(Mk_EqInterp(eq), es, es')
       requires eq.eq_state(ctx, ctx')
       ensures forall e | e in es' :: SupportsInterp(e)
       ensures GEqInterpResultSeq(eq, InterpExprs(es, env, ctx), InterpExprs(es', env, ctx'))
-    // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
-    // sequences in equivalent contexts leads to equivalent results.
-    // This lemma is written generically over the equivalence relations over the states and
-    // values. We don't do this because it seems elegant: we do this as a desperate attempt
-    // to reduce the context size, while we are unable to use the `opaque` attribute on
-    // some definitions (``EqValue`` in particular).
+      // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
+      // sequences in equivalent contexts leads to equivalent results.
+      // This lemma is written generically over the equivalence relations over the states and
+      // values. We don't do this because it seems elegant: we do this as a desperate attempt
+      // to reduce the context size, while we are unable to use the `opaque` attribute on
+      // some definitions (``EqValue`` in particular).
     {
       reveal InterpExprs();
 
@@ -1097,8 +1097,8 @@ module CompilerRewriter {
       requires EqState(ctx, ctx')
       ensures forall e | e in es' :: SupportsInterp(e)
       ensures EqInterpResultSeqValue(InterpExprs(es, env, ctx), InterpExprs(es', env, ctx'))
-    // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
-    // sequences in equivalent contexts leads to equivalent results.
+      // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
+      // sequences in equivalent contexts leads to equivalent results.
     {
       InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', env, ctx, ctx');
     }
@@ -1313,9 +1313,9 @@ module CompilerRewriter {
       requires EqCtx(cv.ctx, cv'.ctx)
       requires EqInterp(cv.body, cv'.body)
       ensures
-          var res := InterpCallFunctionBody(cv, env, argvs);
-          var res' := InterpCallFunctionBody(cv', env, argvs');
-          EqPureInterpResultValue(res, res')
+        var res := InterpCallFunctionBody(cv, env, argvs);
+        var res' := InterpCallFunctionBody(cv', env, argvs');
+        EqPureInterpResultValue(res, res')
     {
       var res := InterpCallFunctionBody(cv, env, argvs);
       var res' := InterpCallFunctionBody(cv', env, argvs');
@@ -1350,7 +1350,7 @@ module CompilerRewriter {
     // I don't understand why I need to use vcs_split_on_every_assert on this one.
     // For some strange reason it takes ~20s to verify with this, and timeouts without.
     lemma {:vcs_split_on_every_assert}
-    MapOfPairs_SeqZip_EqCtx_Lem(vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
+      MapOfPairs_SeqZip_EqCtx_Lem(vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
       requires |argvs| == |argvs'| == |vars|
       requires (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
       ensures
@@ -1496,8 +1496,8 @@ module CompilerRewriter {
 
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
-      e: Interp.Expr, e': Interp.Expr, op: UnaryOp, v: WV, v': WV
-    )
+        e: Interp.Expr, e': Interp.Expr, op: UnaryOp, v: WV, v': WV
+      )
       requires !op.MemberSelect?
       requires EqValue(v, v')
       ensures EqPureInterpResultValue(InterpUnaryOp(e, op, v), InterpUnaryOp(e', op, v'))
@@ -1555,8 +1555,8 @@ module CompilerRewriter {
     // but it is a bit annoying to do...
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
-      e: Interp.Expr, e': Interp.Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
-    )
+        e: Interp.Expr, e': Interp.Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
+      )
       requires !bop.BV? && !bop.Datatypes?
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
@@ -1728,8 +1728,8 @@ module CompilerRewriter {
 
     // TODO: e and e' should be the same actually
     lemma EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
-      e: Interp.Expr, e': Interp.Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV
-    )
+        e: Interp.Expr, e': Interp.Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV
+      )
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
       requires EqValue(v2, v2')
@@ -1752,8 +1752,8 @@ module CompilerRewriter {
     }
 
     lemma EqInterp_Expr_Display_CanBeMapLifted_Lem(
-      e: Interp.Expr, e': Interp.Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>
-    )
+        e: Interp.Expr, e': Interp.Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>
+      )
       requires EqSeqValue(vs, vs')
       ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs'))
     {
@@ -1790,8 +1790,8 @@ module CompilerRewriter {
     }
 
     lemma EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(
-      e: Interp.Expr, e': Interp.Expr, env: Environment, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>
-    )
+        e: Interp.Expr, e': Interp.Expr, env: Environment, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>
+      )
       requires EqValue(f, f')
       requires EqSeqValue(argvs, argvs')
       ensures EqPureInterpResultValue(InterpFunctionCall(e, env, f, argvs),
@@ -1890,9 +1890,9 @@ module CompilerRewriter {
     {
       forall e, e'
         ensures
-           (&& Exprs.ConstructorsMatch(e, e')
-            && All_Rel_Forall(EqInterp, e.Children(), e'.Children()))
-            ==> EqInterp(e, e')
+          (&& Exprs.ConstructorsMatch(e, e')
+           && All_Rel_Forall(EqInterp, e.Children(), e'.Children()))
+          ==> EqInterp(e, e')
       {
         if && Exprs.ConstructorsMatch(e, e')
            && All_Rel_Forall(EqInterp, e.Children(), e'.Children()) {
@@ -1901,7 +1901,7 @@ module CompilerRewriter {
             assert SupportsInterp(e');
 
             forall env, ctx, ctx' | EqState(ctx, ctx') ensures
-              EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx')) {
+                EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx')) {
               reveal EqInterp_CanBeMapLifted_Pre();
               reveal EqInterp_CanBeMapLifted_Post();
               EqInterp_Expr_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
@@ -2033,22 +2033,22 @@ module CompilerRewriter {
     }
 
     lemma FlipNegatedBinop_Binop_Rel_Lem(
-      e: Interp.Expr, e': Interp.Expr, op: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
-    )
+        e: Interp.Expr, e': Interp.Expr, op: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV
+      )
       requires IsNegatedBinop(op)
       requires EagerOpSupportsInterp(Exprs.BinaryOp(op))
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
       ensures (
-        match (InterpBinaryOp(e, op, v0, v1), InterpBinaryOp(e', FlipNegatedBinop(op), v0', v1'))
-          case (Success(b), Success(b')) =>
-            && b.Bool?
-            && b'.Bool?
-            && b.b == ! b'.b
-          case (Failure(_), Failure(_)) =>
-            true
-          case _ =>
-            false)
+                match (InterpBinaryOp(e, op, v0, v1), InterpBinaryOp(e', FlipNegatedBinop(op), v0', v1'))
+                case (Success(b), Success(b')) =>
+                  && b.Bool?
+                  && b'.Bool?
+                  && b.b == ! b'.b
+                case (Failure(_), Failure(_)) =>
+                  true
+                case _ =>
+                  false)
     {
       assume TODO();
       reveal InterpBinaryOp();
@@ -2059,10 +2059,10 @@ module CompilerRewriter {
     lemma FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
       requires IsNegatedBinop(op)
       ensures (
-        var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
-        var e' := FlipNegatedBinop_Expr(op, args);
-        Tr_Expr_Rel(e, e')
-      )
+                var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
+                var e' := FlipNegatedBinop_Expr(op, args);
+                Tr_Expr_Rel(e, e')
+              )
     {
       reveal InterpExpr();
       reveal InterpFunctionCall();
@@ -2193,9 +2193,9 @@ module CompilerRewriter {
     lemma Tr_Pre_Expr_IsTrue(e: Expr)
       ensures Deep.All_Expr(e, Tr_Expr.f.requires)
       decreases e, 1
-    // It is not obvious that `Deep.All_Expr(e, _ => true)` is true...
-    // Also, because the functions encoding is not very precise, we can't
-    // use the lemma ``Deep.All_Expr_true``.
+      // It is not obvious that `Deep.All_Expr(e, _ => true)` is true...
+      // Also, because the functions encoding is not very precise, we can't
+      // use the lemma ``Deep.All_Expr_true``.
     {
       Tr_Pre_ChildrenExpr_IsTrue(e);
     }
