@@ -142,16 +142,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      var w = wr.NewBlock("int main()");
+      var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}();", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
-      return wr.NewBlock("int main()");
+      return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -1146,7 +1146,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private string DeclareFormalString(string prefix, string name, Type type, IToken tok, bool isInParam) {
       if (isInParam) {
-        return String.Format("{0}{2} {1}", prefix, name, TypeName(type, null, tok));
+        var result = String.Format("{0}{2} {1}", prefix, name, TypeName(type, null, tok));
+        if (name == "__noArgsParameter") {
+          result += " __attribute__((unused))";
+        }
+
+        return result;
       } else {
         return null;
       }
@@ -2500,8 +2505,12 @@ namespace Microsoft.Dafny.Compilers {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true,
+        RedirectStandardError = true
       };
+      foreach (var arg in DafnyOptions.O.MainArgs) {
+        psi.ArgumentList.Add(arg);
+      }
+
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
         outputWriter.WriteLine(proc.StandardOutput.ReadLine());

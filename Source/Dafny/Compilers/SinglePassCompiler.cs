@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr);
+    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -1532,7 +1532,7 @@ namespace Microsoft.Dafny.Compilers {
               foreach (MemberDecl member in c.Members) {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
-                  if (!IsPermittedAsMain(mainMethod, out string reason)) {
+                  if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
                     ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
@@ -1572,7 +1572,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
@@ -1613,7 +1613,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
@@ -1626,11 +1626,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static bool IsPermittedAsMain(Method m, out String reason) {
+    public static bool IsPermittedAsMain(Program program, Method m, out String reason) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
       //    The method takes no non-ghost parameters and no type parameters
+      //      except at most one array of type "array<string>"
       //    The enclosing type does not take any type parameters
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // In addition, either:
@@ -1672,8 +1673,22 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (!m.Ins.TrueForAll(f => f.IsGhost)) {
-        reason = "the method has non-ghost parameters";
-        return false;
+        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
+        if (nonGhostFormals.Count > 1) {
+          reason = "the method has two or more non-ghost parameters";
+          return false;
+        }
+        var typeOfUniqueFormal = nonGhostFormals[0].Type.NormalizeExpandKeepConstraints();
+        if (typeOfUniqueFormal.AsSeqType is not { } seqType ||
+            seqType.Arg.AsSeqType is not { } subSeqType ||
+            !subSeqType.Arg.IsCharType) {
+          reason = "the method's non-ghost argument type should be an seq<string>, got " + typeOfUniqueFormal;
+          return false;
+        }
+      } else {
+        // Need to manually insert the args.
+        var argsType = new SeqType(new SeqType(new CharType()));
+        m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";
@@ -2196,9 +2211,8 @@ namespace Microsoft.Dafny.Compilers {
       return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
     }
 
-    protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
+    protected int WriteRuntimeTypeDescriptorsFormals(List<TypeArgumentInstantiation> typeParams,
       ConcreteSyntaxTree wr, ref string prefix, Func<TypeParameter, string> formatter) {
-      Contract.Requires(member != null);
       Contract.Requires(typeParams != null);
       Contract.Requires(prefix != null);
       Contract.Requires(wr != null);
@@ -2361,6 +2375,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public const string STATIC_ARGS_NAME = "args";
+
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
@@ -2397,7 +2413,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
-        w = CreateStaticMain(cw);
+        w = CreateStaticMain(cw, STATIC_ARGS_NAME);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
@@ -2429,6 +2445,7 @@ namespace Microsoft.Dafny.Compilers {
           sep = ", ";
         }
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
+        w.Write(sep + STATIC_ARGS_NAME);
         w.Write(")");
         EndStmt(w);
       }
@@ -2979,16 +2996,22 @@ namespace Microsoft.Dafny.Compilers {
             Error(s.Tok, "nondeterministic if statement forbidden by /definiteAssignment:3 option", wr);
           }
           // we can compile the branch of our choice
+          ConcreteSyntaxTree guardWriter;
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            wr = wr.NewBlock("if (!false) ");
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var thenWriter = EmitIf(out guardWriter, false, wr);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
-            wr.WriteLine("if (!false) { }");
+            thenWriter = EmitIf(out guardWriter, false, thenWriter);
+            EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
+            TrStmtList(new List<Statement>(), thenWriter);
           } else {
             // let's compile the "then" branch
-            wr = wr.NewBlock("if (true) ");
+            wr = EmitIf(out guardWriter, false, wr);
+            guardWriter.Write(True);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
