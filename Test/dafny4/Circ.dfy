@@ -16,7 +16,7 @@ function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
 greatest lemma BlinkZipProperty()
   ensures zip(zeros(), ones()) == blink();
 {
-    BlinkZipProperty();
+  BlinkZipProperty();
 }
 
 // ----- Thue-Morse sequence -----

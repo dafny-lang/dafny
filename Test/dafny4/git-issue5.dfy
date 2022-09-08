@@ -9,18 +9,18 @@ predicate isEven(x:int)
 function f(x:int, y:int): (z:int)
   requires x>0 && y > 0
   ensures z >= 10
-	ensures f(x,y) == z
+  ensures f(x,y) == z
   ensures isEven(z)
 {
-	  2*(x+y) + 10
+  2*(x+y) + 10
 }
 
 twostate function P2(x: int) : (z: int)
   ensures z == x - 1
-	ensures P2(x) == z
-	ensures P2(x) == x - 1
+  ensures P2(x) == z
+  ensures P2(x) == x - 1
 {
-   x - 1
+  x - 1
 }
 
 module Interface
@@ -46,16 +46,16 @@ function foo(x:int, y:int) : (v: (int, int))
 
 // bar will not be marked as recursive
 function bar(x:int, y:int) : int
- ensures bar(x, y) == 10
+  ensures bar(x, y) == 10
 {
-   10
+  10
 }
 
 // bar1 will be marked as recursive
 function bar1(x:int, y:int) : int
- ensures bar1(x, y+0) == 10
+  ensures bar1(x, y+0) == 10
 {
-   10
+  10
 }
 
 // bar2 will be marked as recursive

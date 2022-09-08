@@ -13,8 +13,8 @@ abstract module Base { }
 module Blah refines Base {
   lemma A() {
     calc {
-	    forall b :: b;
-   	}
+      forall b :: b;
+    }
   }
 }
 

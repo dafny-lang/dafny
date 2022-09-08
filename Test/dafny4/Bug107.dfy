@@ -4,7 +4,7 @@
 method Main()
 {
   var f := Inc;
-	print(f(4));
+  print(f(4));
 }
 
 function method Inc(x: int): int

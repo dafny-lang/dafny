@@ -6,9 +6,9 @@ datatype foo = Foo
 
 method test_case() returns (o:obj)
 {
-    if true {
-        o:= o.(fooBar := o.fooBar[Foo := 3]);
-    }
+  if true {
+    o:= o.(fooBar := o.fooBar[Foo := 3]);
+  }
 }
 
 method Main() {

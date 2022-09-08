@@ -214,7 +214,7 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
     assert fs == Cons(s.head, Filter(s.tail, P));  // reminder of where we are
     calc {
       true;
-    //==  { FS_Pong(s.tail, h, x, k-1); }
+      //==  { FS_Pong(s.tail, h, x, k-1); }
       In(x, Filter(s.tail, P));
     ==> { assert fs.head != x;  Lemma_InTail(x, fs); }
       In(x, fs);

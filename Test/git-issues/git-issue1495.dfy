@@ -5,7 +5,7 @@ import opened Wrappers
 
 datatype Bar = Bar(i: string)
 function method ParseBar(s: string): Result<Bar, string> {
-   Success(Bar(s))
+  Success(Bar(s))
 }
 
 class Foo {
@@ -14,8 +14,8 @@ class Foo {
   constructor (barLike: string)
     requires ParseBar(barLike).Success?
   {
-     // Before (this) was assigned to a temporary variable.
-     (this).bar :- assert ParseBar(barLike);
+    // Before (this) was assigned to a temporary variable.
+    (this).bar :- assert ParseBar(barLike);
   }
 }
 
@@ -49,12 +49,12 @@ class Foo2 {
     reads this
   {
     (if isCurrentWrapperLeft then
-      currentWrapper == leftWrapper
-    else currentWrapper == rightWrapper) &&
+       currentWrapper == leftWrapper
+     else currentWrapper == rightWrapper) &&
     Repr == {this, leftWrapper, rightWrapper}
   }
 
-  method getNextValue() returns (s: Result<string, string>) 
+  method getNextValue() returns (s: Result<string, string>)
     requires Valid()
     ensures Valid()
     ensures if old(isCurrentWrapperLeft) then currentWrapper == rightWrapper else currentWrapper == leftWrapper

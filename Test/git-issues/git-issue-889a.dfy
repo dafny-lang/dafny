@@ -141,9 +141,9 @@ method NullRegression(obj: object?) {
   }
   assert u != 1;
   u := match obj {
-    case null => 3
-    case null => 4  // warning: this branch is redundant
-    case _ => 5
-  };
+         case null => 3
+         case null => 4  // warning: this branch is redundant
+         case _ => 5
+       };
   assert u == 3 || u == 5;
 }

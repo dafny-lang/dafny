@@ -11,9 +11,9 @@ trait Foo<C, D> {
 type FooWithResult<A, B> = Foo<A, Option<B>>
 
 method Bar<E, F>(
-  a: E,
-  foo: FooWithResult<E, F>
-) returns (r: Option<F>) {
+    a: E,
+    foo: FooWithResult<E, F>
+  ) returns (r: Option<F>) {
   r := None;
   var res :- foo.Bar(a);
   r := Some(res);

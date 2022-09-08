@@ -139,9 +139,9 @@ function Theorem2(n: int): int
   ensures 1 <= Fib(n);
 {
   if n < 3 then 5 else
-    var x := Theorem2(n-2);
-    var y := Theorem2(n-1);
-    x + y
+  var x := Theorem2(n-2);
+  var y := Theorem2(n-1);
+  x + y
 }
 
 function Theorem3(n: int): int
@@ -149,9 +149,9 @@ function Theorem3(n: int): int
   ensures 1 <= Fib(n);
 {
   if n < 3 then 5 else
-    var x := Theorem3(n-2);
-    var y := Theorem3(n-1);
-    5
+  var x := Theorem3(n-2);
+  var y := Theorem3(n-1);
+  5
 }
 
 // ----- tricky substitution issues in the implementation -----
@@ -238,8 +238,8 @@ method Q(list: List<int>, anotherList: List<int>)
     var Cons(h, t) := list;
     Cons(h, t);
   var y := match anotherList
-    case Nil => (match anotherList case Nil => 5)
-    case Cons(h, t) => h;
+           case Nil => (match anotherList case Nil => 5)
+           case Cons(h, t) => h;
   assert list == x;
   assert anotherList.Cons? ==> y == anotherList.head;
   assert anotherList.Nil? ==> y == 5;
@@ -296,8 +296,8 @@ method Friendly(n: nat) returns (ghost c: int)
 }
 
 function method F_good(d: Tuple<
-                             Tuple<bool, int>,
-                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
+                         Tuple<bool, int>,
+                         Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
   requires 0 <= d.1.0.1 < 100;
 {
   var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int := d.0, d, d.1.0.1;
@@ -305,11 +305,11 @@ function method F_good(d: Tuple<
   p.1 + if b0 then x + y0 else x + y1
 }
 function method F_bad(d: Tuple<
-                            Tuple<bool, int>,
-                            Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
+                        Tuple<bool, int>,
+                        Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
 {
   var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int  // error: int-to-nat failure
-   := d.0, d, d.1.0.1;
+    := d.0, d, d.1.0.1;
   assert q < 200;  // error: assertion failure
   p.1 + if b0 then x + y0 else x + y1
 }
@@ -415,8 +415,8 @@ module LitLet {
 
   function mult(n: Nat, m: Nat) : Nat {
     if n.O? then O else
-      var n' := n.pred;
-      plus(m, mult(n', m))
+    var n' := n.pred;
+    plus(m, mult(n', m))
   }
 
   function factorial(n: Nat): Nat {

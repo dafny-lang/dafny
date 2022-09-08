@@ -188,7 +188,7 @@ abstract module M0 {
           Pair(expr', st')
       else
         Pair(exprError(rValidity), st)
-    // todo(maria): Add the recursive case.
+        // todo(maria): Add the recursive case.
     else
       eval(stmt.ret, st, env)
   }
@@ -200,15 +200,15 @@ abstract module M0 {
 
   /******* Function 'eval' *******/
   function eval(expr: Expression, st: State, env: Env): Tuple<Expression, State>
-     requires ValidEnv(env);
-     decreases expr;
+    requires ValidEnv(env);
+    decreases expr;
   {
     if Value(expr) then
       Pair(expr, st)
-    // identifier
+      // identifier
     else if expr.exprIdentifier? then
       Pair(GetEnv(expr.id, env), st)
-    // if-expression
+      // if-expression
     else if expr.exprIf? then
       var Pair(cond', st') := eval(expr.cond, st, env);
       if cond'.exprLiteral? && cond'.lit == litTrue then
@@ -217,7 +217,7 @@ abstract module M0 {
         eval(expr.ifFalse, st', env)
       else
         Pair(exprError(rValidity), st)  // todo: should this be st' (and same for the error cases below)?
-    // and-expression
+        // and-expression
     else if expr.exprAnd? then
       var Pair(conj0', st') := eval(expr.conj0, st, env);
       if conj0'.exprLiteral? && conj0'.lit == litTrue then
@@ -226,7 +226,7 @@ abstract module M0 {
         Pair(exprLiteral(litFalse), st')
       else
         Pair(exprError(rValidity), st)
-    // or-expression
+        // or-expression
     else if expr.exprOr? then
       var Pair(disj0', st') := eval(expr.disj0, st, env);
       if disj0'.exprLiteral? && disj0'.lit == litTrue then
@@ -235,7 +235,7 @@ abstract module M0 {
         eval(expr.disj1, st', env)
       else
         Pair(exprError(rValidity), st)
-    // invocation
+        // invocation
     else if expr.exprInvocation? then
       var Pair(fun', st') := eval(expr.fun, st, env);
       var Pair(args', sts') := evalArgs(expr, expr.args, st, env);
@@ -254,13 +254,13 @@ abstract module M0 {
             else
               Pair(exprError(rValidity), st)
           else
-          // primitive function 'createPath'
-          // todo(maria): Add primitive function 'createPath'.
+            // primitive function 'createPath'
+            // todo(maria): Add primitive function 'createPath'.
             Pair(exprError(rValidity), st)
-        // todo(maria): Add non-primitive invocations.
+            // todo(maria): Add non-primitive invocations.
         else
           Pair(exprError(rValidity), st)
-    // error
+          // error
     else
       Pair(exprError(rValidity), st)
   }

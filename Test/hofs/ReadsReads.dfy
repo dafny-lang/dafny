@@ -82,24 +82,24 @@ module WhatWeKnowAboutReads {
   method MaybeSomething() {
     var s  := new S;
     var s' := new S;
-           if * { assert s in ReadsSomething.reads(s) || ReadsSomething.reads(s) == {};
-    } else if * { assert s in ReadsSomething.reads(s);
-    } else if * { assert ReadsSomething.reads(s) == {};  // error
-    } else if * { assert s' !in ReadsSomething.reads(s);
-    } else if * { assert s' in ReadsSomething.reads(s);  // error
-    }
+    if * { assert s in ReadsSomething.reads(s) || ReadsSomething.reads(s) == {};
+         } else if * { assert s in ReadsSomething.reads(s);
+                } else if * { assert ReadsSomething.reads(s) == {};  // error
+                } else if * { assert s' !in ReadsSomething.reads(s);
+                } else if * { assert s' in ReadsSomething.reads(s);  // error
+                }
   }
 
   method SomethingHere() {
     var s  := new S;
     var s' := new S;
     var f := (u) reads u => ();
-           if * { assert s in f.reads(s) || f.reads(s) == {};
-    } else if * { assert s in f.reads(s);
-    } else if * { assert f.reads(s) == {};  // error
-    } else if * { assert s' !in f.reads(s);
-    } else if * { assert s' in f.reads(s);  // error
-    }
+    if * { assert s in f.reads(s) || f.reads(s) == {};
+         } else if * { assert s in f.reads(s);
+                } else if * { assert f.reads(s) == {};  // error
+                } else if * { assert s' !in f.reads(s);
+                } else if * { assert s' in f.reads(s);  // error
+                }
   }
 }
 

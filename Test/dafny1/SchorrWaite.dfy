@@ -20,16 +20,16 @@ method RecursiveMark(root: Node, ghost S: set<Node>)
   requires root in S
   // S is closed under 'children':
   requires forall n :: n in S ==>
-              forall ch :: ch in n.children ==> ch == null || ch in S
+             forall ch :: ch in n.children ==> ch == null || ch in S
   requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
   modifies S
   ensures root.marked
   // nodes reachable from 'root' are marked:
   ensures forall n :: n in S && n.marked ==>
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+            forall ch :: ch in n.children && ch != null ==> ch.marked
   ensures forall n :: n in S ==>
-              n.childrenVisited == old(n.childrenVisited) &&
-              n.children == old(n.children)
+            n.childrenVisited == old(n.childrenVisited) &&
+            n.children == old(n.children)
 {
   RecursiveMarkWorker(root, S, {});
 }
@@ -37,21 +37,21 @@ method RecursiveMark(root: Node, ghost S: set<Node>)
 method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
   requires root in S
   requires forall n :: n in S ==>
-              forall ch :: ch in n.children ==> ch == null || ch in S
+             forall ch :: ch in n.children ==> ch == null || ch in S
   requires forall n :: n in S && n.marked ==>
-              n in stackNodes ||
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+             n in stackNodes ||
+             forall ch :: ch in n.children && ch != null ==> ch.marked
   requires forall n :: n in stackNodes ==> n.marked
   modifies S
   ensures root.marked
   // nodes reachable from 'root' are marked:
   ensures forall n :: n in S && n.marked ==>
-              n in stackNodes ||
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+            n in stackNodes ||
+            forall ch :: ch in n.children && ch != null ==> ch.marked
   ensures forall n :: n in S && old(n.marked) ==> n.marked
   ensures forall n :: n in S ==>
-              n.childrenVisited == old(n.childrenVisited) &&
-              n.children == old(n.children)
+            n.childrenVisited == old(n.childrenVisited) &&
+            n.children == old(n.children)
   decreases S - stackNodes
 {
   if !root.marked {
@@ -60,15 +60,15 @@ method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set
     while i < |root.children|
       invariant root.marked && i <= |root.children|
       invariant forall n :: n in S && n.marked ==>
-              n == root ||
-              n in stackNodes ||
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+                  n == root ||
+                  n in stackNodes ||
+                  forall ch :: ch in n.children && ch != null ==> ch.marked
       invariant forall j :: 0 <= j < i ==>
                   root.children[j] == null || root.children[j].marked
       invariant forall n :: n in S && old(n.marked) ==> n.marked
       invariant forall n :: n in S ==>
-              n.childrenVisited == old(n.childrenVisited) &&
-              n.children == old(n.children)
+                  n.childrenVisited == old(n.childrenVisited) &&
+                  n.children == old(n.children)
     {
       var c := root.children[i];
       if c != null {
@@ -85,16 +85,16 @@ method IterativeMark(root: Node, ghost S: set<Node>)
   requires root in S
   // S is closed under 'children':
   requires forall n :: n in S ==>
-              forall ch :: ch in n.children ==> ch == null || ch in S
+             forall ch :: ch in n.children ==> ch == null || ch in S
   requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
   modifies S
   ensures root.marked
   // nodes reachable from 'root' are marked:
   ensures forall n :: n in S && n.marked ==>
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+            forall ch :: ch in n.children && ch != null ==> ch.marked
   ensures forall n :: n in S ==>
-              n.childrenVisited == old(n.childrenVisited) &&
-              n.children == old(n.children)
+            n.childrenVisited == old(n.childrenVisited) &&
+            n.children == old(n.children)
 {
   var t := root;
   t.marked := true;
@@ -116,7 +116,7 @@ method IterativeMark(root: Node, ghost S: set<Node>)
     invariant forall j :: 0 <= j && j+1 < |stackNodes| ==>
                 stackNodes[j].children[stackNodes[j].childrenVisited] == stackNodes[j+1]
     invariant 0 < |stackNodes| ==>
-      stackNodes[|stackNodes|-1].children[stackNodes[|stackNodes|-1].childrenVisited] == t
+                stackNodes[|stackNodes|-1].children[stackNodes[|stackNodes|-1].childrenVisited] == t
     invariant forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
                 forall ch :: ch in n.children && ch != null ==> ch.marked
     invariant forall n :: n in S && n !in stackNodes && n != t ==>
@@ -170,20 +170,20 @@ method SchorrWaite(root: Node, ghost S: set<Node>)
   requires root in S
   // S is closed under 'children':
   requires forall n :: n in S ==>
-              forall ch :: ch in n.children ==> ch == null || ch in S
+             forall ch :: ch in n.children ==> ch == null || ch in S
   // the graph starts off with nothing marked and nothing being indicated as currently being visited:
   requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
   modifies S
   // nodes reachable from 'root' are marked:
   ensures root.marked
   ensures forall n :: n in S && n.marked ==>
-              forall ch :: ch in n.children && ch != null ==> ch.marked
+            forall ch :: ch in n.children && ch != null ==> ch.marked
   // every marked node was reachable from 'root' in the pre-state:
   ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
   // the structure of the graph has not changed:
   ensures forall n :: n in S ==>
-              n.childrenVisited == old(n.childrenVisited) &&
-              n.children == old(n.children)
+            n.childrenVisited == old(n.childrenVisited) &&
+            n.children == old(n.children)
 {
   var t := root;
   var p: Node? := null;  // parent of t in original graph
@@ -237,7 +237,7 @@ method SchorrWaite(root: Node, ghost S: set<Node>)
     invariant forall k {:matchinglooprewrite false} :: 0 <= k < |stackNodes|-1 ==>
                 old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
     invariant 0 < |stackNodes| ==>
-      old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
+                old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
 
     invariant root.marked
     invariant forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
@@ -248,7 +248,7 @@ method SchorrWaite(root: Node, ghost S: set<Node>)
 
     invariant old(allocated(path)) && old(ReachableVia(root, path, t, S))
     invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot;
-                old(allocated(pth)) && old(ReachableVia(root, pth, n, S))
+                                                 old(allocated(pth)) && old(ReachableVia(root, pth, n, S))
     invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
 
     invariant forall n :: n in S && !n.marked ==> n in unmarkedNodes

@@ -186,7 +186,7 @@ function trim(digits: seq<int>): seq<int>
 
 lemma TrimResult(digits: seq<int>)
   ensures var last := |trim(digits)| - 1;
-    0 <= last ==> trim(digits)[last] != 0
+          0 <= last ==> trim(digits)[last] != 0
 {
 }
 
@@ -361,7 +361,7 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: int)
   requires IsSkewNumber(a, lowDigit, base)
   requires a != []
   ensures var mod := eval(a, base) % base;
-    a[0] == mod || a[0] == mod - base
+          a[0] == mod || a[0] == mod - base
 {
   if 0 <= a[0] {
     LeastSignificantDigitIsAlmostMod_Pos(a, lowDigit, base);

@@ -22,7 +22,7 @@ abstract module Monad {
 }
 
 module State refines Monad {
-//   type S // doesn't work because S is used left of an arrow
+  //   type S // doesn't work because S is used left of an arrow
   datatype M<A> = State(runState: int -> (A, int))
 
   function method Return<A>(x: A): M<A>
@@ -32,8 +32,8 @@ module State refines Monad {
   {
     match m case State(h) =>
       State(s =>
-            match h(s) case (a, newState) =>
-              match f(a) case State(g) => g(newState))
+              match h(s) case (a, newState) =>
+                match f(a) case State(g) => g(newState))
   }
 
   lemma {:axiom} FunEq<X, Y>(f: X -> Y, g: X -> Y)
@@ -43,135 +43,135 @@ module State refines Monad {
   lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
     ensures Bind(Return(x), f) == f(x)
   {
-      var State(h) := State(s => (x, s));
-      var State(g2) := f(x);
-      calc {
-          Bind(Return(x), f);
-      ==
-          Bind(State(s => (x, s)), f);
-      ==
-          State(s =>
+    var State(h) := State(s => (x, s));
+    var State(g2) := f(x);
+    calc {
+      Bind(Return(x), f);
+    ==
+      Bind(State(s => (x, s)), f);
+    ==
+      State(s =>
+              match ((s => (x, s))(s))
+              case (a, newState) =>
+                match f(a) case State(g) =>
+                  g(newState));
+    == {
+        FunEq(s =>
                 match ((s => (x, s))(s))
                 case (a, newState) =>
-                  match f(a) case State(g) =>
-                    g(newState));
-      == {
-            FunEq(s =>
-                    match ((s => (x, s))(s))
-                    case (a, newState) =>
-                      match f(a)
-                      case State(g) => g(newState),
-                  s =>
-                    match (x, s)
-                    case (a, newState) =>
-                      match f(a)
-                      case State(g) => g(newState));
-         }
-          State(s =>
-                  match (x, s) case (a, newState) =>
-                    match f(a) case State(g) =>
-                      g(newState));
-      == {
-            FunEq((s =>
-                    match (x, s) case (a, newState) =>
-                      match f(a) case State(g) => g(newState)),
-                  (s => match f(x) case State(g) => g(s)));
-         }
-          State(s => match f(x) case State(g) => g(s));
-      == { FunEq(s => match f(x) case State(g) => g(s), g2); }
-          State(g2);
-      ==
-          f(x);
+                  match f(a)
+                  case State(g) => g(newState),
+              s =>
+                match (x, s)
+                case (a, newState) =>
+                  match f(a)
+                  case State(g) => g(newState));
+      }
+      State(s =>
+              match (x, s) case (a, newState) =>
+                match f(a) case State(g) =>
+                  g(newState));
+    == {
+        FunEq((s =>
+                 match (x, s) case (a, newState) =>
+                   match f(a) case State(g) => g(newState)),
+              (s => match f(x) case State(g) => g(s)));
+      }
+      State(s => match f(x) case State(g) => g(s));
+    == { FunEq(s => match f(x) case State(g) => g(s), g2); }
+      State(g2);
+    ==
+      f(x);
     }
   }
 
   lemma RightIdentity<A>(m : M<A>)
   {
-      match m case State(h) =>
-        calc {
-          Bind(m, x => Return(x));
-        ==
-          State(s =>
-                  match h(s) case (a, newState) =>
-                    match (x => Return(x))(a)
-                    case State(g) => g(newState));
-        == {
-            FunEq((s =>
-                    match h(s) case (a, newState) =>
-                      match (x => Return(x))(a) case State(g) => g(newState)),
-                  (s => h(s)));
-          }
-          State(s => h(s));
-        == { FunEq(s => h(s), h); }
-          State(h);
-        ==
-          m;
+    match m case State(h) =>
+      calc {
+        Bind(m, x => Return(x));
+      ==
+        State(s =>
+                match h(s) case (a, newState) =>
+                  match (x => Return(x))(a)
+                  case State(g) => g(newState));
+      == {
+          FunEq((s =>
+                   match h(s) case (a, newState) =>
+                     match (x => Return(x))(a) case State(g) => g(newState)),
+                (s => h(s)));
         }
+        State(s => h(s));
+      == { FunEq(s => h(s), h); }
+        State(h);
+      ==
+        m;
+      }
   }
 
   lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
     ensures Bind(Bind(m, f), g) == Bind(m, x => Bind(f(x), g))
   {
     match m case State(h) =>
-        calc {
-          Bind(Bind(m, f), g);
-        ==
-          match Bind(m, f) case State(h1) =>
-            State(s =>
-                    match h1(s) case (a, newState) =>
-                      match g(a) case State(h1) =>
-                        h1(newState));
-        ==
-          match (State(s =>
-                        match h(s) case (a, newState) =>
-                          match f(a) case State(g2) => g2(newState)))
-          case State(h1) =>
-            State(s =>
-                    match h1(s) case (a, newState) =>
-                      match g(a) case State(h1) =>
-                        h1(newState));
-        ==
+      calc {
+        Bind(Bind(m, f), g);
+      ==
+        match Bind(m, f) case State(h1) =>
           State(s =>
+                  match h1(s) case (a, newState) =>
+                    match g(a) case State(h1) =>
+                      h1(newState));
+      ==
+        match (State(s =>
+                       match h(s) case (a, newState) =>
+                         match f(a) case State(g2) => g2(newState)))
+        case State(h1) =>
+          State(s =>
+                  match h1(s) case (a, newState) =>
+                    match g(a) case State(h1) =>
+                      h1(newState));
+      ==
+        State(s =>
+                match (s => match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))(s)
+                case (a, newState) =>
+                  match g(a) case State(h1) =>
+                    h1(newState));
+      == {
+          FunEq(s =>
                   match (s => match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))(s)
                   case (a, newState) =>
                     match g(a) case State(h1) =>
-                      h1(newState));
-        == {
-              FunEq(s =>
-                      match (s => match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))(s)
-                      case (a, newState) =>
-                        match g(a) case State(h1) =>
-                          h1(newState),
-                    s =>
-                      match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
-                      case (a, newState) =>
-                        match g(a) case State(h1) =>
-                          h1(newState));
-           }
-          State(s =>
+                      h1(newState),
+                s =>
                   match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
                   case (a, newState) =>
                     match g(a) case State(h1) =>
                       h1(newState));
-        ==
-	{ /* OS: Added for PM */
-             FunEq(s =>
-                      match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
-                      case (a, newState) =>
-                        match g(a) case State(h1) =>
-                          h1(newState),
-		  s => match h(s) case (a, newState) =>
-                    match f(a) case State(g2) =>
-                      match g2(newState) case (b, newState2) =>
-                          match g(b) case State(h1) =>
-                            h1(newState2));
-           }
-          State(s =>
-                  match h(s) case (a, newState) =>
-                    match f(a) case State(g2) =>
-                      match g2(newState) case (b, newState2) =>
-                          match g(b) case State(h1) =>
-                            h1(newState2));
+        }
+        State(s =>
+                match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
+                case (a, newState) =>
+                  match g(a) case State(h1) =>
+                    h1(newState));
+      ==
+        { /* OS: Added for PM */
+          FunEq(s =>
+                  match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
+                  case (a, newState) =>
+                    match g(a) case State(h1) =>
+                      h1(newState),
+                s => match h(s) case (a, newState) =>
+                       match f(a) case State(g2) =>
+                         match g2(newState) case (b, newState2) =>
+                           match g(b) case State(h1) =>
+                             h1(newState2));
+        }
+        State(s =>
+                match h(s) case (a, newState) =>
+                  match f(a) case State(g2) =>
+                    match g2(newState) case (b, newState2) =>
+                      match g(b) case State(h1) =>
+                        h1(newState2));
       }
 
       calc {
@@ -184,83 +184,83 @@ module State refines Monad {
                   match (x => Bind(f(x), g))(a) case State(g2) =>
                     g2(newState));
       == {
-            FunEq(s => match h(s) case (a, newState) => match (x => Bind(f(x), g))(a) case State(g2) => g2(newState),
-                  s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState));
-         }
+          FunEq(s => match h(s) case (a, newState) => match (x => Bind(f(x), g))(a) case State(g2) => g2(newState),
+                s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState));
+        }
         State(s =>
                 match h(s) case (a, newState) =>
                   match Bind(f(a), g) case State(g2) =>
                     g2(newState));
       == {
-            FunEq((s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState)),
-                  (s => match h(s) case (a, newState) =>
-                    match (match f(a) case State(h2) =>
-                            State(s =>
-                                  match h2(s) case (a2, newState2) =>
-                                    match g(a2) case State(g2) => g2(newState2)))
-                    case State(g3) =>
-                      g3(newState)));
-         }
+          FunEq((s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState)),
+                (s => match h(s) case (a, newState) =>
+                        match (match f(a) case State(h2) =>
+                                 State(s =>
+                                         match h2(s) case (a2, newState2) =>
+                                           match g(a2) case State(g2) => g2(newState2)))
+                        case State(g3) =>
+                          g3(newState)));
+        }
         State(s =>
                 match h(s) case (a, newState) =>
                   match (match f(a) case State(h2) =>
-                          State(s =>
-                                match h2(s) case (a2, newState2) =>
-                                  match g(a2) case State(g2) => g2(newState2)))
+                           State(s =>
+                                   match h2(s) case (a2, newState2) =>
+                                     match g(a2) case State(g2) => g2(newState2)))
                   case State(g3) =>
                     g3(newState));
       == { /* OS: Added for PM */
-            FunEq(s => match h(s) case (a, newState) =>
-                    match (match f(a) case State(h2) =>
-                            State(s =>
-                                  match h2(s) case (a2, newState2) =>
-                                    match g(a2) case State(g2) => g2(newState2)))
-                    case State(g3) =>
-                      g3(newState),
-		   s =>
-                match h(s) case (a, newState) =>
-                  match f(a) case State(h2) =>
-                      match State(s => match h2(s) case (a2, newState2) =>
-                                        match g(a2) case State(g2) => g2(newState2))
-                      case State(g3) =>
-                        g3(newState));
+           FunEq(s => match h(s) case (a, newState) =>
+                        match (match f(a) case State(h2) =>
+                                 State(s =>
+                                         match h2(s) case (a2, newState2) =>
+                                           match g(a2) case State(g2) => g2(newState2)))
+                        case State(g3) =>
+                          g3(newState),
+                 s =>
+                   match h(s) case (a, newState) =>
+                     match f(a) case State(h2) =>
+                       match State(s => match h2(s) case (a2, newState2) =>
+                                          match g(a2) case State(g2) => g2(newState2))
+                       case State(g3) =>
+                         g3(newState));
          }
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>
-                      match State(s => match h2(s) case (a2, newState2) =>
-                                        match g(a2) case State(g2) => g2(newState2))
-                      case State(g3) =>
-                        g3(newState));
+                    match State(s => match h2(s) case (a2, newState2) =>
+                                       match g(a2) case State(g2) => g2(newState2))
+                    case State(g3) =>
+                      g3(newState));
       == { FunEq(s => match h(s) case (a, newState) =>
                         match f(a) case State(h2) =>
                           match State(s => match h2(s) case (a2, newState2) =>
-                            match g(a2) case State(g2) =>
-                              g2(newState2)) case State(g3) =>
-                                g3(newState),
-                   s => match h(s) case (a, newState) =>
-                          match f(a) case State(h2) =>
-                            (s => match h2(s) case (a2, newState2) =>
-                              match g(a2) case State(g2) =>
-                                g2(newState2))(newState));
+                                             match g(a2) case State(g2) =>
+                                               g2(newState2)) case State(g3) =>
+                            g3(newState),
+                 s => match h(s) case (a, newState) =>
+                        match f(a) case State(h2) =>
+                        (s => match h2(s) case (a2, newState2) =>
+                                match g(a2) case State(g2) =>
+                                  g2(newState2))(newState));
          }
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>
-                    (s => match h2(s) case (a2, newState2) =>
-                            match g(a2) case State(g2) => g2(newState2))(newState));
+                  (s => match h2(s) case (a2, newState2) =>
+                          match g(a2) case State(g2) => g2(newState2))(newState));
       == {
-            FunEq(s => match h(s) case (a, newState) =>
-                        match f(a) case State(h2) =>
-                 (s => match h2(s) case (a2, newState2) =>
-                        match g(a2) case State(g2) =>
-                          g2(newState2))(newState),
-                  s => match h(s) case (a, newState) =>
-                        match f(a) case State(h2) =>
-                          match h2(newState) case (a2, newState2) =>
-                            match g(a2) case State(g2) =>
-                              g2(newState2));
-         }
+          FunEq(s => match h(s) case (a, newState) =>
+                       match f(a) case State(h2) =>
+                       (s => match h2(s) case (a2, newState2) =>
+                               match g(a2) case State(g2) =>
+                                 g2(newState2))(newState),
+                s => match h(s) case (a, newState) =>
+                       match f(a) case State(h2) =>
+                         match h2(newState) case (a2, newState2) =>
+                           match g(a2) case State(g2) =>
+                             g2(newState2));
+        }
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>

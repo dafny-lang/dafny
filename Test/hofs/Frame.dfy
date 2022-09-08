@@ -39,11 +39,11 @@ method M3()
 }
 
 method Main() {
-   var x := 2;
-   var getX := () => x;
-   assert getX() == 2;
-   x := 3;
-   assert getX() == 2;  // the value is copied
+  var x := 2;
+  var getX := () => x;
+  assert getX() == 2;
+  x := 3;
+  assert getX() == 2;  // the value is copied
 }
 
 method Refs() {
@@ -73,7 +73,7 @@ method Fiddling(k : int ~> int)
 {
 
   var mkGet := (arr : array<int>) =>
-               () reads arr requires arr.Length > 0 => arr[0];
+                 () reads arr requires arr.Length > 0 => arr[0];
 
   var a := new int[1];
   var b := new int[1];

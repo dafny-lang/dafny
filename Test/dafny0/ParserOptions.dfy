@@ -32,7 +32,7 @@ module BackToDefault {
 // Sanity check
 method Main() {
   print FunctionMethodSyntax.CompiledFunction()
-      + GhostFunctionSyntax.CompiledFunction()
-      + StillGhostFunctionSyntax.CompiledFunction()
-      + BackToDefault.CompiledFunction();
+        + GhostFunctionSyntax.CompiledFunction()
+        + StillGhostFunctionSyntax.CompiledFunction()
+        + BackToDefault.CompiledFunction();
 }

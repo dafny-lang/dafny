@@ -5,7 +5,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 function method tst(x: nat): nat {
-    x + 1
+  x + 1
 }
 
 method Main() {

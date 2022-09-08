@@ -20,8 +20,8 @@ module B {
   import A
 
   least lemma ReachableImpliesNonneg(s: int)
-  requires A.Reachable(s)
-  ensures s >= 0
+    requires A.Reachable(s)
+    ensures s >= 0
   {
     if A.Init(s) {
     } else {

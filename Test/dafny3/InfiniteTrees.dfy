@@ -9,8 +9,8 @@ codatatype Stream<T> = Nil | Cons(head: T, tail: Stream)
 function Tail(s: Stream, n: nat): Stream
 {
   if n == 0 then s else
-    var t := Tail(s, n-1);
-    if t == Nil then t else t.tail
+  var t := Tail(s, n-1);
+  if t == Nil then t else t.tail
 }
 
 lemma Tail_Lemma0(s: Stream, n: nat)
@@ -143,8 +143,8 @@ lemma FindNil(s: Stream<Tree>, n: nat) returns (k: nat)
   match s {
     case Nil => k := 1;
     case Cons(t, _) =>
-	  k := FindNil(t.children, n-1);
-	  k := k + 1;
+      k := FindNil(t.children, n-1);
+      k := k + 1;
   }
 }
 
@@ -612,18 +612,18 @@ greatest lemma Path_Lemma2'(p: Stream<int>)
   ensures InfinitePath(S2N(p));
 {
   match p {
-  case Cons(n, tail) =>
-    calc {
-      InfinitePath#[_k](S2N(p));
-      // def. S2N
-      InfinitePath#[_k](Some(S2N'(if n < 0 then 0 else n, tail)));
-      // def. InfinitePath
-      InfinitePath'#[_k-1](S2N'(if n < 0 then 0 else n, tail));
-    <== { Path_Lemma2''(p, if n < 0 then 0 else n, tail); }
-      InfinitePath#[_k-1](S2N(tail));
-      { Path_Lemma2'(tail); }
-      true;
-    }
+    case Cons(n, tail) =>
+      calc {
+        InfinitePath#[_k](S2N(p));
+        // def. S2N
+        InfinitePath#[_k](Some(S2N'(if n < 0 then 0 else n, tail)));
+        // def. InfinitePath
+        InfinitePath'#[_k-1](S2N'(if n < 0 then 0 else n, tail));
+      <== { Path_Lemma2''(p, if n < 0 then 0 else n, tail); }
+        InfinitePath#[_k-1](S2N(tail));
+        { Path_Lemma2'(tail); }
+        true;
+      }
   }
 }
 greatest lemma Path_Lemma2''(p: Stream<int>, n: nat, tail: Stream<int>)

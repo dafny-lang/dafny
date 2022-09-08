@@ -20,11 +20,11 @@ necessary.
 codatatype Stream<T> = Cons(hd: T, tl: Stream)
 
 function zip(xs: Stream, ys: Stream): Stream
-  { Cons(xs.hd, Cons(ys.hd, zip(xs.tl, ys.tl))) }
+{ Cons(xs.hd, Cons(ys.hd, zip(xs.tl, ys.tl))) }
 function even(xs: Stream): Stream
-  { Cons(xs.hd, even(xs.tl.tl)) }
+{ Cons(xs.hd, even(xs.tl.tl)) }
 function odd(xs: Stream): Stream
-  { even(xs.tl) }
+{ even(xs.tl) }
 
 greatest lemma EvenOddLemma(xs: Stream)
   ensures zip(even(xs), odd(xs)) == xs;
@@ -35,8 +35,8 @@ greatest lemma EvenZipLemma(xs:Stream, ys:Stream)
 { /* Automatic. */ }
 
 function bzip(xs: Stream, ys: Stream, f:bool) : Stream
-  { if f then Cons(xs.hd, bzip(xs.tl, ys, !f))
-    else      Cons(ys.hd, bzip(xs, ys.tl, !f)) }
+{ if f then Cons(xs.hd, bzip(xs.tl, ys, !f))
+  else      Cons(ys.hd, bzip(xs, ys.tl, !f)) }
 
 greatest lemma BzipZipLemma(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == bzip(xs, ys, true);

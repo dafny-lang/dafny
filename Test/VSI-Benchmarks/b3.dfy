@@ -55,9 +55,9 @@ class Benchmark3 {
       invariant |r.contents| + |q.contents| == |old(q.contents)|;
       invariant forall i, j :: 0 <= i < j < |r.contents| ==> r.contents[i] <= r.contents[j];
       invariant forall i, j ::
-                    0 <= i < |r.contents| &&
-                    0 <= j < |q.contents|
-                    ==> r.contents[i] <= q.contents[j];
+                0 <= i < |r.contents| &&
+                0 <= j < |q.contents|
+                ==> r.contents[i] <= q.contents[j];
       // the current array is that permutation of the input array
       invariant multiset(r.contents + q.contents) == multiset(old(q.contents));
     {

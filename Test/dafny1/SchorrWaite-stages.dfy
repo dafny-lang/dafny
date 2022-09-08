@@ -37,20 +37,20 @@ abstract module M0 {
     requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==>
-                forall ch :: ch in n.children ==> ch == null || ch in S
+               forall ch :: ch in n.children ==> ch == null || ch in S
     // the graph starts off with nothing marked and nothing being indicated as currently being visited:
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S
     // nodes reachable from 'root' are marked:
     ensures root.marked
     ensures forall n :: n in S && n.marked ==>
-                forall ch :: ch in n.children && ch != null ==> ch.marked
+              forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
     ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
-                n.childrenVisited == old(n.childrenVisited) &&
-                n.children == old(n.children)
+              n.childrenVisited == old(n.childrenVisited) &&
+              n.children == old(n.children)
     decreases *  // leave termination checking for a later refinement
   {
     root.marked := true;
@@ -101,7 +101,7 @@ abstract module M0 {
       invariant forall k {:matchinglooprewrite false} :: 0 <= k < |stackNodes|-1 ==>
                   old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
       invariant 0 < |stackNodes| ==>
-        old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
+                  old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
 
       decreases *  // leave termination checking for a later refinement
     {
@@ -136,7 +136,7 @@ abstract module M0 {
     // Eventually, we also need to prove that exactly the right nodes have been marked,
     // but let's just assume those properties for now and prove them in later refinements:
     assume root.marked && forall n :: n in S && n.marked ==>
-                forall ch :: ch in n.children && ch != null ==> ch.marked;
+             forall ch :: ch in n.children && ch != null ==> ch.marked;
     assume forall n :: n in S && n.marked ==> old(Reachable(root, n, S));
   }
 }
@@ -215,7 +215,7 @@ abstract module M2 refines M1 {
       // field of all marked nodes contain values that make sense in the pre-state.
       invariant old(allocated(path)) && old(ReachableVia(root, path, t, S))
       invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot;
-                  old(allocated(pth)) && old(ReachableVia(root, pth, n, S))
+                                                   old(allocated(pth)) && old(ReachableVia(root, pth, n, S))
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     {
       if ... {

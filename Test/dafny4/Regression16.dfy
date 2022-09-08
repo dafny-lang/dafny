@@ -34,21 +34,21 @@ predicate IsBalanced(t: Tree)
 lemma InsertBalanced_A(t: Tree, y: int)
   requires IsBalanced(t)
   ensures var t' := Insert(t, y);
-    Elements(
-      Insert(t, y)  // Use Insert(t, y) here instead of t'.  This verifies (and did before).
-    ) == Elements(t) + multiset {y} &&
-    IsBalanced(t')
+          Elements(
+            Insert(t, y)  // Use Insert(t, y) here instead of t'.  This verifies (and did before).
+          ) == Elements(t) + multiset {y} &&
+          IsBalanced(t')
 {
 }
 
 lemma InsertBalanced_B(t: Tree, y: int)
   requires IsBalanced(t)
   ensures var t' := Insert(t, y);
-    Elements(
-      t'  // Use t' here, which stands for Insert(t, y).  This used to not verify (because the
-          // fuel of this call to Insert was previously not increments).
-    ) == Elements(t) + multiset {y} &&
-    IsBalanced(t')  // An effect of the "fixed" implementation is that the fuel of Insert gets
-                    // incremented here, too, whereas it did not used to.
+          Elements(
+            t'  // Use t' here, which stands for Insert(t, y).  This used to not verify (because the
+                // fuel of this call to Insert was previously not increments).
+          ) == Elements(t) + multiset {y} &&
+          IsBalanced(t')  // An effect of the "fixed" implementation is that the fuel of Insert gets
+                          // incremented here, too, whereas it did not used to.
 {
 }

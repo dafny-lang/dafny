@@ -3,35 +3,35 @@
 
 // This program shows how to model an outer type whose invariant refers to the invariant of an inner type.
 
-// A universe of objects playing under LCI rules 
+// A universe of objects playing under LCI rules
 trait S {
   // The set of objects in the universe
   ghost var obs: set<O>
 
   // Workaround Dafny not supporting _ as object
   function upCast(o: object): object {o}
-  
-  // Universe invariant: the universe doesn't contain itself, 
+
+  // Universe invariant: the universe doesn't contain itself,
   // and its objects in this universe agree that they are in this universe.
-  // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
+  // We define this to allow a generic object operation (O.join below) to add the object to the universe,
   // without having to check the object invariants.
   predicate i0() reads this, obs { forall o: O | o in obs :: o.s == this && upCast(o) != this }
-  
+
   // Global 1-state invariant: all objects satisfy their individual invariants.
   predicate i() reads * { i0() && forall o: O | o in obs :: o.i() }
-  
+
   // Global 2-state invariant: all old objects satisfy their 2-state invariants.
   twostate predicate i2() reads * { forall o: O | o in old(obs) :: o in obs && o.i2() }
-  
+
   // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
   twostate predicate legal0() reads * { forall o: O | o in old(obs) :: unchanged(o) || (o.i2() && o.i()) }
-  
+
   // The second condition for legality: new objects must satisfy their invariants.
   twostate predicate legal1() reads * { forall o: O | o in obs && o !in old(obs) :: o.i() }
-  
-  // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions. 
+
+  // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions.
   twostate predicate legal() reads * { old(i()) && i0() && old(obs) <= obs && legal0() && legal1() }
-  
+
   // LCI soundness: legal transitions are good. This makes use of the admissibility obligations build into O's.
   twostate lemma lci() requires legal() ensures i() && i2() {
     forall o: O | o in old(obs) && o.admPre() ensures o.i2() && o.i() { o.adm(); }
@@ -47,14 +47,14 @@ trait O {
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
   predicate i0() reads * { this in s.obs && s.i0() }
-  
+
   // Join universe s
   ghost method join()
     requires s.i0() && s.upCast(this) != s
-    modifies s 
+    modifies s
     ensures i0() && s.obs == old(s.obs) + { this }
   {
-    s.obs := s.obs + { this }; 
+    s.obs := s.obs + { this };
   }
 
   // Precondition for the admissibility check.
@@ -120,7 +120,7 @@ class Outer extends O {
     requires s.i() && s == inner.s && inner.i()
     modifies s
     ensures s.i()
-  {   
+  {
     this.s := s;
     this.inner := inner;
     new;

@@ -62,9 +62,9 @@ module Constraints {
   newtype N = nat
 
   newtype AssertType = s: int |
-    var k := s;
-    assert k <= s;
-    k < 10 || 10 <= s
+      var k := s;
+      assert k <= s;
+      k < 10 || 10 <= s
 
   newtype Te = x: int | 0 <= x < 3 && [5, 7, 8][x] % 2 != 0
 

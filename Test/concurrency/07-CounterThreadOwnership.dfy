@@ -42,7 +42,7 @@ trait Universe {
   // Global 2-state invariant: all old objects satisfy their 2-state invariants and basic properties of legal transitions.
   twostate predicate globalInv2() reads * {
     && (forall o: Object | o in old(content) :: o in content && o.inv2())
-    // The following could be `legalTransition`, but it's unnecessarily strong. `baseLegalTransitionsSequence` is enough.
+       // The following could be `legalTransition`, but it's unnecessarily strong. `baseLegalTransitionsSequence` is enough.
     && baseLegalTransitionsSequence()
   }
 
@@ -51,11 +51,11 @@ trait Universe {
   twostate predicate baseLegalTransitionsSequence() reads * {
     // The universe only grows
     && old(content) <= content
-    // All objects added to the universe weren't allocated in the old state.
-    // This allows to satisfy the modifies clause checks on the caller side in a sequence of methods that might
-    // modify the universe. For example, the `Havoc` and `Interference` methods.
+       // All objects added to the universe weren't allocated in the old state.
+       // This allows to satisfy the modifies clause checks on the caller side in a sequence of methods that might
+       // modify the universe. For example, the `Havoc` and `Interference` methods.
     && (forall o: Object | o !in old(content) && o in content :: !old(allocated(o)))
-    // Version numbers only increase
+       // Version numbers only increase
     && (forall o: OwnedObject | o in old(content):: old(o.nonvolatileVersion) <= o.nonvolatileVersion)
   }
 
@@ -68,15 +68,15 @@ trait Universe {
     && baseLegalTransitionsSequence()
     && old(globalBaseInv())
     && globalBaseInv()
-    // Old objects must obey their transitive 2-state invariants.
-    // `transitiveInv2` needs to be transitive under the assumption `baseLegalTransitionsSequence`.
+       // Old objects must obey their transitive 2-state invariants.
+       // `transitiveInv2` needs to be transitive under the assumption `baseLegalTransitionsSequence`.
     && (forall o: Object | o in old(content) :: o.transitiveInv2())
-    // Objects cannot change the nonvolatile fields if they are directly owned by threads that cannot run.
-    // The 2-state invariant of OwnedObject extends this property to objects that are *transitively* owned by the threads.
+       // Objects cannot change the nonvolatile fields if they are directly owned by threads that cannot run.
+       // The 2-state invariant of OwnedObject extends this property to objects that are *transitively* owned by the threads.
     && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread ::
-      // Threads created during a legalTransitionsSequence are allowed to run
-      old(o.owner) as Thread !in running && old(allocated(o.owner)) ==> old(o.nonvolatileVersion) == o.nonvolatileVersion
-    )
+                                // Threads created during a legalTransitionsSequence are allowed to run
+                                old(o.owner) as Thread !in running && old(allocated(o.owner)) ==> old(o.nonvolatileVersion) == o.nonvolatileVersion
+       )
   }
 
   // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions.
@@ -86,9 +86,9 @@ trait Universe {
     && legalTransitionsSequence({running})
     && old(globalInv())
     && globalBaseInv()
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || (o.inv() && o.inv2()))
-    // The second condition for legality: new objects must satisfy their invariants.
+       // The second condition for legality: new objects must satisfy their invariants.
     && (forall o: Object | o in content && o !in old(content) :: o.inv())
   }
 
@@ -149,16 +149,16 @@ trait Universe {
   // TODO: See if this can be merged into `lci` or some 2-state invariant.
   twostate lemma ProveTransitiveInv2()
     ensures forall o: Object | o in old(content) ::
-      (o is OwnedObject ==>
-        && unchanged(o)
-        && (forall x: OwnedObject | x in old(o.universe.content) && old(x.owner) == o :: old(x.nonvolatileVersion) == x.nonvolatileVersion && x.owner == o)
-      ) ==> o.transitiveInv2()
+            (o is OwnedObject ==>
+               && unchanged(o)
+               && (forall x: OwnedObject | x in old(o.universe.content) && old(x.owner) == o :: old(x.nonvolatileVersion) == x.nonvolatileVersion && x.owner == o)
+            ) ==> o.transitiveInv2()
   {
     forall o: Object | o in old(content) ensures
-      (o is OwnedObject ==>
-        && unchanged(o)
-        && (forall x: OwnedObject | x in old(o.universe.content) && old(x.owner) == o :: old(x.nonvolatileVersion) == x.nonvolatileVersion && x.owner == o)
-      ) ==> o.transitiveInv2()
+        (o is OwnedObject ==>
+           && unchanged(o)
+           && (forall x: OwnedObject | x in old(o.universe.content) && old(x.owner) == o :: old(x.nonvolatileVersion) == x.nonvolatileVersion && x.owner == o)
+        ) ==> o.transitiveInv2()
     {
       if (o is OwnedObject) {
         var ownedObject := o as OwnedObject;
@@ -342,30 +342,30 @@ trait OwnedObject extends Object {
   // Assuming `universe.globalBaseInv2()`, this relation should be transitive.
   twostate predicate transitiveInv2() reads * {
     && (old(nonvolatileVersion) == nonvolatileVersion ==>
-      // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
-      // (The ProveTransitiveInv2 lemma should be useful to prove this.)
-      && unchangedNonvolatileFields()
-      // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
-      && (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion && o.owner == this)
-    )
+          // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
+          // (The ProveTransitiveInv2 lemma should be useful to prove this.)
+          && unchangedNonvolatileFields()
+             // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
+          && (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion && o.owner == this)
+       )
     && (old(owner) is OwnedObject ==>
-      var oldOwner := old(owner) as OwnedObject;
-      // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
-      old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
-    )
+          var oldOwner := old(owner) as OwnedObject;
+          // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
+          old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
+       )
   }
   twostate predicate inv2() reads * ensures inv2() ==> localInv2() && transitiveInv2() {
     && localInv2()
     && transitiveInv2()
     && userInv2()
-    // When the owner changes, the invariant of the old and new owner must hold.
+       // When the owner changes, the invariant of the old and new owner must hold.
     && (old(owner) != owner ==>
-      && old(owner).localInv()
-      && old(owner).localInv2()
-      && owner.localInv()
-      // In case the new owner existed in the old state
-      && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
-    )
+          && old(owner).localInv()
+          && old(owner).localInv2()
+          && owner.localInv()
+             // In case the new owner existed in the old state
+          && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
+       )
   }
 
   lemma ProveReflexiveTransitiveInv2() ensures transitiveInv2() {
@@ -743,7 +743,7 @@ class IncrementerMethod extends OwnedObject {
 
     Statement1(running);
     universe.Interference(running);
-    
+
     label beforeLoop:
     while (programCounter == 2)
       invariant this.objectGlobalInv() && running in universe.content && this.owner == running && (programCounter == 2 || programCounter == 9)

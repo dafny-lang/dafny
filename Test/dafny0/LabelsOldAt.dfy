@@ -155,7 +155,7 @@ class C {
     var brr := new int[120];
     label End:
     if
-    // ----- old ----- (any dereference must be of object allocated in the specified old state)
+      // ----- old ----- (any dereference must be of object allocated in the specified old state)
     case true =>
       assert old@Start(n) == n; // "old" has no effect on local variables
       assert old@Start(this.cc) == m;
@@ -190,7 +190,7 @@ class C {
     var s' := s + {n};
     label End:
     if
-    // ----- unchanged ----- (any object mentioned must be allocated in the specified old state)
+      // ----- unchanged ----- (any object mentioned must be allocated in the specified old state)
     case true =>
       var v := unchanged(n); // error: n is not allocated in old state
     case true =>
@@ -218,7 +218,7 @@ class C {
     var brr := new int[120];
     label End:
     if
-    // ----- fresh ----- (argument has no allocatedness restrictions)
+      // ----- fresh ----- (argument has no allocatedness restrictions)
     case true =>
       assert !fresh(n.cc); // n.cc == this
       assert !fresh@Start(n.cc);

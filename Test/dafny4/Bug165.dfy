@@ -10,11 +10,11 @@ method Select(s1: seq<T>) returns (r: seq<T>)
 
 method Main(s1: seq<T>)
 {
-   var r1, r2: seq<T>;
+  var r1, r2: seq<T>;
 
-   r1 := Select(s1);
-   r2 := Select(s1);
+  r1 := Select(s1);
+  r2 := Select(s1);
 
-   assert multiset(r1) == multiset(r2);
+  assert multiset(r1) == multiset(r2);
 
 }

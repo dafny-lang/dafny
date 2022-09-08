@@ -146,8 +146,8 @@ module {:autoReq} QuantifierTestsHard {
   function n(x:int) : bool
 
   function f1(x:int) : bool
-  requires x > 3;
-  requires x < 16;
+    requires x > 3;
+    requires x < 16;
 
   function variable_uniqueness_test(x:int) : bool
   {
@@ -263,8 +263,8 @@ module Matches {
   function {:autoReq} basic_test(t:TheType) : bool
   {
     match t
-      case TheType_builder(x) => f1(x)
-      case TheType_copier(t) => true
+    case TheType_builder(x) => f1(x)
+    case TheType_copier(t) => true
   }
 }
 

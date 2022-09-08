@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 /*
-*  This file contains a collection of tests for features modified or introduced in PR 458
-*/
+ *  This file contains a collection of tests for features modified or introduced in PR 458
+ */
 
 
 datatype Alt = A(int) | B(int)
@@ -94,7 +94,7 @@ method IntTest(x: int) returns (r: int)
 }
 
 method StringTest(x: string) returns (r: int)
- ensures r == 2 || x == "zero" || x == "one"
+  ensures r == 2 || x == "zero" || x == "one"
 {
   match x {
     case "zero" => r := 0;
@@ -157,18 +157,18 @@ method MultipleNestedMatch(x: Alt, y: Tree, z: List<nat>) returns (r: nat)
     case A(i) =>
       match y {
         case Branch(_, _, Branch(_, b, _)) =>
-	  match (b, z) {
-	    case (true, Cons(n, _)) => r := n;
-	    case (_, Nil) => r := 1;
-	    case (false, Cons(n, _)) => r := n+1;
-	  }
-	case Branch(Branch(_, b, _), _, _) =>
-	  match (b, z) {
-	    case (true, Cons(n, _)) => r := n;
-	    case (false, Cons(n, _)) => r := n+1;
-	    case (_, Nil) => r := 2;
-	  }
-	case _ => r := 0;
+          match (b, z) {
+            case (true, Cons(n, _)) => r := n;
+            case (_, Nil) => r := 1;
+            case (false, Cons(n, _)) => r := n+1;
+          }
+        case Branch(Branch(_, b, _), _, _) =>
+          match (b, z) {
+            case (true, Cons(n, _)) => r := n;
+            case (false, Cons(n, _)) => r := n+1;
+            case (_, Nil) => r := 2;
+          }
+        case _ => r := 0;
       }
     case B(i) => r := 3;
   }

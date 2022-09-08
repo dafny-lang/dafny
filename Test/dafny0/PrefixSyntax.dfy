@@ -18,10 +18,10 @@ predicate TLA_plus_Style(x: int, y: int, t: TextProcessing)
   // This expression is semantically the same as the one in InfixStyle
   && (t == TeX ==> x < y)
   && (|| t == LaTeX
-     || t == TeX
-    ==>
-     && x == 100
-     && y == 1000
+      || t == TeX
+      ==>
+        && x == 100
+        && y == 1000
      )
   && (t == Madoko ==> || 0 <= x || 0 <= y)
 }

@@ -201,11 +201,11 @@ module PrefixEquality {
   {
     calc {
       s;
-      ==#[_k-1]
+    ==#[_k-1]
       t;  // error: this step might not hold
-      ==#[if 2 <= _k.Offset then _k-2 else _k-1]
+    ==#[if 2 <= _k.Offset then _k-2 else _k-1]
       s;  // error: this step might not hold
-      ==#[0]
+    ==#[0]
       t;
     }
   }
@@ -215,11 +215,11 @@ module PrefixEquality {
   {
     calc {
       s;
-      ==#[_k-1]
+    ==#[_k-1]
       t;
-      ==#[_k-2]  // error: the ORDINAL _k might have an .Offset less than 2
+    ==#[_k-2]  // error: the ORDINAL _k might have an .Offset less than 2
       s;
-      ==#[0]
+    ==#[0]
       t;
     }
   }

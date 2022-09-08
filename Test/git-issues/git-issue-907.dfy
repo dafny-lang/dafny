@@ -5,6 +5,6 @@
 
 function method identity(n:nat):nat
 {
-    n
+  n
 }
 

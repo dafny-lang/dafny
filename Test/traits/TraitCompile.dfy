@@ -10,14 +10,14 @@ trait TT
   function method Plus(x:int, y:int) : int
     requires x > y
   {
-     x + y
+    x + y
   }
   function method Times(x:int, y:int) : int
     requires x > y
   static function method StaticMinus(x:int, y:int) : int
     requires x > y
   {
-     x - y
+    x - y
   }
 
   method Double(x: int)

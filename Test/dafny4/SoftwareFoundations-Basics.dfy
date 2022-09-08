@@ -293,14 +293,14 @@ function beq_nat (n: Nat, m: Nat) : Bool
 {
   match n
   case O => (
-         match m
-         case O => True
-         case S(m') => False
-         )
+    match m
+    case O => True
+    case S(m') => False
+  )
   case S(n') =>
-         match m
-         case O => False
-         case S(m') => beq_nat(n', m')
+    match m
+    case O => False
+    case S(m') => beq_nat(n', m')
 }
 
 function ble_nat (n: Nat, m: Nat) : Bool
@@ -308,9 +308,9 @@ function ble_nat (n: Nat, m: Nat) : Bool
   match n
   case O => True
   case S(n') =>
-      match m
-      case O => False
-      case S(m') => ble_nat(n', m')
+    match m
+    case O => False
+    case S(m') => ble_nat(n', m')
 }
 
 method test_ble_nat1()
@@ -510,12 +510,12 @@ function decreasingOnTwo (n: Nat, m: Nat, p: Nat) : Nat
 {
   match p
   case O => (
-      match n
-      case O     => O
-      case S(n') => decreasingOnTwo(n', m, S(O))
-      )
+    match n
+    case O     => O
+    case S(n') => decreasingOnTwo(n', m, S(O))
+  )
   case S(_) =>
-      match m
-      case O     => S(O)
-      case S(m') => decreasingOnTwo(n, m', O)
+    match m
+    case O     => S(O)
+    case S(m') => decreasingOnTwo(n, m', O)
 }

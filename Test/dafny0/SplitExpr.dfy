@@ -35,7 +35,7 @@ class UnboundedStack<T> {
       footprint := footprint + top.footprint;  top.prev := null;
     }
     content := content[1..];
-} }
+  } }
 
 class Node<T> {
   var val: T

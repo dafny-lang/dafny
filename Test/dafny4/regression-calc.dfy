@@ -6,12 +6,12 @@
 
 lemma L()
   ensures false {
-    calc { true; }
+  calc { true; }
 }
 
 // Empty calc statements work fine, though:
 
 lemma L'()
   ensures false {
-    calc { }
+  calc { }
 }

@@ -104,8 +104,8 @@ method MultipleDimensions() {
 }
 
 method DiagMatrix<A>(rows: int, cols: int, zero: A, one: A)
-    returns (a: array2<A>)
-    requires rows >= 0 && cols >= 0
+  returns (a: array2<A>)
+  requires rows >= 0 && cols >= 0
 {
   return new A[rows, cols]((x,y) => if x==y then one else zero);
 }

@@ -19,13 +19,13 @@ module B {
   import BAR = A`AR
 
   method Test() {
-     var tt : TT;
-     var aot : BAO.T;
-     var aor : BAR.T;
+    var tt : TT;
+    var aot : BAO.T;
+    var aor : BAR.T;
 
-     var e := tt == aot;
-     var f := aot == aor;
-     var g := tt == false;
+    var e := tt == aot;
+    var f := aot == aor;
+    var g := tt == false;
   }
 
 }

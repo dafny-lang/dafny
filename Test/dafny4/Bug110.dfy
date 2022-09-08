@@ -6,7 +6,7 @@ module Io {
   class Time
   {
     static method GetTime()
-        ensures AdvanceTime(1);
+      ensures AdvanceTime(1);
   }
 
   function MaxPacketSize() : int { 65507 }
@@ -14,18 +14,18 @@ module Io {
   class UdpClient
   {
     method Receive()
-        ensures AdvanceTime(3);
+      ensures AdvanceTime(3);
 
     method Send() returns(ok:bool)
-        requires 0 <= MaxPacketSize();
+      requires 0 <= MaxPacketSize();
   }
 }
 
 abstract module Host {
-    import opened Io // Doesn't work.
+  import opened Io // Doesn't work.
     //import Io          // Works
 }
 
 abstract module Main {
-    import H : Host
+  import H : Host
 }

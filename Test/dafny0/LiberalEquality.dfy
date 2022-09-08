@@ -3,14 +3,14 @@
 
 class Array<T>
 {
-   var Length: nat;
+  var Length: nat;
 }
 
 class Test<T> {
   var a: Array<int>;
   var b: Array<T>;
   predicate valid()
-      reads this, a, b;
+    reads this, a, b;
   {
     a != null && b != null &&
     a != b &&  // this is the kind of thing the liberal equalty rules are designed to support
@@ -19,19 +19,19 @@ class Test<T> {
 }
 
 method m0<T, U>(t: T, u: U, x: int)
-   requires t != u; // error: Cannot compare type parameters (can only compare reference types that could be the same)
-   requires u != x; // error: the liberal equality rules apply only if the top-level type is a reference type
+  requires t != u; // error: Cannot compare type parameters (can only compare reference types that could be the same)
+  requires u != x; // error: the liberal equality rules apply only if the top-level type is a reference type
 {
 }
 
 method m1<T>(t: array<T>, a: array<int>, b: array3<T>, c: array3<int>)
-   requires t != null && a != null && b != null && c != null;
-   requires t != a && t.Length == a.Length;
-   requires b != c && b.Length0 == c.Length0 && b.Length1 == c.Length1 && b.Length2 == c.Length2;
-   requires t != b;  // error: these types are never the same
-   requires a != c;  // error: these types are never the same
-   requires t != c;  // error: these types are never the same
-   requires a != b;  // error: these types are never the same
+  requires t != null && a != null && b != null && c != null;
+  requires t != a && t.Length == a.Length;
+  requires b != c && b.Length0 == c.Length0 && b.Length1 == c.Length1 && b.Length2 == c.Length2;
+  requires t != b;  // error: these types are never the same
+  requires a != c;  // error: these types are never the same
+  requires t != c;  // error: these types are never the same
+  requires a != b;  // error: these types are never the same
 {
 }
 
@@ -39,7 +39,7 @@ method m1<T>(t: array<T>, a: array<int>, b: array3<T>, c: array3<int>)
 class Weird<T, U, V> { }
 
 method m2<T, V>(a: Weird<T, int, V>, b: Weird<T, bool, V>)
-   requires a == b; // error: second parameter can't be both bool and int.
+  requires a == b; // error: second parameter can't be both bool and int.
 {
 }
 
@@ -58,7 +58,7 @@ method m4<T>(a: Weird<T, T, bool>, b: Weird<T, bool, T>, c: Weird<T, int, T>)
 
 // Just to make sure nothing went wrong.
 method m5(a: array<int>, b: array<bool>)
-   requires a == b; // error: never equal
+  requires a == b; // error: never equal
 {
 }
 

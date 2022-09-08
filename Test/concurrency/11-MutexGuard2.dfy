@@ -35,12 +35,12 @@ trait Universe {
   twostate predicate baseLegalTransitionsSequence() reads * {
     && old(globalBaseInv())
     && globalBaseInv()
-    // The universe only grows
+       // The universe only grows
     && old(content) <= content
-    // All objects added to the universe weren't allocated in the old state.
-    // This allows to satisfy the modifies clause checks on the caller side in a sequence of methods that might
-    // modify the universe. For example, the `Havoc` and `Interference` methods.
-    // fresh(content - old(content)) // This is slow. Dafny is 20x faster using the following quantifier!
+       // All objects added to the universe weren't allocated in the old state.
+       // This allows to satisfy the modifies clause checks on the caller side in a sequence of methods that might
+       // modify the universe. For example, the `Havoc` and `Interference` methods.
+       // fresh(content - old(content)) // This is slow. Dafny is 20x faster using the following quantifier!
     && (forall o: Object | o !in old(content) && o in content :: !old(allocated(o)))
   }
 
@@ -51,15 +51,15 @@ trait Universe {
   // This definition is needed in the definition of the `Interference` and `Havoc` methods, and in the loop invariants of the `Run` methods.
   twostate predicate legalTransitionsSequence(running: set<Thread>) reads * {
     && baseLegalTransitionsSequence()
-    // Version numbers only increase
-    // Updated objects must obey their transitive 2-state invariants.
+       // Version numbers only increase
+       // Updated objects must obey their transitive 2-state invariants.
     && (forall o: Object | o in old(content) && o in content :: unchanged(o) || o.sequenceInv2()) // `o in content` adds a useful trigger
-    // Objects cannot change the nonvolatile fields if they are directly owned by threads that cannot run.
-    // The 2-state invariant of OwnedObject extends this property to objects that are *transitively* owned by the threads.
+       // Objects cannot change the nonvolatile fields if they are directly owned by threads that cannot run.
+       // The 2-state invariant of OwnedObject extends this property to objects that are *transitively* owned by the threads.
     && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread ::
-      // Threads created during a legalTransitionsSequence are allowed to run
-      old(o.owner) as Thread !in running && old(allocated(o.owner)) ==> old(o.nonvolatileVersion) == o.nonvolatileVersion
-    )
+                                // Threads created during a legalTransitionsSequence are allowed to run
+                                old(o.owner) as Thread !in running && old(allocated(o.owner)) ==> old(o.nonvolatileVersion) == o.nonvolatileVersion
+       )
   }
 
   twostate predicate legalTransitionsSequenceAnyThread() reads * {
@@ -72,9 +72,9 @@ trait Universe {
   twostate predicate legalTransition(running: Thread) reads * {
     && legalTransitionsSequence({running})
     && old(globalInv())
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || (o.inv() && o.inv2()))
-    // The second condition for legality: new objects must satisfy their invariants.
+       // The second condition for legality: new objects must satisfy their invariants.
     && (forall o: Object | o in content && o !in old(content) :: o.inv())
   }
 
@@ -348,37 +348,37 @@ trait OwnedObject extends Object {
   twostate predicate sequenceInv2() reads * {
     && old(nonvolatileVersion) <= nonvolatileVersion
     && (old(nonvolatileVersion) == nonvolatileVersion ==>
-      // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
-      // TODO: This could be optimized by making the nonvolatile fields a version of the nonvolatile version number
-      && unchangedNonvolatileFields()
-      // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
-      //&& (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion)
-    )
-    // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
+          // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
+          // TODO: This could be optimized by making the nonvolatile fields a version of the nonvolatile version number
+          && unchangedNonvolatileFields()
+             // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
+             //&& (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion)
+       )
+       // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
     && (old(owner) is OwnedObject ==>
-      var oldOwner := old(owner) as OwnedObject;
-      !oldOwner.volatileOwns() && old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
-    )
-    // The nonvolatileVersion cannot change if the version of the new owner doesn't change.
-    // Note: this seems fine, but unnecessary.
-    // && (owner is OwnedObject ==>
-    //   var newOwner := owner as OwnedObject;
-    //   old(allocated(newOwner)) && old(newOwner.nonvolatileVersion) == newOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
-    // )
+          var oldOwner := old(owner) as OwnedObject;
+          !oldOwner.volatileOwns() && old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
+       )
+       // The nonvolatileVersion cannot change if the version of the new owner doesn't change.
+       // Note: this seems fine, but unnecessary.
+       // && (owner is OwnedObject ==>
+       //   var newOwner := owner as OwnedObject;
+       //   old(allocated(newOwner)) && old(newOwner.nonvolatileVersion) == newOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
+       // )
   }
 
   twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2() {
     && localInv2()
     && sequenceInv2()
     && userInv2()
-    // When the owner changes, the invariant of the old and new owner must hold.
+       // When the owner changes, the invariant of the old and new owner must hold.
     && (old(owner) != owner ==>
-      && old(owner).localInv()
-      && old(owner).localInv2()
-      && owner.localInv()
-      // In case the new owner existed in the old state
-      && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
-    )
+          && old(owner).localInv()
+          && old(owner).localInv2()
+          && owner.localInv()
+             // In case the new owner existed in the old state
+          && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
+       )
   }
 
   // Check transitivity of sequenceInv2()
@@ -483,25 +483,25 @@ class Mutex extends OwnedObject {
 
   predicate localUserInv() reads * {
     && (locked ==>
-      && data.owner is MutexGuardU32
-      && (data.owner as MutexGuardU32).mutex == this
-      && guards == { data.owner as MutexGuardU32 }
-    )
+          && data.owner is MutexGuardU32
+          && (data.owner as MutexGuardU32).mutex == this
+          && guards == { data.owner as MutexGuardU32 }
+       )
     && (!locked ==>
-      && data.owner == this
-      && guards == {}
-    )
+          && data.owner == this
+          && guards == {}
+       )
   }
   predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
     && (forall g: MutexGuardU32 | g in guards :: g.localInv())
   }
-  twostate predicate localUserInv2() reads * { 
+  twostate predicate localUserInv2() reads * {
     && old(data) == data
   }
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2() {
     && localUserInv2()
-    //&& (forall g: MutexGuardU32 | g in old(guards) :: g.localInv2())
+       //&& (forall g: MutexGuardU32 | g in old(guards) :: g.localInv2())
   }
 
   twostate lemma sequenceAdmissibility(running: set<Thread>) requires goodPreAndLegalChangesSequence(running) ensures sequenceInv2() {}

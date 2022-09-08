@@ -10,6 +10,6 @@ method M(P: (int -> int) -> bool, g: int -> int)
   assume forall f: int -> int :: P(f) ==> f.requires(10) && f(10) == 0;
   assert forall f: int -> int ::
     (forall x :: f.requires(x) && g.requires(x) ==> f(x) == g(x)) ==>
-    f.requires(10) ==>
-    f(10) == 0;
+      f.requires(10) ==>
+        f(10) == 0;
 }

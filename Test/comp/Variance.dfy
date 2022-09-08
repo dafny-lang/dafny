@@ -7,93 +7,93 @@
 // The Java compiler lacks support for this (see dafny0/RuntimeTypeTests0.dfy).
 
 datatype Co<+T> = Co(z: T) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 datatype Non<T> = Non(T) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 datatype Cont<-T> = Cont(z: T -> int) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 codatatype CCo<+T> = CCo(T) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 codatatype CNon<T> = CNon(z: T) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 codatatype CCon<-T> = CCon(T -> int) {
-    const x: int;
-    const y: seq<T>
+  const x: int;
+  const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+  function method A(x: T): int { 0 }
+  static function method sA(x: T): int { 0 }
+  function method gA(ghost x: T): int { 0 }
+  function method B(x: seq<T>): int { 0 }
+  function method C(x: int): seq<T> { y }
+  function method D(x: T): T { x }
 
-    method mA(x: T) returns (r: int) { r := 0; }
-    method mD(x: T) returns (r: T) { r := x; }
+  method mA(x: T) returns (r: int) { r := 0; }
+  method mD(x: T) returns (r: T) { r := x; }
 }
 
 trait X {}
@@ -112,7 +112,7 @@ method Covariant() {
   var s := Co(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n";
 }
 
 method Nonvariant() {
@@ -122,11 +122,11 @@ method Nonvariant() {
   var b: Non<Int>;
   b := a;
   print a, " and ", b, "\n";
-  
+
   var s := Non(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Non.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Non.sA(t), s.gA(t), "\n";
 }
 
 method Contravariant() {
@@ -139,7 +139,7 @@ method Contravariant() {
   var s: Cont<X> := Cont(_ => 1);
   var t := s.mD(i);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Cont.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Cont.sA(t), s.gA(t), "\n";
 }
 
 method CCovariant() {
@@ -152,7 +152,7 @@ method CCovariant() {
   var s := CCo(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCo.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCo.sA(t), s.gA(t), "\n";
 }
 
 method CNonvariant() {
@@ -162,11 +162,11 @@ method CNonvariant() {
   var b: CNon<Int>;
   b := a;
   print a, " and ", b, "\n";
-  
+
   var s := CNon(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), CNon.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CNon.sA(t), s.gA(t), "\n";
 }
 
 method CContravariant() {
@@ -179,7 +179,7 @@ method CContravariant() {
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCon.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCon.sA(t), s.gA(t), "\n";
 }
 
 method Main(){

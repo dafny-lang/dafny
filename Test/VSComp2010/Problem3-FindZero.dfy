@@ -36,7 +36,7 @@ class Node {
     1 <= |List| && List[0] == head &&
     (next == null ==> |List| == 1) &&
     (next != null ==>
-      next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid() && next.List == List[1..])
+       next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid() && next.List == List[1..])
   }
 
   static method Cons(x: int, tail: Node?) returns (n: Node)

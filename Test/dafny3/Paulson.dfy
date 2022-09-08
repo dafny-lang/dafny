@@ -36,23 +36,23 @@ greatest lemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
   ensures Lmap(After(f, g), M) == Lmap(f, Lmap(g, M));
 {
   match M {
-  case Nil =>
-  case Cons(x, xs) =>
-    calc {
-      Lmap(After(f, g), M);
-      Lmap(After(f, g), Cons(x, xs));
-      // def. Lmap
-      Cons(Apply(After(f, g), x), Lmap(After(f, g), xs));
-      { Definition_After(f, g, x); }
-      Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs));
-    ==#[_k] // use co-induction hypothesis
-      Cons(Apply(f, Apply(g, x)), Lmap(f, Lmap(g, xs)));
-      // def. Lmap
-      Lmap(f, Cons(Apply(g, x), Lmap(g, xs)));
-      // def. Lmap
-      Lmap(f, Lmap(g, Cons(x, xs)));
-      Lmap(f, Lmap(g, M));
-    }
+    case Nil =>
+    case Cons(x, xs) =>
+      calc {
+        Lmap(After(f, g), M);
+        Lmap(After(f, g), Cons(x, xs));
+        // def. Lmap
+        Cons(Apply(After(f, g), x), Lmap(After(f, g), xs));
+        { Definition_After(f, g, x); }
+        Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs));
+      ==#[_k] // use co-induction hypothesis
+        Cons(Apply(f, Apply(g, x)), Lmap(f, Lmap(g, xs)));
+        // def. Lmap
+        Lmap(f, Cons(Apply(g, x), Lmap(g, xs)));
+        // def. Lmap
+        Lmap(f, Lmap(g, Cons(x, xs)));
+        Lmap(f, Lmap(g, M));
+      }
   }
 }
 
@@ -72,11 +72,11 @@ greatest lemma Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
     Lmap(f, Cons(M, Iterates(f, Apply(f, M))));
     Cons(Apply(f, M), Lmap(f, Iterates(f, Apply(f, M))));
   ==#[_k]
-      calc {
-        Lmap(f, Iterates(f, Apply(f, M)));
-      ==#[_k-1] { Eq24(f, Apply(f, M)); } // co-induction hypothesis
-        Iterates(f, Apply(f, Apply(f, M)));
-      }
+    calc {
+      Lmap(f, Iterates(f, Apply(f, M)));
+    ==#[_k-1] { Eq24(f, Apply(f, M)); } // co-induction hypothesis
+      Iterates(f, Apply(f, Apply(f, M)));
+    }
     Cons(Apply(f, M), Iterates(f, Apply(f, Apply(f, M))));
     // def. Iterates
     Iterates(f, Apply(f, M));

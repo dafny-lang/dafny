@@ -202,10 +202,10 @@ class Node {
     while p !in Visited
       invariant 0 <= steps && p == Nexxxt(steps, S) && p in S && null in Visited && Visited <= S
       invariant forall t :: 0 <= t < steps ==>
-         Nexxxt(t, S) in Visited &&
-         Nexxxt(t, S) in NexxxtInverse && NexxxtInverse[Nexxxt(t, S)] == t
+                  Nexxxt(t, S) in Visited &&
+                  Nexxxt(t, S) in NexxxtInverse && NexxxtInverse[Nexxxt(t, S)] == t
       invariant forall q :: q in Visited && q != null ==>
-         q in NexxxtInverse && 0 <= NexxxtInverse[q] < steps && Nexxxt(NexxxtInverse[q], S) == q
+                  q in NexxxtInverse && 0 <= NexxxtInverse[q] < steps && Nexxxt(NexxxtInverse[q], S) == q
       decreases S - Visited
     {
       p, steps, Visited, NexxxtInverse := p.next, steps + 1, Visited + {p}, NexxxtInverse[p := steps];

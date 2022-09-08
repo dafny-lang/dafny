@@ -55,8 +55,8 @@ least predicate Leq(a: Nat, b: Nat)
 
 lemma LeqTheorem(a: Nat, b: Nat)
   ensures Leq(a, b) <==>
-            exists m:nat :: a == Num(m) &&
-                            (IsInfinity(b) || exists n:nat :: b == Num(n) && m <= n)
+          exists m:nat :: a == Num(m) &&
+                          (IsInfinity(b) || exists n:nat :: b == Num(n) && m <= n)
 {
   if exists m:nat,n:nat :: a == Num(m) && b == Num(n) && m <= n {
     var m:nat,n:nat :| a == Num(m) && b == Num(n) && m <= n;
@@ -117,8 +117,8 @@ greatest predicate CoLeq(a: Nat, b: Nat)
 
 lemma CoLeqTheorem(a: Nat, b: Nat)
   ensures CoLeq(a, b) <==>
-            IsInfinity(b) ||
-            exists m:nat,n:nat :: a == Num(m) && b == Num(n) && m <= n
+          IsInfinity(b) ||
+          exists m:nat,n:nat :: a == Num(m) && b == Num(n) && m <= n
 {
   if IsInfinity(b) {
     CoLeq0_infinite(a, b);

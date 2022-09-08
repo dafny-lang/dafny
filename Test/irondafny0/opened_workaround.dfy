@@ -3,19 +3,19 @@
 
 module A {
 
-    predicate P()
+  predicate P()
 
-    class C
-    {
-        static method{:axiom} M()
-            ensures P();
-    }
+  class C
+  {
+    static method{:axiom} M()
+      ensures P();
+  }
 }
 
 abstract module B {
-    import opened A
+  import opened A
 }
 
 abstract module C {
-    import Bee : B       // Works
+  import Bee : B       // Works
 }

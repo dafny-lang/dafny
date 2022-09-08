@@ -43,7 +43,7 @@ method Test(name:string, b:bool)
 }
 
 method Print(s:string) {
-   print s, "\n";
+  print s, "\n";
 }
 
 method PrintTest() {

@@ -48,14 +48,14 @@ trait Universe {
     && old(globalInv())
     && globalBaseInv()
     && old(content) <= content
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || (o.inv() && o.inv2()))
-    // The second condition for legality: new objects must satisfy their invariants.
+       // The second condition for legality: new objects must satisfy their invariants.
     && (forall o: Object | o in content && o !in old(content) :: o.inv())
-    // Version numbers only increase
+       // Version numbers only increase
     && (forall o: OwnedObject | o in old(content):: old(o.nonvolatileVersion) <= o.nonvolatileVersion)
-    // Objects cannot change the nonvolatile fields if they are directly owned by threads that are not running.
-    // The 2-state invariant of OwnedObject extends this property to objects that are transitively owned by the threads.
+       // Objects cannot change the nonvolatile fields if they are directly owned by threads that are not running.
+       // The 2-state invariant of OwnedObject extends this property to objects that are transitively owned by the threads.
     && (forall t: Thread | t in running :: t.universe == this && t in old(content))
     && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread :: old(o.owner) as Thread !in running ==> old(o.nonvolatileVersion) == o.nonvolatileVersion)
   }
@@ -85,7 +85,7 @@ trait Object {
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.
   const universe: Universe
-  
+
   // Base invariant: we're in the universe, and the universe satisfies its base.
   predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
 
@@ -120,7 +120,7 @@ trait Object {
   predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate inv2() ensures inv2() ==> localInv2() reads *
   twostate lemma admissibility(running: Thread) requires goodPreAndLegalChanges(running) ensures inv2() && inv()
-  
+
   // To prevent a class from extending both OwnedObject and NonOwnedObject
   predicate isOwnedObject()
 }
@@ -180,29 +180,29 @@ trait OwnedObject extends Object {
   twostate predicate localInv2() reads * {
     && localUserInv2()
     && (old(nonvolatileVersion) == nonvolatileVersion ==>
-      // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
-      // (The proveUnchangedNonvolatileFields lemma should be useful to prove this.)
-      && unchangedNonvolatileFields()
-      // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
-      && (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion)
-    )
+          // Nonvolatile fields are only allowed to change when the nonvolatileVersion changes.
+          // (The proveUnchangedNonvolatileFields lemma should be useful to prove this.)
+          && unchangedNonvolatileFields()
+             // Transitivity: if a nonvolatileVersion doesn't change, the same should apply to all owned objects
+          && (forall o: OwnedObject | o in old(universe.content) && old(o.owner) == this :: old(o.nonvolatileVersion) == o.nonvolatileVersion)
+       )
     && (old(owner) is OwnedObject ==>
-      var oldOwner := old(owner) as OwnedObject;
-      // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
-      old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
-    )
+          var oldOwner := old(owner) as OwnedObject;
+          // The nonvolatileVersion cannot change if the version of the old owner doesn't change.
+          old(oldOwner.nonvolatileVersion) == oldOwner.nonvolatileVersion ==> old(nonvolatileVersion) == nonvolatileVersion
+       )
   }
   twostate predicate inv2() reads * ensures inv2() ==> localInv2() {
     && localInv2()
     && userInv2()
-    // When the owner changes, the invariant of the old and new owner must hold.
+       // When the owner changes, the invariant of the old and new owner must hold.
     && (old(owner) != owner ==>
-      && old(owner).localInv()
-      && old(owner).localInv2()
-      && owner.localInv()
-      // In case the new owner existed in the old state
-      && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
-    )
+          && old(owner).localInv()
+          && old(owner).localInv2()
+          && owner.localInv()
+             // In case the new owner existed in the old state
+          && (var currOwner := owner; old(allocated(currOwner)) ==> owner.localInv2())
+       )
   }
 
   // To prevent a class from extending both OwnedObject and NonOwnedObject
@@ -504,7 +504,7 @@ class IncrementerMethod extends OwnedObject {
     TypingAxiom3(running);
     universe.lci(running);
   }
-  
+
   method Statement1(ghost running: Thread)
     requires this.objectGlobalInv() && running.universe == universe && running in universe.content && this.owner == running && programCounter == 1
     modifies this

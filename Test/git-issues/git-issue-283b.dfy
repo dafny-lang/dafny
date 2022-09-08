@@ -14,7 +14,7 @@ trait Foo
       match r { // ERROR - missing case
         case Success(C1()) => true
         case Failure(e) => true
-        // ERROR - missing cases
+                           // ERROR - missing cases
       }
 
   method FooMethod4a()  returns (r: Result<C>)

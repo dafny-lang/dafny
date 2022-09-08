@@ -42,13 +42,13 @@ trait Trait {
 class Class extends Trait {
   // -----------------------
   method A0(x: nat)
-  // default decreases: x
+    // default decreases: x
   { }
   method A1(x: nat)
     decreases x
   { }
   method A2(x: nat)
-  // default decreases: x
+    // default decreases: x
   { }
   method A3(x: nat)
     decreases x
@@ -61,7 +61,7 @@ class Class extends Trait {
     decreases x, x  // fine -- it's below the one in the trait
   { }
   method G2(x: nat, y: bool)  // fine -- (x,y) is below the trait's (x,\top)
-  // default decreases: x, y
+    // default decreases: x, y
   { }
   method G3(x: nat, y: bool)
     decreases x, y  // fine -- trait decrease is above this one

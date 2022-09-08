@@ -72,7 +72,7 @@ lemma BetaReduction1(n': nat, g: (int,int) -> int, i: int)
 
 lemma BetaReductionInside(n': nat, g: (int,int) -> int)
   ensures Sum(n', x => g(x,n') + Sum(n', y => g(x,y)))
-       == Sum(n', x => (w => g(w,n'))(x) + (w => Sum(n', y => g(w,y)))(x))
+          == Sum(n', x => (w => g(w,n'))(x) + (w => Sum(n', y => g(w,y)))(x))
 {
   forall i | 0 <= i < n'
   {
@@ -87,7 +87,7 @@ lemma BetaReductionInside(n': nat, g: (int,int) -> int)
 lemma L(n: nat, n': nat, g: (int, int) -> int)
   requires && n == n' + 1
   ensures Sum(n, x => Sum(n, y => g(x,y)))
-       == Sum(n', x => Sum(n', y => g(x,y))) + Sum(n', x => g(x,n')) + Sum(n', y => g(n',y)) + g(n',n')
+          == Sum(n', x => Sum(n', y => g(x,y))) + Sum(n', x => g(x,n')) + Sum(n', y => g(n',y)) + g(n',n')
 {
   var A := w => g(w,n');
   var B := w => Sum(n', y => g(w,y));

@@ -40,7 +40,7 @@ module M' {
   {
   }
   lemma H'(x: int)
-     requires M.P#[3](x)
+    requires M.P#[3](x)
   {
   }
   lemma CoH(x: int)

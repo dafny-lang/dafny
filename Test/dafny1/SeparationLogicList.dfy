@@ -164,8 +164,8 @@ class LLNode<T(0)>
     this in Repr &&
     (next == null ==> TailContents == []) &&
     (next != null ==>
-      next in Repr &&
-      next.Repr <= Repr && this !in next.Repr && next.IsWellFormed() &&
-      TailContents == [next.data] + next.TailContents)
+       next in Repr &&
+       next.Repr <= Repr && this !in next.Repr && next.IsWellFormed() &&
+       TailContents == [next.data] + next.TailContents)
   }
 }

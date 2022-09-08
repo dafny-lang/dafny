@@ -43,19 +43,19 @@ function minus(x: Nat, y: Nat): Nat
   match x
   case Zero => Zero
   case Suc(a) => match y
-    case Zero => x
-    case Suc(b) => minus(a, b)
+                 case Zero => x
+                 case Suc(b) => minus(a, b)
 }
 
 function eq(x: Nat, y: Nat): Bool
 {
   match x
   case Zero => (match y
-    case Zero => True
-    case Suc(b) => False)
+                case Zero => True
+                case Suc(b) => False)
   case Suc(a) => (match y
-    case Zero => False
-    case Suc(b) => eq(a, b))
+                  case Zero => False
+                  case Suc(b) => eq(a, b))
 }
 
 function leq(x: Nat, y: Nat): Bool
@@ -63,8 +63,8 @@ function leq(x: Nat, y: Nat): Bool
   match x
   case Zero => True
   case Suc(a) => match y
-    case Zero => False
-    case Suc(b) => leq(a, b)
+                 case Zero => False
+                 case Suc(b) => leq(a, b)
 }
 
 function less(x: Nat, y: Nat): Bool
@@ -72,8 +72,8 @@ function less(x: Nat, y: Nat): Bool
   match y
   case Zero => False
   case Suc(b) => match x
-    case Zero => True
-    case Suc(a) => less(a, b)
+                 case Zero => True
+                 case Suc(a) => less(a, b)
 }
 
 function min(x: Nat, y: Nat): Nat
@@ -81,8 +81,8 @@ function min(x: Nat, y: Nat): Nat
   match x
   case Zero => Zero
   case Suc(a) => match y
-    case Zero => Zero
-    case Suc(b) => Suc(min(a, b))
+                 case Zero => Zero
+                 case Suc(b) => Suc(min(a, b))
 }
 
 function max(x: Nat, y: Nat): Nat
@@ -90,8 +90,8 @@ function max(x: Nat, y: Nat): Nat
   match x
   case Zero => y
   case Suc(a) => match y
-    case Zero => x
-    case Suc(b) => Suc(max(a, b))
+                 case Zero => x
+                 case Suc(b) => Suc(max(a, b))
 }
 
 // List functions
@@ -123,8 +123,8 @@ function drop(n: Nat, xs: List): List
   match n
   case Zero => xs
   case Suc(m) => match xs
-    case Nil => Nil
-    case Cons(x, tail) => drop(m, tail)
+                 case Nil => Nil
+                 case Cons(x, tail) => drop(m, tail)
 }
 
 function take(n: Nat, xs: List): List
@@ -132,8 +132,8 @@ function take(n: Nat, xs: List): List
   match n
   case Zero => Nil
   case Suc(m) => match xs
-    case Nil => Nil
-    case Cons(x, tail) => Cons(x, take(m, tail))
+                 case Nil => Nil
+                 case Cons(x, tail) => Cons(x, take(m, tail))
 }
 
 function len(xs: List): Nat
@@ -156,8 +156,8 @@ function last(xs: List): Nat
   match xs
   case Nil => Zero
   case Cons(y, ys) => match ys
-    case Nil => y
-    case Cons(z, zs) => last(ys)
+                      case Nil => y
+                      case Cons(z, zs) => last(ys)
 }
 
 function apply(f: Nat -> Nat, xs: List): List
@@ -251,8 +251,8 @@ function zip(a: List, b: List): PList
   match a
   case Nil => PNil
   case Cons(x, xs) => match b
-    case Nil => PNil
-    case Cons(y, ys) => PCons(Pair.Pair(x, y), zip(xs, ys))
+                      case Nil => PNil
+                      case Cons(y, ys) => PCons(Pair.Pair(x, y), zip(xs, ys))
 }
 
 function zipConcat(x: Nat, xs: List, more: List): PList
@@ -321,8 +321,8 @@ lemma P4()
 
 lemma P5()
   ensures forall n, xs, x ::
-    add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
-    ==> n == x;
+          add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
+          ==> n == x;
 {
 }
 
@@ -495,7 +495,7 @@ lemma P38()
 
 lemma P39()
   ensures forall n, x, xs ::
-            add(count(n, Cons(x, Nil)), count(n, xs)) == count(n, Cons(x, xs));
+          add(count(n, Cons(x, Nil)), count(n, xs)) == count(n, Cons(x, xs));
 {
 }
 
@@ -526,8 +526,8 @@ lemma P44()
 
 lemma P45()
   ensures forall x, xs, y, ys ::
-            zip(Cons(x, xs), Cons(y, ys)) ==
-            PCons(Pair.Pair(x, y), zip(xs, ys));
+          zip(Cons(x, xs), Cons(y, ys)) ==
+          PCons(Pair.Pair(x, y), zip(xs, ys));
 {
 }
 

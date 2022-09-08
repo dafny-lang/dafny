@@ -383,7 +383,7 @@ module ScopeRegressions {
     import B
 
     type AType = b: B.BType |
-      P(b) ghost witness var h: B.BType :| true; h
+        P(b) ghost witness var h: B.BType :| true; h
 
     predicate P(b: B.BType) { true }
 

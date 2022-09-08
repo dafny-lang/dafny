@@ -101,7 +101,7 @@ module JustAboutEverything {
   }
 
   datatype {:dt 0} {:dt false + 3} Datatype = // error: false + 3 is ill-typed
-    {:dt k} Blue | {:dt 50} Green // error: k is unknown
+      {:dt k} Blue | {:dt 50} Green // error: k is unknown
 
   datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
     | {:dt 50} Blue | {:dt k} Green // error: k is unknown

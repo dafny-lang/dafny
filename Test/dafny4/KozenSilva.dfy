@@ -55,7 +55,7 @@ predicate NotLexLess(s: Stream<int>, t: Stream<int>)
 predicate NotLexLess'(k: nat, s: Stream<int>, t: Stream<int>)
 {
   if k == 0 then false else
-    !(s.hd <= t.hd) || (s.hd == t.hd && NotLexLess'(k-1, s.tl, t.tl))
+  !(s.hd <= t.hd) || (s.hd == t.hd && NotLexLess'(k-1, s.tl, t.tl))
 }
 
 lemma EquivalenceTheorem(s: Stream<int>, t: Stream<int>)
@@ -297,25 +297,25 @@ greatest lemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
   // is itself a calculation.  In the last step, the hint is an invocation of
   // the co-inductive hypothesis--that is, it is a call of the co-lemma itself.
   calc {
-    Bisim#[_k](LHS, s);  // when all comes around, this is our proof goal:  Bisim unrolled _k times (where _k > 0)
+     Bisim#[_k](LHS, s);  // when all comes around, this is our proof goal:  Bisim unrolled _k times (where _k > 0)
   ==  // def. Bisim (more precisely, def. Bisim#[_k] in terms of Bisim#[_k-1])
-    LHS.hd == s.hd && Bisim#[_k-1](LHS.tl, s.tl);
+     LHS.hd == s.hd && Bisim#[_k-1](LHS.tl, s.tl);
   == calc {  // the left conjunct is easy to establish, so let's do that now
        LHS.hd;
-       == merge(SplitLeft(s), SplitRight(s)).hd;
-       == SplitLeft(s).hd;
-       == s.hd;
-     }
-    Bisim#[_k-1](LHS.tl, s.tl);
+    == merge(SplitLeft(s), SplitRight(s)).hd;
+    == SplitLeft(s).hd;
+    == s.hd;
+    }
+     Bisim#[_k-1](LHS.tl, s.tl);
   == calc {  // let us massage the formula LHS.tl
        LHS.tl;
-       == merge(SplitLeft(s), SplitRight(s)).tl;
-       == merge(SplitRight(s), SplitLeft(s).tl);
-       == merge(SplitLeft(s.tl), SplitRight(s.tl));
-     }
-    Bisim#[_k-1](merge(SplitLeft(s.tl), SplitRight(s.tl)), s.tl);  // this is the hypothesis on s.tl
+    == merge(SplitLeft(s), SplitRight(s)).tl;
+    == merge(SplitRight(s), SplitLeft(s).tl);
+    == merge(SplitLeft(s.tl), SplitRight(s.tl));
+    }
+     Bisim#[_k-1](merge(SplitLeft(s.tl), SplitRight(s.tl)), s.tl);  // this is the hypothesis on s.tl
   == { Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s.tl); }
-    true;
+     true;
   }
 }
 

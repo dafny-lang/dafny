@@ -82,7 +82,7 @@ module M1 {
 
   function method fSetToSeq(t: set): (r: seq)
     ensures setIsSeq(t, r)
-   {
+  {
     var notUsed := t;
     if |t| == 0 then
       []

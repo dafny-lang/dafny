@@ -15,8 +15,8 @@ method M()
 function method Id(x: int): int { x }  // for triggering
 
 datatype D = A | B
-// The following mainly test that set comprehensions can be compiled, but one would
-// have to run the resulting program to check that the compiler is doing the right thing.
+             // The following mainly test that set comprehensions can be compiled, but one would
+             // have to run the resulting program to check that the compiler is doing the right thing.
 method Main()
 {
   var q := set i,j | 0 <= i < 10 && 0 <= j < 3 :: i+j;

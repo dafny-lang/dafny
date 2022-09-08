@@ -218,21 +218,21 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
       // An occurrence of another value and k just lost the majority.
       // Prove that k has exactly 50% in the future window a[lo..up + 1]:
       calc /* k has 50% among a[lo..up + 1] */ {
-        true;
+         true;
       ==  // negation of the previous branch condition;
-        2 * c <= up + 1 - lo;
+         2 * c <= up + 1 - lo;
       ==  // loop invariant (3)
-        2 * Count(a, lo, up, k) <= up + 1 - lo;
+         2 * Count(a, lo, up, k) <= up + 1 - lo;
       == calc {
-           true;
-         ==  // loop invariant (2)
-           HasMajority(a, lo, up, k);
-         ==  // def. HasMajority
-           2 * Count(a, lo, up, k) > up - lo;
-         ==
-           2 * Count(a, lo, up, k) >= up + 1 - lo;
-         }
-        2 * Count(a, lo, up, k) == up + 1 - lo;
+          true;
+        ==  // loop invariant (2)
+          HasMajority(a, lo, up, k);
+        ==  // def. HasMajority
+          2 * Count(a, lo, up, k) > up - lo;
+        ==
+          2 * Count(a, lo, up, k) >= up + 1 - lo;
+        }
+         2 * Count(a, lo, up, k) == up + 1 - lo;
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]
@@ -302,21 +302,21 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
       // An occurrence of another value and k just lost the majority.
       // Prove that k has exactly 50% in the future window a[lo..up + 1]:
       calc /* k has 50% among a[lo..up + 1] */ {
-        true;
+          true;
       ==  // negation of the previous branch condition
-        2 * c <= up + 1 - lo;
+          2 * c <= up + 1 - lo;
       ==  // loop invariant (3)
-        2 * Count(a, lo, up, k) <= up + 1 - lo;
+          2 * Count(a, lo, up, k) <= up + 1 - lo;
       ==  calc {
-            true;
-          ==  // loop invariant (2)
-            HasMajority(a, lo, up, k);
-          ==  // def. HasMajority
-            2 * Count(a, lo, up, k) > up - lo;
-          ==
-            2 * Count(a, lo, up, k) >= up + 1 - lo;
-          }
-        2 * Count(a, lo, up, k) == up + 1 - lo;
+          true;
+        ==  // loop invariant (2)
+          HasMajority(a, lo, up, k);
+        ==  // def. HasMajority
+          2 * Count(a, lo, up, k) > up - lo;
+        ==
+          2 * Count(a, lo, up, k) >= up + 1 - lo;
+        }
+          2 * Count(a, lo, up, k) == up + 1 - lo;
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]

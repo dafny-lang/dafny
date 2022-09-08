@@ -185,7 +185,7 @@ predicate ValidArmy(bots:seq<Bot>)
   reads set b | b in bots
   reads ArmyRepr(bots)
 {
-      (forall i :: 0 <= i < |bots| ==> bots[i].Valid())
+  (forall i :: 0 <= i < |bots| ==> bots[i].Valid())
   &&  (forall i,j :: 0 <= i < j < |bots| ==> bots[i].Repr !! bots[j].Repr)
 }
 

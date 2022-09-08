@@ -11,8 +11,8 @@ module A {
   function getCT2() : T { CT2 }
 
   class AClass {
-     function method getCT1(): T { CT1 }
-     constructor Init() {}
+    function method getCT1(): T { CT1 }
+    constructor Init() {}
   }
 
 }
@@ -22,7 +22,7 @@ module B {
 
   function f(): A.T { A.getCT1() }
   lemma Test(x : A.T)
-  ensures x == A.getCT1() || x == A.getCT2() { } //can't prove this here
+    ensures x == A.getCT1() || x == A.getCT2() { } //can't prove this here
 
   method TestClass() {
     var a := new A.AClass.Init();
@@ -37,10 +37,10 @@ module C {
   function f(): A.T { A.CT1 }
 
   lemma Test()
-  ensures A.CT1 == A.getCT1() { }
+    ensures A.CT1 == A.getCT1() { }
 
   lemma Test2(x : A.T)
-  ensures x == A.getCT1() || x == A.getCT2() { }
+    ensures x == A.getCT1() || x == A.getCT2() { }
 
   method TestClass() {
     var a := new A.AClass.Init();

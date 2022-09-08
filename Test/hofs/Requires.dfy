@@ -4,10 +4,10 @@
 method Main()
 {
   test0(10);
-	test5(11);
-	test6(12);
-	test1();
-	test2();
+  test5(11);
+  test6(12);
+  test1();
+  test2();
 }
 
 predicate valid(x:int)
@@ -54,7 +54,7 @@ method test1()
     assert forall a, b :: valid(a) && valid(b) && ref1(a) == ref1(b) ==> a == b;
   } else {
     assert forall a, b :: ref1.requires(a) && ref1.requires(b) && ref1(a) == ref1(b)
-                          ==> a == b;
+      ==> a == b;
   }
 }
 
@@ -77,6 +77,6 @@ method test2()
     assert forall a, b :: valid(a) && valid(b) && ref2(a) == ref2(b) ==> a == b;
   } else {
     assert forall a, b :: ref2.requires(a) && ref2.requires(b) && ref2(a) == ref2(b)
-                          ==> a == b;
+      ==> a == b;
   }
 }

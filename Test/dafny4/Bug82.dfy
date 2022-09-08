@@ -7,5 +7,5 @@ function RefineToMap(ReverseKey:int->int) : bool
 
 function RefineToMapOfSeqNums() : bool
 {
-    RefineToMap(Reverse)
+  RefineToMap(Reverse)
 }

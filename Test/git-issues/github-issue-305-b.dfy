@@ -4,6 +4,6 @@
 method hasNoBody()
 
 method Main() {
-    hasNoBody();
-    print "hello\n";
+  hasNoBody();
+  print "hello\n";
 }

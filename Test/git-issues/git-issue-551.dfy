@@ -2,15 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype VoidOutcome =
-| VoidSuccess
-| VoidFailure(error: string)
+  | VoidSuccess
+  | VoidFailure(error: string)
 {
-    predicate method IsFailure() {
-        this.VoidFailure?
-    }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
-        this
-    }
+  predicate method IsFailure() {
+    this.VoidFailure?
+  }
+  function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    this
+  }
 }
 
 function method Require(b: bool): (r: VoidOutcome) ensures r.VoidSuccess? ==> b

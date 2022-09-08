@@ -14,7 +14,7 @@
 
 // RUN: %testDafnyForEachCompiler "%s"
 
-iterator EmptyIterator() yields (r: bool) 
+iterator EmptyIterator() yields (r: bool)
   ensures false
 {}
 

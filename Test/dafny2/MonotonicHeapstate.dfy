@@ -78,7 +78,7 @@ module M1 refines M0 {
     predicate Valid'...
     {
       (resolved ==>
-        (kind == Binary ==> left.resolved && right.resolved)) &&
+         (kind == Binary ==> left.resolved && right.resolved)) &&
       Valid''()
     }
     predicate Valid''()

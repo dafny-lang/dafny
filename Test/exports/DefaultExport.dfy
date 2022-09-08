@@ -9,20 +9,20 @@ module A {
 module B {
   import A
   method Test() {
-     var e : A.T;
-     var f := e == false; // error
+    var e : A.T;
+    var f := e == false; // error
   }
 }
 
 module C {
   module D {
-     export provides T
-     type T = bool
+    export provides T
+    type T = bool
   }
 
   method Test() {
-     var e : D.T;
-     var f := e == false; // error
+    var e : D.T;
+    var f := e == false; // error
   }
 
 }

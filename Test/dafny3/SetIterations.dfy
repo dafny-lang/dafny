@@ -4,8 +4,8 @@
 function Count<T>(s: set<T>): int
 {
   if s == {} then 0 else
-    var x :| x in s;  // let x be such that "x in s"
-    1 + Count(s - {x})
+  var x :| x in s;  // let x be such that "x in s"
+  1 + Count(s - {x})
 }
 
 method Copy<T>(s: set<T>) returns (t: set<T>)

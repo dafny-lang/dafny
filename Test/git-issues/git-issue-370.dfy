@@ -40,8 +40,8 @@ function {:opaque} GetT(): T {
 
 lemma foo()
   ensures var t := GetT();
-    && WellFormed(t)  // error (1x)
-    && Good(Func(t))  // error (5x, but only 4 of these are reported, due to the limit of 5 errors per method)
+          && WellFormed(t)  // error (1x)
+          && Good(Func(t))  // error (5x, but only 4 of these are reported, due to the limit of 5 errors per method)
 {
   reveal GetT();
 }

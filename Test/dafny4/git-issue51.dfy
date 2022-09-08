@@ -43,7 +43,7 @@ method M0(p: C)
              ); 5);
   case true =>
     x := old(L(c); 5);  // error: c is not allocated in old state
-  }
+}
 method M1(p: C)
 {
   var c := new C;

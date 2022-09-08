@@ -2,15 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Microsoft"} Microsoft {
-    module {:extern "Microsoft.Dafny"} Dafny {
-        class {:extern "Main"} DafnyMain {}
-    }
+  module {:extern "Microsoft.Dafny"} Dafny {
+    class {:extern "Main"} DafnyMain {}
+  }
 }
 
 module M {
-    import Microsoft
+  import Microsoft
 
-    method Foo() {
-        var dafny: Microsoft.Dafny.DafnyMain? := null;
-    }
+  method Foo() {
+    var dafny: Microsoft.Dafny.DafnyMain? := null;
+  }
 }

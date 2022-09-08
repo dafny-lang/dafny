@@ -8,18 +8,18 @@
 method InSeqTriggers(s: seq<int>, i: nat)
   requires forall x :: x in s ==> x > 0;
   requires |s| > 0 {
-    if * {
-      // Fails
-      assert s[0] > 0; // WISH
-    } else if * {
-      // Works
-      assert s[0] in s;
-      assert s[0] > 0;
-    }
+  if * {
+    // Fails
+    assert s[0] > 0; // WISH
+  } else if * {
+    // Works
+    assert s[0] in s;
+    assert s[0] > 0;
+  }
 }
 
 method InSeqNoAutoTriggers(s: seq<int>, i: nat)
   requires forall x {:autotriggers false} :: x in s ==> x > 0;
   requires |s| > 0 {
-    assert s[0] > 0; // Works (Z3 matches on $Box above)
+  assert s[0] > 0; // Works (Z3 matches on $Box above)
 }

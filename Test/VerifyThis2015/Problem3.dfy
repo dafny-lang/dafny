@@ -65,8 +65,8 @@ class DoublyLinkedList {
     reads this, Nodes
   {
     (|Nodes| > 0 ==>
-      Nodes[0].L == null && (forall i {:trigger Nodes[i].L} :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
-      (forall i {:trigger Nodes[i].R} :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
+       Nodes[0].L == null && (forall i {:trigger Nodes[i].L} :: 1 <= i < |Nodes| ==> Nodes[i].L == Nodes[i-1]) &&
+       (forall i {:trigger Nodes[i].R} :: 0 <= i < |Nodes|-1 ==> Nodes[i].R == Nodes[i+1]) && Nodes[|Nodes|-1].R == null
     ) &&
     forall i,j :: 0 <= i < j < |Nodes| ==> Nodes[i] != Nodes[j]  // this is actually a consequence of the previous conditions
   }
@@ -99,7 +99,7 @@ class DoublyLinkedList {
 
   function PopMiddle<T>(s: seq<T>, k: nat) : seq<T>
     requires k < |s| {
-      s[..k] + s[k+1..]
+    s[..k] + s[k+1..]
   }
 
   predicate Injective<T>(s: seq<T>) {

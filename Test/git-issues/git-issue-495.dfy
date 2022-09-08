@@ -5,13 +5,13 @@ datatype Dt = Make(d: int)
 
 function method GetNat(dt: Dt): nat {
   match dt
-  // regression: the following declaration of y was once missing the subet-constraint check
+    // regression: the following declaration of y was once missing the subet-constraint check
   case Make(y: nat) => y  // error: dt.d is not a nat
 }
 
 method GetNatMethod(dt: Dt) returns (n: nat) {
   match dt
-  // regression: the following declaration of w was once missing the subet-constraint check
+    // regression: the following declaration of w was once missing the subet-constraint check
   case Make(w: nat) =>  // error: dt.d is not a nat
     n := w;
 }
@@ -43,7 +43,7 @@ method GetXNat(g: Gen<nat>) returns (m: nat) {
 }
 method GetXInt(g: Gen<int>) returns (m: nat) {
   match g
-  // regression: the following declaration of un was once missing the subet-constraint check
+    // regression: the following declaration of un was once missing the subet-constraint check
   case Create(un: nat) =>  // error: g.x is an int, not a nat
     m := un;
 }

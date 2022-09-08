@@ -19,5 +19,5 @@ function HashtableLookup(h: Hashtable, k: Key): Value
 
 lemma HashtableAgreement(h1:Hashtable, h2:Hashtable, k:Key)
   requires forall k :: HashtableLookup(h1,k) == HashtableLookup(h2,k) {
-    assert true || (k in h1) == (k in h2);
+  assert true || (k in h1) == (k in h2);
 }

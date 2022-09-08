@@ -3,13 +3,13 @@
 // Does not test anything Exceptions-related, but is included by other tests
 
 datatype VoidOutcome =
-| VoidSuccess
-| VoidFailure(error: string)
+  | VoidSuccess
+  | VoidFailure(error: string)
 {
-    predicate method IsFailure() {
-        this.VoidFailure?
-    }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
-        this
-    }
+  predicate method IsFailure() {
+    this.VoidFailure?
+  }
+  function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    this
+  }
 }

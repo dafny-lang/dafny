@@ -7,7 +7,7 @@ function fact(n: int): int
   if n == 0 then
     1
   else (
-    assert fact.requires(n-1); //WISH
-    n * fact(n-1)
-  )
+         assert fact.requires(n-1); //WISH
+         n * fact(n-1)
+       )
 }

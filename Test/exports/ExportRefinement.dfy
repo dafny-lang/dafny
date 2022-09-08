@@ -22,8 +22,8 @@ module B refines A {
   method m() { print "B\n"; }
 
   class C ... {
-     method m() { print "B.C.m\n"; }
-     method n() { print "B.C.n\n"; }
+    method m() { print "B.C.m\n"; }
+    method n() { print "B.C.n\n"; }
   }
 }
 

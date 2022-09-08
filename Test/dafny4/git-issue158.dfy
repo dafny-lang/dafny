@@ -15,10 +15,10 @@ method Main()
   var a2 := new Class;
   var a3 := new Class;
   var c: map<Record<Class?>,real> := map[
-                Make(null,null,a1,5,10) := 0.8,
-                Make(null,null,a2,4,11) := 0.1,
-                Make(null,null,a3,8,12) := 0.1
-                ];
+                                       Make(null,null,a1,5,10) := 0.8,
+                                       Make(null,null,a2,4,11) := 0.1,
+                                       Make(null,null,a3,8,12) := 0.1
+                                     ];
   print map r | r in c && r.4 == 10 :: c[r], "\n";
   print map r | r in c && r.4 == 11 :: c[r], "\n";
   print map r | r in c && r.4 == 12 :: c[r], "\n";

@@ -37,7 +37,7 @@ class Glossary {
     ensures fresh(r)
     ensures |r.contents| == |old(q.contents)|
     ensures forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
-               r.Get(i).AtMost(r.Get(j))
+              r.Get(i).AtMost(r.Get(j))
     // the final Queue is a permutation of the input Queue
     ensures multiset(r.contents) == multiset(old(q.contents))
 
@@ -302,8 +302,8 @@ class Map<Key(==),Value> {
     // other values don't change:
     ensures key !in old(keys) ==> keys == old(keys) && values == old(values)
     ensures key in old(keys) ==>
-            |keys| == |old(keys)| - 1 && key !in keys &&
-            exists h ::
+              |keys| == |old(keys)| - 1 && key !in keys &&
+              exists h ::
               0 <= h <= |keys| &&
               keys[..h] == old(keys)[..h] &&
               values[..h] == old(values)[..h] &&

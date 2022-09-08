@@ -6,41 +6,41 @@
 class C { var u : int; }
 
 function nope1(c : C):()
-     requires c.u > 0;
+  requires c.u > 0;
 {()}
 
 function ok1(c : C):()
-     requires c.u > 0;
-     reads c;
+  requires c.u > 0;
+  reads c;
 {()}
 
 function nope2(c : C?):()
-     requires c != null && c.u > 0;
-     reads if c != null then {} else {c};
+  requires c != null && c.u > 0;
+  reads if c != null then {} else {c};
 {()}
 
 function ok2(c : C?):()
-     requires c != null && c.u > 0;
-     reads if c != null then {c} else {};
+  requires c != null && c.u > 0;
+  reads if c != null then {c} else {};
 {()}
 
 function nope3(xs : seq<C>):()
-     requires |xs| > 0 && xs[0].u > 0;
+  requires |xs| > 0 && xs[0].u > 0;
 {()}
 
 function ok3(xs : seq<C>):()
-     requires |xs| > 0 && xs[0].u > 0;
-     reads xs;
+  requires |xs| > 0 && xs[0].u > 0;
+  reads xs;
 {()}
 
 function nope4(c : C, xs : set<C>):()
-     requires c !in xs ==> c.u > 0;
-     reads xs;
+  requires c !in xs ==> c.u > 0;
+  reads xs;
 {()}
 
 function ok4(c : C, xs : set<C>):()
-     requires c in xs ==> c.u > 0;
-     reads xs;
+  requires c in xs ==> c.u > 0;
+  reads xs;
 {()}
 
 // reads over itself
@@ -103,8 +103,8 @@ function ApplyToSet<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
 {
   if S == {} then {} else
-    var x :| x in S;
-    ApplyToSet(S - {x}, f) + {f(x)}
+  var x :| x in S;
+  ApplyToSet(S - {x}, f) + {f(x)}
 }
 
 function ApplyToSet_AltSignature0<X>(S: set<X>, f: X ~> X): set<X>
@@ -116,7 +116,7 @@ function ApplyToSet_AltSignature1<X>(S: set<X>, f: X ~> X): set<X>
 
 function ApplyToSet_AltSignature2<X>(S: set<X>, f: X ~> X): set<X>
   requires (forall x :: x in S ==> f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
-  // (this precondition would not be good enough to check the body above)
+// (this precondition would not be good enough to check the body above)
 
 function FunctionInQuantifier0(): int
   requires exists f: int ~> int :: f(10) == 100  // error (x2): precondition violation and insufficient reads

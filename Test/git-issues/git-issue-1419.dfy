@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module FromBugReport {
-  predicate P() { 
+  predicate P() {
     // The following expression depends on the allocation state, so it should not be allowed
     // in a function.
     exists o: set<object> :: |o| > 10 // error: function body is not allowed to depend on allocation state

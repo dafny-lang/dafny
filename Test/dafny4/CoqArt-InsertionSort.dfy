@@ -36,7 +36,7 @@ function nb_occ(z: int, l: List<int>): nat
   match l
   case Nil => 0
   case Cons(z', l') =>
-    (if z == z' then 1 else 0) + nb_occ(z, l')
+  (if z == z' then 1 else 0) + nb_occ(z, l')
 }
 
 lemma example_nb_occ_0()

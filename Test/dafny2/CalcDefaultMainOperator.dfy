@@ -110,18 +110,18 @@ module PrintTest {
   predicate Yes(x: int) { true }
 
   type Odd = x |
-    var rr := 2; x % rr == 1
+      var rr := 2; x % rr == 1
     witness var ww := 2; ww + 7
 
   newtype NewOdd = x |
-    var rr := 2; x % rr == 1
+      var rr := 2; x % rr == 1
     witness var ww := 2; ww + 7
 
   type Even = x |
-    var rr := 2; x % rr == 0
+      var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 
   newtype NewEven = x |
-    var rr := 2; x % rr == 0
+      var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 }

@@ -13,7 +13,7 @@ module B {
   function G() : nat { A.f() } // error, T not known to be nat
 
   function H(n : A.T) : bool
-  requires 0 <= n; // error
+    requires 0 <= n; // error
 
 }
 
@@ -23,7 +23,7 @@ module C {
   function G(): nat { A.f() } // T is now known
 
   function H(n : A.T, m : A.T, h : nat) : bool
-  requires 0 <= n && n == m && h <= m;
+    requires 0 <= n && n == m && h <= m;
 
 }
 
@@ -40,7 +40,7 @@ module BB {
   function G() : int { A.f() as int } // error, T not known to be nat
 
   function H(n : A.T) : bool
-  requires 0 <= n; // error
+    requires 0 <= n; // error
 
 }
 
@@ -50,7 +50,7 @@ module CC {
   function G(): nat { A.f() as int } // T is now known
 
   function H(n : A.T, m : A.T) : bool
-  requires 0 <= n && n == m && 1 <= m;
+    requires 0 <= n && n == m && 1 <= m;
 
 }
 

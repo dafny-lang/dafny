@@ -10,7 +10,7 @@ class A {
   var e: array2 <A>;
   var f: array3 <A?>;
   var g: array300 <A>;
-//  var h: array3000 <array2<int>>; // too big!
+  //  var h: array3000 <array2<int>>; // too big!
 
   method M0()
     modifies a

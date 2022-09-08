@@ -143,11 +143,11 @@ function copt(e: exp): exp
   case Num(n) => e
   case Var(x) => e
   case Plus(e1, e2) => match e1
-    case Num(n) => if n==0 then e2 else e
-    case Var(x) => e
-    case Plus(e11, e12) =>
-      var o1 := copt(e1);
-      if (o1.Num? && o1.n==0) then e2 else Plus(o1, e2)
+                       case Num(n) => if n==0 then e2 else e
+                       case Var(x) => e
+                       case Plus(e11, e12) =>
+                         var o1 := copt(e1);
+                         if (o1.Num? && o1.n==0) then e2 else Plus(o1, e2)
 }
 ghost method copt_test()
   ensures copt(Plus(Plus(Plus(Num(0), Num(0)), Num(0)), Num(1)))==Num(1);

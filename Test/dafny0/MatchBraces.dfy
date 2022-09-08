@@ -12,34 +12,34 @@ method Main() {
 
 method M(c: Color, d: Color) {
   var x := match c
-    case Red => 5
-    case Green => 7
-    case Blue => 11;
+           case Red => 5
+           case Green => 7
+           case Blue => 11;
   var y := match c
-    case Red => 0.3
-    case Green => (match d case Red => 0.18 case Green => 0.21 case Blue => 0.98)
-    case Blue => 98.0;
+           case Red => 0.3
+           case Green => (match d case Red => 0.18 case Green => 0.21 case Blue => 0.98)
+           case Blue => 98.0;
   var z := match c
-    case Red => Green
-    case Green => match d {
-      case Red => Red
-      case Green => Blue
-      case Blue => Red
-    }
-    case Blue => Green;
+           case Red => Green
+           case Green => match d {
+                           case Red => Red
+                           case Green => Blue
+                           case Blue => Red
+                         }
+           case Blue => Green;
   var w := match c { case Red => 2 case Green => 3 case Blue => 4 } + 10;
   var t := match c
-    case Red => 0
-    case Green => (match d {
-      case Red => 2
-      case Green => 2
-      case Blue => 1
-    } + (((match d case Red => 10 case Green => 8 case Blue => 5))))
-    case Blue => (match d {
-      case Red => 20
-      case Green => 20
-      case Blue => 10
-    } + (((match d case Red => 110 case Green => 108 case Blue => 105))));
+           case Red => 0
+           case Green => (match d {
+                            case Red => 2
+                            case Green => 2
+                            case Blue => 1
+                          } + (((match d case Red => 10 case Green => 8 case Blue => 5))))
+           case Blue => (match d {
+                           case Red => 20
+                           case Green => 20
+                           case Blue => 10
+                         } + (((match d case Red => 110 case Green => 108 case Blue => 105))));
   print x, " ", y, " ", z, " ", w, " ", t, "\n";
 }
 
@@ -108,15 +108,15 @@ method P(c: Color, d: Color) {
     var y := 25;
     var z := y + 3;
   case Blue =>
-    {
-      var y := 25;
-      var z := y + 3;
-    }
-    match d // note: this 'match' is part of the previous case
-    case Red =>
-    case Green =>
-      x := x + 1;
-    case Blue =>
+  {
+    var y := 25;
+    var z := y + 3;
+  }
+  match d // note: this 'match' is part of the previous case
+  case Red =>
+  case Green =>
+    x := x + 1;
+  case Blue =>
 }
 
 lemma HeatIsEven(c: Color)

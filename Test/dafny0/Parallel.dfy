@@ -123,29 +123,29 @@ method M4(S: set<C>, k: int)
 method M5()
 {
   if {
-  case true =>
-    forall x | 0 <= x < 100 {
-      PowerLemma(x, x);
-    }
-    assert Pred(34, 34);
+    case true =>
+      forall x | 0 <= x < 100 {
+        PowerLemma(x, x);
+      }
+      assert Pred(34, 34);
 
-  case true =>
-    forall x,y | 0 <= x < 100 && y == x+1 {
-      PowerLemma(x, y);
-    }
-    assert Pred(34, 35);
+    case true =>
+      forall x,y | 0 <= x < 100 && y == x+1 {
+        PowerLemma(x, y);
+      }
+      assert Pred(34, 35);
 
-  case true =>
-    forall x,y | 0 <= x < y < 100 {
-      PowerLemma(x, y);
-    }
-    assert Pred(34, 35);
+    case true =>
+      forall x,y | 0 <= x < y < 100 {
+        PowerLemma(x, y);
+      }
+      assert Pred(34, 35);
 
-  case true =>
-    forall x | x in set k | 0 <= k < 100 {
-      PowerLemma(x, x);
-    }
-    assert Pred(34, 34);
+    case true =>
+      forall x | x in set k | 0 <= k < 100 {
+        PowerLemma(x, x);
+      }
+      assert Pred(34, 34);
   }
 }
 

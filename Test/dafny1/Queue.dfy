@@ -21,13 +21,13 @@ class Queue<T(0)> {
     tail in spine &&
     tail.next == null &&
     (forall n ::
-      n in spine ==>
-        n.footprint <= footprint && this !in n.footprint &&
-        n.Valid() &&
-        (n.next == null ==> n == tail)) &&
+     n in spine ==>
+       n.footprint <= footprint && this !in n.footprint &&
+       n.Valid() &&
+       (n.next == null ==> n == tail)) &&
     (forall n ::
-      n in spine ==>
-        n.next != null ==> n.next in spine) &&
+     n in spine ==>
+       n.next != null ==> n.next in spine) &&
     contents == head.tailContents
   }
 
@@ -62,7 +62,7 @@ class Queue<T(0)> {
     ensures Valid() && fresh(footprint - old(footprint))
     ensures |contents| == |old(contents)|
     ensures exists i :: 0 <= i && i <= |contents| &&
-              contents == old(contents)[i..] + old(contents)[..i]
+                        contents == old(contents)[i..] + old(contents)[..i]
   {
     var t := Front();
     Dequeue();

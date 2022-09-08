@@ -10,12 +10,12 @@ datatype X<+U> = X(x: U)
 
 trait Tr {}
 class Cl extends Tr {
-    constructor () {}
+  constructor () {}
 }
 
 method Main() {
-    var cl := new Cl();
-    var e: X<Tr> := X(cl);
-    match e
-    case X(tr) => return;
+  var cl := new Cl();
+  var e: X<Tr> := X(cl);
+  match e
+  case X(tr) => return;
 }

@@ -24,7 +24,7 @@ class SparseArray<T(0)> {
     (forall i :: 0 <= i && i < |Contents| ==>
        Contents[i] == (if 0 <= b[i] && b[i] < n && c[b[i]] == i then a[i] else zero)) &&
     (forall i :: 0 <= i && i < |Contents| ==>
-              (i in c[..n] <==> 0 <= b[i] && b[i] < n && c[b[i]] == i)) &&
+       (i in c[..n] <==> 0 <= b[i] && b[i] < n && c[b[i]] == i)) &&
     // The idea behind d and e is the following:
     //  *  d is a permutation of the first |Contents| natural numbers
     //  *  e describes which permutation d is

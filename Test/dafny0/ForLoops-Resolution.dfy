@@ -346,16 +346,16 @@ module Tests {
         calc {
           3;
         ==  {
-              for i := 0 to 100 {
-                if i == 17 {
-                  break;
-                } else if i == k {
-                  break A; // error: label A not in scope
-                } else if * {
-                  break break; // error: there aren't 2 levels to break out of here
-                }
+            for i := 0 to 100 {
+              if i == 17 {
+                break;
+              } else if i == k {
+                break A; // error: label A not in scope
+              } else if * {
+                break break; // error: there aren't 2 levels to break out of here
               }
             }
+          }
           2 + 1;
         }
       }
@@ -485,12 +485,12 @@ module Ghosts {
       calc {
         3;
       ==  {
-            for i := 0 to 100 {
-              if i == 17 {
-                return; // error (x2): cannot return from inside calc hint
-              }
+          for i := 0 to 100 {
+            if i == 17 {
+              return; // error (x2): cannot return from inside calc hint
             }
           }
+        }
         2 + 1;
       }
     }

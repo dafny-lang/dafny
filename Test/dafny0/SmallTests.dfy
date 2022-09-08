@@ -239,10 +239,10 @@ class AllocatedTests {
     case true =>  assert fresh(U);  // error: k may be null (or was allocated initially)
     case k == null =>  assert fresh(U);  // error: k is null, so fresh returns false
     case k == null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
-                        assert !fresh(U);
+                       assert !fresh(U);
     case k != null =>  assert fresh(U);  // error: k was allocated initially
     case k != null =>  assert !fresh(U[0]);  // this is a lemma that helps prove the next line
-                        assert !fresh(U);
+                       assert !fresh(U);
   }
   method Seq1(k: Node?)
   {
@@ -830,8 +830,8 @@ module GenericPick {
   }
   lemma EquivalentWaysOfSayingSequenceIsNonempty<U>(s: seq<U>)
     requires s != []
-          || |s| != 0
-          || exists i {:nowarn} :: 0 <= i < |s|
+             || |s| != 0
+             || exists i {:nowarn} :: 0 <= i < |s|
     ensures exists x :: x in s
   {
     assert s[0] in s;

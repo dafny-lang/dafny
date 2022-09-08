@@ -6,11 +6,11 @@ predicate inner(x:int, y:int) { x == y}
 predicate {:opaque} secret(w:int, z:int) { inner(w, z) }
 
 method test(m:int, n:int)
-    // A previous bug in SplitExpr meant that this mention of secret
-    // caused its body to be inlined, bypassing opaque
-    requires secret(m, n);
+  // A previous bug in SplitExpr meant that this mention of secret
+  // caused its body to be inlined, bypassing opaque
+  requires secret(m, n);
 {
-    assert m == n;      // error: secret is opaque
+  assert m == n;      // error: secret is opaque
 }
 
 // A previous implementation of opaque allowed the Lit axioms to bypass

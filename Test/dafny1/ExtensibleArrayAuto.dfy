@@ -15,13 +15,13 @@ class {:autocontracts} ExtensibleArray<T> {
     ((elements == null && more == null && Contents == []) ||
      (elements != null && elements.Length == 256)) &&
     (more != null ==>
-        elements !in more.Repr &&
-        |more.Contents| != 0 &&
-        forall j :: 0 <= j < |more.Contents| ==>
-            more.Contents[j] != null && more.Contents[j].Length == 256 &&
-            more.Contents[j] in Repr && more.Contents[j] !in more.Repr &&
-            more.Contents[j] != elements &&
-            forall k :: 0 <= k < |more.Contents| && k != j ==> more.Contents[j] != more.Contents[k]) &&
+       elements !in more.Repr &&
+       |more.Contents| != 0 &&
+       forall j :: 0 <= j < |more.Contents| ==>
+         more.Contents[j] != null && more.Contents[j].Length == 256 &&
+         more.Contents[j] in Repr && more.Contents[j] !in more.Repr &&
+         more.Contents[j] != elements &&
+         forall k :: 0 <= k < |more.Contents| && k != j ==> more.Contents[j] != more.Contents[k]) &&
 
     // length
     M == (if more == null then 0 else 256 * |more.Contents|) &&

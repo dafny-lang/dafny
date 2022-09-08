@@ -69,15 +69,15 @@ lemma AsimpConst(a: aexp, s: state)
   forall a' | a' < a {
     AsimpConst(a', s);  // this invokes the induction hypothesis for every a' that is structurally smaller than a
   }
-/*  Here is an alternative proof.  In the first two cases, the proof is trivial.  The Plus case uses two invocations
-    of the induction hypothesis.
-  match a
-  case N(n) =>
-  case V(x) =>
-  case Plus(a0, a1) =>
-    AsimpConst(a0, s);
-    AsimpConst(a1, s);
-*/
+  /*  Here is an alternative proof.  In the first two cases, the proof is trivial.  The Plus case uses two invocations
+      of the induction hypothesis.
+    match a
+    case N(n) =>
+    case V(x) =>
+    case Plus(a0, a1) =>
+      AsimpConst(a0, s);
+      AsimpConst(a1, s);
+  */
 }
 
 // more constant folding
@@ -175,14 +175,14 @@ function bsimp(b: bexp): bexp
 lemma BsimpCorrect(b: bexp, s: state)
   ensures bval(bsimp(b), s) == bval(b, s)
 {
-/*  Here is one proof, which uses the induction hypothesis any anything smaller than b and also invokes
-    the lemma AsimpCorrect on every arithmetic expression.
-  forall b' | b' < b { BsimpCorrect(b', s); }
-  forall a { AsimpCorrect(a, s); }
-    Yet another possibility is to mark the lemma with {:induction b} and to use the following line in
-    the body:
-  forall a { AsimpCorrect(a, s); }
-*/
+  /*  Here is one proof, which uses the induction hypothesis any anything smaller than b and also invokes
+      the lemma AsimpCorrect on every arithmetic expression.
+    forall b' | b' < b { BsimpCorrect(b', s); }
+    forall a { AsimpCorrect(a, s); }
+      Yet another possibility is to mark the lemma with {:induction b} and to use the following line in
+      the body:
+    forall a { AsimpCorrect(a, s); }
+  */
   // Here is another proof, which makes explicit the uses of the induction hypothesis and the other lemma.
   match b
   case Bc(v) =>

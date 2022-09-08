@@ -25,10 +25,10 @@ module B {
 
 module C {
   module InnerC {
-     export Spec provides T
-     export Body reveals T
+    export Spec provides T
+    export Body reveals T
 
-     type T = nat
+    type T = nat
   }
 
   import ASpec = InnerC`Spec

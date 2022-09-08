@@ -27,7 +27,7 @@ class BreadthFirstSearch<Vertex(==)>
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
   method BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
-         returns (d: int, ghost path: List<Vertex>)
+    returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
     requires source in AllVertices && dest in AllVertices;
     // AllVertices is closed under Succ
@@ -211,13 +211,13 @@ class BreadthFirstSearch<Vertex(==)>
 
   ghost method UpdatePaths(vSuccs: set<Vertex>, source: Vertex,
                            paths: map<Vertex, List<Vertex>>, v: Vertex, pathToV: List<Vertex>)
-               returns (newPaths: map<Vertex, List<Vertex>>)
+    returns (newPaths: map<Vertex, List<Vertex>>)
     requires ValidMap(source, paths);
     requires vSuccs !! paths.Keys;
     requires forall succ :: succ in vSuccs ==> IsPath(source, succ, Cons(v, pathToV));
     ensures ValidMap(source, newPaths) && newPaths.Keys == paths.Keys + vSuccs;
     ensures forall x :: x in paths ==>
-                        Find(source, x, paths) == Find(source, x, newPaths);
+              Find(source, x, paths) == Find(source, x, newPaths);
     ensures forall x :: x in vSuccs ==> Find(source, x, newPaths) == Cons(v, pathToV);
   {
     if vSuccs == {} {

@@ -14,10 +14,10 @@ class Node<T> {
     this in Repr &&
     (next == null ==> List == [data]) &&
     (next != null ==>
-        next in Repr && next.Repr <= Repr &&
-        this !in next.Repr &&
-        List == [data] + next.List &&
-        next.Valid())
+       next in Repr && next.Repr <= Repr &&
+       this !in next.Repr &&
+       List == [data] + next.List &&
+       next.Valid())
   }
 
   constructor (d: T)
@@ -71,12 +71,12 @@ class Node<T> {
       invariant reverse.Valid() && reverse.Repr <= old(Repr)
       invariant current == null ==> |old(List)| == |reverse.List|
       invariant current != null ==>
-        current.Valid() &&
-        current in old(Repr) && current.Repr <= old(Repr) &&
-        current.Repr !! reverse.Repr
+                  current.Valid() &&
+                  current in old(Repr) && current.Repr <= old(Repr) &&
+                  current.Repr !! reverse.Repr
       invariant current != null ==>
-        |old(List)| == |reverse.List| + |current.List| &&
-        current.List == old(List)[|reverse.List|..]
+                  |old(List)| == |reverse.List| + |current.List| &&
+                  current.List == old(List)[|reverse.List|..]
       invariant forall i :: 0 <= i < |reverse.List| ==> reverse.List[i] == old(List)[|reverse.List|-1-i]
       decreases if current != null then |current.List| else -1
     {

@@ -18,7 +18,7 @@ class Node {
   }
 
   method Init()
-		modifies this
+    modifies this
     ensures Repr(Nil)
   {
     next := null;
@@ -233,8 +233,8 @@ method FwdBug(f: Fwd, initialized: bool)
 {
   match (f) {
     case FwdNil =>
-    // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
-    // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
+      // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
+      // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
   }
   if (!initialized) {  // There was once a Dafny parsing bug with this line
   }
@@ -245,8 +245,8 @@ function FwdBugFunction(f: Fwd): bool
 {
   match f
   case FwdNil => true
-  // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
-  // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
+                 // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
+                 // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
 }
 
 datatype Fwd = FwdNil | FwdCons(k: int, w: Fwd)
@@ -301,8 +301,8 @@ module MatchExpressionsInArbitraryPositions {
     } else {
       y := 0;
       ghost var b := forall tl ::
-                       match ACons(8, tl)
-                       case ACons(w, _) => w <= 16;
+                     match ACons(8, tl)
+                     case ACons(w, _) => w <= 16;
       assert b;
     }
   }
@@ -311,28 +311,28 @@ module MatchExpressionsInArbitraryPositions {
   {
     match xs
     case Cons(x, _) =>
-      (match ys
-       case Nil => x
-       case Cons(y, _) => x + y)
+    (match ys
+     case Nil => x
+     case Cons(y, _) => x + y)
     case Nil =>
-      (match ys
-       case Nil => 0
-       case Cons(y, _) => y)
+    (match ys
+     case Nil => 0
+     case Cons(y, _) => y)
   }
 
   function G(xs: List<int>, ys: List<int>, k: int): int
   {
     match xs
     case Cons(x, _) =>
-      (if k == 0 then 3 else
-        match ys
-        case Nil => x
-        case Cons(y, _) => x + y)
+    (if k == 0 then 3 else
+     match ys
+     case Nil => x
+     case Cons(y, _) => x + y)
     case Nil =>
-      (if k == 0 then 3 else
-        match ys
-        case Nil => 3
-        case Cons(y, _) => 3 + y)
+    (if k == 0 then 3 else
+     match ys
+     case Nil => 3
+     case Cons(y, _) => 3 + y)
   }
 
   function H(xs: List<int>, ys: List<int>, k: int): int
@@ -340,8 +340,8 @@ module MatchExpressionsInArbitraryPositions {
     if 0 <= k then
       (if k < 10 then 0 else 3) + (if k < 100 then 2 else 5)
     else
-      if k < -17 then 10 else
-        (if k < -110 then 0 else 3) + (if k < -200 then 2 else 5)
+    if k < -17 then 10 else
+    (if k < -110 then 0 else 3) + (if k < -200 then 2 else 5)
   }
 
   function J(xs: List<int>): int
@@ -353,7 +353,7 @@ module MatchExpressionsInArbitraryPositions {
   {
     match xs
     case Cons(_, ys) =>
-      (match ys)  // error: missing cases
+    (match ys)  // error: missing cases
     case Nil => 0
   }
 }
@@ -452,9 +452,9 @@ module Exhaustiveness {
     while
       decreases *
     {
-    case c == A =>
-    case c == B =>
-    case c == C =>
+      case c == A =>
+      case c == B =>
+      case c == C =>
     }
     assert false;  // fine, since we never get here (which is known by the exhaustiveness property of datatypes)
   }

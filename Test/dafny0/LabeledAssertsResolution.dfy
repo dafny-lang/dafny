@@ -350,12 +350,12 @@ module Breaks {
 
 module OddExpressionChecks {
   type Odd = x |
-    var rr :=
-      assert 2 < 23 by {
-        return;  // error: return not allowed in assert-by
-      }
-      2;
-    x % rr == 1
+      var rr :=
+        assert 2 < 23 by {
+          return;  // error: return not allowed in assert-by
+        }
+        2;
+      x % rr == 1
     witness
       var ww :=
         assert 2 < 23 by {
@@ -365,12 +365,12 @@ module OddExpressionChecks {
       ww + 7
 
   newtype NewOdd = x |
-    var rr :=
-      assert 2 < 23 by {
-        return;  // error: return not allowed in assert-by
-      }
-      2;
-    x % rr == 1
+      var rr :=
+        assert 2 < 23 by {
+          return;  // error: return not allowed in assert-by
+        }
+        2;
+      x % rr == 1
     ghost witness
       var ww :=
         assert 2 < 23 by {

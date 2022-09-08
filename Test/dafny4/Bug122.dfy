@@ -3,10 +3,10 @@
 
 method Try (a:int)
 {
-	forall
+  forall
     ensures a == a;
-	{
-	}
+  {
+  }
 }
 
 

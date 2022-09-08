@@ -97,11 +97,11 @@ lemma Theorem_QReverseIsCorrect(l: List)
   ensures qreverse(l) == reverse(l);
 {
   assert qreverse(l)
-      == // def. qreverse
-         revacc(l, Nil);
+    == // def. qreverse
+    revacc(l, Nil);
   Lemma_Revacc(l, Nil);
   assert revacc(l, Nil)
-      == concat(reverse(l), Nil);
+    == concat(reverse(l), Nil);
   Lemma_ConcatNil(reverse(l));
 }
 
@@ -112,23 +112,23 @@ lemma Lemma_Revacc(xs: List, ys: List)
     case Nil =>
     case Cons(x, xrest) =>
       assert revacc(xs, ys)
-          == // def. revacc
-              revacc(xrest, Cons(x, ys));
+        == // def. revacc
+        revacc(xrest, Cons(x, ys));
 
       assert concat(reverse(xs), ys)
           == // def. reverse
-              concat(concat(reverse(xrest), Cons(x, Nil)), ys)
+             concat(concat(reverse(xrest), Cons(x, Nil)), ys)
           == // induction hypothesis:  Lemma_Revacc(xrest, Cons(x, Nil))
-              concat(revacc(xrest, Cons(x, Nil)), ys);
-          Lemma_RevCatCommute(xrest);  // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
+             concat(revacc(xrest, Cons(x, Nil)), ys);
+      Lemma_RevCatCommute(xrest);  // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
       assert concat(revacc(xrest, Cons(x, Nil)), ys)
-          == revacc(xrest, concat(Cons(x, Nil), ys));
+        == revacc(xrest, concat(Cons(x, Nil), ys));
 
       assert forall g: _T0, gs :: concat(Cons(g, Nil), gs) == Cons(g, gs);
 
       assert revacc(xrest, concat(Cons(x, Nil), ys))
-          == // the assert lemma just above
-              revacc(xrest, Cons(x, ys));
+        == // the assert lemma just above
+        revacc(xrest, Cons(x, ys));
   }
 }
 
@@ -199,14 +199,14 @@ lemma Window(xs: List, ys: List)
   calc {
     length(xs) == length(ys) ==> length(reverse(xs)) == length(reverse(ys));
     { if (length(xs) == length(ys)) {
-      calc {
-        length(reverse(xs));
-        { Lemma_Reverse_Length(xs); }
-        length(xs);
-        length(ys);
-        { Lemma_Reverse_Length(ys); }
-        length(reverse(ys));
-    } } }
+        calc {
+          length(reverse(xs));
+          { Lemma_Reverse_Length(xs); }
+          length(xs);
+          length(ys);
+          { Lemma_Reverse_Length(ys); }
+          length(reverse(ys));
+        } } }
     length(xs) == length(ys) ==> length(reverse(xs)) == length(reverse(xs));
     true;
   }

@@ -4,9 +4,9 @@
 include "../exceptions/VoidOutcomeDt.dfy"
 
 function {:test} PassingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
-    VoidSuccess
+  VoidSuccess
 }
 
 function {:test} FailingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
-    VoidFailure("Whoopsie")
+  VoidFailure("Whoopsie")
 }

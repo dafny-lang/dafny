@@ -110,17 +110,17 @@ module T refines S {
   }
 }
 module A {
-   import X = T
-   import Y = T
-   import Z = T
-   method run() {
-     var x := new X.C();
-     x.m();
-     var y := new Y.C();
-     y.m();
-     var z := new Z.C();
-     z.m();
-   }
+  import X = T
+  import Y = T
+  import Z = T
+  method run() {
+    var x := new X.C();
+    x.m();
+    var y := new Y.C();
+    y.m();
+    var z := new Z.C();
+    z.m();
+  }
 }
 
 method NotMain() {
@@ -139,12 +139,12 @@ module T1 refines S1 {
   }
 }
 abstract module A1 {
-   import X : T1
-   method run() {
-     X.do();
-     var x := new X.B.C();
-     x.m();
-   }
+  import X : T1
+  method run() {
+    X.do();
+    var x := new X.B.C();
+    x.m();
+  }
 }
 
 // ----- keyword escapes (once buggy) -----

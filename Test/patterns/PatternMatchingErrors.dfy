@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 /*
-*  This file demonstrates verification errors related to pattern matching
-*/
+ *  This file demonstrates verification errors related to pattern matching
+ */
 
 // missing case in match expression : Nil
 

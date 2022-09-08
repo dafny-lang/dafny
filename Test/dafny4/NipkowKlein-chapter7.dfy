@@ -51,10 +51,10 @@ least predicate big_step(c: com, s: state, t: state)
   case If(b, thn, els) =>
     big_step(if bval(b, s) then thn else els, s, t)
   case While(b, body) =>
-    (!bval(b, s) && s == t) ||
-    (bval(b, s) && exists s' ::
-     big_step(body, s, s') &&
-     big_step(While(b, body), s', t))
+  (!bval(b, s) && s == t) ||
+  (bval(b, s) && exists s' ::
+   big_step(body, s, s') &&
+   big_step(While(b, body), s', t))
 }
 
 lemma Example1(s: state, t: state)
@@ -67,7 +67,7 @@ lemma Example1(s: state, t: state)
     // 5 is suffiiently high
     big_step#[5](Seq(Assign("x", N(5)), Assign("y", V("x"))), s, t);
     exists sm ::
-      big_step#[4](Assign("x", N(5)), s, sm) && big_step#[4](Assign("y", V("x")), sm, t);
+    big_step#[4](Assign("x", N(5)), s, sm) && big_step#[4](Assign("y", V("x")), sm, t);
     big_step#[4](Assign("x", N(5)), s, s') && big_step#[4](Assign("y", V("x")), s', t);
     // the rest is done automatically
     true;
@@ -158,8 +158,8 @@ least predicate small_step(c: com, s: state, c': com, s': state)
   case Assign(x, a) =>
     c' == SKIP && s' == s[x := aval(a, s)]
   case Seq(c0, c1) =>
-    (c0 == SKIP && c' == c1 && s' == s) ||
-    exists c0' :: c' == Seq(c0', c1) && small_step(c0, s, c0', s')
+  (c0 == SKIP && c' == c1 && s' == s) ||
+  exists c0' :: c' == Seq(c0', c1) && small_step(c0, s, c0', s')
   case If(b, thn, els) =>
     c' == (if bval(b, s) then thn else els) && s' == s
   case While(b, body) =>
@@ -227,7 +227,7 @@ least predicate small_step_star(c: com, s: state, c': com, s': state)
 {
   (c == c' && s == s') ||
   exists c'', s'' ::
-    small_step(c, s, c'', s'') && small_step_star(c'', s'', c', s')
+  small_step(c, s, c'', s'') && small_step_star(c'', s'', c', s')
 }
 
 lemma star_transitive(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state)

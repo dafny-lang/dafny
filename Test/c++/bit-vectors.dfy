@@ -5,9 +5,9 @@ newtype uint64 = i:int | 0 <= i < 0x10000000000000000
 
 function method bit(i: uint64) : bv64
   requires i < 64
-  {
-    1 as bv64 << i
-  }
+{
+  1 as bv64 << i
+}
 
 method BasicOps(b0:bv64, b1:bv64) {
   var r0:bv64 := b0 & b1;

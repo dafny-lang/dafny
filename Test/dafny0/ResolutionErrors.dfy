@@ -5,18 +5,18 @@ module Misc {
   //Should not verify, as ghost loops should not be allowed to diverge.
   method GhostDivergentLoop()
   {
-     var a := new int [2];
-     a[0] := 1;
-     a[1] := -1;
-     ghost var i := 0;
-     while (i < 2)
-        decreases * // error: not allowed on a ghost loop
-        invariant i <= 2
-        invariant (forall j :: 0 <= j && j < i ==> a[j] > 0)
-     {
-       i := 0;
-     }
-     assert a[1] != a[1]; // ...for then this would incorrectly verify
+    var a := new int [2];
+    a[0] := 1;
+    a[1] := -1;
+    ghost var i := 0;
+    while (i < 2)
+      decreases * // error: not allowed on a ghost loop
+      invariant i <= 2
+      invariant (forall j :: 0 <= j && j < i ==> a[j] > 0)
+    {
+      i := 0;
+    }
+    assert a[1] != a[1]; // ...for then this would incorrectly verify
   }
 
   method ManyIndices<T>(a: array3<T>, b: array<T>, m: int, n: int)
@@ -92,9 +92,9 @@ module Misc {
       var b3 := Benny;
       var d0 := David(20);  // error: constructor name David is ambiguous
       var d1 := David;  // error: constructor name David is ambiguous (never mind that the signature does
-            // not match either of them)
+      // not match either of them)
       var d2 := David(20, 40);  // error: constructor name Davis is ambiguous (never mind that the given
-              // parameters match the signature of only one of those constructors)
+      // parameters match the signature of only one of those constructors)
       var d3 := Abc.David(20, 40);  // error: wrong number of parameters
       var d4 := Rst.David(20, 40);
       var e := Eleanor;  // this resolves to the field, not the Abc datatype constructor
@@ -426,9 +426,9 @@ module MiscEvenMore {
       n + m + 2;
     }
     calc {
-      n + m;
-      n + m + 1;
-      ==> n + m + 2; // error: ==> operator requires boolean lines
+        n + m;
+        n + m + 1;
+    ==> n + m + 2; // error: ==> operator requires boolean lines
     }
   }
 } // MiscEvenMore
@@ -665,14 +665,14 @@ module NewForallAssign {
     var a := new G[n];
     forall i | 0 <= i < n {
       a[i] := new G;  // error: 'new' is currently not supported in forall statements
-  } }
+    } }
 }
 module NewForallProof {
   class G { }
   method NewForallTest(n: nat) { var a := new G[n];
-    forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
-      a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
-  } }
+                                 forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
+                                   a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
+                                 } }
 }
 
 // ------------------------- underspecified types ------------------------------
@@ -754,31 +754,31 @@ module StatementsInExpressions {
     method N()
     {
       var y :=
-      calc {
-        6;
-        { assert 6 < 8; }
-        { var x := 8;
-          while x != 0
-            decreases *  // error: cannot use 'decreases *' here
-          {
-            x := x - 1;
+        calc {
+          6;
+          { assert 6 < 8; }
+          { var x := 8;
+            while x != 0
+              decreases *  // error: cannot use 'decreases *' here
+            {
+              x := x - 1;
+            }
           }
-        }
-        { var x := 8;
-          while x != 0
-          {
-            x := x - 1;
+          { var x := 8;
+            while x != 0
+            {
+              x := x - 1;
+            }
           }
-        }
-        { var x := 8;
-          while x != 0
-          {
-            x := x - 1;
+          { var x := 8;
+            while x != 0
+            {
+              x := x - 1;
+            }
           }
+          6;
         }
-        6;
-      }
-      5;
+        5;
     }
   }
 }
@@ -1517,35 +1517,35 @@ module GhostTests {
     method N()
     {
       var y :=
-      calc {
-        6;
-        { assert 6 < 8; }
-        { NonGhostMethod(); }  // error: cannot call non-ghost method
-        { var x := 8;
-          while x != 0
-          {
-            x := x - 1;
+        calc {
+          6;
+          { assert 6 < 8; }
+          { NonGhostMethod(); }  // error: cannot call non-ghost method
+          { var x := 8;
+            while x != 0
+            {
+              x := x - 1;
+            }
           }
-        }
-        { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field
-        { MyGhostField := 12; }  // error: cannot assign to any field
-        { M(); }  // error: cannot call (ghost) method with a modifies clause
-        { var x := 8;
-          while x != 0
-            modifies this  // error: cannot use a modifies clause on a loop inside a hint
-          {
-            x := x - 1;
+          { MyField := 12; }  // error: cannot assign to a field, and especially not a non-ghost field
+          { MyGhostField := 12; }  // error: cannot assign to any field
+          { M(); }  // error: cannot call (ghost) method with a modifies clause
+          { var x := 8;
+            while x != 0
+              modifies this  // error: cannot use a modifies clause on a loop inside a hint
+            {
+              x := x - 1;
+            }
           }
-        }
-        { var x := 8;
-          while x != 0
-          {
-            x := x - 1;
+          { var x := 8;
+            while x != 0
+            {
+              x := x - 1;
+            }
           }
+          6;
         }
-        6;
-      }
-      5;
+        5;
     }
   }
 }
@@ -2058,10 +2058,10 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
   type C2(00)
 
   method Delta<
-    Q,  // error: not allowed to change auto-initialization setting
-    W,
-    E(0),
-    R(0)>()  // error: not allowed to change auto-initialization setting
+      Q,  // error: not allowed to change auto-initialization setting
+      W,
+      E(0),
+      R(0)>()  // error: not allowed to change auto-initialization setting
 }
 
 // ----- constructor-less classes with need for initialization -----
@@ -2500,17 +2500,17 @@ module BigOrdinalRestrictionsExtremePred {
     var lstLocal := var lst: ORDINAL :| lst == 15; lst;
     var lstLocal' := var lst: (ORDINAL, int) :| lst == (15, 15); lst.1;  // error: ORDINAL cannot be a type argument
     var gr := if yt: ORDINAL :| yt == 16 then
-      ghost var pg := P(yt); 5
-    else
-      7;
+                ghost var pg := P(yt); 5
+              else
+                7;
     calc {
       100;
     ==  {
-          forall om: ORDINAL  // allowed
-            ensures om < om+1
-          {
-          }
+        forall om: ORDINAL  // allowed
+          ensures om < om+1
+        {
         }
+      }
       100;
     }
     true
@@ -3470,12 +3470,12 @@ module FrameTypes {
   // ----- fresh takes an expression as its argument
 
   method FreshArgumentType0(
-    o: object,
-    s: set<object>, ss: iset<object>,
-    q: seq<object>,
-    ms: multiset<object>,
-    mp: map<object, int>, mp2: map<int, object>,
-    im: imap<object, object>)
+      o: object,
+      s: set<object>, ss: iset<object>,
+      q: seq<object>,
+      ms: multiset<object>,
+      mp: map<object, int>, mp2: map<int, object>,
+      im: imap<object, object>)
   {
     ghost var b;
     b := fresh(o);
@@ -3508,12 +3508,12 @@ module FrameTypes {
   // ----- unchanged, modifies, and reads take frame expressions as their arguments
 
   method UnchangedArgumentType0(
-    o: object,
-    s: set<object>, ss: iset<object>,
-    q: seq<object>,
-    ms: multiset<object>,
-    mp: map<object, int>, mp2: map<int, object>,
-    im: imap<object, object>)
+      o: object,
+      s: set<object>, ss: iset<object>,
+      q: seq<object>,
+      ms: multiset<object>,
+      mp: map<object, int>, mp2: map<int, object>,
+      im: imap<object, object>)
   {
     ghost var b;
     b := unchanged(o);
@@ -3535,9 +3535,9 @@ module FrameTypes {
   }
 
   method UnchangedArgumentType2(
-    f: int -> int,
-    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
-    l: bool -> multiset<object>, m: bool -> map<object, object>)
+      f: int -> int,
+      g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+      l: bool -> multiset<object>, m: bool -> map<object, object>)
   {
     ghost var b;
     b := unchanged(f); // error: wrong argument type for unchanged
@@ -3551,12 +3551,12 @@ module FrameTypes {
   }
 
   method ModifiesArgumentType0(
-    o: object,
-    s: set<object>, ss: iset<object>,
-    q: seq<object>,
-    ms: multiset<object>,
-    mp: map<object, int>, mp2: map<int, object>,
-    im: imap<object, object>)
+      o: object,
+      s: set<object>, ss: iset<object>,
+      q: seq<object>,
+      ms: multiset<object>,
+      mp: map<object, int>, mp2: map<int, object>,
+      im: imap<object, object>)
     modifies o
     modifies s
     modifies ss
@@ -3577,9 +3577,9 @@ module FrameTypes {
   }
 
   method ModifiesArgumentType2(
-    f: int -> int,
-    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
-    l: bool -> multiset<object>, m: bool -> map<object, object>)
+      f: int -> int,
+      g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+      l: bool -> multiset<object>, m: bool -> map<object, object>)
     modifies f // error: wrong argument type for modifies
     modifies g // error: wrong argument type for modifies
     modifies h // error: wrong argument type for modifies
@@ -3592,12 +3592,12 @@ module FrameTypes {
   }
 
   predicate ReadsArgumentType0(
-    o: object,
-    s: set<object>, ss: iset<object>,
-    q: seq<object>,
-    ms: multiset<object>,
-    mp: map<object, int>, mp2: map<int, object>,
-    im: imap<object, object>)
+      o: object,
+      s: set<object>, ss: iset<object>,
+      q: seq<object>,
+      ms: multiset<object>,
+      mp: map<object, int>, mp2: map<int, object>,
+      im: imap<object, object>)
     reads o
     reads s
     reads ss
@@ -3620,9 +3620,9 @@ module FrameTypes {
   }
 
   predicate ReadsArgumentType2(
-    f: int -> int,
-    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
-    l: bool -> multiset<object>, m: bool -> map<object, object>)
+      f: int -> int,
+      g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+      l: bool -> multiset<object>, m: bool -> map<object, object>)
     reads f // error: wrong argument type for reads
     reads g // error: a function must be to a collection of references
     reads h
@@ -3835,7 +3835,7 @@ module LabelRegressions {
       for k := 0 to 10 {
         continue Loop;
         break Loop;
-      }
+    }
   }
 
   method Match() {

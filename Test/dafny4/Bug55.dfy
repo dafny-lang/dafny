@@ -11,4 +11,4 @@ predicate {:opaque} G(f:int~>bool)
 predicate A<T>(s:set<T>)
 
 predicate{:opaque} B(s:set<int>)
-    requires A(s);
+  requires A(s);

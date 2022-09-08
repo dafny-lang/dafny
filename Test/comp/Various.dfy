@@ -10,7 +10,7 @@ method Match(tp: (nat, nat)) {
   match tp
   case (0, _) => print "match", "\n";
   case _ =>
-} 
+}
 
 method {:tailrecursion true} Countdown(x: nat) {
   label here: {

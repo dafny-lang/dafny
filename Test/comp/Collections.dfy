@@ -436,7 +436,7 @@ method TestNullsAmongKeys() {
 }
 
 method GenericMap<K, V>(m: map<K, V>, n: map<K, V>, o: map<K, V>, a: K, b: K)
-    returns (p: map<K, V>, q: map<K, V>, r: map<K, V>)
+  returns (p: map<K, V>, q: map<K, V>, r: map<K, V>)
   requires a in m.Keys && a in n.Keys
   requires b !in m.Keys && b !in o.Keys
   ensures p == m + n && q == n + o && r == o + m

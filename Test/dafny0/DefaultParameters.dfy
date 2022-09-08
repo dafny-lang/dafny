@@ -194,7 +194,7 @@ module Nested {
   function F(xt: int, yt: int := G(xt)): int // error: mutually recursive call not allowed in default-value expression
   function G(x: int, y: int := x): int {
     if x <= 0 then 0 else
-      F(x - 1) // expands to F(x-1, G(x-1, x-1))
+    F(x - 1) // expands to F(x-1, G(x-1, x-1))
   }
 
   function F'(xt: int, yt: int := G'(xt)): int // error: mutually recursive call not allowed in default-value expression
@@ -323,8 +323,8 @@ module ReadsAndDecreases {
   }
 
   function MoreReads(a: array<int>, m: array2<int>,
-    x: int := if 0 < a.Length then a[0] else 3, // error: insufficient reads clause
-    y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int // error: insufficient reads clause
+                     x: int := if 0 < a.Length then a[0] else 3, // error: insufficient reads clause
+                     y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int // error: insufficient reads clause
   function ReadA0(a: array<int>, m: array2<int>): int
     requires m.Length0 == 0
   {
@@ -509,7 +509,7 @@ module IteratorFrameRegression {
   // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
   iterator Iter()
     requires (X(); 3) == 3
-  // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
+    // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
   iterator Iter'(x: int := X(); 3)
 }
 

@@ -24,11 +24,11 @@ module ConcreteModule
       Failure(this.error)
     }
   }
-    
+
   method execute_external_method(n:nat, m:nat) returns (r:Status)
   {
     match n { // match statement is essential to reproduce the bug
-      case 0 =>            
+      case 0 =>
         :- Func1(); // elephant operator is essential to reproduce the bug
         match m {
           case 1 =>

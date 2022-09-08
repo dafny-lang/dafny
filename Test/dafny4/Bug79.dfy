@@ -5,6 +5,6 @@ function foo(s:int) : (int, int)
 
 function bar(s:int) : bool
 {
-    var (x, rest) := foo(s);
-    x > 0
+  var (x, rest) := foo(s);
+  x > 0
 }

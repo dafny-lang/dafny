@@ -35,10 +35,10 @@ module B refines A {
     var xyz: bool;  // error: ...or even with another field
 
     function F   // error: cannot replace a "function method" with a "function"
-        <C,A,B>  // error: different list of type parameters
-        (x: int, y: A, z: seq<C>,  // error: different type of parameter z
-         k: bool)  // error: different parameter name
-        : B
+      <C,A,B>  // error: different list of type parameters
+      (x: int, y: A, z: seq<C>,  // error: different type of parameter z
+       k: bool)  // error: different parameter name
+      : B
 
     function G(): int
     { 12 }  // allowed to add a body
@@ -137,7 +137,7 @@ module TpD refines OrigD {
 
 module OrigE {
   type T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
-  }
+}
 module TpE refines OrigE {
   class T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
   {
@@ -151,7 +151,7 @@ module OrigF {
 }
 module TpF refines OrigF {
   class T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
-  ... {
+    ... {
   }
 }
 
@@ -187,6 +187,6 @@ module TpJ refines OrigJ {
 
 
   iterator T
-  ... {
+    ... {
   }
 }

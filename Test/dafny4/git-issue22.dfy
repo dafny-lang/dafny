@@ -3,5 +3,5 @@
 
 predicate bad()
 {
-    forall i :: i in {1}
+  forall i :: i in {1}
 }

@@ -45,9 +45,9 @@ function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>):
 
 function partition(x: int, l: List<int>): (List<int>, List<int>)
   ensures var (lo, hi) := partition(x, l);
-    (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
-    (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
-    length(l) == length(lo) + length(hi)  // for termination proof
+          (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
+          (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
+          length(l) == length(lo) + length(hi)  // for termination proof
 {
   match l
   case Nil => (Nil, Nil)

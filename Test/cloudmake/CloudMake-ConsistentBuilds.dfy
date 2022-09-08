@@ -101,19 +101,19 @@ function UnionC(stC: StateC, stC': StateC): StateC
     var result := UnionC(stC, stC');
     DomSt(result.st) == DomSt(stC.st) + DomSt(stC'.st) &&
     (forall p :: p in DomSt(result.st) ==>
-      (p in DomSt(stC.st) ==> GetSt(p, result.st) == GetSt(p, stC.st)) &&
-      (p in DomSt(stC'.st) ==> GetSt(p, result.st) == GetSt(p, stC'.st))) &&
+       (p in DomSt(stC.st) ==> GetSt(p, result.st) == GetSt(p, stC.st)) &&
+       (p in DomSt(stC'.st) ==> GetSt(p, result.st) == GetSt(p, stC'.st))) &&
     DomC(result.c) == DomC(stC.c) + DomC(stC'.c) &&
     (forall h :: h in DomC(result.c) ==>
-      (h in DomC(stC.c) ==> GetC(h, result.c) == GetC(h, stC.c)) &&
-      (h in DomC(stC'.c) ==> GetC(h, result.c) == GetC(h, stC'.c)));
+       (h in DomC(stC.c) ==> GetC(h, result.c) == GetC(h, stC.c)) &&
+       (h in DomC(stC'.c) ==> GetC(h, result.c) == GetC(h, stC'.c)));
 
 predicate CompatibleC(stsC: set<StateC>)
 {
   forall stC, stC', p, h :: stC in stsC && stC' in stsC &&
-    p in DomSt(stC.st) && p in DomSt(stC'.st) &&
-    h in DomC(stC.c) && h in DomC(stC'.c) ==>
-      GetSt(p, stC.st) == GetSt(p, stC'.st) && GetC(h, stC.c) == GetC(h, stC'.c)
+                            p in DomSt(stC.st) && p in DomSt(stC'.st) &&
+                            h in DomC(stC.c) && h in DomC(stC'.c) ==>
+    GetSt(p, stC.st) == GetSt(p, stC'.st) && GetC(h, stC.c) == GetC(h, stC'.c)
 }
 
 function CombineC(stsC: set<StateC>): StateC
@@ -122,11 +122,11 @@ function CombineC(stsC: set<StateC>): StateC
     var stCombinedC := CombineC(stsC);
     (forall stC :: stC in stsC ==> DomSt(stC.st) <= DomSt(stCombinedC.st)) &&
     (forall stC, p :: stC in stsC && p in DomSt(stC.st) ==>
-      GetSt(p, stC.st) == GetSt(p, stCombinedC.st)) &&
+       GetSt(p, stC.st) == GetSt(p, stCombinedC.st)) &&
     (forall p :: p in DomSt(stCombinedC.st) ==> exists stC :: stC in stsC && p in DomSt(stC.st)) &&
     (forall stC :: stC in stsC ==> DomC(stC.c) <= DomC(stCombinedC.c)) &&
     (forall stC, h :: stC in stsC && h in DomC(stC.c) ==>
-      GetC(h, stC.c) == GetC(h, stCombinedC.c)) &&
+       GetC(h, stC.c) == GetC(h, stCombinedC.c)) &&
     (forall h :: h in DomC(stCombinedC.c) ==> exists stC :: stC in stsC && h in DomC(stC.c));
 {
   var stC :| stC in stsC;
@@ -140,8 +140,8 @@ lemma CombineCLemma(stsC: set<StateC>)
   requires stsC != {};
   requires forall stC :: stC in stsC ==> ConsistentCache(stC);
   ensures
-   var stC' := CombineC(stsC);
-   ConsistentCache(stC');
+    var stC' := CombineC(stsC);
+    ConsistentCache(stC');
 {
 }
 
@@ -288,7 +288,7 @@ predicate PreC(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
 {
   Pre(cmd, deps, exts, Restrict(deps.lit.paths, stC.st)) &&
   forall e :: e in exts.lit.strs ==> Hash(Loc(cmd, deps, e)) in DomC(stC.c) ==>
-    Loc(cmd, deps, e) in deps.lit.paths
+      Loc(cmd, deps, e) in deps.lit.paths
 }
 
 predicate PostC(cmd: Expression, deps: Expression, exts: Expression, stC: StateC)
@@ -386,7 +386,7 @@ function doC(stmts: seq<Statement>, stC: StateC, env: Env): Tuple<Expression, St
         Pair(expr', stC')
     else
       Pair(exprError(rValidity), stC)
-  // todo(maria): Add the recursive case.
+      // todo(maria): Add the recursive case.
   else
     assert stmt.stmtVariable? || stmt.stmtReturn?;
     evalC(stmt.ret, stC, env)
@@ -398,10 +398,10 @@ function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, State
 {
   if Value(expr) then
     Pair(expr, stC)
-  // identifier
+    // identifier
   else if expr.exprIdentifier? then
     Pair(GetEnv(expr.id, env), stC)
-  // if-expression
+    // if-expression
   else if expr.exprIf? && expr.cond.exprLiteral? && expr.cond.lit == litTrue then
     evalC(expr.ifTrue, stC, env)
   else if expr.exprIf? && expr.cond.exprLiteral? && expr.cond.lit == litFalse then
@@ -415,7 +415,7 @@ function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, State
       evalC(expr.ifFalse, stC', env)
     else
       Pair(exprError(rValidity), stC)
-  // and-expression
+      // and-expression
   else if expr.exprAnd? then
     var result := evalC(expr.conj0, stC, env);
     var conj0', stC' := result.fst, result.snd;
@@ -425,7 +425,7 @@ function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, State
       Pair(exprLiteral(litFalse), stC')
     else
       Pair(exprError(rValidity), stC)
-  // or-expression
+      // or-expression
   else if expr.exprOr? then
     var result := evalC(expr.disj0, stC, env);
     var disj0', stC' := result.fst, result.snd;
@@ -435,7 +435,7 @@ function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, State
       evalC(expr.disj1, stC', env)
     else
       Pair(exprError(rValidity), stC)
-  // invocation
+      // invocation
   else if expr.exprInvocation? then
     var resultFun := evalC(expr.fun, stC, env);
     var fun', stC' := resultFun.fst, resultFun.snd;
@@ -451,26 +451,26 @@ function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, State
           if |args'| == Arity(primExec) && ValidArgsC(primExec, args', stCombinedC) then
             execC(args'[0], args'[1], args'[2], stCombinedC)
           else
-            if ConsistentCache(stCombinedC) then
-              Pair(exprError(rValidity), stC)
-            else
-              Pair(exprError(rInconsistentCache), stC)
+          if ConsistentCache(stCombinedC) then
+            Pair(exprError(rValidity), stC)
+          else
+            Pair(exprError(rInconsistentCache), stC)
         else
-        // primitive function 'createPath'
-        // todo(maria): Add primitive function 'createPath'.
+          // primitive function 'createPath'
+          // todo(maria): Add primitive function 'createPath'.
           Pair(exprError(rValidity), stC)
-      // todo(maria): Add non-primitive invocations.
+          // todo(maria): Add non-primitive invocations.
       else
         Pair(exprError(rValidity), stC)
     else
       Pair(exprError(rCompatibility), stC)
-  // error
+      // error
   else
     Pair(exprError(rValidity), stC)
 }
 
 function evalArgsC(expr: Expression, args: seq<Expression>, stC: StateC, env: Env):
-         Tuple<seq<Expression>, set<StateC>>
+  Tuple<seq<Expression>, set<StateC>>
   requires forall arg :: arg in args ==> arg < expr;
   decreases expr, |args| + 1;
 
@@ -480,7 +480,7 @@ function evalArgsC(expr: Expression, args: seq<Expression>, stC: StateC, env: En
 
 function evalArgsC'(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
                     args': seq<Expression>, stsC': set<StateC>):
-         Tuple<seq<Expression>, set<StateC>>
+  Tuple<seq<Expression>, set<StateC>>
   requires forall arg :: arg in args ==> arg < expr;
   decreases expr, |args|;
 {
@@ -551,7 +551,7 @@ lemma DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
         DoCLemma(stmts[1..], stC', env');
       } else { }
     } else { }
-  // todo(maria): Add the recursive case.
+           // todo(maria): Add the recursive case.
   } else {
     assert stmt.stmtVariable? || stmt.stmtReturn?;
     EvalCLemma(stmt.ret, stC, env);
@@ -641,7 +641,7 @@ lemma EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC, env: 
 }
 
 lemma EvalArgsC'Lemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
-                             args': seq<Expression>, stsC': set<StateC>)
+                      args': seq<Expression>, stsC': set<StateC>)
   requires ConsistentCache(stC);
   requires forall stC' :: stC' in stsC' ==> ConsistentCache(stC');
   requires forall arg :: arg in args ==> arg < expr;

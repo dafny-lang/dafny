@@ -14,7 +14,7 @@ module B {
   function g() : nat { A.f() }
 
   function h() : nat
-  ensures h() == 7
+    ensures h() == 7
   { g() } // error
 
 }
@@ -25,7 +25,7 @@ module C {
   function g() : nat { A.f() }
 
   function h() : nat
-  ensures h() == 7
+    ensures h() == 7
   { g() }
 
 }
@@ -40,7 +40,7 @@ module E {
   import A`B
 
   function h() : nat
-  ensures h() == 7
+    ensures h() == 7
   { D.g() } // revealed via A`B
 
 }
@@ -54,17 +54,17 @@ module AA {
 module BB {
   import A = AA`Spec
   lemma Test()
-  ensures A.f() == 0 // fails
+    ensures A.f() == 0 // fails
   { }
 }
 
 module CC {
   import A= AA`Body
   lemma Test1()
-  ensures A.f() == 0 // fails
+    ensures A.f() == 0 // fails
   { }
 
   lemma Test2()
-  ensures A.f() == 0
+    ensures A.f() == 0
   { reveal A.f(); }
 }

@@ -153,8 +153,8 @@ predicate sorted(xs: List<G>)
   match xs
   case Nil => true
   case Cons(a, ys) =>
-    (forall y :: y in multiset_of(ys) ==> Below(a, y)) &&  // using multiset_of instead of set_of, since we don't have a need for set_of elsewhere
-    sorted(ys)
+  (forall y :: y in multiset_of(ys) ==> Below(a, y)) &&  // using multiset_of instead of set_of, since we don't have a need for set_of elsewhere
+  sorted(ys)
 }
 
 function filter(g: G, xs: List<G>): List<G>
@@ -644,7 +644,7 @@ lemma stable_merge(g: G, xs: List<G>, ys: List<G>)
               filter(g, append(xs, Cons(b, ys')));
               filter(g, append(xs, ys));
             }
-        }
+          }
       }
   }
 }

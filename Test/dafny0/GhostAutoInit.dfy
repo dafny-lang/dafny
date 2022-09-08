@@ -225,13 +225,13 @@ module FiftyShadesOfGhost {
     calc {
       z;
     <=  {
-          var m: G;  // even without the "ghost" keyword, this is really a ghost variable--it will never be compiled
-          ghost var n: G;
-          ghost var b0 := m == n;  // all is fine
-          var x: H;
-          ghost var y: H;
-          ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
-        }
+        var m: G;  // even without the "ghost" keyword, this is really a ghost variable--it will never be compiled
+        ghost var n: G;
+        ghost var b0 := m == n;  // all is fine
+        var x: H;
+        ghost var y: H;
+        ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+      }
       z;
     }
   }

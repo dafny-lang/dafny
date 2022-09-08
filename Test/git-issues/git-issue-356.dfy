@@ -220,7 +220,7 @@ module M {
       print o as char, " ", o as int, " ", o as real, " ", o as bv, " ", o as ORDINAL, "\n";
     }
   }
-  
+
   method Test2c(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx) {
     // subset type
     var nnn: int := x; // Implicit conversion allowed

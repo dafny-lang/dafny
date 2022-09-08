@@ -2,13 +2,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "MyModule2"} MyModule2 {
-    type {:extern "MyType"} MyType(==,!new)
+  type {:extern "MyType"} MyType(==,!new)
 }
 
 module MyModule1 {
-    import MyModule2
+  import MyModule2
 
-    datatype MyDatatype = MyDatatype (
-        t: MyModule2.MyType
-    )
+  datatype MyDatatype = MyDatatype (
+                          t: MyModule2.MyType
+                        )
 }

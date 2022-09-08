@@ -6,36 +6,36 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-    var c := 1;
-    print(c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c
-          + c + c + c + c + c + c + c), "\n";
+  var c := 1;
+  print(c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c
+        + c + c + c + c + c + c + c), "\n";
 }
 

@@ -12,7 +12,7 @@ method TestClass(c: C) {
   case true =>
     var x := (if 5/0 == 1 then c else c).X;  // error: receiver is not well-formed
   case true =>
-    (if 5/0 == 2 then c else c).M();  // error: receiver is not well-formed
+  (if 5/0 == 2 then c else c).M();  // error: receiver is not well-formed
   case true =>
     var x := (if 5/0 == 3 then c else c).F();  // error: receiver is not well-formed
   case true =>

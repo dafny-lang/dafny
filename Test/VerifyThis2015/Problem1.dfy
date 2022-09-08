@@ -23,9 +23,9 @@ predicate IsRelaxedPrefixAux<T>(pat: seq<T>, a: seq<T>, slack: nat)
   // if both "pat" and "a" are nonempty and they agree on their first element, then the property
   // holds iff it holds of their drop-1 suffixes
   else if a != [] && pat[0] == a[0] then IsRelaxedPrefixAux(pat[1..], a[1..], slack)
-  // if either "a" is empty or "pat" and "a" disagree on their first element, then the property
-  // holds iff there's any slack left and the property holds after spending 1 slack unit and dropping
-  // the first element of the pattern
+                                         // if either "a" is empty or "pat" and "a" disagree on their first element, then the property
+                                         // holds iff there's any slack left and the property holds after spending 1 slack unit and dropping
+                                         // the first element of the pattern
   else slack > 0 && IsRelaxedPrefixAux(pat[1..], a, slack-1)
 }
 

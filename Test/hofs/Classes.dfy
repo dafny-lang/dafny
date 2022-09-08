@@ -47,16 +47,16 @@ method U(t : T)
 
 class MyClass {
   var data: int
-	function method F(): int
-	  reads this
-	{
-	  data
-	}
+  function method F(): int
+    reads this
+  {
+    data
+  }
   method M(that: MyClass)
-	{
-	  var fn := that.F;  // "that" is captured into the closure
-	  var d := fn();
-		assert d == that.data;  // yes
-		assert d == this.data;  // error: no reason to believe that this would hold
-	}
+  {
+    var fn := that.F;  // "that" is captured into the closure
+    var d := fn();
+    assert d == that.data;  // yes
+    assert d == this.data;  // error: no reason to believe that this would hold
+  }
 }

@@ -6,5 +6,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-   expect false;
+  expect false;
 }

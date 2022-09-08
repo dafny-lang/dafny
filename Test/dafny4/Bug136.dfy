@@ -3,8 +3,8 @@
 
 method test()
 {
-    assume false;
-    assert true;
+  assume false;
+  assert true;
 }
 
 

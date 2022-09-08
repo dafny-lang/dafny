@@ -18,7 +18,7 @@ module NamesThatDontExist {
     reveals Color.u  // error: cannot mention datatype destructor in export
     reveals Trait?  // error: Trait and Trait? should be exported together, using Trait
     reveals Klass?  // error: Klass and Klass? should be exported together, using Klass
-    // --- provides
+            // --- provides
     provides DoesNotExist  // error: unknown identiifer
     provides Trait?.Valid  // error: not a type declaration with members
     provides Klass?.Valid  // error: not a type declaration with members

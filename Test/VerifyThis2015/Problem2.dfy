@@ -139,27 +139,27 @@ method ParallelGcd(A: int, B: int) returns (gcd: int)
       case pc0 == 0                            => a0, pc0 := a, 1;
       case pc0 == 1                            => b0, pc0 := b, 2;
       case pc0 == 2 && (budget0 > 0 || pc1 == 3) && a0 > b0  =>
-                                                  GcdDecrease(a, b);
-                                                  a, pc0 := a0 - b0, 0;
-                                                  budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
+        GcdDecrease(a, b);
+        a, pc0 := a0 - b0, 0;
+        budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
       case pc0 == 2 && (budget0 > 0 || pc1 == 3) && a0 < b0  =>
-                                                  pc0 := 0;
-                                                  budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
+        pc0 := 0;
+        budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
       case pc0 == 2 && (budget0 > 0 || pc1 == 3) && a0 == b0 =>
-                                                  pc0 := 3;
-                                                  budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
+        pc0 := 3;
+        budget0, budget1 := BudgetUpdate(budget0, budget1, pc1);
       case pc1 == 0                            => b1, pc1 := b, 1;
       case pc1 == 1                            => a1, pc1 := a, 2;
       case pc1 == 2 && (budget1 > 0 || pc0 == 3) && b1 > a1  =>
-                                                  Symmetry(a, b); GcdDecrease(b, a); Symmetry(b - a, a);
-                                                  b, pc1 := b1 - a1, 0;
-                                                  budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
+        Symmetry(a, b); GcdDecrease(b, a); Symmetry(b - a, a);
+        b, pc1 := b1 - a1, 0;
+        budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
       case pc1 == 2 && (budget1 > 0 || pc0 == 3) && b1 < a1  =>
-                                                  pc1 := 0;
-                                                  budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
+        pc1 := 0;
+        budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
       case pc1 == 2 && (budget1 > 0 || pc0 == 3) && b1 == a1 =>
-                                                  pc1 := 3;
-                                                  budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
+        pc1 := 3;
+        budget1, budget0 := BudgetUpdate(budget1, budget0, pc0);
     }
   }
   GcdEqual(a);

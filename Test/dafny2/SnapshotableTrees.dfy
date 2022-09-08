@@ -98,8 +98,8 @@ module SnapTree {
       this in MutableRepr && MutableRepr <= Repr &&
       (root == null ==> Contents == []) &&
       (root != null ==>
-        root in Repr && root.Repr <= Repr && this !in root.Repr &&
-        root.NodeValid() && Contents == root.Contents) &&
+         root in Repr && root.Repr <= Repr && this !in root.Repr &&
+         root.NodeValid() && Contents == root.Contents) &&
       IsSorted(Contents) &&
       (IsReadonly ==> reprIsShared) &&
       (!reprIsShared && root != null ==> root.Repr <= MutableRepr) &&
@@ -189,8 +189,8 @@ module SnapTree {
       ensures IsReadonly == old(IsReadonly)
       ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
-        0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+                0 <= pos < |Contents| == |old(Contents)| + 1 &&
+                Contents == old(Contents[..pos] + [x] + Contents[pos..])
     {
       if reprIsShared {
         root, pos := Node.FunctionalInsert(root, x);
@@ -250,9 +250,9 @@ module SnapTree {
     {
       this in Repr &&
       (left != null ==>
-        left in Repr && left.Repr <= Repr && this !in left.Repr && left.NodeValid()) &&
+         left in Repr && left.Repr <= Repr && this !in left.Repr && left.NodeValid()) &&
       (right != null ==>
-        right in Repr && right.Repr <= Repr && this !in right.Repr && right.NodeValid()) &&
+         right in Repr && right.Repr <= Repr && this !in right.Repr && right.NodeValid()) &&
       (left != null && right != null ==> left.Repr !! right.Repr) &&
       SortedSplit(left, data, right) &&
       Contents == CombineSplit(left, data, right) &&
@@ -337,8 +337,8 @@ module SnapTree {
       ensures n == null ==> r.Contents == [x] && pos == 0
       ensures n != null && x in n.Contents ==> r == n && pos < 0
       ensures n != null && x !in n.Contents ==>
-        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+                0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+                r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
       decreases if n == null then {} else n.Repr
     {
       if n == null {
@@ -360,8 +360,8 @@ module SnapTree {
       ensures fresh(r.Repr - n.Repr)
       ensures x in n.Contents ==> r == n && pos < 0
       ensures x !in n.Contents ==>
-        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+                0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+                r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
       decreases n.Repr, 0
     {
       reveal n.NodeValid();
@@ -380,8 +380,8 @@ module SnapTree {
       ensures fresh(r.Repr - n.Repr)
       ensures x in n.Contents ==> r == n && pos < 0
       ensures x !in n.Contents ==>
-        0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+                0 <= pos < |r.Contents| == |n.Contents| + 1 &&
+                r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
       decreases n.Repr, 0
     {
       reveal n.NodeValid();
@@ -403,8 +403,8 @@ module SnapTree {
       ensures NodeValid() && fresh(Repr - old(Repr))
       ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
-        0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+                0 <= pos < |Contents| == |old(Contents)| + 1 &&
+                Contents == old(Contents[..pos] + [x] + Contents[pos..])
       decreases Repr
     {
       if x < data {
@@ -423,8 +423,8 @@ module SnapTree {
       ensures NodeValid() && fresh(Repr - old(Repr))
       ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
-        0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+                0 <= pos < |Contents| == |old(Contents)| + 1 &&
+                Contents == old(Contents[..pos] + [x] + Contents[pos..])
       decreases Repr, 0
     {
       reveal NodeValid();
@@ -448,8 +448,8 @@ module SnapTree {
       ensures NodeValid() && fresh(Repr - old(Repr))
       ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
-        0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+                0 <= pos < |Contents| == |old(Contents)| + 1 &&
+                Contents == old(Contents[..pos] + [x] + Contents[pos..])
       decreases Repr, 0
     {
       reveal NodeValid();

@@ -2,71 +2,71 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
-method ResolutionErrors() {
-  var x;
-  var g5 := x, y => (y, x);   // fail at resolution
-  var g6 := x, (y => (y, x)); // fail at resolution
-}
-
-// cannot assign functions
-
-class Apa {
-  function f() : int {
-    0
+  method ResolutionErrors() {
+    var x;
+    var g5 := x, y => (y, x);   // fail at resolution
+    var g6 := x, (y => (y, x)); // fail at resolution
   }
-}
 
-method Nope3() {
-  var apa := new Apa;
-  apa.f := () => 2;
-}
+  // cannot assign functions
 
-method RequiresFail(f : int -> int)
-  // ok
-  requires f(0) == 0
-  requires f.requires(0)
-  requires f.reads(0) == {}
+  class Apa {
+    function f() : int {
+      0
+    }
+  }
 
-  // fail
-  requires f(0) == true
-  requires f(1,2) == 0
-  requires f(true) == 0
-  requires f.requires(true)
-  requires f.requires(1) == 0
-  requires f.requires(1,2)
-  requires f.reads(true) == {}
-  requires f.reads(1) == 0
-  requires f.reads(1,2) == {}
-{
-}
+  method Nope3() {
+    var apa := new Apa;
+    apa.f := () => 2;
+  }
 
-method Bogus()
-{
-  var f;
-  f := x reads 1 => x;
-  f := x requires 1 => x;
-}
+  method RequiresFail(f : int -> int)
+    // ok
+    requires f(0) == 0
+    requires f.requires(0)
+    requires f.reads(0) == {}
 
-predicate method Bool()
-{
-  true
-}
+    // fail
+    requires f(0) == true
+    requires f(1,2) == 0
+    requires f(true) == 0
+    requires f.requires(true)
+    requires f.requires(1) == 0
+    requires f.requires(1,2)
+    requires f.reads(true) == {}
+    requires f.reads(1) == 0
+    requires f.reads(1,2) == {}
+  {
+  }
 
-method Bla() {
-  assert Bool;
-}
+  method Bogus()
+  {
+    var f;
+    f := x reads 1 => x;
+    f := x requires 1 => x;
+  }
 
-method Pli<A,B>(f : A -> B) requires f != null
-{
-  var o : object;
-  assert f != o;
-}
+  predicate method Bool()
+  {
+    true
+  }
 
-method Underscores() {
-  var u := _ => 0;
-  var v := (_, _) => 0;
-  var w := (_, _, _) => _;
-}
+  method Bla() {
+    assert Bool;
+  }
+
+  method Pli<A,B>(f : A -> B) requires f != null
+  {
+    var o : object;
+    assert f != o;
+  }
+
+  method Underscores() {
+    var u := _ => 0;
+    var v := (_, _) => 0;
+    var w := (_, _, _) => _;
+  }
 }  // module Tests
 module AritySituations {
   // In addition to testing type checking, these tests check that error messages

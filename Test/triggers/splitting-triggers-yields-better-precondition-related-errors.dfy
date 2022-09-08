@@ -13,7 +13,7 @@ method g(x: int) {
 
 function gf(): int
   requires forall y :: y > 0 && y < 0 {
-    1
+  1
 }
 
 function gg(x: int): int {

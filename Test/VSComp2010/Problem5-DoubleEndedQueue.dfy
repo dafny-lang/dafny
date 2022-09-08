@@ -99,11 +99,11 @@ class LinkedList<T(0)> {
     0 <= length && length == |List| &&
     (length == 0 ==> List == [] && tail == null) &&
     (length != 0 ==>
-      tail != null && tail in Repr &&
-      tail.Repr <= Repr && this !in tail.Repr &&
-      tail.Valid() &&
-      List == [head] + tail.List &&
-      length == tail.length + 1)
+       tail != null && tail in Repr &&
+       tail.Repr <= Repr && this !in tail.Repr &&
+       tail.Valid() &&
+       List == [head] + tail.List &&
+       length == tail.length + 1)
   }
 
   constructor Init()

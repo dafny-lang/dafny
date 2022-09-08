@@ -27,9 +27,9 @@ module BitvectorLiterals {
 
   method MatchExpr(v: bv8) returns (r: int) {
     r := match v
-      case -3 => 10  // error: unary minus not allowed in case pattern
-      case -0 => 11  // error: unary minus not allowed in case pattern
-      case _ => 12;
+         case -3 => 10  // error: unary minus not allowed in case pattern
+         case -0 => 11  // error: unary minus not allowed in case pattern
+         case _ => 12;
   }
 
   method Bv0() returns (v: bv0) {
@@ -37,7 +37,7 @@ module BitvectorLiterals {
     assert v == 0;
     match v
     case -0 =>  // error: unary minus not allowed in case pattern
-}
+  }
 }
 
 module ORDINALs {

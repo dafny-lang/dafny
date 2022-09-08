@@ -78,8 +78,8 @@ method PrintArray(a : array<int>)
   var i := 0;
   while i < a.Length {
     if i != 0 {
-	  print ", ";
-	}
+      print ", ";
+    }
     print a[i];
     i := i + 1;
   }

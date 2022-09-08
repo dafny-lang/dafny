@@ -99,9 +99,9 @@ function Max(a: array<int>, s: int, len: int): int
   reads a
 {
   if len == 1 then a[s] else
-    var m := Max(a, s, len - 1);
-    var y := a[s + len - 1];
-    if y < m then m else y
+  var m := Max(a, s, len - 1);
+  var y := a[s + len - 1];
+  if y < m then m else y
 }
 
 // Function Max's definition looks a bit cluttered, so let's prove

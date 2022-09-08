@@ -28,7 +28,7 @@ module AssignmentToNat {
   function method F'(x: int): nat
   {
     F      // error (regarding result of F(x))
-      (x)  // error (regaring argument to F)
+    (x)  // error (regaring argument to F)
   }
 
   class G {
@@ -84,7 +84,7 @@ module AssignmentToSetNat {
   function method F'(x: set<int>): set<nat>
   {
     F      // error (regarding result of F(x) in the body)
-      (x)  // error (regaring argument to F)
+    (x)  // error (regaring argument to F)
   }
 
   class G {

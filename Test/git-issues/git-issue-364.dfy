@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype NatOutcome =
-| Success(value: nat)
-| Failure(error: string)
+  | Success(value: nat)
+  | Failure(error: string)
 {
   predicate method IsFailure() {
     this.Failure?

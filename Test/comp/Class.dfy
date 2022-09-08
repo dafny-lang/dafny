@@ -240,6 +240,6 @@ method TestInitializationMethods() {
   print c.data, "\n"; // 15
 
   c := new HasInitializationMethod.Init(c.data); // should pass in c.data, not (new HasInitializationMethod).data
-  
+
   print c.data, "\n"; // 16
 }

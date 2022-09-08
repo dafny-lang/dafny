@@ -112,24 +112,24 @@ class Node {
   {
     this in Repr &&
     (left != null ==>
-      left in Repr &&
-      left.Repr <= Repr && this !in left.Repr &&
-      left.Valid() &&
-      (forall y :: y in left.Contents ==> y < data)) &&
+       left in Repr &&
+       left.Repr <= Repr && this !in left.Repr &&
+       left.Valid() &&
+       (forall y :: y in left.Contents ==> y < data)) &&
     (right != null ==>
-      right in Repr &&
-      right.Repr <= Repr && this !in right.Repr &&
-      right.Valid() &&
-      (forall y :: y in right.Contents ==> data < y)) &&
+       right in Repr &&
+       right.Repr <= Repr && this !in right.Repr &&
+       right.Valid() &&
+       (forall y :: y in right.Contents ==> data < y)) &&
     (left == null && right == null ==>
-      Contents == {data}) &&
+       Contents == {data}) &&
     (left != null && right == null ==>
-      Contents == left.Contents + {data}) &&
+       Contents == left.Contents + {data}) &&
     (left == null && right != null ==>
-      Contents == {data} + right.Contents) &&
+       Contents == {data} + right.Contents) &&
     (left != null && right != null ==>
-      left.Repr !! right.Repr &&
-      Contents == left.Contents + {data} + right.Contents)
+       left.Repr !! right.Repr &&
+       Contents == left.Contents + {data} + right.Contents)
   }
 
   constructor Init(x: int)

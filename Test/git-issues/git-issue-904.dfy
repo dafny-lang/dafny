@@ -4,9 +4,9 @@
 module FOO {
   //  two fields are needed
   datatype D = D(
-    f1: nat,
-    f2: nat
-  )
+                 f1: nat,
+                 f2: nat
+               )
 
   function method f(d : D) : nat
     ensures f(d) != 0

@@ -73,9 +73,9 @@ module H {
       case Wrapper(t, bla) =>
         var u;
         if (y < 100) { u := t; }
-        // The following call is allowed, because it will be inferred that
-        // 'u' is of a type that supports equality
-        M(u);
+                     // The following call is allowed, because it will be inferred that
+                     // 'u' is of a type that supports equality
+                     M(u);
     }
   }
   method Caller1(d: Dt) {
@@ -87,7 +87,7 @@ module H {
   }
   method Caller2(co: Stream) {
     var d := Cons(co, Nil);
-     Caller1(d);  // case in point for the error in Caller1
+    Caller1(d);  // case in point for the error in Caller1
   }
 }
 

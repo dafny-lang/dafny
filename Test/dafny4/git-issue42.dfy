@@ -3,10 +3,10 @@
 
 lemma L(x:int)
 {
-    var x := 2;
+  var x := 2;
 }
 
 lemma {:warnShadowing false} L1(x:int)
 {
-    var x := 2;
+  var x := 2;
 }

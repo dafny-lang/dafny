@@ -14,7 +14,7 @@ method Test0a(x: int) returns (s0: S0, s1: S1, s2: S2, s3: S3) {
 }
 
 method Test0b(x: int) returns (s0: S0, s1: S1, s2: S2, s3: S3) {
-    s0 := S0();
+  s0 := S0();
   s1 := S1();  // error: too few arguments
   s2 := S2();  // error: too few arguments
   s3 := S3();  // error: too few arguments

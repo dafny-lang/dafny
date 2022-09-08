@@ -41,7 +41,7 @@ method Main() {
 
   Shifts();
 
-	Rotates();
+  Rotates();
 }
 
 method BitwiseOperations() returns (a: bv47, b: bv47, c: bv47)
@@ -247,7 +247,7 @@ method Rotates()
   PrintRotates("bv2", bb, bb.RotateLeft(x).RotateRight(x));
   x := 0;
   PrintRotates("bv0", noll, noll.RotateLeft(x).RotateRight(x));
-	x := 5;
+  x := 5;
   w, seven := 0xC00 + 2000, 127;
   PrintRotates("bv12 again", w, w.RotateLeft(x).RotateRight(x));
   PrintRotates("bv7 again", seven, seven.RotateLeft(x).RotateRight(x));

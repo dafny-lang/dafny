@@ -7,5 +7,5 @@
 // whether an executable has been produced.
 
 method Main() {
-    print "hello\n";
+  print "hello\n";
 }

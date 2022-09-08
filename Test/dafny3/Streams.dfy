@@ -256,9 +256,9 @@ greatest lemma Prepend_Lemma<T>(x: T, M: Stream<Stream>)
 lemma Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
   ensures
     StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
-                                          // but until (co-)method can be called from functions,
-                                          // this condition is used as an antecedent here
-    FlattenStartMarker(M, startMarker) == FlattenNonEmpties(Prepend(startMarker, M));
+      // but until (co-)method can be called from functions,
+      // this condition is used as an antecedent here
+      FlattenStartMarker(M, startMarker) == FlattenNonEmpties(Prepend(startMarker, M));
 {
   Prepend_Lemma(startMarker, M);
   Lemma_Flatten(Nil, M, startMarker);
@@ -267,14 +267,14 @@ lemma Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
 greatest lemma Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
   ensures
     StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
-                                          // but until (co-)method can be called from functions,
-                                          // this condition is used as an antecedent here
-    PrependThenFlattenStartMarker(prefix, M, startMarker) == PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
+      // but until (co-)method can be called from functions,
+      // this condition is used as an antecedent here
+      PrependThenFlattenStartMarker(prefix, M, startMarker) == PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
 {
   Prepend_Lemma(startMarker, M);
   match (prefix) {
     case Cons(hd, tl) =>
-    Lemma_Flatten(tl, M, startMarker);
+      Lemma_Flatten(tl, M, startMarker);
     case Nil =>
       match (M) {
         case Nil =>

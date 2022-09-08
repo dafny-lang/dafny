@@ -108,8 +108,8 @@ trait t
 {
   function f(s2:int):int
     ensures f(s2) > 0
-    //requires s != null && s.Length > 1
-    //reads s, s2
+  //requires s != null && s.Length > 1
+  //reads s, s2
 }
 
 class c extends t

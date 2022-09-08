@@ -35,17 +35,17 @@ function voraciousAdd(a: Stream<int>, b: Stream<int>): Stream<int>
 function Fib(): Stream<int>
 {
   Cons(0, Cons(1,
-    voraciousAdd(
-      Fib(),  // error (termination): because not abstemious
-      Fib().tail)))
+               voraciousAdd(
+                 Fib(),  // error (termination): because not abstemious
+                 Fib().tail)))
 }
 
 function FibSortof(): Stream<int>
 {
   Cons(0, Cons(1,
-    voraciousAdd(
-      FibSortof(),  // error (termination): because not abstemious
-      FibSortof())))
+               voraciousAdd(
+                 FibSortof(),  // error (termination): because not abstemious
+                 FibSortof())))
 }
 
 function ThisAintGoinNowhere(): Stream<int>
@@ -56,15 +56,15 @@ function ThisAintGoinNowhere(): Stream<int>
 function BadFib(): Stream<int>
 {
   Cons(1,
-    add(
-      BadFib(),  // error (termination): because second Bad() is in destructive context
-      BadFib().tail))
+       add(
+         BadFib(),  // error (termination): because second Bad() is in destructive context
+         BadFib().tail))
 }
 
 function AnotherBadFib(): Stream<int>
 {
   Cons(1,
-    voraciousAdd(
-      AnotherBadFib(),  // error (termination): because second Bad() is in destructive context
-      AnotherBadFib().tail))
+       voraciousAdd(
+         AnotherBadFib(),  // error (termination): because second Bad() is in destructive context
+         AnotherBadFib().tail))
 }

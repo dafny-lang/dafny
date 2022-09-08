@@ -70,8 +70,8 @@ lemma {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream, c:Stre
   decreases k;
 {
   match (a) {
-  case SNil =>
-  case SCons(h, t) => if (k > 0) { SAppendIsAssociativeK(k - 1, t, b, c); }
+    case SNil =>
+    case SCons(h, t) => if (k > 0) { SAppendIsAssociativeK(k - 1, t, b, c); }
   }
 }
 
@@ -88,8 +88,8 @@ greatest lemma {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:St
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
   match (a) {
-  case SNil =>
-  case SCons(h, t) => SAppendIsAssociativeC(t, b, c);
+    case SNil =>
+    case SCons(h, t) => SAppendIsAssociativeC(t, b, c);
   }
 }
 

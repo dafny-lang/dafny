@@ -109,8 +109,8 @@ function method Split(xs: List<nat>, b: nat): (List<nat>, List<nat>)
 lemma SmallestMissingNumber_Correct(xs: List<nat>)
   requires NoDuplicates(xs)
   ensures var s := SmallestMissingNumber(xs);
-    s !in Elements(xs) &&
-    forall x :: 0 <= x < s ==> x in Elements(xs)
+          s !in Elements(xs) &&
+          forall x :: 0 <= x < s ==> x in Elements(xs)
 {
   SMN_Correct(xs, 0, Length(xs));
 }
@@ -160,9 +160,9 @@ lemma SMN_Correct(xs: List<nat>, n: nat, len: nat)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
   ensures var s := SMN(xs, n, len);
-    n <= s <= n + len &&
-    s !in Elements(xs) &&
-    forall x :: n <= x < s ==> x in Elements(xs)
+          n <= s <= n + len &&
+          s !in Elements(xs) &&
+          forall x :: n <= x < s ==> x in Elements(xs)
   decreases len
 {
   if 2 <= len {
@@ -191,9 +191,9 @@ lemma SMN_Correct(xs: List<nat>, n: nat, len: nat)
 lemma Split_Correct(xs: List<nat>, b: nat)
   requires NoDuplicates(xs)
   ensures var r := Split(xs, b);
-    Elements(r.0) == (set x | x in Elements(xs) && x < b) &&
-    Elements(r.1) == (set x | x in Elements(xs) && b <= x) &&
-    NoDuplicates(r.0) && NoDuplicates(r.1)
+          Elements(r.0) == (set x | x in Elements(xs) && x < b) &&
+          Elements(r.1) == (set x | x in Elements(xs) && b <= x) &&
+          NoDuplicates(r.0) && NoDuplicates(r.1)
 {
   match xs
   case Nil =>
@@ -222,9 +222,9 @@ lemma SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
   ensures var s := SMN'(xs, n, len);
-    n <= s <= n + len &&
-    s !in Elements(xs) &&
-    forall x :: n <= x < s ==> x in Elements(xs)
+          n <= s <= n + len &&
+          s !in Elements(xs) &&
+          forall x :: n <= x < s ==> x in Elements(xs)
   decreases len
 {
   if xs == Nil {
@@ -257,9 +257,9 @@ lemma SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
   ensures var s := SMN''(xs, n, len);
-    n <= s <= n + len &&
-    s !in Elements(xs) &&
-    forall x :: n <= x < s ==> x in Elements(xs)
+          n <= s <= n + len &&
+          s !in Elements(xs) &&
+          forall x :: n <= x < s ==> x in Elements(xs)
   decreases len
 {
   if xs == Nil {

@@ -2,5 +2,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-    print "hello\n";
+  print "hello\n";
 }

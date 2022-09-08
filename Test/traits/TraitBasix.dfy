@@ -72,7 +72,7 @@ module m1
     function method F(z: int): int
       reads this
     {
-       z
+      z
     }
     var x: int //error, x has been declared in the parent trait
   }
@@ -82,7 +82,7 @@ module m1
     method Customizable(w: int) returns (p: int)
       modifies this
     {
-       w:=w+1;
+      w:=w+1;
     }
 
     var c1: I0Child

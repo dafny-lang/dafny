@@ -1,37 +1,37 @@
 // RUN: %dafny_0 /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
-class CC {
-  var f: nat
-  var g: int
-  function method F(): nat
-  method M() {
-    var a := f;  // nat
-    var b := g;  // int
-    var c := F();  // nat
-    var w;  // nat
-    var d := N(w);  // nat
+  class CC {
+    var f: nat
+    var g: int
+    function method F(): nat
+    method M() {
+      var a := f;  // nat
+      var b := g;  // int
+      var c := F();  // nat
+      var w;  // nat
+      var d := N(w);  // nat
+    }
+    method N(m: nat) returns (n: nat)
   }
-  method N(m: nat) returns (n: nat)
-}
 
-method ChainOfAssignments() returns (x: int, y: int, n: nat)
-{
-  var a;  // int
-  var b := a;  // int
-  var c := b;  // int
-  x := c;
-  y := x;
+  method ChainOfAssignments() returns (x: int, y: int, n: nat)
+  {
+    var a;  // int
+    var b := a;  // int
+    var c := b;  // int
+    x := c;
+    y := x;
 
-  var k, l, m;  // int, int, int
-  k := l;
-  l := m;
-  m := x;
+    var k, l, m;  // int, int, int
+    k := l;
+    l := m;
+    m := x;
 
-  var p, q;  // nat, nat
-  p := q;
-  q := n;
-}
+    var p, q;  // nat, nat
+    p := q;
+    q := n;
+  }
 }  // module Tests
 module HereAreErrors {
   method Error0() returns (x: int, z: bool)
@@ -84,10 +84,10 @@ module HereAreErrors {
   }
 }
 module PL {
-method PlainLiterals() {
-  var x := 0;
-  var r := 0.0;
-}
+  method PlainLiterals() {
+    var x := 0;
+    var r := 0.0;
+  }
 }
 module PlusTests {
   method Plus0() {
@@ -358,35 +358,35 @@ module OtherTraitsAndClasses {
   method Q1<T>(s: set<MyClass>) returns (t: set<MyClass>) {
     var p := s + t;  // set<MyClass>
     var q: set<object> := s + t;
-//    var r: set<T> := s + t;  // error
+    //    var r: set<T> := s + t;  // error
   }
 
   class MyClass { }
 
-/******
-  method P() {
-    var w, u;  // int, unint8
-    w := 0;
-    u := 0;
-    var v: uint8 := u;
-  }
-
-  newtype uint8 = x | 0 <= x < 256
-
-  method Brackets(a: array<char>)
-    requires a != null
-  {
-    var i;
-    var ch := a[i];
-    /*
-    var s;  // s could be anything
-    var n: nat := |s|;  // s could be a set, multiset, sequence, or map
-    s := s + s;  // this excludes map
-    s := s * s;  // this also excludes sequence
-    var k := s[ch];  // and this excludes set, so s must be a multiset
-    */
-  }
-******/
+  /******
+    method P() {
+      var w, u;  // int, unint8
+      w := 0;
+      u := 0;
+      var v: uint8 := u;
+    }
+  
+    newtype uint8 = x | 0 <= x < 256
+  
+    method Brackets(a: array<char>)
+      requires a != null
+    {
+      var i;
+      var ch := a[i];
+      /*
+      var s;  // s could be anything
+      var n: nat := |s|;  // s could be a set, multiset, sequence, or map
+      s := s + s;  // this excludes map
+      s := s * s;  // this also excludes sequence
+      var k := s[ch];  // and this excludes set, so s must be a multiset
+      */
+    }
+  ******/
 }
 
 module LetPatterns {

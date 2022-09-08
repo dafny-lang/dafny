@@ -129,7 +129,7 @@ module BreakContinue {
   method M() {
     label Outer:
     for i := 0 to 100 {
-    label Inner:
+      label Inner:
       for j := 0 to 100 {
         label X: {
           label Innerer:

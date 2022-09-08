@@ -137,7 +137,7 @@ function PartialFunction<A, B(00)>(a: A): B
 
 type Bad_TwoPred_TotalArrow<!A(!new), B(00)> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
-  // cool: the type instantiation of "PartialFunction" below is inferred
+                     // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied
 
 // ----- Interaction between user-defined conditions and built-in arrows -----

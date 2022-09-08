@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 module m1 {
- export reveals f
+  export reveals f
 
- type T = int
- function f(x:T) : T { x }
+  type T = int
+  function f(x:T) : T { x }
 }

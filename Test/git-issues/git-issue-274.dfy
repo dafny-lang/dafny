@@ -8,7 +8,7 @@ module P {
 module N2 {
   import opened M = P
   trait T {
-      var m: M.M
+    var m: M.M
   }
 }
 

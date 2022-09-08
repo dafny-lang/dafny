@@ -89,8 +89,8 @@ lemma Pong(x: int)
 
 function Sum(s: set<int>): int {
   if s == {} then 0 else
-    var x := Pick(s);
-    x + Sum(s - {x})
+  var x := Pick(s);
+  x + Sum(s - {x})
 } by method {
   var sum := 0;
   var s' := s;

@@ -45,8 +45,8 @@ method Flip<T>(m: array2<T>)
     invariant a < b <= N || (a == N && b == N+1)
     invariant forall i,j :: 0 <= i <= j < N ==>
                 if i < a || (i == a && j < b)
-                  then m[i,j] == old(m[j,i]) && m[j,i] == old(m[i,j])
-                  else m[i,j] == old(m[i,j]) && m[j,i] == old(m[j,i])
+                then m[i,j] == old(m[j,i]) && m[j,i] == old(m[i,j])
+                else m[i,j] == old(m[i,j]) && m[j,i] == old(m[j,i])
     decreases N-a, N-b
   {
     if b < N {

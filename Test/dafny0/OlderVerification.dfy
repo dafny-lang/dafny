@@ -143,9 +143,9 @@ module Reachable3 {
     decreases p
   {
     bound != 0 ==>
-    match p
-    case Empty => source == sink
-    case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S, bound - 1)
+      match p
+      case Empty => source == sink
+      case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S, bound - 1)
   }
 }
 

@@ -56,7 +56,7 @@ method LRead() {
   f.val := () reads f
               reads f.val.reads()
               reads if o in f.val.reads() then {} else {o}
-              => true;
+           => true;
 
   assume o != null;
   assert o != f;

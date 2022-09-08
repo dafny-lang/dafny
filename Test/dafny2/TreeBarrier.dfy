@@ -20,19 +20,19 @@ class Node {
     (right != null ==> right in desc && left !in right.desc) &&
 
     (left != null ==>
-      left in desc &&
-      (right != null ==> desc == {left,right} + left.desc + right.desc)  &&
-      (right == null ==> desc == {left} + left.desc)  &&
-      left.validDown()) &&
+       left in desc &&
+       (right != null ==> desc == {left,right} + left.desc + right.desc)  &&
+       (right == null ==> desc == {left} + left.desc)  &&
+       left.validDown()) &&
     (left == null ==>
-      (right != null ==> desc == {right} + right.desc)  &&
-      (right == null ==> desc == {})) &&
+       (right != null ==> desc == {right} + right.desc)  &&
+       (right == null ==> desc == {})) &&
 
     (right != null ==> right.validDown()) &&
 
     (blocked() ==> forall m :: m in desc ==> m.blocked()) &&
     (after() ==> forall m :: m in desc ==> m.blocked() || m.after())
-//    (left != null && right != null ==> left.desc !! right.desc)  // not needed
+    //    (left != null && right != null ==> left.desc !! right.desc)  // not needed
   }
 
 
@@ -70,7 +70,7 @@ class Node {
     modifies this, left, right
     decreases *  // allow the method to not terminate
   {
-//A
+    //A
     pc := 1;
     if(left != null) {
       while(!left.sense)
@@ -104,21 +104,21 @@ class Node {
       }
     }
 
-//B
+    //B
     pc := 2;
     if(parent != null) {
       sense := true;
     }
-//C
+    //C
     pc := 3;
     while(sense)
-        modifies this
-        invariant validUp() // this seems necessary to get the necessary unfolding of functions
-        invariant valid()
-        invariant left == old(left)
-        invariant right == old(right)
-        invariant sense ==> parent != null
-        decreases *  // to by-pass termination checking for this loop
+      modifies this
+      invariant validUp() // this seems necessary to get the necessary unfolding of functions
+      invariant valid()
+      invariant left == old(left)
+      invariant right == old(right)
+      invariant sense ==> parent != null
+      decreases *  // to by-pass termination checking for this loop
     {
       // this loop body is supposed to model what the "parent" thread
       // might do to its node. The body models a transition from
@@ -128,17 +128,17 @@ class Node {
       sense := *;
       assume !sense ==> parent.after();
     }
-//D
+    //D
     pc := 4;
     if(left != null) {
       left.sense := false;
     }
-//E
+    //E
     pc := 5;
     if(right != null) {
       right.sense := false;
     }
-//F
+    //F
     pc := 6;
   }
 }

@@ -16,7 +16,7 @@ newtype Even = x : int | x % 2 == 0
   }
 }
 
-codatatype Stream<T> = More(head: T, rest: Stream) 
+codatatype Stream<T> = More(head: T, rest: Stream)
 {
   method {:timeLimitMultiplier 3} CodatatypeTest(y:int) {
     assert y == y;

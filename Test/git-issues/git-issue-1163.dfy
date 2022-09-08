@@ -36,7 +36,7 @@ class MyClass {
     ghost var h :=
       old@L(
         (p: MyClass) requires p.y == 10 reads p =>
-        assert p.y == 10; 5  // this assert once didn't work, because of a mismatch of heap variables in the translator
+          assert p.y == 10; 5  // this assert once didn't work, because of a mismatch of heap variables in the translator
       );
   }
 

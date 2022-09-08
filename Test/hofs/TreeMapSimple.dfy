@@ -80,7 +80,7 @@ function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
 {
   var Branch(x, ts) := t0;
   var g := t requires t in ListData(ts) && PreZ(f, TreeData(t))
-            reads set x, y | x in TreeData(t) && y in f.reads(x) :: y
+             reads set x, y | x in TreeData(t) && y in f.reads(x) :: y
            => TreeMapZ(t, f);
   Branch(f(x), MapZ(ts, g))
 }

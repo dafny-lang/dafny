@@ -36,15 +36,15 @@ class Twostate {
   twostate predicate BadVariations(c: Twostate, d: Twostate, e: Twostate, f: Twostate)
   {
     && unchanged(
-        this, // error: insufficient reads clause
-        c // error: insufficient reads clause
-      )
+         this, // error: insufficient reads clause
+         c // error: insufficient reads clause
+       )
     && unchanged({c, d}) // error: insufficient reads clause
     && unchanged(
-        multiset{e, e, c, e}, // error: insufficient reads clause
-        [c, d, e],
-        [c, f, e, d] // error: insufficient reads clause
-      )
+         multiset{e, e, c, e}, // error: insufficient reads clause
+         [c, d, e],
+         [c, f, e, d] // error: insufficient reads clause
+       )
   }
 
   twostate predicate GoodVariations(c: Twostate, d: Twostate, e: Twostate, f: Twostate)

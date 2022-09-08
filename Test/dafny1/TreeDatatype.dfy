@@ -87,7 +87,7 @@ function Rotate<T>(n: int, l: List<T>): List<T>
   case Nil => l
   case Cons(h, t) =>
     if n == 0 then l else
-      Rotate(n-1, Append(t, SingletonList(h)))
+    Rotate(n-1, Append(t, SingletonList(h)))
 }
 
 

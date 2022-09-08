@@ -21,7 +21,7 @@ predicate ThProperty(step: nat, t: Nat, r: nat)
 ghost method test_ThProperty()
   ensures ThProperty(10, Succ(Zero), 0)
 {  // error: postcondition violation
-//  assert ThProperty(9, Zero, 0);
+  //  assert ThProperty(9, Zero, 0);
 }
 
 // The following is a test that well-typedness antecednets are included in the literal axioms

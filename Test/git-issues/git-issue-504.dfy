@@ -10,8 +10,8 @@ module Bug1 {
 
   function method foo(x: List.t<char>, y: List.t<char>): List.t<char> {
     match (x, y)
-      case (Cons(_, _), _) => List.Cons('-', List.Nil)
-      case (Nil, _) => List.Nil
+    case (Cons(_, _), _) => List.Cons('-', List.Nil)
+    case (Nil, _) => List.Nil
   }
 }
 

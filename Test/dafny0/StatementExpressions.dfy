@@ -157,5 +157,5 @@ function Parsing_Regression_test2(): int
             ( MyLemma(x);
               ( calc { x; < x+1; }
                 17
-  ) ) ) ) ) ) )
+              ) ) ) ) ) ) )
 }

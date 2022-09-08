@@ -53,8 +53,8 @@ function method Sum(xs: List): int {
 
 function method SumAgain(xs: List): int {
   var r := match xs  // let expression; non-top-level match expression
-    case Nil => 0
-    case Cons(x, tail) => x + SumAgain(tail);
+           case Nil => 0
+           case Cons(x, tail) => x + SumAgain(tail);
   r
 }
 

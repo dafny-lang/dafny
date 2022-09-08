@@ -6,15 +6,15 @@ predicate R2(x:int) { exists y :: R1(x, y) }
 
 lemma L1(x:int)
 {
-    assume R2(x);
-    assert exists y :: R1(x, y); // FAILS
+  assume R2(x);
+  assert exists y :: R1(x, y); // FAILS
 }
 
 lemma L2(x:int)
-    requires R2(x); // Oddly, adding this requires fixes the problem
+  requires R2(x); // Oddly, adding this requires fixes the problem
 {
-    assume R2(x);
-    assert exists y :: R1(x, y); // SUCCEEDS
+  assume R2(x);
+  assert exists y :: R1(x, y); // SUCCEEDS
 }
 
 // this predicate says that the first "n" elements of "s"
@@ -46,5 +46,5 @@ predicate f(a:int, s:int)            { (a <= 0 || (exists s0 :: f(pred(a), s0)))
 
 lemma Fuel1(a:int, s:int)
 {
-    assert  f(a, s) <==> (a <= 0 || (exists s0 :: f(pred(a), s0))); // FAILS
+  assert  f(a, s) <==> (a <= 0 || (exists s0 :: f(pred(a), s0))); // FAILS
 }

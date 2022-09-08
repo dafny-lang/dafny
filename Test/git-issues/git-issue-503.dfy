@@ -15,8 +15,8 @@ module Bug {
   datatype input = Input(z: Option.t<P.t>)
   type t = input -> bool
   const Foo: t := (x: input) =>
-    match x
-      case Input(Some(_)) => true
+                    match x
+                    case Input(Some(_)) => true
 }
 
 module OK {
@@ -25,8 +25,8 @@ module OK {
   datatype input = Input(z: Option.t<P.t>)
   type t = input -> bool
   const Foo: t := (x: input) =>
-    match x
-      case Input(Some(_)) => true
-      case Input(None) => true
+                    match x
+                    case Input(Some(_)) => true
+                    case Input(None) => true
 }
 

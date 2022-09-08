@@ -18,5 +18,5 @@ method Main() {
     print x, "\n";
     if (x == 5) { break; }
     x := x + 1;
- }
+  }
 }

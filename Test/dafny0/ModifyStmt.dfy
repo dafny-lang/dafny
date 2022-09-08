@@ -167,14 +167,14 @@ class ModifyBody {
   method P0()
     modifies this;
   {
-   var xx := x;
+    var xx := x;
     modify this;
     assert xx == x;  // error
   }
   method P1()
     modifies this;
   {
-   var xx := x;
+    var xx := x;
     modify this {
       y := 3;
     }

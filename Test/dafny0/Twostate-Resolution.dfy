@@ -201,8 +201,8 @@ module H {
     decreases P(), old(c.f), c.f
   {
     if P() then 5 else
-      var p: () -> bool := P;
-      if p() then 7 else 9
+    var p: () -> bool := P;
+    if p() then 7 else 9
   }
   twostate lemma TL(c: C)
     requires c != null
@@ -324,19 +324,19 @@ module PrintTest {
   predicate Yes(x: int) { true }
 
   type Odd = x |
-    var rr := 2; x % rr == 1
+      var rr := 2; x % rr == 1
     witness var ww := 2; ww + 7
 
   newtype NewOdd = x |
-    var rr := 2; x % rr == 1
+      var rr := 2; x % rr == 1
     witness var ww := 2; ww + 7
 
   type Even = x |
-    var rr := 2; x % rr == 0
+      var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 
   newtype NewEven = x |
-    var rr := 2; x % rr == 0
+      var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 }
 

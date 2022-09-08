@@ -7,7 +7,7 @@ module NewSyntax {
                       | MyNumericConstructor(42:int)
 
   method test(foo:MyDataType, goo:MyDataType, hoo:MyDataType, x:int)
-      returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
+    returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
     requires foo.MyConstructor? && goo.MyOtherConstructor? && hoo.MyNumericConstructor?
     ensures abc == foo.(myint := x + 2);
     ensures def == goo.(otherbool := !foo.mybool);

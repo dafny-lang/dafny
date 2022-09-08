@@ -290,8 +290,8 @@ function method {:tailrecursion} TailNat(n: int): nat
   ensures TailNat(n) == 100 - 5 * n
 {
   if n == 0 then 100 else
-    // In this case, the accumulator's value will not be a "nat", but that's okay in the end
-    (-5) + TailNat(n - 1)
+  // In this case, the accumulator's value will not be a "nat", but that's okay in the end
+  (-5) + TailNat(n - 1)
 }
 
 // This module contains some regression tests for capture of "_this" and related crashes.

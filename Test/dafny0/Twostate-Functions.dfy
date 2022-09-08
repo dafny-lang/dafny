@@ -142,10 +142,10 @@ module M1 refines M0 {
   twostate function F...
   {
     x +
-      old(c.data) +
-      c.data +
-      old(d.data) +  // error: d is not available in the old state
-      d.data
+    old(c.data) +
+    c.data +
+    old(d.data) +  // error: d is not available in the old state
+    d.data
   }
 }
 

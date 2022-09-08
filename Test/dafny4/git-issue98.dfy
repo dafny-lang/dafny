@@ -16,5 +16,5 @@ abstract module One {
 }
 
 abstract module Two {
-    import opened O : One
+  import opened O : One
 }

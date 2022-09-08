@@ -7,40 +7,40 @@
 // Dafny doesn't allow to do reference equality between a trait and an object type, so we use this function to upcast where needed.
 function upCast(o: object): object {o}
 
-// A universe of objects playing under LCI rules 
+// A universe of objects playing under LCI rules
 trait Universe {
   // The set of objects in the universe
   ghost var content: set<Object>
 
-  // Universe invariant: the universe doesn't contain itself, 
+  // Universe invariant: the universe doesn't contain itself,
   // and its objects in this universe agree that they are in this universe.
-  // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
+  // We define this to allow a generic object operation (O.join below) to add the object to the universe,
   // without having to check the object invariants.
   predicate globalBaseInv() reads this, content {
     forall o: Object | o in content :: o.universe == this && upCast(o) != this
   }
-  
+
   // Global 1-state invariant: all objects satisfy their individual invariants.
   predicate globalInv() reads * {
     globalBaseInv() && forall o: Object | o in content :: o.inv()
   }
-  
+
   // Global 2-state invariant: all old objects satisfy their 2-state invariants.
   twostate predicate globalInv2() reads * {
     forall o: Object | o in old(content) :: o in content && o.inv2()
   }
-  
-  // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions. 
+
+  // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions.
   twostate predicate legalTransition() reads * {
     && old(globalInv())
     && globalBaseInv()
     && old(content) <= content
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || (o.inv2() && o.inv()))
-    // The second condition for legality: new objects must satisfy their invariants.
+       // The second condition for legality: new objects must satisfy their invariants.
     && (forall o: Object | o in content && o !in old(content) :: o.inv())
   }
-  
+
   // LCI soundness: legal transitions are good. This makes use of the admissibility obligations build into Object's.
   twostate lemma lci()
     requires legalTransition()
@@ -59,14 +59,14 @@ trait Object {
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
   predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
-  
+
   // Join the universe
   ghost method join()
     requires universe.globalBaseInv() && upCast(this) != universe
-    modifies universe 
+    modifies universe
     ensures baseInv() && universe.content == old(universe.content) + { this }
   {
-    universe.content := universe.content + { this }; 
+    universe.content := universe.content + { this };
   }
 
   // Precondition for the admissibility check.
@@ -102,10 +102,10 @@ class A extends Object {
     && baseInv()
     && universe == b.universe
     && (valid ==>
-      && b.valid
-      && b.a == this
-      //&& b.inv() // Cut recursion
-    )
+          && b.valid
+          && b.a == this
+             //&& b.inv() // Cut recursion
+       )
   }
 
   twostate predicate inv2() reads * {
@@ -114,9 +114,9 @@ class A extends Object {
   }
   twostate predicate localInv2() reads * {
     && (old(valid) ==>
-      && valid // This makes deallocation impossible
-      && old(b) == b
-      //&& b.inv2() // Cut recursion
+          && valid // This makes deallocation impossible
+          && old(b) == b
+             //&& b.inv2() // Cut recursion
     )
   }
 
@@ -150,21 +150,21 @@ class B extends Object {
     && baseInv()
     && universe == a.universe
     && (valid ==>
-      && a.valid
-      && a.b == this
-      //&& a.inv() // Cut recursion
-    )
+          && a.valid
+          && a.b == this
+             //&& a.inv() // Cut recursion
+       )
   }
-  
+
   twostate predicate inv2() reads * {
     && localInv2()
     && (old(valid) ==> a.inv2())
   }
   twostate predicate localInv2() reads * {
     && (old(valid) ==>
-      && valid // This makes deallocation impossible
-      && old(a) == a
-      //&& a.inv2() // Cut recursion
+          && valid // This makes deallocation impossible
+          && old(a) == a
+             //&& a.inv2() // Cut recursion
     )
   }
 
@@ -174,7 +174,7 @@ class B extends Object {
     requires universe.globalInv() && universe == a.universe && a.inv() && !a.valid
     modifies universe, a
     ensures this.baseInv() && universe.globalInv()
-  {   
+  {
     this.universe := universe;
     this.a := a;
     new;

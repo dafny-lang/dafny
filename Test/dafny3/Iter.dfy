@@ -35,7 +35,7 @@ class List<T> {
   {
     if (n == a.Length) {
       var b := new T[2 * a.Length + 1](i requires 0 <= i reads this, a =>
-                                       if i < a.Length then a[i] else t);
+                                         if i < a.Length then a[i] else t);
       assert b[..n] == a[..n] == Contents;
       a, Repr := b, Repr + {b};
       assert b[..n] == Contents;

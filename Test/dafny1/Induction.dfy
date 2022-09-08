@@ -54,8 +54,8 @@ class IntegerInduction {
 
   lemma DoItAllInOneGo()
     ensures (forall n {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
-                SumOfCubes(n) == Gauss(n) * Gauss(n) &&
-                2 * Gauss(n) == n*(n+1));
+               SumOfCubes(n) == Gauss(n) * Gauss(n) &&
+               2 * Gauss(n) == n*(n+1));
   {
   }
 
@@ -119,7 +119,7 @@ class IntegerInduction {
 
   lemma Theorem4()
     ensures (forall n :: 0 <= n ==>
-        SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
+               SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
   {
     // look ma, no hints!
   }
@@ -217,9 +217,9 @@ class Node {
   {
     this in Repr &&
     (left != null ==>
-      left in Repr && left.Repr <= Repr &&
-      this !in left.Repr &&
-      left.Valid()) &&
+       left in Repr && left.Repr <= Repr &&
+       this !in left.Repr &&
+       left.Valid()) &&
     ((left == null && uu == 0) || (left != null && uu != 0))
   }
 

@@ -195,7 +195,7 @@ abstract module M2 refines M1 {
         case Root(_) =>
         case Link(next) =>
           ConstructReach(d-1, next, r, C, td, tt, tm, C');
-        }
+      }
     }
   }
 }

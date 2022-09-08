@@ -110,8 +110,8 @@ module PriorityQueue_layered {
   function method Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
-      m in Elements(t) &&
-      forall x :: x in Elements(t) ==> m <= x
+            m in Elements(t) &&
+            forall x :: x in Elements(t) ==> m <= x
   {
     PQ.AboutMin(t);
     PQ.Min(t)
@@ -139,8 +139,8 @@ module PriorityQueue_on_intrinsic {
   function method Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
-      m in Elements(t) &&
-      forall x :: x in Elements(t) ==> m <= x
+            m in Elements(t) &&
+            forall x :: x in Elements(t) ==> m <= x
   {
     PQ.Min(t)
   }
@@ -159,7 +159,7 @@ module PriorityQueue_intrinsic {
   }
   function method Empty(): T
     ensures var t' := Empty();
-      Valid(t') && Elements(t') == multiset{}
+            Valid(t') && Elements(t') == multiset{}
   {
     PQ.AboutEmpty();
     PQ.Empty()
@@ -167,7 +167,7 @@ module PriorityQueue_intrinsic {
   function method Insert(t: T, x: int): T
     requires Valid(t)
     ensures var t' := Insert(t, x);
-      Valid(t') && Elements(t') == Elements(t) + multiset{x}
+            Valid(t') && Elements(t') == Elements(t) + multiset{x}
   {
     PQ.AboutInsert(t, x);
     PQ.Insert(t, x)
@@ -175,8 +175,8 @@ module PriorityQueue_intrinsic {
   function method Min(t: T): int
     requires Valid(t) && Elements(t) != multiset{}
     ensures var m := Min(t);
-      m in Elements(t) &&
-      forall x :: x in Elements(t) ==> m <= x
+            m in Elements(t) &&
+            forall x :: x in Elements(t) ==> m <= x
   {
     PQ.AboutMin(t);
     PQ.Min(t)
@@ -208,7 +208,7 @@ module PriorityQueue_extrinsic {
   }
   lemma AboutEmpty()
     ensures var t' := Empty();
-      Valid(t') && Elements(t') == multiset{}
+            Valid(t') && Elements(t') == multiset{}
   {
   }
   function method Insert(t: T, x: int): T
@@ -223,8 +223,8 @@ module PriorityQueue_extrinsic {
   lemma AboutInsert(t: T, x: int)
     requires Valid(t)
     ensures var t' := Insert(t, x);
-      Valid(t') &&
-      Elements(t') == Elements(t) + multiset{x}
+            Valid(t') &&
+            Elements(t') == Elements(t) + multiset{x}
   {
   }
   function method Min(t: T): int
@@ -235,8 +235,8 @@ module PriorityQueue_extrinsic {
   lemma AboutMin(t: T)
     requires Valid(t) && Elements(t) != multiset{}
     ensures var m := Min(t);
-      m in Elements(t) &&
-      forall x :: x in Elements(t) ==> m <= x
+            m in Elements(t) &&
+            forall x :: x in Elements(t) ==> m <= x
   {
   }
 }
@@ -285,8 +285,8 @@ module PriorityQueue_direct {
   function method Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
-      m in Elements(t) &&
-      forall x :: x in Elements(t) ==> m <= x
+            m in Elements(t) &&
+            forall x :: x in Elements(t) ==> m <= x
   {
     AboutMin(t);
     t.val

@@ -2,5 +2,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method m(a : array<int>) {
-	assert a[..true] == a[..true];
+  assert a[..true] == a[..true];
 }

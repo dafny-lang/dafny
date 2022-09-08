@@ -41,16 +41,16 @@ function Inc4(t: Triple) : Pair
 method IncM(p: Pair)
 {
   match p {
-  	case (s, Int(x)) =>
-  	case (s, Unknown) =>
+    case (s, Int(x)) =>
+    case (s, Unknown) =>
   }
 }
 
 method IncM2(s:string, t:EInt)
 {
   match (s,t) {
-  	case (s, Int(x)) =>
-  	case (s, Unknown) =>
+    case (s, Int(x)) =>
+    case (s, Unknown) =>
   }
 }
 

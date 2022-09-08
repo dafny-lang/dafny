@@ -60,7 +60,7 @@ class Termination {
     var q := [5, 8, 13];
     while true
       decreases b, i, r
-//      invariant b ==> 0 <= i
+      //      invariant b ==> 0 <= i
       decreases s, q
     {
       if 12 in s {

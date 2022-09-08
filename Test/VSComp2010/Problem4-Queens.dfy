@@ -34,13 +34,13 @@
 method Search(N: int) returns (success: bool, board: seq<int>)
   requires 0 <= N;
   ensures success ==>
-              |board| == N &&
-              (forall p :: 0 <= p && p < N ==> IsConsistent(board, p));
+            |board| == N &&
+            (forall p :: 0 <= p && p < N ==> IsConsistent(board, p));
   ensures !success ==>
-              (forall B: seq<int> ::
-                  |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N)
-                  ==>
-                  (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
+            (forall B: seq<int> ::
+             |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N)
+             ==>
+               (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
 {
   success, board := SearchAux(N, []);
 }
@@ -51,9 +51,9 @@ function method IsConsistent(board: seq<int>, pos: int): bool
 {
   0 <= pos && pos < |board| &&
   (forall q :: 0 <= q && q < pos ==>
-      board[q] != board[pos] &&
-      board[q] - board[pos] != pos - q &&
-      board[pos] - board[q] != pos - q)
+     board[q] != board[pos] &&
+     board[q] - board[pos] != pos - q &&
+     board[pos] - board[q] != pos - q)
 }
 
 // Here comes the method where the real work is being done.  With an ultimate board size of 'N'
@@ -66,14 +66,14 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
   // consistent so far:
   requires (forall k :: 0 <= k && k < |boardSoFar| ==> IsConsistent(boardSoFar, k));
   ensures success ==>
-              |newBoard| == N &&
-              (forall p :: 0 <= p && p < N ==> IsConsistent(newBoard, p));
+            |newBoard| == N &&
+            (forall p :: 0 <= p && p < N ==> IsConsistent(newBoard, p));
   ensures !success ==>
-              (forall B: seq<int> ::
-                  |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
-                  boardSoFar <= B
-                  ==>
-                  (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
+            (forall B: seq<int> ::
+             |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+             boardSoFar <= B
+             ==>
+               (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
   ensures (forall B, p :: IsConsistent(B, p) <==> old(IsConsistent(B, p)));
   decreases N - |boardSoFar|;
 {
@@ -88,16 +88,16 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
     while (n < N)
       invariant n <= N;
       invariant (forall B: seq<int> ::
-                  // For any board 'B' with 'N' queens, each placed in an existing row
-                  |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
-                  // ... where 'B' is an extension of 'boardSoFar'
-                  boardSoFar <= B &&
-                  // ... and the first column to extend 'boardSoFar' has a queen in one of
-                  // the first 'n' rows
-                  0 <= B[pos] && B[pos] < n
-                  ==>
-                  // ... the board 'B' is not entirely consistent
-                  (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
+                 // For any board 'B' with 'N' queens, each placed in an existing row
+                 |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+                 // ... where 'B' is an extension of 'boardSoFar'
+                 boardSoFar <= B &&
+                 // ... and the first column to extend 'boardSoFar' has a queen in one of
+                 // the first 'n' rows
+                 0 <= B[pos] && B[pos] < n
+                 ==>
+                   // ... the board 'B' is not entirely consistent
+                   (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
     {
       // Let's try to extend the board-so-far with a queen in column 'n':
       var candidateBoard := boardSoFar + [n];
@@ -107,8 +107,8 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
         // consistency of those queens in 'boardSoFar' and the fact that 'candidateBoard' is
         // an extension of 'boardSoFar', as the following lemma tells us:
         assert (forall k ::
-                  0 <= k && k < |boardSoFar| && IsConsistent(boardSoFar, k)
-                  ==>
+                0 <= k && k < |boardSoFar| && IsConsistent(boardSoFar, k)
+                ==>
                   IsConsistent(candidateBoard, k));
 
         // Thus, we meet the precondition of 'SearchAux' on 'candidateBoard', so let's search
@@ -126,9 +126,9 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
         // Since 'n' is not a consistent placement for a queen in column 'pos', there is also
         // no extension of 'candidateBoard' that would make the entire board consistent.
         assert (forall B: seq<int> ::
-                  |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
-                  candidateBoard <= B
-                  ==>
+                |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+                candidateBoard <= B
+                ==>
                   !IsConsistent(B, pos));
       }
       n := n + 1;

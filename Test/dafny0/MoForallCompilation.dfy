@@ -41,7 +41,7 @@ method TestAggregateMultiArrayUpdate() {
 
   // various ways of computing the transpose:
   var m' := new int[matrix.Length1, matrix.Length0](
-    (i,j) requires 0 <= i < matrix.Length1 && 0 <= j < matrix.Length0 reads matrix => matrix[j,i]);
+                    (i,j) requires 0 <= i < matrix.Length1 && 0 <= j < matrix.Length0 reads matrix => matrix[j,i]);
   var m0, m1, m2 := Transpose(matrix);
   PrintMatrix(m');
   PrintMatrix(m0);
@@ -112,7 +112,7 @@ class Node {
   {
     this in Repr &&
     (next != null ==>
-      next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
+       next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
 
   var val: int

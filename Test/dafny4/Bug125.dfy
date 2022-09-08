@@ -41,7 +41,7 @@ module LibA {
   }
 
   function g() : bool {
-     true
+    true
   }
 }
 
@@ -53,7 +53,7 @@ module LibB {
   }
 
   function g() : bool {
-     false
+    false
   }
 }
 
@@ -68,7 +68,7 @@ module S refines R {
   }
 
   method m1() {
-   assert G.f(20);  // resolution error: ambiguous reference to LibA.G / LibB.G
+    assert G.f(20);  // resolution error: ambiguous reference to LibA.G / LibB.G
   }
 }
 

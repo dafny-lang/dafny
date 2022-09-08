@@ -6,9 +6,9 @@ module List {
 
   function method split<A, B>(l: list<(A, B)>): (list<A>, list<B>) {
     match l
-      case Nil =>  (Nil, Nil)
-      case Cons((x, y), xys) =>
-        var (xs, ys) := split(xys);
-        (Cons(x, xs), Cons(y, ys))
+    case Nil =>  (Nil, Nil)
+    case Cons((x, y), xys) =>
+      var (xs, ys) := split(xys);
+      (Cons(x, xs), Cons(y, ys))
   }
 }

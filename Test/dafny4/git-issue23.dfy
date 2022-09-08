@@ -3,14 +3,14 @@
 
 predicate {:opaque} ValidRegs()
 {
-    forall i:int {:nowarn}:: true
+  forall i:int {:nowarn}:: true
 }
 
 predicate mypredicate()
-    requires ValidRegs()
+  requires ValidRegs()
 
 lemma mylemma()
 {
-    assume mypredicate();
+  assume mypredicate();
 }
 

@@ -89,11 +89,11 @@ lemma lemma0(t: Tree, d: int, s: seq<int>)
           build_rec(d, toList(d, t) + s).sOut == s
 {
   match(t) {
-  case Leaf =>
-    assert toList(d, t) == [d];
-  case Node(l, r) =>
-    assert toList(d, t) + s == toList(d+1, l) + (toList(d+1, r) + s);
-    // the rest follows from (two invocations of) the (automatically applied) induction hypothesis
+    case Leaf =>
+      assert toList(d, t) == [d];
+    case Node(l, r) =>
+      assert toList(d, t) + s == toList(d+1, l) + (toList(d+1, r) + s);
+      // the rest follows from (two invocations of) the (automatically applied) induction hypothesis
   }
 }
 

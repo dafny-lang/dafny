@@ -3,7 +3,7 @@
 
 module M0 {
   method testing1(t: int)
- {
+  {
     t := m(); // error: should be checked at the Dafny level, not fall to Boogie.
   }
 

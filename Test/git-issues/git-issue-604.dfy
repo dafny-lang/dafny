@@ -14,9 +14,9 @@ method InvB() returns (x: int) {
   while x < 100
     invariant 0 <= x <= 100
     decreases 100 - x
-    {
-      x := x + 1;
-    }
+  {
+    x := x + 1;
+  }
   assert x == 25;
   return x;
 }

@@ -11,11 +11,11 @@ class UnboundedStack<T> {
   {
     this in representation &&
     (top == null ==>
-      content == []) &&
+       content == []) &&
     (top != null ==>
-      top in representation && this !in top.footprint && top.footprint <= representation &&
-      content == top.content &&
-      top.Valid())
+       top in representation && this !in top.footprint && top.footprint <= representation &&
+       content == top.content &&
+       top.Valid())
   }
 
   method InitUnboundedStack()
@@ -70,11 +70,11 @@ class Node<T> {
   {
     this in footprint &&
     (next == null ==>
-      content == [val]) &&
+       content == [val]) &&
     (next != null ==>
-      next in footprint && next.footprint <= footprint && this !in next.footprint &&
-      content == [val] + next.content &&
-      next.Valid())
+       next in footprint && next.footprint <= footprint && this !in next.footprint &&
+       content == [val] + next.content &&
+       next.Valid())
   }
 
   constructor InitNode(val: T, next: Node?<T>)

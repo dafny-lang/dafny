@@ -16,7 +16,7 @@ method CalcTest0(s: seq<int>) {
   if (|s| > 0) {
     calc {
       s[0]; // OK: well-formed in this context
-      <= { assert s[0] == s[0]; }
+    <= { assert s[0] == s[0]; }
       s[0];
     }
   }
@@ -115,8 +115,8 @@ lemma CalcPrinting()
     { assert 42 < 100; }
     23;
     { calc < {
-      71; { assert 71 % 19 != 0; } 73;
-    } }
+        71; { assert 71 % 19 != 0; } 73;
+      } }
     29;
     calc < {
       311; 313; 331;

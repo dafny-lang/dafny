@@ -5,5 +5,5 @@ include "git-issue59.dfyi"
 
 method foo(x:byte) {
   var y:byte := x+1;
-   }
+}
 

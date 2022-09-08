@@ -119,8 +119,8 @@ module CoPredicateResolutionErrors {
   greatest predicate CS(i: int, j: int)
   {
     exists i ::
-      i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
-      (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
+    i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
+    (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
   }
 
   greatest predicate Another(s: Stream<int>)
@@ -209,27 +209,27 @@ module InductivePredicateResolutionErrors {
   least predicate LetSuchThat(s: List<int>)
   {
     if s != Nil then true else
-      var h :| h == s.head;
-      h < 0 && LetSuchThat(s.tail)  // this is fine for a least predicate
+    var h :| h == s.head;
+    h < 0 && LetSuchThat(s.tail)  // this is fine for a least predicate
   }
   greatest predicate CoLetSuchThat(s: IList<int>)
   {
     if s != INil then true else
-      var h :| h == s.head;
-      h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to greatest predicate in body of let-such-that
+    var h :| h == s.head;
+    h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to greatest predicate in body of let-such-that
   }
 
   least predicate NegatedLetSuchThat(s: List<int>)
   {
     if s != Nil then true else
-      !var h :| h == s.head;
-      h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to least predicate in body of let-such-that
+    !var h :| h == s.head;
+     h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to least predicate in body of let-such-that
   }
   greatest predicate NegatedCoLetSuchThat(s: IList<int>)
   {
     if s != INil then true else
-      !var h :| h == s.head;
-      h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coleast predicate
+    !var h :| h == s.head;
+     h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coleast predicate
   }
 
   least predicate CP[nat](i: int)
@@ -256,8 +256,8 @@ module InductivePredicateResolutionErrors {
   least predicate CS(i: int, j: int)
   {
     forall i ::
-      i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
-      (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
+    i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
+    (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
   }
 
   least predicate Another(s: List<int>)

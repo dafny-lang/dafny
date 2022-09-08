@@ -33,8 +33,8 @@ method Gradient(n: nat) returns (m: array2<int>)
 method M3(C: array3<real>)
   modifies C
   ensures forall i,j,k ::
-    0 <= i < C.Length0 && 0 <= j < C.Length1 && 0 <= k < C.Length2
-    ==> C[i,j,k] == 0.0
+          0 <= i < C.Length0 && 0 <= j < C.Length1 && 0 <= k < C.Length2
+          ==> C[i,j,k] == 0.0
 {
   forall i,j,k | 0 <= i < C.Length0 && 0 <= j < C.Length1 && 0 <= k < C.Length2
   {

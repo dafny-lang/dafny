@@ -54,8 +54,8 @@ module NestedMatch {
   {
 
     match xs {
-	  case Cons(y, Nil) => x:= y;
-	  case Cons(y, Cons(z, zs)) => x:=Last(Cons(z, zs));
+      case Cons(y, Nil) => x:= y;
+      case Cons(y, Cons(z, zs)) => x:=Last(Cons(z, zs));
     }
   }
 }
@@ -124,8 +124,8 @@ module MatchInCalc_Module {  // regression tests
       F(t) == 11;
     ==
       (match t
-      case Leaf(s0) => s0
-      case Node(s1) => 2 * s1) == 11;
+       case Leaf(s0) => s0
+       case Node(s1) => 2 * s1) == 11;
     ==
       match t
       case Leaf(s0) => s0 == 11
@@ -140,8 +140,8 @@ module MatchInCalc_Module {  // regression tests
       F(if F(t) == 13 then tx else ty) == 11;
     ==
       (match if F(t) == 13 then tx else ty
-      case Leaf(s0) => s0
-      case Node(s1) => 2 * s1) == 11;
+       case Leaf(s0) => s0
+       case Node(s1) => 2 * s1) == 11;
     ==
       match if F(t) == 13 then tx else ty
       case Leaf(s0) => s0 == 11
@@ -149,19 +149,19 @@ module MatchInCalc_Module {  // regression tests
     ==
       match
         if
-	  match t {
-          case Leaf(s0) => s0
-          case Node(s1) => 2 * s1}
-        == 13 then tx else ty
+          match t {
+            case Leaf(s0) => s0
+            case Node(s1) => 2 * s1}
+          == 13 then tx else ty
       case Leaf(s0) => s0 == 11
       case Node(s1) => 2 * s1 == 11;
     ==
       match
         if
-	  match t {
-          case Leaf(e0) => e0
-          case Node(e1) => 2 * e1}
-        == 13 then tx else ty
+          match t {
+            case Leaf(e0) => e0
+            case Node(e1) => 2 * e1}
+          == 13 then tx else ty
       case Leaf(s0) => s0 == 11
       case Node(s1) => 2 * s1 == 11;
     <==

@@ -91,9 +91,9 @@ module Constraints {
   newtype OldState = y: real | old(y) == y  // error: old is not allowed in constraint
 
   newtype AssertType = s: int |
-    var k := s;
-    assert k == s;
-    k < 10 || 10 <= s
+      var k := s;
+      assert k == s;
+      k < 10 || 10 <= s
 }
 
 module WrongNumberOfArguments {

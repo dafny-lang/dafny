@@ -15,27 +15,27 @@ module A {
   function f(x: T, y: int): T { if y <= 0 then x else f(x, y-1) }
 
   function g(x: T): T
-   decreases x
-   { match x
-     case C(x') => g(x')
-     case N => x
-   }
+    decreases x
+  { match x
+    case C(x') => g(x')
+    case N => x
+  }
 
   method F(x: T, y: int) {
     if (y > 0) {
-       F(x, y-1);
+      F(x, y-1);
     }
 
   }
 
   method G(x: T)
-  decreases x
+    decreases x
   {
     match (x) {
-       case C(x') =>
-            G(x');
-       case N =>
-           assert true;
+      case C(x') =>
+        G(x');
+      case N =>
+        assert true;
     }
   }
 
@@ -56,7 +56,7 @@ module D {
   import A`SpecF
 
   method H(x: A.T) {
-     A.F(x, 2);
+    A.F(x, 2);
   }
 }
 

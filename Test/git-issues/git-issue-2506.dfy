@@ -8,12 +8,12 @@ module Class {
 
     static predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
-      // a recursive call from a least predicate can go only to other least predicates
+    // a recursive call from a least predicate can go only to other least predicates
 
     static least predicate Negative() { !Negative() }
-      // a least predicate can be called recursively only in positive positions
+    // a least predicate can be called recursively only in positive positions
     static least predicate Ensures() ensures false { Ensures() }
-      // a least predicate is not allowed to declare any ensures clause
+    // a least predicate is not allowed to declare any ensures clause
   }
 
   method Oops0() ensures false { var _ := T.Ensures(); }
@@ -29,12 +29,12 @@ module Datatype {
 
     static predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
-      // a recursive call from a least predicate can go only to other least predicates
+    // a recursive call from a least predicate can go only to other least predicates
 
     static least predicate Negative() { !Negative() }
-      // a least predicate can be called recursively only in positive positions
+    // a least predicate can be called recursively only in positive positions
     static least predicate Ensures() ensures false { Ensures() }
-      // a least predicate is not allowed to declare any ensures clause
+    // a least predicate is not allowed to declare any ensures clause
   }
 
   method Oops0() ensures false { var _ := T.Ensures(); }
@@ -50,12 +50,12 @@ module Newtype {
 
     static predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
-      // a recursive call from a least predicate can go only to other least predicates
+    // a recursive call from a least predicate can go only to other least predicates
 
     static least predicate Negative() { !Negative() }
-      // a least predicate can be called recursively only in positive positions
+    // a least predicate can be called recursively only in positive positions
     static least predicate Ensures() ensures false { Ensures() }
-      // a least predicate is not allowed to declare any ensures clause
+    // a least predicate is not allowed to declare any ensures clause
   }
 
   method Oops0() ensures false { var _ := T.Ensures(); }
@@ -71,12 +71,12 @@ module AbstractType {
 
     static predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
-      // a recursive call from a least predicate can go only to other least predicates
+    // a recursive call from a least predicate can go only to other least predicates
 
     static least predicate Negative() { !Negative() }
-      // a least predicate can be called recursively only in positive positions
+    // a least predicate can be called recursively only in positive positions
     static least predicate Ensures() ensures false { Ensures() }
-      // a least predicate is not allowed to declare any ensures clause
+    // a least predicate is not allowed to declare any ensures clause
   }
 
   method Oops0() ensures false { var _ := T.Ensures(); }

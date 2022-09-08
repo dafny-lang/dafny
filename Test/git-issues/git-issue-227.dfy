@@ -13,12 +13,12 @@ module AbstractMap {
 
   predicate NextStep(k: Constants, s: Variables, s': Variables, step: Step)
   {
-      true
+    true
   }
 
   predicate Next(k: Constants, s: Variables, s': Variables)
   {
-      true
+    true
   }
 }
 
@@ -83,15 +83,15 @@ module RefinementProof {
     var step :| NextStep(k, s, s', step);
 
     match step {
-        case TerminateScan => {
-            calc {
-                Is';
-                IViews(k, s); // uncomment this line to witness bizarreness
-                Is;
-            }
+      case TerminateScan => {
+        calc {
+          Is';
+          IViews(k, s); // uncomment this line to witness bizarreness
+          Is;
         }
-        case _ => {
-        }
+      }
+      case _ => {
+      }
     }
   }
 

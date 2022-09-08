@@ -298,7 +298,7 @@ module Lemmas {
     constructor XY(x: real, y: real)
     ghost constructor Polar(theta: real, mag: real)
   }
-  
+
   lemma A() {
     var o := new object; // error: lemma is not allowed to allocate state
     var c := new Cell; // error: lemma is not allowed to allocate state
@@ -474,7 +474,7 @@ module GhostMethodVersusLemma {
     constructor XY(x: real, y: real)
     ghost constructor Polar(theta: real, mag: real)
   }
-  
+
   method Modify3() {
     var c := new Cell;
     forall i
@@ -510,41 +510,41 @@ module GhostMethodVersusLemma {
       ghost var pt1 := new Point.Polar(0.0, 1.0); // error: 'new' not allowed in lemma context
     }
   }
-  
+
   method Modify4() {
     var c := new Cell;
     calc {
       200_000;
     ==  {
-          var i := 0;
-          while i < 10
-            modifies {} // error: not allowed modifies clause in lemma context
-          {
-            i := i + 1;
-          }
-          while
-            modifies {} // error: not allowed modifies clause in lemma context
-          {
-            case i < 20 => i := i + 1;
-          }
-          for j := 0 to 100
-            modifies {} // error: not allowed modifies clause in lemma context
-          {
-          }
-          ghost var S: set<object> := {};
-          modify S; // error: not allowed modify statement in lemma context
-          modify S { // error: not allowed modify statement in lemma context
-          }
-
-          OrdinaryMethod(); // error: cannot call non-ghost method from here
-          PlainGhostMethod(); // error: cannot call ghost method from here
-          GhostMethodWithModifies(c); // error: cannot call ghost method from here
-          Lemma(); // fine
-
-          var c := new Cell; // error: 'new' not allowed in lemma context
-          var pt0 := new Point.XY(0.0, 0.0); // error: 'new' not allowed in lemma context
-          ghost var pt1 := new Point.Polar(0.0, 1.0); // error: 'new' not allowed in lemma context
+        var i := 0;
+        while i < 10
+          modifies {} // error: not allowed modifies clause in lemma context
+        {
+          i := i + 1;
         }
+        while
+          modifies {} // error: not allowed modifies clause in lemma context
+        {
+          case i < 20 => i := i + 1;
+        }
+        for j := 0 to 100
+          modifies {} // error: not allowed modifies clause in lemma context
+        {
+        }
+        ghost var S: set<object> := {};
+        modify S; // error: not allowed modify statement in lemma context
+        modify S { // error: not allowed modify statement in lemma context
+        }
+
+        OrdinaryMethod(); // error: cannot call non-ghost method from here
+        PlainGhostMethod(); // error: cannot call ghost method from here
+        GhostMethodWithModifies(c); // error: cannot call ghost method from here
+        Lemma(); // fine
+
+        var c := new Cell; // error: 'new' not allowed in lemma context
+        var pt0 := new Point.XY(0.0, 0.0); // error: 'new' not allowed in lemma context
+        ghost var pt1 := new Point.Polar(0.0, 1.0); // error: 'new' not allowed in lemma context
+      }
       200_000;
     }
   }

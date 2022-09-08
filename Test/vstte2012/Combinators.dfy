@@ -98,8 +98,8 @@ function EvalExpr(C: Context, t: Term): Term
 
 function method Step(t: Term): Term
   ensures !ContainsS(t) ==>
-             !ContainsS(Step(t)) &&
-             (Step(t) == t || TermSize(Step(t)) < TermSize(t));
+            !ContainsS(Step(t)) &&
+            (Step(t) == t || TermSize(Step(t)) < TermSize(t));
 {
   match t
   case S => t
@@ -144,8 +144,8 @@ function method Step(t: Term): Term
 
 function method FindAndStep(t: Term): Term
   ensures !ContainsS(t) ==>
-             !ContainsS(FindAndStep(t)) &&
-             (FindAndStep(t) == t || TermSize(FindAndStep(t)) < TermSize(t));
+            !ContainsS(FindAndStep(t)) &&
+            (FindAndStep(t) == t || TermSize(FindAndStep(t)) < TermSize(t));
 {
   if Step(t) != t then
     Step(t)
@@ -179,8 +179,8 @@ lemma Theorem_FindAndStep(t: Term)
   // then it chose some C[u] == t for which the Step applies to "u", and then
   // it returned C[Step(u)].
   ensures FindAndStep(t) != t ==>
-          exists C,u :: IsContext(C) && t == EvalExpr(C,u) && Step(u) != u &&
-                        FindAndStep(t) == EvalExpr(C, Step(u));
+            exists C,u :: IsContext(C) && t == EvalExpr(C,u) && Step(u) != u &&
+                          FindAndStep(t) == EvalExpr(C, Step(u));
 {
   // The theorem follows from the following lemma, which itself is proved by
   // induction.
@@ -257,10 +257,10 @@ lemma Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
 
 lemma Lemma_ContextPossibilities(t: Term)
   ensures forall C,u :: IsContext(C) && t == EvalExpr(C, u) ==>
-    (C == Hole && t == u) ||
-    (t.Apply? && exists D :: C == C_term(D, t.cdr) && t.car == EvalExpr(D, u)) ||
-    (t.Apply? && IsValue(t.car) &&
-        exists D :: C == value_C(t.car, D) && t.cdr == EvalExpr(D, u));
+            (C == Hole && t == u) ||
+            (t.Apply? && exists D :: C == C_term(D, t.cdr) && t.car == EvalExpr(D, u)) ||
+            (t.Apply? && IsValue(t.car) &&
+             exists D :: C == value_C(t.car, D) && t.cdr == EvalExpr(D, u));
 {
   // Dafny's induction tactic rocks
 }
@@ -444,7 +444,7 @@ function method ks(n: nat): Term
 
 lemma VerificationTask3()
   ensures forall n: nat ::
-    TerminatingReduction(ks(n)) == if n % 2 == 0 then K else Apply(K, K);
+          TerminatingReduction(ks(n)) == if n % 2 == 0 then K else Apply(K, K);
 {
   forall n: nat {
     VT3(n);

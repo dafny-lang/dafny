@@ -94,7 +94,7 @@ module IntOrder refines TotalOrder {
   // Instantiate type T with a datatype wrapper around an integer.
   // (If there were type synonyms, we could perhaps have written just "type T = int".)
   datatype T = Int(i: int)
-  // Define the ordering on these integers
+               // Define the ordering on these integers
   predicate method Leq ...
     ensures Leq(a, b) ==> a.i <= b.i
   {
@@ -129,22 +129,22 @@ module Client {
   }
   import I = IntOrder
   method TheMain() {
-     var a := new I.T[4];
-     a[0] := I.T.Int(6);  // alternatively, we could have written the RHS as:  IntSort.O.T.Int(6)
-     a[1] := I.T.Int(1);
-     a[2] := I.T.Int(0);
-     a[3] := I.T.Int(4);
-     // These are now the elements of the array:
-     assert a[..] == [I.T.Int(6), I.T.Int(1), I.T.Int(0), I.T.Int(4)];
-     // Call the sorting routine to sort the array
-     IntSort.InsertionSort(a);
-     // Check the answer
-     assert IntSort.O.Leq(a[0], a[1]);  // lemma
-     assert IntSort.O.Leq(a[1], a[2]);  // lemma
-     assert IntSort.O.Leq(a[2], a[3]);  // lemma
-     assert a[..] == [I.T.Int(0), I.T.Int(1), I.T.Int(4), I.T.Int(6)];
-     // why not print out the result!
-     print a[..], "\n";
+    var a := new I.T[4];
+    a[0] := I.T.Int(6);  // alternatively, we could have written the RHS as:  IntSort.O.T.Int(6)
+    a[1] := I.T.Int(1);
+    a[2] := I.T.Int(0);
+    a[3] := I.T.Int(4);
+    // These are now the elements of the array:
+    assert a[..] == [I.T.Int(6), I.T.Int(1), I.T.Int(0), I.T.Int(4)];
+    // Call the sorting routine to sort the array
+    IntSort.InsertionSort(a);
+    // Check the answer
+    assert IntSort.O.Leq(a[0], a[1]);  // lemma
+    assert IntSort.O.Leq(a[1], a[2]);  // lemma
+    assert IntSort.O.Leq(a[2], a[3]);  // lemma
+    assert a[..] == [I.T.Int(0), I.T.Int(1), I.T.Int(4), I.T.Int(6)];
+    // why not print out the result!
+    print a[..], "\n";
   }
 }
 

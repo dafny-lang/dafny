@@ -81,8 +81,8 @@ class List {
   {
     this in ListNodes &&
     (next != null ==>
-      next.ListNodes <= ListNodes && this !in next.ListNodes &&
-      next.IsAcyclic())
+       next.ListNodes <= ListNodes && this !in next.ListNodes &&
+       next.IsAcyclic())
   }
 
   method Singleton(x: int) returns (list: List)

@@ -15,10 +15,10 @@ class Node<T> {
     this in Repr &&
     (next == null ==> List == [data]) &&
     (next != null ==>
-        next in Repr && next.Repr <= Repr &&
-        this !in next.Repr &&
-        List == [data] + next.List &&
-        next.Valid())
+       next in Repr && next.Repr <= Repr &&
+       this !in next.Repr &&
+       List == [data] + next.List &&
+       next.Valid())
   }
 
   constructor (d: T)
@@ -47,21 +47,21 @@ class Node<T> {
     r := new Node.InitAsPredecessor(d, this);
   }
 
-	method Print()
-		requires Valid()
-		decreases |List|
-	{
-		print data, " ";
-		if next != null {
-			next.Print();
-		}
-	}
+  method Print()
+    requires Valid()
+    decreases |List|
+  {
+    print data, " ";
+    if next != null {
+      next.Print();
+    }
+  }
 }
 
 method Main()
 {
-	var l2 := new Node(2);
+  var l2 := new Node(2);
   var l1 := l2.Prepend(1);
-	l1.Print();
+  l1.Print();
   print "\n";
 }

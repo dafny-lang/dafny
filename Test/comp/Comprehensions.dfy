@@ -163,10 +163,10 @@ method FindRange(s: seq<int>, from: int, to: int) returns (lo: int, hi: int)
     invariant forall i :: hi <= i < |s| ==> to <= s[i]
     decreases hi - lo
   {
-  case lo < |s| && s[lo] < from =>
-    lo := lo + 1;
-  case 0 < hi && to <= s[hi-1] =>
-    hi := hi - 1;
+    case lo < |s| && s[lo] < from =>
+      lo := lo + 1;
+    case 0 < hi && to <= s[hi-1] =>
+      hi := hi - 1;
   }
 }
 

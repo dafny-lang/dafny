@@ -45,7 +45,7 @@ abstract module M0 {
       var result := Union(st, st', useCache);
       DomSt(result) == DomSt(st) + DomSt(st') &&
       (forall p :: p in DomSt(result) ==>
-        GetSt(p, result) == GetSt(p, if p in DomSt(st') then st' else st)) &&
+         GetSt(p, result) == GetSt(p, if p in DomSt(st') then st' else st)) &&
       (useCache ==> DomC(result) == DomC(st) + DomC(st'));
 
 
@@ -85,9 +85,9 @@ abstract module M0 {
       var stCombined := Combine(sts, useCache);
       ValidState(stCombined) && Extends(parent, stCombined) &&
       (useCache ==>
-        ConsistentCache(stCombined) &&
-        (forall st :: st in sts ==> DomC(st) <= DomC(stCombined)) &&
-        (forall h :: h in DomC(stCombined) ==> exists st :: st in sts && h in DomC(st)));
+         ConsistentCache(stCombined) &&
+         (forall st :: st in sts ==> DomC(st) <= DomC(stCombined)) &&
+         (forall h :: h in DomC(stCombined) ==> exists st :: st in sts && h in DomC(st)));
   {
     reveal Combine();
     var st := PickOne(sts);
@@ -284,7 +284,7 @@ abstract module M0 {
           Pair(expr', st')
       else
         Pair(exprError(rValidity), st)
-    // todo(maria): Add the recursive case.
+        // todo(maria): Add the recursive case.
     else
       eval(stmt.ret, st, env, useCache)
   }
@@ -296,15 +296,15 @@ abstract module M0 {
 
   /******* Function 'eval' *******/
   function {:opaque} eval(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
-     requires ValidEnv(env);
-     decreases expr;
+    requires ValidEnv(env);
+    decreases expr;
   {
     if Value(expr) then
       Pair(expr, st)
-    // identifier
+      // identifier
     else if expr.exprIdentifier? then
       Pair(GetEnv(expr.id, env), st)
-    // if-expression
+      // if-expression
     else if expr.exprIf? then
       var result := eval(expr.cond, st, env, useCache);
       var cond', st' := result.fst, result.snd;
@@ -314,7 +314,7 @@ abstract module M0 {
         eval(expr.ifFalse, st', env, useCache)
       else
         Pair(exprError(rValidity), st)  // todo: should this be st' (and same for the error cases below)?
-    // and-expression
+        // and-expression
     else if expr.exprAnd? then
       var result := eval(expr.conj0, st, env, useCache);
       var conj0', st' := result.fst, result.snd;
@@ -324,7 +324,7 @@ abstract module M0 {
         Pair(exprLiteral(litFalse), st')
       else
         Pair(exprError(rValidity), st)
-    // or-expression
+        // or-expression
     else if expr.exprOr? then
       var result := eval(expr.disj0, st, env, useCache);
       var disj0', st' := result.fst, result.snd;
@@ -334,7 +334,7 @@ abstract module M0 {
         eval(expr.disj1, st', env, useCache)
       else
         Pair(exprError(rValidity), st)
-    // invocation
+        // invocation
     else if expr.exprInvocation? then
       var resultFun := eval(expr.fun, st, env, useCache);
       var fun', st' := resultFun.fst, resultFun.snd;
@@ -362,13 +362,13 @@ abstract module M0 {
             else
               Pair(exprError(rInconsistentCache), st)
           else
-          // primitive function 'createPath'
-          // todo(maria): Add primitive function 'createPath'.
+            // primitive function 'createPath'
+            // todo(maria): Add primitive function 'createPath'.
             Pair(exprError(rValidity), st)
-        // todo(maria): Add non-primitive invocations.
+            // todo(maria): Add non-primitive invocations.
         else
           Pair(exprError(rValidity), st)
-    // error
+          // error
     else
       Pair(exprError(rValidity), st)
   }
@@ -509,7 +509,7 @@ abstract module M0 {
   }
 
   function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env, useCache: bool):
-           Tuple<seq<Expression>, set<State>>
+    Tuple<seq<Expression>, set<State>>
     requires
       ValidEnv(env) &&
       forall arg :: arg in args ==> arg < context;
@@ -706,7 +706,7 @@ abstract module M0 {
   }
 
   lemma EvalArgsLemma(context: Expression, args: seq<Expression>, stOrig: State, env: Env, useCache: bool)
-             returns (exprs: seq<Expression>, sts: set<State>)
+    returns (exprs: seq<Expression>, sts: set<State>)
     requires
       ValidState(stOrig) && ValidEnv(env) &&
       (useCache ==> ConsistentCache(stOrig)) &&
@@ -960,7 +960,7 @@ abstract module M0 {
     ensures StateCorrespondence(p.snd, pC.snd);
   {
     assume |args| == Arity(primExec) ==>
-      ValidArgs(primExec, args, stCombined) == ValidArgs(primExec, args, stCombinedC);  // TODO:  This will require some work!
+        ValidArgs(primExec, args, stCombined) == ValidArgs(primExec, args, stCombinedC);  // TODO:  This will require some work!
 
     if |args| == Arity(primExec) && ValidArgs(primExec, args, stCombined) {
       var cmd, deps, exts := args[0].lit.str, args[1].lit.paths, args[2].lit.strs;
@@ -1083,7 +1083,7 @@ abstract module M0 {
 
 
   lemma Lemma_EvalArgs(context: Expression, args: seq<Expression>, stOrig: State, stOrigC: State, env: Env)
-              returns (exprs: seq<Expression>, sts: set<State>, stsC: set<State>)
+    returns (exprs: seq<Expression>, sts: set<State>, stsC: set<State>)
     requires
       ValidState(stOrig) && ValidEnv(env) &&
       ValidState(stOrigC) && ConsistentCache(stOrigC) &&

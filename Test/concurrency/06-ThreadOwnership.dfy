@@ -34,17 +34,17 @@ trait Universe {
     && globalBaseInv()
     && old(content) <= content
     && (forall o: Object | o !in old(content) && o in content :: !old(allocated(o)))
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || o.inv())
-    // The second condition for legality: new objects must satisfy their invariants.
+       // The second condition for legality: new objects must satisfy their invariants.
     && (forall o: Object | o in content && o !in old(content) :: o.inv())
-    // Objects owned by threads that are not running don't change.
+       // Objects owned by threads that are not running don't change.
     && (forall t: Thread | t in running :: t.universe == this && t in old(content))
     && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread :: old(o.owner) as Thread !in running ==> unchanged(o))
   }
   twostate predicate legalTransition(running: Thread) reads * {
     && multipleLegalTransitions({running})
-    // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
+       // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
     && (forall o: Object | o in old(content) :: unchanged(o) || o.inv2())
   }
 
@@ -75,7 +75,7 @@ trait Object {
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.
   const universe: Universe
-  
+
   // Base invariant: we're in the universe, and the universe satisfies its base.
   predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
 
@@ -83,10 +83,10 @@ trait Object {
   ghost method join()
     requires universe.globalBaseInv() && this as object != universe
     requires this is OwnedObject ==> (
-      var o := this as OwnedObject;
-      && o.owner in universe.content
-      && (!o.closed ==> o.owner is Thread)
-    )
+                 var o := this as OwnedObject;
+                 && o.owner in universe.content
+                 && (!o.closed ==> o.owner is Thread)
+               )
     modifies universe
     ensures baseInv() && universe.content == old(universe.content) + { this }
     ensures unchanged(universe.content) // This method doesnt modify fields of objects in the universe
@@ -115,7 +115,7 @@ trait Object {
   predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate inv2() ensures inv2() ==> localInv2() reads *
   twostate lemma admissibility(running: Thread) requires goodPreAndLegalChanges(running) ensures inv2() && inv()
-  
+
   // To prevent a class from extending both OwnedObject and NonOwnedObject
   predicate instanceOfOwnedObject()
 }
@@ -147,35 +147,35 @@ trait OwnedObject extends Object {
     var currOwner := owner;
     && localInv2()
     && userInv2()
-    // From the LCI paper
+       // From the LCI paper
     && (!old(closed) || !closed ==>
-      userFieldsUnchanged() || (
-        && (old(allocated(currOwner)) ==> currOwner.localInv2())
-      )
-    )
-    // when wrapping or unwrapping
+          userFieldsUnchanged() || (
+            && (old(allocated(currOwner)) ==> currOwner.localInv2())
+          )
+       )
+       // when wrapping or unwrapping
     && (old(closed) != closed ==>
-      && old(owner) == owner
-      //&& owner == universe.runningThread // FIXME: cannot be expressed in an invariant
-      && owner.localInv2()
-    )
-    // when wrapping, we move ownership of the fields from the thread to the object
+          && old(owner) == owner
+             //&& owner == universe.runningThread // FIXME: cannot be expressed in an invariant
+          && owner.localInv2()
+       )
+       // when wrapping, we move ownership of the fields from the thread to the object
     && (!old(closed) && closed ==>
-      //&& old(userFieldsOwnedBy(universe.runningThread)) // FIXME: cannot be expressed in an invariant
-      && userFieldsOwnedBy(this)
-    )
-    // when unwrapping, we move ownership of the fields from the object to the thread
+          //&& old(userFieldsOwnedBy(universe.runningThread)) // FIXME: cannot be expressed in an invariant
+          && userFieldsOwnedBy(this)
+       )
+       // when unwrapping, we move ownership of the fields from the object to the thread
     && (old(closed) && !closed ==>
-      && old(userFieldsOwnedBy(this))
-      //&& userFieldsOwnedBy(universe.runningThread) // FIXME: cannot be expressed in an invariant
-    )
-    // when the owner changes, the invariant of both the old and the new owner must hold
+          && old(userFieldsOwnedBy(this))
+          //&& userFieldsOwnedBy(universe.runningThread) // FIXME: cannot be expressed in an invariant
+       )
+       // when the owner changes, the invariant of both the old and the new owner must hold
     && (old(owner) != owner ==>
-      && old(owner).localInv2()
-      && old(owner).localInv() // Necessary to verify the admissibility of the Thread class
-      && (old(allocated(currOwner)) ==> currOwner.localInv2())
-      && owner.localInv() // Necessary to verify the admissibility of the Thread class
-    )
+          && old(owner).localInv2()
+          && old(owner).localInv() // Necessary to verify the admissibility of the Thread class
+          && (old(allocated(currOwner)) ==> currOwner.localInv2())
+          && owner.localInv() // Necessary to verify the admissibility of the Thread class
+       )
   }
 
   // To prevent a class from extending both OwnedObject and NonOwnedObject
@@ -244,7 +244,7 @@ class EmptyType extends OwnedObject {
   twostate predicate userFieldsUnchanged() reads * {
     true
   }
-  
+
   predicate baseUserInv() reads * {
     && true
   }
@@ -323,7 +323,7 @@ class AtomicCounter extends OwnedObject {
     //modifies running
     ensures objectGlobalInv() && universe.globalInv2()
     // The following might not always be needed
-    ensures this.universe == universe && this.owner == running && this.value == initialValue && this.closed == false 
+    ensures this.universe == universe && this.owner == running && this.value == initialValue && this.closed == false
     //ensures running.ownedObjects == old(running.ownedObjects) + { this }
     ensures universe.content == old(universe.content) + { this }
   {
@@ -360,7 +360,7 @@ class DoubleReadMethod extends OwnedObject {
     && old(initial_value) == initial_value
     && old(final_value) == final_value
   }
-  
+
   predicate baseUserInv() reads * {
     && counter in universe.content && counter.universe == universe
   }

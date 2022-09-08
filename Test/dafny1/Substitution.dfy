@@ -62,7 +62,7 @@ function Substitute(e: Expression, v: int, val: int): Expression
 }
 
 function SubstSeq(/*ghost*/ parent: Expression,
-                         q: seq<Expression>, v: int, val: int): seq<Expression>
+                  q: seq<Expression>, v: int, val: int): seq<Expression>
   requires (forall a :: a in q ==> a < parent);
   decreases parent, q;
 {
@@ -101,7 +101,7 @@ lemma LemmaSeq(parent: Expression, q: seq<Expression>, v: int, val: int)
   requires (forall a :: a in q ==> a < parent);
   ensures |SubstSeq(parent, q, v, val)| == |q|;
   ensures (forall k :: 0 <= k && k < |q| ==>
-            SubstSeq(parent, q, v, val)[k] == Substitute(q[k], v, val));
+             SubstSeq(parent, q, v, val)[k] == Substitute(q[k], v, val));
 {
   if (q == []) {
   } else {
