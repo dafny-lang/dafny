@@ -1312,7 +1312,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
               break;
             }
           case "}": {
-              formatter.SetClosingIndentedRegion(token, braceIndent);
+              formatter.SetIndentations(token, braceIndent + SpaceTab, braceIndent, indent);
               break;
             }
         }
