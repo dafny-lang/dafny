@@ -761,6 +761,8 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
     public override int Preference() => 1;
   }
 
+  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new [] {Expr});
+
   /// <summary>
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
@@ -798,7 +800,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
     get { return ResolvedStatements; }
   }
 
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss);
+  public override IEnumerable<INode> Children => ResolvedStatements;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -835,6 +837,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<INode> Children => ResolvedStatements;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

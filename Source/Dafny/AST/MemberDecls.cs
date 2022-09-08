@@ -293,6 +293,8 @@ public class ConstantField : SpecialField, ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => true;
+
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs });
 }
 
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable {

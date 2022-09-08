@@ -193,18 +193,27 @@ module Consumer2 {
     [TestMethod]
     public async Task DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation() {
       var source = @"
-method DoIt() returns (x: int) {
+method GetIt() returns (x: int) {
 }
 
-method CallDoIt() returns () {
-  var x := DoIt();
+method DoIt(arg: int) {
+}
+
+method CallIts() returns () {
+  var x := GetIt();
+  DoIt(x);
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (4, 14)).AsTask()).Single();
-      var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+
+      var getItCall = (await RequestDefinition(documentItem, (7, 14)).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 7), (0, 12)), getItCall.Location!.Range);
+
+      var doItCall = (await RequestDefinition(documentItem, (8, 4)).AsTask()).Single();
+      Assert.AreEqual(new Range((3, 7), (3, 11)), doItCall.Location!.Range);
+
+      var xVar = (await RequestDefinition(documentItem, (8, 7)).AsTask()).Single();
+      Assert.AreEqual(new Range((7, 6), (7, 7)), xVar.Location!.Range);
     }
 
     [TestMethod]
@@ -351,10 +360,10 @@ method DoIt() returns (x: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (3, 15)).AsTask()).Single();
-      var location = definition.Location;
+      var aInNewA = (await RequestDefinition(documentItem, (3, 15)).AsTask()).Single();
+      var location = aInNewA.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
-      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Range);
+      Assert.AreEqual(new Range((3, 2), (3, 13)), location.Range);
     }
   }
 }
