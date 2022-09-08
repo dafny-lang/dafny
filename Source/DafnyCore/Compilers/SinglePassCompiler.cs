@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
-      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
+      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
       /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
@@ -1412,7 +1412,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         if (createBody) {
           setterWriter = block;
           return block;
@@ -1754,10 +1754,9 @@ namespace Microsoft.Dafny.Compilers {
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
-      if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
+      if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        foreach (var memberx in inheritedMembers) {
-          var member = (memberx as Function)?.ByMethodDecl ?? memberx;
+        foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -1786,7 +1785,7 @@ namespace Microsoft.Dafny.Compilers {
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet, true);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, true, member, out wSet, true);
             {
               var sw = EmitReturnExpr(wGet);
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
@@ -1894,7 +1893,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (c is TraitDecl) {
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
             var rhs = c is TraitDecl ? null : PlaceboValue(f.Type, errorWr, f.tok, true);
@@ -2000,7 +1999,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         ConcreteSyntaxTree wSet;
-        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, false, member, out wSet, false);
+        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, member, out wSet, false);
         Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
       } else if (member is Function) {
         var fn = ((Function)member).Original;
