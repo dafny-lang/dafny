@@ -4252,7 +4252,7 @@ public class ApplySuffix : SuffixExpr {
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>());
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

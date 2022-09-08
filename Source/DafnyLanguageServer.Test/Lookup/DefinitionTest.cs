@@ -60,22 +60,27 @@ datatype Result<T, E> = Ok(value: T) | Err(error: E) {
     [TestMethod]
     public async Task StaticFunctionCall() {
       var source = @"
-trait E {
-  static function method Foo(): E
+module Zaz {
+  trait E {
+    static function method Foo(): E
+  }
 }
 
-function Bar(): E {
-  E.Foo()
+function Bar(): Zaz.E {
+  Zaz.E.Foo()
 }
 ".TrimStart();
 
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var eReference = (await RequestDefinition(documentItem, (5, 2)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 6), (0, 7)), eReference.Location!.Range);
+      var zazReference = (await RequestDefinition(documentItem, (7, 2)).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 7), (0, 10)), zazReference.Location!.Range);
 
-      var fooReference = (await RequestDefinition(documentItem, (5, 4)).AsTask()).Single();
-      Assert.AreEqual(new Range((1, 25), (1, 28)), fooReference.Location!.Range);
+      var eReference = (await RequestDefinition(documentItem, (7, 6)).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 8), (1, 9)), eReference.Location!.Range);
+
+      var fooReference = (await RequestDefinition(documentItem, (7, 8)).AsTask()).Single();
+      Assert.AreEqual(new Range((2, 27), (2, 30)), fooReference.Location!.Range);
     }
 
     [TestMethod]
