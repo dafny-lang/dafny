@@ -1412,12 +1412,17 @@ class X {
     }
 
     [Fact]
-    public void FormatterWorksForDatatypeWithVerticalBarAfterwards() {
+    public void FormatterWorksForDatatypeWithVerticalBarAfterwardsOrOneLine() {
       FormatterWorksFor(@"
 datatype Lindgren =
   Pippi(Node) |
   Longstocking(seq<object>, Lindgren) |
   HerrNilsson
+
+datatype Logical =
+  Iff // And, Or, and Imp are in LazyOp
+datatype Eq =
+  EqCommon | NeqCommon
 ");
     }
 

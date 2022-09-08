@@ -869,7 +869,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + SpaceTab;
     if (datatypeDecl.OwnedTokens.TrueForAll(token =>
-          token.val != "|" || IsFollowedByNewline(token))) {
+          token.val != "|" || IsFollowedByNewline(token) || token.Next.line == token.Prev.line)) {
       rightOfVerticalBarIndent = indent2;
     }
     var commaIndent = indent2;
