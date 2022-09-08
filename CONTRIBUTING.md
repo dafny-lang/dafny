@@ -12,7 +12,7 @@ Before reporting an issue here, consider whether it would be better handled in o
 - [`boogie-org/boogie-friends`](https://github.com/boogie-org/boogie-friends/), Dafny's Emacs mode, for Emacs-specific problems.
 - [`boogie-org/boogie`](https://github.com/boogie-org/boogie), Dafny's intermediate verification language, for questions and issues specific to Boogie.
 
-Other issues can be reported to the [Dafny project](https://githubcom/dafny-lang/dafny/Issues).
+Other issues can be reported to the [Dafny project](https://github.com/dafny-lang/dafny/issues).
 Please include your Dafny version number, any relevant code, and expected results in the issue report.
 
 ## Contributing to the source code
