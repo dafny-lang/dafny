@@ -271,7 +271,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
   // 'sameLineBefore' is the hypothetical indentation of this token if it was on its own line
   // 'after' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   private void SetIndentations(IToken token, int before = -1, int sameLineBefore = -1, int after = -1) {
-    if (token is IncludeToken) { // Just ignore this token.
+    if (token is IncludeToken || token.line == 0 && token.col == 0) { // Just ignore this token.
       return;
     }
     if (before >= 0) {
