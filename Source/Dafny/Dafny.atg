@@ -4100,6 +4100,8 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   ]
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
+     }
+     if(e != null && (e.OwnedTokens == null || e.OwnedTokens.Count == 0)) {
        e.OwnedTokens = ownedTokens;
      }
   .)

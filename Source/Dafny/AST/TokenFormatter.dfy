@@ -421,9 +421,10 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
                  && i < firstToken.AllTokens().Length()
                  && token == firstToken.AllTokens().ElementAt(i)
             else i == firstToken.AllTokens().Length()
-          invariant GEq(s.Length(), sLengthPrev);
+          invariant GEq(s.Length(), sLengthPrev) // Prove that the length increases
           invariant firstToken.AllTokens().Take(i).Forall((t: IToken) => s.Contains(t.val))
         {
+          sLengthPrev := s.Length();
           var indentationBefore, indentationBeforeSet,
               lastIndentation, lastIndentationSet,
               indentationAfter, indentationAfterSet := reindent.GetIndentation(token, currentIndent);
@@ -433,6 +434,9 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
           // Had an error here: caught by an invariant
           //s := String.Concat(newTrivia, token.val);
+          assert firstToken.AllTokens().Take(i).Forall((t: IToken) => s.Contains(t.val));
+
+          ghost var sBefore := s;
           s := String.Concat(s, String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)));
           currentIndent := indentationAfter;
           assert String.Concat(token.val, newTrailingTrivia).Contains(token.val);
@@ -441,6 +445,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           s.ContainsTransitive(String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)), token.val);
           assert String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)).Contains(token.val);
           assert s.Contains(token.val);
+          assert GEq(s.Length(), sLengthPrev);
 
           var prevToken := token;
           if token.Next != null {
@@ -457,6 +462,9 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             assert token.AllTokens().Length() == 1;
             assert i + 1 == firstToken.AllTokens().Length();
           }
+          assert firstToken.AllTokens().Take(i).Forall((t: IToken) => sBefore.Contains(t.val));
+          assert firstToken.AllTokens().Take(i + 1).Forall((t: IToken) => s.Contains(t.val));
+
           assert GEq(s.Length(), sLengthPrev);
           assert firstToken.AllTokens().Take(i + 1).Forall((t: IToken) => s.Contains(t.val));
           token := token.Next;

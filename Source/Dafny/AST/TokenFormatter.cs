@@ -554,13 +554,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
       } else if (topLevelDecl is IteratorDecl iteratorDecl) {
         SetIteratorDeclIndent(indent, iteratorDecl);
-        if (iteratorDecl.BodyStartTok.line > 0) {
-          SetDelimiterIndentedRegions(iteratorDecl.BodyStartTok, indent);
-          SetClosingIndentedRegion(iteratorDecl.BodyEndTok, indent);
-        }
-        if (iteratorDecl.Body != null) {
-          SetStatementIndentation(iteratorDecl.Body);
-        }
+
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
@@ -614,6 +608,27 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
   private void SetIteratorDeclIndent(int indent, IteratorDecl iteratorDecl) {
     SetMethodLikeIndent(iteratorDecl.StartToken, iteratorDecl.OwnedTokens, indent);
+    foreach (var req in iteratorDecl.Requires) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+    foreach (var req in iteratorDecl.Ensures) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+    foreach (var req in iteratorDecl.YieldRequires) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+    foreach (var req in iteratorDecl.YieldEnsures) {
+      SetAttributedExpressionIndentation(req, indent + SpaceTab);
+    }
+    SetFormalsIndentation(iteratorDecl.Ins);
+    SetFormalsIndentation(iteratorDecl.Outs);
+    if (iteratorDecl.BodyStartTok.line > 0) {
+      SetDelimiterIndentedRegions(iteratorDecl.BodyStartTok, indent);
+      SetClosingIndentedRegion(iteratorDecl.BodyEndTok, indent);
+    }
+    if (iteratorDecl.Body != null) {
+      SetStatementIndentation(iteratorDecl.Body);
+    }
   }
 
   private void SetModuleExportDeclIndentation(ModuleExportDecl moduleDecl, int indent) {
@@ -1272,7 +1287,8 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
     private bool SetIndentBlockStmt(int indent, BlockStmt blockStmt) {
-      var openingIndent = indent;
+      var braceIndent = indent;
+      var innerBlockIndent = indent + SpaceTab;
       foreach (var token in blockStmt.OwnedTokens) {
         if (FormatLabelTokens(token, indent)) {
           continue;
@@ -1280,18 +1296,23 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         switch (token.val) {
           case "{": {
               if (!formatter.PosToIndentLineBefore.ContainsKey(token.pos)) {
-                formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                formatter.SetDelimiterIndentedRegions(token, braceIndent);
               } else {
-                openingIndent = formatter.PosToIndentLineBefore[token.pos];
+                braceIndent = formatter.PosToIndentLineBefore[token.pos];
                 if (!formatter.PosToIndentBefore.ContainsKey(token.pos)) {
-                  formatter.SetDelimiterIndentedRegions(token, openingIndent);
+                  formatter.SetDelimiterIndentedRegions(token, braceIndent);
+                }
+
+                if (!IsFollowedByNewline(token)) {
+                  // Align statements
+                  formatter.SetAlign(indent, token, out innerBlockIndent, out braceIndent);
                 }
               }
 
               break;
             }
           case "}": {
-              formatter.SetClosingIndentedRegion(token, openingIndent);
+              formatter.SetClosingIndentedRegion(token, braceIndent);
               break;
             }
         }
@@ -1299,7 +1320,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
 
       foreach (var blockStmtBody in blockStmt.Body) {
         if (blockStmtBody is not BlockStmt && blockStmt.OwnedTokens.Count > 0) {
-          formatter.SetIndentations(blockStmtBody.StartToken, indent + SpaceTab, indent + SpaceTab);
+          formatter.SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
         }
 
         Visit(blockStmtBody, indent + SpaceTab);
@@ -1791,7 +1812,11 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             }
           case "ensures":
           case "invariant": {
-              formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+              if (IsFollowedByNewline(token)) {
+                formatter.SetOpeningIndentedRegion(token, indent + SpaceTab);
+              } else {
+                formatter.SetAlign(indent + SpaceTab, token, out _, out _);
+              }
               break;
             }
         }

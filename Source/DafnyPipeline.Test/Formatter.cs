@@ -628,6 +628,17 @@ predicate bad(e:Maybe)
     }
 
     [Fact]
+    public void FormatterWorksForIteratorRequiresComment() {
+      FormatterWorksFor(@"
+iterator Iter(x: int) yields (y: int)
+  requires A: 0 <= x
+  // yield requires B: 0 <= y  // not allowed; won't parse
+{
+}
+");
+    }
+
+    [Fact]
     public void FormatWorksForTypes() {
       FormatterWorksFor(@"
 include ""test1""
@@ -1407,6 +1418,50 @@ datatype Lindgren =
   Pippi(Node) |
   Longstocking(seq<object>, Lindgren) |
   HerrNilsson
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForHintsInCalcStatements() {
+      FormatterWorksFor(@"
+class Test {
+  ghost constructor CalcInInitializationPhase() {
+    var c0 := new Cell; // fine here
+    var g0 := new G(5); // fine here
+    calc {
+      5;
+    ==  { var c1 := new Cell; // error: cannot allocate inside calc hint
+          var g1 := new G(5); // error: cannot allocate inside calc hint
+        }
+      2 + 3;
+    }
+    assert true by {
+      var c2 := new Cell; // error: cannot allocate inside assert-by
+      var g2 := new G(5); // error: cannot allocate inside assert-by
+    }
+    new;
+  }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForEqualSignInEnsures() {
+      FormatterWorksFor(@"
+method test() {
+  calc {
+    mult(mult(a, b), c)(i)(j);
+  == {
+      forall k: Index
+        ensures Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j)
+                ==
+                Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j))
+      {
+      }
+    }
+    Sum((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
+  }
+}
 ");
     }
 
