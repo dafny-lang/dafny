@@ -1,4 +1,4 @@
-  include "CSharpDafnyASTModel.dfy"
+include "CSharpDafnyASTModel.dfy"
 include "Library.dfy"
 
 module DafnyCompilerCommon.AST {
@@ -101,29 +101,29 @@ module DafnyCompilerCommon.AST {
     datatype Logical =
       Iff // And, Or, and Imp are in LazyOp
     datatype Eq =
-        EqCommon | NeqCommon
+      EqCommon | NeqCommon
     datatype Numeric =
-        Lt | Le | Ge | Gt | Add | Sub | Mul | Div | Mod
+      Lt | Le | Ge | Gt | Add | Sub | Mul | Div | Mod
     datatype BV =
-        LeftShift | RightShift | BitwiseAnd | BitwiseOr | BitwiseXor
+      LeftShift | RightShift | BitwiseAnd | BitwiseOr | BitwiseXor
     datatype Char =
-        LtChar | LeChar | GeChar | GtChar
+      LtChar | LeChar | GeChar | GtChar
     datatype Sequences =
-        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq |
-        SeqSelect | SeqTake | SeqDrop // Separate nodes in DafnyAST.cs
+      SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq |
+      SeqSelect | SeqTake | SeqDrop // Separate nodes in DafnyAST.cs
     datatype Sets =
-        SetEq | SetNeq | Subset | Superset | ProperSubset | ProperSuperset |
-        Disjoint | InSet | NotInSet | Union | Intersection | SetDifference
+      SetEq | SetNeq | Subset | Superset | ProperSubset | ProperSuperset |
+      Disjoint | InSet | NotInSet | Union | Intersection | SetDifference
     datatype Multisets =
-        MultisetEq | MultisetNeq | MultiSubset | MultiSuperset |
-        ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
-        NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference |
-        MultisetSelect // Separate node in DafnyAST.cs
+      MultisetEq | MultisetNeq | MultiSubset | MultiSuperset |
+      ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
+      NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference |
+      MultisetSelect // Separate node in DafnyAST.cs
     datatype Maps =
-        MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction |
-        MapSelect // Separate node in DafnyAST.cs
+      MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction |
+      MapSelect // Separate node in DafnyAST.cs
     datatype Datatypes =
-        RankLt | RankGt
+      RankLt | RankGt
     datatype BinaryOp =
       | Logical(oLogical: Logical)
       | Eq(oEq: Eq)
@@ -144,7 +144,7 @@ module DafnyCompilerCommon.AST {
     import Types
 
     datatype Sequences =
-        SeqUpdate | SeqSubseq
+      SeqUpdate | SeqSubseq
     datatype Multisets =
       MultisetUpdate
     datatype Maps =
