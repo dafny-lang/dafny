@@ -17,10 +17,6 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-<<<<<<< HEAD:Source/DafnyCore/DafnyCore.csproj
-=======
-    <VersionPrefix>3.8.1.40901</VersionPrefix>
->>>>>>> d0ec2eda815663d9560db84bc07adfb040807df7:Source/Dafny/DafnyPipeline.csproj
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
