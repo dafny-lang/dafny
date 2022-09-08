@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     IToken NameToken { get; }
     IEnumerable<INode> Children { get; }
   }
-  
+
   public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => this.GetFirstTopLevelToken();
-    public IEnumerable<INode> Children => new [] { DefaultModule };
+    public IEnumerable<INode> Children => new[] { DefaultModule };
   }
 
   public class Include : IComparable {

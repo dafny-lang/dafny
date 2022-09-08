@@ -18,12 +18,12 @@ public class NewSymbolTable {
     Usages = new Dictionary<INode, ISet<INode>>();
     Declarations = new Dictionary<INode, INode>();
   }
-  
+
   public NewSymbolTable(Document document, IReadOnlyList<(INode usage, INode declaration)> usages) {
     var safeUsages = usages.Where(k => k.declaration.NameToken.Filename != null).ToList();
     Declarations = safeUsages.ToDictionary(k => k.usage, k => k.declaration);
     Usages = safeUsages.GroupBy(u => u.declaration).ToDictionary(
-      g => g.Key, 
+      g => g.Key,
       g => (ISet<INode>)g.Select(k => k.usage).ToHashSet());
     NodePositions = new IntervalTree<Position, INode>();
     var symbols = safeUsages.Select(u => u.declaration).Concat(usages.Select(u => u.usage)).
@@ -33,7 +33,7 @@ public class NewSymbolTable {
       NodePositions.Add(range.Start, range.End, symbol);
     }
   }
-  
+
   private IIntervalTree<Position, INode> NodePositions { get; }
   private Dictionary<INode, INode> Declarations { get; }
   private Dictionary<INode, ISet<INode>> Usages { get; }
@@ -48,7 +48,7 @@ public class NewSymbolTable {
     var referenceNodes = NodePositions.Query(position);
     return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (INode?)null))
       .Where(x => x != null).Select(
-        n => new Location { 
+        n => new Location {
           Uri = DocumentUri.From(n!.NameToken.ActualFilename),
           Range = n.NameToken.GetLspRange()
         }).FirstOrDefault();

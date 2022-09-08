@@ -396,7 +396,7 @@ public class BreakStmt : Statement, IHasReferences {
   }
 
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {TargetStmt};
+    return new[] { TargetStmt };
   }
 }
 
@@ -655,7 +655,7 @@ public class TypeRhs : AssignmentRhs, INode {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children => new[] {EType, Type}.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -761,7 +761,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
     public override int Preference() => 1;
   }
 
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new [] {Expr});
+  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
 
   /// <summary>
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.

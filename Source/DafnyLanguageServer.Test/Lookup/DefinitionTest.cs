@@ -48,7 +48,7 @@ datatype Result<T, E> = Ok(value: T) | Err(error: E) {
 }
 ".TrimStart();
 
-    var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var noneCreation = (await RequestDefinition(documentItem, (4, 19)).AsTask()).Single();
       Assert.AreEqual(new Range((0, 22), (0, 26)), noneCreation.Location.Range);
@@ -94,17 +94,17 @@ function FibonacciSpec(n: nat): nat {
 
 type seq31<T> = x: seq<T> | 0 <= |x| <= 32 as int
 ".TrimStart();
-      
+
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
-      
+
       var fibonacciSpecOnItself = (await RequestDefinition(documentItem, (0, 12)).AsTask());
       Assert.IsFalse(fibonacciSpecOnItself.Any());
-      
+
       var nOnItself = (await RequestDefinition(documentItem, (0, 23)).AsTask());
       Assert.IsFalse(nOnItself.Any());
 
@@ -125,22 +125,22 @@ function Foo(value: Identity<Colors>): bool {
     case Identity(Blue()) => false
   }
 }".TrimStart();
-      
+
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var matchSource = (await RequestDefinition(documentItem, (4, 10)).AsTask()).Single();
       Assert.AreEqual(documentItem.Uri, matchSource.Location.Uri);
       Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location.Range);
-        
+
       var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
       Assert.AreEqual(documentItem.Uri, identity.Location.Uri);
       Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location.Range);
-      
+
       var green = (await RequestDefinition(documentItem, (6, 20)).AsTask()).Single();
       Assert.AreEqual(documentItem.Uri, green.Location.Uri);
       Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location.Range);
     }
-    
+
     [TestMethod]
     public async Task JumpToExternModule() {
       var source = @"
@@ -162,7 +162,7 @@ module Consumer {
       var usizeReference = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
       Assert.AreEqual(documentItem.Uri, usizeReference.Location.Uri);
       Assert.AreEqual(new Range((2, 7), (2, 12)), usizeReference.Location.Range);
-      
+
       var lengthDefinition = (await RequestDefinition(documentItem, (9, 10)).AsTask());
       Assert.IsFalse(lengthDefinition.Any());
 

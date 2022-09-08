@@ -396,7 +396,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
-    Concat(Body == null ? Enumerable.Empty<INode>() : new [] { Body });
+    Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -685,7 +685,7 @@ public class TwoStatePredicate : TwoStateFunction {
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions);
-  
+
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;

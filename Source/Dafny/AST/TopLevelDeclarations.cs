@@ -135,7 +135,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public IToken NameToken => tok;
   public virtual IEnumerable<INode> Children {
     get {
-      
+
       return Enumerable.Empty<INode>();
     }
   }
@@ -512,7 +512,7 @@ public class ExportSignature : IHasReferences {
   public IToken NameToken => Tok;
   public IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {Decl};
+    return new[] { Decl };
   }
 }
 

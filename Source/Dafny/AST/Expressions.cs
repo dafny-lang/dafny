@@ -1211,7 +1211,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences {
   }
 
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new [] {Decl};
+    return new[] { Decl };
   }
 }
 
@@ -1498,7 +1498,7 @@ public class MemberSelectExpr : Expression, IHasReferences {
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {Member};
+    return new[] { Member };
   }
 }
 
@@ -3345,7 +3345,7 @@ public abstract class MatchCase : IHasReferences {
   public IToken NameToken => tok;
   public abstract IEnumerable<INode> Children { get; }
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {Ctor};
+    return new[] { Ctor };
   }
 }
 
@@ -3358,7 +3358,7 @@ public class MatchCaseExpr : MatchCase {
     Contract.Invariant(body != null);
   }
 
-  public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] {body});
+  public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] { body });
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
@@ -3605,7 +3605,7 @@ public class LitPattern : ExtendedPattern {
     return Printer.ExprToString(OrigLit);
   }
 
-  public override IEnumerable<INode> Children => new[] {OrigLit};
+  public override IEnumerable<INode> Children => new[] { OrigLit };
 }
 
 public class IdPattern : ExtendedPattern, IHasReferences {
@@ -3653,7 +3653,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new INode[] { Ctor}.Where(x => x != null);
+    return new INode[] { Ctor }.Where(x => x != null);
   }
 }
 
@@ -3683,7 +3683,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => new INode[] {Body, Pat}.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3700,7 +3700,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Body = body;
     this.Attributes = attrs;
   }
-  
+
   public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
@@ -3891,9 +3891,9 @@ public class FrameExpression : IHasReferences {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] {E};
+  public IEnumerable<INode> Children => new[] { E };
   public IEnumerable<INode> GetResolvedDeclarations() {
-    return new[] {Field}.Where(x => x != null);
+    return new[] { Field }.Where(x => x != null);
   }
 }
 

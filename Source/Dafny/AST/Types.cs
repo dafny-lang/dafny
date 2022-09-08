@@ -24,7 +24,7 @@ public abstract class Type {
   public virtual IEnumerable<INode> Nodes {
     get {
       if (this is UserDefinedType udt) {
-        return new[] {udt};
+        return new[] { udt };
       }
 
       return Enumerable.Empty<INode>();
@@ -2567,7 +2567,7 @@ public class UserDefinedType : NonProxyType, INode {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new [] { NamePath };
+  public IEnumerable<INode> Children => new[] { NamePath };
 }
 
 public abstract class TypeProxy : Type {

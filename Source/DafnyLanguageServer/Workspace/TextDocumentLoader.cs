@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
-    private readonly IDafnyParser parser;    
+    private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      
+
       var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
@@ -127,7 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         textDocument,
         diagnostics,
         NewSymbolTable.Empty(),
-        SymbolTable.Empty(textDocument), 
+        SymbolTable.Empty(textDocument),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
