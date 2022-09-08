@@ -317,16 +317,25 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
       } else {
         k = WhatKind;
       }
+
       return HasStaticKeyword ? "static " + k : k;
     }
   }
 
-  public override bool CanBeRevealed() { return true; }
+  public override bool CanBeRevealed() {
+    return true;
+  }
+
   [FilledInDuringResolution] public bool IsRecursive;
-  [FilledInDuringResolution] public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+
+  [FilledInDuringResolution]
+  public TailStatus
+    TailRecursion =
+      TailStatus.NotTailRecursive; // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
-  [FilledInDuringResolution] public bool IsFueled;  // if anyone tries to adjust this function's fuel
+  [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Formals;
   public readonly Formal Result;
@@ -335,11 +344,22 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public readonly List<FrameExpression> Reads;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
-  public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IToken/*?*/ ByMethodTok; // null iff ByMethodBody is null
-  public BlockStmt/*?*/ ByMethodBody;
-  [FilledInDuringResolution] public Method/*?*/ ByMethodDecl; // if ByMethodBody is non-null
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
+
+  public Expression
+    Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+
+  public IToken /*?*/
+    ByMethodTok; // null iff ByMethodBody is null
+
+  public BlockStmt /*?*/
+    ByMethodBody;
+
+  [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
+
+  public bool SignatureIsOmitted {
+    get { return SignatureEllipsis != null; }
+  } // is "false" for all Function objects that survive into resolution
+
   public readonly IToken SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
@@ -347,6 +367,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public bool AllowsAllocation => true;
 
   public bool containsQuantifier;
+
   public bool ContainsQuantifier {
     set { containsQuantifier = value; }
     get { return containsQuantifier; }
@@ -356,6 +377,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
     TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
     NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
+
     // E + F or F + E, where E has no tail call and F is a tail call
     Accumulate_Add,
     AccumulateRight_Sub,
@@ -368,7 +390,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => Reads.
+  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
+    Concat<INode>(Reads).
     Concat<INode>(Req.Select(e => e.E)).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
