@@ -11,6 +11,7 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly Dictionary<MemberDecl, string> fullNames = new();
   private CallRedirector callRedirector = new();
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
@@ -58,7 +59,10 @@ public class ExpectContracts : IRewriter {
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
-    return !decl.IsGhost && decl is not Constructor;
+    return !decl.IsGhost &&
+           decl is not Constructor &&
+           (callRedirector.HasExternAttribute(decl) /*||
+            CalledFromTestMethod(decl)*/);
   }
 
   /// <summary>
@@ -120,21 +124,27 @@ public class ExpectContracts : IRewriter {
 
     if (newDecl is not null) {
       wrappedDeclarations.Add(decl, newDecl);
+      callRedirector.AddFullName(newDecl, decl.FullName + "_checked");
     }
   }
 
-  internal override void PreResolve(Program program) {
+  /// <summary>
+  /// Add wrappers for certain top-level declarations in the given module.
+  /// This runs after the first pass of resolution so that it has access to
+  /// attributes and call targets, but it generates pre-resolution syntax.
+  /// This is okay because the program gets resolved again during compilation.
+  /// </summary>
+  /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
+  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
 
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
     // Find module members to wrap.
-    foreach (var moduleDefinition in program.RawModules()) {
-      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-        foreach (var decl in topLevelDecl.Members) {
-          if (ShouldGenerateWrapper(decl)) {
-            membersToWrap.Add((topLevelDecl, decl));
-          }
+    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      foreach (var decl in topLevelDecl.Members) {
+        if (ShouldGenerateWrapper(decl)) {
+          membersToWrap.Add((topLevelDecl, decl));
         }
       }
     }
@@ -154,12 +164,17 @@ public class ExpectContracts : IRewriter {
 
   class CallRedirector : TopDownVisitor<MemberDecl> {
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
+    internal readonly Dictionary<MemberDecl, string> newFullNames = new();
 
-    private bool HasTestAttribute(MemberDecl decl) {
+    internal void AddFullName(MemberDecl decl, string fullName) {
+      newFullNames.Add(decl, fullName);
+    }
+
+    internal bool HasTestAttribute(MemberDecl decl) {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
     }
 
-    private bool HasExternAttribute(MemberDecl decl) {
+    internal bool HasExternAttribute(MemberDecl decl) {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
     }
 
@@ -183,7 +198,7 @@ public class ExpectContracts : IRewriter {
         //Console.WriteLine($"Function call to {targetName}");
         if (ShouldCallWrapper(decl, f)) {
           var newTarget = newRedirections[f];
-          Console.WriteLine($"Call (expression) to {f.FullName} redirecting to {newTarget.FullName}");
+          //Console.WriteLine($"Call (expression) to {f.FullName} redirecting to {newTarget.FullName}");
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
           resolved.Name = newTarget.Name;
@@ -200,7 +215,7 @@ public class ExpectContracts : IRewriter {
         //Console.WriteLine($"Method call to {m.FullName}");
         if (ShouldCallWrapper(decl, m)) {
           var newTarget = newRedirections[m];
-          Console.WriteLine($"Call (statement) to {m.FullName} redirecting to {newTarget.FullName}");
+          //Console.WriteLine($"Call (statement) to {m.FullName} redirecting to {newTarget.FullName}");
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
           resolved.MemberName = newTarget.Name;
@@ -224,9 +239,10 @@ public class ExpectContracts : IRewriter {
     }
 
     foreach (var (caller, callee) in wrappedDeclarations) {
+      var calleeFullName = callRedirector.newFullNames[callee];
       callRedirector.newRedirections.Add(
         newDeclarationsByName[caller.FullName],
-        newDeclarationsByName[callee.FullName]);
+        newDeclarationsByName[calleeFullName]);
     }
 
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
