@@ -336,6 +336,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static V GetOrDefault<K, V>(this IReadOnlyDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      return createValue();
+    }
+
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
       if (dictionary.TryGetValue(key, out var result)) {
         return result;
@@ -803,9 +811,10 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
-    /// the corresponding RHS is ghost), and then report errors for every part that would prevent
-    /// compilation.
+    /// Checks that "expr" is compilable and reports an error if it is not.
+    /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
+    /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
+    /// must determine the value uniquely.
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     private bool CheckIsCompilable(Expression expr, ICodeContext codeContext) {
@@ -817,13 +826,14 @@ namespace Microsoft.Dafny {
 
       if (expr is IdentifierExpr expression) {
         if (expression.Var != null && expression.Var.IsGhost) {
-          reporter?.Error(MessageSource.Resolver, expression, "ghost variables are allowed only in specification contexts");
+          reporter?.Error(MessageSource.Resolver, expression, "a ghost variable is allowed only in specification contexts");
           return false;
         }
 
       } else if (expr is MemberSelectExpr selectExpr) {
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
-          reporter?.Error(MessageSource.Resolver, selectExpr, "ghost fields are allowed only in specification contexts");
+          var what = selectExpr.Member.WhatKindMentionGhost;
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
         }
 
@@ -1047,6 +1057,14 @@ namespace Microsoft.Dafny {
     /// Returns whether or not 'expr' has any subexpression that uses some feature (like a ghost or quantifier)
     /// that is allowed only in specification contexts.
     /// Requires 'expr' to be a successfully resolved expression.
+    ///
+    /// Note, some expressions have different proof obligations in ghost and compiled contexts. For example,
+    /// a let-such-that expression in a compiled context is required to have a uniquely determined result.
+    /// For such an expression, "UsesSpecFeatures" returns "false", since the feature can be used in either ghost
+    /// or compiled contexts. Whenever "UsesSpecFeatures" returns "false", the caller has a choice about making
+    /// the expression ghost or making it compiled. If the caller chooses to make the expression compiled, the
+    /// caller must then call "CheckIsCompilable" to commit this choice, because "CheckIsCompilable" fills in
+    /// various bookkeeping information that the verifier will need.
     /// </summary>
     public static bool UsesSpecFeatures(Expression expr) {
       Contract.Requires(expr != null);

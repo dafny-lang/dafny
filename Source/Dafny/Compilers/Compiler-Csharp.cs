@@ -222,11 +222,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
-      return wr.NewBlock("public static void _StaticMain()");
+      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<char>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -1237,7 +1237,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
         tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
@@ -3270,7 +3270,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
       }
       try {
-        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
+        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
         entry.Invoke(null, parameters);
         return true;
       } catch (System.Reflection.TargetInvocationException e) {
@@ -3325,7 +3325,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromMainArguments(args)));");
       Coverage.EmitTearDown(wBody);
     }
 

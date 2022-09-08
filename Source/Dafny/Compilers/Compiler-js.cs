@@ -52,13 +52,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
+      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(require('process').argv));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
       Coverage.EmitTearDown(wr);
     }
 
-    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
-      return wr.NewBlock("static Main()");
+      return wr.NewBlock($"static Main({argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -669,7 +669,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var sep = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
@@ -2441,6 +2441,12 @@ namespace Microsoft.Dafny.Compilers {
       return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
     }
 
+    public string ToStringLiteral(string s) {
+      var wr = new ConcreteSyntaxTree();
+      EmitStringLiteral(s, false, wr);
+      return wr.ToString();
+    }
+
     bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
@@ -2461,6 +2467,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+          nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
           nodeProcess.StandardInput.Write(callToMain);
         }
         nodeProcess.StandardInput.Flush();

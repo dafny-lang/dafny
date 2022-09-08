@@ -105,5 +105,6 @@ greatest lemma M'(x': int)
   ensures true
 {
 }
+Simple.dfy(14,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier did not attempt verification
