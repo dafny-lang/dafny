@@ -29,7 +29,12 @@ See [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
 
 ## Pull requests
 
-For pull requests that move more than a thousand lines of code to a new file, please use the script found in Scripts/git-cp.sh. Running git-cp.sh src dst will copy file src to dst using a branch and a merge, and you can then remove the duplicated parts from src and dst to complete the code move (this process allows git to track the file copy, as described in this StackOverflow answer).
+Pull requests should be merged using 'Squash and merge' unless otherwise noted. 
+
+For pull requests that move more than a thousand lines of code from an existing to a new file, please take the following steps:
+- Create a separate pull request that includes just the code move. 
+- Use the script found in Scripts/git-cp.sh. Running git-cp.sh src dst will copy file src to dst using a branch and a merge, and you can then remove the duplicated parts from src and dst to complete the code move (this process allows git to track the file copy, as described in this StackOverflow answer).
+- Merge the pull request using 'Create a merge commit' instead of 'Squash and merge'.
 
 ## FAQ
 
