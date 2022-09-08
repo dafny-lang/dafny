@@ -1442,7 +1442,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           return SetBinaryExprIndent(indent, binaryExpr);
         case LetOrFailExpr:
         case LetExpr:
-          return SetIndentVarDeclStmt(indent, expr.OwnedTokens);
+          return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null });
         case ITEExpr:
           return SetIndentITE(indent, expr.OwnedTokens);
         case NestedMatchExpr:
@@ -1705,11 +1705,12 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
     }
 
 
-    private bool SetIndentVarDeclStmt(int indent, List<IToken> ownedTokens) {
+    private bool SetIndentVarDeclStmt(int indent, List<IToken> ownedTokens, bool noLHS = false) {
       var rightIndent = indent + SpaceTab;
       var commaIndent = indent + SpaceTab;
       var afterSemicolonIndent = indent;
       var hadGhost = false;
+      var assignOpIndent = noLHS ? indent : indent + SpaceTab;
       foreach (var token in ownedTokens) {
         if (FormatLabelTokens(token, indent)) {
           continue;
@@ -1741,9 +1742,9 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
           case ":-":
           case ":=":
             if (!IsFollowedByNewline(token)) {
-              formatter.SetAlign(indent + SpaceTab, token, out rightIndent, out commaIndent);
+              formatter.SetAlign(assignOpIndent, token, out rightIndent, out commaIndent);
             } else {
-              formatter.SetDelimiterInsideIndentedRegions(token, indent);
+              formatter.SetIndentations(token, assignOpIndent, assignOpIndent, indent + SpaceTab);
               commaIndent = indent + SpaceTab;
               rightIndent = indent + SpaceTab;
             }

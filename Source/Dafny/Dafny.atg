@@ -4735,12 +4735,15 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
 = (. IToken x;
      Expression rhs;
      Expression body;
+     var ownedTokens = new List<IToken>();
   .)
-  ":-"                                    (. x = t; .)
+  ":-"                                    (. x = t; ownedTokens.Add(t); .)
   Expression<out rhs, false, true>
-  ";"
+  ";"                                     (. ownedTokens.Add(t); .)
   Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
-  (. e = new LetOrFailExpr(x, null, rhs, body); .)
+  (. e = new LetOrFailExpr(x, null, rhs, body);
+     e.OwnedTokens = ownedTokens;
+   .)
   .
 
 /*------------------------------------------------------------------------*/

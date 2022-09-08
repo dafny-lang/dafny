@@ -1474,6 +1474,38 @@ const x: int
     }
 
     [Fact]
+    public void FormatterWorksForControlFlow() {
+      FormatterWorksFor(@"
+method ControlFlowTest() {
+  while
+    decreases O - k;
+  {
+    case k < O && k % 2 == 0 =>
+      d := 187; break;
+    case k < O =>
+      if (*) { e := 4; break InnerHasLabel; }
+      if (*) { e := 7; break; }
+      if (*) { e := 37; break break break; }
+      k := k + 1;
+  }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForLinearFunctionBody() {
+      FormatterWorksFor(@"
+function test(): int {
+  :- Need(u);
+  :- Need(u);
+  :- Need(u);
+  var u := u as C.UnaryOpExpr;
+  x
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
