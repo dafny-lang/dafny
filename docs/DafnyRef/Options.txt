@@ -479,6 +479,16 @@ Usage: Dafny [ option ... ] [ filename ... ]
       option is useful in a diamond dependency situation, to prevent code
       from the bottom dependency from being generated more than once.
   
+  /testContracts:<Tests|Externs>
+      Enable run-time testing of compiled function or method contracts in
+      certain situations.
+  
+      Tests - Check contracts on functions and methods when calling them
+          directly from methods marked with the :test attribute.
+      Externs - Check contracts when calling functions or methods marked
+          with the :extern attribute.
+  
+  
   ----------------------------------------------------------------------------
   
   Dafny generally accepts Boogie options and passes these on to Boogie.
