@@ -174,7 +174,8 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: module.RootToken);
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename,
+    firstToken: (module.RootToken.Filename ?? "") == "" ? module.RootToken : new Token());
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 

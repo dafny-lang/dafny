@@ -312,6 +312,9 @@ public class Scanner {
     Contract.Requires(fileName != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
@@ -330,6 +333,9 @@ public class Scanner {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);

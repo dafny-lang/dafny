@@ -171,8 +171,25 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return (DefaultModule.RootToken.Next == null || DefaultModule.RootToken.Next.kind == 0) ? null : // End of file token
-         DefaultModule.RootToken.Next;
+      if (DefaultModule.RootToken.Next == null) {
+        return null;
+      }
+
+      var firstToken = DefaultModule.RootToken.Next;
+      var prevFile = "";
+      // We skip all included files
+      while (firstToken != null && firstToken.Next != null && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
+        if (firstToken.Filename != prevFile) {
+          prevFile = firstToken.Filename;
+        }
+        firstToken = firstToken.Next;
+      }
+
+      if (firstToken == null || firstToken.kind == 0) {
+        return null;
+      }
+
+      return firstToken;
     }
   }
 

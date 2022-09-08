@@ -342,7 +342,13 @@ namespace Microsoft.Dafny {
           if (firstToken != null) {
             var result = TokenFormatter.__default.printSourceReindent(firstToken,
               IndentationFormatter.ForProgram(dafnyProgram));
-            WriteFile(dafnyFiles[0].FilePath, result);
+            if (DafnyOptions.O.PrintFile == "-") {
+              Console.Out.Write(result);
+            } else {
+              WriteFile(dafnyFiles[0].FilePath, result);
+            }
+          } else {
+            Console.Error.WriteLine("Could not find text there");
           }
         }
         return exitValue;
