@@ -145,7 +145,7 @@ class Array:
             return
         arr = self.arr
         for i in range(len(key)-1):
-            arr = arr[i]
+            arr = arr[key[i]]
         arr[key[-1]] = value
 
 class Set(frozenset):
