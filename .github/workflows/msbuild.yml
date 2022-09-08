@@ -45,9 +45,7 @@ jobs:
         ref: v${{ steps.regex-match.outputs.group1 }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
-      run: |
-        dotnet build Source/Dafny.sln
-        dotnet build -f netstandard2.0 Source/DafnyRuntime/DafnyRuntime.csproj
+      run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
