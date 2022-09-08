@@ -1237,7 +1237,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
         tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
