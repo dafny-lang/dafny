@@ -1176,8 +1176,7 @@ namespace Microsoft.Dafny.Compilers {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
 
-      public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody,
-        MemberDecl member /*?*/, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+      public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl /*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, Writer(false, createBody, member));
       }
 
@@ -1296,7 +1295,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
       wr.Write($"{Keywords(createBody)}{TypeName(resultType, wr, tok)} {name}");
       if (createBody) {
         var w = wr.NewBlock();

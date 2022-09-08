@@ -431,7 +431,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
-          bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
+        bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
 
@@ -1269,18 +1269,18 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(":])");
     }
 
-    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts) {
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       ConcreteSyntaxTree valueExpression;
-      string binder;
+      var range = $"range({Expr(expr.N, inLetExprBody, wStmts)})";
+      wr.Write(DafnySeqClass);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
-        binder = IdProtect(lam.BoundVars[0].CompileName);
+        var binder = IdProtect(lam.BoundVars[0].CompileName);
+        wr.Write($"([{valueExpression} for {binder} in {range}])");
       } else {
-        binder = ProtectedFreshId("x");
-        valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts).Write($"({binder})");
+        valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts);
+        wr.Write($"(tuple(map({valueExpression}, {range})))");
       }
-      wr.Write($"{DafnySeqClass}([{valueExpression} for {binder} in range({Expr(expr.N, inLetExprBody, wStmts)})])");
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
