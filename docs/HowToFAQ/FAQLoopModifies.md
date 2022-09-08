@@ -30,7 +30,7 @@ For example, a loop that sets the elements of an array to some initial value mig
 ```dafny
 method init(a: array<int>) 
   modifies a
-  ensures forall j: int :: 0 <= j < a.Length ==> a[j] == j;
+  ensures forall j | 0 <= j < a.Length :: a[j] == j;
 {
   var i: int := 0;
 
