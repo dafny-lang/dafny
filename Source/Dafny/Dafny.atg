@@ -118,6 +118,9 @@ List<IToken> GetTokenRange(List<IToken> tokens) {
     var result = new List<IToken>();
     var token = tokens[0];
     var lastToken = tokens[tokens.Count() - 1];
+    if(token is IncludeToken) {
+      return new List<IToken>() {};
+    }
     while(token != lastToken) {
       result.Add(token);
       token = token.Next;

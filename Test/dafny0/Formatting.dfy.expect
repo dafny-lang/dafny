@@ -1,0 +1,191 @@
+// PrettyPrinting.dfy
+
+
+module A {
+  method M()
+}
+
+module B refines A {
+  method M ...
+  {
+    while true
+    while true
+      invariant true
+      invariant true
+    while true
+      decreases 5
+    while true
+      modifies {}
+    while ...
+    while true
+      ...;
+    while true {
+      var u := 0;
+    }
+    var x := 10;
+  }
+
+  method P(a: array<int>)
+    modifies a
+  {
+    forall i | 0 <= i < 100 {
+      a[i] := 200;
+    }
+    forall i | 0 <= i < 100
+      ensures true
+    forall i | 0 <= i < 100
+      ensures true
+    {
+    }
+  }
+}
+
+module C {
+  class Cell {
+    var data: int
+  }
+
+  method For()
+  {
+    ghost var (x, y) := (123, 234);
+    var a := new int[100];
+    for i := 0 to 100 {
+      a[i] := i;
+    }
+    for i := 100 downto 0 {
+      a[i] := i;
+    }
+    for i: nat := 0 to 100
+    for i: nat := 100 downto 0
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    for i := 100 downto 0
+      invariant a[5] == 5
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    {
+    }
+    for i := 100 downto 0
+      invariant a[5] == 5
+    {
+      assert true;
+    }
+    for i := 0 to *
+      invariant i <= 100
+      decreases 100 - i
+    for i := 0 to *
+      decreases *
+    {
+    }
+    var c := new Cell;
+    for i := 0 to 100
+      modifies c, {c}, {c}
+    {
+    }
+    for i := 100 downto *
+      invariant -68 <= i <= 68
+      invariant i != 3
+      decreases i
+      modifies c, {c}, {c}
+    {
+    }
+  }
+}
+
+module Ats {
+  class Cell {
+    var data: int
+
+    method M()
+    {
+      label Label:
+      assert old(data) == old@Label(data);
+      assert unchanged(this) && unchanged@Label(this);
+      var c := new Cell;
+      assert fresh(c) && fresh@Label(c);
+    }
+  }
+}
+
+module ByMethod {
+  function F(x: nat): int
+  {
+    x
+  } by method {
+    var j := 0;
+    for _v0 := 0 to x {
+      j := j - 1;
+    }
+    return -j;
+  }
+}
+
+module GhostConstructors {
+  class C {
+    constructor X()
+
+    ghost constructor Y()
+  }
+}
+
+module BreakContinue {
+  method M()
+  {
+    label Outer:
+    for i := 0 to 100 {
+      label Inner:
+      for j := 0 to 100 {
+        label X:
+        {
+          label Innerer:
+          for k := 0 to 100 {
+            if
+            case true =>
+              break;
+            case true =>
+              continue;
+            case true =>
+              break break;
+            case true =>
+              break continue;
+            case true =>
+              break break break;
+            case true =>
+              break break continue;
+            case true =>
+              break Innerer;
+            case true =>
+              break Inner;
+            case true =>
+              break Outer;
+            case true =>
+              break X;
+            case true =>
+              continue Innerer;
+            case true =>
+              continue Inner;
+            case true =>
+              continue Outer;
+          }
+        }
+      }
+    }
+  }
+}
+PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(14,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(16,4): Warning: note, this loop has no body (loop frame: $Heap)
+PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(18,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(33,4): Warning: note, this forall statement has no body
+PrettyPrinting.dfy(52,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(54,4): Warning: note, this loop has no body (loop frame: i, a)
+PrettyPrinting.dfy(57,4): Warning: note, this loop has no body (loop frame: i, a)
+PrettyPrinting.dfy(69,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(73,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+3 resolution/type errors detected in PrettyPrinting.dfy
