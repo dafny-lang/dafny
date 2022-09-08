@@ -11,6 +11,7 @@ public abstract class Type {
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
+  public List<IToken> OwnedTokens = new List<IToken>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();

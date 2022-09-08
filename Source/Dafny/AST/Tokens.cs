@@ -36,6 +36,10 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
+  IToken Next { get; set; } // The next token
+  IToken Prev { get; set; } // The previous token
+
+  public IToken WithVal(string val);  // create a new token by setting the given val.
 }
 
 /// <summary>
@@ -71,11 +75,19 @@ public record Token : IToken {
 
   public string val { get; set; } // Used by coco, so we can't rename it to Val
 
-  public string LeadingTrivia { get; set; }
+  public string LeadingTrivia { get; set; } = "";
 
-  public string TrailingTrivia { get; set; }
+  public string TrailingTrivia { get; set; } = "";
 
   public bool IsValid => this.Filename != null;
+
+  public IToken Next { get; set; } // The next token
+
+  public IToken Prev { get; set; } // The previous token
+
+  public IToken WithVal(string val) {
+    return this with { val = val };
+  }
 }
 
 public abstract class TokenWrapper : IToken {
@@ -84,6 +96,8 @@ public abstract class TokenWrapper : IToken {
     Contract.Requires(wrappedToken != null);
     WrappedToken = wrappedToken;
   }
+
+  public abstract IToken WithVal(string newVal);
 
   public int col {
     get { return WrappedToken.col; }
@@ -120,6 +134,15 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.TrailingTrivia; }
     set { throw new NotSupportedException(); }
   }
+  public virtual IToken Next {
+    get { return WrappedToken.Next; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { throw new NotSupportedException(); }
+  }
+
 }
 
 public class RangeToken : TokenWrapper {
@@ -139,6 +162,10 @@ public class RangeToken : TokenWrapper {
   public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
     this.endTok = endTok;
   }
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
 }
 
 public class NestedToken : TokenWrapper {
@@ -152,6 +179,10 @@ public class NestedToken : TokenWrapper {
   public IToken Outer { get { return WrappedToken; } }
   public readonly IToken Inner;
   public readonly string Message;
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
 }
 
 /// <summary>
@@ -171,6 +202,10 @@ public class IncludeToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken WithVal(string newVal) {
+    return new IncludeToken(Include, WrappedToken.WithVal(newVal));
+  }
 }
 
 /// <summary>
@@ -187,6 +222,10 @@ public class QuantifiedVariableDomainToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableDomainToken((WrappedToken.WithVal(newVal)));
+  }
 }
 
 /// <summary>
@@ -202,5 +241,9 @@ public class QuantifiedVariableRangeToken : TokenWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
+  }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableRangeToken(WrappedToken.WithVal(newVal));
   }
 }

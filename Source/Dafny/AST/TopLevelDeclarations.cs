@@ -23,6 +23,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration {
   public IToken StartToken = Token.NoToken;
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
+  public List<IToken> OwnedTokens = new();
   public readonly string Name;
   public bool IsRefining;
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -235,6 +236,9 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
+    public IToken StartToken = null;
+    public IToken EndToken = null;
+    public List<IToken> OwnedTokens = new();
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -321,6 +325,7 @@ abstract public class ModuleDecl : TopLevelDecl {
     return Signature;
   }
   public int Height;
+  public Token RootToken = new Token();
 
   public readonly bool Opened;
 
@@ -361,7 +366,10 @@ public class LiteralModuleDecl : ModuleDecl {
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
     StartToken = module.StartToken;
+    EndToken = module.EndToken;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+    BodyStartTok = module.BodyStartTok;
+    BodyEndTok = module.BodyEndTok;
   }
   public override object Dereference() { return ModuleDef; }
 }
@@ -456,6 +464,7 @@ public class ModuleExportDecl : ModuleDecl {
 public class ExportSignature {
   public readonly IToken Tok;
   public readonly IToken ClassIdTok;
+  public List<IToken> OwnedTokens = new();
   public readonly bool Opaque;
   public readonly string ClassId;
   public readonly string Id;
@@ -599,7 +608,9 @@ public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken StartToken = Token.NoToken;
+  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
+  public List<IToken> OwnedTokens = new();
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
   public string FullDafnyName {
@@ -904,14 +915,28 @@ public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration {
   }
 
   public IToken GetFirstTopLevelToken() {
-    return TopLevelDecls.OfType<ClassDecl>()
-      .SelectMany(classDecl => classDecl.Members)
-      .Where(member => member.tok.line > 0)
-      .Select(member => member.tok)
-      .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
-        .Select(moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken())
-        .Where(tok => tok.line > 0)
-      ).FirstOrDefault(Token.NoToken);
+    if (StartToken.line > 0) {
+      return StartToken;
+    }
+    IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
+      if (decl.StartToken.line > 0) {
+        return new List<IToken>() { decl.StartToken };
+      } else if (decl is TopLevelDeclWithMembers declWithMembers) {
+        return declWithMembers.Members.Where(
+            member => member.tok.line > 0)
+          .Select(member => member.StartToken);
+      } else if (decl is LiteralModuleDecl literalModuleDecl) {
+        return literalModuleDecl.ModuleDef.PrefixNamedModules.Select(module =>
+          module.Item2.ModuleDef.GetFirstTopLevelToken()).Where(tok => tok.line > 0);
+      } else {
+        return new List<IToken>() { };
+      }
+    });
+    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
+      return includes[0].OwnedTokens[0];
+    }
+
+    return topTokens.MinBy(token => token.pos);
   }
 }
 
@@ -1761,6 +1786,8 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
+  List<IToken> OwnedTokens { get; }
+  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
@@ -1873,6 +1900,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -1956,6 +1985,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }

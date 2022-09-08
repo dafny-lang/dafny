@@ -7,9 +7,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : IAttributeBearingDeclaration {
+  public IToken StartToken;
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
+  public List<IToken> OwnedTokens = new List<IToken>();
+
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -34,6 +37,7 @@ public abstract class Statement : IAttributeBearingDeclaration {
     Contract.Requires(endTok != null);
     this.Tok = tok;
     this.EndTok = endTok;
+    this.StartToken = tok;
     this.attributes = attrs;
   }
 
@@ -69,6 +73,11 @@ public abstract class Statement : IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns the non-null substatements of the Statements, before resolution occurs
+  /// </summary>
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
+
+  /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
   /// Filters all sub expressions that are not part of specifications
   /// </summary>
@@ -83,6 +92,11 @@ public abstract class Statement : IAttributeBearingDeclaration {
       }
     }
   }
+
+  /// <summary>
+  /// Same as SubExpressions but returns all the SubExpressions before resolution
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => SubExpressions;
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
@@ -331,6 +345,8 @@ public class RevealStmt : Statement {
     get { return ResolvedStatements; }
   }
 
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Exprs != null);
@@ -425,6 +441,18 @@ public abstract class ProduceStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      if (rhss != null) {
+        foreach (var rhs in rhss) {
+          foreach (var s in rhs.PreResolveSubStatements) {
+            yield return s;
+          }
+        }
+      }
+    }
+  }
 }
 
 public class ReturnStmt : ProduceStmt {
@@ -446,6 +474,7 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs {
   public readonly IToken Tok;
+  public List<IToken> OwnedTokens = new();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -482,6 +511,8 @@ public abstract class AssignmentRhs {
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
+
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -640,6 +671,8 @@ public class TypeRhs : AssignmentRhs {
       }
     }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -678,6 +711,12 @@ public class VarDeclStmt : Statement {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
+          yield return e;
+        }
+      }
+
+      if (this.Update != null) {
+        foreach (var e in this.Update.NonSpecificationSubExpressions) {
           yield return e;
         }
       }
@@ -727,6 +766,18 @@ public abstract class ConcreteUpdateStatement : Statement {
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;
   }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in base.PreResolveSubExpressions) {
+        yield return e;
+      }
+
+      foreach (var lhs in Lhss) {
+        yield return lhs;
+      }
+    }
+  }
 }
 
 public class AssignSuchThatStmt : ConcreteUpdateStatement {
@@ -762,9 +813,6 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       yield return Expr;
-      foreach (var lhs in Lhss) {
-        yield return lhs;
-      }
     }
   }
 }
@@ -778,6 +826,9 @@ public class UpdateStmt : ConcreteUpdateStatement {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -804,6 +855,18 @@ public class UpdateStmt : ConcreteUpdateStatement {
     Rhss = rhss;
     CanMutateKnownState = mutate;
   }
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in base.PreResolveSubExpressions) {
+        yield return e;
+      }
+      foreach (var rhs in Rhss) {
+        foreach (var e in rhs.SubExpressions) {
+          yield return e;
+        }
+      }
+    }
+  }
 }
 
 public class AssignOrReturnStmt : ConcreteUpdateStatement {
@@ -814,6 +877,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -835,6 +900,24 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+
+      foreach (var e in base.PreResolveSubExpressions) {
+        yield return e;
+      }
+
+      if (Rhs != null) {
+        yield return Rhs;
+      }
+      foreach (var rhs in Rhss) {
+        foreach (var e in rhs.SubExpressions) {
+          yield return e;
+        }
+      }
+    }
   }
 }
 
@@ -860,6 +943,14 @@ public class AssignStmt : Statement {
   public override IEnumerable<Statement> SubStatements {
     get {
       foreach (var s in Rhs.SubStatements) {
+        yield return s;
+      }
+    }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      foreach (var s in Rhs.PreResolveSubStatements) {
         yield return s;
       }
     }
@@ -2064,6 +2155,12 @@ public class SkeletonStatement : Statement {
           yield return s;
         }
       }
+    }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      yield return S;
     }
   }
 }

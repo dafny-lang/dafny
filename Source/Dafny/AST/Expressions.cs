@@ -11,6 +11,7 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression {
   public readonly IToken tok;
+  public List<IToken> OwnedTokens = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -104,7 +105,10 @@ public abstract class Expression {
         } else {
           var startTok = tok;
           var endTok = tok;
-          foreach (var e in SubExpressions) {
+          var subExpressions = this is ConcreteSyntaxExpression concreteSyntaxExpression
+            ? concreteSyntaxExpression.PreResolveSubExpressions
+            : SubExpressions;
+          foreach (var e in subExpressions) {
             if (e.tok.Filename != tok.Filename || e.IsImplicit) {
               // Ignore auto-generated expressions, if any.
               continue;
@@ -114,6 +118,22 @@ public abstract class Expression {
               startTok = e.StartToken;
             } else if (e.EndToken.pos > endTok.pos) {
               endTok = e.EndToken;
+            }
+          }
+
+
+          foreach (var token in Enumerable.Concat(FormatTokens ?? Enumerable.Empty<IToken>(), OwnedTokens)) {
+            if (token.Filename != tok.Filename) {
+              continue;
+            }
+
+            if (token.pos < startTok.pos) {
+              startTok = token;
+            }
+
+            if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+              endTok = token;
+
             }
           }
 
@@ -1030,9 +1050,8 @@ public class DatatypeValue : Expression {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get { return Arguments; }
-  }
+  public override IEnumerable<Expression> SubExpressions =>
+    Arguments ?? new List<Expression>();
 }
 
 public class ThisExpr : Expression {
@@ -2448,6 +2467,13 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Rhs = rhs;
     Body = body;
   }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Rhs;
+      yield return Body;
+    }
+  }
 }
 
 /// <summary>
@@ -2886,14 +2912,25 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
 
   public override IEnumerable<Expression> SubExpressions {
     get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+      foreach (var e in base.SubExpressions) {
+        yield return e;
+      }
+    }
+  }
+
+  public IEnumerable<Expression> SplitOrSubExpressions {
+    get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
       if (SplitQuantifier == null) {
         foreach (var e in base.SubExpressions) {
           yield return e;
         }
       } else {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
         foreach (var e in SplitQuantifier) {
           yield return e;
         }
@@ -3684,6 +3721,12 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
     this.UsesOptionalBraces = usesOptionalBraces;
     InitializeAttributes();
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      return this.Cases.SelectMany(oneCase => oneCase.Body);
+    }
+  }
 }
 
 public class NestedMatchExpr : ConcreteSyntaxExpression {
@@ -3699,6 +3742,15 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.Cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;
     this.Attributes = attrs;
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Source;
+      foreach (var oneCase in Cases) {
+        yield return oneCase.Body;
+      }
+    }
   }
 }
 
@@ -3848,6 +3900,8 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
 
@@ -3886,6 +3940,12 @@ public class ParensExpression : ConcreteSyntaxExpression {
       }
     }
   }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return E;
+    }
+  }
 }
 
 public class TypeExpr : ParensExpression {
@@ -3922,14 +3982,23 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression {
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {
-        yield return Root;
-        foreach (var update in Updates) {
-          yield return update.Item3;
+        foreach (var preResolved in PreResolveSubExpressions) {
+
+          yield return preResolved;
         }
       } else {
         foreach (var e in base.SubExpressions) {
           yield return e;
         }
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Root;
+      foreach (var update in Updates) {
+        yield return update.Item3;
       }
     }
   }
@@ -4026,6 +4095,12 @@ public class NegationExpression : ConcreteSyntaxExpression {
       }
     }
   }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return E;
+    }
+  }
 }
 
 public class ChainingExpression : ConcreteSyntaxExpression {
@@ -4084,6 +4159,30 @@ public class ChainingExpression : ConcreteSyntaxExpression {
     }
     E = desugaring;
   }
+
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (Resolved == null) {
+        foreach (var sub in PreResolveSubExpressions) {
+          yield return sub;
+        }
+      } else {
+        yield return Resolved;
+      }
+    }
+  }
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var sub in Operands) {
+        yield return sub;
+      }
+      foreach (var sub in PrefixLimits) {
+        if (sub != null) {
+          yield return sub;
+        }
+      }
+    }
+  }
 }
 
 /// <summary>
@@ -4125,6 +4224,24 @@ abstract public class SuffixExpr : ConcreteSyntaxExpression {
     Contract.Requires(tok != null);
     Contract.Requires(lhs != null);
     Lhs = lhs;
+  }
+
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (Resolved == null) {
+        foreach (var sub in PreResolveSubExpressions) {
+          yield return sub;
+        }
+      } else {
+        yield return Resolved;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Lhs;
+    }
   }
 }
 
@@ -4187,6 +4304,17 @@ public class ApplySuffix : SuffixExpr {
     Bindings = new ActualBindings(args);
     if (closeParen != null) {
       FormatTokens = new[] { closeParen };
+    }
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Lhs;
+      if (Bindings.ArgumentBindings != null) {
+        foreach (var binding in Bindings.ArgumentBindings) {
+          yield return binding.Actual;
+        }
+      }
     }
   }
 }
