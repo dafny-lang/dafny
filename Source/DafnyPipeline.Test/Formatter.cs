@@ -1466,6 +1466,14 @@ method test() {
     }
 
     [Fact]
+    public void FormatterWorksForUtf8InComment() {
+      FormatterWorksFor(@"
+//  x ∈ a[..3] Dafny won’t prove, Wüstholz would, Mikaël doesn’t voilà Great job 
+const x: int
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

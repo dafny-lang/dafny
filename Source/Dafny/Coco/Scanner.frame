@@ -138,14 +138,15 @@ public class Buffer {
   public string/*!*/ GetString (int beg, int end) {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
-    char[] buf = new char[end - beg];
+    byte[] buf = new byte[end - beg];
     if(end != beg) {
       int oldPos = Pos;
       Pos = beg;
-      while (Pos < end) buf[len++] = (char) Read();
+      while (Pos < end) buf[len++] = (byte) Read();
       Pos = oldPos;
     }
-    return new String(buf, 0, len);
+
+    return Encoding.UTF8.GetString(buf, 0, len);
   }
 
   public int Pos {
