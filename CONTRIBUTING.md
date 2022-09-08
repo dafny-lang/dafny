@@ -24,7 +24,7 @@ Developers who would like to experiment with and perhaps modify Dafny source sho
 - Instructions for compiling Dafny are on the [wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL#building-and-developing-from-source-code)
 
 
-If you want to feed code changes for incorporation into the Dafny project, please note:
+If you want to propose code changes for the Dafny project, please note:
 - The [Dafny License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt)
 - The requirement that all contributions are made under the terms of that [MIT License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
