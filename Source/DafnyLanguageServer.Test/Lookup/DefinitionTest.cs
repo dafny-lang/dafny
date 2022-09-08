@@ -219,27 +219,32 @@ module Consumer2 {
     [TestMethod]
     public async Task DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation() {
       var source = @"
-method GetIt() returns (x: int) {
-}
+module Container {
+  method GetIt() returns (x: int) {
+  }
 
-method DoIt(arg: int) {
+  method DoIt(arg: int) {
+  }
 }
 
 method CallIts() returns () {
-  var x := GetIt();
-  DoIt(x);
+  var x := Container.GetIt();
+  Container.DoIt(x);
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var getItCall = (await RequestDefinition(documentItem, (7, 14)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 7), (0, 12)), getItCall.Location!.Range);
+      var containerReference = (await RequestDefinition(documentItem, (9, 11)).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 7), (0, 16)), containerReference.Location!.Range);
 
-      var doItCall = (await RequestDefinition(documentItem, (8, 4)).AsTask()).Single();
-      Assert.AreEqual(new Range((3, 7), (3, 11)), doItCall.Location!.Range);
+      var getItCall = (await RequestDefinition(documentItem, (9, 23)).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 9), (1, 14)), getItCall.Location!.Range);
 
-      var xVar = (await RequestDefinition(documentItem, (8, 7)).AsTask()).Single();
-      Assert.AreEqual(new Range((7, 6), (7, 7)), xVar.Location!.Range);
+      var doItCall = (await RequestDefinition(documentItem, (10, 12)).AsTask()).Single();
+      Assert.AreEqual(new Range((4, 9), (4, 13)), doItCall.Location!.Range);
+
+      var xVar = (await RequestDefinition(documentItem, (10, 17)).AsTask()).Single();
+      Assert.AreEqual(new Range((9, 6), (9, 7)), xVar.Location!.Range);
     }
 
     [TestMethod]
