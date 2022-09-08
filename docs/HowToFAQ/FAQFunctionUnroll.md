@@ -28,7 +28,7 @@ but it does the trick in this case:
 
 A function will also keep unrolling if it has an argument that is a literal `nat` and that argument decreases
 on each recursive call. So for this example we can write a helper function that takes a `nat` argument
-and give it a literal value that tells it how often to unroll.
+and give it a literal value that tells it how much to unroll.
 ```
 {% include_relative FAQFunctionUnroll2.dfy %}
 ```
