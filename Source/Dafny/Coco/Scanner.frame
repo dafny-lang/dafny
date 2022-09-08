@@ -138,15 +138,14 @@ public class Buffer {
   public string/*!*/ GetString (int beg, int end) {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
-    byte[] buf = new byte[end - beg];
+    char[] buf = new char[end - beg];
     if(end != beg) {
       int oldPos = Pos;
       Pos = beg;
-      while (Pos < end) buf[len++] = (byte) Read();
+      while (Pos < end) buf[len++] = (char) Read();
       Pos = oldPos;
     }
-
-    return Encoding.UTF8.GetString(buf, 0, len);
+    return new String(buf, 0, len);
   }
 
   public int Pos {
@@ -361,6 +360,9 @@ public class Scanner {
       }
       buffer = new UTF8Buffer(buffer); col = 0;
       NextCh();
+    } else {
+      // We consider all files to be UTF-8 by default 
+      buffer = new UTF8Buffer(buffer);
     }
     pt = tokens = new Token();  // first token is a dummy
   }
