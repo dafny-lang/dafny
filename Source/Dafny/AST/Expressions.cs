@@ -10,7 +10,8 @@ namespace Microsoft.Dafny;
 
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
-  public readonly IToken tok;
+  public virtual IToken tok { get; set; }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -1115,6 +1116,8 @@ public class IdentifierExpr : Expression, IHasReferences {
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
   }
+
+  public override IToken tok { get; set; }
 
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
