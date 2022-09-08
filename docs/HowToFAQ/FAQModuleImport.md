@@ -1,5 +1,5 @@
 ---
-title: Why is my import opened statement not working?
+title: Why do nested modules not see the imports of their enclosing modules?
 ---
 
 ## Question

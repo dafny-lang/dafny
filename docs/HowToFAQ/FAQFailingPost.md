@@ -1,10 +1,10 @@
 ---
-title: I can assert a condition right before a return, so why does the postcondition fail?
+title: I can assert a condition right before a return, so why does the postcondition fail to verify?
 ---
 
 ## Question
 
-I can assert a condition right before a return, so why does the postcondition fail?
+I can assert a condition right before a return, so why does the postcondition fail to verify?
 
 ## Answer
 
@@ -14,7 +14,7 @@ harder to spot exit path is the `:-` let-or-fail assignment.
 Here is a sketch of that kind of problem:
 
 ```
-method test(MyClass o) returns (r: Result<int>)
+method test(MyClass o) returns (r: Wrappers.Result<int>)
   modifies o;
   ensures o.ok == true;
 {
@@ -24,6 +24,8 @@ method test(MyClass o) returns (r: Result<int>)
   return;
 }
 ```
+(This example uses the `Result` type from the [standard library](https://github.com/dafny-lang/libraries/blob/master/src/Wrappers.dfy).)
+
 This method can exit either through the `return` at the end or through the failure return if a failure value is returned
 from `MyMethod`. That return happens before the `assert` that is intended to do a pre-check of the postcondition; depending
 on the action of `MyMethod`, the target predicate may not be always true.

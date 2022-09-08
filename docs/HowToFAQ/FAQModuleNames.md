@@ -17,3 +17,5 @@ If this structure cannot be changed, then the following somewhat ugly code is a 
 ```dafny
 {% include_relative FAQModuleNames.dfy %}
 ```
+
+There is discussion of defining synttax that names the top-level module, which would make an easy way to solve the above problem. See [this issue](https://github.com/dafny-lang/dafny/issues/2493).
