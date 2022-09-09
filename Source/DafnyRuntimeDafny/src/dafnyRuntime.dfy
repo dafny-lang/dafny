@@ -41,9 +41,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   // Defining a bounded integer newtype for lengths and indices into
   // arrays and sequences.
-  const SIZE_T_MAX: nat
-  lemma {:axiom} AboutSizeT() ensures 256 <= SIZE_T_MAX
-  newtype size_t = x: nat | x < SIZE_T_MAX witness (AboutSizeT(); 0)
+  const SIZE_T_LIMIT: nat
+  lemma {:axiom} AboutSizeT() ensures 256 <= SIZE_T_LIMIT
+
+  newtype size_t = x: nat | x < SIZE_T_LIMIT witness (AboutSizeT(); 0)
+  const SIZE_T_MAX: size_t := (AboutSizeT(); (SIZE_T_LIMIT - 1) as size_t)
 
   const ZERO_SIZE: size_t := (AboutSizeT(); 0 as size_t);
   const ONE_SIZE: size_t := (AboutSizeT(); 1 as size_t);
@@ -81,7 +83,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       reads this, Repr
       decreases Repr, 1
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> |values| < SIZE_T_MAX
+      ensures Valid() ==> |values| < SIZE_T_LIMIT
 
     function Length(): size_t
       requires Valid()
@@ -152,7 +154,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost const values: seq<T>
 
     ghost predicate Valid()
-      ensures Valid() ==> |values| < SIZE_T_MAX
+      ensures Valid() ==> |values| < SIZE_T_LIMIT
 
     ghost function CellValues(): seq<ArrayCell<T>> {
       seq(|values|, i requires 0 <= i < |values| => Set(values[i]))
@@ -240,7 +242,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     method AddLast(t: T) 
       requires Valid()
-      requires size as int + 1 < SIZE_T_MAX
+      requires size as int + 1 < SIZE_T_LIMIT
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + [t]
@@ -288,7 +290,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     method Append(other: ImmutableArray<T>) 
       requires Valid()
       requires other.Valid()
-      requires size as int + other.Length() as int < SIZE_T_MAX
+      requires size as int + other.Length() as int < SIZE_T_LIMIT
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + other.values
@@ -370,7 +372,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
+      ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
 
     method HashCode() returns (ret: bv32)
       requires Valid()
@@ -491,7 +493,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
+      ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       value.values
     }
@@ -519,14 +521,14 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       && size == 1 + left.size + right.size
       && left.Valid()
       && right.Valid()
-      && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_MAX as int
+      && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       && length == left.Cardinality() + right.Cardinality()
     }
 
     constructor(left: Sequence<T>, right: Sequence<T>) 
       requires left.Valid()
       requires right.Valid()
-      requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_MAX as int
+      requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       ensures Valid()
     {
       this.left := left;
@@ -545,7 +547,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
+      ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       var ret := left.Value() + right.Value();
       assert |ret| as size_t == Cardinality();
@@ -652,7 +654,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Valid() ==> 0 < size
     {
       && 0 < size
-      && |value| < SIZE_T_MAX
+      && |value| < SIZE_T_LIMIT
       && length == |value| as size_t
       && box.inv == (s: Sequence<T>) =>
         && s.size < size
@@ -689,7 +691,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
+      ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       assert |value| as size_t == Cardinality();
       value
@@ -736,7 +738,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret == (left.Value() == right.Value())
   {
-    // TODO: How to avoid BigInteger values here?
     if left.Cardinality() != right.Cardinality() {
       return false;
     }
@@ -789,11 +790,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret.Valid()
   {
-    // TODO: This is lousy since it creates BigInteger values.  
-    // Could we have a helper that uses native addition with overflow instead?
-    var newCardinality := left.Cardinality() as int + right.Cardinality() as int;
-    expect newCardinality < SIZE_T_MAX as int, "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
-    
+    expect left.Cardinality() <= SIZE_T_MAX - right.Cardinality(), "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
+    assert left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT;
+
     // TODO: This needs to inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
     var c := new ConcatSequence(left, right);
