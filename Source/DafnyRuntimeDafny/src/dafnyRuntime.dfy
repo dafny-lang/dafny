@@ -61,6 +61,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
   // TODO: This could be a class instead, since it doesn't require variance
+  // TODO: Be clearer this is a one-dimentional array.
   trait {:extern} Array<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
@@ -705,6 +706,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret == (left.Value() == right.Value())
   {
+    // TODO: How to avoid BigInteger values here?
     if left.Length() != right.Length() {
       return false;
     }
@@ -757,6 +759,8 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret.Valid()
   {
+    // TODO: This needs to inspect left and right to see if they are already LazySequences
+    // and concatenate the boxed values if so.
     var c := new ConcatSequence(left, right);
     ret := new LazySequence(c);
   }
