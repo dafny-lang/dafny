@@ -157,6 +157,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   // (possibly in a separate datatype to avoid the extra overhead of adding 0 all the time).
   class Vector<T> extends Validatable {
     var storage: Array<T>
+    // TODO: "length"?
     var size: nat
 
     const MIN_SIZE := 10;
@@ -336,21 +337,21 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       decreases size, 0
       ensures Valid() ==> 0 < size
     
-    function Length(): nat 
+    function Cardinality(): nat 
       requires Valid() 
       decreases size, 1
 
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Length()
+      ensures |Value()| == Cardinality()
 
     method HashCode() returns (ret: bv32)
       requires Valid()
       // TODO: function version as specification (or function by method)
     {
       ret := 0;
-      for i := 0 to Length() {
+      for i := 0 to Cardinality() {
         var element := Select(i);
         ret := ((ret << 3) | (ret >> 29)) ^ Helpers.HashCode(element);
       }
@@ -362,7 +363,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       // TODO: Can we use compiled seq<T> values like this?
       // TODO: Need to track whether this is a seq<char> at runtime
       ret := "[";
-      for i := 0 to Length() {
+      for i := 0 to Cardinality() {
         if i != 0 {
           ret := ret + ",";
         }
@@ -374,7 +375,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     method Select(index: nat) returns (ret: T)
       requires Valid()
-      requires index < Length()
+      requires index < Cardinality()
       ensures ret == Value()[index]
     {
       var a := ToArray();
@@ -383,17 +384,17 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     method Drop(lo: nat) returns (ret: Sequence<T>)
       requires Valid()
-      requires lo <= Length()
+      requires lo <= Cardinality()
       decreases size, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..]
     {
-      ret := Subsequence(lo, Length());
+      ret := Subsequence(lo, Cardinality());
     }
 
     method Take(hi: nat) returns (ret: Sequence<T>)
       requires Valid()
-      requires hi <= Length()
+      requires hi <= Cardinality()
       decreases size, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[..hi]
@@ -403,7 +404,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     method Subsequence(lo: nat, hi: nat) returns (ret: Sequence<T>)
       requires Valid()
-      requires lo <= hi <= Length()
+      requires lo <= hi <= Cardinality()
       decreases size, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..hi]
@@ -420,7 +421,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Length() == Length()
+      ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
   }
 
@@ -454,7 +455,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       this.size := 1;
     }
 
-    function Length(): nat 
+    function Cardinality(): nat 
       requires Valid() 
       decreases size, 1
     {
@@ -464,7 +465,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Length()
+      ensures |Value()| == Cardinality()
     {
       value.values
     }
@@ -473,7 +474,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Length() == Length()
+      ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
       return value;
@@ -492,7 +493,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       && size == 1 + left.size + right.size
       && left.Valid()
       && right.Valid()
-      && length == left.Length() + right.Length()
+      && length == left.Cardinality() + right.Cardinality()
     }
 
     constructor(left: Sequence<T>, right: Sequence<T>) 
@@ -502,11 +503,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     {
       this.left := left;
       this.right := right;
-      this.length := left.Length() + right.Length();
+      this.length := left.Cardinality() + right.Cardinality();
       this.size := 1 + left.size + right.size;
     }
 
-    function Length(): nat 
+    function Cardinality(): nat 
       requires Valid() 
       decreases size, 1
     {
@@ -516,10 +517,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Length()
+      ensures |Value()| == Cardinality()
     {
       var ret := left.Value() + right.Value();
-      assert |ret| == Length();
+      assert |ret| == Cardinality();
       ret
     }
 
@@ -527,7 +528,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Length() == Length()
+      ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
       var builder := new Vector<T>(length);
@@ -644,12 +645,12 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       var box := AtomicBox.Make(inv, wrapped);
 
       this.box := box;
-      this.length := wrapped.Length();
+      this.length := wrapped.Cardinality();
       this.value := value;
       this.size := size;
     }
 
-    function Length(): nat 
+    function Cardinality(): nat 
       requires Valid() 
       decreases size, 1
     {
@@ -659,9 +660,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Length()
+      ensures |Value()| == Cardinality()
     {
-      assert |value| == Length();
+      assert |value| == Cardinality();
       value
     }
 
@@ -669,7 +670,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures ret.Valid()
-      ensures ret.Length() == Length()
+      ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
       var expr := box.Get();
@@ -685,8 +686,8 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: nat) returns (ret: bool) 
     requires left.Valid()
     requires right.Valid()
-    requires index <= left.Length()
-    requires index <= right.Length()
+    requires index <= left.Cardinality()
+    requires index <= right.Cardinality()
     ensures ret == (left.Value()[..index] == right.Value()[..index])
   {
     for i := 0 to index
@@ -707,10 +708,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ensures ret == (left.Value() == right.Value())
   {
     // TODO: How to avoid BigInteger values here?
-    if left.Length() != right.Length() {
+    if left.Cardinality() != right.Cardinality() {
       return false;
     }
-    ret := EqualUpTo(left, right, left.Length());
+    ret := EqualUpTo(left, right, left.Cardinality());
   }
 
   method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
@@ -718,10 +719,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret == (left.Value() <= right.Value())
   {
-    if right.Length() < left.Length() {
+    if right.Cardinality() < left.Cardinality() {
       return false;
     }
-    ret := EqualUpTo(left, right, left.Length());
+    ret := EqualUpTo(left, right, left.Cardinality());
   }
 
   method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
@@ -729,10 +730,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret == (left.Value() < right.Value())
   {
-    if right.Length() <= left.Length() {
+    if right.Cardinality() <= left.Cardinality() {
       return false;
     }
-    ret := EqualUpTo(left, right, left.Length());
+    ret := EqualUpTo(left, right, left.Cardinality());
   }
 
 
@@ -741,7 +742,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   {
     t in s.Value()
   } by method {
-    for i := 0 to s.Length() 
+    for i := 0 to s.Cardinality() 
       invariant t !in s.Value()[..i]
     {
       var element := s.Select(i);
@@ -767,7 +768,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   method Update<T>(s: Sequence<T>, i: nat, t: T) returns (ret: Sequence<T>)
     requires s.Valid()
-    requires i < s.Length()
+    requires i < s.Cardinality()
     ensures ret.Valid()
     ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
   {
