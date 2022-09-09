@@ -129,10 +129,16 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
-  method {:extern} NewArray<T>(length: size_t) returns (ret: Array<T>)
+  // Takes a nat rather than a size_t because Dafny won't verify the limit for you.
+  // Instead the extern implementation needs to halt if the value is too big
+  // (or if there isn't adequate memory to allocate).
+  // By contrast, the methods on [Immutable]Array can safely assume that
+  // unbounded int values can be downcast to size_t, since Dafny WILL verify that
+  // all indices are in bounds and hence less than SIZE_T_MAX.
+  method {:extern} NewArray<T>(length: nat) returns (ret: Array<T>)
     ensures ret.Valid()
     ensures fresh(ret.Repr)
-    ensures ret.Length() == length
+    ensures ret.Length() as nat == length
 
   method {:extern} CopyArray<T>(other: ImmutableArray<T>) returns (ret: Array<T>)
     ensures ret.Valid()
@@ -178,7 +184,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     // TODO: "length"?
     var size: size_t
 
-    const MIN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
+    const MIN_SIZE: size_t := TEN_SIZE
 
     ghost predicate Valid() 
       reads this, Repr 
@@ -201,7 +207,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Value() == []
       ensures fresh(Repr)
     {
-      var storage := NewArray<T>(length);
+      var storage := NewArray<T>(length as nat);
       this.storage := storage;
       size := 0;
       Repr := {this} + storage.Repr;
@@ -234,6 +240,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
     method AddLast(t: T) 
       requires Valid()
+      requires size as int + 1 < SIZE_T_MAX
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + [t]
@@ -257,7 +264,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures storage.Length() == newCapacity
       ensures Value() == old(Value())
     {
-      var newStorage := NewArray<T>(newCapacity);
+      var newStorage := NewArray<T>(newCapacity as nat);
       var values := storage.Freeze(size);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
@@ -281,6 +288,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     method Append(other: ImmutableArray<T>) 
       requires Valid()
       requires other.Valid()
+      requires size as int + other.Length() as int < SIZE_T_MAX
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + other.values
@@ -781,6 +789,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret.Valid()
   {
+    // TODO: This is lousy since it creates BigInteger values.  
+    // Could we have a helper that uses native addition with overflow instead?
+    var newCardinality := left.Cardinality() as int + right.Cardinality() as int;
+    expect newCardinality < SIZE_T_MAX as int, "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
+    
     // TODO: This needs to inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
     var c := new ConcatSequence(left, right);
