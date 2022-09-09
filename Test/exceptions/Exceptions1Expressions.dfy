@@ -20,9 +20,9 @@ function method FailIf(b: bool): VoidOutcome {
 
 function method TestControlFlowCase_Void(switch1: bool, switch2: bool, switch3: bool): VoidOutcome {
   :- FailIf(switch1);
-     :- FailIf(switch2);
-        :- FailIf(switch3);
-           VoidSuccess()
+  :- FailIf(switch2);
+  :- FailIf(switch3);
+  VoidSuccess()
 }
 
 method TestControlFlow() {

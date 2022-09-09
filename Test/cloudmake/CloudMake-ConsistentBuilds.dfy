@@ -551,7 +551,7 @@ lemma DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
         DoCLemma(stmts[1..], stC', env');
       } else { }
     } else { }
-           // todo(maria): Add the recursive case.
+    // todo(maria): Add the recursive case.
   } else {
     assert stmt.stmtVariable? || stmt.stmtReturn?;
     EvalCLemma(stmt.ret, stC, env);

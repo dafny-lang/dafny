@@ -73,9 +73,9 @@ module H {
       case Wrapper(t, bla) =>
         var u;
         if (y < 100) { u := t; }
-                     // The following call is allowed, because it will be inferred that
-                     // 'u' is of a type that supports equality
-                     M(u);
+        // The following call is allowed, because it will be inferred that
+        // 'u' is of a type that supports equality
+        M(u);
     }
   }
   method Caller1(d: Dt) {

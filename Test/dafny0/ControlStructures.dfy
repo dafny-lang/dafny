@@ -177,9 +177,9 @@ method TheBreaker_AllGood(M: int, N: int, O: int)
           d := 187; break;
         case k < O =>
           if (*) { e := 4; break InnerHasLabel; }
-                 if (*) { e := 7; break; }
-                        if (*) { e := 37; break break break; }
-                               k := k + 1;
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
       }
       assert O <= k || d == 187 || e == 7;
       j := j + 1;
@@ -228,9 +228,9 @@ method TheBreaker_SomeBad(M: int, N: int, O: int)
           d := 187; break;
         case k < O =>
           if (*) { e := 4; break InnerHasLabel; }
-                 if (*) { e := 7; break; }
-                        if (*) { e := 37; break break break; }
-                               k := k + 1;
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
       }
       assert O <= k || e == 7;  // error: d == 187
       j := j + 1;
@@ -330,9 +330,9 @@ method TheBreaker_AllGood_DigitsLabels(M: int, N: int, O: int)
           d := 187; break;
         case k < O =>
           if (*) { e := 4; break 0; }
-                 if (*) { e := 7; break; }
-                        if (*) { e := 37; break break break; }
-                               k := k + 1;
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
       }
       assert O <= k || d == 187 || e == 7;
       j := j + 1;
