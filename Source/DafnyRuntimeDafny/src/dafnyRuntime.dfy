@@ -39,6 +39,16 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     function {:extern} HashCode<T>(t: T): bv32
   }
 
+  // Defining a bounded integer newtype for lengths and indices into
+  // arrays and sequences.
+  const SIZE_T_MAX: nat
+  lemma {:axiom} AboutSizeT() ensures 256 <= SIZE_T_MAX
+  newtype size_t = x: nat | x < SIZE_T_MAX witness (AboutSizeT(); 0)
+
+  const ZERO_SIZE: size_t := (AboutSizeT(); 0 as size_t);
+  const ONE_SIZE: size_t := (AboutSizeT(); 1 as size_t);
+  const TEN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
+
   // 
   // We use this instead of the built-in Dafny array<T> type for two reasons:
   // 
@@ -60,25 +70,32 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   //    code amenable to such optimizations. :)
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
-  // TODO: This could be a class instead, since it doesn't require variance
-  // TODO: Be clearer this is a one-dimentional array.
+  // TODO: This could be a class instead, since it doesn't require variance.
+  // A trait does allow more than one implementation though.
+  // TODO: Be clearer this is a one-dimensional array.
   trait {:extern} Array<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
 
-    function Length(): nat
+    ghost predicate Valid()
+      reads this, Repr
+      decreases Repr, 1
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> |values| < SIZE_T_MAX
+
+    function Length(): size_t
       requires Valid()
       reads Repr
-      ensures Length() == |values|
+      ensures Length() == |values| as size_t
 
-    function Select(i: nat): (ret: T)
+    function Select(i: size_t): (ret: T)
       requires Valid()
       requires i < Length()
       requires values[i].Set?
       reads this, Repr
       ensures ret == values[i].value
 
-    method Update(i: nat, t: T)
+    method Update(i: size_t, t: T)
       requires Valid()
       requires i < Length()
       modifies Repr
@@ -87,11 +104,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
       ensures Select(i) == t
 
-    method UpdateSubarray(start: nat, other: ImmutableArray<T>)
+    method UpdateSubarray(start: size_t, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
       requires start <= Length()
-      requires start + other.Length() <= Length()
+      requires start as int + other.Length() as int <= Length() as int
       modifies Repr
       ensures Valid()
       ensures Repr == old(Repr)
@@ -100,19 +117,19 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
         other.CellValues() +
         old(values)[(start + other.Length())..]
 
-    method Freeze(size: nat) returns (ret: ImmutableArray<T>)
+    method Freeze(size: size_t) returns (ret: ImmutableArray<T>)
       requires Valid()
       requires size <= Length()
       requires forall i | 0 <= i < size :: values[i].Set?
       // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
-      ensures |ret.values| == size
+      ensures |ret.values| as size_t == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
   }
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
-  method {:extern} NewArray<T>(length: nat) returns (ret: Array<T>)
+  method {:extern} NewArray<T>(length: size_t) returns (ret: Array<T>)
     ensures ret.Valid()
     ensures fresh(ret.Repr)
     ensures ret.Length() == length
@@ -129,21 +146,22 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost const values: seq<T>
 
     ghost predicate Valid()
+      ensures Valid() ==> |values| < SIZE_T_MAX
 
     ghost function CellValues(): seq<ArrayCell<T>> {
       seq(|values|, i requires 0 <= i < |values| => Set(values[i]))
     }
 
-    function Length(): nat 
+    function Length(): size_t 
       requires Valid()
-      ensures Length() == |values|
+      ensures Length() == |values| as size_t
 
-    function Select(index: nat): T 
+    function Select(index: size_t): T 
       requires Valid()
-      requires index < |values|
+      requires index < |values| as size_t
       ensures Select(index) == values[index]
 
-    method Subarray(lo: nat, hi: nat) returns (ret: ImmutableArray<T>)
+    method Subarray(lo: size_t, hi: size_t) returns (ret: ImmutableArray<T>)
       requires Valid()
       requires lo <= hi <= Length()
       ensures ret.Valid()
@@ -158,9 +176,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   class Vector<T> extends Validatable {
     var storage: Array<T>
     // TODO: "length"?
-    var size: nat
+    var size: size_t
 
-    const MIN_SIZE := 10;
+    const MIN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
 
     ghost predicate Valid() 
       reads this, Repr 
@@ -178,7 +196,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       && forall i | 0 <= i < size :: storage.values[i].Set?
     }
 
-    constructor(length: nat) 
+    constructor(length: size_t) 
       ensures Valid()
       ensures Value() == []
       ensures fresh(Repr)
@@ -193,10 +211,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       reads this, Repr
     {
-      seq(size, i requires 0 <= i < size && Valid() reads this, Repr => storage.Select(i))
+      seq(size, i requires 0 <= i < size as int && Valid() reads this, Repr => storage.Select(i as size_t))
     }
 
-    function Select(index: nat): T 
+    function Select(index: size_t): T 
       requires Valid()
       requires index < size
       reads this, Repr
@@ -227,11 +245,11 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       size := size + 1;
     }
 
-    function Max(a: int, b: int): int {
+    function Max(a: size_t, b: size_t): size_t {
       if a < b then b else a
     }
 
-    method Reallocate(newCapacity: nat) 
+    method Reallocate(newCapacity: size_t) 
       requires Valid()
       requires size <= newCapacity
       modifies Repr
@@ -269,7 +287,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     {
       var newSize := size + other.Length();
       if storage.Length() < newSize {
-
         Reallocate(Max(newSize, storage.Length() * 2));
       }
       storage.UpdateSubarray(size, other);
@@ -331,27 +348,28 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   // TODO: Align terminology between length/size/etc.
   trait {:extern} Sequence<+T> {
    
+    // TODO: Better name, NOT a size_t
     ghost const size: nat
 
     ghost predicate Valid()
       decreases size, 0
       ensures Valid() ==> 0 < size
     
-    function Cardinality(): nat 
+    function Cardinality(): size_t 
       requires Valid() 
       decreases size, 1
 
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Cardinality()
+      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
 
     method HashCode() returns (ret: bv32)
       requires Valid()
       // TODO: function version as specification (or function by method)
     {
       ret := 0;
-      for i := 0 to Cardinality() {
+      for i := ZERO_SIZE to Cardinality() {
         var element := Select(i);
         ret := ((ret << 3) | (ret >> 29)) ^ Helpers.HashCode(element);
       }
@@ -363,17 +381,17 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       // TODO: Can we use compiled seq<T> values like this?
       // TODO: Need to track whether this is a seq<char> at runtime
       ret := "[";
-      for i := 0 to Cardinality() {
+      for i := ZERO_SIZE to Cardinality() {
         if i != 0 {
           ret := ret + ",";
         }
-        var element := Select(i);
+        var element := Select(i as size_t);
         ret := ret + Helpers.ToString(element);
       }
       ret := ret + "]";
     }
 
-    method Select(index: nat) returns (ret: T)
+    method Select(index: size_t) returns (ret: T)
       requires Valid()
       requires index < Cardinality()
       ensures ret == Value()[index]
@@ -382,7 +400,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       return a.Select(index);
     }
 
-    method Drop(lo: nat) returns (ret: Sequence<T>)
+    method Drop(lo: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= Cardinality()
       decreases size, 2
@@ -392,7 +410,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ret := Subsequence(lo, Cardinality());
     }
 
-    method Take(hi: nat) returns (ret: Sequence<T>)
+    method Take(hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires hi <= Cardinality()
       decreases size, 2
@@ -402,7 +420,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ret := Subsequence(0, hi);
     }
 
-    method Subsequence(lo: nat, hi: nat) returns (ret: Sequence<T>)
+    method Subsequence(lo: size_t, hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= hi <= Cardinality()
       decreases size, 2
@@ -455,7 +473,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       this.size := 1;
     }
 
-    function Cardinality(): nat 
+    function Cardinality(): size_t 
       requires Valid() 
       decreases size, 1
     {
@@ -465,7 +483,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Cardinality()
+      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
     {
       value.values
     }
@@ -484,7 +502,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   class ConcatSequence<T> extends Sequence<T> {
     const left: Sequence<T>
     const right: Sequence<T>
-    const length: nat
+    const length: size_t
 
     ghost predicate Valid() 
       decreases size, 0
@@ -493,12 +511,14 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       && size == 1 + left.size + right.size
       && left.Valid()
       && right.Valid()
+      && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_MAX as int
       && length == left.Cardinality() + right.Cardinality()
     }
 
     constructor(left: Sequence<T>, right: Sequence<T>) 
       requires left.Valid()
       requires right.Valid()
+      requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_MAX as int
       ensures Valid()
     {
       this.left := left;
@@ -507,7 +527,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       this.size := 1 + left.size + right.size;
     }
 
-    function Cardinality(): nat 
+    function Cardinality(): size_t 
       requires Valid() 
       decreases size, 1
     {
@@ -517,10 +537,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Cardinality()
+      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
     {
       var ret := left.Value() + right.Value();
-      assert |ret| == Cardinality();
+      assert |ret| as size_t == Cardinality();
       ret
     }
 
@@ -532,7 +552,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures ret.values == Value()
     {
       var builder := new Vector<T>(length);
-      var stack := new Vector<Sequence<T>>(10);
+      var stack := new Vector<Sequence<T>>(TEN_SIZE);
       AppendOptimized(builder, this, stack);
       ret := builder.Freeze();
     }
@@ -617,14 +637,15 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   class LazySequence<T> extends Sequence<T> {
     ghost const value: seq<T>
     const box: AtomicBox<Sequence<T>>
-    const length: nat
+    const length: size_t
 
     ghost predicate Valid() 
       decreases size, 0
       ensures Valid() ==> 0 < size
     {
       && 0 < size
-      && length == |value|
+      && |value| < SIZE_T_MAX
+      && length == |value| as size_t
       && box.inv == (s: Sequence<T>) =>
         && s.size < size
         && s.Valid()
@@ -650,7 +671,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       this.size := size;
     }
 
-    function Cardinality(): nat 
+    function Cardinality(): size_t 
       requires Valid() 
       decreases size, 1
     {
@@ -660,9 +681,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ghost function Value(): seq<T> 
       requires Valid()
       decreases size, 2
-      ensures |Value()| == Cardinality()
+      ensures |Value()| < SIZE_T_MAX && |Value()| as size_t == Cardinality()
     {
-      assert |value| == Cardinality();
+      assert |value| as size_t == Cardinality();
       value
     }
 
@@ -683,7 +704,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   // Sequence methods that must be static because they require T to be equality-supporting
 
-  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: nat) returns (ret: bool) 
+  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool) 
     requires left.Valid()
     requires right.Valid()
     requires index <= left.Cardinality()
@@ -742,7 +763,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   {
     t in s.Value()
   } by method {
-    for i := 0 to s.Cardinality() 
+    for i := ZERO_SIZE to s.Cardinality() 
       invariant t !in s.Value()[..i]
     {
       var element := s.Select(i);
@@ -766,7 +787,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     ret := new LazySequence(c);
   }
 
-  method Update<T>(s: Sequence<T>, i: nat, t: T) returns (ret: Sequence<T>)
+  method Update<T>(s: Sequence<T>, i: size_t, t: T) returns (ret: Sequence<T>)
     requires s.Valid()
     requires i < s.Cardinality()
     ensures ret.Valid()
@@ -777,12 +798,5 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     newValue.Update(i, t);
     var newValueFrozen := newValue.Freeze(newValue.Length());
     ret := new ArraySequence(newValueFrozen);
-  }
-
-  // Testing
-
-  method MultiDimentionalArrays() {
-    var a := new int[3,4,5] ((i,j,k) => 0);
-    a[1,1,1] := 42;
   }
 }
