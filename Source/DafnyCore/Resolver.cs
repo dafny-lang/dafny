@@ -12894,7 +12894,7 @@ namespace Microsoft.Dafny {
               return;
             } else {
               // if non-nullary constructor
-              var subst = TypeSubstitutionMap(dtd.TypeArgs, type.TypeArgs);
+              var subst = TypeSubstitutionMap(dtd.TypeArgs, type.NormalizeExpand().TypeArgs);
               var argTypes = ctor.Formals.ConvertAll<Type>(x => SubstType(x.Type, subst));
               var pairFA = argTypes.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
               foreach (var fa in pairFA) {
