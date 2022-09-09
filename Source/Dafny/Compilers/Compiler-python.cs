@@ -46,13 +46,9 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
-    private readonly List<string> Imports = new List<string> { "module_" };
+    private readonly List<string> Imports = new() { "module_" };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.StaticConstants,
-      Feature.IntBoundedPool,
-      Feature.SequenceUpdateExpressions,
-      Feature.SequenceConstructionsWithNonLambdaInitializers,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis
     };
@@ -439,9 +435,9 @@ namespace Microsoft.Dafny.Compilers {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
 
-      public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
+      public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, methodWriter: MethodWriter);
+        return Compiler.CreateGetterSetter(name, createBody, out setterWriter, methodWriter: MethodWriter);
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
@@ -469,11 +465,7 @@ namespace Microsoft.Dafny.Compilers {
       fieldWriter.WriteLine();
     }
 
-    private ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
-      bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
-      if (isStatic) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.StaticConstants);
-      }
+    private ConcreteSyntaxTree CreateGetterSetter(string name, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
       methodWriter.WriteLine("@property");
       var getterWriter = methodWriter.NewBlockPy(header: $"def {name}(self):");
       methodWriter.WriteLine($"@{name}.setter");
@@ -684,7 +676,7 @@ namespace Microsoft.Dafny.Compilers {
                     }
                     if (td is NonNullTypeDecl decl) {
                       if (decl.Class is ArrayClassDecl arr) {
-                        return $"{DafnyArrayClass}.empty({arr.Dims})";
+                        return $"{DafnyArrayClass}(None, {Enumerable.Repeat("0", arr.Dims).Comma()})";
                       }
                       return "None";
                     }
@@ -891,7 +883,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.IntBoundedPool);
+      wr.WriteLine($"{varName} += 1");
     }
 
     protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr) {
@@ -934,19 +926,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
-      if (dimensions.Count == 1) {
-        // handle the common case of 1-dimensional arrays separately
-        wr.Write($"{DafnyArrayClass}([{initValue} for _ in range");
-        TrParenExpr(dimensions[0], wr, false, wStmts);
-        wr.Write("])");
-      } else {
-        wr.Write($"{DafnyRuntimeModule}.newArray({initValue}");
-        foreach (var dim in dimensions) {
-          wr.Write(", ");
-          TrExpr(dim, wr, false, wStmts);
-        }
-        wr.Write(")");
+      wr.Write($"{DafnyArrayClass}({initValue}");
+      foreach (var dim in dimensions) {
+        wr.Write(", ");
+        TrExpr(dim, wr, false, wStmts);
       }
+      wr.Write(")");
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
@@ -1141,11 +1126,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          preString = "len(";
-          postString = ")";
-          if (idParam != null && (int)idParam > 0) {
-            postString = string.Concat(Enumerable.Repeat("[0]", (int)idParam)) + postString;
-          }
+          var dim = idParam is int d and > 0 ? d : 0;
+          compiledName = $"length({dim})";
           break;
         default:
           Contract.Assert(false); // unexpected ID
@@ -1225,11 +1207,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
-      Contract.Assert(indices != null && 1 <= indices.Count);
+      Contract.Assert(indices is { Count: >= 1 });
       var w = wr.Fork();
-      foreach (var index in indices) {
-        wr.Write($"[{index}]");
-      }
+      wr.Write($"[{indices.Comma()}]");
       return w;
     }
 
@@ -1277,17 +1257,18 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(":])");
     }
 
-    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts) {
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       ConcreteSyntaxTree valueExpression;
-      string binder;
+      var range = $"range({Expr(expr.N, inLetExprBody, wStmts)})";
+      wr.Write(DafnySeqClass);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
-        binder = IdProtect(lam.BoundVars[0].CompileName);
+        var binder = IdProtect(lam.BoundVars[0].CompileName);
+        wr.Write($"([{valueExpression} for {binder} in {range}])");
       } else {
-        throw new UnsupportedFeatureException(expr.tok, Feature.SequenceConstructionsWithNonLambdaInitializers);
+        valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts);
+        wr.Write($"(tuple(map({valueExpression}, {range})))");
       }
-      wr.Write($"{DafnySeqClass}([{valueExpression} for {binder} in range({Expr(expr.N, inLetExprBody, wStmts)})])");
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
