@@ -178,12 +178,18 @@ public class UnsupportedFeatureException : Exception {
   public readonly IToken Token;
   public readonly Feature Feature;
 
-  public UnsupportedFeatureException(IToken token, Feature feature)
-    : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
-
+  private static string FormatMessage(Feature feature, string message) {
+    return UnsupportedFeatureException.MessagePrefix
+      + FeatureDescriptionAttribute.GetDescription(feature).Description
+      + (String.IsNullOrEmpty(message) ? "" : $" ({message})");
   }
 
-  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IToken token, Feature feature)
+    : this(token, feature, null) {}
+
+  public UnsupportedFeatureException(IToken token, Feature feature, string message)
+    : base(FormatMessage(feature, message))
+  {
     Token = token;
     Feature = feature;
   }

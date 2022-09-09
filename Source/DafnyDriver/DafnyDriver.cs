@@ -317,10 +317,7 @@ namespace Microsoft.Dafny {
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
-          if (!DafnyOptions.O.Compiler.UnsupportedFeatures.Contains(e.Feature)) {
-            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Compiler.TargetId} compiler's UnsupportedFeatures set");
-          }
-          reporter.Error(MessageSource.Compiler, e.Token, e.Message);
+          DafnyOptions.O.Compiler.UnsupportedFeatureError(e);
           compiled = false;
         }
 
