@@ -656,6 +656,83 @@ There are many great options that control various aspects of verifying dafny pro
 
 You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
+### 25.7.5. Debugging unstable verification
+
+When evolving a Dafny codebase, it can sometimes occur that a proof
+obligation succeeds at first only for the prover to time out or report a
+potential error after minor, valid changes. This is ultimately due to
+decidability limitations in the form of automated reasoning that Dafny
+uses. The Z3 SMT solver that Dafny depends on attempts to efficiently
+search for proofs, but does so using both incomplete heuristics and a
+degree of randomness, with the result that it can sometimes fail to find
+a proof even when one exists (or continue searching forever).
+
+Dafny provides some features to mitigate this issue, primarily focused
+on early detection. The philosophy is that, if Dafny programmers are
+alerted to proofs that are starting to become unstable, before they are
+obviously so, they can refactor the proofs to make them more stable
+before further development becomes difficult.
+
+The mechanism for early detection focuses on measuring the resources
+used to complete a proof (either using duration or a more deterministic
+"resource count" metric available from Z3). Dafny can re-run a given
+proof attempt multiple times after automatically making minor changes to
+the structure of the input or to the random choices made by the solver.
+If the resources used during these attempts (or the ability to find a
+proof at all) vary widely, we say that the verification of the relevant
+properties is _unstable_.
+
+#### 25.7.5.1. Measuring stability
+
+To measure the stability of your proofs, start by using the
+`-randomSeedIterations:N` flag to instruct Dafny to attempt each proof
+goal `N` times, using a different random seed each time. The random seed
+used for each attempt is derived from the global random seed `S`
+specified with `-randomSeed:S`, which defaults to `0`.
+
+For most use cases, it also makes sense to specify the
+`-verificationLogger:csv` flag, to log verification cost statistics to a
+CSV file. By default, the resulting CSV files will be created in the
+`TestResults` folder of the current directory.
+
+Once Dafny has completed, the
+[`dafny-reportgenerator`](https://github.com/dafny-lang/dafny-reportgenerator/)
+tool is a convenient way to process the output. It allows you to specify
+several limits on statistics computed from the elapsed time or solver
+resource use of each proof goal, returning an error code when it detects
+violations of these limits. You can find documentation on the full set
+of options for `dafny-reportgenerator` in its
+[`README.md`](https://github.com/dafny-lang/dafny-reportgenerator/blob/main/README.md)
+file.
+
+In general, we recommend something like the following:
+
+```
+dafny-reportgenerator --max-resource-cv-pct 10 TestResults/*.csv
+```
+
+This bounds the [coefficient of
+variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) of
+the solver resource count at 10% (0.10). We recommend a limit of less
+than 20%, perhaps even as low as 5%. However, when beginning to analyze
+a new project, it may be necessary to set limits as high as a few
+hundred percent and incrementally ratchet down the limit over time.
+
+When first analyzing stability, you may also find that certain proof
+goals succeed on some iterations and fail on others. If your aim is
+first to ensure that instability doesn't worsen and then to start
+improving it, integrating `dafny-reportgenerator` into CI and using the
+`--allow-different-outcomes` flag may be appropriate. Then, once you've
+improved stability sufficiently, you can likely remove that flag (and
+likely have significantly lower limits on other stability metrics).
+
+#### 25.7.5.2. Improving stability
+
+Improving stability is typically closely related to improving
+performance overall. As such, [techniques for debugging slow
+verification](#sec-verification-debugging-slow) are typically useful for
+debugging unstable verification, as well.
+
 ## 25.8. Compilation {#sec-compilation}
 
 The `dafny` tool can compile a Dafny program to one of several target languages. Details and idiosyncrasies of each
@@ -819,7 +896,7 @@ TO BE WRITTEN
 ### 25.8.4. Java
 
 The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a directory _A_-java. The `-out` option can be used to choose a
+to a directory _A_`-java`. The `-out` option can be used to choose a
 different output directory. The file _A_`.dfy` is translated to _A_`.java`,
 which is placed in the output directory along with helper files.
 If more than one `.dfy` file is listed on the command-line, then the output
@@ -988,6 +1065,40 @@ code (which can be helpful for debugging).
 
 * `-titrace` - print debugging information during the type inference
   process.
+
+* `-diagnosticsFormat:<text|json>` - control how to report errors, warnings, and info
+  messages.  `<fmt>` may be one of the following:
+
+  * `text` (default): Report diagnostics in human-readable format.
+  * `json`: Report diagnostics in JSON format, one object per diagnostic, one
+    diagnostic per line.  Info-level messages are only included with
+    `-printTooltips`.  End positions are only included with `-showSnippets:1`.
+    Diagnostics are the following format (but without newlines):
+
+    ```json
+    {
+      "location": {
+        "filename": "xyz.dfy",
+        "range": { // Start and (optional) end of diagnostic
+          "start": {
+            "pos": 83, // 0-based character offset in input
+            "line": 6, // 1-based line number
+            "character": 0 // 0-based column number
+          },
+          "end": { "pos": 86, "line": 6, "character": 3 }
+        }
+      },
+      "severity": 2, // 1: error; 2: warning; 4: info
+      "message": "module-level const declarations are always non-instance ...",
+      "source": "Parser",
+      "relatedInformation": [ // Additional messages, if any
+        {
+          "location": { ... }, // Like above
+          "message": "...",
+        }
+      ]
+    }
+    ```
 
 ### 25.9.5. Controlling language features {#sec-controlling-language}
 
@@ -1318,7 +1429,68 @@ and what information it produces about the verification process.
   code, regardless of whether errors are found. If `1` (default) then
   use the appropriate exit code. This option is deprecated.
 
-### 25.9.8. Controlling boogie {#sec-controlling-boogie}
+### 25.9.8. Controlling Boogie {#sec-controlling-boogie}
+
+Dafny builds on top of Boogie, a general-purpose intermediate language
+for verification. Options supported by Boogie on its own are also
+supported by Dafny. Some of the Boogie options most relevant to Dafny
+users include the following. We use the term "procedure" below to refer
+to a Dafny function, lemma, method, or predicate, following Boogie
+terminology.
+
+* `-proc:<name>` - verify only the procedure named `<name>`. The name
+  can include `*` to indicate arbitrary sequences of characters.
+
+* `-trace` - print extra information during verification, including
+  timing, resource use, and outcome for each procedure incrementally, as
+  verification finishes.
+
+* `-randomSeed:<n>` - turn on randomization of the input that Boogie
+  passes to the SMT solver and turn on randomization in the SMT solver
+  itself.
+
+  Certain Boogie inputs are unstable in the sense that changes to the
+  input that preserve its meaning may cause the output to change. The
+  `-randomSeed`` option simulates meaning-preserving changes to the
+  input without requiring the user to actually make those changes.
+
+  The `-randomSeed` option is implemented by renaming variables and
+  reordering declarations in the input, and by setting
+  solver options that have similar effects.
+
+* `-randomSeedIterations:<n>` - attempt to prove each VC `<n>` times
+  with `<n>` random seeds. If `-randomSeed` has been provided, each
+  proof attempt will use a new random seed derived from this original
+  seed. If not, it will implicitly use `-randomSeed:0` to ensure a
+  difference between iterations. This option can be very useful for
+  identifying input programs for which verification is unstable. If the
+  verification times or solver resource counts associated with each
+  proof attempt vary widely for a given procedure, small changes to that
+  procedure might be more likely to cause proofs to fail in the future.
+
+* `-vcsSplitOnEveryAssert` - prove each (explicit or implicit) assertion
+  in each procedure separately. See also the attribute
+  [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for
+  restricting this option on specific procedures. By default, Boogie
+  attempts to prove that every assertion in a given procedure holds all
+  at once, in a single query to an SMT solver. This usually performs
+  well, but sometimes causes the solver to take longer. If a proof that
+  you believe should succeed is timing out, using this option can
+  sometimes help.
+
+* `-vcsCores:<n>` - try to verify `<n>` procedures simultaneously.
+  Setting `<n>` to the number of physical cores available tends to be
+  effective at speeding up overall proof time.
+
+* `-timeLimit:<n>` - spend at most `<n>` seconds attempting to prove any
+  single SMT query. This setting can also be set per method using the
+  attribute [`{:timeLimit n}`](#sec-time-limit).
+
+* `-rlimit:<n>` - set the maximum solver resource count to use while
+  proving a single SMT query. This can be a more deterministic approach
+  than setting a time limit. To choose an appropriate value, please
+  refer to the documentation of the attribute [`{:rlimit}`](#sec-rlimit)
+  that can be applied per procedure.
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 

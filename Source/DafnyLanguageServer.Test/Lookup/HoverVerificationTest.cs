@@ -1,11 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,7 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverVerificationTest : DafnyLanguageServerTestBase {
-    private const int MaxTestExecutionTimeMs = 10000;
+    private const int MaxTestExecutionTimeMs = 30000;
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
@@ -55,23 +52,23 @@ method Abs(x: int) returns (y: int)
   assert x > 2; // Hover #3 on the '>'
   return x;
 }
-", "testFile.dfy", CompilationStatus.VerificationFailed);
+", "testFile.dfy");
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[Error:](???) This postcondition might not hold on a return path.  
+        @"[**Error:**](???) This postcondition might not hold on a return path.  
 This is assertion #1 of 2 in method Abs  
 Resource usage: ??? RU  
-Related location: testFile.dfy(6, 5)"
+Return path: testFile.dfy(6, 5)"
       );
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"[Error:](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) A postcondition might not hold on this return path.  
 This is assertion #1 of 2 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
-        @"[Error:](???) assertion might not hold  
+        @"[**Error:**](???) assertion might not hold  
 This is assertion #2 of 2 in method Abs  
 Resource usage: 9K RU"
       );
@@ -90,16 +87,16 @@ method {:vcs_split_on_every_assert} f(x: int) {
   assert x >= 2; // Hover #1
   assert x >= 1; // Hover #2
 }
-", "testfile.dfy", CompilationStatus.VerificationFailed);
+", "testfile.dfy");
       await AssertHoverMatches(documentItem, (1, 12),
-        @"[Error:](???) assertion might not hold  
+        @"[**Error:**](???) assertion might not hold  
 This is the only assertion in [batch](???) #2 of 3 in method f  
 [Batch](???) #2 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (2, 12),
         @"<span style='color:green'>**Success:**</span> assertion always holds  
 This is the only assertion in [batch](???) #3 of 3 in method f  
-[Batch](???) #3 resource usage: ??? RU  "
+[Batch](???) #3 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
         @"**Verification performance metrics for method f**:
@@ -123,16 +120,16 @@ function f(x: int): int {
   assert x >= 1;
   x
 }
-", "testfile.dfy", CompilationStatus.VerificationFailed);
+", "testfile.dfy");
       await AssertHoverMatches(documentItem, (2, 12),
         @"???Success??? assertion always holds  
 This is assertion #2 of 2 in [batch](???) #1 of 2 in function f  
 [Batch](???) #1 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (3, 26),
-        @"[Error:](???) assertion might not hold  
+        @"[**Error:**](???) assertion might not hold  
 This is assertion #1 of 2 in [batch](???) #2 of 2 in function f  
-[Batch](???) #2 resource usage: ??? RU  "
+[Batch](???) #2 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
         @"**Verification performance metrics for function f**:
@@ -149,8 +146,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function f
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
   print x;
-}", "testfile.dfy", CompilationStatus.VerificationSucceeded);
-      await Task.Delay(100); // Just time for the diagnostics to be updated
+}", "testfile.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -162,12 +158,28 @@ No assertions."
 
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MeaningfulMessageForFailingPreconditions() {
+      var documentItem = await GetDocumentItem(@"
+method Test1() {
+    Test2(0);  // Hover #1
+}
+
+method Test2(i: int)
+  requires i > 0 {
+
+}", "testfile.dfy");
+      await AssertHoverMatches(documentItem, (1, 10),
+        @"???
+Failing precondition:???"
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithOneAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
   assert false;
-}", "testfile1.dfy", CompilationStatus.VerificationFailed);
-      await Task.Delay(100); // Just time for the diagnostics to be updated
+}", "testfile1.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -183,8 +195,7 @@ method f(x: int) {
 method f(x: int) {
   assert false;
   assert false;
-}", "testfile2.dfy", CompilationStatus.VerificationFailed);
-      await Task.Delay(100); // Just time for the diagnostics to be updated
+}", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
@@ -210,8 +221,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
     }
   }
   assert {:split_here} true;
-} ", "testfileSlow.dfy", CompilationStatus.VerificationFailed);
-      await Task.Delay(100); // Just time for the diagnostics to be updated
+} ", "testfileSlow.dfy");
       await AssertHoverMatches(documentItem, (0, 22),
         @"**Verification performance metrics for method SquareRoot2NotRational**:
 
@@ -223,12 +233,11 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
       );
     }
 
-    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, CompilationStatus expectedStatus) {
+    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename) {
       source = source.TrimStart();
       var documentItem = CreateTestDocument(source, filename);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var lastStatus = await WaitUntilDafnyFinishes(documentItem);
-      Assert.AreEqual(expectedStatus, lastStatus);
+      await Documents.GetLastDocumentAsync(documentItem);
       return documentItem;
     }
 
@@ -254,24 +263,6 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
         }
         Assert.IsTrue(false, "{0} did not match {1}." + helper, value, regexExpected);
       }
-    }
-
-    private async Task<CompilationStatus> WaitUntilDafnyFinishes(TextDocumentItem documentItem) {
-      CompilationStatusParams lastResult;
-      do {
-        lastResult = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-        Assert.AreEqual(documentItem.Uri, lastResult.Uri);
-        Assert.AreEqual(documentItem.Version, lastResult.Version);
-      } while (IsNotDoneYet(lastResult));
-
-      return lastResult.Status;
-    }
-
-    private static bool IsNotDoneYet(CompilationStatusParams lastResult) {
-      return lastResult.Status != CompilationStatus.VerificationFailed &&
-             lastResult.Status != CompilationStatus.VerificationSucceeded &&
-             lastResult.Status != CompilationStatus.ParsingFailed &&
-             lastResult.Status != CompilationStatus.ResolutionFailed;
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {

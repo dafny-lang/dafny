@@ -1,4 +1,4 @@
-# 5. Specifications
+# 5. Specifications {#sec-specifications}
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -24,7 +24,7 @@ that use them.
 Specification clauses typically appear in a sequence. They all begin with a 
 keyword and do not end with semicolons.
 
-## 5.1. Specification Clauses
+## 5.1. Specification Clauses {#sec-specification-clauses}
 
 
 Within expressions in specification clauses, you can use
@@ -615,14 +615,15 @@ clauses apply to both of them. For the `requires` and `ensures`
 clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
-TODO: What is the meaning of a `decreases` clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of
-iterators explains these.
+Examples of iterators, including iterator specifications, are given in
+[Section 16](#sec-iterator-types). Briefly
+- a requires clause gives a precondition for creating an iterator
+- a ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
+- a decreases clause is used to show that the iterator will eventually terminate
+- a yield requires clause is a precondition for calling `MoveNext`
+- a yield ensures clause is a postcondition for calling `MoveNext`
 
-TODO: What is the relationship between the post condition and
-the `Valid()` predicate?
-
-## 5.6. Loop Specification
+## 5.6. Loop Specification {#sec-loop-specification}
 ````grammar
 LoopSpec =
   { InvariantClause_

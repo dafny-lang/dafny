@@ -1,4 +1,4 @@
-# 4. Modules
+# 4. Modules {#sec-modules}
 
 ````grammar
 SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
@@ -130,7 +130,7 @@ the existence of `A.B` might cause names to be resolved differently and
 the semantics of the program might be (silently) different if `A.B` is
 present or absent.
 
-## 4.3. Importing Modules
+## 4.3. Importing Modules {#sec-importing-modules}
 ````grammar
 ModuleImport =
     "import"
@@ -216,7 +216,7 @@ import MyModule  // error: cannot add a module named MyModule
 import M = MyModule // OK. M and MyModule are equivalent
 ```
 
-## 4.4. Opening Modules
+## 4.4. Opening Modules {#sec-opening-modules}
 
 Sometimes, prefixing the members of the module you imported with the
 name is tedious and ugly, even if you select a short name when
@@ -283,7 +283,7 @@ verbose enough to impede understanding.
 
 
 
-## 4.5. Export Sets and Access Control
+## 4.5. Export Sets and Access Control {#sec-export-sets}
 ````grammar
 ModuleExport =
   "export"
@@ -396,7 +396,7 @@ in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 The default export set is important in the resolution of qualified
 names, as described in [Section 4.8](#sec-name-resolution).
 
-### 4.5.1. Provided and revealed names
+### 4.5.1. Provided and revealed names {#sec-provided-and-revealed-names}
 
 Names can be exported from modules in two ways, designated by `provides`
 and `reveals` in the export set declaration.
@@ -618,7 +618,7 @@ A few other notes:
 * Names acquired by a module from its refinement parent are also subject to
   export lists. (These are local names just like those declared directly.)
 
-### 4.5.2. Extends list
+### 4.5.2. Extends list {#sec-extends-list}
 An export set declaration may include an _extends_ list, which is a list of
 one or more export set names from the same module containing the declaration
 (including export set names obtained from a refinement parent).
@@ -697,7 +697,7 @@ concrete one, the specifications must be compatible, etc.
 
 A module that includes an abstract import must be declared `abstract`.
 
-## 4.7. Module Ordering and Dependencies
+## 4.7. Module Ordering and Dependencies {#sec-module-ordering}
 
 Dafny isn't particular about the textual order in which modules are
 declared, but
@@ -877,7 +877,7 @@ rule that succeeds.
 TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
-If a ambiguous name is found or  name of the wrong kind (e.g. a module
+If an ambiguous name is found or a name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing
 down the list.
 

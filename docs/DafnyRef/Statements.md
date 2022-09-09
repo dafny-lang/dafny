@@ -1,4 +1,4 @@
-# 20. Statements
+# 20. Statements {#sec-statements}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 NonLabeledStmt =
@@ -236,7 +236,7 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 20.3. Block Statement
+## 20.3. Block Statement {#sec-block-statement}
 ````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
@@ -430,7 +430,7 @@ and the type of the first LHS expression must be assignable from the return type
 
 The following subsections show various uses and alternatives.
 
-### 20.7.1. Failure compatible types
+### 20.7.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
 ```dafny
@@ -808,7 +808,7 @@ function usesTuple() : int
 
 The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
 
-## 20.9. Guards
+## 20.9. Guards {#sec-guards}
 ````grammar
 Guard = ( "*"
         | "(" "*" ")"
@@ -824,7 +824,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 20.10. Binding Guards
+## 20.10. Binding Guards {#sec-binding-guards}
 ````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional }
@@ -961,7 +961,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 20.14](#sec-loop-specification).
+These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1152,7 +1152,7 @@ The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
 
-## 20.14. Loop Specifications {#sec-loop-specification}
+## 20.14. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
@@ -1162,7 +1162,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 20.14.1. Loop invariants
+### 20.14.1. Loop invariants {sec-loop-invariants}
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1537,7 +1537,17 @@ much as lemmas might be used in mathematical proofs.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
 
-TO BE WRITTEN - assert by statements
+In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
+Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
+combined with ghost control flow, ghost variable declarations and ghost update statements of variables declared in the `by` block.
+The intent is that those statements be evaluated in support of proving the `assert` statement.
+For that purpose, they could be simply inserted before the `assert` statement.
+But by using the `by` block, the statements in the block are discarded after the assertion is proved.
+As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
+proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
+their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
+
+Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 ## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
@@ -1739,8 +1749,99 @@ RevealStmt =
     ";"
 ````
 
+The `reveal` statement makes available to the solver information that is otherwise not visible, as described in the following subsections.
 
-TODO
+### 20.20.1. Revealing assertions
+
+If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
+is not used subsequently.  For example, consider
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0; // Fails also because the x: makes the first assertion opaque
+}
+```
+The first assertion fails. Without the label `x:`, the second would succeed because after a failing assertion, the 
+assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
+the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
+
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  reveal x;
+  assert i == 0; // Now succeeds
+}
+```
+or
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0 by { reveal x; } // Now succeeds
+}
+```
+At the point of the `reveal` statement, the labeled assertion is made visible and can be used in proving the second assertion.
+In this example there is no point to labeling an assertion and then immediately revealing it. More useful are the cases where
+the reveal is in an assert-by block or much later in the method body.
+
+### 20.20.2. Revealing preconditions
+
+In the same way as assertions, preconditions can be labeled.
+Within the body of a method, a precondition is an assumption; if the precondition is labeled then that assumption is not visible in the body of the method.
+A `reveal` statement naming the label of the precondition then makes the assumption visible.
+
+Here is a toy example:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+}
+```
+The above methhod will not verify. In particular, the second postcondition cannot be proved.
+However, if we add a `reveal L;` statement in the body of the method, then the precondition is visible 
+and both postconditions can be proved.
+
+One could also use this style:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y;
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+  assert x < z by { reveal L; }
+}
+```
+
+The reason to possibly hide a precondition is the same as the reason to hide assertions: 
+sometimes less information is better for the solver as it helps the solver focus attention on 
+relevant information.
+
+Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
+an extended illustration of this technique to make all the dependencies of an `assert` explicit.
+
+### 20.20.3. Revealing function bodies
+
+Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
+However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
+just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
+possible where there might be information overload otherwise.
+
+But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
+body of the function can be _revealed_ using the reveal statement. Here is an example:
+```dafny
+function {:opaque} f(i: int): int { i + 1 }
+
+method m(int i) {
+  assert f(i) == i + 1;
+}
+```
+Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
+Note that the pseudo-function-call in the `reveal` statement is written without arguments.
+
 
 ## 20.21. Forall Statement {#sec-forall-statement}
 ````grammar
@@ -2076,7 +2177,7 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 20.24. Skeleton Statement
+## 20.24. Skeleton Statement {#sec-skeleton-statement}
 ````grammar
 SkeletonStmt =
   ellipsis

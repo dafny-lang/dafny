@@ -4,3 +4,13 @@ namespace M {
     }
   }
 }
+
+namespace M1 {
+  public interface Asker {
+    public void Exclaim();
+    public void Speak() {
+      System.Console.WriteLine("Hello, I wish to have...");
+      Exclaim();
+    }
+  }
+}

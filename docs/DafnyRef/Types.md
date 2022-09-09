@@ -232,6 +232,15 @@ There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
+Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
+```dafny
+// realExp(2.37, 100) computes 2.37e100
+function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+  if e == 0 then r
+  else if e < 0 then realExp(r/10.0, e+1)
+  else realExp(r*10.0, e-1)
+}
+}
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -420,7 +429,33 @@ But `11` is not a valid `bv3` literal.
 OrdinalType_ = "ORDINAL"
 ````
 
-TO BE WRITTEN
+Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
+there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
+represented as $\omega$ in mathematics, though there is no literal expression in Dafny that represents this value.
+
+The natural numbers are ordinals.
+Any ordinal has a successor ordinal (equivalent to adding `1`).
+Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+the natural number `0` and  $\omega$ are limit ordinals.
+
+The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
+
+The Dafny type `ORDINAL` has these member functions:
+- `o.IsLimit` -- true if `o` is a limit ordinal (including `0`)
+- `o.IsSucc` -- true if `o` is a successor to something, so `o.IsSucc <==> !o.IsLimit`
+- `o.IsNat` -- true if `o` represents a `nat` value, so for `n` a `nat`, `(n as ORDINAL).IsNat` is true
+and if `o.IsNat` is true then `(o as nat)` is well-defined
+- `o.Offset` -- is the `nat` value giving the offset of the ordinal
+
+In addition, 
+- non-negative numeric literals may be considered `ORDINAL` literals, so `o + 1` is allowed
+- `ORDINAL`s may be compared, using `== != < <= > >=`
+- two `ORDINAL`s may be added and the result is `>=` either one of them; addition is associative but not commutative
+- `*`, `/` and `%` are not defined for `ORDINAL`s
+- two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
+
+
+In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ## 7.5. Characters {#sec-characters}
 
@@ -539,7 +574,7 @@ code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)`
+### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
@@ -631,9 +666,40 @@ Here are some examples:
 {% include_relative examples/Example-TP.dfy %}
 ```
 
-## 8.2. Type parameter variance
+## 8.2. Type parameter variance {#sec-type-parameter-variance}
 
-TO BE WRITTEN: Type parameter variance
+Type parameters have several different variance and cardinality properties.
+These properties of type parameters are designated in a generic type definition.
+For instance, in `type A<+T> = ... `, the `+` indicates that the `T` position
+is co-variant. These properties are indicated by the following notation:
+
+notation | variance | cardinality-preserving
+:-------:|----------|-----------------------
+(nothing) | non-variant | yes
+`+`      | co-variant | yes
+`-`      | contra-variant | not necessarily
+`*`      | co-variant | not necessarily
+`!`      | non-variant | not necessarily
+
+- _co-variance_ (`A<+T>` or `A<*T>`) means that if `U` is a subtype of `V` then `A<U>` is a subtype of `A<V>`
+- _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
+- _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
+
+_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
+For example
+
+    type T<X> = X -> bool
+
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
+The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+
+To fix it, we use the variance `!`:
+
+    type T<!X> = X -> bool
+
+This states that `T` does not preserve the cardinality of `X`, meaning there could be strictly more values of type `T<E>` than values of type `E` for any `E`.
+
+A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
 # 9. Generic Instantiation
@@ -1076,9 +1142,6 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of using an iterator class
-TODO: Should a foreach statment be added to Dafny
-
 ### 10.5.1. Sequences and arrays
 
 Sequences and arrays are indexable and have a length. So the idiom to
@@ -1297,6 +1360,8 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+
 Dafny builds in three families of subset types, as described next.
 
 ### 11.3.1. Type `nat`
@@ -1439,6 +1504,79 @@ constraint may not be satisfied.
 
 For more information about arrow types, see [Section 17](#sec-arrow-types).
 
+### 11.3.4. Witness clauses {#sec-witness}
+
+The declaration of a subset type permits an optional `witness` clause.
+Types in Dafny are generally expected to be non-empty, in part because
+variables of any type are expected to have some value when they are used.
+In many cases, Dafny can determine that a newly declared type has 
+some value. For example, a numeric type that includes 0 is known by Dafny
+to be non-empty. However, Dafny cannot always make this determination.
+If it cannot, a `witness` clause is required. The value given in
+the `witness` clause must be a valid value for the type and assures Dafny
+that the type is non-empty.
+
+For example, 
+```dafny
+type OddInt = x: int | x % 2 == 1
+```
+will give an error message, but
+```dafny
+type OddInt = x: int | x % 2 == 1 witness 73
+```
+does not. Here is another example:
+```dafny
+type NonEmptySeq = x: seq<int> | |x| > 0 witness [0]
+```
+
+If the witness is only available in ghost code, you can declare the witness
+as a `ghost witness`. In this case, the Dafny verifier knows that the type
+is non-empty, but it will not be able to auto-initialize a variable of that
+type in compiled code.
+
+There is even room to do the following:
+```dafny
+type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
+
+function MySubsetWitness(): BaseType
+  ensures RHS(MySubsetWitness())
+```
+Here the type is given a ghost witness: the result of the expression
+`MySubsetWitness()`, which is a call of a (ghost) function.
+Now that function has a postcondition saying that the returned value 
+is indeed a candidate value for the declared type, so the verifier is
+satisfied regarding the non-emptiness of the type. However, the function
+has no body, so there is still no proof that there is indeed such a witness.
+You can either supply a, perhaps complicated, body to generate a viable
+candidate or you can be very sure, without proof, that there is indeed such a value.
+If you are wrong, you have introduced an unsoundness into your program.
+
+In addition though, types are allowed to be empty or possibly empty.
+This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
+A declaration like this produces an empty type:
+```dafny
+type ReallyEmpty = x: int | false witness *
+```
+The type can be used in code like
+```dafny
+method M(x: ReallyEmpty) returns (seven: int)
+  ensures seven == 7
+{
+  seven := 10;
+}
+```
+which does verify. But the method can never be called because there is no value that
+can be supplied as the argument. Even this code
+```dafny
+method P() returns (seven: int)
+  ensures seven == 7
+{
+  var x: ReallyEmpty;
+  seven := 10;
+}
+```
+does not complain about `x` unless `x` is actually used, in which case it must have a value.
+The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
@@ -1457,7 +1595,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   [ TypeMembers ]
 ````
 A newtype is like a type synonym or subset type except that it declares a wholly new type
-name that is distinct from its base type.
+name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
 A new type can be declared with the _newtype_
 declaration, for example:
@@ -1591,7 +1729,7 @@ corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class Types {#sec-class-types}
+# 13. Class types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1881,9 +2019,10 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
+* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof. (TODO: `:extern` attribute?)
+clauses are true without proof.
 
 ### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
@@ -2112,8 +2251,6 @@ The following example illustrates using such an eta-expansion:
 {% include_relative examples/Example-TwoState-EtaExample.dfy %}
 ```
 
-TO BE WRITTEN - unchanged predicate
-
 ## 13.4. Function Declarations {#sec-function-declarations}
 
 ````grammar
@@ -2163,6 +2300,12 @@ PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
   [ GenericParameters ]
   [ KType ]
   Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
+  [
+    ":"
+    ( Type
+    | "(" Ident ":" "bool" ")"
+    )
+  ]
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2305,8 +2448,8 @@ clauses.
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
+keyword with the `predicate` keyword and possibly omitting a declaration of the
+return type (if it is not named).
 
 ### 13.4.3. Function Transparency
 A function is said to be _transparent_ in a location if the
@@ -2563,7 +2706,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types {#sec-trait-types}
+# 14. Trait types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -2800,7 +2943,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array Types {#sec-array-types}
+# 15. Array types {#sec-array-types}
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -3028,9 +3171,10 @@ For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
 ```dafny
 iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
   var i := 0;
-  while i < 10 {
+  while i < 10 invariant |xs| == i {
     x := start + i;
     yield;
     i := i + 1;
@@ -3041,7 +3185,20 @@ An instance of this iterator is created using
 ```dafny
 iter := new Gen(30);
 ```
-TODO: Add example of using the iterator
+It is used like this:
+```
+method Main() {
+  var i := new Gen(30);
+  while true
+    invariant i.Valid() && fresh(i._new)
+    decreases 10 - |i.xs|
+  {
+    var m := i.MoveNext();
+    if (!m) {break; }
+    print i.x;
+  }
+}
+```
 
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the
@@ -3407,7 +3564,7 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-## 19.1. Inductive datatypes
+## 19.1. Inductive datatypes {#sec-inductive-datatypes}
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
@@ -3497,6 +3654,31 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
+The operator `<` is defined for two operands of the same datataype.
+It means _is properly contained in_. For example, in the code
+```dafny
+datatype X = T(t: X) | I(i: int)
+method comp() {
+  var x := T(I(0));
+  var y := I(0);
+  var z := I(1);
+  assert x.t < x;
+  assert y < x;
+  assert !(x < x);
+  assert z < x; // FAILS
+}
+```
+`x` is a datatype value that holds a `T` variant, which holds a `I` variant, which holds an integer `0`.
+The value `x.t` is a portion of the datatype structure denoted by `x`, so `x.t < x` is true.
+Datatype values are immutable mathematical values, so the value of `y` is identical to the value of
+`x.t`, so `y < x` is true also, even though `y` is constructed from the ground up, rather than as
+a portion of `x`. However, `z` is different than either `y` or `x.t` and consequently `z < x` is not provable.
+Furthermore, `<` does not include `==`, so `x < x` is false.
+
+Note that only `<` is defined; not `<=` or `>` or `>=`.
+
+Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
+`z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
 ## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 
