@@ -1440,14 +1440,15 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+
+      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream(filename);
       if (stream is null) {
-        ReportError(program.Reporter, program.DefaultModule.tok, $"Cannot find embedded resource: {filename}", wr);
-      } else {
-        var rd = new StreamReader(stream);
-        WriteFromStream(rd, wr.Append((new Verbatim())));
+        throw new Exception($"Cannot find embedded resource: {filename}");
       }
+
+      var rd = new StreamReader(stream);
+      WriteFromStream(rd, wr.Append((new Verbatim())));
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
