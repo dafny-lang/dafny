@@ -42,13 +42,14 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   // Defining a bounded integer newtype for lengths and indices into
   // arrays and sequences.
   const SIZE_T_LIMIT: nat
-  lemma {:axiom} AboutSizeT() ensures 256 <= SIZE_T_LIMIT
+  lemma {:axiom} AboutSizeT() ensures 128 <= SIZE_T_LIMIT
 
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (AboutSizeT(); 0)
   const SIZE_T_MAX: size_t := (AboutSizeT(); (SIZE_T_LIMIT - 1) as size_t)
 
   const ZERO_SIZE: size_t := (AboutSizeT(); 0 as size_t);
   const ONE_SIZE: size_t := (AboutSizeT(); 1 as size_t);
+  const TWO_SIZE: size_t := (AboutSizeT(); 2 as size_t);
   const TEN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
 
   // 
@@ -186,8 +187,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     // TODO: "length"?
     var size: size_t
 
-    const MIN_SIZE: size_t := TEN_SIZE
-
     ghost predicate Valid() 
       reads this, Repr 
       decreases Repr, 1
@@ -247,9 +246,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures ValidAndDisjoint()
       ensures Value() == old(Value()) + [t]
     {
-      if size == storage.Length() {
-        Reallocate(Max(MIN_SIZE, storage.Length() * 2));
-      }
+      EnsureCapacity(size + ONE_SIZE);
       storage.Update(size, t);
       size := size + 1;
     }
@@ -258,14 +255,22 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       if a < b then b else a
     }
 
-    method Reallocate(newCapacity: size_t) 
+    method EnsureCapacity(newMinCapacity: size_t) 
       requires Valid()
-      requires size <= newCapacity
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures storage.Length() == newCapacity
+      ensures storage.Length() >= newMinCapacity
       ensures Value() == old(Value())
     {
+      if storage.Length() >= newMinCapacity {
+        return;
+      }
+
+      var newCapacity := newMinCapacity;
+      if storage.Length() <= SIZE_T_MAX / TWO_SIZE {
+        newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
+      }
+
       var newStorage := NewArray<T>(newCapacity as nat);
       var values := storage.Freeze(size);
       newStorage.UpdateSubarray(0, values);
@@ -296,9 +301,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Value() == old(Value()) + other.values
     {
       var newSize := size + other.Length();
-      if storage.Length() < newSize {
-        Reallocate(Max(newSize, storage.Length() * 2));
-      }
+      EnsureCapacity(newSize);
       storage.UpdateSubarray(size, other);
       size := size + other.Length();
     }
@@ -588,6 +591,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       AppendRecursive(builder, boxed);
     } else {
       var a: ImmutableArray<T> := e.ToArray();
+      assert builder.size as int + a.Length() as int < SIZE_T_LIMIT; 
       builder.Append(a);
     }
   }
@@ -793,7 +797,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     expect left.Cardinality() <= SIZE_T_MAX - right.Cardinality(), "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
     assert left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT;
 
-    // TODO: This needs to inspect left and right to see if they are already LazySequences
+    // TODO: This could inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
     var c := new ConcatSequence(left, right);
     ret := new LazySequence(c);
