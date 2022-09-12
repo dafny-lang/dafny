@@ -539,10 +539,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // create methods
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         wr.Write($"public static {DtTypeName(dt)} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
@@ -554,10 +551,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl) {
         // omit the is_ property for tuples, since it cannot be used syntactically in the language
       } else {
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            continue;
-          }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           interfaceTree.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
 
           var returnValue = dt.IsRecordType
@@ -855,10 +849,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       int constructorIndex = 0; // used to give each constructor a different name
-      foreach (DatatypeCtor ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var wr = wrx.NewNamedBlock(
           $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);

@@ -275,10 +275,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
@@ -637,7 +634,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var xType = type.NormalizeExpandKeepConstraints();
 
-      if (usePlaceboValue || xType.IsObjectQ) {
+      if (xType.IsObjectQ) {
         return "None";
       }
 

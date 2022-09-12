@@ -393,10 +393,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
 
         /*** Create one struct for each constructor ***/
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            continue;
-          }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           string structName = DatatypeSubStructName(ctor);
           var wstruct = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members

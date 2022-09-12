@@ -1786,10 +1786,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
 
       // create methods
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         wr.Write("public static{0} {1} {2}(", justTypeArgs, DtT_protected, DtCreateName(ctor));
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
@@ -1807,10 +1804,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // query properties
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         if (dt.IsRecordType) {
           wr.WriteLine($"public boolean is_{ctor.CompileName}() {{ return true; }}");
         } else {
@@ -1882,10 +1876,7 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
       int constructorIndex = 0; // used to give each constructor a different name
-      foreach (DatatypeCtor ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (DatatypeCtor ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var filename = $"{ModulePath}/{DtCtorDeclarationName(ctor)}.java";
         var wr = wrx.NewFile(filename);
         FileCount += 1;

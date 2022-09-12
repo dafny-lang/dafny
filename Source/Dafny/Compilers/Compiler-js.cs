@@ -335,10 +335,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // create methods
       var i = 0;
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // collect the names of non-ghost arguments
         var argNames = new List<string>();
         var k = 0;
@@ -381,10 +378,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // query properties
       i = 0;
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // get is_Ctor0() { return _D is Dt_Ctor0; }
         wr.WriteLine("get is_{0}() {{ return this.$tag === {1}; }}", ctor.CompileName, i);
         i++;
@@ -903,11 +897,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      var xType = type.NormalizeExpandKeepConstraints();
-
       if (usePlaceboValue) {
         return "undefined";
       }
+
+      var xType = type.NormalizeExpandKeepConstraints();
 
       if (xType is BoolType) {
         return "false";

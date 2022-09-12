@@ -678,10 +678,7 @@ namespace Microsoft.Dafny.Compilers {
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", companionTypeName);
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), companionTypeName);
 
-      foreach (var ctor in dt.Ctors) {
-        if (ctor.IsGhost) {
-          continue;
-        }
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var ctorStructName = name + "_" + ctor.CompileName;
         wr.WriteLine();
         var wStruct = wr.NewNamedBlock("type {0} struct", ctorStructName);
@@ -754,10 +751,7 @@ namespace Microsoft.Dafny.Compilers {
         wSingles.WriteLine("i++");
         wSingles = wSingles.NewNamedBlock("switch i");
         var i = 0;
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            continue;
-          }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           wSingles.WriteLine("case {0}: return {1}.{2}(), true", i, FormatCompanionName(name), FormatDatatypeConstructorName(ctor.CompileName));
           i++;
         }
@@ -806,10 +800,7 @@ namespace Microsoft.Dafny.Compilers {
         var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
         w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
         w.WriteLine("case nil: return \"null\"");
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            continue;
-          }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           var wCase = w.NewNamedBlock("case {0}:", structOfCtor(ctor));
           var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
           if (dt is CoDatatypeDecl) {
@@ -849,10 +840,7 @@ namespace Microsoft.Dafny.Compilers {
         var needData1 = dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
 
         wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            continue;
-          }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           var wCase = wEquals.NewNamedBlock("case {0}:", structOfCtor(ctor));
 
           var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
