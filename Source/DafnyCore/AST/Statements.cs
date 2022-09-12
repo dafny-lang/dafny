@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, IHasNameToken {
+public abstract class Statement : IAttributeBearingDeclaration, IDeclarationOrReference {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
@@ -395,7 +395,7 @@ public class BreakStmt : Statement, IHasReferences {
     this.IsContinue = isContinue;
   }
 
-  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
     return new[] { TargetStmt };
   }
 }

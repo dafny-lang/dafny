@@ -22,11 +22,11 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface IHasReferences : IHasNameToken {
-    public IEnumerable<IHasNameToken> GetResolvedDeclarations();
+  public interface IHasReferences : IDeclarationOrReference {
+    public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations();
   }
 
-  public interface IHasNameToken : INode {
+  public interface IDeclarationOrReference : INode {
     IToken NameToken { get; }
   }
 
@@ -364,7 +364,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable : IHasNameToken {
+  public interface IVariable : IDeclarationOrReference {
     string Name {
       get;
     }

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IHasNameToken {
+public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrReference {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -390,7 +390,7 @@ public class AliasModuleDecl : ModuleDecl, IHasReferences {
   }
 
   public override ModuleDefinition Dereference() { return Signature.ModuleDef; }
-  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
     return new[] { Dereference() };
   }
 }
@@ -511,7 +511,7 @@ public class ExportSignature : IHasReferences {
 
   public IToken NameToken => Tok;
   public IEnumerable<INode> Children => Enumerable.Empty<INode>();
-  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
     return new[] { Decl };
   }
 }
@@ -613,7 +613,7 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : IHasNameToken, INamedRegion, IAttributeBearingDeclaration {
+public class ModuleDefinition : IDeclarationOrReference, INamedRegion, IAttributeBearingDeclaration {
   public readonly IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
