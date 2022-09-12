@@ -59,11 +59,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           continue;
         }
 
-        if (next.Children.Any(c => c == null)) {
-          Console.Error.WriteLine($"null children in next of type {next.GetType()}");
-        }
         foreach (var child in next.Children) {
-          remaining.Push(child);
+          if (child == null) {
+            logger.LogCritical($"next.Children of type {next.GetType()} contained a null. Please report this bug.");
+          } else {
+            remaining.Push(child);
+          }
         }
       }
 
