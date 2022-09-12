@@ -1,4 +1,4 @@
-  include "CSharpDafnyASTModel.dfy"
+include "CSharpDafnyASTModel.dfy"
 include "CSharpInterop.dfy"
 include "CSharpDafnyInterop.dfy"
 include "CSharpDafnyASTInterop.dfy"
@@ -70,8 +70,8 @@ module DafnyCompilerCommon.Translator {
     else if ty is C.BitvectorType then
       var bvTy := ty as C.BitvectorType;
       :- Need(bvTy.Width >= 0, Invalid("BV width must be >= 0"));
-         Success(DT.BitVector(bvTy.Width as int))
-         // TODO: the following could be simplified
+      Success(DT.BitVector(bvTy.Width as int))
+      // TODO: the following could be simplified
     else if ty is C.MapType then
       var ty := ty as C.MapType;
       assume TypeHeight(ty.Domain) < TypeHeight(ty);
@@ -202,13 +202,13 @@ module DafnyCompilerCommon.Translator {
     reads *
   {
     :- Need(u is C.UnaryOpExpr, UnsupportedExpr(u));
-       var u := u as C.UnaryOpExpr;
-       var op, e := u.ResolvedOp, u.E;
-       assume Decreases(e, u);
-       :- Need(op !in GhostUnaryOps, GhostExpr(u));
-          :- Need(op in UnaryOpMap.Keys, UnsupportedExpr(u));
-             var te :- TranslateExpression(e);
-             Success(DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [te]))
+    var u := u as C.UnaryOpExpr;
+    var op, e := u.ResolvedOp, u.E;
+    assume Decreases(e, u);
+    :- Need(op !in GhostUnaryOps, GhostExpr(u));
+    :- Need(op in UnaryOpMap.Keys, UnsupportedExpr(u));
+    var te :- TranslateExpression(e);
+    Success(DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [te]))
   }
 
   function method TranslateBinary(b: C.BinaryExpr)
@@ -221,9 +221,9 @@ module DafnyCompilerCommon.Translator {
     assume Decreases(e0, b);
     assume Decreases(e1, b);
     :- Need(op in BinaryOpCodeMap, UnsupportedExpr(b));
-       var t0 :- TranslateExpression(e0);
-       var t1 :- TranslateExpression(e1);
-       Success(DE.Apply(BinaryOpCodeMap[op], [t0, t1]))
+    var t0 :- TranslateExpression(e0);
+    var t1 :- TranslateExpression(e1);
+    Success(DE.Apply(BinaryOpCodeMap[op], [t0, t1]))
   }
 
   function method TranslateLiteral(l: C.LiteralExpr)
@@ -240,7 +240,7 @@ module DafnyCompilerCommon.Translator {
       var str := TypeConv.AsString(l.Value);
       if l is C.CharLiteralExpr then
         :- Need(|str| == 1, Invalid("CharLiteralExpr must contain a single character."));
-           Success(DE.Literal(DE.LitChar(str[0])))
+        Success(DE.Literal(DE.LitChar(str[0])))
       else if l is C.StringLiteralExpr then
         var sl := l as C.StringLiteralExpr;
         Success(DE.Literal(DE.LitString(str, sl.IsVerbatim)))
@@ -320,10 +320,10 @@ module DafnyCompilerCommon.Translator {
   {
     var ty :- TranslateType(de.Type);
     :- Need(ty.Collection? && ty.finite, Invalid("`DisplayExpr` must be a finite collection."));
-       var elems := ListUtils.ToSeq(de.Elements);
-       var elems :- Seq.MapResult(elems, e requires e in elems reads * =>
-                                    assume Decreases(e, de); TranslateExpression(e));
-       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
+    var elems := ListUtils.ToSeq(de.Elements);
+    var elems :- Seq.MapResult(elems, e requires e in elems reads * =>
+                                 assume Decreases(e, de); TranslateExpression(e));
+    Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
   }
 
   function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair)
@@ -347,11 +347,11 @@ module DafnyCompilerCommon.Translator {
   {
     var ty :- TranslateType(mde.Type);
     :- Need(ty.Collection? && ty.kind.Map? && ty.finite, Invalid("`MapDisplayExpr` must be a map."));
-       var elems := ListUtils.ToSeq(mde.Elements);
-       var elems :- Seq.MapResult(elems, (ep: C.ExpressionPair) requires ep in elems reads * =>
-                                    assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
-                                    TranslateExpressionPair(mde, ep));
-       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
+    var elems := ListUtils.ToSeq(mde.Elements);
+    var elems :- Seq.MapResult(elems, (ep: C.ExpressionPair) requires ep in elems reads * =>
+                                 assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
+                                 TranslateExpressionPair(mde, ep));
+    Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
   }
 
   function method TranslateSeqSelectExpr(se: C.SeqSelectExpr): (e: TranslationResult<DE.T>)
@@ -362,38 +362,38 @@ module DafnyCompilerCommon.Translator {
     var ty :- TranslateType(se.Seq.Type);
     :- Need(ty.Collection? && !ty.kind.Set?,
             Invalid("`SeqSelect` must be on a map, sequence, or multiset."));
-       :- Need(se.SelectOne ==> se.E0 != null && se.E1 == null,
-                  Invalid("Inconsistent values for `SelectOne` and E1 in SeqSelect."));
-          :- Need(!se.SelectOne ==> ty.kind.Seq?,
-                     Invalid("`SeqSelect` on a map or multiset must have a single index."));
-             assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.E0), ASTHeight(se.E1))) < ASTHeight(se);
-             var recv :- TranslateExpression(se.Seq);
-             var eager := (op, args) => Success(DE.Apply(DE.Eager(op), args));
-             match ty.kind { // FIXME AST gen should produce `Expression?` not `Expression`
-               case Seq() =>
-                 if se.SelectOne then
-                   assert se.E1 == null;
-                   var e0 :- TranslateExpression(se.E0);
-                   eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqSelect)), [recv, e0])
-                 else if se.E1 == null then
-                   var e0 :- TranslateExpression(se.E0);
-                   eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqDrop)), [recv, e0])
-                 else if se.E0 == null then
-                   var e1 :- TranslateExpression(se.E1);
-                   eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqTake)), [recv, e1])
-                 else
-                   var e0 :- TranslateExpression(se.E0);
-                   var e1 :- TranslateExpression(se.E1);
-                   eager(DE.TernaryOp(DE.TernaryOps.Sequences(DE.TernaryOps.SeqSubseq)), [recv, e0, e1])
-               case Map(_) =>
-                 assert se.SelectOne && se.E1 == null;
-                 var e0 :- TranslateExpression(se.E0);
-                 eager(DE.BinaryOp(DE.BinaryOps.Maps(DE.BinaryOps.MapSelect)), [recv, e0])
-               case Multiset() =>
-                 assert se.SelectOne && se.E1 == null;
-                 var e0 :- TranslateExpression(se.E0);
-                 eager(DE.BinaryOp(DE.BinaryOps.Multisets(DE.BinaryOps.MultisetSelect)), [recv, e0])
-             }
+    :- Need(se.SelectOne ==> se.E0 != null && se.E1 == null,
+            Invalid("Inconsistent values for `SelectOne` and E1 in SeqSelect."));
+    :- Need(!se.SelectOne ==> ty.kind.Seq?,
+            Invalid("`SeqSelect` on a map or multiset must have a single index."));
+    assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.E0), ASTHeight(se.E1))) < ASTHeight(se);
+    var recv :- TranslateExpression(se.Seq);
+    var eager := (op, args) => Success(DE.Apply(DE.Eager(op), args));
+    match ty.kind { // FIXME AST gen should produce `Expression?` not `Expression`
+      case Seq() =>
+        if se.SelectOne then
+          assert se.E1 == null;
+          var e0 :- TranslateExpression(se.E0);
+          eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqSelect)), [recv, e0])
+        else if se.E1 == null then
+          var e0 :- TranslateExpression(se.E0);
+          eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqDrop)), [recv, e0])
+        else if se.E0 == null then
+          var e1 :- TranslateExpression(se.E1);
+          eager(DE.BinaryOp(DE.BinaryOps.Sequences(DE.BinaryOps.SeqTake)), [recv, e1])
+        else
+          var e0 :- TranslateExpression(se.E0);
+          var e1 :- TranslateExpression(se.E1);
+          eager(DE.TernaryOp(DE.TernaryOps.Sequences(DE.TernaryOps.SeqSubseq)), [recv, e0, e1])
+      case Map(_) =>
+        assert se.SelectOne && se.E1 == null;
+        var e0 :- TranslateExpression(se.E0);
+        eager(DE.BinaryOp(DE.BinaryOps.Maps(DE.BinaryOps.MapSelect)), [recv, e0])
+      case Multiset() =>
+        assert se.SelectOne && se.E1 == null;
+        var e0 :- TranslateExpression(se.E0);
+        eager(DE.BinaryOp(DE.BinaryOps.Multisets(DE.BinaryOps.MultisetSelect)), [recv, e0])
+    }
   }
 
   function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
@@ -404,15 +404,15 @@ module DafnyCompilerCommon.Translator {
     var ty :- TranslateType(se.Type);
     :- Need(ty.Collection? && ty.kind != DT.Set(),
             Invalid("`SeqUpdate` must be a map, sequence, or multiset."));
-       assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
-       var tSeq :- TranslateExpression(se.Seq);
-       var tIndex :- TranslateExpression(se.Index);
-       var tValue :- TranslateExpression(se.Value);
-       var op := match ty.kind
-                 case Seq() => DE.TernaryOps.Sequences(DE.TernaryOps.SeqUpdate)
-                 case Map(_) => DE.TernaryOps.Maps(DE.TernaryOps.MapUpdate)
-                 case Multiset() => DE.TernaryOps.Multisets(DE.TernaryOps.MultisetUpdate);
-       Success(DE.Apply(DE.Eager(DE.TernaryOp(op)), [tSeq, tIndex, tValue]))
+    assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
+    var tSeq :- TranslateExpression(se.Seq);
+    var tIndex :- TranslateExpression(se.Index);
+    var tValue :- TranslateExpression(se.Value);
+    var op := match ty.kind
+              case Seq() => DE.TernaryOps.Sequences(DE.TernaryOps.SeqUpdate)
+              case Map(_) => DE.TernaryOps.Maps(DE.TernaryOps.MapUpdate)
+              case Multiset() => DE.TernaryOps.Multisets(DE.TernaryOps.MultisetUpdate);
+    Success(DE.Apply(DE.Eager(DE.TernaryOp(op)), [tSeq, tIndex, tValue]))
   }
 
   function method TranslateLambdaExpr(le: C.LambdaExpr)
@@ -433,17 +433,17 @@ module DafnyCompilerCommon.Translator {
     decreases ASTHeight(le), 0
   {
     :- Need(le.Exact, UnsupportedExpr(le));
-       var lhss := ListUtils.ToSeq(le.LHSs);
-       var bvs :- Seq.MapResult(lhss, (pat: C.CasePattern<C.BoundVar>) reads * =>
-                                  :- Need(pat.Var != null, UnsupportedExpr(le));
-                                     Success(TypeConv.AsString(pat.Var.Name)));
-       var rhss := ListUtils.ToSeq(le.RHSs);
-       var elems :- Seq.MapResult(rhss, e requires e in rhss reads * =>
-                                    assume Decreases(e, le); TranslateExpression(e));
-       :- Need(|bvs| == |elems|, UnsupportedExpr(le));
-          assume Decreases(le.Body, le);
-          var body :- TranslateExpression(le.Body);
-          Success(DE.Bind(bvs, elems, body))
+    var lhss := ListUtils.ToSeq(le.LHSs);
+    var bvs :- Seq.MapResult(lhss, (pat: C.CasePattern<C.BoundVar>) reads * =>
+                               :- Need(pat.Var != null, UnsupportedExpr(le));
+                               Success(TypeConv.AsString(pat.Var.Name)));
+    var rhss := ListUtils.ToSeq(le.RHSs);
+    var elems :- Seq.MapResult(rhss, e requires e in rhss reads * =>
+                                 assume Decreases(e, le); TranslateExpression(e));
+    :- Need(|bvs| == |elems|, UnsupportedExpr(le));
+    assume Decreases(le.Body, le);
+    var body :- TranslateExpression(le.Body);
+    Success(DE.Bind(bvs, elems, body))
   }
 
   function method TranslateConcreteSyntaxExpression(ce: C.ConcreteSyntaxExpression)

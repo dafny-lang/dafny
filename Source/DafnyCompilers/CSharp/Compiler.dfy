@@ -78,11 +78,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method CompileLazyExpr(op: Exprs.LazyOp, c0: StrTree, c1: StrTree) : StrTree
     {
       var fmt := str requires countFormat(str) == 2 =>
-        Format(str, [c0, c1]);
+                   Format(str, [c0, c1]);
       var bin := str =>
-        Format("({} {} {})", [c0, Str(str), c1]);
+                   Format("({} {} {})", [c0, Str(str), c1]);
       var rbin := str =>
-        Format("({} {} {})", [c1, Str(str), c0]);
+                    Format("({} {} {})", [c1, Str(str), c0]);
       match op {
         case Imp => fmt("(!{} || {})")
         case And => bin("&&")
@@ -106,11 +106,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       requires !EliminateNegatedBinops.IsNegatedBinop(op)
     {
       var fmt := str requires countFormat(str) == 2 =>
-        Format(str, [c0, c1]); // Cute use of function precondition
+                   Format(str, [c0, c1]); // Cute use of function precondition
       var bin := str =>
-        Format("({} {} {})", [c0, Str(str), c1]);
+                   Format("({} {} {})", [c0, Str(str), c1]);
       var rbin := str =>
-        Format("({} {} {})", [c1, Str(str), c0]);
+                    Format("({} {} {})", [c1, Str(str), c0]);
       match op {
         case Logical(Iff) => bin("==")
 
@@ -136,7 +136,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Char(LeChar) => bin("<=")
         case Char(GeChar) => bin(">=")
         case Char(GtChar) => bin(">")
-        // FIXME: Why is there lt/le/gt/ge for chars?
+                             // FIXME: Why is there lt/le/gt/ge for chars?
 
         case Sequences(SeqEq) => fmt("{}.Equals({})")
         case Sequences(ProperPrefix) => Unsupported
@@ -284,7 +284,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
-  class {:extern} DafnyCSharpCompiler {    
+  class {:extern} DafnyCSharpCompiler {
     constructor() {
     }
 
