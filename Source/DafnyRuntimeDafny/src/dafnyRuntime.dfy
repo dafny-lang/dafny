@@ -42,6 +42,8 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   // Defining a bounded integer newtype for lengths and indices into
   // arrays and sequences.
   const SIZE_T_LIMIT: nat
+
+  // Ensured by the resolver - see PlatformConstantInjector.cs
   lemma {:axiom} AboutSizeT() ensures 128 <= SIZE_T_LIMIT
 
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (AboutSizeT(); 0)
@@ -55,6 +57,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   predicate SizeAdditionInRange(a: size_t, b: size_t) {
     a as int + b as int < SIZE_T_LIMIT
   } by method {
+    // This is more efficient because it doesn't use any
+    // unbounded int values (typically more expensive BigInteger
+    // instances in most target languages).
     return a <= SIZE_T_MAX - b;
   }
 
