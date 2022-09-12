@@ -14,19 +14,19 @@ public class NewSymbolTable {
   }
 
   private NewSymbolTable() {
-    NodePositions = new IntervalTree<Position, INode>();
-    Usages = new Dictionary<INode, ISet<INode>>();
-    Declarations = new Dictionary<INode, INode>();
+    NodePositions = new IntervalTree<Position, IHasNameToken>();
+    Usages = new Dictionary<IHasNameToken, ISet<IHasNameToken>>();
+    Declarations = new Dictionary<IHasNameToken, IHasNameToken>();
   }
 
-  public NewSymbolTable(Document document, IReadOnlyList<(INode usage, INode declaration)> usages) {
+  public NewSymbolTable(Document document, IReadOnlyList<(IHasNameToken usage, IHasNameToken declaration)> usages) {
     var safeUsages = usages.Where(k => k.declaration.NameToken.Filename != null).ToList();
     Declarations = safeUsages.ToDictionary(k => k.usage, k => k.declaration);
     Usages = safeUsages.GroupBy(u => u.declaration).ToDictionary(
       g => g.Key,
-      g => (ISet<INode>)g.Select(k => k.usage).ToHashSet());
-    NodePositions = new IntervalTree<Position, INode>();
-    var symbols = safeUsages.Select(u => u.declaration).Concat(usages.Select(u => u.usage)).
+      g => (ISet<IHasNameToken>)g.Select(k => k.usage).ToHashSet());
+    NodePositions = new IntervalTree<Position, IHasNameToken>();
+    var symbols = safeUsages.Select(u => u.declaration).Concat<IHasNameToken>(usages.Select(u => u.usage)).
       Where(u => u.NameToken.Filename == document.Uri.ToString()).Distinct();
     foreach (var symbol in symbols) {
       var range = symbol.NameToken.GetLspRange();
@@ -34,19 +34,19 @@ public class NewSymbolTable {
     }
   }
 
-  private IIntervalTree<Position, INode> NodePositions { get; }
-  private Dictionary<INode, INode> Declarations { get; }
-  private Dictionary<INode, ISet<INode>> Usages { get; }
+  private IIntervalTree<Position, IHasNameToken> NodePositions { get; }
+  private Dictionary<IHasNameToken, IHasNameToken> Declarations { get; }
+  private Dictionary<IHasNameToken, ISet<IHasNameToken>> Usages { get; }
 
   public ISet<Location> GetUsages(Position position) {
     return NodePositions.Query(position).
-      SelectMany(node => Usages.GetOrDefault(node, () => (ISet<INode>)new HashSet<INode>())).
+      SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IHasNameToken>)new HashSet<IHasNameToken>())).
       Select(u => new Location { Uri = u.NameToken.Filename, Range = u.NameToken.GetLspRange() }).ToHashSet();
   }
 
   public Location? GetDeclaration(Position position) {
     var referenceNodes = NodePositions.Query(position);
-    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (INode?)null))
+    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IHasNameToken?)null))
       .Where(x => x != null).Select(
         n => new Location {
           Uri = DocumentUri.From(n!.NameToken.ActualFilename),

@@ -12664,11 +12664,11 @@ namespace Microsoft.Dafny {
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
-            scope.PushMarker();
-            CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
-            ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
-            scope.PopMarker();
           }
+
+          scope.PushMarker();
+          ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
+          scope.PopMarker();
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr

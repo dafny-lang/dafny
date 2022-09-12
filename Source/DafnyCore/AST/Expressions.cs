@@ -1039,7 +1039,7 @@ public class DatatypeValue : Expression, IHasReferences {
     get { return Arguments; }
   }
 
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return Enumerable.Repeat(Ctor, 1);
   }
 }
@@ -1137,7 +1137,7 @@ public class IdentifierExpr : Expression, IHasReferences {
     Type = v.Type;
   }
 
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return Enumerable.Repeat(Var, 1);
   }
 }
@@ -1210,7 +1210,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences {
     Contract.Requires(tp != null);
   }
 
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return new[] { Decl };
   }
 }
@@ -1497,7 +1497,7 @@ public class MemberSelectExpr : Expression, IHasReferences {
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return new[] { Member };
   }
 }
@@ -1762,7 +1762,7 @@ public class FunctionCallExpr : Expression, IHasReferences {
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return Enumerable.Repeat(Function, 1);
   }
 }
@@ -3344,7 +3344,7 @@ public abstract class MatchCase : IHasReferences {
 
   public IToken NameToken => tok;
   public abstract IEnumerable<INode> Children { get; }
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
 }
@@ -3652,8 +3652,8 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
-  public IEnumerable<INode> GetResolvedDeclarations() {
-    return new INode[] { Ctor }.Where(x => x != null);
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
+    return new IHasNameToken[] { Ctor }.Where(x => x != null);
   }
 }
 
@@ -3892,7 +3892,7 @@ public class FrameExpression : IHasReferences {
 
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] { E };
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
 }
@@ -4001,7 +4001,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences {
     }
   }
 
-  public IEnumerable<INode> GetResolvedDeclarations() {
+  public IEnumerable<IHasNameToken> GetResolvedDeclarations() {
     return LegalSourceConstructors;
   }
 }

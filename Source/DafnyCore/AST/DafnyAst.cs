@@ -22,12 +22,15 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface IHasReferences : INode {
-    public IEnumerable<INode> GetResolvedDeclarations();
+  public interface IHasReferences : IHasNameToken {
+    public IEnumerable<IHasNameToken> GetResolvedDeclarations();
+  }
+
+  public interface IHasNameToken : INode {
+    IToken NameToken { get; }
   }
 
   public interface INode {
-    IToken NameToken { get; }
     
     /// <summary>
     /// These children should be such that they contain information produced by resolution such as inferred types
@@ -361,7 +364,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable : INode {
+  public interface IVariable : IHasNameToken {
     string Name {
       get;
     }
