@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new LocationOrLocationLinks();
       }
 
-      var result = document.NewSymbolTable.GetDeclaration(request.Position);
+      var result = document.SymbolTable.GetDeclaration(request.Position);
       if (result == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();

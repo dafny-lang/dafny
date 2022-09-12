@@ -9,19 +9,19 @@ public class DocumentAfterResolution : DocumentAfterParsing {
   public DocumentAfterResolution(DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
     IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-    NewSymbolTable? newSymbolTable,
-    SymbolTable symbolTable,
+    SymbolTable? newSymbolTable,
+    SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics) :
     base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
     ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
     NewSymbolTable = newSymbolTable;
-    SymbolTable = symbolTable;
+    SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
   }
 
   public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; }
-  public NewSymbolTable? NewSymbolTable { get; }
-  public SymbolTable SymbolTable { get; }
+  public SymbolTable? NewSymbolTable { get; }
+  public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
   public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics;
@@ -31,8 +31,8 @@ public class DocumentAfterResolution : DocumentAfterParsing {
       TextDocumentItem = TextDocumentItem,
       ImplementationsWereUpdated = false,
       ResolutionDiagnostics = ParseAndResolutionDiagnostics,
-      NewSymbolTable = NewSymbolTable ?? previousState.NewSymbolTable,
-      SymbolTable = SymbolTable.Resolved ? SymbolTable : previousState.SymbolTable,
+      SymbolTable = NewSymbolTable ?? previousState.SymbolTable,
+      SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostDiagnostics = GhostDiagnostics
     };
   }

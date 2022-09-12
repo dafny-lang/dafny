@@ -809,7 +809,6 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public IToken NameToken => tok;
   public virtual IEnumerable<INode> Children => SubExpressions;
 }
 
@@ -998,7 +997,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasReferences {
+public class DatatypeValue : Expression, IHasUsages {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -1039,9 +1038,11 @@ public class DatatypeValue : Expression, IHasReferences {
     get { return Arguments; }
   }
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Ctor, 1);
   }
+
+  public IToken NameToken => tok;
 }
 
 public class ThisExpr : Expression {
@@ -1110,7 +1111,7 @@ public class ImplicitThisExpr_ConstructorCall : ImplicitThisExpr {
   }
 }
 
-public class IdentifierExpr : Expression, IHasReferences {
+public class IdentifierExpr : Expression, IHasUsages {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -1137,9 +1138,11 @@ public class IdentifierExpr : Expression, IHasReferences {
     Type = v.Type;
   }
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Var, 1);
   }
+
+  public IToken NameToken => tok;
 }
 
 /// <summary>
@@ -1156,7 +1159,7 @@ public class AutoGhostIdentifierExpr : IdentifierExpr {
 /// <summary>
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
-class Resolver_IdentifierExpr : Expression, IHasReferences {
+class Resolver_IdentifierExpr : Expression, IHasUsages {
   public readonly TopLevelDecl Decl;
   public readonly List<Type> TypeArgs;
   [ContractInvariantMethod]
@@ -1210,9 +1213,11 @@ class Resolver_IdentifierExpr : Expression, IHasReferences {
     Contract.Requires(tp != null);
   }
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
+
+  public IToken NameToken => tok;
 }
 
 public abstract class DisplayExpression : Expression {
@@ -1277,7 +1282,7 @@ public class SeqDisplayExpr : DisplayExpression {
   }
 }
 
-public class MemberSelectExpr : Expression, IHasReferences {
+public class MemberSelectExpr : Expression, IHasUsages {
   public readonly Expression Obj;
   public readonly string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -1497,9 +1502,11 @@ public class MemberSelectExpr : Expression, IHasReferences {
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Member };
   }
+
+  public IToken NameToken => tok;
 }
 
 public class SeqSelectExpr : Expression {
@@ -1643,7 +1650,7 @@ public class ApplyExpr : Expression {
   }
 }
 
-public class FunctionCallExpr : Expression, IHasReferences {
+public class FunctionCallExpr : Expression, IHasUsages {
   public readonly string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
@@ -1762,9 +1769,11 @@ public class FunctionCallExpr : Expression, IHasReferences {
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Function, 1);
   }
+
+  public IToken NameToken => tok;
 }
 
 public class SeqConstructionExpr : Expression {
@@ -3322,7 +3331,7 @@ public class CasePattern<VT> where VT : IVariable {
   }
 }
 
-public abstract class MatchCase : IHasReferences {
+public abstract class MatchCase : IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
@@ -3344,7 +3353,7 @@ public abstract class MatchCase : IHasReferences {
 
   public IToken NameToken => tok;
   public abstract IEnumerable<INode> Children { get; }
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
 }
@@ -3535,7 +3544,6 @@ public abstract class ExtendedPattern : INode {
     this.IsGhost = isGhost;
   }
 
-  public IToken NameToken => Tok;
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -3608,7 +3616,7 @@ public class LitPattern : ExtendedPattern {
   public override IEnumerable<INode> Children => new[] { OrigLit };
 }
 
-public class IdPattern : ExtendedPattern, IHasReferences {
+public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public readonly String Id;
   public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
@@ -3652,9 +3660,11 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
-    return new IDeclarationOrReference[] { Ctor }.Where(x => x != null);
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+    return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
   }
+
+  public IToken NameToken => Tok;
 }
 
 public abstract class NestedMatchCase : INode {
@@ -3668,7 +3678,6 @@ public abstract class NestedMatchCase : INode {
     this.Pat = pat;
   }
 
-  public IToken NameToken => Tok;
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -3865,7 +3874,7 @@ public class AttributedExpression : IAttributeBearingDeclaration {
   }
 }
 
-public class FrameExpression : IHasReferences {
+public class FrameExpression : IHasUsages {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
@@ -3892,7 +3901,7 @@ public class FrameExpression : IHasReferences {
 
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] { E };
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
 }
@@ -3972,7 +3981,7 @@ public class TypeExpr : ParensExpression {
   }
 }
 
-public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences {
+public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages {
   public readonly Expression Root;
   public readonly List<Tuple<IToken, string, Expression>> Updates;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
@@ -4001,9 +4010,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences {
     }
   }
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return LegalSourceConstructors;
   }
+
+  public IToken NameToken => tok;
 }
 
 /// <summary>

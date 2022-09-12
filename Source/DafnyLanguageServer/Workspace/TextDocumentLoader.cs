@@ -126,8 +126,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new IdeState(
         textDocument,
         diagnostics,
-        NewSymbolTable.Empty(),
-        SymbolTable.Empty(textDocument),
+        SymbolTable.Empty(),
+        SignatureAndCompletionTable.Empty(textDocument),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false,

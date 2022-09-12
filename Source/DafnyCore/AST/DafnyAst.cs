@@ -22,16 +22,16 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface IHasReferences : IDeclarationOrReference {
-    public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations();
+  public interface IHasUsages : IDeclarationOrUsage {
+    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
 
-  public interface IDeclarationOrReference : INode {
+  public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
   }
 
   public interface INode {
-    
+
     /// <summary>
     /// These children should be such that they contain information produced by resolution such as inferred types
     /// and resolved references. However, they should not be so transformed that source location from the initial
@@ -104,7 +104,6 @@ namespace Microsoft.Dafny {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
 
-    public IToken NameToken => this.GetFirstTopLevelToken();
     public IEnumerable<INode> Children => new[] { DefaultModule };
   }
 
@@ -364,7 +363,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable : IDeclarationOrReference {
+  public interface IVariable : IDeclarationOrUsage {
     string Name {
       get;
     }
@@ -475,8 +474,8 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public IToken NameToken => throw new NotImplementedException();
     public IEnumerable<INode> Children => throw new NotImplementedException();
+    public IToken NameToken => throw new NotImplementedException();
   }
 
   public abstract class NonglobalVariable : IVariable {

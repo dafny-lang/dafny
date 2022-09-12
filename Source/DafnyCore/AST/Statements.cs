@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, IDeclarationOrReference {
+public abstract class Statement : IAttributeBearingDeclaration, INode {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
@@ -151,7 +151,6 @@ public abstract class Statement : IAttributeBearingDeclaration, IDeclarationOrRe
     }
   }
 
-  public IToken NameToken => Tok;
   public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 }
 
@@ -362,7 +361,7 @@ public class RevealStmt : Statement {
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement, IHasReferences {
+public class BreakStmt : Statement, IHasUsages {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -395,9 +394,11 @@ public class BreakStmt : Statement, IHasReferences {
     this.IsContinue = isContinue;
   }
 
-  public IEnumerable<IDeclarationOrReference> GetResolvedDeclarations() {
-    return new[] { TargetStmt };
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+    return new[] { TargetStmt }.OfType<IDeclarationOrUsage>();
   }
+
+  public IToken NameToken => Tok;
 }
 
 public abstract class ProduceStmt : Statement {
@@ -491,7 +492,6 @@ public abstract class AssignmentRhs : INode {
     get { yield break; }
   }
 
-  public IToken NameToken => Tok;
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -1290,7 +1290,7 @@ public class AlternativeStmt : Statement {
   }
 }
 
-public abstract class LoopStmt : Statement {
+public abstract class LoopStmt : Statement, IDeclarationOrUsage {
   public readonly List<AttributedExpression> Invariants;
   public readonly Specification<Expression> Decreases;
   [FilledInDuringResolution] public bool InferredDecreases;  // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
@@ -1361,6 +1361,8 @@ public abstract class LoopStmt : Statement {
       }
     }
   }
+
+  public IToken NameToken => Tok;
 }
 
 public abstract class OneBodyLoopStmt : LoopStmt {

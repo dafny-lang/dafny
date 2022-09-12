@@ -7,26 +7,26 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class NewSymbolTable {
+public class SymbolTable {
 
-  public static NewSymbolTable Empty() {
-    return new NewSymbolTable();
+  public static SymbolTable Empty() {
+    return new SymbolTable();
   }
 
-  private NewSymbolTable() {
-    NodePositions = new IntervalTree<Position, IDeclarationOrReference>();
-    Usages = new Dictionary<IDeclarationOrReference, ISet<IDeclarationOrReference>>();
-    Declarations = new Dictionary<IDeclarationOrReference, IDeclarationOrReference>();
+  private SymbolTable() {
+    NodePositions = new IntervalTree<Position, IDeclarationOrUsage>();
+    Usages = new Dictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>();
+    Declarations = new Dictionary<IDeclarationOrUsage, IDeclarationOrUsage>();
   }
 
-  public NewSymbolTable(Document document, IReadOnlyList<(IDeclarationOrReference usage, IDeclarationOrReference declaration)> usages) {
+  public SymbolTable(Document document, IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
     var safeUsages = usages.Where(k => k.declaration.NameToken.Filename != null).ToList();
     Declarations = safeUsages.ToDictionary(k => k.usage, k => k.declaration);
     Usages = safeUsages.GroupBy(u => u.declaration).ToDictionary(
       g => g.Key,
-      g => (ISet<IDeclarationOrReference>)g.Select(k => k.usage).ToHashSet());
-    NodePositions = new IntervalTree<Position, IDeclarationOrReference>();
-    var symbols = safeUsages.Select(u => u.declaration).Concat<IDeclarationOrReference>(usages.Select(u => u.usage)).
+      g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
+    NodePositions = new IntervalTree<Position, IDeclarationOrUsage>();
+    var symbols = safeUsages.Select(u => u.declaration).Concat<IDeclarationOrUsage>(usages.Select(u => u.usage)).
       Where(u => u.NameToken.Filename == document.Uri.ToString()).Distinct();
     foreach (var symbol in symbols) {
       var range = symbol.NameToken.GetLspRange();
@@ -34,19 +34,19 @@ public class NewSymbolTable {
     }
   }
 
-  private IIntervalTree<Position, IDeclarationOrReference> NodePositions { get; }
-  private Dictionary<IDeclarationOrReference, IDeclarationOrReference> Declarations { get; }
-  private Dictionary<IDeclarationOrReference, ISet<IDeclarationOrReference>> Usages { get; }
+  private IIntervalTree<Position, IDeclarationOrUsage> NodePositions { get; }
+  private Dictionary<IDeclarationOrUsage, IDeclarationOrUsage> Declarations { get; }
+  private Dictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> Usages { get; }
 
   public ISet<Location> GetUsages(Position position) {
     return NodePositions.Query(position).
-      SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrReference>)new HashSet<IDeclarationOrReference>())).
+      SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
       Select(u => new Location { Uri = u.NameToken.Filename, Range = u.NameToken.GetLspRange() }).ToHashSet();
   }
 
   public Location? GetDeclaration(Position position) {
     var referenceNodes = NodePositions.Query(position);
-    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IDeclarationOrReference?)null))
+    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
       .Where(x => x != null).Select(
         n => new Location {
           Uri = DocumentUri.From(n!.NameToken.ActualFilename),

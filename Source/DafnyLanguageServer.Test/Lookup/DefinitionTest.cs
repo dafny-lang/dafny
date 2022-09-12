@@ -25,6 +25,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
+    public async Task WhileLoop() {
+      var source = @"
+method HasLoop() {
+  var x := 1;
+  while(true) {
+    if (x > 2) {
+      break;
+    }
+    x := x + 1;
+  }
+}
+".TrimStart();
+
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var whileReference = (await RequestDefinition(documentItem, (4, 8)).AsTask()).Single();
+      Assert.AreEqual(new Range((2, 2), (2, 7)), whileReference.Location!.Range);
+    }
+    
+    [TestMethod]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
 datatype Option<+U> = None | Some(val: U) {
