@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 
@@ -64,18 +66,8 @@ namespace Microsoft.Dafny {
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         IsPrecompiled = true;
-        var asm = Assembly.LoadFile(filePath);
-        string sourceText = null;
-        foreach (var adata in asm.CustomAttributes) {
-          if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
-            foreach (var args in adata.ConstructorArguments) {
-              if (args.ArgumentType.FullName == "System.String") {
-                sourceText = (string)args.Value;
-              }
-            }
-          }
-        }
 
+        var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
         SourceFileName = Path.GetTempFileName();
         File.WriteAllText(SourceFileName, sourceText);
@@ -83,8 +75,63 @@ namespace Microsoft.Dafny {
       } else {
         throw new IllegalDafnyFile();
       }
+    }
 
+    private static string GetDafnySourceAttributeText(string dllPath) {
+      using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+      using var dllPeReader = new PEReader(dllFs);
+      var dllMetadataReader = dllPeReader.GetMetadataReader();
 
+      foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
+        var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
+        var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
+        var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
+        if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
+          var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
+          return (string)decoded.FixedArguments[0].Value;
+        }
+      }
+
+      return null;
+    }
+
+    // Dummy implementation of ICustomAttributeTypeProvider, providing just enough
+    // functionality to successfully decode a DafnySourceAttribute value.
+    private class StringOnlyCustomAttributeTypeProvider : ICustomAttributeTypeProvider<System.Type> {
+      public System.Type GetPrimitiveType(PrimitiveTypeCode typeCode) {
+        if (typeCode == PrimitiveTypeCode.String) {
+          return typeof(string);
+        }
+        throw new NotImplementedException();
+      }
+
+      public System.Type GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) {
+        throw new NotImplementedException();
+      }
+
+      public System.Type GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) {
+        throw new NotImplementedException();
+      }
+
+      public System.Type GetSZArrayType(System.Type elementType) {
+        throw new NotImplementedException();
+      }
+
+      public System.Type GetSystemType() {
+        throw new NotImplementedException();
+      }
+
+      public System.Type GetTypeFromSerializedName(string name) {
+        throw new NotImplementedException();
+      }
+
+      public PrimitiveTypeCode GetUnderlyingEnumType(System.Type type) {
+        throw new NotImplementedException();
+      }
+
+      public bool IsSystemType(System.Type type) {
+        throw new NotImplementedException();
+      }
     }
   }
 

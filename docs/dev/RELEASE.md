@@ -24,9 +24,9 @@
 
    * `Source/version.cs`
 
-   * `Source/DafnyDriver/DafnyDriver.csproj`
+   * `Source/Dafny/Dafny.csproj`
 
-   * `Source/Dafny/DafnyPipeline.csproj`
+   * `Source/DafnyPipeline/DafnyPipeline.csproj`
 
    * `Source/DafnyLanguageServer/DafnyLanguageServer.csproj`
 

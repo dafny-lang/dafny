@@ -6,4 +6,6 @@ Fixes #
 
 <!-- Does this PR need tests?  Add them to `Test/` or to `Source/*.Test/…` and run them with `dotnet test` -->
 
+<!-- Are you moving a large amount of code? Read CONTRIBUTING.md to learn how to do that while maintaining git history -->
+
 <small>By submitting this pull request, I confirm that my contribution is made under the terms of the [MIT license](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).</small>
