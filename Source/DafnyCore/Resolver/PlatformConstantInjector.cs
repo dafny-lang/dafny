@@ -15,7 +15,16 @@ public class PlatformConstantInjector : IRewriter {
   /// </summary>
   internal override void PreResolve(ModuleDefinition m) {
     foreach(var d in m.TopLevelDecls) {
-      
+      if (d is TopLevelDeclWithMembers decl && decl.Name == "Dafny") {
+        foreach(var member in decl.Members) {
+          if (member is ConstantField cf && member.Name == "SIZE_T_LIMIT") {
+            var sizeNativeTypeName = DafnyOptions.O.Compiler.SizeNativeType;
+            var sizeNativeType = Resolver.NativeTypes.First(nt => nt.Name == sizeNativeTypeName);
+            var upperBoundExpr = new LiteralExpr(cf.tok, sizeNativeType.UpperBound);
+            
+          }
+        }
+      }
     }
   }
 }
