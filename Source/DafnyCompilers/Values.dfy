@@ -9,7 +9,7 @@ module Values {
 
   type Context = map<string, Value>
 
-  datatype Value = 
+  datatype Value =
     | Bool(b: bool)
     | Char(c: char)
     | Int(i: int)
@@ -25,53 +25,53 @@ module Values {
     predicate method HasType(ty: Types.T) {
       this.WellFormed1() &&
       match (this, ty) // FIXME tests on other side
-        case (Bool(b), Bool()) => true
-        case (Char(c), Char()) => true
-        case (Int(i), Int()) => true
-        case (Real(r), Real()) => true
-        case (BigOrdinal(o), BigOrdinal()) => true
-        case (BitVector(width, value), BitVector(twidth)) =>
-          width == twidth
-        case (Map(m), Collection(true, Map(kT), eT)) =>
-          forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
-        case (Multiset(ms), Collection(true, Multiset, eT)) =>
-          forall x | x in ms :: x.HasType(eT)
-        case (Seq(sq), Collection(true, Seq, eT)) =>
-          forall x | x in sq :: x.HasType(eT)
-        case (Set(st), Collection(true, Set, eT)) =>
-          forall x | x in st :: x.HasType(eT)
-        case (Closure(ctx, vars, body), Function(args, ret)) =>
-          true // FIXME: Need a typing relation on terms, not just values
+      case (Bool(b), Bool()) => true
+      case (Char(c), Char()) => true
+      case (Int(i), Int()) => true
+      case (Real(r), Real()) => true
+      case (BigOrdinal(o), BigOrdinal()) => true
+      case (BitVector(width, value), BitVector(twidth)) =>
+        width == twidth
+      case (Map(m), Collection(true, Map(kT), eT)) =>
+        forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
+      case (Multiset(ms), Collection(true, Multiset, eT)) =>
+        forall x | x in ms :: x.HasType(eT)
+      case (Seq(sq), Collection(true, Seq, eT)) =>
+        forall x | x in sq :: x.HasType(eT)
+      case (Set(st), Collection(true, Set, eT)) =>
+        forall x | x in st :: x.HasType(eT)
+      case (Closure(ctx, vars, body), Function(args, ret)) =>
+        true // FIXME: Need a typing relation on terms, not just values
 
-        // DISCUSS: Better way to write this?  Need exhaustivity checking
-        case (Bool(b), _) => false
-        case (Char(c), _) => false
-        case (Int(i), _) => false
-        case (Real(r), _) => false
-        case (BigOrdinal(o), _) => false
-        case (BitVector(width, value), _) => false
-        case (Map(m), _) => false
-        case (Multiset(ms), _) => false
-        case (Seq(sq), _) => false
-        case (Set(st), _) => false
-        case (Closure(ctx, vars, body), _) => false
+      // DISCUSS: Better way to write this?  Need exhaustivity checking
+      case (Bool(b), _) => false
+      case (Char(c), _) => false
+      case (Int(i), _) => false
+      case (Real(r), _) => false
+      case (BigOrdinal(o), _) => false
+      case (BitVector(width, value), _) => false
+      case (Map(m), _) => false
+      case (Multiset(ms), _) => false
+      case (Seq(sq), _) => false
+      case (Set(st), _) => false
+      case (Closure(ctx, vars, body), _) => false
     }
 
     function method Children() : (cs: set<Value>)
       ensures forall c | c in cs :: c < this
     {
       match this
-        case Bool(b) => {}
-        case Char(c) => {}
-        case Int(i) => {}
-        case Real(r) => {}
-        case BigOrdinal(o) => {}
-        case BitVector(width, value) => {}
-        case Map(m) => m.Values
-        case Multiset(ms) => set x | x in ms
-        case Seq(sq) => set x | x in sq
-        case Set(st) => st
-        case Closure(ctx, vars_, body_) => ctx.Values
+      case Bool(b) => {}
+      case Char(c) => {}
+      case Int(i) => {}
+      case Real(r) => {}
+      case BigOrdinal(o) => {}
+      case BitVector(width, value) => {}
+      case Map(m) => m.Values
+      case Multiset(ms) => set x | x in ms
+      case Seq(sq) => set x | x in sq
+      case Set(st) => st
+      case Closure(ctx, vars_, body_) => ctx.Values
     }
 
     // This duplicates a bit ``Types.WellFormed()``.

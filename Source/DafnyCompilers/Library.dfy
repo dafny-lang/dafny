@@ -29,8 +29,8 @@ module Lib {
 
       function method ToSuccessOr<E>(f: E): Result<T, E> {
         match this
-          case Some(v) => Success(v)
-          case None() => Failure(f)
+        case Some(v) => Success(v)
+        case None() => Failure(f)
       }
     }
 
@@ -56,16 +56,16 @@ module Lib {
         requires this.Failure? ==> f.requires(this.error)
       {
         match this
-          case Success(value) => Success(value)
-          case Failure(error) => Failure(f(error))
+        case Success(value) => Success(value)
+        case Failure(error) => Failure(f(error))
       }
 
       function method Then<K>(f: T --> Result<K, R>) : Result<K, R>
         requires Success? ==> f.requires(value)
       {
         match this
-          case Success(value) => f(value)
-          case Failure(err) => Failure(err)
+        case Success(value) => f(value)
+        case Failure(err) => Failure(err)
       }
     }
 
@@ -113,9 +113,9 @@ module Lib {
     }
 
     lemma FoldL_induction'<TAcc(!new), T>(
-      f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
-      prefix: seq<T>, P: (TAcc, seq<T>) -> bool
-    )
+        f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
+        prefix: seq<T>, P: (TAcc, seq<T>) -> bool
+      )
       requires forall a, t | t in ts :: f.requires(a, t)
       requires P(a0, prefix)
       requires forall a, t, ts' | t in ts && P(a, ts') :: P(f(a, t), ts' + [t])
@@ -134,9 +134,9 @@ module Lib {
     }
 
     lemma FoldL_induction<TAcc(!new), T>(
-      f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
-      P: (TAcc, seq<T>) -> bool
-    )
+        f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
+        P: (TAcc, seq<T>) -> bool
+      )
       requires forall a, t | t in ts :: f.requires(a, t)
       requires P(a0, [])
       requires forall a, t, ts' | t in ts && P(a, ts') :: P(f(a, t), ts' + [t])
@@ -172,10 +172,10 @@ module Lib {
 
     lemma All_weaken_auto<T>(ts: seq<T>)
       ensures forall P: T ~> bool, Q: T ~> bool |
-        && (forall t: T | t in ts :: P.requires(t))
-        && (forall t: T | t in ts :: Q.requires(t))
-        && (forall t: T | t in ts :: P(t) ==> Q(t)) ::
-       All(P, ts) ==> All(Q, ts)
+              && (forall t: T | t in ts :: P.requires(t))
+              && (forall t: T | t in ts :: Q.requires(t))
+              && (forall t: T | t in ts :: P(t) ==> Q(t)) ::
+                 All(P, ts) ==> All(Q, ts)
     {}
 
     import Math
@@ -187,8 +187,8 @@ module Lib {
       ensures default <= m
     {
       var P := (m, s) =>
-        && (if s == [] then m == default else m in s)
-        && (forall i | i in s :: i <= m);
+                 && (if s == [] then m == default else m in s)
+                 && (forall i | i in s :: i <= m);
       FoldL_induction(Math.Max, default, s, P);
       FoldL(Math.Max, default, s)
     }
@@ -271,8 +271,8 @@ module Lib {
     {
       if |s| == 0 then []
       else (match f(s[0])
-              case Some(y) => [y]
-              case None => []) + MapFilter(s[1..], f)
+            case Some(y) => [y]
+            case None => []) + MapFilter(s[1..], f)
     }
   }
 
@@ -318,8 +318,8 @@ module Lib {
     }
 
     const HEX_DIGITS := [
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-      'A', 'B', 'C', 'D', 'E', 'F']
+                          '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                          'A', 'B', 'C', 'D', 'E', 'F']
 
     // FIXME rename
     function method of_int(n: int, base: int := 10) : string

@@ -93,20 +93,20 @@ datatype REPLError =
 {
   function method ToString() : string {
     match this
-      case EOF() =>
-        "EOF"
-      case StackOverflow() =>
-        "Stack overflow"
-      case FailedParse(msg) =>
-        "Parse error:\n" + msg
-      case ResolutionError(msg) =>
-        "Resolution error:\n" + msg
-      case TranslationError(te) =>
-        "Translation error: " + te.ToString()
-      case InterpError(ie) =>
-        "Execution error: " + ie.ToString()
-      case Unsupported(ex) =>
-        "Unsupported expression" // FIXME change checker to return the unsupported subexpression
+    case EOF() =>
+      "EOF"
+    case StackOverflow() =>
+      "Stack overflow"
+    case FailedParse(msg) =>
+      "Parse error:\n" + msg
+    case ResolutionError(msg) =>
+      "Resolution error:\n" + msg
+    case TranslationError(te) =>
+      "Translation error: " + te.ToString()
+    case InterpError(ie) =>
+      "Execution error: " + ie.ToString()
+    case Unsupported(ex) =>
+      "Unsupported expression" // FIXME change checker to return the unsupported subexpression
   }
 }
 
@@ -168,7 +168,7 @@ class REPL {
         var p := parsed as REPLInterop.FailedParse; // BUG(https://github.com/dafny-lang/dafny/issues/1731)
         if p.Incomplete {
           prompt := if prompt[0] == '.' then prompt
-                   else seq(|prompt| - 1, _ => '.') + " ";
+                    else seq(|prompt| - 1, _ => '.') + " ";
           continue;
         }
         return Failure(FailedParse(TypeConv.AsString(p.Message)));
@@ -184,7 +184,7 @@ class REPL {
     reads *
   {
     var inParams := Lib.Seq.MapFilter(CSharpInterop.ListUtils.ToSeq(fn.Formals), (f: C.Formal) reads * =>
-      if f.InParam then Some(TypeConv.AsString(f.Name)) else None);
+                                        if f.InParam then Some(TypeConv.AsString(f.Name)) else None);
     var body :- Translator.TranslateExpression(fn.Body);
     Success(AST.Exprs.Abs(inParams, body))
   }
@@ -260,17 +260,17 @@ class REPL {
       var env := Interp.Environment(fuel := fuel, globals := globals);
       var v := InterpExpr(e, env);
       match v
-        case Success(Return(val, _)) =>
-          return Success(val);
-        case Failure(InterpError(OutOfFuel(_))) =>
-          fuel := fuel * 2;
-          if fuel >= MAX_FUEL {
-            return Failure(StackOverflow);
-          } else {
-            print "Fuel exhausted, trying again with fuel := ", fuel, "\n";
-          }
-        case Failure(err) =>
-          return Failure(err);
+      case Success(Return(val, _)) =>
+        return Success(val);
+      case Failure(InterpError(OutOfFuel(_))) =>
+        fuel := fuel * 2;
+        if fuel >= MAX_FUEL {
+          return Failure(StackOverflow);
+        } else {
+          print "Fuel exhausted, trying again with fuel := ", fuel, "\n";
+        }
+      case Failure(err) =>
+        return Failure(err);
     }
   }
 

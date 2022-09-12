@@ -11,11 +11,11 @@ module StrTree {
   {
     function method ToString() : string {
       match this
-        case Str(s) => s
-        case SepSeq(sep, asts) =>
-          var strs := Lib.Seq.Map(s requires s in asts => s.ToString(), asts);
-          Lib.Str.Join(sep.UnwrapOr(""), strs)
-        case Unsupported => "<*>"
+      case Str(s) => s
+      case SepSeq(sep, asts) =>
+        var strs := Lib.Seq.Map(s requires s in asts => s.ToString(), asts);
+        Lib.Str.Join(sep.UnwrapOr(""), strs)
+      case Unsupported => "<*>"
     }
   }
 
@@ -40,8 +40,8 @@ module StrTree {
   }
 
   function method interleave<T>(
-    outside: seq<T>, inside: seq<T>, start: int := 0
-  ) : seq<T>
+      outside: seq<T>, inside: seq<T>, start: int := 0
+    ) : seq<T>
     requires |outside| == |inside| + 1
     requires 0 <= start < |outside|
     decreases |outside| - start
@@ -67,14 +67,14 @@ module StrTree {
   lemma countFormat_Acc(formatString: string, start: int := 0, count: int := 0)
     decreases |formatString| - start
     ensures countFormat(formatString, start, count)
-         == countFormat(formatString, start) + count
+            == countFormat(formatString, start) + count
   {}
 
   lemma splitFormat_countFormat(formatString: string, start: int := 0, pos: int := start)
     requires 0 <= start <= pos <= |formatString|
     decreases |formatString| - pos
     ensures |splitFormat(formatString, start, pos)|
-         == 1 + countFormat(formatString, pos)
+            == 1 + countFormat(formatString, pos)
   {
     if pos >= |formatString| - 1 {
     } else if formatString[pos] == '{' && formatString[pos + 1] == '}' {
