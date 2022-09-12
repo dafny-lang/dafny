@@ -3906,7 +3906,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
-  public override IEnumerable<INode> Children => new[] { ResolvedExpression };
+  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<INode>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
