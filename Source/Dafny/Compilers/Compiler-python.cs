@@ -222,13 +222,10 @@ namespace Microsoft.Dafny.Compilers {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");
         var w = btw.NewBlockPy(
           $"def AllSingletonConstructors(cls):");
-        var values = dt.Ctors.Select(ctor => {
-          if (ctor.IsGhost) {
-            return ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok);
-          } else {
-            return $"{DtCtorDeclarationName(ctor, false)}()";
-          }
-        });
+        var values = dt.Ctors.Select(ctor =>
+          ctor.IsGhost
+          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok)
+          : $"{DtCtorDeclarationName(ctor, false)}()");
         w.WriteLine($"return [{values.Comma()}]");
       }
 
