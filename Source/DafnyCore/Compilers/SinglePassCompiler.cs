@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr);
+    protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
-      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
+      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
       /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
@@ -1413,7 +1413,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         if (createBody) {
           setterWriter = block;
           return block;
@@ -1441,14 +1441,15 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+
+      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream(filename);
       if (stream is null) {
-        ReportError(program.Reporter, program.DefaultModule.tok, $"Cannot find embedded resource: {filename}", wr);
-      } else {
-        var rd = new StreamReader(stream);
-        WriteFromStream(rd, wr.Append((new Verbatim())));
+        throw new Exception($"Cannot find embedded resource: {filename}");
       }
+
+      var rd = new StreamReader(stream);
+      WriteFromStream(rd, wr.Append((new Verbatim())));
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
@@ -1533,7 +1534,7 @@ namespace Microsoft.Dafny.Compilers {
               foreach (MemberDecl member in c.Members) {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
-                  if (!IsPermittedAsMain(mainMethod, out string reason)) {
+                  if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
                     ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
@@ -1573,7 +1574,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
@@ -1614,7 +1615,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (hasMain) {
-        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+        if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
           ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
@@ -1627,11 +1628,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static bool IsPermittedAsMain(Method m, out String reason) {
+    public static bool IsPermittedAsMain(Program program, Method m, out String reason) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
       //    The method takes no non-ghost parameters and no type parameters
+      //      except at most one array of type "array<string>"
       //    The enclosing type does not take any type parameters
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // In addition, either:
@@ -1673,8 +1675,22 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (!m.Ins.TrueForAll(f => f.IsGhost)) {
-        reason = "the method has non-ghost parameters";
-        return false;
+        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
+        if (nonGhostFormals.Count > 1) {
+          reason = "the method has two or more non-ghost parameters";
+          return false;
+        }
+        var typeOfUniqueFormal = nonGhostFormals[0].Type.NormalizeExpandKeepConstraints();
+        if (typeOfUniqueFormal.AsSeqType is not { } seqType ||
+            seqType.Arg.AsSeqType is not { } subSeqType ||
+            !subSeqType.Arg.IsCharType) {
+          reason = "the method's non-ghost argument type should be an seq<string>, got " + typeOfUniqueFormal;
+          return false;
+        }
+      } else {
+        // Need to manually insert the args.
+        var argsType = new SeqType(new SeqType(new CharType()));
+        m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";
@@ -1747,10 +1763,9 @@ namespace Microsoft.Dafny.Compilers {
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
-      if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
+      if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        foreach (var memberx in inheritedMembers) {
-          var member = (memberx as Function)?.ByMethodDecl ?? memberx;
+        foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -1779,7 +1794,7 @@ namespace Microsoft.Dafny.Compilers {
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet, true);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, true, member, out wSet, true);
             {
               var sw = EmitReturnExpr(wGet);
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
@@ -1887,7 +1902,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (c is TraitDecl) {
             ConcreteSyntaxTree wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
             // A trait field is just declared, not initialized. Any other field gets a default value if field's type is an auto-init type and
@@ -1995,7 +2010,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         ConcreteSyntaxTree wSet;
-        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, false, member, out wSet, false);
+        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, member, out wSet, false);
         Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
       } else if (member is Function) {
         var fn = ((Function)member).Original;
@@ -2207,9 +2222,8 @@ namespace Microsoft.Dafny.Compilers {
       return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
     }
 
-    protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
+    protected int WriteRuntimeTypeDescriptorsFormals(List<TypeArgumentInstantiation> typeParams,
       ConcreteSyntaxTree wr, ref string prefix, Func<TypeParameter, string> formatter) {
-      Contract.Requires(member != null);
       Contract.Requires(typeParams != null);
       Contract.Requires(prefix != null);
       Contract.Requires(wr != null);
@@ -2372,6 +2386,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public const string STATIC_ARGS_NAME = "args";
+
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
@@ -2408,7 +2424,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
-        w = CreateStaticMain(cw);
+        w = CreateStaticMain(cw, STATIC_ARGS_NAME);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
@@ -2440,6 +2456,7 @@ namespace Microsoft.Dafny.Compilers {
           sep = ", ";
         }
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
+        w.Write(sep + STATIC_ARGS_NAME);
         w.Write(")");
         EndStmt(w);
       }
