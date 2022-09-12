@@ -52,6 +52,12 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   const TWO_SIZE: size_t := (AboutSizeT(); 2 as size_t);
   const TEN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
 
+  predicate SizeAdditionInRange(a: size_t, b: size_t) {
+    a as int + b as int < SIZE_T_LIMIT
+  } by method {
+    return a <= SIZE_T_MAX - b;
+  }
+
   // 
   // We use this instead of the built-in Dafny array<T> type for two reasons:
   // 
@@ -575,6 +581,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   method AppendRecursive<T>(builder: Vector<T>, e: Sequence<T>)
     requires e.Valid()
     requires builder.Valid()
+    requires SizeAdditionInRange(builder.size, e.Cardinality())
     modifies builder.Repr
     decreases e.size
     ensures builder.ValidAndDisjoint()
@@ -591,7 +598,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       AppendRecursive(builder, boxed);
     } else {
       var a: ImmutableArray<T> := e.ToArray();
-      assert builder.size as int + a.Length() as int < SIZE_T_LIMIT; 
       builder.Append(a);
     }
   }
@@ -602,6 +608,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires stack.Valid()
     requires builder.Repr !! stack.Repr;
     requires forall expr <- stack.Value() :: expr.Valid()
+    requires builder.size as int + e.Cardinality() as int + CardinalitySum(stack.Value()) < SIZE_T_LIMIT
     modifies builder.Repr, stack.Repr
     decreases e.size + SizeSum(stack.Value())
     ensures builder.Valid()
@@ -610,6 +617,9 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   {
     if e is ConcatSequence<T> {
       var concat := e as ConcatSequence<T>;
+      // TODO: Come back to this - probably possible to bound size in terms of
+      // Length() if we add the invariant that no leave nodes are empty.
+      expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
       AppendOptimized(builder, concat.left, stack);
     } else if e is LazySequence<T> {
@@ -646,6 +656,16 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     else
       var last := |s| - 1;
       SizeSum(s[..last]) + s[last].size
+  }
+
+  ghost function CardinalitySum<T>(s: seq<Sequence<T>>): nat 
+    requires forall e <- s :: e.Valid()
+  {
+    if |s| == 0 then 
+      0 
+    else
+      var last := |s| - 1;
+      CardinalitySum(s[..last]) + s[last].Cardinality() as nat
   }
 
   class LazySequence<T> extends Sequence<T> {
@@ -794,8 +814,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret.Valid()
   {
-    expect left.Cardinality() <= SIZE_T_MAX - right.Cardinality(), "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
-    assert left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT;
+    expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()), "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
 
     // TODO: This could inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
