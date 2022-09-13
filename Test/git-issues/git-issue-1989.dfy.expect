@@ -1,0 +1,31 @@
+git-issue-1989.dfy(22,31): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(89,17): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(97,20): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(98,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(124,23): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(125,28): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(49,7): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(50,7): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(51,7): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(52,7): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(67,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(70,29): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(70,29): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(70,51): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(158,18): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(160,23): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(171,9): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(211,4): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(126,2): Error: A postcondition might not hold on this return path.
+git-issue-1989.dfy(122,22): Related location: This is the postcondition that might not hold.
+git-issue-1989.dfy(150,23): Error: assertion might not hold
+git-issue-1989.dfy(156,20): Error: A precondition for this call might not hold.
+git-issue-1989.dfy(130,18): Related location: This is the precondition that might not hold.
+git-issue-1989.dfy(181,24): Error: assertion might not hold
+git-issue-1989.dfy(199,17): Error: A precondition for this call might not hold.
+git-issue-1989.dfy(130,18): Related location: This is the precondition that might not hold.
+git-issue-1989.dfy(221,24): Error: assertion might not hold
+git-issue-1989.dfy(233,17): Error: A precondition for this call might not hold.
+git-issue-1989.dfy(130,18): Related location: This is the precondition that might not hold.
+
+Dafny program verifier finished with 17 verified, 7 errors

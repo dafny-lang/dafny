@@ -32,15 +32,15 @@ element decreases by at most one from the previous element. In code:
 
 ``` {.editonly}
 method FindZero(a: array<int>) returns (index: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
 {
 }
 ```
 
-```
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+```dafny
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
 ```
 
 With these requirements, we can do something clever in our search routine: we can skip
@@ -51,33 +51,33 @@ be until 7 more elements in the array. So we don't even have to search for a zer
 
 ``` {.editonly}
 method FindZero(a: array<int>) returns (index: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
-   ensures 0 <= index ==> index < a.Length && a[index] == 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
+  ensures 0 <= index ==> index < a.Length && a[index] == 0
 {
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index
-      invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
-   {
-      if a[index] == 0 { return; }
-      index := index + a[index];
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index
+    invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
+  {
+    if a[index] == 0 { return; }
+    index := index + a[index];
+  }
+  index := -1;
 }
 ```
 
-```
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index
-      invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
-   {
-      if a[index] == 0 { return; }
-      index := index + a[index];
-   }
-   index := -1;
+```dafny
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index
+    invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
+  {
+    if a[index] == 0 { return; }
+    index := index + a[index];
+  }
+  index := -1;
 ```
 
 This code will compute the right result, but Dafny complains about the second loop invariant.
@@ -97,11 +97,11 @@ on the verification of the
 program. You may think of lemmas as heavyweight assertions, in that they are only
 necessary to help the proof of the program along. A typical lemma might look like:
 
-```
+```dafny
 lemma Lemma(...)
-   ensures (desirable property)
+  ensures (desirable property)
 {
-   ...
+  ...
 }
 ```
 
@@ -111,23 +111,23 @@ to start from as parameters, with the usual requirements from `FindZero`:
 
 ``` {.editonly}
 lemma SkippingLemma(a: array<int>, j: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   requires 0 <= j < a.Length
-   ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires 0 <= j < a.Length
+  ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
 {
-   //...
+  //...
 }
 ```
 
-```
+```dafny
 lemma SkippingLemma(a: array<int>, j: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   requires 0 <= j < a.Length
-   ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires 0 <= j < a.Length
+  ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
 {
-   ...
+  ...
 }
 ```
 
@@ -140,43 +140,43 @@ prove the right thing. The `FindZero` method becomes:
 
 ``` {.editonly}
 lemma SkippingLemma(a: array<int>, j: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   requires 0 <= j < a.Length
-   ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires 0 <= j < a.Length
+  ensures forall i :: j <= i < j + a[j] && i < a.Length ==> a[i] != 0
 {
-   //...
+  //...
 }
 method FindZero(a: array<int>) returns (index: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
-   ensures 0 <= index ==> index < a.Length && a[index] == 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
+  ensures 0 <= index ==> index < a.Length && a[index] == 0
 {
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index
-      invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
-   {
-      if a[index] == 0 { return; }
-      SkippingLemma(a, index);
-      index := index + a[index];
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index
+    invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
+  {
+    if a[index] == 0 { return; }
+    SkippingLemma(a, index);
+    index := index + a[index];
+  }
+  index := -1;
 }
 ```
 
-```
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index
-      invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
-   {
-      if a[index] == 0 { return; }
-      SkippingLemma(a, index);
-      index := index + a[index];
-   }
-   index := -1;
+```dafny
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index
+    invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
+  {
+    if a[index] == 0 { return; }
+    SkippingLemma(a, index);
+    index := index + a[index];
+  }
+  index := -1;
 ```
 
 Now Dafny does not complain about the `FindZero` method, as the
@@ -192,25 +192,25 @@ example, we can see that Dafny knows:
 
 ``` {.editonly}
 lemma SkippingLemma(a: array<int>, j: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   requires 0 <= j < a.Length - 3
-   // Note: the above has been changed so that the array indices below are good.
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires 0 <= j < a.Length - 3
+  // Note: the above has been changed so that the array indices below are good.
 {
-   assert a[j  ] - 1 <= a[j+1];
-   assert a[j+1] - 1 <= a[j+2];
-   assert a[j+2] - 1 <= a[j+3];
-   // therefore:
-   assert a[j  ] - 3 <= a[j+3];
+  assert a[j  ] - 1 <= a[j+1];
+  assert a[j+1] - 1 <= a[j+2];
+  assert a[j+2] - 1 <= a[j+3];
+  // therefore:
+  assert a[j  ] - 3 <= a[j+3];
 }
 ```
 
-```
-   assert a[j  ] - 1 <= a[j+1];
-   assert a[j+1] - 1 <= a[j+2];
-   assert a[j+2] - 1 <= a[j+3];
-   // therefore:
-   assert a[j  ] - 3 <= a[j+3];
+```dafny
+  assert a[j  ] - 1 <= a[j+1];
+  assert a[j+1] - 1 <= a[j+2];
+  assert a[j+2] - 1 <= a[j+3];
+  // therefore:
+  assert a[j  ] - 3 <= a[j+3];
 ```
 
 Thus we can see that Dafny can follow along in any individual step, and can
@@ -225,46 +225,46 @@ of the elements we have seen so far are not zero:
 
 ``` {.editonly}
 lemma SkippingLemma(a: array<int>, j: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   requires 0 <= j < a.Length
-   ensures forall k :: j <= k < j + a[j] && k < a.Length ==> a[k] != 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  requires 0 <= j < a.Length
+  ensures forall k :: j <= k < j + a[j] && k < a.Length ==> a[k] != 0
 {
-   var i := j;
-   while i < j + a[j] && i < a.Length
-      invariant i < a.Length ==> a[j] - (i-j) <= a[i]
-      invariant forall k :: j <= k < i && k < a.Length ==> a[k] != 0
-   {
-      i := i + 1;
-   }
+  var i := j;
+  while i < j + a[j] && i < a.Length
+    invariant i < a.Length ==> a[j] - (i-j) <= a[i]
+    invariant forall k :: j <= k < i && k < a.Length ==> a[k] != 0
+  {
+    i := i + 1;
+  }
 }
 method FindZero(a: array<int>) returns (index: int)
-   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
-   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
-   ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
-   ensures 0 <= index ==> index < a.Length && a[index] == 0
+  requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
+  requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
+  ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
+  ensures 0 <= index ==> index < a.Length && a[index] == 0
 {
-   index := 0;
-   while index < a.Length
-      invariant 0 <= index
-      invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
-   {
-      if a[index] == 0 { return; }
-      SkippingLemma(a, index);
-      index := index + a[index];
-   }
-   index := -1;
+  index := 0;
+  while index < a.Length
+    invariant 0 <= index
+    invariant forall k :: 0 <= k < index && k < a.Length ==> a[k] != 0
+  {
+    if a[index] == 0 { return; }
+    SkippingLemma(a, index);
+    index := index + a[index];
+  }
+  index := -1;
 }
 ```
 
-```
-   var i := j;
-   while i < j + a[j] && i < a.Length
-      invariant i < a.Length ==> a[j] - (i-j) <= a[i]
-      invariant forall k :: j <= k < i && k < a.Length ==> a[k] != 0
-   {
-      i := i + 1;
-   }
+```dafny
+  var i := j;
+  while i < j + a[j] && i < a.Length
+    invariant i < a.Length ==> a[j] - (i-j) <= a[i]
+    invariant forall k :: j <= k < i && k < a.Length ==> a[k] != 0
+  {
+    i := i + 1;
+  }
 ```
 
 The first invariant gives the bound on the current element, if we haven't
@@ -295,29 +295,29 @@ We will count the number of `true`s in a sequence of
 ``` {.editonly}
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+  (if a[0] then 1 else 0) + count(a[1..])
 }
 method m()
 {
-   assert count([]) == 0;
-   assert count([true]) == 1;
-   assert count([false]) == 0;
-   assert count([true, true]) == 2;
+  assert count([]) == 0;
+  assert count([true]) == 1;
+  assert count([false]) == 0;
+  assert count([true, true]) == 2;
 }
 ```
 
-```
+```dafny
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+  (if a[0] then 1 else 0) + count(a[1..])
 }
 ...
-   assert count([]) == 0;
-   assert count([true]) == 1;
-   assert count([false]) == 0;
-   assert count([true, true]) == 2;
+  assert count([]) == 0;
+  assert count([true]) == 1;
+  assert count([false]) == 0;
+  assert count([true, true]) == 2;
 ...
 ```
 
@@ -327,7 +327,7 @@ to requiring lemmas. There is a desirable property of count that we would like t
 able to use in verifying a program that uses this function: it distributes
 over addition. By this we mean:
 
-```
+```dafny
 forall a, b :: count(a + b) == count(a) + count(b)
 ```
 
@@ -357,19 +357,19 @@ as follows:
 
 ``` {.editonly}
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
-   ensures count(a + b) == count(a) + count(b)
+  ensures count(a + b) == count(a) + count(b)
 {
 }
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+  (if a[0] then 1 else 0) + count(a[1..])
 }
 ```
 
-```
+```dafny
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
-   ensures count(a + b) == count(a) + count(b)
+  ensures count(a + b) == count(a) + count(b)
 {
 }
 ```
@@ -391,38 +391,32 @@ proof of the desirable property is given using asserts below.
 
 ``` {.editonly}
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
-   ensures count(a + b) == count(a) + count(b)
+  ensures count(a + b) == count(a) + count(b)
 {
-   if a == []
-   {
-      assert a + b == b;
-      assert count(a) == 0;
-      assert count(a + b) == count(b);
-      assert count(a + b) == count(a) + count(b);
-   }
-   else
-   {
-      //...
-   }
+  if a == [] {
+    assert a + b == b;
+    assert count(a) == 0;
+    assert count(a + b) == count(b);
+    assert count(a + b) == count(a) + count(b);
+  } else {
+    //...
+  }
 }
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0
+  else (if a[0] then 1 else 0) + count(a[1..])
 }
 ```
 
-```
-if a == []
-{
-   assert a + b == b;
-   assert count(a) == 0;
-   assert count(a + b) == count(b);
-   assert count(a + b) == count(a) + count(b);
-}
-else
-{
-   ...
+```dafny
+if a == [] {
+  assert a + b == b;
+  assert count(a) == 0;
+  assert count(a + b) == count(b);
+  assert count(a + b) == count(a) + count(b);
+} else {
+  ...
 }
 ```
 
@@ -440,18 +434,18 @@ is not the empty sequence, then when we employ our trick of following the defini
 ``` {.editonly}
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+    (if a[0] then 1 else 0) + count(a[1..])
 }
 method m2(a: seq<bool>, b:seq<bool>)
-   requires |a| > 0
+  requires |a| > 0
 {
-   assert a + b == [a[0]] + (a[1..] + b);
-   assert count(a + b) == count([a[0]]) + count(a[1..] + b);
+  assert a + b == [a[0]] + (a[1..] + b);
+  assert count(a + b) == count([a[0]]) + count(a[1..] + b);
 }
 ```
 
-```
+```dafny
   assert a + b == [a[0]] + (a[1..] + b);
   assert count(a + b) == count([a[0]]) + count(a[1..] + b);
 ```
@@ -461,27 +455,27 @@ if we expanded `count(a)`. Specifically:
 
 ``` {.editonly}
 method m2(a: seq<bool>, b:seq<bool>)
-   requires |a| > 0
+  requires |a| > 0
 {
-   assert count(a) == count([a[0]]) + count(a[1..]);
+  assert count(a) == count([a[0]]) + count(a[1..]);
 }
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+    (if a[0] then 1 else 0) + count(a[1..])
 }
 ```
 
-```
-   assert count(a) == count([a[0]]) + count(a[1..]);
+```dafny
+  assert count(a) == count([a[0]]) + count(a[1..]);
 ```
 
 Finally, we can substitute this definition for `count(a)` into the postcondition
 to get:
 
-```
-   assert count(a + b) == count(a) + count(b); // postcondition
-   assert count(a + b) == count([a[0]]) + count(a[1..]) + count(b);
+```dafny
+  assert count(a + b) == count(a) + count(b); // postcondition
+  assert count(a + b) == count([a[0]]) + count(a[1..]) + count(b);
 ```
 
 Now this looks very similar to the expression we got after expanding `count(a + b)`.
@@ -522,35 +516,29 @@ if statement:
 
 ``` {.editonly}
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
-   ensures count(a + b) == count(a) + count(b)
+  ensures count(a + b) == count(a) + count(b)
 {
-   if a == []
-   {
-      assert a + b == b;
-   }
-   else
-   {
-      DistributiveLemma(a[1..], b);
-      assert a + b == [a[0]] + (a[1..] + b);
-   }
+  if a == [] {
+    assert a + b == b;
+  } else {
+    DistributiveLemma(a[1..], b);
+    assert a + b == [a[0]] + (a[1..] + b);
+  }
 }
 function count(a: seq<bool>): nat
 {
-   if |a| == 0 then 0 else
-   (if a[0] then 1 else 0) + count(a[1..])
+  if |a| == 0 then 0 else
+    (if a[0] then 1 else 0) + count(a[1..])
 }
 ```
 
-```
-   if a == []
-   {
-      assert a + b == b;
-   }
-   else
-   {
-      DistributiveLemma(a[1..], b);
-      assert a + b == [a[0]] + (a[1..] + b);
-   }
+```dafny
+  if a == [] {
+    assert a + b == b;
+  } else {
+     DistributiveLemma(a[1..], b);
+     assert a + b == [a[0]] + (a[1..] + b);
+  }
 ```
 
 Now the lemma verifies. But what if we wanted to express that every pair of sequences is related in
@@ -565,23 +553,23 @@ A directed graph is composed
 of a number of `Node`s, each with some links to other `Node`s. These links are single directional,
 and the only restriction on them is that a node cannot link to itself. Nodes are defined as:
 
-```
+```dafny
 class Node
 {
-   // a single field giving the nodes linked to
-   var next: seq<Node>
+  // a single field giving the nodes linked to
+  var next: seq<Node>
 }
 ```
 
 We represent a graph as a set of Nodes that only point to other nodes in the graph, and not to itself.
 We call such a set of nodes *closed*:
 
-```
+```dafny
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==>
-      forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==>
+    forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
@@ -589,22 +577,22 @@ We represent a path as a nonempty sequence of nodes, where each node is linked t
 path. We define two predicates, one that defines a valid path, and another that determines whether the given
 path is a valid one between two specific nodes in the graph:
 
-```
+```dafny
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+  start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+  path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 ```
 
@@ -615,46 +603,46 @@ to a node outside this sub-graph. We will call this fact the Closed Lemma, which
 
 ``` {.editonly}
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-   //...
+  //...
 }
 class Node
 {
-   var next: seq<Node>
+  var next: seq<Node>
 }
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+  start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+  path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
-```
+```dafny
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-   ...
+  ...
 }
 ```
 
@@ -671,46 +659,46 @@ The disproof of a path lemma looks like:
 ``` {.editonly}
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !pathSpecific(p, root, goal, graph)
 {
 }
 class Node
 {
-   var next: seq<Node>
+  var next: seq<Node>
 }
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+  start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+  path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
-```
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !pathSpecific(p, root, goal, graph)
 {
-   ...
+  ...
 }
 ```
 
@@ -720,56 +708,56 @@ which aggregates the effect of its body for all values of the given bound variab
 
 ``` {.editonly}
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-   forall p {
-      DisproofLemma(p, subgraph, root, goal, graph);
-   }
+  forall p {
+    DisproofLemma(p, subgraph, root, goal, graph);
+  }
 }
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !pathSpecific(p, root, goal, graph)
 {
 }
 class Node
 {
-   var next: seq<Node>
+  var next: seq<Node>
 }
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+    start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+    path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
-```
+```dafny
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
-   ...
-   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+  ...
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-   forall p {
-      DisproofLemma(p, subgraph, root, goal, graph);
-   }
+  forall p {
+    DisproofLemma(p, subgraph, root, goal, graph);
+  }
 }
 ```
 
@@ -786,45 +774,45 @@ we can temporarily put preconditions on our lemma as follows:
 ``` {.editonly}
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   requires |p| < 2 || p[0] != root || p[|p|-1] != goal
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  requires |p| < 2 || p[0] != root || p[|p|-1] != goal
+  ensures !pathSpecific(p, root, goal, graph)
 {
 }
 class Node
 {
-   var next: seq<Node>
+  var next: seq<Node>
 }
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+    start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+    path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
-```
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires ...  // as before
-   requires |p| < 2 || p[0] != root || p[|p|-1] != goal
-   ...
+  requires ...  // as before
+  requires |p| < 2 || p[0] != root || p[|p|-1] != goal
+  ...
 {
 }
 ```
@@ -835,10 +823,10 @@ which means that Dafny is able to prove the postcondition in these circumstances
 prove that the path is invalid when these conditions do not hold. We can use an `if` statement to express
 this:
 
-```
-   if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-      (further proof)
-   }
+```dafny
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  (further proof)
+}
 ```
 
 If the path is at least two elements long, the first element is `root`, and the last is
@@ -857,12 +845,12 @@ counting example, Dafny can see that if the first to second node link is not val
 cannot be a path because this mirrors the definition of `path`. Thus we only have further work to do
 if the first link is valid. We can express this with another `if` statement:
 
-```
-   if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-      if p[1] in p[0].next {
-         (yet further proof)
-      }
-   }
+```dafny
+if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+  if p[1] in p[0].next {
+    (yet further proof)
+  }
+}
 ```
 
 Here comes the induction. We know that `p[0] == root` and `p[1] in p[0].next`. We also know from
@@ -875,64 +863,64 @@ is satisfied. This can be implemented as:
 ``` {.editonly}
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !pathSpecific(p, root, goal, graph)
 {
-   if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-      if p[1] in p[0].next {
-         DisproofLemma(p[1..], subgraph, p[1], goal, graph);
-      }
-   }
+  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+    if p[1] in p[0].next {
+      DisproofLemma(p[1..], subgraph, p[1], goal, graph);
+    }
+  }
 }
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-   forall p {
-      DisproofLemma(p, subgraph, root, goal, graph);
-   }
+  forall p {
+    DisproofLemma(p, subgraph, root, goal, graph);
+  }
 }
 class Node
 {
-   var next: seq<Node>
+  var next: seq<Node>
 }
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
-   requires closed(graph)
-   reads graph
+  requires closed(graph)
+  reads graph
 {
-   0 < |p| && // path is nonempty
-   start == p[0] && end == p[|p|-1] && // it starts and ends correctly
-   path(p, graph) // and it is a valid path
+  0 < |p| && // path is nonempty
+    start == p[0] && end == p[|p|-1] && // it starts and ends correctly
+    path(p, graph) // and it is a valid path
 }
 predicate path(p: seq<Node>, graph: set<Node>)
-   requires closed(graph) && 0 < |p|
-   reads graph
+  requires closed(graph) && 0 < |p|
+  reads graph
 {
-   p[0] in graph &&
-   (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-      path(p[1..], graph)) // and the rest of the sequence is a valid
+  p[0] in graph &&
+    (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
+     path(p[1..], graph)) // and the rest of the sequence is a valid
 }
 predicate closed(graph: set<Node>)
-   reads graph
+  reads graph
 {
-   forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+  forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
 
-```
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
-   requires closed(subgraph) && closed(graph) && subgraph <= graph
-   requires root in subgraph && goal in graph - subgraph
-   ensures !pathSpecific(p, root, goal, graph)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !pathSpecific(p, root, goal, graph)
 {
-   if 1 < |p| && p[0] == root && p[|p|-1] == goal {
-      if p[1] in p[0].next {
-         DisproofLemma(p[1..], subgraph, p[1], goal, graph);
-      }
-   }
+  if 1 < |p| && p[0] == root && p[|p|-1] == goal {
+    if p[1] in p[0].next {
+      DisproofLemma(p[1..], subgraph, p[1], goal, graph);
+    }
+  }
 }
 ```
 

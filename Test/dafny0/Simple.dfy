@@ -11,7 +11,7 @@ class MyClass<T,U> {
     requires s;
     modifies this, lotsaObjects;
     ensures t == t;
-    ensures old(null) != this;
+    ensures old(null) != this; // warning: old(null) is the same as null
   {
     x := 12;
     while (x < 100)
