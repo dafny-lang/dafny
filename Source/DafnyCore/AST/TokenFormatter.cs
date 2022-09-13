@@ -28,7 +28,7 @@ public class HelperString {
   }
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|// ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|///? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 }
 
 public class IndentationFormatter : TokenFormatter.ITokenIndentations {
@@ -170,24 +170,29 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
 
         if (commentType.StartsWith("//")) {
-          if (previousMatchWasSingleLineCommentToAlign) {
-            if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
-              return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
+          if (commentType.StartsWith("///")) { // No indentation
+            return match.Groups["commentType"].Value;
+          } else {
+            if (previousMatchWasSingleLineCommentToAlign) {
+              if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
+                return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
+              }
             }
-          }
 
-          var referenceToken = token.Next;
-          if (match.Groups["caseCommented"].Success && token.Next != null &&
+            var referenceToken = token.Next;
+            if (match.Groups["caseCommented"].Success && token.Next != null &&
                 (token.Next.val == match.Groups["caseCommented"].Value ||
                  FirstTokenOnLineIs(token, t => {
                    referenceToken = t;
                    return t.val == match.Groups["caseCommented"].Value;
                  })
-                 )) {
-            indentationBefore = new string(' ', GetNewTokenCol(referenceToken, indentationBefore.Length) - 1);
+                )) {
+              indentationBefore = new string(' ', GetNewTokenCol(referenceToken, indentationBefore.Length) - 1);
+            }
+
+            previousMatchWasSingleLineCommentToAlign = false;
           }
 
-          previousMatchWasSingleLineCommentToAlign = false;
           return indentationBefore + match.Groups["commentType"].Value;
         }
 

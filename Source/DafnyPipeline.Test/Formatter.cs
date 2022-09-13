@@ -1533,6 +1533,24 @@ function f(x: int): (y: int)
     }
 
     [Fact]
+    public void FormatterWorksForTutorialStyle() {
+      FormatterWorksFor(@"
+/// Tutorial style
+
+abstract module C {
+
+/// Now we want this
+
+  const x := 1
+
+/// And then that
+ 
+  const y := 2
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
