@@ -379,7 +379,9 @@ class A {
 ```
 
 There's (unfortunately) no form of it for array
-elements, and a ``FrameField`` is not taken into consideration for
+elements -- but to account for unchanged elements, you can always write
+`forall i | 0 <= i < |a| :: unchanged(a[i])`.
+A ``FrameField`` is not taken into consideration for
 lambda expressions.
 
 ### 5.1.5. Reads Clause {#sec-reads-clause}
