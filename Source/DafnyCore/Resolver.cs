@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
   public partial class Resolver {
     readonly BuiltIns builtIns;
 
-    ErrorReporter reporter;
+    public ErrorReporter reporter;
     ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
@@ -212,7 +212,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
       new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
 
-    readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors =
+    public readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors =
       new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
 
     enum ValuetypeVariety {
@@ -4369,7 +4369,7 @@ namespace Microsoft.Dafny {
       return proxy;
     }
 
-    private bool ConstrainSubtypeRelation(Type super, Type sub, Expression exprForToken, string msg, params object[] msgArgs) {
+    public bool ConstrainSubtypeRelation(Type super, Type sub, Expression exprForToken, string msg, params object[] msgArgs) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(exprForToken != null);
@@ -4382,7 +4382,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);  // expected to have a {0} part
       ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
     }
-    private bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
+
+    public bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(tok != null);
@@ -5571,7 +5572,7 @@ namespace Microsoft.Dafny {
     /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
     /// appropriate for the partial solving that's done before a member lookup.
     /// </summary>
-    void PartiallySolveTypeConstraints(bool allowDecisions) {
+    public void PartiallySolveTypeConstraints(bool allowDecisions) {
       int state = 0;
       while (true) {
         if (2 <= state && !allowDecisions) {
@@ -9193,7 +9194,7 @@ namespace Microsoft.Dafny {
     TopLevelDeclWithMembers currentClass;
     Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
-    readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
+    public readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
     readonly Scope<Label>/*!*/ dominatingStatementLabels = new Scope<Label>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
@@ -10011,7 +10012,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext) {
+    public void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext) {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(attributeHost != null);
 
@@ -10779,31 +10780,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// If ResolveType/ResolveTypeLenient encounters a (datatype or class) type "C" with no supplied arguments, then
-    /// the ResolveTypeOption says what to do.  The last three options take a List as a parameter, which (would have
-    /// been supplied as an argument if C# had datatypes instead of just enums, but since C# doesn't) is supplied
-    /// as another parameter (called 'defaultTypeArguments') to ResolveType/ResolveTypeLenient.
-    /// </summary>
-    public enum ResolveTypeOptionEnum {
-      /// <summary>
-      /// never infer type arguments
-      /// </summary>
-      DontInfer,
-      /// <summary>
-      /// create a new InferredTypeProxy type for each needed argument
-      /// </summary>
-      InferTypeProxies,
-      /// <summary>
-      /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
-      /// </summary>
-      AllowPrefix,
-      /// <summary>
-      /// same as AllowPrefix, but if more than defaultTypeArguments.Count type arguments are needed, first
-      /// extend defaultTypeArguments to a sufficient length
-      /// </summary>
-      AllowPrefixExtend,
-    }
 
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
@@ -12786,7 +12762,7 @@ namespace Microsoft.Dafny {
     // 3* - An IdPattern at tuple type representing a tuple
     // 3 - An IdPattern at datatype type representing a constructor of type
     // 4 - An IdPattern at datatype type with no arguments representing a bound variable
-    private void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, ResolutionContext resolutionContext) {
+    public void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, ResolutionContext resolutionContext) {
       if (type == null) {
         return;
       }
@@ -12904,56 +12880,6 @@ namespace Microsoft.Dafny {
 
     private void CheckLinearNestedMatchCase(Type type, NestedMatchCase mc, ResolutionContext resolutionContext) {
       CheckLinearExtendedPattern(type, mc.Pat, resolutionContext);
-    }
-
-    /*
-    *  Ensures that all ExtendedPattern held in NestedMatchCase are linear
-    *  Uses provided type to determine if IdPatterns are datatypes (of the provided type) or variables
-    */
-    private void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me, ResolutionContext resolutionContext) {
-      foreach (NestedMatchCaseExpr mc in me.Cases) {
-        scope.PushMarker();
-        ResolveAttributes(mc, resolutionContext);
-        CheckLinearNestedMatchCase(dtd, mc, resolutionContext);
-        foreach (BoundVar v in mc.Pat.BoundVars) {
-          scope.Push(v.Name, v);
-          ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-        }
-        
-        int i = 0;
-        if (mc.Arguments != null) {
-          foreach (BoundVar v in mc.Arguments) {
-            scope.Push(v.Name, v);
-            ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (i < mc.Ctor.Formals.Count) {
-              Formal formal = mc.Ctor.Formals[i];
-              Type st = SubstType(formal.Type, subst);
-              ConstrainSubtypeRelation(v.Type, st, me,
-                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              v.IsGhost = formal.IsGhost;
-
-              // update the type of the boundvars in the MatchCaseToken
-              if (v.tok is MatchCaseToken) {
-                MatchCaseToken mt = (MatchCaseToken)v.tok;
-                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
-                }
-              }
-            }
-            i++;
-          }
-        }
-        if (debug) {
-          Console.WriteLine("DEBUG: {1} ResolvedMatchExpr - Resolving Body: {0}", Printer.ExprToString(mc.Body), mc.Body.tok.line);
-        }
-
-        ResolveExpression(mc.Body, resolutionContext);
-
-        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
-
-        scope.PopMarker();
-      }
     }
 
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolutionContext resolutionContext) {
@@ -14079,7 +14005,7 @@ namespace Microsoft.Dafny {
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
+    public Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -14523,7 +14449,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// If the substitution has no effect, the return value is pointer-equal to 'type'
     /// </summary>
-    public static Type SubstType(Type type, Dictionary<TypeParameter, Type> subst) {
+    public static Type SubstType(Type type, IDictionary<TypeParameter, Type> subst) {
       Contract.Requires(type != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(subst));
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -14728,41 +14654,6 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
-      bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
-
-      // Invariants:
-      // InOld implies !IsTwoState
-      // InFirstPhaseConstructor implies codeContext is Constructor
-
-      public bool IsGhost => CodeContext.IsGhost;
-
-      public ResolutionContext(ICodeContext codeContext, bool isTwoState)
-        : this(codeContext, isTwoState, false, false, false, false) {
-      }
-
-      /// <summary>
-      /// Return a ResolutionContext appropriate for the body of "codeContext".
-      /// </summary>
-      public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
-        bool isTwoState;
-        if (codeContext is NoContext || codeContext is DatatypeDecl) {
-          isTwoState = false;
-        } else if (codeContext is Function && !(codeContext is TwoStateFunction)) {
-          isTwoState = false;
-        } else {
-          isTwoState = true;
-        }
-        return new ResolutionContext(codeContext, isTwoState);
-      }
-
-      public ResolutionContext WithGhost(bool isGhost) {
-        if (CodeContext.IsGhost == isGhost) {
-          return this;
-        }
-        return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-      }
-    }
 
     /// <summary>
     /// "IsTwoState" implies that "old" and "fresh" expressions are allowed.
@@ -15883,42 +15774,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(me.ResolvedExpression == null);
 
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
-
-      ResolveExpression(me.Source, resolutionContext);
-      Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-
-      if (me.Source.Type is TypeProxy) {
-        PartiallySolveTypeConstraints(true);
-        if (debug) {
-          Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(me.Source), me.Source.Type.ToString());
-        }
-
-        if (me.Source.Type is TypeProxy) {
-          reporter.Error(MessageSource.Resolver, me.tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
-          return;
-        }
-      }
-
       var errorCount = reporter.Count(ErrorLevel.Error);
-      var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
+      me.Resolve(this, resolutionContext);
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
-      }
-
-      errorCount = reporter.Count(ErrorLevel.Error);
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  1 - Checking Linearity of patterns", me.tok.line);
-      }
-
-      CheckLinearNestedMatchExpr(sourceType, me, resolutionContext);
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
-
-      errorCount = reporter.Count(ErrorLevel.Error);
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  2 - Compiling Nested Match", me.tok.line);
       }
 
       CompileNestedMatchExpr(me, resolutionContext);
@@ -15926,12 +15785,9 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  3 - Resolving Expression", me.tok.line);
-      }
-
       ResolveExpression(me.ResolvedExpression, resolutionContext);
 
+      bool debug = DafnyOptions.O.MatchCompilerDebug;
       if (debug) {
         Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr   DONE");
       }
@@ -18081,103 +17937,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class Scope<Thing> where Thing : class {
-    [Rep]
-    readonly List<string> names = new List<string>();  // a null means a marker
-    [Rep]
-    readonly List<Thing> things = new List<Thing>();
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(names != null);
-      Contract.Invariant(things != null);
-      Contract.Invariant(names.Count == things.Count);
-      Contract.Invariant(-1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count);
-    }
-
-    int scopeSizeWhereInstancesWereDisallowed = -1;
-
-    public bool AllowInstance {
-      get { return scopeSizeWhereInstancesWereDisallowed == -1; }
-      set {
-        Contract.Requires(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
-        scopeSizeWhereInstancesWereDisallowed = names.Count;
-      }
-    }
-
-    public void PushMarker() {
-      names.Add(null);
-      things.Add(null);
-    }
-
-    public void PopMarker() {
-      int n = names.Count;
-      while (true) {
-        n--;
-        if (names[n] == null) {
-          break;
-        }
-      }
-      names.RemoveRange(n, names.Count - n);
-      things.RemoveRange(n, things.Count - n);
-      if (names.Count < scopeSizeWhereInstancesWereDisallowed) {
-        scopeSizeWhereInstancesWereDisallowed = -1;
-      }
-    }
-
-    public enum PushResult { Duplicate, Shadow, Success }
-
-    /// <summary>
-    /// Pushes name-->thing association and returns "Success", if name has not already been pushed since the last marker.
-    /// If name already has been pushed since the last marker, does nothing and returns "Duplicate".
-    /// If the appropriate command-line option is supplied, then this method will also check if "name" shadows a previous
-    /// name; if it does, then it will return "Shadow" instead of "Success".
-    /// </summary>
-    public PushResult Push(string name, Thing thing) {
-      Contract.Requires(name != null);
-      Contract.Requires(thing != null);
-      if (Find(name, true) != null) {
-        return PushResult.Duplicate;
-      } else {
-        var r = PushResult.Success;
-        if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
-          r = PushResult.Shadow;
-        }
-        names.Add(name);
-        things.Add(thing);
-        return r;
-      }
-    }
-
-    Thing Find(string name, bool topScopeOnly) {
-      Contract.Requires(name != null);
-      for (int n = names.Count; 0 <= --n;) {
-        if (names[n] == null) {
-          if (topScopeOnly) {
-            return null;  // not present
-          }
-        } else if (names[n] == name) {
-          Thing t = things[n];
-          Contract.Assert(t != null);
-          return t;
-        }
-      }
-      return null;  // not present
-    }
-
-    public Thing Find(string name) {
-      Contract.Requires(name != null);
-      return Find(name, false);
-    }
-
-    public Thing FindInCurrentScope(string name) {
-      Contract.Requires(name != null);
-      return Find(name, true);
-    }
-
-    public bool ContainsDecl(Thing t) {
-      return things.Exists(thing => thing == t);
-    }
-  }
 
 
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
@@ -18287,6 +18046,166 @@ namespace Microsoft.Dafny {
         }
       }
       return base.Traverse(e, field, parent);
+    }
+  }
+  
+  public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
+    bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
+
+    // Invariants:
+    // InOld implies !IsTwoState
+    // InFirstPhaseConstructor implies codeContext is Constructor
+
+    public bool IsGhost => CodeContext.IsGhost;
+
+    public ResolutionContext(ICodeContext codeContext, bool isTwoState)
+      : this(codeContext, isTwoState, false, false, false, false) {
+    }
+
+    /// <summary>
+    /// Return a ResolutionContext appropriate for the body of "codeContext".
+    /// </summary>
+    public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
+      bool isTwoState;
+      if (codeContext is NoContext || codeContext is DatatypeDecl) {
+        isTwoState = false;
+      } else if (codeContext is Function && !(codeContext is TwoStateFunction)) {
+        isTwoState = false;
+      } else {
+        isTwoState = true;
+      }
+      return new ResolutionContext(codeContext, isTwoState);
+    }
+
+    public ResolutionContext WithGhost(bool isGhost) {
+      if (CodeContext.IsGhost == isGhost) {
+        return this;
+      }
+      return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
+    }
+  }
+  
+  /// <summary>
+  /// If ResolveType/ResolveTypeLenient encounters a (datatype or class) type "C" with no supplied arguments, then
+  /// the ResolveTypeOption says what to do.  The last three options take a List as a parameter, which (would have
+  /// been supplied as an argument if C# had datatypes instead of just enums, but since C# doesn't) is supplied
+  /// as another parameter (called 'defaultTypeArguments') to ResolveType/ResolveTypeLenient.
+  /// </summary>
+  public enum ResolveTypeOptionEnum {
+    /// <summary>
+    /// never infer type arguments
+    /// </summary>
+    DontInfer,
+    /// <summary>
+    /// create a new InferredTypeProxy type for each needed argument
+    /// </summary>
+    InferTypeProxies,
+    /// <summary>
+    /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
+    /// </summary>
+    AllowPrefix,
+    /// <summary>
+    /// same as AllowPrefix, but if more than defaultTypeArguments.Count type arguments are needed, first
+    /// extend defaultTypeArguments to a sufficient length
+    /// </summary>
+    AllowPrefixExtend,
+  }
+  
+  public class Scope<Thing> where Thing : class {
+    [Rep]
+    readonly List<string> names = new List<string>();  // a null means a marker
+    [Rep]
+    readonly List<Thing> things = new List<Thing>();
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(names != null);
+      Contract.Invariant(things != null);
+      Contract.Invariant(names.Count == things.Count);
+      Contract.Invariant(-1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count);
+    }
+
+    int scopeSizeWhereInstancesWereDisallowed = -1;
+
+    public bool AllowInstance {
+      get { return scopeSizeWhereInstancesWereDisallowed == -1; }
+      set {
+        Contract.Requires(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
+        scopeSizeWhereInstancesWereDisallowed = names.Count;
+      }
+    }
+
+    public void PushMarker() {
+      names.Add(null);
+      things.Add(null);
+    }
+
+    public void PopMarker() {
+      int n = names.Count;
+      while (true) {
+        n--;
+        if (names[n] == null) {
+          break;
+        }
+      }
+      names.RemoveRange(n, names.Count - n);
+      things.RemoveRange(n, things.Count - n);
+      if (names.Count < scopeSizeWhereInstancesWereDisallowed) {
+        scopeSizeWhereInstancesWereDisallowed = -1;
+      }
+    }
+
+    public enum PushResult { Duplicate, Shadow, Success }
+
+    /// <summary>
+    /// Pushes name-->thing association and returns "Success", if name has not already been pushed since the last marker.
+    /// If name already has been pushed since the last marker, does nothing and returns "Duplicate".
+    /// If the appropriate command-line option is supplied, then this method will also check if "name" shadows a previous
+    /// name; if it does, then it will return "Shadow" instead of "Success".
+    /// </summary>
+    public PushResult Push(string name, Thing thing) {
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      if (Find(name, true) != null) {
+        return PushResult.Duplicate;
+      } else {
+        var r = PushResult.Success;
+        if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
+          r = PushResult.Shadow;
+        }
+        names.Add(name);
+        things.Add(thing);
+        return r;
+      }
+    }
+
+    Thing Find(string name, bool topScopeOnly) {
+      Contract.Requires(name != null);
+      for (int n = names.Count; 0 <= --n;) {
+        if (names[n] == null) {
+          if (topScopeOnly) {
+            return null;  // not present
+          }
+        } else if (names[n] == name) {
+          Thing t = things[n];
+          Contract.Assert(t != null);
+          return t;
+        }
+      }
+      return null;  // not present
+    }
+
+    public Thing Find(string name) {
+      Contract.Requires(name != null);
+      return Find(name, false);
+    }
+
+    public Thing FindInCurrentScope(string name) {
+      Contract.Requires(name != null);
+      return Find(name, true);
+    }
+
+    public bool ContainsDecl(Thing t) {
+      return things.Exists(thing => thing == t);
     }
   }
 }

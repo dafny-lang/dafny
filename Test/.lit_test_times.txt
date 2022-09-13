@@ -1,5 +1,5 @@
 2.594176e+00 dafny0/ModuleExport.dfy
-6.145689e-01 exports/DatatypeExport.dfy
+6.739299e-01 exports/DatatypeExport.dfy
 2.569866e+00 dafny0/UserSpecifiedTypeParameters.dfy
 2.419522e+00 git-issues/git-issue-686a.dfy
 1.409896e+01 DafnyTestGeneration/TestGeneration.dfy

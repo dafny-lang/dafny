@@ -3547,6 +3547,9 @@ public abstract class ExtendedPattern : INode {
   public abstract IEnumerable<BoundVar> BoundVars { get; }
   
   public abstract IEnumerable<INode> Children { get; }
+
+  public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
+    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3561,6 +3564,11 @@ public class DisjunctivePattern : ExtendedPattern {
       (a, b) => a.Intersect(b, new IdComparer()));
   
   public override IEnumerable<INode> Children => Alternatives;
+  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext, IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
+    foreach (var alternative in Alternatives) {
+      alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost);
+    }
+  }
 
   class IdComparer : IEqualityComparer<BoundVar> {
     public bool Equals(BoundVar x, BoundVar y) {
@@ -3632,6 +3640,10 @@ public class LitPattern : ExtendedPattern {
   public override IEnumerable<BoundVar> BoundVars => Enumerable.Empty<BoundVar>();
   
   public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override void Resolve(Resolver resolver, 
+    ResolutionContext resolutionContext, 
+    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
+  }
 }
 
 public class IdPattern : ExtendedPattern, IHasUsages {
@@ -3681,6 +3693,27 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     new[] {new BoundVar(Tok, Id, Type)}.Concat(Arguments?.SelectMany(a => a.BoundVars) ?? Enumerable.Empty<BoundVar>());
   
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
+    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
+    
+    var boundVar = new BoundVar(Tok, Id, Type);
+    resolver.scope.Push(Id, boundVar);
+    resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+    Type st = Resolver.SubstType(sourceType, subst);
+        
+    resolver.ConstrainSubtypeRelation(boundVar.Type, st, Tok,
+      "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", boundVar.Type, st);
+    boundVar.IsGhost = isGhost;
+
+    if (Arguments != null && Ctor != null) {
+      for (var index = 0; index < Arguments.Count; index++) {
+        var argument = Arguments[index];
+        var formal = Ctor.Formals[index];
+        argument.Resolve(resolver, resolutionContext, subst, formal.Type, formal.IsGhost);
+      }
+    }
+  }
+
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
   }
@@ -3700,20 +3733,6 @@ public abstract class NestedMatchCase : INode {
   }
 
   public abstract IEnumerable<INode> Children { get; }
-}
-
-public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
-  public readonly Expression Body;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-
-  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = attrs;
-  }
-
-  public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3772,24 +3791,6 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
     this.UsesOptionalBraces = usesOptionalBraces;
     InitializeAttributes();
   }
-}
-
-public class NestedMatchExpr : ConcreteSyntaxExpression {
-  public readonly Expression Source;
-  public readonly List<NestedMatchCaseExpr> Cases;
-  public readonly bool UsesOptionalBraces;
-  public Attributes Attributes;
-
-  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
-    Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
-    this.Source = source;
-    this.Cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Attributes = attrs;
-  }
-
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
