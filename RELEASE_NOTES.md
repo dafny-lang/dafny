@@ -1,4 +1,4 @@
-https://github.com/Dargones/libraries# Upcoming
+Upcoming
 
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
 - feat: generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
