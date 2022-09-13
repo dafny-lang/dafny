@@ -1036,12 +1036,6 @@ namespace Microsoft.Dafny {
     public override BlockStmt CloneMethodBody(Method m) {
       return null;
     }
-
-    public override Function CloneFunction(Function f, string newName = null) {
-      var clone = base.CloneFunction(f, newName);
-      clone.Body = null;
-      return clone;
-    }
   }
 
 
