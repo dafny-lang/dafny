@@ -806,11 +806,21 @@ public abstract class Type {
       return udt?.ResolvedClass as OpaqueTypeDecl;
     }
   }
-  public virtual bool SupportsEquality {
-    get {
-      return true;
-    }
-  }
+
+  /// <summary>
+  /// Returns whether or not any values of the type can be checked for equality in compiled contexts
+  /// </summary>
+  public virtual bool SupportsEquality => true;
+
+  /// <summary>
+  /// Returns whether or not some values of the type can be checked for equality in compiled contexts.
+  /// This differs from SupportsEquality for types where the equality operation is partial, e.g.,
+  /// for datatypes where some, but not all, constructors are ghost.
+  /// Note, whereas SupportsEquality sometimes consults some constituent type for SupportEquality
+  /// (e.g., seq<T> supports equality if T does), PartiallySupportsEquality does not (because the
+  /// semantic check would be more complicated and it currently doesn't seem worth the trouble).
+  /// </summary>
+  public virtual bool PartiallySupportsEquality => SupportsEquality;
 
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
@@ -2472,6 +2482,29 @@ public class UserDefinedType : NonProxyType {
       }
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
+    }
+  }
+
+  public override bool PartiallySupportsEquality {
+    get {
+      var totalEqualitySupport = SupportsEquality;
+      if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
+        // Equality is partially supported for:
+        // an inductive datatype with at least one non-ghost constructor where every argument of a non-ghost constructor
+        // totally supports equality.
+        var hasNonGhostConstructor = false;
+        foreach (var ctor in dt.Ctors) {
+          if (!ctor.IsGhost) {
+            hasNonGhostConstructor = true;
+            if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
+              return false;
+            }
+          }
+        }
+        Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
+        return hasNonGhostConstructor;
+      }
+      return totalEqualitySupport;
     }
   }
 
