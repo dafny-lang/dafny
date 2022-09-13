@@ -172,26 +172,26 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         if (commentType.StartsWith("//")) {
           if (commentType.StartsWith("///")) { // No indentation
             return match.Groups["commentType"].Value;
-          } else {
-            if (previousMatchWasSingleLineCommentToAlign) {
-              if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
-                return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
-              }
-            }
-
-            var referenceToken = token.Next;
-            if (match.Groups["caseCommented"].Success && token.Next != null &&
-                (token.Next.val == match.Groups["caseCommented"].Value ||
-                 FirstTokenOnLineIs(token, t => {
-                   referenceToken = t;
-                   return t.val == match.Groups["caseCommented"].Value;
-                 })
-                )) {
-              indentationBefore = new string(' ', GetNewTokenCol(referenceToken, indentationBefore.Length) - 1);
-            }
-
-            previousMatchWasSingleLineCommentToAlign = false;
           }
+
+          if (previousMatchWasSingleLineCommentToAlign) {
+            if (originalCommentCol == match.Groups["currentIndent"].Value.Length + 1) {
+              return new string(' ', newCommentCol - 1) + match.Groups["commentType"].Value;
+            }
+          }
+
+          var referenceToken = token.Next;
+          if (match.Groups["caseCommented"].Success && token.Next != null &&
+              (token.Next.val == match.Groups["caseCommented"].Value ||
+               FirstTokenOnLineIs(token, t => {
+                 referenceToken = t;
+                 return t.val == match.Groups["caseCommented"].Value;
+               })
+              )) {
+            indentationBefore = new string(' ', GetNewTokenCol(referenceToken, indentationBefore.Length) - 1);
+          }
+
+          previousMatchWasSingleLineCommentToAlign = false;
 
           return indentationBefore + match.Groups["commentType"].Value;
         }
