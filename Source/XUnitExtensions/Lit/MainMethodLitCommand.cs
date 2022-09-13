@@ -21,7 +21,7 @@ namespace XUnitExtensions.Lit {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       if (inputReader != null) {
         Console.SetIn(inputReader);
       }
@@ -39,7 +39,7 @@ namespace XUnitExtensions.Lit {
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {
       var shellArguments = new[] { assembly.Location }.Concat(arguments);
-      return new ShellLitCommand(config, "dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
 
     public override string ToString() {

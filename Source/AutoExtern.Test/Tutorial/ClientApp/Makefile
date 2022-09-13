@@ -1,5 +1,5 @@
 AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj --
-Dafny ?= dotnet run --project ../../../DafnyDriver/DafnyDriver.csproj --
+Dafny ?= dotnet run --project ../../../Dafny/Dafny.csproj --
 
 LibraryProjectFile := ../Library/Library.csproj
 LibrarySourceFile1 := ../Library/Library1.cs
