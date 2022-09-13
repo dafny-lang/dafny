@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
 
       var dafnyOptions = new DafnyOptions();
       var action = DriverAction.Run;
-      if (args[0] == "format") {
+      if (args.Length > 0 && args[0] == "format") {
         action = DriverAction.Format;
         args = args.Skip(1).ToArray();
       }

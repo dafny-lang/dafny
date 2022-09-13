@@ -803,7 +803,7 @@ method comprehensions() {
 
   var a := imap
              t: int ::  t % 2
-                        == 0
+                     == 0
                     := 1;
 
   b := imap

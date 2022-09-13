@@ -1902,6 +1902,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
         Visit(binaryExpr.E0, indent);
         Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + SpaceTab);
+        formatter.SetIndentations(binaryExpr.EndToken, after: indent);
         return false;
       } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
         var itemIndent = formatter.GetNewTokenCol(binaryExpr.E0.StartToken, indent) - 1;
@@ -1914,13 +1915,15 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
             case ">":
             case "<==>":
             case "!=": {
-                formatter.SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
+                var selfIndent = IsFollowedByNewline(token) ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
+                formatter.SetIndentations(token, itemIndent, selfIndent, itemIndent);
                 break;
               }
           }
         }
         Visit(binaryExpr.E0, itemIndent);
         Visit(binaryExpr.E1, itemIndent);
+        formatter.SetIndentations(binaryExpr.EndToken, after: indent);
         return false;
       } else {
         foreach (var token in binaryExpr.OwnedTokens) {
@@ -1928,6 +1931,7 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         }
         Visit(binaryExpr.E0, indent);
         Visit(binaryExpr.E1, indent);
+        formatter.SetIndentations(binaryExpr.EndToken, after: indent);
         return false;
       }
     }
