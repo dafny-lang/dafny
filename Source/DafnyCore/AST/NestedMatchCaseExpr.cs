@@ -18,10 +18,12 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
   public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 
-  public void Resolve(Resolver resolver, ResolutionContext resolutionContext, Dictionary<TypeParameter, Type> subst,
+  public void Resolve(
+    Resolver resolver,
+    ResolutionContext resolutionContext,
+    Dictionary<TypeParameter, Type> subst,
     Type caseType,
     Type sourceType) {
-    resolver.CheckLinearExtendedPattern(sourceType, Pat, resolutionContext);
     var errorCount = resolver.reporter.ErrorCount;
     Pat.Resolve(resolver, resolutionContext, subst, sourceType, false); // TODO: is this false correct?
     resolver.ResolveAttributes(this, resolutionContext);

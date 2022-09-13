@@ -4498,7 +4498,7 @@ namespace Microsoft.Dafny {
     /// more specific) and returns "false".
     /// Note, if in doubt, this method can return "true", because the constraints will be checked for sure at a later stage.
     /// </summary>
-    private bool ConstrainSubtypeRelation(Type super, Type sub, TypeConstraint.ErrorMsg errMsg, bool keepConstraints = false, bool allowDecisions = false) {
+    public bool ConstrainSubtypeRelation(Type super, Type sub, TypeConstraint.ErrorMsg errMsg, bool keepConstraints = false, bool allowDecisions = false) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(errMsg != null);
@@ -12882,6 +12882,19 @@ namespace Microsoft.Dafny {
       CheckLinearExtendedPattern(type, mc.Pat, resolutionContext);
     }
 
+    /*
+    *  Ensures that all ExtendedPattern held in NestedMatchCase are linear
+    *  Uses provided type to determine if IdPatterns are datatypes (of the provided type) or variables
+    */
+    public void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me, ResolutionContext resolutionContext) {
+      foreach (NestedMatchCaseExpr mc in me.Cases) {
+        scope.PushMarker();
+        ResolveAttributes(mc, resolutionContext);
+        CheckLinearNestedMatchCase(dtd, mc, resolutionContext);
+        scope.PopMarker();
+      }
+    }
+
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolutionContext resolutionContext) {
       foreach (NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
@@ -18048,7 +18061,7 @@ namespace Microsoft.Dafny {
       return base.Traverse(e, field, parent);
     }
   }
-  
+
   public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
     bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
 
@@ -18084,7 +18097,7 @@ namespace Microsoft.Dafny {
       return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
     }
   }
-  
+
   /// <summary>
   /// If ResolveType/ResolveTypeLenient encounters a (datatype or class) type "C" with no supplied arguments, then
   /// the ResolveTypeOption says what to do.  The last three options take a List as a parameter, which (would have
@@ -18110,7 +18123,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     AllowPrefixExtend,
   }
-  
+
   public class Scope<Thing> where Thing : class {
     [Rep]
     readonly List<string> names = new List<string>();  // a null means a marker

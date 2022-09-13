@@ -2571,7 +2571,11 @@ public class UserDefinedType : NonProxyType, INode {
 }
 
 public abstract class TypeProxy : Type {
-  [FilledInDuringResolution] public Type T;
+  [FilledInDuringResolution]
+  public Type T {
+    get;
+    set;
+  }
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
   public IEnumerable<Type> Supertypes {

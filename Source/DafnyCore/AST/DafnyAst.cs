@@ -19,7 +19,7 @@ using System.Threading;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public interface IHasUsages : IDeclarationOrUsage {

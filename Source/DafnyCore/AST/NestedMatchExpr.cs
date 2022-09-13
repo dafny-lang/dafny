@@ -21,11 +21,11 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
   }
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
-  
+
   public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
-    
+
     resolver.ResolveExpression(Source, resolutionContext);
-    
+
     bool debug = DafnyOptions.O.MatchCompilerDebug;
     if (Source.Type is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
@@ -38,20 +38,21 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
         return;
       }
     }
-    
+
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
     var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }
-    
+
+    resolver.CheckLinearNestedMatchExpr(sourceType, this, resolutionContext);
     if (debug) {
       Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  1 - Checking Linearity of patterns", tok.line);
     }
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }
-    
+
     var dtd = sourceType.AsDatatype;
     var subst = new Dictionary<TypeParameter, Type>();
     Dictionary<string, DatatypeCtor> ctors;

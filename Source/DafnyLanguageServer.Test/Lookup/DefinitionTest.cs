@@ -43,7 +43,7 @@ method HasLoop() {
       var whileReference = (await RequestDefinition(documentItem, (4, 8)).AsTask()).Single();
       Assert.AreEqual(new Range((2, 2), (2, 7)), whileReference.Location!.Range);
     }
-    
+
     [TestMethod]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
