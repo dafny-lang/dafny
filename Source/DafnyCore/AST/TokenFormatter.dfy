@@ -78,13 +78,13 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
   import opened SpecShouldNotCompile
 
   trait {:extern "IToken"} {:compile false} IToken {
-    const val : CsString
-    const LeadingTrivia: CsString
-    const TrailingTrivia: CsString
-    ghost const remainingTokens: nat
-    const Next: IToken?
+    var val : CsString
+    var LeadingTrivia: CsString
+    var TrailingTrivia: CsString
+    ghost var remainingTokens: nat
+    var Next: IToken?
     
-    ghost predicate Valid() decreases remainingTokens {
+    ghost predicate Valid() reads * decreases remainingTokens {
       if Next == null then
         remainingTokens == 0
       else
@@ -92,25 +92,16 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
         && Next.remainingTokens == remainingTokens - 1
         && Next.Valid()
     }
-    lemma NextHasRemainingTokens()
+    ghost function AllTokens(): (r: seq<IToken>) reads *
       requires Valid()
-      ensures Next != null ==> AllTokens().Drop(1) == Next.AllTokens();
-    {
-      if Next != null {
-        assert AllTokens().Drop(1) == Next.AllTokens();
-      }
-    }
-    ghost function AllTokens(): (r: List<IToken>) reads *
-      requires Valid()
-      ensures r.TokenCons?
-      ensures r.Forall((tok: IToken) => tok.Valid())
+      ensures forall tok <- r :: tok.Valid()
       //ensures allocated(r)
       decreases remainingTokens
     {
-      if Next == null then TokenCons(this, TokenNil) else
-        TokenCons(this, this.Next.AllTokens())
+      if Next == null then [this] else
+        [this] + this.Next.AllTokens()
     }
-    /*lemma AlltokenSpec(i: int)
+    lemma AlltokenSpec(i: int)
       requires Valid()
       decreases remainingTokens
       requires 0 <= i < |this.AllTokens()|
@@ -121,8 +112,8 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       } else {
         this.Next.AlltokenSpec(i - 1);
       }
-    }*/
-    /*lemma TokenSuccessive(middle: IToken, i: int)
+    }
+    lemma TokenSuccessive(middle: IToken, i: int)
       requires Valid()
       requires middle.Next != null
       requires 0 <= i < |AllTokens()|
@@ -133,38 +124,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       } else {
         this.Next.TokenSuccessive(middle, i - 1);
       }
-    }*/
-    /*lemma AllTokensSuffix(token: IToken, i: int)
-      requires Valid()
-      requires 0 <= i < |this.AllTokens()|
-      requires var token := this.AllTokens()[i];
-               token.Next != null
-      ensures i + 1 < |this.AllTokens()|
-      ensures var token := this.AllTokens()[i];
-              token.Next == this.AllTokens()[i + 1]
-    {
-      var token := this.AllTokens()[i];
-      assert token.Next != null;
-      if Next != null {
-        //AllTokensSuffix(token.Next, i - 1);
-        calc {
-          this.AllTokens();
-          [this] + this.Next.AllTokens();
-        }
-        assert i + 1 < |this.AllTokens()|;
-        assert token.Next == this.AllTokens()[i + 1];
-      } else {
-
-      }
     }
-    ghost function AllTokensUntil(other: IToken): seq<IToken> reads *
-      requires Valid()
-      decreases remainingTokens
-      {
-      if this == other then [] else
-      if Next == null then [this] else
-      [this] + this.Next.AllTokensUntil(other)
-    }*/
   }
 }
 module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
@@ -196,10 +156,44 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           ensures token.AllTokens() == old(token.AllTokens())
       }
       
+      lemma IsAllocated<T>(x: T)
+        ensures allocated(x) {
+
+      }
+
+      lemma TokenAtLast(token: IToken, firstToken: IToken, i: int)
+        requires token.Valid() && firstToken.Valid()
+        requires 0 <= i < |firstToken.AllTokens()|
+        requires token == firstToken.AllTokens()[i]
+        requires token.Next == null
+        ensures i == |firstToken.AllTokens()|-1
+      {
+        if firstToken.Next == null {
+        } else {
+          assert firstToken.Next.AllTokens() == firstToken.AllTokens()[1..];
+          TokenAtLast(token, firstToken.Next, i-1);
+        }
+      }
+
+      lemma TokenNotAtLast(token: IToken, firstToken: IToken, i: int)
+        requires token.Valid() && firstToken.Valid()
+        requires 0 <= i < |firstToken.AllTokens()|
+        requires token == firstToken.AllTokens()[i]
+        requires token.Next != null
+        ensures i < |firstToken.AllTokens()|-1
+      {
+        if firstToken.Next == null {
+        } else if i == 0 {
+        } else {
+          assert firstToken.Next.AllTokens() == firstToken.AllTokens()[1..];
+          TokenNotAtLast(token, firstToken.Next, i-1);
+        }
+      }
+      
       /** Prints the entire program while fixing identation, based on a map */
       method printSourceReindent(firstToken: IToken, reindent: ITokenIndentations) returns (s: CsString)
         requires firstToken.Valid()
-        ensures firstToken.AllTokens().Forall((token: IToken) => s.Contains(token.val))
+        ensures forall token <- firstToken.AllTokens() :: s.Contains(token.val)
       {
         var token: IToken? := firstToken;
         s := CsStringEmpty;
@@ -212,103 +206,93 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         while(token != null)
           decreases if token == null then 0 else token.remainingTokens + 1
           invariant token == null || token.Valid()
-          invariant 0 <= i <= firstToken.AllTokens().Length()
+          invariant 0 <= i <= |firstToken.AllTokens()|
           invariant if token != null
-            then && token.AllTokens() == firstToken.AllTokens().Drop(i)
-                 && i < firstToken.AllTokens().Length()
-                 && token == firstToken.AllTokens().ElementAt(i)
-            else i == firstToken.AllTokens().Length()
-          invariant GEq(s.Length(), sLengthPrev) // Prove that the length increases
-          invariant firstToken.AllTokens().Take(i).Forall((t: IToken) => s.Contains(t.val))
+            then && i < |firstToken.AllTokens()|
+                 && token == firstToken.AllTokens()[i]
+            else i == |firstToken.AllTokens()|
+          invariant GEq(s.Length(), sLengthPrev);
+          invariant forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val)
         {
+          
+          if(token.Next == null) {
+            TokenAtLast(token, firstToken, i);
+            assert i == |firstToken.AllTokens()|-1;
+          }
+          //assert if token.Next != null then i+1 < |firstToken.AllTokens()| else i + 1 == |firstToken.AllTokens()|;
+          var firstTokensUntilI := firstToken.AllTokens()[0..i];
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
           sLengthPrev := s.Length();
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
+          IsAllocated(firstTokensUntilI);
+          assert allocated(firstTokensUntilI);
           var indentationBefore, indentationBeforeSet,
               lastIndentation, lastIndentationSet,
               indentationAfter, indentationAfterSet := reindent.GetIndentation(token, currentIndent);
           //assert forall t <- firstTokensUntilI ::t.val == old@a(t.val);
+          assert forall t <- firstTokensUntilI :: s.Contains(t.val);
+          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+
           var newLeadingTrivia := reindent.Reindent(token, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
           var newTrailingTrivia := reindent.Reindent(token, true, false, indentationAfter, indentationAfter);
           leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
           // Had an error here: caught by an invariant
           //s := String.Concat(newTrivia, token.val);
-          assert firstToken.AllTokens().Take(i).Forall((t: IToken) => s.Contains(t.val));
-
-          ghost var sBefore := s;
-          s := String.Concat(s, String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)));
+          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+          ghost var sPrev := s;
+          var tokenTrailing := String.Concat(token.val, newTrailingTrivia);
+          var right := String.Concat(newLeadingTrivia, tokenTrailing);
+          s := String.Concat(s, right);
           currentIndent := indentationAfter;
           assert String.Concat(token.val, newTrailingTrivia).Contains(token.val);
           String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia))
             .ContainsTransitive(String.Concat(token.val, newTrailingTrivia), token.val);
           s.ContainsTransitive(String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)), token.val);
-          assert String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)).Contains(token.val);
-          assert s.Contains(token.val);
-          assert GEq(s.Length(), sLengthPrev);
-
-          var prevToken := token;
-          if token.Next != null {
-            assert token.AllTokens().Drop(1) == token.Next.AllTokens();
-            firstToken.AllTokens().DropIsAdditive(i, 1);
-            assert token.Next.AllTokens() == firstToken.AllTokens().Drop(i + 1);
-            assert token.Next.AllTokens().ElementAt(0) == token.Next;
-            firstToken.AllTokens().DropElementAtAdditive(i+1, 0);
-            assert firstToken.AllTokens().Drop(i + 1).ElementAt(0) == firstToken.AllTokens().ElementAt(i + 1);
-            // == firstToken.AllTokens().Drop(i + 1);
-            assert token.Next == firstToken.AllTokens().ElementAt(i + 1);
-          } else {
-            assert token.AllTokens() == firstToken.AllTokens().Drop(i);
-            assert token.AllTokens().Length() == 1;
-            assert i + 1 == firstToken.AllTokens().Length();
+          forall t <- firstToken.AllTokens()[0..i]
+            ensures s.Contains(t.val)
+          {
+            assert sPrev.Contains(t.val);
+            assert s.Contains(sPrev);
+            s.ContainsTransitive(sPrev, t.val);
           }
-          assert firstToken.AllTokens().Take(i).Forall((t: IToken) => sBefore.Contains(t.val));
-          assert firstToken.AllTokens().Take(i + 1).Forall((t: IToken) => s.Contains(t.val));
+          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
 
-          assert GEq(s.Length(), sLengthPrev);
-          assert firstToken.AllTokens().Take(i + 1).Forall((t: IToken) => s.Contains(t.val));
+          assert String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)).Contains(token.val);
+          assert allocated(firstToken.AllTokens()[0..i]);
+          assert s.Contains(token.val);
+          
+          if(token.Next != null) {
+            TokenNotAtLast(token, firstToken, i);
+            assert {:split_here} i+1 < |firstToken.AllTokens()|;
+            
+            firstToken.AlltokenSpec(i + 1);
+            assert token == firstToken.AllTokens()[i];
+            firstToken.TokenSuccessive(token, i);
+            assert token.Next == firstToken.AllTokens()[i + 1];
+          }
+          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+          assert s.Contains(firstToken.AllTokens()[i].val);
+          assert forall t <- firstToken.AllTokens()[0..i + 1] :: s.Contains(t.val);
+          var prevToken := token;
+          var prevI := i;
+
           token := token.Next;
           i := i + 1;
-          if token != null {
-            assert token.AllTokens() == firstToken.AllTokens().Drop(i);
-            assert token == firstToken.AllTokens().ElementAt(i);
-          } else {
-            assert i == firstToken.AllTokens().Length();
+          assert prevToken != null;
+          assert prevI < |firstToken.AllTokens()|
+                 && prevToken == firstToken.AllTokens()[prevI];
+          assert prevToken == firstToken.AllTokens()[prevI];
+          if(token == null) {
+            assert i == |firstToken.AllTokens()|;
           }
-          assert GEq(s.Length(), sLengthPrev);
-          assert firstToken.AllTokens().Take(i).Forall((t: IToken) => s.Contains(t.val));
+          
+          
+          assert forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
         }
+        assert  forall t <- firstToken.AllTokens()[0..i] :: s.Contains(t.val);
+        assert i == |firstToken.AllTokens()|;
+        assert forall token <- firstToken.AllTokens() :: s.Contains(token.val);
       }
-      
-      datatype State = Indent(i: Int32)
-      
-      /** Design of a Domain-specific language to specify the pre-indentation and post-indentation of tokens */
-      /*trait TokenTriviaStateMachine {
-        var initState: State
-        var currentState: State
-
-        function transitionMap(state: State, str: CsString): State
-
-        method Transition(token: IToken) modifies this`currentState {
-          var newState := transitionMap(currentState, token.val);
-          currentState := newState;
-        }
-
-        method SetBeforeAfter(token: IToken, before: Int32, after: Int32)
-
-        method Walkthrough(tokens: IEnumerator<IToken>)
-          decreases *
-          modifies this`currentState
-        {
-          currentState := initState;
-          while true
-            decreases * {
-            var hasNext := tokens.MoveNext();
-            if(!hasNext) {
-              break;
-            }
-            var currentToken := tokens.Current();
-            Transition(currentToken);
-          }
-        }
-      }*/
     }
   }
 }
