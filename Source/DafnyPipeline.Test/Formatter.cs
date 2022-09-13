@@ -1511,6 +1511,28 @@ function test(): int {
     }
 
     [Fact]
+    public void FormatterWorksForComparisons() {
+      FormatterWorksFor(@"
+function f(x: int): (y: int)
+  ensures x
+       == y
+  ensures x
+        < y
+  ensures x
+       <= y
+  ensures x
+        > y
+  ensures x
+       >= y
+  ensures x
+       != y
+  ensures x
+     <==> y
+{ 1 }
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

@@ -1903,6 +1903,25 @@ public class IndentationFormatter : TokenFormatter.ITokenIndentations {
         Visit(binaryExpr.E0, indent);
         Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + SpaceTab);
         return false;
+      } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
+        var itemIndent = formatter.GetNewTokenCol(binaryExpr.E0.StartToken, indent) - 1;
+        foreach (var token in binaryExpr.OwnedTokens) {
+          switch (token.val) {
+            case "==":
+            case "<=":
+            case "<":
+            case ">=":
+            case ">":
+            case "<==>":
+            case "!=": {
+                formatter.SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
+                break;
+              }
+          }
+        }
+        Visit(binaryExpr.E0, itemIndent);
+        Visit(binaryExpr.E1, itemIndent);
+        return false;
       } else {
         foreach (var token in binaryExpr.OwnedTokens) {
           formatter.SetIndentations(token, indent, indent, indent);
