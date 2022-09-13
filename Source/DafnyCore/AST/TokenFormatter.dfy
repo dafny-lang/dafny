@@ -196,23 +196,6 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           ensures token.AllTokens() == old(token.AllTokens())
       }
       
-      
-      
-      /** Prints the entire program without change */
-      method printSource(firstToken: IToken) returns (s: CsString)
-        requires firstToken.Valid()
-      {
-        var token: IToken? := firstToken;
-        s := CsStringEmpty;
-        while(token != null)
-          decreases if token == null then 0 else token.remainingTokens + 1
-          invariant token == null || token.Valid()
-        {
-          s := String.Concat(String.Concat(String.Concat(s, token.LeadingTrivia), token.val), token.TrailingTrivia);
-          token := token.Next;
-        }
-      }
-      
       datatype StringEdit = StringEdit(start: nat, end: nat, insert: string)
       
       ghost predicate {:opaque} IsScript(x: seq<StringEdit>, sLength: nat) {
