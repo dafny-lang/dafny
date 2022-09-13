@@ -21,11 +21,17 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
-        <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+        <ProjectReference Include="..\Dafny\Dafny.csproj" />
         <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
         <ProjectReference Include="..\TestDafny\TestDafny.csproj" />
         <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
+        <!-- 
+        Necessary just so that DafnyRuntime.dll (as opposed to DafnyRuntime.cs)
+        is present in the output directory, so we can reference it by relative path
+        from test *.csproj files like those Test/comp/separate-compilation
+        (which can't use Lit substitutions like %binaryDir).
+        -->
+        <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
     </ItemGroup>
     
     <ItemGroup>
