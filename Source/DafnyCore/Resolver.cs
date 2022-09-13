@@ -12665,10 +12665,6 @@ namespace Microsoft.Dafny {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
           }
-
-          scope.PushMarker();
-          ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
-          scope.PopMarker();
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
@@ -12919,7 +12915,43 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         ResolveAttributes(mc, resolutionContext);
         CheckLinearNestedMatchCase(dtd, mc, resolutionContext);
+        foreach (BoundVar v in mc.Pat.BoundVars) {
+          scope.Push(v.Name, v);
+          ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        }
+        
+        int i = 0;
+        if (mc.Arguments != null) {
+          foreach (BoundVar v in mc.Arguments) {
+            scope.Push(v.Name, v);
+            ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            if (i < mc.Ctor.Formals.Count) {
+              Formal formal = mc.Ctor.Formals[i];
+              Type st = SubstType(formal.Type, subst);
+              ConstrainSubtypeRelation(v.Type, st, me,
+                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              v.IsGhost = formal.IsGhost;
+
+              // update the type of the boundvars in the MatchCaseToken
+              if (v.tok is MatchCaseToken) {
+                MatchCaseToken mt = (MatchCaseToken)v.tok;
+                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
+                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
+                }
+              }
+            }
+            i++;
+          }
+        }
+        if (debug) {
+          Console.WriteLine("DEBUG: {1} ResolvedMatchExpr - Resolving Body: {0}", Printer.ExprToString(mc.Body), mc.Body.tok.line);
+        }
+
         ResolveExpression(mc.Body, resolutionContext);
+
+        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
+        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
+
         scope.PopMarker();
       }
     }

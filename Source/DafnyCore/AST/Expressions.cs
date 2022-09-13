@@ -3543,7 +3543,9 @@ public abstract class ExtendedPattern : INode {
     this.Tok = tok;
     this.IsGhost = isGhost;
   }
-
+  
+  public abstract IEnumerable<BoundVar> BoundVars { get; }
+  
   public abstract IEnumerable<INode> Children { get; }
 }
 
@@ -3554,7 +3556,21 @@ public class DisjunctivePattern : ExtendedPattern {
     this.Alternatives = alternatives;
   }
 
+  public override IEnumerable<BoundVar> BoundVars =>
+    Alternatives.Select(a => a.BoundVars).Aggregate(
+      (a, b) => a.Intersect(b, new IdComparer()));
+  
   public override IEnumerable<INode> Children => Alternatives;
+
+  class IdComparer : IEqualityComparer<BoundVar> {
+    public bool Equals(BoundVar x, BoundVar y) {
+      return Equals(x?.Name, y?.Name);
+    }
+
+    public int GetHashCode(BoundVar obj) {
+      return obj.Name.GetHashCode();
+    }
+  }
 }
 
 public class LitPattern : ExtendedPattern {
@@ -3613,6 +3629,8 @@ public class LitPattern : ExtendedPattern {
     return Printer.ExprToString(OrigLit);
   }
 
+  public override IEnumerable<BoundVar> BoundVars => Enumerable.Empty<BoundVar>();
+  
   public override IEnumerable<INode> Children => new[] { OrigLit };
 }
 
@@ -3659,6 +3677,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
+  public override IEnumerable<BoundVar> BoundVars =>
+    new[] {new BoundVar(Tok, Id, Type)}.Concat(Arguments?.SelectMany(a => a.BoundVars) ?? Enumerable.Empty<BoundVar>());
+  
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
