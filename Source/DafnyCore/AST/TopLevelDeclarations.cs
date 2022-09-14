@@ -133,12 +133,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public class TypeParameter : TopLevelDecl {

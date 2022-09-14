@@ -45,10 +45,10 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
       return;
     }
 
-    resolver.CheckLinearNestedMatchExpr(sourceType, this, resolutionContext);
     if (debug) {
       Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  1 - Checking Linearity of patterns", tok.line);
     }
+    resolver.CheckLinearNestedMatchExpr(sourceType, this, resolutionContext);
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

@@ -48,9 +48,6 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override IEnumerable<BoundVar> BoundVars =>
-    new[] { new BoundVar(Tok, Id, Type) }.Concat(Arguments?.SelectMany(a => a.BoundVars) ?? Enumerable.Empty<BoundVar>());
-
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {

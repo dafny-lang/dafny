@@ -15789,6 +15789,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(me.ResolvedExpression == null);
 
+      bool debug = DafnyOptions.O.MatchCompilerDebug;
       var errorCount = reporter.Count(ErrorLevel.Error);
       me.Resolve(this, resolutionContext);
       this.SolveAllTypeConstraints();
@@ -15796,14 +15797,19 @@ namespace Microsoft.Dafny {
         return;
       }
 
+      if (debug) {
+        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  2 - Compiling Nested Match", me.tok.line);
+      }
       CompileNestedMatchExpr(me, resolutionContext);
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
 
+      if (debug) {
+        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  3 - Resolving Expression", me.tok.line);
+      }
       ResolveExpression(me.ResolvedExpression, resolutionContext);
 
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
       if (debug) {
         Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr   DONE");
       }
@@ -18062,166 +18068,6 @@ namespace Microsoft.Dafny {
         }
       }
       return base.Traverse(e, field, parent);
-    }
-  }
-
-  public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
-    bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
-
-    // Invariants:
-    // InOld implies !IsTwoState
-    // InFirstPhaseConstructor implies codeContext is Constructor
-
-    public bool IsGhost => CodeContext.IsGhost;
-
-    public ResolutionContext(ICodeContext codeContext, bool isTwoState)
-      : this(codeContext, isTwoState, false, false, false, false) {
-    }
-
-    /// <summary>
-    /// Return a ResolutionContext appropriate for the body of "codeContext".
-    /// </summary>
-    public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
-      bool isTwoState;
-      if (codeContext is NoContext || codeContext is DatatypeDecl) {
-        isTwoState = false;
-      } else if (codeContext is Function && !(codeContext is TwoStateFunction)) {
-        isTwoState = false;
-      } else {
-        isTwoState = true;
-      }
-      return new ResolutionContext(codeContext, isTwoState);
-    }
-
-    public ResolutionContext WithGhost(bool isGhost) {
-      if (CodeContext.IsGhost == isGhost) {
-        return this;
-      }
-      return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
-    }
-  }
-
-  /// <summary>
-  /// If ResolveType/ResolveTypeLenient encounters a (datatype or class) type "C" with no supplied arguments, then
-  /// the ResolveTypeOption says what to do.  The last three options take a List as a parameter, which (would have
-  /// been supplied as an argument if C# had datatypes instead of just enums, but since C# doesn't) is supplied
-  /// as another parameter (called 'defaultTypeArguments') to ResolveType/ResolveTypeLenient.
-  /// </summary>
-  public enum ResolveTypeOptionEnum {
-    /// <summary>
-    /// never infer type arguments
-    /// </summary>
-    DontInfer,
-    /// <summary>
-    /// create a new InferredTypeProxy type for each needed argument
-    /// </summary>
-    InferTypeProxies,
-    /// <summary>
-    /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
-    /// </summary>
-    AllowPrefix,
-    /// <summary>
-    /// same as AllowPrefix, but if more than defaultTypeArguments.Count type arguments are needed, first
-    /// extend defaultTypeArguments to a sufficient length
-    /// </summary>
-    AllowPrefixExtend,
-  }
-
-  public class Scope<Thing> where Thing : class {
-    [Rep]
-    readonly List<string> names = new List<string>();  // a null means a marker
-    [Rep]
-    readonly List<Thing> things = new List<Thing>();
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(names != null);
-      Contract.Invariant(things != null);
-      Contract.Invariant(names.Count == things.Count);
-      Contract.Invariant(-1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count);
-    }
-
-    int scopeSizeWhereInstancesWereDisallowed = -1;
-
-    public bool AllowInstance {
-      get { return scopeSizeWhereInstancesWereDisallowed == -1; }
-      set {
-        Contract.Requires(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
-        scopeSizeWhereInstancesWereDisallowed = names.Count;
-      }
-    }
-
-    public void PushMarker() {
-      names.Add(null);
-      things.Add(null);
-    }
-
-    public void PopMarker() {
-      int n = names.Count;
-      while (true) {
-        n--;
-        if (names[n] == null) {
-          break;
-        }
-      }
-      names.RemoveRange(n, names.Count - n);
-      things.RemoveRange(n, things.Count - n);
-      if (names.Count < scopeSizeWhereInstancesWereDisallowed) {
-        scopeSizeWhereInstancesWereDisallowed = -1;
-      }
-    }
-
-    public enum PushResult { Duplicate, Shadow, Success }
-
-    /// <summary>
-    /// Pushes name-->thing association and returns "Success", if name has not already been pushed since the last marker.
-    /// If name already has been pushed since the last marker, does nothing and returns "Duplicate".
-    /// If the appropriate command-line option is supplied, then this method will also check if "name" shadows a previous
-    /// name; if it does, then it will return "Shadow" instead of "Success".
-    /// </summary>
-    public PushResult Push(string name, Thing thing) {
-      Contract.Requires(name != null);
-      Contract.Requires(thing != null);
-      if (Find(name, true) != null) {
-        return PushResult.Duplicate;
-      } else {
-        var r = PushResult.Success;
-        if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
-          r = PushResult.Shadow;
-        }
-        names.Add(name);
-        things.Add(thing);
-        return r;
-      }
-    }
-
-    Thing Find(string name, bool topScopeOnly) {
-      Contract.Requires(name != null);
-      for (int n = names.Count; 0 <= --n;) {
-        if (names[n] == null) {
-          if (topScopeOnly) {
-            return null;  // not present
-          }
-        } else if (names[n] == name) {
-          Thing t = things[n];
-          Contract.Assert(t != null);
-          return t;
-        }
-      }
-      return null;  // not present
-    }
-
-    public Thing Find(string name) {
-      Contract.Requires(name != null);
-      return Find(name, false);
-    }
-
-    public Thing FindInCurrentScope(string name) {
-      Contract.Requires(name != null);
-      return Find(name, true);
-    }
-
-    public bool ContainsDecl(Thing t) {
-      return things.Exists(thing => thing == t);
     }
   }
 }

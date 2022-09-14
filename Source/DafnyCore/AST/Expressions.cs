@@ -3544,8 +3544,6 @@ public abstract class ExtendedPattern : INode {
     this.IsGhost = isGhost;
   }
 
-  public abstract IEnumerable<BoundVar> BoundVars { get; }
-
   public abstract IEnumerable<INode> Children { get; }
 
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
@@ -3559,24 +3557,10 @@ public class DisjunctivePattern : ExtendedPattern {
     this.Alternatives = alternatives;
   }
 
-  public override IEnumerable<BoundVar> BoundVars =>
-    Alternatives.Select(a => a.BoundVars).Aggregate(
-      (a, b) => a.Intersect(b, new IdComparer()));
-
   public override IEnumerable<INode> Children => Alternatives;
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext, IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
     foreach (var alternative in Alternatives) {
       alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost);
-    }
-  }
-
-  class IdComparer : IEqualityComparer<BoundVar> {
-    public bool Equals(BoundVar x, BoundVar y) {
-      return Equals(x?.Name, y?.Name);
-    }
-
-    public int GetHashCode(BoundVar obj) {
-      return obj.Name.GetHashCode();
     }
   }
 }
@@ -3636,8 +3620,6 @@ public class LitPattern : ExtendedPattern {
   public override string ToString() {
     return Printer.ExprToString(OrigLit);
   }
-
-  public override IEnumerable<BoundVar> BoundVars => Enumerable.Empty<BoundVar>();
 
   public override IEnumerable<INode> Children => new[] { OrigLit };
   public override void Resolve(Resolver resolver,

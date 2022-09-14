@@ -21,15 +21,8 @@ public abstract class Type {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public virtual IEnumerable<INode> Nodes {
-    get {
-      if (this is UserDefinedType udt) {
-        return new[] { udt };
-      }
+  public virtual IEnumerable<INode> Nodes => Enumerable.Empty<INode>();
 
-      return Enumerable.Empty<INode>();
-    }
-  }
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
