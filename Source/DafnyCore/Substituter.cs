@@ -294,8 +294,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ComprehensionExpr) {
 
-        newExpr = SubstituteComprehensionExpr((ComprehensionExpr) expr, true);
-        
+        newExpr = SubstituteComprehensionExpr((ComprehensionExpr)expr, true);
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         newExpr = new StmtExpr(e.tok, SubstStmt(e.S), Substitute(e.E));
@@ -730,9 +730,9 @@ namespace Microsoft.Dafny {
         r = SubstBlockStmt((BlockStmt)stmt);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        if (s.IsBindingGuard) { 
-          ExistsExpr guard = (ExistsExpr) s.Guard;
-          guard = (ExistsExpr) SubstituteComprehensionExpr(guard,false);
+        if (s.IsBindingGuard) {
+          ExistsExpr guard = (ExistsExpr)s.Guard;
+          guard = (ExistsExpr)SubstituteComprehensionExpr(guard, false);
           r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
         } else {
           r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
@@ -1002,11 +1002,11 @@ namespace Microsoft.Dafny {
         if (forceSubstituteOfBoundVars) {
           return Substitute(q.SplitQuantifierExpression);
         } else {
-          return SubstituteComprehensionExpr((ComprehensionExpr) q.SplitQuantifierExpression, false);
+          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
         }
       }
 
-      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, 
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars,
         forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
       var newRange = e.Range == null ? null : Substitute(e.Range);
       var newTerm = Substitute(e.Term);
