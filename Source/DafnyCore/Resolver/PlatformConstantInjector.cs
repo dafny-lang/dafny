@@ -18,13 +18,25 @@ public class PlatformConstantInjector : IRewriter {
       if (d is TopLevelDeclWithMembers decl && decl.Name == "Dafny") {
         foreach(var member in decl.Members) {
           if (member is ConstantField cf && member.Name == "SIZE_T_LIMIT") {
-            var sizeNativeTypeName = DafnyOptions.O.Compiler.SizeNativeType;
-            var sizeNativeType = Resolver.NativeTypes.First(nt => nt.Name == sizeNativeTypeName);
-            var upperBoundExpr = new LiteralExpr(cf.tok, sizeNativeType.UpperBound);
+            
             
           }
         }
       }
+    }
+  }
+
+  private class ConstantInjectingCloner : Cloner {
+    public virtual Field CloneField(Field f) {
+      Contract.Requires(f != null);
+      if (f is ConstantField c && c.Name == "SIZE_T_LIMIT") {
+        var sizeNativeTypeName = DafnyOptions.O.Compiler.SizeNativeType;
+        var sizeNativeType = Resolver.NativeTypes.First(nt => nt.Name == sizeNativeTypeName);
+        var rhs = new LiteralExpr(c.tok, sizeNativeType.UpperBound);
+        return new ConstantField(Tok(c.tok), c.Name, rhs, c.HasStaticKeyword, c.IsGhost, CloneType(c.Type), CloneAttributes(c.Attributes));
+      }
+      
+      return base.CloneField(f);
     }
   }
 }
