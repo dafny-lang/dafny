@@ -15791,6 +15791,7 @@ namespace Microsoft.Dafny {
 
       var errorCount = reporter.Count(ErrorLevel.Error);
       me.Resolve(this, resolutionContext);
+      this.SolveAllTypeConstraints();
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }

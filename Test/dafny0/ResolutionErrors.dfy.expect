@@ -75,7 +75,7 @@ ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', on
 ResolutionErrors.dfy(493,15): Error: class Lamb does not have an anonymous constructor
 ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors.dfy(565,17): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
+ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
 ResolutionErrors.dfy(611,8): Error: the type of this local variable is underspecified
