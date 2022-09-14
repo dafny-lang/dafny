@@ -55,18 +55,16 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
 
     var dtd = sourceType.AsDatatype;
     var subst = new Dictionary<TypeParameter, Type>();
-    Dictionary<string, DatatypeCtor> ctors;
-    if (dtd == null) {
-      resolver.reporter.Error(MessageSource.Resolver, Source, "the type of the match source expression must be a datatype (instead found {0})", Source.Type);
-      ctors = null;
-    } else {
-      Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-      ctors = resolver.datatypeCtors[dtd];
-      Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+    if (dtd != null) {
+      Contract.Assert(sourceType != null); // dtd and sourceType are set together above
+      var ctors = resolver.datatypeCtors[dtd];
+      Contract.Assert(ctors !=
+                      null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
       // build the type-parameter substitution map for this use of the datatype
       subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
     }
+
     Type = new InferredTypeProxy();
     foreach (var _case in Cases) {
       resolver.scope.PushMarker();
