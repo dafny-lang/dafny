@@ -43,46 +43,37 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
     var val : CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
-    ghost var remainingTokens: nat
     var Next: IToken?
+    ghost var allTokens: seq<IToken>
     
-    ghost predicate Valid() reads * decreases remainingTokens {
-      if Next == null then
-        remainingTokens == 0
-      else
-        && remainingTokens > 0
-        && Next.remainingTokens == remainingTokens - 1
-        && Next.Valid()
-    }
-    ghost function AllTokens(): (r: seq<IToken>) reads *
-      requires Valid()
-      ensures forall tok <- r :: tok.Valid()
-      //ensures allocated(r)
-      decreases remainingTokens
-    {
-      if Next == null then [this] else
-        [this] + this.Next.AllTokens()
+    ghost predicate Valid() reads this, allTokens decreases |allTokens| {
+      && |allTokens| > 0 && allTokens[0] == this
+      && (|| (|allTokens| == 1 && Next == null)
+          || (&& |allTokens| > 1
+              && Next == allTokens[1]
+              && Next.allTokens == allTokens[1..]
+              && Next.Valid())
+      )
     }
     lemma AlltokenSpec(i: int)
       requires Valid()
-      decreases remainingTokens
-      requires 0 <= i < |this.AllTokens()|
-      ensures this.AllTokens() == this.AllTokens()[..i] + this.AllTokens()[i].AllTokens()
+      decreases |allTokens|
+      requires 0 <= i < |allTokens|
+      ensures allTokens == allTokens[..i] + allTokens[i].allTokens
     {
-      if Next == null {
-      } else if i == 0 {
+      if i == 0 {
       } else {
         this.Next.AlltokenSpec(i - 1);
       }
     }
     lemma TokenNextIsIPlus1(middle: IToken, i: int)
       requires Valid()
-      requires 0 <= i < |AllTokens()|
-      requires AllTokens()[i] == middle;
+      requires 0 <= i < |allTokens|
+      requires allTokens[i] == middle;
       requires middle.Next != null
-      ensures 0 <= i + 1 < |AllTokens()| && AllTokens()[i+1] == middle.Next
+      ensures 0 <= i + 1 < |allTokens| && allTokens[i+1] == middle.Next
     {
-      if Next == null || i == 0 {
+      if i == 0 {
       } else {
         this.Next.TokenNextIsIPlus1(middle, i - 1);
       }
@@ -90,14 +81,13 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
 
     lemma TokenNextIsNullImpliesLastToken(middle: IToken, i: int)
       requires middle.Valid() && this.Valid()
-      requires 0 <= i < |AllTokens()|
-      requires middle == AllTokens()[i]
+      requires 0 <= i < |allTokens|
+      requires middle == allTokens[i]
       requires middle.Next == null
-      ensures i == |AllTokens()|-1
+      ensures i == |allTokens|-1
     {
       if Next == null {
       } else {
-        assert Next.AllTokens() == AllTokens()[1..];
         Next.TokenNextIsNullImpliesLastToken(middle, i-1);
       }
     }
@@ -124,7 +114,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             indentationAfter: CsString,
             indentationAfterSet: bool)
           requires token.Valid()
-          ensures token.AllTokens() == old(token.AllTokens())
+          ensures token.allTokens == old(token.allTokens)
       }
       
       lemma IsAllocated<T>(x: T)
@@ -134,16 +124,16 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       /** Prints the entire program while fixing identation, based on a map */
       method printSourceReindent(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
         requires firstToken.Valid()
-        ensures forall token <- firstToken.AllTokens() :: s.Contains(token.val)
+        ensures forall token <- firstToken.allTokens :: s.Contains(token.val)
       {
         var token: IToken? := firstToken;
         s := CsStringEmpty;
         var currentIndent := CsStringEmpty;
         ghost var i := 0;
         var leadingTriviaWasPreceededByNewline := true;
-        var allTokens := firstToken.AllTokens();
+        var allTokens := firstToken.allTokens;
         while(token != null)
-          decreases if token == null then 0 else token.remainingTokens + 1
+          decreases if token == null then 0 else |token.allTokens|
           invariant 0 <= i <= |allTokens|
           invariant if token == null then i == |allTokens| else
                     && token.Valid()

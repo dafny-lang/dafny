@@ -2128,7 +2128,7 @@ method Test() {
           Assert.False(true, "Did not find a first token");
         }
         var reprinted = firstToken != null && firstToken.line > 0 ?
-          TokenFormatter.__default.printSourceReindent(firstToken,
+          Formatting.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram))
           : programString;
         if (expectedProgram != reprinted && HelperString.Debug) {
@@ -2144,7 +2144,7 @@ method Test() {
         dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
-        var reprinted2 = firstToken != null && firstToken.line > 0 ? TokenFormatter.__default.printSourceReindent(firstToken,
+        var reprinted2 = firstToken != null && firstToken.line > 0 ? Formatting.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram)) : reprinted;
         Assert.Equal(reprinted, reprinted2);
       }
