@@ -62,11 +62,12 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       resolver.ConstrainSubtypeRelation(boundVar.Type, substitutedSourceType, errorMsgWithToken, true);
       boundVar.IsGhost = isGhost;
     } else {
+      subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.TypeArgs);
       if (Ctor != null) {
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, formal.Type, formal.IsGhost);
+          argument.Resolve(resolver, resolutionContext, subst, Resolver.SubstType(formal.Type, subst), formal.IsGhost);
         }
       }
     }
