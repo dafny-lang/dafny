@@ -160,9 +160,6 @@ public enum Feature {
   [FeatureDescription("Externally-implemented constructors", "sec-extern-decls")]
   ExternalConstructors,
 
-  [FeatureDescription("Static constants", "sec-constant-field-declarations")]
-  StaticConstants,
-
   [FeatureDescription("Auto-initialization of tuple variables", "sec-tuple-types")]
   TupleInitialization,
 
