@@ -12797,7 +12797,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
         }
-      } else if (type.AsDatatype is TupleTypeDecl) {
+      } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
@@ -12809,6 +12809,7 @@ namespace Microsoft.Dafny {
           CheckLinearVarPattern(udt, idpat, resolutionContext);
           return;
         }
+        idpat.Ctor = tupleTypeDecl.Ctors.First();
 
         //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
         if (udt.TypeArgs.Count != idpat.Arguments.Count) {
@@ -12840,6 +12841,7 @@ namespace Microsoft.Dafny {
         if (ctors == null) {
           Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
         }
+        
         DatatypeCtor ctor = null;
         // Check if the head of the pattern is a constructor or a variable
         if (ctors.TryGetValue(idpat.Id, out ctor)) {
