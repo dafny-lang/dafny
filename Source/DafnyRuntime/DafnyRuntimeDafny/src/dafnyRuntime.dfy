@@ -1,4 +1,4 @@
-module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
+abstract module {:options "/functionSyntax:4"} Dafny {
 
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
@@ -25,7 +25,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       && component.Valid()
     }
 
-    // Convenience predicate, since you often want to assert that 
+    // Convenience predicate, since you often want to assert that
     // new objects in Repr are fresh as well in most postconditions.
     twostate predicate ValidAndDisjoint()
       reads this, Repr
@@ -36,23 +36,24 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   module {:extern} Helpers {
     function {:extern} ToString<T>(t: T): string
-    function {:extern} HashCode<T>(t: T): bv32
   }
 
   // Defining a bounded integer newtype for lengths and indices into
   // arrays and sequences.
   const SIZE_T_LIMIT: nat
 
-  // Ensured by the resolver - see PlatformConstantInjector.cs
-  lemma {:axiom} AboutSizeT() ensures 128 <= SIZE_T_LIMIT
+  // Ensures a minimum for SIZE_T_LIMIT.
+  // Refining modules must provide a body  - an empty body is enough,
+  // but only works if SIZE_T_LIMIT is defined legally.
+  lemma EnsureSizeTLimitAboveMinimum() ensures 128 <= SIZE_T_LIMIT
 
-  newtype size_t = x: nat | x < SIZE_T_LIMIT witness (AboutSizeT(); 0)
-  const SIZE_T_MAX: size_t := (AboutSizeT(); (SIZE_T_LIMIT - 1) as size_t)
+  newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
+  const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
 
-  const ZERO_SIZE: size_t := (AboutSizeT(); 0 as size_t);
-  const ONE_SIZE: size_t := (AboutSizeT(); 1 as size_t);
-  const TWO_SIZE: size_t := (AboutSizeT(); 2 as size_t);
-  const TEN_SIZE: size_t := (AboutSizeT(); 10 as size_t);
+  const ZERO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 0 as size_t);
+  const ONE_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 1 as size_t);
+  const TWO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 2 as size_t);
+  const TEN_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 10 as size_t);
 
   predicate SizeAdditionInRange(a: size_t, b: size_t) {
     a as int + b as int < SIZE_T_LIMIT
@@ -143,16 +144,10 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
-  // Takes a nat rather than a size_t because Dafny won't verify the limit for you.
-  // Instead the extern implementation needs to halt if the value is too big
-  // (or if there isn't adequate memory to allocate).
-  // By contrast, the methods on [Immutable]Array can safely assume that
-  // unbounded int values can be downcast to size_t, since Dafny WILL verify that
-  // all indices are in bounds and hence less than SIZE_T_MAX.
-  method {:extern} NewArray<T>(length: nat) returns (ret: Array<T>)
+  method {:extern} NewArray<T>(length: size_t) returns (ret: Array<T>)
     ensures ret.Valid()
     ensures fresh(ret.Repr)
-    ensures ret.Length() as nat == length
+    ensures ret.Length() == length
 
   method {:extern} CopyArray<T>(other: ImmutableArray<T>) returns (ret: Array<T>)
     ensures ret.Valid()
@@ -219,7 +214,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       ensures Value() == []
       ensures fresh(Repr)
     {
-      var storage := NewArray<T>(length as nat);
+      var storage := NewArray<T>(length);
       this.storage := storage;
       size := 0;
       Repr := {this} + storage.Repr;
@@ -282,7 +277,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
         newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
       }
 
-      var newStorage := NewArray<T>(newCapacity as nat);
+      var newStorage := NewArray<T>(newCapacity);
       var values := storage.Freeze(size);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
@@ -368,7 +363,7 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
   //
   // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
-  // TODO: Would also be good to assert that seq<T> is only used in specifications.
+  // TODO: Might also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
   trait {:extern} Sequence<+T> {
    
@@ -387,17 +382,6 @@ module {:extern "Dafny"} {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
-
-    method HashCode() returns (ret: bv32)
-      requires Valid()
-      // TODO: function version as specification (or function by method)
-    {
-      ret := 0;
-      for i := ZERO_SIZE to Cardinality() {
-        var element := Select(i);
-        ret := ((ret << 3) | (ret >> 29)) ^ Helpers.HashCode(element);
-      }
-    }
 
     method ToString() returns (ret: string)
       requires Valid()
