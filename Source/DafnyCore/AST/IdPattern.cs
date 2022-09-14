@@ -62,11 +62,14 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
       resolver.ResolveType(Tok, Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         
-      var errorMsgWithToken = new TypeConstraint.ErrorMsgWithToken(Tok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", boundVar.Type, substitutedSourceType);
-      resolver.ConstrainSubtypeRelation(userDefinedType.NormalizeExpand(), substitutedSourceType, errorMsgWithToken, true);
+      // var userDefinedNormaliseExpand = userDefinedType.NormalizeExpand();
+      // var errorMsgWithToken = new TypeConstraint.ErrorMsgWithToken(Tok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", userDefinedNormaliseExpand, substitutedSourceType);
+      // resolver.ConstrainSubtypeRelation(userDefinedNormaliseExpand, substitutedSourceType, errorMsgWithToken, true);
+      // TODO maybe compile the type into a LetExpr, like is done when compiling match expressions.
+      
       boundVar.IsGhost = isGhost;
     } else {
-      subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.TypeArgs);
+      subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
       if (Ctor != null) {
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
