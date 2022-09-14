@@ -1,10 +1,8 @@
-include "../src/sequence.dfy"
-include "../src/array.dfy"
+include "../src/dafnyRuntime.dfy"
 
 module MetaSeqTests {
 
-  import opened Arrays
-  import opened Sequences
+  import opened Dafny
 
   trait Foo {}
 
