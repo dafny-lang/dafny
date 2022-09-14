@@ -26,7 +26,7 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    var lastDocument = await documents.GetResolvedDocumentAsync(request.TextDocument.Uri);
+    var lastDocument = await documents.GetLastDocumentAsync(request.TextDocument.Uri);
     if (lastDocument != null) {
       var firstToken = lastDocument.Program.GetFirstTopLevelToken();
       string result;
@@ -34,12 +34,12 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
         result = lastDocument.TextDocumentItem.Text;
       } else {
         result =
-          TokenFormatter.__default.printSourceReindent(firstToken,
+          Formatting.__default.printSourceReindent(firstToken,
             IndentationFormatter.ForProgram(lastDocument.Program));
       }
 
       return new TextEditContainer(new TextEdit[] {
-        new TextEdit() {NewText = result, Range = lastDocument.VerificationTree.Range}
+        new TextEdit() {NewText = result, Range = lastDocument.TextDocumentItem.Range}
       });
     }
 

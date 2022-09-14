@@ -144,5 +144,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         LanguageId = textDocumentItem.LanguageId
       };
     }
+
+    private Range? range;
+
+    public Range Range {
+      get {
+        if (range == null) {
+          range = new Range(0, 0, NumberOfLines, 0);
+        }
+        return range;
+      }
+    }
   }
 }
