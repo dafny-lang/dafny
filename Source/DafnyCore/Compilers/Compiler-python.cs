@@ -592,7 +592,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
-      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+      if (!member.IsStatic) {
         wr.WriteLine("_this = self");
       }
       wr = wr.NewBlockPy($"while True:").NewBlockPy($"with {DafnyRuntimeModule}.label():");
@@ -1508,17 +1508,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Requires(guard != null);
       Contract.Requires(thn != null);
-      Contract.Requires(thn.Type != null);
       Contract.Requires(els != null);
-      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
 
-      resultType = resultType.NormalizeExpand();
-      var thenExpr = Expr(thn, inLetExprBody, wStmts);
-      var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
-      var elseExpr = Expr(els, inLetExprBody, wStmts);
-      var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
-      wr.Format($"({castedThenExpr} if {Expr(guard, inLetExprBody, wStmts)} else {castedElseExpr})");
+      ConcreteSyntaxTree Tree(Expression e) => Expr(e, inLetExprBody, wStmts);
+
+      wr.Format($"({Tree(thn)} if {Tree(guard)} else {Tree(els)})");
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
