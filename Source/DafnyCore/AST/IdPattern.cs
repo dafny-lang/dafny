@@ -53,13 +53,17 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
 
     if (Arguments == null) {
-      var boundVar = new BoundVar(Tok, Id, Resolver.SubstType(Type, subst));
+      var userDefinedType = Resolver.SubstType(Type, subst);
+      Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
+      var boundVar = new BoundVar(Tok, Id, substitutedSourceType); // TODO you'd expect the userDefinedType here instead of substitutedSourceType, but that caused an issue in type resolution: git-issue-1676.dfy(249,13): Error: type test for type 'IllegalArgumentException' must be from an expression assignable to it (got 'Exception')
+
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-      Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
 
+      resolver.ResolveType(Tok, Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        
       var errorMsgWithToken = new TypeConstraint.ErrorMsgWithToken(Tok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", boundVar.Type, substitutedSourceType);
-      resolver.ConstrainSubtypeRelation(boundVar.Type, substitutedSourceType, errorMsgWithToken, true);
+      resolver.ConstrainSubtypeRelation(userDefinedType.NormalizeExpand(), substitutedSourceType, errorMsgWithToken, true);
       boundVar.IsGhost = isGhost;
     } else {
       subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.TypeArgs);

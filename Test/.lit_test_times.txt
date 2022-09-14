@@ -1,1 +1,0 @@
-1.166053e+00 dafny4/git-issue239.dfy
