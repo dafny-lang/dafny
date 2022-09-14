@@ -1551,6 +1551,21 @@ abstract module C {
     }
 
     [Fact]
+    public void FormatterWorksForForallExpressions() {
+      FormatterWorksFor(@"
+predicate GoodIdentifier(s: string) {
+  && s != []
+  && (|| 'a' <= s[0] <= 'z'
+      || 'A' <= s[0] <= 'Z')
+  && forall i :: 1 <= i < |s| ==>
+                   || 'a' <= s[i] <= 'z'
+                   || 'A' <= s[i] <= 'Z'
+                   || '0' <= s[i] <= '9'
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

@@ -5099,18 +5099,20 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
      Attributes attrs;
      Expression range;
      Expression/*!*/ body;
+     var ownedTokens = new List<IToken>();
   .)
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
-  )
+  )                                            (. ownedTokens.Add(t); .)
   QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, true>
-  QSep
+  QSep                                         (. ownedTokens.Add(t); .)
   Expression<out body, allowLemma, allowLambda>
   (. if (univ) {
        q = new ForallExpr(x, t, bvars, range, body, attrs);
      } else {
        q = new ExistsExpr(x, t, bvars, range, body, attrs);
      }
+     q.OwnedTokens = ownedTokens;
   .)
   .
 
