@@ -144,23 +144,40 @@ function Foo(value: Identity<Colors>): bool {
     case Identity(Green) => false // Warning
     case Identity(Blue()) => false
   }
-}".TrimStart();
+}
+
+method Bar(value: Identity<Colors>) returns (x: bool) {
+  match value {
+    case Identity(Red()) => return true;
+    case Identity(Green) => return false; // Warning
+    case Identity(Blue()) => return false;
+  }
+}
+".TrimStart();
 
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var matchSource = (await RequestDefinition(documentItem, (4, 10)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, matchSource.Location.Uri);
-      Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location.Range);
+      Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
       // var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
-      // Assert.AreEqual(documentItem.Uri, identity.Location.Uri);
-      // Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location.Range);
+      // Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
       // var green = (await RequestDefinition(documentItem, (6, 20)).AsTask()).Single();
-      // Assert.AreEqual(documentItem.Uri, green.Location.Uri);
-      // Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location.Range);
+      // Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
+
+      var matchSourceStmt = (await RequestDefinition(documentItem, (12, 10)).AsTask()).Single();
+      Assert.AreEqual(new Range((11, 11), (11, 16)), matchSourceStmt.Location!.Range);
+
+      // TODO doesn't work right now because we use post match compilation information.
+      // var identityStmt = (await RequestDefinition(documentItem, (13, 12)).AsTask()).Single();
+      // Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
+
+      // TODO doesn't work right now because we use post match compilation information.
+      // var greenStmt = (await RequestDefinition(documentItem, (14, 20)).AsTask()).Single();
+      // Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
     }
 
     [TestMethod]
