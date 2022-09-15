@@ -718,13 +718,8 @@ namespace Microsoft.Dafny {
         r = SubstBlockStmt((BlockStmt)stmt);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        if (s.IsBindingGuard) {
-          ExistsExpr guard = (ExistsExpr)s.Guard;
-          guard = (ExistsExpr)SubstituteComprehensionExpr(guard, false);
-          r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
-        } else {
-          r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
-        }
+        var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, false) : Substitute(s.Guard);
+        r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative),
