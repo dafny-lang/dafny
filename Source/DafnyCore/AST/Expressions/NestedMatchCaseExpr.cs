@@ -28,12 +28,12 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (boundVars.Any()) {
-      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b)).ToList();
-      var rhss = boundVars.Select<BoundVar, Expression>(b => new IdentifierExpr(Token.NoToken, b));
-    
-      Body = new LetExpr(Token.NoToken, lhss, rhss.ToList(), Body, true);
+      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
+      var rhss = boundVars.Select(b => b.usage).ToList();
+
+      Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
-    
+
     Pat.Resolve(resolver, resolutionContext, subst, sourceType, false); // TODO: is this false correct?
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;

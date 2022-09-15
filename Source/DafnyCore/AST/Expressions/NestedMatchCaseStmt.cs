@@ -19,8 +19,8 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => new [] { Pat}.Concat<INode>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
-  
+  public override IEnumerable<INode> Children => new[] { Pat }.Concat<INode>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+
   public void Resolve(
     Resolver resolver,
     ResolutionContext resolutionContext,
@@ -31,13 +31,13 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (boundVars.Any()) {
       foreach (var boundVar in boundVars) {
-        var localVariable = new LocalVariable(boundVar.Tok, boundVar.Tok, boundVar.Name, boundVar.Type, boundVar.IsGhost);
+        var localVariable = new LocalVariable(boundVar.var.Tok, boundVar.var.Tok, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
         var casePattern = new CasePattern<LocalVariable>(localVariable.EndTok, localVariable);
-        var varDecl = new VarDeclPattern(localVariable.Tok, localVariable.Tok, casePattern, new IdentifierExpr(Token.NoToken, boundVar), false);
+        var varDecl = new VarDeclPattern(localVariable.Tok, localVariable.Tok, casePattern, boundVar.usage, false);
         Body.Insert(0, varDecl);
       }
     }
-    
+
     Pat.Resolve(resolver, resolutionContext, subst, sourceType, false); // TODO: is this false correct?
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;

@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
 
     FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
-    string FreshTempVarName(string prefix, ICodeContext context) {
+    public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
       return gen.FreshId(prefix);
     }
@@ -12826,7 +12826,7 @@ namespace Microsoft.Dafny {
         if (ctors == null) {
           Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
         }
-        
+
         DatatypeCtor ctor = null;
         // Check if the head of the pattern is a constructor or a variable
         if (ctors.TryGetValue(idpat.Id, out ctor)) {

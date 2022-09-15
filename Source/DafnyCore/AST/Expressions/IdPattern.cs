@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
-  public readonly String Id;
+  public String Id;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
@@ -55,7 +55,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
 
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
-    
+
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
       var boundVar = new BoundVar(Tok, Id, substitutedSourceType); // TODO you'd expect the userDefinedType here instead of substitutedSourceType, but that caused an issue in type resolution: git-issue-1676.dfy(249,13): Error: type test for type 'IllegalArgumentException' must be from an expression assignable to it (got 'Exception')
@@ -63,11 +63,6 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-      // var userDefinedNormaliseExpand = userDefinedType.NormalizeExpand();
-      // var errorMsgWithToken = new TypeConstraint.ErrorMsgWithToken(Tok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", userDefinedNormaliseExpand, substitutedSourceType);
-      // resolver.ConstrainSubtypeRelation(userDefinedNormaliseExpand, substitutedSourceType, errorMsgWithToken, true);
-      // TODO maybe compile the type into a LetExpr, like is done when compiling match expressions.
-      
       boundVar.IsGhost = isGhost;
     } else {
       subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
@@ -81,10 +76,13 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
+  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
+    ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
-      yield return new BoundVar(Token.NoToken, Id, Type);
-      Type = null;
+      var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
+      yield return (new BoundVar(Tok, Id, Type), new IdentifierExpr(Tok, freshName));
+      Id = freshName;
+      Type = new InferredTypeProxy();
     }
 
     if (Arguments != null) {

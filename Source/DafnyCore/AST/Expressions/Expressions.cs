@@ -3549,7 +3549,8 @@ public abstract class ExtendedPattern : INode {
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost);
 
-  public abstract IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext);
+  public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
+    ResolutionContext resolutionContext);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3566,8 +3567,9 @@ public class DisjunctivePattern : ExtendedPattern {
     }
   }
 
-  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
-    return Enumerable.Empty<BoundVar>();
+  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
+    ResolutionContext resolutionContext) {
+    return Enumerable.Empty<(BoundVar var, Expression usage)>();
   }
 }
 
@@ -3633,8 +3635,9 @@ public class LitPattern : ExtendedPattern {
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
   }
 
-  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
-    return Enumerable.Empty<BoundVar>();
+  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
+    ResolutionContext resolutionContext) {
+    return Enumerable.Empty<(BoundVar var, Expression usage)>();
   }
 }
 

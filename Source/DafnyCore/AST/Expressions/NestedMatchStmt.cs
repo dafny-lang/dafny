@@ -23,7 +23,7 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
       }
     }
   }
-  
+
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -45,7 +45,7 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
     this.UsesOptionalBraces = usesOptionalBraces;
     InitializeAttributes();
   }
-  
+
   public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
 
     resolver.ResolveExpression(Source, resolutionContext);
