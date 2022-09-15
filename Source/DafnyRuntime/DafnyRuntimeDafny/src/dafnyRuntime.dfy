@@ -44,7 +44,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   const MIN_SIZE_T_LIMIT: nat := 128
 
   // Ensures a minimum for SIZE_T_LIMIT.
-  // Refining modules must provide a body  - an empty body is enough,
+  // Refining modules must provide a body - an empty body is enough,
   // but only works if SIZE_T_LIMIT is defined legally.
   lemma EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
 
@@ -156,6 +156,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures ret.Valid()
     ensures fresh(ret.Repr)
     ensures ret.Length() == length
+
+  method {:extern} NewNativeArrayWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
+    ensures ret.Valid()
+    ensures fresh(ret.Repr)
+    ensures ret.Length() == length
+    ensures ret.values == seq(length, ((i: nat) requires 0 <= i < length as nat => Set(initFn(i as size_t))))
 
   method {:extern} CopyNativeArray<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
     ensures ret.Valid()
@@ -735,8 +741,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   // Sequence creation methods
 
-  method CreateSequence<T>(cardinality: size_t, init: size_t -> T) returns (ret: Sequence<T>) {
-
+  method CreateSequence<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
+    var a := NewNativeArrayWithInit(cardinality, initFn);
+    var frozen := a.Freeze(cardinality);
+    ret := new ArraySequence(frozen);
   }
 
   // Sequence methods that must be static because they require T to be equality-supporting

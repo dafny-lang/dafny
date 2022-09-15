@@ -75,10 +75,20 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
+      if (ModuleName == "dafnyRuntimeGo") {
+        // HACK: we need to call EmitImports to initialize the writers, but don't actually
+        // want any of the imports.
+        Imports.Clear();
+      }
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
+      if (DafnyOptions.O.UseRuntimeLib) {
+        return;
+      }
       var rt = wr.NewFile("dafny/dafny.go");
       ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
+      rt = wr.NewFile("dafny/dafnyFromDafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntimeFromDafny.go", rt);
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
@@ -133,7 +143,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
-      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Seq)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
+      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -1420,7 +1430,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is SetType) {
         return "_dafny.Set";
       } else if (xType is SeqType) {
-        return "_dafny.Seq";
+        return "_dafny.Sequence";
       } else if (xType is MultiSetType) {
         return "_dafny.MultiSet";
       } else if (xType is MapType) {

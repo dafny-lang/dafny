@@ -43,6 +43,9 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\generated-go\src\dafny\dafny.go">
+      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
       <LogicalName>DafnyRuntime.h</LogicalName>
     </EmbeddedResource>

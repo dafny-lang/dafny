@@ -10,7 +10,7 @@ import (
   "runtime"
 )
 
-func FromMainArguments(args []string) Seq {
+func FromMainArguments(args []string) Sequence {
   var size = len(args)
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
@@ -131,7 +131,7 @@ var IntType = CreateStandardTypeDescriptor(Zero)
 var BoolType = CreateStandardTypeDescriptor(false)
 
 // CharType is the RTD of char
-var CharType = CreateStandardTypeDescriptor(Char('D'))  // See CharType.DefaultValue in Dafny source code
+var CharType = CreateStandardTypeDescriptor(Char('D')) // See CharType.DefaultValue in Dafny source code
 
 // RealType is the RTD for real
 var RealType = CreateStandardTypeDescriptor(ZeroReal)
@@ -233,8 +233,9 @@ func (*Object) String() string {
 }
 
 func (_this *Object) ParentTraits_() []*TraitID {
-  return [](*TraitID){};
+  return [](*TraitID){}
 }
+
 var _ TraitOffspring = &Object{}
 
 /******************************************************************************
@@ -422,31 +423,20 @@ func AllBooleans() Iterator {
 // These declarations are just filling in the gaps to make sure
 // Dafny.Sequence is a well-behaved Dafny value in this runtime.
 
-
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
-// Create a sequence from a length and an element initializer
-func SeqCreate(n Int, init func(Int) interface{}) Sequence {
-  len := n.Int()
-  arr := make([]interface{}, len)
-  for i := 0; i < len; i++ {
-    arr[i] = init(IntOf(i))
-  }
-  return Seq{arr, false}
-}
-
 // SeqOf returns a sequence containing the given values.
-func SeqOf(values ...interface{}) Seq {
+func SeqOf(values ...interface{}) Sequence {
   // Making a defensive copy here because variadic functions can get hinky
   // if someone says SeqOf(slice...) and then mutates slice.
   arr := make([]interface{}, len(values))
   copy(arr, values)
-  return Seq{arr, false}
+  return ArraySequence{arr, false}
 }
 
 // SeqOfChars returns a sequence containing the given character values.
-func SeqOfChars(values ...Char) Seq {
+func SeqOfChars(values ...Char) Sequence {
   arr := make([]interface{}, len(values))
   for i, v := range values {
     arr[i] = v
@@ -455,7 +445,7 @@ func SeqOfChars(values ...Char) Seq {
 }
 
 // SeqOfString converts the given string into a sequence of characters.
-func SeqOfString(str string) Seq {
+func SeqOfString(str string) Sequence {
   // Need to make sure the elements of the array are Chars
   arr := make([]interface{}, len(str))
   for i, v := range str {
@@ -465,32 +455,48 @@ func SeqOfString(str string) Seq {
 }
 
 // Iterator returns an iterator over the sequence.
-func (seq Seq) Iterator() Iterator {
-  return sliceIterator(seq.contents)
+// This could be implemented more efficiently
+// in the source Dafny code in the future,
+// by traversing the Sequence node structure rather than
+// forcing the lazy evaluation,
+// but will involve defining an Iterator trait of some kind.
+func (seq Sequence) Iterator() Iterator {
+  i := 0
+  n := seq.Cardinality()
+  return func() (interface{}, bool) {
+    if i >= n {
+      return nil, false
+    }
+    ans := seq.Select(i)
+    i++
+    return ans, true
+  }
 }
 
 // Equals compares two sequences for equality.
-func (seq Seq) Equals(seq2 Seq) bool {
+// This has to be defined in native Go because Dafny's variance rules
+// won't let you define it as an instance method.
+func (seq Sequence) Equals(seq2 Sequence) bool {
   return EqualSequences(seq, seq2)
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
-func (seq Seq) EqualsGeneric(other interface{}) bool {
+func (seq Sequence) EqualsGeneric(other interface{}) bool {
   seq2, ok := other.(Seq)
   return ok && seq.Equals(seq2)
 }
 
 // Elements returns the sequence of elements (i.e. the sequence itself).
-func (seq Seq) Elements() Seq {
+func (seq Sequence) Elements() Sequence {
   return seq
 }
 
 // UniqueElements returns the set of elements in the sequence.
-func (seq Seq) UniqueElements() Set {
-  return (*Builder)(&seq.contents).ToSet()
+func (seq Sequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
 }
 
-func (seq Seq) String() string {
+func (seq Sequence) String() string {
   return seq.ToString()
 }
 
@@ -536,12 +542,12 @@ func (array *NativeArray) UpdateSubarray(i int, other NativeArray) interface{} {
 }
 
 func (array *NativeArray) Freeze() NativeArray {
-  return this
+  return array
 }
 
 func (array *NativeArray) Subarray(lo int, hi int) NativeArray {
-  return &NativeArray {
-    contents = contents[lo:hi]
+  return &NativeArray{
+    contents: contents[lo:hi],
   }
 }
 
@@ -806,6 +812,19 @@ type Builder []interface{}
 // NewBuilder creates a new Builder.
 func NewBuilder() *Builder {
   return new(Builder)
+}
+
+// NewBuilder creates a new Builder.
+func NewBuilderOf(iter Iterable) *Builder {
+  b := NewBuilder(Builder)
+  for i := Iterate(iter); ; {
+    v, ok := i()
+    if !ok {
+      break
+    }
+    b.Add(v)
+  }
+  return b
 }
 
 // Add adds a new value to a Builder.
@@ -2515,14 +2534,6 @@ func RrotUint64(x uint64, n Int, w uint) uint64 {
   y := n.Uint()
   return (x >> y) | ((x << (w - y)) % (1 << w))
 }
-
-/******************************************************************************
- * Hacks for generated code
- ******************************************************************************/
-
-// The Dummy__ type, which each compiled Dafny module declares, is just so that
-// we can generate "var _ dafny.Dummy__" to suppress the unused-import error.
-type Dummy__ struct{}
 
 /******************************************************************************
  * Utility functions
