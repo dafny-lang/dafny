@@ -344,28 +344,16 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public readonly List<FrameExpression> Reads;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
-
-  public Expression
-    Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-
-  public IToken /*?*/
-    ByMethodTok; // null iff ByMethodBody is null
-
-  public BlockStmt /*?*/
-    ByMethodBody;
-
+  public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+  public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
+  public BlockStmt /*?*/ ByMethodBody;
   [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
-
-  public bool SignatureIsOmitted {
-    get { return SignatureEllipsis != null; }
-  } // is "false" for all Function objects that survive into resolution
-
+  public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
   public readonly IToken SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   public bool AllowsAllocation => true;
-
   public bool containsQuantifier;
 
   public bool ContainsQuantifier {
@@ -377,7 +365,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
     TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
     NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
-
     // E + F or F + E, where E has no tail call and F is a tail call
     Accumulate_Add,
     AccumulateRight_Sub,
