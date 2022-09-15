@@ -12663,7 +12663,7 @@ namespace Microsoft.Dafny {
         e.ResolvedExpression = newME;
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
-            reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
+            reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
             scope.PushMarker();
             CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
             ResolveExpression(cases.ElementAt(id).Body, resolutionContext);

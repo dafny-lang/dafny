@@ -1,0 +1,3 @@
+6.442511e-01 dafny0/EqualityTypes.dfy
+5.157058e-01 git-issues/git-issue-686a.dfy
+6.362221e-01 exports/ExportResolve.dfy
