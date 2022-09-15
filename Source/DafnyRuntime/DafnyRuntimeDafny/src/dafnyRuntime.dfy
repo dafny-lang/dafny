@@ -66,7 +66,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   }
 
   // 
-  // We use this instead of the built-in Dafny array<T> type for two reasons:
+  // Native implementation of a flat, single-dimensional array.
+  // We use this instead of the built-in Dafny array<T> type for three reasons:
   // 
   // 1. Every element of an array<T> must be initialized.
   //    This means you have to provide initial values when creating one,
@@ -86,10 +87,16 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   //    code amenable to such optimizations. :)
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
+  // 3. Dafny arrays can be multi-dimensional, and so the native implementation
+  //    of that family of types is more general than the single dimension we need here.
+  //    Ideally we would be able to lift the implementation of multi-dimensional arrays
+  //    based on NativeArray<T> into Dafny as well, but that is likely blocked
+  //    on being able to compile the interface efficiently enough.
+  //    See https://github.com/dafny-lang/dafny/issues/2749.
+  //
   // TODO: This could be a class instead, since it doesn't require variance.
   // A trait does allow more than one implementation though.
-  // TODO: Be clearer this is a one-dimensional array.
-  trait {:extern} Array<T> extends Validatable {
+  trait {:extern} NativeArray<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
 
@@ -145,12 +152,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   datatype ArrayCell<T> = Set(value: T) | Unset
 
-  method {:extern} NewArray<T>(length: size_t) returns (ret: Array<T>)
+  method {:extern} NewNativeArray<T>(length: size_t) returns (ret: NativeArray<T>)
     ensures ret.Valid()
     ensures fresh(ret.Repr)
     ensures ret.Length() == length
 
-  method {:extern} CopyArray<T>(other: ImmutableArray<T>) returns (ret: Array<T>)
+  method {:extern} CopyNativeArray<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
     ensures ret.Valid()
     ensures fresh(ret.Repr)
     ensures ret.values == other.CellValues()
@@ -190,7 +197,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // Could also track a start index to support Deque-style use
   // (possibly in a separate datatype to avoid the extra overhead of adding 0 all the time).
   class Vector<T> extends Validatable {
-    var storage: Array<T>
+    var storage: NativeArray<T>
     // TODO: "length"?
     var size: size_t
 
@@ -215,7 +222,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures Value() == []
       ensures fresh(Repr)
     {
-      var storage := NewArray<T>(length);
+      var storage := NewNativeArray<T>(length);
       this.storage := storage;
       size := 0;
       Repr := {this} + storage.Repr;
@@ -278,7 +285,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
       }
 
-      var newStorage := NewArray<T>(newCapacity);
+      var newStorage := NewNativeArray<T>(newCapacity);
       var values := storage.Freeze(size);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
@@ -820,7 +827,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
   {
     var a := s.ToArray();
-    var newValue := CopyArray(a);
+    var newValue := CopyNativeArray(a);
     newValue.Update(i, t);
     var newValueFrozen := newValue.Freeze(newValue.Length());
     ret := new ArraySequence(newValueFrozen);
