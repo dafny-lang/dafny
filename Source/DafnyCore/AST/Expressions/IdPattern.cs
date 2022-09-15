@@ -81,14 +81,14 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
       yield return new BoundVar(Token.NoToken, Id, Type);
       Type = null;
     }
 
     if (Arguments != null) {
-      foreach (var childResult in Arguments.SelectMany(a => a.RemoveTypesAndCollectBindings(resolver, resolutionContext))) {
+      foreach (var childResult in Arguments.SelectMany(a => a.ReplaceTypesWithBoundVariables(resolver, resolutionContext))) {
         yield return childResult;
       }
     }

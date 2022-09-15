@@ -26,7 +26,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     Type sourceType) {
     var errorCount = resolver.reporter.ErrorCount;
 
-    var bindings = Pat.RemoveTypesAndCollectBindings(resolver, resolutionContext).ToList();
+    var bindings = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (bindings.Any()) {
       var lhss = bindings.Select(b => new CasePattern<BoundVar>(Token.NoToken, b)).ToList();
       var rhss = bindings.Select<BoundVar, Expression>(b => new IdentifierExpr(Token.NoToken, b));

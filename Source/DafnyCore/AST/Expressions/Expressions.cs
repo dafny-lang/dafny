@@ -3549,7 +3549,7 @@ public abstract class ExtendedPattern : INode {
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost);
 
-  public abstract IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext);
+  public abstract IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3566,7 +3566,7 @@ public class DisjunctivePattern : ExtendedPattern {
     }
   }
 
-  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
     return Enumerable.Empty<BoundVar>();
   }
 }
@@ -3633,7 +3633,7 @@ public class LitPattern : ExtendedPattern {
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
   }
 
-  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+  public override IEnumerable<BoundVar> ReplaceTypesWithBoundVariables(Resolver resolver, ResolutionContext resolutionContext) {
     return Enumerable.Empty<BoundVar>();
   }
 }
@@ -3650,24 +3650,6 @@ public abstract class NestedMatchCase : INode {
   }
 
   public abstract IEnumerable<INode> Children { get; }
-}
-
-public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
-  public readonly List<Statement> Body;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = null;
-  }
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(tok, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = attrs;
-  }
-
-  public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchStmt : ConcreteSyntaxStatement {
