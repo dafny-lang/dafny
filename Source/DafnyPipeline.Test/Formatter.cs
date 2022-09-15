@@ -8,7 +8,6 @@ using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Helpers;
 using Xunit;
 
 namespace DafnyPipeline.Test {
@@ -620,10 +619,17 @@ function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome):
 predicate bad(e:Maybe)
 {
   forall i :: 0 <= i < 1 ==>
-    0 == match e
-         case Nothing =>
-           0
-         case Just => 0
+                0 == match e
+                     case Nothing =>
+                       0
+                     case Just => 0
+}
+predicate bad2(e:Maybe)
+{
+  forall i ::
+    0 <= i < 1 ==>
+      0 == match e case Nothing => 0
+                   case Just => 0
 }");
     }
 
@@ -916,16 +922,16 @@ method Test()
   while (n < N)
     invariant n <= N;
     invariant (forall B: seq<int> ::
-               // For any board 'B' with 'N' queens, each placed in an existing row
-               |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
-               // ... where 'B' is an extension of 'boardSoFar'
-               boardSoFar <= B &&
-               // ... and the first column to extend 'boardSoFar' has a queen in one of
-               // the first 'n' rows
-               0 <= B[pos] && B[pos] < n
-               ==>
-                 // ... the board 'B' is not entirely consistent
-                 (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
+                 // For any board 'B' with 'N' queens, each placed in an existing row
+                 |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+                 // ... where 'B' is an extension of 'boardSoFar'
+                 boardSoFar <= B &&
+                 // ... and the first column to extend 'boardSoFar' has a queen in one of
+                 // the first 'n' rows
+                 0 <= B[pos] && B[pos] < n
+                 ==>
+                   // ... the board 'B' is not entirely consistent
+                   (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
     // comments here
   {
   }
@@ -2151,7 +2157,8 @@ method Test() {
           Formatting.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram))
           : programString;
-        if (expectedProgram != reprinted && HelperString.Debug) {
+        if (expectedProgram != reprinted) {
+          Console.Write("Double formatting is not stable:\n");
           Console.Write(reprinted);
         }
         Assert.Equal(expectedProgram, reprinted);

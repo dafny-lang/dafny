@@ -1,10 +1,4 @@
-module {:extern @"Microsoft.Dafny.Helpers"} {:options "-functionSyntax:4"} Helpers {
-  import opened System
-  import opened MicrosoftDafny
-  class {:extern "HelperString"} {:compile false} HelperString {
-    static predicate FinishesByNewline(input: CsString)
-  }
-}
+
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
   type {:extern "Int32"} Int32(!new,==)
 
@@ -36,6 +30,7 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
       ensures r.Contains(s2)
   }
 }
+
 module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
   import opened System
 
@@ -92,13 +87,15 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       }
     }
   }
+  class {:extern "HelperString"} {:compile false} HelperString {
+    static predicate FinishesByNewline(input: CsString)
+  }
 }
 module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
   module {:extern "Dafny"} Dafny {
     module {:extern "Formatting"} Formatting {
       import opened MicrosoftDafny
       import opened System
-      import opened Helpers
       
       const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
       
