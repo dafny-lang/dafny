@@ -1,6 +1,6 @@
 # Upcoming
 
-- feat: Support for parsing UTF8 characters in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
+- feat: Support for parsing UTF8 characters in code and comments if their UTF16 value is on maximum 2 bytes (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
 - feat: generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)

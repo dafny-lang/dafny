@@ -89,10 +89,11 @@ let you reconstruct the original grammar.
 
 ## 2.1. Dafny Input {#sec-unicode}
 
-Dafny source code files are readable text encoded as UTF-8 Unicode
-(because this is what the Coco/R-generated scanner and parser read).
+Dafny source code files are readable text encoded as UTF-8 Unicode, where each decoded character has to fit
+a single UTF-16 character. This means that every character has to be assignable to a C# 'char', which
+has 65536 values. This is what the Coco/R-generated scanner and parser read.
 All program text other than the contents of comments, character, string and verbatim string literals
-consists of printable and white-space ASCII characters,
+consists of printable and white-space UTF-8 Unicode characters.
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
 
 However, a current limitation of the Coco/R tool used by `dafny`
