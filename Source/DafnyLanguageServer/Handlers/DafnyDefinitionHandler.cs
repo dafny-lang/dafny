@@ -38,23 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();
       }
-      // var location = GetLspLocation(document, symbol);
-      // if (location == null) {
-      //   logger.LogDebug("failed to resolve the location of the symbol {SymbolName} at {Position} in {Document}",
-      //     symbol.Name, request.Position, request.TextDocument);
-      //   return new LocationOrLocationLinks();
-      // }
       return new[] { new LocationOrLocationLink(result) };
     }
-
-    // private static LocationOrLocationLink? GetLspLocation(IdeState state, ISymbol symbol) {
-    //   if (state.SymbolTable.TryGetLocationOf(symbol, out var location)) {
-    //     return new Location {
-    //       Uri = location.Uri,
-    //       Range = location.Name
-    //     };
-    //   }
-    //   return null;
-    // }
   }
 }
