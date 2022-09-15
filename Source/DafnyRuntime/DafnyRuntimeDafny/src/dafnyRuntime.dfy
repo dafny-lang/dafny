@@ -1,5 +1,7 @@
 abstract module {:options "/functionSyntax:4"} Dafny {
 
+  function {:extern} DafnyValueToString<T>(t: T): string
+
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
@@ -34,18 +36,17 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  module {:extern} Helpers {
-    function {:extern} ToString<T>(t: T): string
-  }
-
   // Defining a bounded integer newtype for lengths and indices into
   // arrays and sequences.
   const SIZE_T_LIMIT: nat
+  // The limit has to be at least a little higher than zero
+  // for basic logic to be valid.
+  const MIN_SIZE_T_LIMIT: nat := 128
 
   // Ensures a minimum for SIZE_T_LIMIT.
   // Refining modules must provide a body  - an empty body is enough,
   // but only works if SIZE_T_LIMIT is defined legally.
-  lemma EnsureSizeTLimitAboveMinimum() ensures 128 <= SIZE_T_LIMIT
+  lemma EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
 
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
   const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
@@ -394,7 +395,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
           ret := ret + ",";
         }
         var element := Select(i as size_t);
-        ret := ret + Helpers.ToString(element);
+        ret := ret + DafnyValueToString(element);
       }
       ret := ret + "]";
     }
@@ -803,7 +804,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires right.Valid()
     ensures ret.Valid()
   {
-    expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()), "Concatenation result cardinality would be larger than the maximum (" + Helpers.ToString(SIZE_T_MAX) + ")";
+    expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
+      "Concatenation result cardinality would be larger than the maximum (" + DafnyValueToString(SIZE_T_MAX) + ")";
 
     // TODO: This could inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
