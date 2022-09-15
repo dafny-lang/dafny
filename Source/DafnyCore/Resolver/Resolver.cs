@@ -11259,8 +11259,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(upd.Lhss.Count == s.Locals.Count);
           for (int i = 0; i < upd.Lhss.Count; i++) {
             var local = s.Locals[i];
-            var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
-            Contract.Assert(lhs.Type == null);  // not yet resolved
+            var lhs = (IdentifierExpr)upd.Lhss[i];
             lhs.Var = local;
             lhs.Type = local.Type;
           }
@@ -11276,7 +11275,6 @@ namespace Microsoft.Dafny {
             var local = s.Locals[i];
             var lhs = (IdentifierExpr)assignOrRet
               .Lhss[i]; // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
-            Contract.Assert(lhs.Type == null); // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
           }

@@ -58,7 +58,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
-      var boundVar = new BoundVar(Tok, Id, substitutedSourceType); // TODO you'd expect the userDefinedType here instead of substitutedSourceType, but that caused an issue in type resolution: git-issue-1676.dfy(249,13): Error: type test for type 'IllegalArgumentException' must be from an expression assignable to it (got 'Exception')
+      var boundVar = new BoundVar(Tok, Id, substitutedSourceType);
 
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
