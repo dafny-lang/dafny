@@ -14,8 +14,7 @@ namespace Microsoft.Dafny {
     protected readonly Dictionary<TypeParameter, Type> typeMap;
     protected readonly Label oldHeapLabel;
 
-    public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(),
-      new Dictionary<TypeParameter, Type>());
+    public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
     public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null) {
@@ -146,8 +145,7 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs,
-            e.AtLabel ?? oldHeapLabel);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel);
           newFce.Function = e.Function; // resolve on the fly (and set newFce.Type below, at end)
           newFce.CoCall = e.CoCall; // also copy the co-call status
           newFce.CoCallHint = e.CoCallHint; // and any co-call hint
@@ -166,8 +164,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         var newArguments =
-          SubstituteExprList(dtv.Bindings
-            .Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
+          SubstituteExprList(dtv.Bindings.Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
         if (newArguments != dtv.Bindings.Arguments) {
           DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
           newDtv.Ctor = dtv.Ctor; // resolve on the fly (and set newDtv.Type below, at end)
@@ -247,8 +244,7 @@ namespace Microsoft.Dafny {
         Expression e1 = Substitute(e.E1);
         if (e0 != e.E0 || e1 != e.E1) {
           BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1);
-          newBin.ResolvedOp =
-            e.ResolvedOp; // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
+          newBin.ResolvedOp = e.ResolvedOp; // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
           newExpr = newBin;
         }
 
@@ -337,8 +333,7 @@ namespace Microsoft.Dafny {
         }
 
         if (anythingChanged) {
-          newExpr = new Translator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels,
-            newArgs, newTyArgs);
+          newExpr = new Translator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
 
       } else {
@@ -398,8 +393,7 @@ namespace Microsoft.Dafny {
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact,
-          letExpr, newSubstMap, newTypeMap, newBounds);
+        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
@@ -433,16 +427,13 @@ namespace Microsoft.Dafny {
         return bound; // nothing to substitute
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
-        return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound),
-          b.UpperBound == null ? null : Substitute(b.UpperBound));
+        return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
       } else if (bound is ComprehensionExpr.SetBoundedPool) {
         var b = (ComprehensionExpr.SetBoundedPool)bound;
-        return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType,
-          b.IsFiniteCollection);
+        return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
       } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
         var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-        return new ComprehensionExpr.MultiSetBoundedPool(Substitute(b.MultiSet), b.BoundVariableType,
-          b.CollectionElementType);
+        return new ComprehensionExpr.MultiSetBoundedPool(Substitute(b.MultiSet), b.BoundVariableType, b.CollectionElementType);
       } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
         var b = (ComprehensionExpr.SubSetBoundedPool)bound;
         return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
@@ -451,8 +442,7 @@ namespace Microsoft.Dafny {
         return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
-        return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.BoundVariableType, b.CollectionElementType,
-          b.IsFiniteCollection);
+        return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.BoundVariableType, b.CollectionElementType);
@@ -541,8 +531,7 @@ namespace Microsoft.Dafny {
     /// undoing these changes once the updated 'substMap' has been used.
     /// If no changes are necessary, the list returned is exactly 'patterns' and 'substMap' is unchanged.
     /// </summary>
-    protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns,
-      bool forceSubstitutionOfBoundVars) {
+    protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns, bool forceSubstitutionOfBoundVars) {
       bool anythingChanged = false;
       var newPatterns = new List<CasePattern<BoundVar>>();
       foreach (var pat in patterns) {
@@ -721,8 +710,7 @@ namespace Microsoft.Dafny {
         r = new AssignStmt(s.Tok, s.EndTok, Substitute(s.Lhs), SubstRHS(s.Rhs));
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute),
-          (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
+        var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
         r = rr;
       } else if (stmt is DividedBlockStmt) {
         r = SubstDividedBlockStmt((DividedBlockStmt)stmt);
@@ -760,8 +748,7 @@ namespace Microsoft.Dafny {
         }
 
         // Put things together
-        var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range),
-          s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
+        var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
         rr.Kind = s.Kind;
         rr.CanConvert = s.CanConvert;
         rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
@@ -772,8 +759,7 @@ namespace Microsoft.Dafny {
         r = rr;
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
-        var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute),
-          s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
+        var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
         rr.Op = SubstCalcOp(s.Op);
         rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
         rr.Result = Substitute(s.Result);
@@ -783,8 +769,7 @@ namespace Microsoft.Dafny {
         r = SubstStmt(s.ResolvedStatement);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt),
-          s.UsesOptionalBraces);
+        var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
         rr.MissingCases.AddRange(s.MissingCases);
         r = rr;
       } else if (stmt is AssignSuchThatStmt) {
@@ -799,8 +784,7 @@ namespace Microsoft.Dafny {
           // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
           rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss, s.Rhss, s.CanMutateKnownState);
         } else {
-          rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS),
-            s.CanMutateKnownState);
+          rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
 
         rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
@@ -853,8 +837,7 @@ namespace Microsoft.Dafny {
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
       return stmt == null
         ? null
-        : new DividedBlockStmt(stmt.Tok, stmt.EndTok, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok,
-          stmt.BodyProper.ConvertAll(SubstStmt));
+        : new DividedBlockStmt(stmt.Tok, stmt.EndTok, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
     }
 
     protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
@@ -1006,8 +989,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars,
-        forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
       var newRange = e.Range == null ? null : Substitute(e.Range);
       var newTerm = Substitute(e.Term);
       var newAttrs = SubstAttributes(e.Attributes);
@@ -1020,8 +1002,7 @@ namespace Microsoft.Dafny {
         } else if (e is MapComprehension) {
           var mc = (MapComprehension)e;
           var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-          newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft,
-            newTerm, newAttrs);
+          newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
         } else if (expr is ForallExpr forallExpr) {
           newExpr = new ForallExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
         } else if (expr is ExistsExpr existsExpr) {
