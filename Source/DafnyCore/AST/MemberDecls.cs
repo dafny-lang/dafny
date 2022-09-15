@@ -354,7 +354,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   public bool AllowsAllocation => true;
-
   public bool containsQuantifier;
 
   public bool ContainsQuantifier {
@@ -366,7 +365,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
     TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
     NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
-
     // E + F or F + E, where E has no tail call and F is a tail call
     Accumulate_Add,
     AccumulateRight_Sub,
