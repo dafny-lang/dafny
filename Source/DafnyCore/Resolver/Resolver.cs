@@ -12115,7 +12115,7 @@ namespace Microsoft.Dafny {
     // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
     private void LetBind(RBranch branch, IdPattern var, Expression genExpr) {
       var name = var.Id;
-      var type = var.Type;
+      var type = var.Type ?? new InferredTypeProxy();
       var isGhost = var.IsGhost;
 
       // if the expression is a generated IdentifierExpr, replace its token by the branch's

@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public readonly String Id;
-  public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
+  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
   [FilledInDuringResolution]
@@ -52,16 +54,15 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
 
+    Debug.Assert(Arguments != null || Type is InferredTypeProxy);
+    
     if (Arguments == null) {
-      var userDefinedType = Resolver.SubstType(Type, subst);
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
       var boundVar = new BoundVar(Tok, Id, substitutedSourceType); // TODO you'd expect the userDefinedType here instead of substitutedSourceType, but that caused an issue in type resolution: git-issue-1676.dfy(249,13): Error: type test for type 'IllegalArgumentException' must be from an expression assignable to it (got 'Exception')
 
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-      resolver.ResolveType(Tok, Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-        
       // var userDefinedNormaliseExpand = userDefinedType.NormalizeExpand();
       // var errorMsgWithToken = new TypeConstraint.ErrorMsgWithToken(Tok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", userDefinedNormaliseExpand, substitutedSourceType);
       // resolver.ConstrainSubtypeRelation(userDefinedNormaliseExpand, substitutedSourceType, errorMsgWithToken, true);
@@ -76,6 +77,19 @@ public class IdPattern : ExtendedPattern, IHasUsages {
           var formal = Ctor.Formals[index];
           argument.Resolve(resolver, resolutionContext, subst, Resolver.SubstType(formal.Type, subst), formal.IsGhost);
         }
+      }
+    }
+  }
+
+  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+    if (Arguments == null && Type is not InferredTypeProxy) {
+      yield return new BoundVar(Token.NoToken, Id, Type);
+      Type = null;
+    }
+
+    if (Arguments != null) {
+      foreach (var childResult in Arguments.SelectMany(a => a.RemoveTypesAndCollectBindings(resolver, resolutionContext))) {
+        yield return childResult;
       }
     }
   }

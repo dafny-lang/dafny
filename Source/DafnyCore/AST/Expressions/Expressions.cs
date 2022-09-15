@@ -3548,6 +3548,8 @@ public abstract class ExtendedPattern : INode {
 
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost);
+
+  public abstract IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3562,6 +3564,10 @@ public class DisjunctivePattern : ExtendedPattern {
     foreach (var alternative in Alternatives) {
       alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost);
     }
+  }
+
+  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+    return Enumerable.Empty<BoundVar>();
   }
 }
 
@@ -3626,6 +3632,10 @@ public class LitPattern : ExtendedPattern {
     ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
   }
+
+  public override IEnumerable<BoundVar> RemoveTypesAndCollectBindings(Resolver resolver, ResolutionContext resolutionContext) {
+    return Enumerable.Empty<BoundVar>();
+  }
 }
 
 public abstract class NestedMatchCase : INode {
@@ -3678,6 +3688,8 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
       }
     }
   }
+  
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
