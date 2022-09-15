@@ -1,4 +1,4 @@
-// RUN: %dafny /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
+// RUN: %dafny_0 /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {
@@ -478,13 +478,13 @@ module TwoStateAt {
   method UseOrdinaryOpaque() {
     label L:
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     reveal OrdinaryOpaque@L();  // error: @ can only be applied to something two-state (error message can be improved)
   }
   function FuncUseOrdinaryOpaque(): int {
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     10
   }
@@ -492,19 +492,19 @@ module TwoStateAt {
   method UseOpaque() {
     label L:
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     reveal Opaque@L();  // error: all parameters in a reveal must be implicit, including labels
   }
   function FuncUseOpaque(): int {
     reveal Opaque();  // error: cannot call two-state lemma in one-state function
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }
   twostate function TwoFuncUseOpaque(): int {
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }
@@ -514,5 +514,58 @@ module TwoStateAt {
   function CallEasy(): int {
     EasyTwo();  // error: two-state lemma cannot be called from one-state function
     9
+  }
+}
+
+module OlderParameters {
+  class C { }
+  trait Tr {
+    predicate P(a: C)
+    predicate Q(older a: C)
+    twostate predicate X(a: C)
+    twostate predicate Y(new a: C)
+  }
+  class Good extends Tr {
+    predicate P(a: C)
+    predicate Q(older a: C)
+    twostate predicate X(a: C)
+    twostate predicate Y(new a: C)
+  }
+  class Bad extends Tr {
+    predicate P(older a: C) // error: cannot change non-older to older
+    predicate Q(a: C) // error: cannot change older to non-older
+    twostate predicate X(new a: C) // error: cannot change from non-new to new
+    twostate predicate Y(a: C) // error: cannot change from new to non-new
+  }
+}
+
+module RefinementBase {
+  class C { }
+  predicate P(a: C)
+  predicate Q(older a: C)
+  twostate predicate X(a: C)
+  twostate predicate Y(new a: C)
+}
+
+module GoodRefinement refines RefinementBase {
+  predicate P(a: C) { true }
+  predicate Q(older a: C) { true }
+  twostate predicate X(a: C) { true }
+  twostate predicate Y(new a: C) { true }
+}
+
+module BadRefinement refines RefinementBase {
+  predicate P(older a: C) { true } // error: cannot change non-older to older
+  predicate Q(a: C) { true } // error: cannot change older to non-older
+  twostate predicate X(new a: C) { true } // error: cannot change non-new to new
+  twostate predicate Y(a: C) { true } // error: cannot change new to non-new
+}
+
+module RevealInsideIterator {
+  function {:opaque} G(): int { 2 }
+
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
   }
 }

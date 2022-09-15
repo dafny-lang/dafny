@@ -1,4 +1,4 @@
-// RUN: %dafny /errorLimit:15 "%s" > "%t"
+// RUN: %dafny_0 /errorLimit:15 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*

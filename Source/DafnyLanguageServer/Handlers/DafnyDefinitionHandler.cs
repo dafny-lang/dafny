@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationOrLocationLinks();
@@ -45,8 +45,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new[] { location };
     }
 
-    private static LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
-      if (document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
+    private static LocationOrLocationLink? GetLspLocation(IdeState state, ISymbol symbol) {
+      if (state.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
           Uri = location.Uri,
           Range = location.Name

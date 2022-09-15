@@ -1,13 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-      <OutputType>Exe</OutputType>
-      <AssemblyName>Dafny</AssemblyName>
+      <OutputType>Library</OutputType>
+      <AssemblyName>DafnyDriver</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+      <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -23,7 +27,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.TestPlatform.Extensions.TrxLogger" Version="17.0.0" />
     <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="16.11.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       
     <!-- Locking down versions that would otherwise be downgraded -->
     <PackageReference Include="System.Security.Principal.Windows" Version="4.5.0" />
@@ -37,8 +41,7 @@
   </ItemGroup>
     
   <ItemGroup>
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>

@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Thanks for contributing to Dafny!  Github is the right place to discuss feature requests, report issues with Dafny, or contact the Dafny developers.
+Thanks for contributing to Dafny! Github is the right place to discuss feature requests, report issues with Dafny, or contact the Dafny developers.
 
 Before reporting an issue here, consider whether it would be better handled in one of the following places:
 
@@ -26,3 +26,23 @@ All other pull requests and issues can be submitted here.
 ## Code of Conduct
 
 See [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+
+## Pull requests
+
+Pull requests should be merged using 'Squash and merge' unless otherwise noted. 
+
+For pull requests that move more than a thousand lines of code from an existing to a new file, please take the following steps:
+- Create a separate pull request that includes just the code move. 
+- Use the script found in Scripts/git-cp.sh. Running git-cp.sh src dst will copy file src to dst using a branch and a merge, and you can then remove the duplicated parts from src and dst to complete the code move (this process allows git to track the file copy, as described in this StackOverflow answer).
+- Merge the pull request using 'Create a merge commit' instead of 'Squash and merge'.
+
+## FAQ
+
+### What to do if the nightly build failed but because of a "download failure"?
+
+If the test in a PR named `Build and Test / check-deep-tests / check-deep-tests` failed, clicking on its "details" reveals a view (view 1) in which you can see a failed run with the failure being something like "Error: Last run of deep-tests.yml did not succeed (some URL in parentheses).
+
+Clicking on this URL will reveal the deep tests that were run (view 2). If one of this test is just a "download failure", then one simply needs to re-run it (button on the top right).
+Once it succeeds, one has to go back to (view 1) and re-run the failed jobs, so that it will retrieve the latest successful deep tests.
+
+After doing these steps once, for other PRs, one only needs to re-run deep checks in (view 1)

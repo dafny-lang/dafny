@@ -14,35 +14,35 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class TextDocumentLoaderTest {
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<IProgramVerifier> verifier;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILoggerFactory> logger;
+    private Mock<INotificationPublisher> diagnosticPublisher;
 
     [TestInitialize]
     public void SetUp() {
       parser = new();
       symbolResolver = new();
-      verifier = new();
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       logger = new Mock<ILoggerFactory>();
+      diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
-        verifier.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object
+        logger.Object,
+        diagnosticPublisher.Object
       );
     }
 
-    private static TextDocumentItem CreateTestDocument() {
-      return new TextDocumentItem {
+    private static DocumentTextBuffer CreateTestDocument() {
+      return new DocumentTextBuffer(0) {
         LanguageId = "dafny",
         Version = 1,
         Text = ""

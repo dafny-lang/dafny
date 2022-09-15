@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java /runAllTests:1 "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go   /runAllTests:1 "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js   /runAllTests:1 "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py   /runAllTests:1 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t" 
 
 include "../exceptions/VoidOutcomeDt.dfy"

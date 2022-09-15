@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method F(x: int, w: int): (int, int)

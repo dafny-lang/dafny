@@ -1,4 +1,4 @@
-﻿using Microsoft.Boogie;
+﻿using System;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;
@@ -6,6 +6,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -20,8 +22,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly GhostOptions options;
-
-    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options) {
+    private readonly ILogger<GhostStateDiagnosticCollector> logger;
+    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options, ILogger<GhostStateDiagnosticCollector> logger) {
+      this.logger = logger;
       this.options = options.Value;
     }
 
@@ -29,9 +32,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (!options.MarkStatements) {
         return Enumerable.Empty<Diagnostic>();
       }
-      var visitor = new GhostStateSyntaxTreeVisitor(symbolTable.CompilationUnit.Program, cancellationToken);
-      visitor.Visit(symbolTable.CompilationUnit.Program);
-      return visitor.GhostDiagnostics;
+
+      try {
+        var visitor = new GhostStateSyntaxTreeVisitor(symbolTable.CompilationUnit.Program, cancellationToken);
+        visitor.Visit(symbolTable.CompilationUnit.Program);
+        return visitor.GhostDiagnostics;
+      } catch (Exception e) {
+        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", symbolTable.CompilationUnit.Name);
+        return new Diagnostic[] { };
+      }
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {

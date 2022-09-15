@@ -94,9 +94,9 @@ module _System {
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
-// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12
+// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12 bv3
 */
 
 /* CALL GRAPH for module _module:
@@ -390,23 +390,23 @@ method Shifts()
   var x: int, h: Handful, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0;
   x, h := 3, 3;
   b67, w, seven := 5, 5, 5;
-  PrintShifts("bv67", b67, 8 * b67, b67 << x, b67 << h);
-  PrintShifts("bv32", w, 8 * w, w << x, w << h);
-  PrintShifts("bv7", seven, 8 * seven, seven << x, seven << h);
+  PrintShifts("bv67", b67, 8 * b67, b67 << x as bv7, b67 << h as bv7);
+  PrintShifts("bv32", w, 8 * w, w << x as bv6, w << h as bv6);
+  PrintShifts("bv7", seven, 8 * seven, seven << x as bv3, seven << h as bv3);
   bb, x, h := 1, 1, 1;
-  PrintShifts("bv2", bb, 2 * bb, bb << x, bb << h);
+  PrintShifts("bv2", bb, 2 * bb, bb << x as bv2, bb << h as bv2);
   x, h := 0, 0;
-  PrintShifts("bv0", noll, 0 * noll, noll << x, noll << h);
+  PrintShifts("bv0", noll, 0 * noll, noll << x as bv0, noll << h as bv0);
   b67, w, bb, noll := 73786976294838206465, 1, 1, 0;
   var One67: bv67 := 1;
-  PrintShifts("bv67 again", b67 << One67, b67 << w, b67 << bb, b67 << noll);
+  PrintShifts("bv67 again", b67 << One67 as bv7, b67 << w as bv7, b67 << bb as bv7, b67 << noll as bv7);
   b67, w, bb, noll := 2, 3221225472 + 2000, 1, 0;
   var Two32: bv32 := 2;
-  PrintShifts("bv32 again", w << b67, w << Two32, w << bb, w << noll);
+  PrintShifts("bv32 again", w << b67 as bv6, w << Two32 as bv6, w << bb as bv6, w << noll as bv6);
   seven, b67, w, bb, noll := 127, 2, 2, 2, 0;
-  PrintShifts("bv7 again", seven << b67, seven << w, seven << bb, seven << noll);
+  PrintShifts("bv7 again", seven << b67 as bv3, seven << w as bv3, seven << bb as bv3, seven << noll as bv3);
   b67, w, bb := 0, 0, 0;
-  PrintShifts("bv0 again", noll << b67, noll << w, noll << bb, noll << noll);
+  PrintShifts("bv0 again", noll << b67 as bv0, noll << w as bv0, noll << bb as bv0, noll << noll as bv0);
 }
 
 method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)

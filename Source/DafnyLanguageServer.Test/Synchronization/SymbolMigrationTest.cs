@@ -27,7 +27,7 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(document.SymbolTable.Resolved);
       Assert.AreEqual(2, document.SymbolTable.Locations.Keys.OfType<FunctionSymbol>().Count());
@@ -52,9 +52,8 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
@@ -73,9 +72,8 @@ function GetConstant(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
@@ -97,7 +95,7 @@ method GetIt(x: int) returns (y: int) {
         new Range((1, 0), (1, 11)),
         change
       );
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsTrue(document.SymbolTable.Resolved);
       Assert.AreEqual(1, document.SymbolTable.Locations.Keys.OfType<MethodSymbol>().Count());

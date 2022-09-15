@@ -10,7 +10,7 @@ Dafny has support for common programming concepts such as [classes and trait inh
 
 Dafny also offers an extensive toolbox for mathematical proofs, such as [unbounded and bounded quantifiers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-forall-statement), [calculational proofs](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1923-calc-statement), [pre- and post-conditions, termination conditions, loop invariants, and read/write specifications](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#51-specification-clauses).
 
-![Dafny](dafny-banner.png)
+![Dafny](docs/Banner/dafny-banner.png)
 
 This github site contains these materials:
 
@@ -85,4 +85,6 @@ This will install pre-commit hooks in your .git/hooks directory.
 
 # License
 
-Dafny itself is licensed under the MIT license. (See LICENSE.txt in the root directory for details.) The subdirectory `third_party` contains third party material; see NOTICES.txt for more details.
+Dafny itself is licensed under the MIT license. (See `LICENSE.txt` in the root
+directory for details.) The subdirectory `Source/Dafny/Coco` contains third
+party material; see `Source/Dafny/Coco/LICENSE.txt` for more details.

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,15 +15,10 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (textDocumentItem != null) {
-      Assert.AreEqual(textDocumentItem.Version, result.Version);
+      Assert.AreEqual(textDocumentItem.Version, result.Version,
+        $"result diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
       Assert.AreEqual(textDocumentItem.Uri, result.Uri);
     }
     return result.Diagnostics.ToArray();
-  }
-
-  public async Task<Diagnostic[]> AwaitVerificationDiagnosticsAsync(CancellationToken cancellationToken) {
-    var resolutionDiagnostics = await AwaitNextDiagnosticsAsync(cancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Source != MessageSource.Verifier.ToString()));
-    return await AwaitNextDiagnosticsAsync(cancellationToken);
   }
 }

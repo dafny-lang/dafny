@@ -6,10 +6,11 @@
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
-      <PackageVersion>1.1.0</PackageVersion>
+      <VersionPrefix>1.2.0</VersionPrefix>
       <TargetFramework>net6.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
       <LangVersion>7.3</LangVersion>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

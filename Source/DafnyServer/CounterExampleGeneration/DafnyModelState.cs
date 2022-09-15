@@ -10,8 +10,7 @@ using Microsoft.Boogie;
 namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
-  /// Represents a state in a `DafnyModel` and captures the values of all
-  /// variables at a particular point in the code.
+  /// Represents a program state in a DafnyModel
   /// </summary>
   public class DafnyModelState {
 
@@ -19,31 +18,34 @@ namespace DafnyServer.CounterexampleGeneration {
     internal readonly Model.CapturedState State;
     internal int VarIndex; // used to assign unique indices to variables
     private readonly List<DafnyModelVariable> vars;
-    private readonly List<DafnyModelVariable> skolems;
-    // The following map helps to avoid the creation of multiple variables for
-    // the same element.
+    private readonly List<DafnyModelVariable> boundVars;
+    // varMap prevents the creation of multiple variables for the same element.
     private readonly Dictionary<Model.Element, DafnyModelVariable> varMap;
-    private readonly Dictionary<string, int> varNamesMap;
+    // varNameCount keeps track of the number of variables with the same name.
+    // Name collision can happen in the presence of an old expression,
+    // for instance, in which case the it is important to distinguish between
+    // two variables that have the same name using an index provided by Boogie
+    private readonly Dictionary<string, int> varNameCount;
 
     private const string InitialStateName = "<initial>";
-    private static Regex statePositionRegex = new(
+    private static readonly Regex StatePositionRegex = new(
       @".*\((?<line>\d+),(?<character>\d+)\)",
       RegexOptions.IgnoreCase | RegexOptions.Singleline
     );
 
-    public DafnyModelState(DafnyModel model, Model.CapturedState state) {
+    internal DafnyModelState(DafnyModel model, Model.CapturedState state) {
       Model = model;
       State = state;
       VarIndex = 0;
       vars = new();
       varMap = new();
-      varNamesMap = new();
-      skolems = new List<DafnyModelVariable>(SkolemVars());
+      varNameCount = new();
+      boundVars = new(BoundVars());
       SetupVars();
     }
 
     /// <summary>
-    /// Start with the union of vars and skolems and expand it by adding the
+    /// Start with the union of vars and boundVars and expand the set by adding 
     /// variables that represent fields of any object in the original set or
     /// elements of any sequence in the original set, etc. This is done
     /// recursively in breadth-first order and only up to a certain maximum
@@ -52,13 +54,13 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <param name="maxDepth">The maximum depth up to which to expand the
     /// variable set. Can be null to indicate that there is no limit</param>
     /// <returns>List of variables</returns>
-    public HashSet<DafnyModelVariable> ExpandedVariableSet(int? maxDepth) {
+    public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
       HashSet<DafnyModelVariable> expandedSet = new();
       // The following is the queue for elements to be added to the set. The 2nd
       // element of a tuple is the depth of the variable w.r.t. the original set
       List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
-      vars.ForEach(variable => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(variable, 0)));
-      skolems.ForEach(variable => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(variable, 0)));
+      vars.ForEach(variable => varsToAdd.Add(new(variable, 0)));
+      boundVars.ForEach(variable => varsToAdd.Add(new(variable, 0)));
       while (varsToAdd.Count != 0) {
         var (next, depth) = varsToAdd[0];
         varsToAdd.RemoveAt(0);
@@ -72,59 +74,61 @@ namespace DafnyServer.CounterexampleGeneration {
         // fields of primitive types are skipped:
         foreach (var v in next.GetExpansion().
             Where(variable => !expandedSet.Contains(variable) && !variable.IsPrimitive)) {
-          varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
+          varsToAdd.Add(new(v, depth + 1));
         }
       }
       return expandedSet;
     }
 
-    public bool ExistsVar(Model.Element element) {
+    internal bool ExistsVar(Model.Element element) {
       return varMap.ContainsKey(element);
     }
 
-    public void AddVar(Model.Element element, DafnyModelVariable var) {
+    internal void AddVar(Model.Element element, DafnyModelVariable var) {
       if (!ExistsVar(element)) {
         varMap[element] = var;
       }
     }
 
-    public DafnyModelVariable GetVar(Model.Element element) {
+    internal DafnyModelVariable GetVar(Model.Element element) {
       return varMap[element];
     }
 
-    public void AddVarName(string name) {
-      varNamesMap[name] = varNamesMap.GetValueOrDefault(name, 0) + 1;
+    internal void AddVarName(string name) {
+      varNameCount[name] = varNameCount.GetValueOrDefault(name, 0) + 1;
     }
 
-    public bool VarNameIsShared(string name) {
-      return varNamesMap.GetValueOrDefault(name, 0) > 1;
+    internal bool VarNameIsShared(string name) {
+      return varNameCount.GetValueOrDefault(name, 0) > 1;
     }
 
     public string FullStateName => State.Name;
 
-    public string ShortenedStateName => ShortenName(State.Name, 20);
+    private string ShortenedStateName => ShortenName(State.Name, 20);
 
     public bool IsInitialState => FullStateName.Equals(InitialStateName);
 
     public int GetLineId() {
-      var match = statePositionRegex.Match(ShortenedStateName);
+      var match = StatePositionRegex.Match(ShortenedStateName);
       if (!match.Success) {
-        throw new ArgumentException($"state does not contain position: {ShortenedStateName}");
+        throw new ArgumentException(
+          $"state does not contain position: {ShortenedStateName}");
       }
       return int.Parse(match.Groups["line"].Value);
     }
 
     public int GetCharId() {
-      var match = statePositionRegex.Match(ShortenedStateName);
+      var match = StatePositionRegex.Match(ShortenedStateName);
       if (!match.Success) {
-        throw new ArgumentException($"state does not contain position: {ShortenedStateName}");
+        throw new ArgumentException(
+          $"state does not contain position: {ShortenedStateName}");
       }
       return int.Parse(match.Groups["character"].Value);
     }
 
     /// <summary>
     /// Initialize the vars list, which stores all variables relevant to
-    /// the counterexample except for Skolem constants
+    /// the counterexample except for the bound variables
     /// </summary>
     private void SetupVars() {
       var names = Enumerable.Empty<string>();
@@ -133,24 +137,24 @@ namespace DafnyServer.CounterexampleGeneration {
         names = prev.vars.ConvertAll(variable => variable.Name);
       }
       names = names.Concat(State.Variables).Distinct();
-      var curVars = State.Variables.ToDictionary(x => x);
       foreach (var v in names) {
         if (!DafnyModel.IsUserVariableName(v)) {
           continue;
         }
         var val = State.TryGet(v);
-        var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate: true);
-        if (curVars.ContainsKey(v)) {
-          Model.RegisterLocalValue(vn.Name, val);
+        if (val == null) {
+          continue; // This variable has no value in the model, so ignore it.
         }
+
+        var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate: true);
         vars.Add(vn);
       }
     }
 
     /// <summary>
-    /// Return list of variables associated with Skolem constants
+    /// Return list of bound variables
     /// </summary>
-    private IEnumerable<DafnyModelVariable> SkolemVars() {
+    private IEnumerable<DafnyModelVariable> BoundVars() {
       foreach (var f in Model.Model.Functions) {
         if (f.Arity != 0) {
           continue;
@@ -163,6 +167,7 @@ namespace DafnyServer.CounterexampleGeneration {
         if (!name.Contains('#')) {
           continue;
         }
+
         yield return DafnyModelVariableFactory.Get(this, f.GetConstant(), name,
           null, true);
       }

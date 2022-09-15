@@ -10,6 +10,15 @@ import (
   "runtime"
 )
 
+func FromMainArguments(args []string) Seq {
+  var size = len(args)
+  var dafnyArgs []interface{} = make([]interface{}, size)
+  for i, item := range args {
+    dafnyArgs[i] = SeqOfString(item)
+  }
+  return SeqOf(dafnyArgs...)
+}
+
 /******************************************************************************
  * Generic values
  ******************************************************************************/
@@ -573,6 +582,11 @@ func (seq Seq) IsPrefixOf(seq2 Seq) bool {
 // s != s2.
 func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
   return sliceIsProperPrefixOf(seq.contents, seq2.contents)
+}
+
+// Elements returns the sequence of elements (i.e. the sequence itself).
+func (seq Seq) Elements() Seq {
+  return seq
 }
 
 // UniqueElements returns the set of elements in the sequence.

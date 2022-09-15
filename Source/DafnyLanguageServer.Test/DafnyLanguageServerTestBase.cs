@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
 using OmniSharp.Extensions.LanguageServer.Client;
+using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -51,9 +53,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
 
-    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
-
-
+    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
 
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
@@ -122,9 +123,10 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
-        .AddConsole()
+        .AddFilter("OmniSharp", LogLevel.Warning)
+        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
         .SetMinimumLevel(LogLevel.Debug)
-        .AddFilter("OmniSharp", LogLevel.Warning);
+        .AddConsole();
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
@@ -132,7 +134,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = DocumentUri.FromFileSystemPath(filePath),
+        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
         Version = version
       };
     }
@@ -159,6 +161,13 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
+    }
+
+    protected async Task WithNoopSolver(Func<Task> action) {
+      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
+      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
+      await action();
+      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
     }
   }
 }
