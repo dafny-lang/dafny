@@ -162,8 +162,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures fresh(ret.Repr)
     ensures ret.values == other.CellValues()
 
-  // Separate type in order to have a type without a Valid()
-  // that reads {}.
+  // Separate type in order to have a type without a Valid() that reads {}.
+  // This could easily be implemented by the same native type as NativeArray.
   trait {:extern} ImmutableArray<+T> {
 
     ghost const values: seq<T>
@@ -731,6 +731,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var arraySeq := new ArraySequence(ret);
       box.Put(arraySeq);
     }
+  }
+
+  // Sequence creation methods
+
+  method CreateSequence<T>(cardinality: size_t, init: size_t -> T) returns (ret: Sequence<T>) {
+
   }
 
   // Sequence methods that must be static because they require T to be equality-supporting

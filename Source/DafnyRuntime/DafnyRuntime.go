@@ -418,20 +418,16 @@ func AllBooleans() Iterator {
  * Sequences
  ******************************************************************************/
 
-// A Seq is a Go slice representing a one-dimensional array.  There aren't any
-// methods for updating; instead, you can update by mutating the value returned
-// by Index (either by using its Set method or by getting a pointer using its
-// Addr method).
-type Seq struct {
-  contents []interface{}
-  isString bool
-}
+// The sequence type is now defined in dafnyRuntime.dfy instead.
+// These declarations are just filling in the gaps to make sure
+// Dafny.Sequence is a well-behaved Dafny value in this runtime.
+
 
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
 // Create a sequence from a length and an element initializer
-func SeqCreate(n Int, init func (Int) interface{}) Seq {
+func SeqCreate(n Int, init func(Int) interface{}) Sequence {
   len := n.Int()
   arr := make([]interface{}, len)
   for i := 0; i < len; i++ {
@@ -468,120 +464,20 @@ func SeqOfString(str string) Seq {
   return Seq{arr, true}
 }
 
-func (seq Seq) SetString() Seq {
-        return Seq{seq.contents, true}
-}
-
-// Index finds the sequence element at the given index.
-func (seq Seq) Index(i Int) interface{} {
-  return seq.IndexInt(i.Int())
-}
-
-// IndexInt finds the sequence element at the given index.
-func (seq Seq) IndexInt(i int) interface{} {
-  return seq.contents[i]
-}
-
-// Update returns a new sequence with the given index set to the given value.
-func (seq Seq) Update(i Int, v interface{}) Seq {
-  return seq.UpdateInt(i.Int(), v)
-}
-
-// UpdateInt returns a new sequence with the given index set to the given value.
-func (seq Seq) UpdateInt(i int, v interface{}) Seq {
-  arr := make([]interface{}, len(seq.contents))
-  copy(arr, seq.contents[:i])
-  arr[i] = v
-  copy(arr[i+1:], seq.contents[i+1:])
-  return Seq{arr, seq.isString}
-}
-
-// Len finds the length of the sequence.
-func (seq Seq) Len() Int {
-  return IntOf(seq.LenInt())
-}
-
-// LenInt finds the length of the sequence as an int.
-func (seq Seq) LenInt() int {
-  return len(seq.contents)
-}
-
-// Cardinality finds the length of the sequence.
-func (seq Seq) Cardinality() Int {
-  return seq.Len()
-}
-
-// CardinalityInt finds the length of the sequence as an int.
-func (seq Seq) CardinalityInt() int {
-  return seq.LenInt()
-}
-
-// Contains finds whether the value is equal to any element in the sequence.
-func (seq Seq) Contains(value interface{}) bool {
-  return sliceContains(seq.contents, value)
-}
-
 // Iterator returns an iterator over the sequence.
 func (seq Seq) Iterator() Iterator {
   return sliceIterator(seq.contents)
 }
 
-// Subseq gets the selected portion of the sequence as a new sequence.
-func (seq Seq) Subseq(lo, hi Int) Seq {
-  var slice []interface{}
-  if !lo.IsNilInt() {
-    if !hi.IsNilInt() {
-      slice = seq.contents[lo.Int():hi.Int()]
-    } else {
-      slice = seq.contents[lo.Int():]
-    }
-  } else {
-    if !hi.IsNilInt() {
-      slice = seq.contents[:hi.Int()]
-    } else {
-      slice = seq.contents
-    }
-  }
-
-  return Seq{slice, seq.isString}
-}
-
-// Concat returns the concatenation of two sequences.
-func (seq Seq) Concat(seq2 Seq) Seq {
-  if seq.LenInt() == 0 {
-    return seq2
-  }
-  if seq2.LenInt() == 0 {
-    return seq
-  }
-
-  n, n2 := len(seq.contents), len(seq2.contents)
-  newSlice := make([]interface{}, n+n2)
-  copy(newSlice, seq.contents)
-  copy(newSlice[len(seq.contents):], seq2.contents)
-  return Seq{newSlice, seq.isString || seq2.isString}
-}
-
 // Equals compares two sequences for equality.
 func (seq Seq) Equals(seq2 Seq) bool {
-  return sliceEquals(seq.contents, seq2.contents)
+  return EqualSequences(seq, seq2)
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
 func (seq Seq) EqualsGeneric(other interface{}) bool {
   seq2, ok := other.(Seq)
   return ok && seq.Equals(seq2)
-}
-
-// IsPrefixOf finds whether s[i] == s2[i] for all i < some n.
-func (seq Seq) IsPrefixOf(seq2 Seq) bool {
-  return sliceIsPrefixOf(seq.contents, seq2.contents)
-}
-
-// IsProperPrefixOf finds whether s[i] == s2[i] for all i < some n, and moreover
-// s != s2.
-func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
-  return sliceIsProperPrefixOf(seq.contents, seq2.contents)
 }
 
 // Elements returns the sequence of elements (i.e. the sequence itself).
@@ -595,20 +491,59 @@ func (seq Seq) UniqueElements() Set {
 }
 
 func (seq Seq) String() string {
-  if seq.isString {
-    s := ""
-    for _, c := range seq.contents {
-      s += c.(Char).String()
-    }
-    return s
-  } else {
-    return "[" + stringOfElements(seq.contents) + "]"
-  }
+  return seq.ToString()
 }
 
 /******************************************************************************
  * Arrays
  ******************************************************************************/
+
+// A NativeArray is a single dimensional Go slice,
+// wrapped up for the benefit of dafnyRuntime.dfy.
+type NativeArray struct {
+  contents []interface{}
+}
+
+func NewNativeArray(length int) NativeArray {
+  contents := make([]interface{}, length)
+  return &NativeArray{
+    contents: contents,
+  }
+}
+
+func CopyNativeArray(other NativeArray) {
+  contents := make([]interface{}, other.Length())
+  copy(arr, other.contents)
+  return &NativeArray{
+    contents: contents,
+  }
+}
+
+func (array *NativeArray) Length() int {
+  return len(contents)
+}
+
+func (array *NativeArray) Select(i int) interface{} {
+  return contents[i]
+}
+
+func (array *NativeArray) Update(i int, t interface{}) interface{} {
+  contents[i] = t
+}
+
+func (array *NativeArray) UpdateSubarray(i int, other NativeArray) interface{} {
+  contents[i:(i + other.Length())] = other.contents
+}
+
+func (array *NativeArray) Freeze() NativeArray {
+  return this
+}
+
+func (array *NativeArray) Subarray(lo int, hi int) NativeArray {
+  return &NativeArray {
+    contents = contents[lo:hi]
+  }
+}
 
 // An Array is a Go slice representing a (possibly) multidimensional array,
 // along with metadata.  There aren't any methods for updating; instead, you can
