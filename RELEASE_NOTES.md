@@ -5,6 +5,7 @@ Upcoming
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 - fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
 - feat: Methods and function methods marked with test attr will receive JUnit annotation when compiled to Java (https://github.com/dafny-lang/dafny/pull/2395)
+- fix: retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
 
 
 # 3.8.1
