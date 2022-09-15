@@ -1562,6 +1562,11 @@ predicate GoodIdentifier(s: string) {
                    || 'A' <= s[i] <= 'Z'
                    || '0' <= s[i] <= '9'
 }
+predicate BadIdentifier(s: string) {
+  forall e, e' ::
+    && Exprs.ConstructorsMatch(e, e')
+    && s == """"
+}
 ");
     }
 
