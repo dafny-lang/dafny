@@ -104,17 +104,23 @@ public abstract class Expression : INode {
         } else {
           var startTok = tok;
           var endTok = tok;
-          foreach (var e in SubExpressions) {
-            if (e.tok.Filename != tok.Filename || e.IsImplicit) {
-              // Ignore auto-generated expressions, if any.
-              continue;
-            }
 
-            if (e.StartToken.pos < startTok.pos) {
-              startTok = e.StartToken;
-            } else if (e.EndToken.pos > endTok.pos) {
-              endTok = e.EndToken;
+          void updateStartEndTok(Expression expression) {
+            if (expression.tok.Filename != tok.Filename || expression.IsImplicit) {
+              // Ignore any auto-generated expressions.
+            } else {
+              if (expression.StartToken.pos < startTok.pos) {
+                startTok = expression.StartToken;
+              }
+              if (endTok.pos < expression.EndToken.pos) {
+                endTok = expression.EndToken;
+              }
             }
+          }
+
+          SubExpressions.Iter(updateStartEndTok);
+          if (this is StmtExpr stmtExpr) {
+            stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
           }
 
           if (FormatTokens != null) {
