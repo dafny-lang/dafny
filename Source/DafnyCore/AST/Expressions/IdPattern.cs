@@ -58,7 +58,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
-      var boundVar = new BoundVar(Tok, Id, substitutedSourceType);
+      var boundVar = new Formal(Tok, Id, substitutedSourceType, false, false, null); //new BoundVar(Tok, Id, substitutedSourceType);
 
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
