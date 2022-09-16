@@ -1477,6 +1477,7 @@ namespace Microsoft.Dafny {
         var autoReqs = generateAutoReqs(e.ResolvedExpression);
         var newMatch = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
         newMatch.ResolvedExpression = andify(e.tok, autoReqs);
+        newMatch.Type = newMatch.ResolvedExpression.Type;
         reqs.Add(newMatch);
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
