@@ -500,6 +500,13 @@ public abstract class Expression : INode {
            (expr is MultiSetDisplayExpr && ((MultiSetDisplayExpr)expr).Elements.Count == 0);
   }
 
+  /// <summary>
+  /// Create a resolved ParensExpression around a given resolved expression "e".
+  /// </summary>
+  public static Expression CreateParensExpression(IToken tok, Expression e) {
+    return new ParensExpression(tok, e) { Type = e.Type, ResolvedExpression = e };
+  }
+
   public static Expression CreateNot(IToken tok, Expression e) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null && e.Type != null && e.Type.IsBoolType);
@@ -912,12 +919,7 @@ public class LiteralExpr : Expression {
   [Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);
-    if (e is LiteralExpr) {
-      LiteralExpr le = (LiteralExpr)e;
-      return le.Value is bool && (bool)le.Value;
-    } else {
-      return false;
-    }
+    return Expression.IsBoolLiteral(e, out var value) && value;
   }
 
   public static bool IsEmptySet(Expression e) {
