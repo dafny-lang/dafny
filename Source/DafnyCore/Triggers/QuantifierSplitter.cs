@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<Expression> SplitAndStich(BinaryExpr pair, BinaryExpr.Opcode separator) {
+    internal static IEnumerable<Expression> SplitAndStitch(BinaryExpr pair, BinaryExpr.Opcode separator) {
       foreach (var e1 in SplitExpr(pair.E1, separator)) {
         // Notice the token. This makes triggers/splitting-picks-the-right-tokens.dfy possible
         yield return new BinaryExpr(e1.tok, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.Triggers {
       if (quantifier is ForallExpr) {
         IEnumerable<Expression> stream;
         if (binary != null && (binary.Op == BinaryExpr.Opcode.Imp || binary.Op == BinaryExpr.Opcode.Or)) {
-          stream = SplitAndStich(binary, BinaryExpr.Opcode.And);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.And);
         } else {
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.Triggers {
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
         if (binary != null && binary.Op == BinaryExpr.Opcode.And) {
-          stream = SplitAndStich(binary, BinaryExpr.Opcode.Or);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.Or);
         } else {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
