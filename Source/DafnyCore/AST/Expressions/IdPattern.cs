@@ -58,15 +58,14 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
-      var boundVar = new Formal(Tok, Id, substitutedSourceType, false, false, null); //new BoundVar(Tok, Id, substitutedSourceType);
+      var boundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); //new BoundVar(Tok, Id, substitutedSourceType);
 
       resolver.scope.Push(Id, boundVar);
       resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-      boundVar.IsGhost = isGhost;
     } else {
-      subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
       if (Ctor != null) {
+        subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];

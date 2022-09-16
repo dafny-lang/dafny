@@ -8846,6 +8846,13 @@ namespace Microsoft.Dafny {
             ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
           }
 
+        } else if (stmt is NestedMatchStmt) { 
+          // Make an exception for NestedMatchStmt since we're in the processing of not making it a ConcreteSyntaxStatement
+          // We compute ghostness both for the resolved and normal stmt.
+          var s = (NestedMatchStmt) stmt;
+          Visit(s.ResolvedStatement, mustBeErasable, proofContext);
+          s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
+          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
         } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
           Visit(s.ResolvedStatement, mustBeErasable, proofContext);
