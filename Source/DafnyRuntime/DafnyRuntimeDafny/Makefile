@@ -1,23 +1,26 @@
 
+
+DAFNY_WITHOUT_RUNTIMES = dotnet run --project ../../DafnyWithoutRuntimes --no-build
+
 all: verify cs java py js build
 
 verify:
-	dafny /compile:0 /definiteAssignment:3 src/dafnyRuntime.dfy
+	$(DAFNY_WITHOUT_RUNTIMES) /compile:0 /definiteAssignment:3 src/dafnyRuntime.dfy
 
 java: verify
-	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:java /out:../DafnyRuntimeJava/src/main/generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:java /out:../DafnyRuntimeJava/src/main/generated
 
 cs: verify
-	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:cs /out:../generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:cs /out:../generated
 
 py: verify
-	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
 	
 go: verify
-	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeGo.dfy /compileTarget:go /out:../generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeGo.dfy /compileTarget:go /out:../generated
 
 js: verify
-	dafny /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:js /out:../generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:js /out:../generated
 
 build:
 	dotnet build ../DafnyRuntime

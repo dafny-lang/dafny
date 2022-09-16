@@ -13,8 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
-      <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
+      <ProjectReference Include="..\DafnyServerWithoutRuntimes\DafnyServerWithoutRuntimes.csproj" />
     </ItemGroup>
 
     <ItemGroup>

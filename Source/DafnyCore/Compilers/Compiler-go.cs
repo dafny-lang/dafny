@@ -75,11 +75,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
-      if (ModuleName == "dafnyRuntimeGo") {
-        // HACK: we need to call EmitImports to initialize the writers, but don't actually
-        // want any of the imports.
-        Imports.Clear();
-      }
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
       if (DafnyOptions.O.UseRuntimeLib) {
@@ -103,7 +98,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
       // This is a non-main module; it only imports things declared before it, so we don't need these writers
-      EmitImports(wr, out _, out _);
+      if (ModuleName != "dafny") {
+        EmitImports(wr, out _, out _);
+      }
       wr.WriteLine();
       wr.WriteLine("type {0} struct{{}}", DummyTypeName);
       wr.WriteLine();

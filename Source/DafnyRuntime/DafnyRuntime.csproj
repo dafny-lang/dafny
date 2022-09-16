@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyWithoutRuntimes\DafnyWithoutRuntimes.csproj" />
+  </ItemGroup>
+    
+  <ItemGroup>
     <Compile Update="DafnyRuntime.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
@@ -51,6 +55,10 @@
       <!-- Register the generated file to be deleted when cleaning -->
       <FileWrites Include="$(DafnyRuntimeJar)" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="BuildDafnyRuntimeToGo" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile">
+    <Exec WorkingDirectory="DafnyRuntimeDafny" Command="make go" />
   </Target>
 
 </Project>

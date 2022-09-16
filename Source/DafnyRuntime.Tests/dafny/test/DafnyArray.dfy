@@ -1,9 +1,8 @@
 
-include "../src/array.dfy"
-
+include "../src/dafnyRuntimeGo.dfy"
 
 module {:options "/functionSyntax:4"} DafnyArrays {
-  import opened Arrays
+  import opened Dafny
 
   ///
   // Feasibility implementation

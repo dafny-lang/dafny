@@ -43,7 +43,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+    <ProjectReference Include="..\DafnyServerWithoutRuntimes\DafnyServerWithoutRuntimes.csproj" />
   </ItemGroup>
 
   <ItemGroup>

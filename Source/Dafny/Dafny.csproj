@@ -28,6 +28,8 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+    <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
   </ItemGroup>
 
   <ItemGroup>
