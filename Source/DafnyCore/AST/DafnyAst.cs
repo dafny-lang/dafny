@@ -21,7 +21,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
-  
+
   public interface INode {
 
     /// <summary>
@@ -32,11 +32,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     IEnumerable<INode> Children { get; }
   }
-  
+
   public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
   }
-  
+
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
