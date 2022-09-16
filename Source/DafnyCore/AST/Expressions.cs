@@ -106,7 +106,7 @@ public abstract class Expression : INode {
           var endTok = tok;
 
           void updateStartEndTok(Expression expression) {
-            if (expression.tok.Filename != tok.Filename || expression.IsImplicit) {
+            if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
               // Ignore any auto-generated expressions.
             } else {
               if (expression.StartToken.pos < startTok.pos) {
