@@ -21,16 +21,26 @@ public class ExpectContracts : IRewriter {
   /// Create an expect statement that checks the given contract clause
   /// expression and fails with a message that points to the original
   /// location of the contract clause if it is not true at runtime.
+  ///
+  /// If the given clause is not compilable, emit a warning and construct
+  /// an `expect true` statement with a message explaining the situation.
   /// </summary>
   /// <param name="expr">The contract clause expression to evaluate.</param>
   /// <param name="exprType">Either "requires" or "ensures", to use in the
   /// failure message.</param>
   /// <returns>The newly-created expect statement.</returns>
-  private static Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
+  private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
     var tok = expr.E.tok;
     var msg = $"Runtime failure of {exprType} clause from {tok.filename}:{tok.line}:{tok.col}";
+    var exprToCheck = expr.E;
+    if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
+      Reporter.Warning(MessageSource.Rewriter, tok,
+        $"The {exprType} clause at this location cannot be compiled to be tested at runtime, because it references ghost state.");
+      exprToCheck = new LiteralExpr(tok, true);
+      msg += " (not checked because it references ghost state)";
+    }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.EndToken, expr.E, msgExpr, null);
+    return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -42,7 +52,7 @@ public class ExpectContracts : IRewriter {
   /// <param name="ensures">The list of ensures clause expressions.</param>
   /// <param name="callStmt">The call statement to include.</param>
   /// <returns>The newly-created block statement.</returns>
-  private static BlockStmt MakeContractCheckingBody(List<AttributedExpression> requires,
+  private BlockStmt MakeContractCheckingBody(List<AttributedExpression> requires,
     List<AttributedExpression> ensures, Statement callStmt) {
     var expectRequiresStmts = requires.Select(req =>
       CreateContractExpectStatement(req, "requires"));
