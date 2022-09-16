@@ -474,8 +474,8 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public IEnumerable<INode> Children => throw new NotImplementedException();
-    public IToken NameToken => throw new NotImplementedException();
+    public abstract IEnumerable<INode> Children { get; }
+    public abstract IToken NameToken { get; }
   }
 
   public abstract class NonglobalVariable : IVariable {
