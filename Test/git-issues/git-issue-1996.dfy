@@ -266,3 +266,148 @@ module ClientOfOption {
     case None => 0
   }
 }
+
+module NoAmbiguity {
+  module Option {
+    datatype Option = O {
+      static const a: int := 1
+    }
+  }
+
+  module OtherModuleDefiningOption {
+    datatype Option = O {
+      static const a: int := 1
+    }
+  }
+
+  module Client {
+    import opened Option
+    import opened OtherModuleDefiningOption
+
+    method M() {
+      print Option.a;
+      // Not an error: in previous versions of Dafny, this did not resolve at
+      // all, because `Option` referred to the module `Option`.
+    }
+  }
+}
+
+module AmbiguityFromConstructor {
+  module Option {
+    datatype Foo = a
+    datatype Option = O {
+      static const a := 1
+    }
+  }
+
+  module Client {
+    import opened Option
+    method M() {
+      print Option.O;
+      // No error: `Some` is accessible through the module and through the
+      // datatype but refers to the same entity in both.
+
+      print Option.a;
+      // Error: `a` used to refer to the constructor of `Foo` and now would
+      // refer to `Option.Option.a`.
+    }
+  }
+}
+
+module OtherAmbiguityFromDependencyOnDeclarationOrdering {
+  module A {
+    datatype A = XYZ
+    datatype Foo = XYZ
+  }
+
+  module B {
+    datatype Foo = XYZ
+    datatype B = XYZ
+  }
+
+  module Client {
+    import opened A
+    import opened B
+
+    method M() {
+      print A.XYZ;
+      // No error: `XYZ` is accessible through the module and through the
+      // datatype and is ambiguous in the module.
+
+      print B.XYZ;
+      // No error: `XYZ` is accessible through the module and through the
+      // datatype and is ambiguous in the module.
+    }
+  }
+}
+
+module AmbiguityFromMember {
+  module Option {
+    type a = int
+    datatype Option = O {
+      static const a := 1
+    }
+  }
+
+  module Client {
+    import opened Option
+    method M() {
+      print Option.a;
+      // Error: `a` used to refer to `type a` and now would
+      // refer to `const a := 1`
+    }
+  }
+}
+
+module AmbiguityFromStaticMember {
+  module Option {
+    const a := 2
+    datatype Option = O {
+      static const a := 1
+    }
+  }
+
+  module Client {
+    import opened Option
+    method M() {
+      print Option.a;
+      // Error: `a` used to refer to `const a := 2` and now would
+      // refer to `const a := 1`
+    }
+  }
+}
+
+module AmbiguityWithRecords {
+  module Record {
+    const a := 2
+    datatype Record = Record {
+      static const a := 1
+    }
+  }
+
+  module Client {
+    import opened Record
+    method M() {
+      print Record.Record;
+      // Error: `Record.Record` could mean the datatype or the constructor.  This
+      // message could be silenced with a bit more work, if a user requests it.
+    }
+  }
+}
+
+module NoAmbiguityFromRename {
+  module Option {
+    const a := 2
+    datatype Option = O {
+      static const a := 1
+    }
+  }
+
+  module Client {
+    import opened Opt = Option
+    method M() {
+      print Option.a;
+      // No error: `Option` is unambiguous
+    }
+  }
+}

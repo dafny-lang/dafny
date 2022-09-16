@@ -1772,6 +1772,9 @@ namespace Microsoft.Dafny {
         }
       }
       foreach (var topLevelDeclReplacement in topLevelDeclReplacements) {
+        if (sig.TopLevels.GetValueOrDefault(topLevelDeclReplacement.Name) is ModuleDecl moduleDecl) {
+          sig.ShadowedImportedModules[topLevelDeclReplacement.Name] = moduleDecl;
+        }
         sig.TopLevels[topLevelDeclReplacement.Name] = topLevelDeclReplacement;
       }
 
@@ -16129,6 +16132,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, out _);
+    }
+
     /// <summary>
     /// Look up expr.Name in the following order:
     ///  0. Local variable, parameter, or bound variable.
@@ -16151,11 +16159,17 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a MemberSelectExpr whose .Member is a Method.</param>
-    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+    /// <param name="shadowedModule">If the name being resolved shadows an imported module, then that module is reported
+    /// through this parameter.  This happens when module <c>Option</c> in <c>import opened Option</c> also contains a
+    /// <c>datatype Option</c>, in which case <c>Option</c> refers to the datatype, not the module
+    /// (https://github.com/dafny-lang/dafny/issues/1996).</param>
+    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall, bool complain, out ModuleDecl shadowedModule) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
+
+      shadowedModule = null;
 
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
@@ -16216,6 +16230,10 @@ namespace Microsoft.Dafny {
         }
       } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
         // ----- 3. Member of the enclosing module
+
+        // Record which imported module, if any, was shadowed by `name` in the current module.
+        shadowedModule = moduleInfo.ShadowedImportedModules.GetValueOrDefault(name);
+
         if (decl is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)decl;
           if (complain) {
@@ -16478,9 +16496,10 @@ namespace Microsoft.Dafny {
 
       // resolve the LHS expression
       // LHS should not be reveal lemma
+      ModuleDecl shadowedImport = null;
       ResolutionContext nonRevealOpts = resolutionContext with { InReveal = false };
       if (expr.Lhs is NameSegment) {
-        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false, true, out shadowedImport);
       } else if (expr.Lhs is ExprDotName) {
         ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
       } else {
@@ -16624,10 +16643,42 @@ namespace Microsoft.Dafny {
         // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
         expr.Type = new InferredTypeProxy();
       } else {
+        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, useCompileSignatures, isLastNameSegment);
         expr.ResolvedExpression = r;
         expr.Type = r.Type;
       }
       return rWithArgs;
+    }
+
+    /// <summary>
+    /// Check whether the name we just resolved may have been resolved differently if we didn't allow member `M.M` of
+    /// module `M` to shadow `M` when the user writes `import opened M`.  Raising an error in that case allowed us to
+    /// change the bahvior of `import opened` without silently changing the meaning of existing programs.
+    /// (https://github.com/dafny-lang/dafny/issues/1996)
+    ///
+    /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
+    /// exposed through both `M` and `M.M`, without ambiguity.
+    /// </summary>
+    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
+      IToken tok, bool useCompileSignatures, bool isLastNameSegment) {
+      if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
+        reporter.Error(MessageSource.Resolver, tok,
+          "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
+          + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
+          + "`import open XYZ = ...` instead of `import open ...`.",
+          name, moduleDecl.Name);
+      }
+    }
+
+    private bool NameConflictsWithModuleContents(ModuleDecl moduleDecl, string name, bool useCompileSignatures, bool isLastNameSegment) {
+      var sig = GetSignature(moduleDecl.AccessibleSignature(useCompileSignatures));
+      return (
+        (isLastNameSegment
+         && sig.Ctors.GetValueOrDefault(name) is { Item1: var constructor, Item2: var ambiguous }
+         && !ambiguous && constructor.EnclosingDatatype.Name != moduleDecl.Name)
+        || sig.TopLevels.ContainsKey(name)
+        || sig.StaticMembers.ContainsKey(name)
+      );
     }
 
     /// <summary>
