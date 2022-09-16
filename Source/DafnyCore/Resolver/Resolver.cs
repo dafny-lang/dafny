@@ -11075,6 +11075,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
+
         ResolveExpression(s.Expr, resolutionContext);
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
@@ -11996,7 +11997,8 @@ namespace Microsoft.Dafny {
 
       public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
-        this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements.
+        var cloner = new Cloner();
+        this.Body = new List<Statement>(x.Body.Select(s => cloner.CloneStmt(s))); // Resolving the body will insert new elements.
         this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
@@ -12582,7 +12584,7 @@ namespace Microsoft.Dafny {
     private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
       var cloner = new Cloner();
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-        yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body), c.Attributes);
+        yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body.Select(s => cloner.CloneStmt(s))), c.Attributes);
       }
     }
 
