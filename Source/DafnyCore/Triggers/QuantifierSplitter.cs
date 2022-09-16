@@ -46,7 +46,11 @@ namespace Microsoft.Dafny.Triggers {
       if (unary != null && unary.Op == UnaryOpExpr.Opcode.Not) {
         foreach (var e in SplitExpr(unary.E, FlipOpcode(separator))) { yield return Not(e); }
       } else if (binary != null && binary.Op == separator) {
-        foreach (var e in SplitExpr(binary.E0, separator)) { yield return e; }
+        if (Expression.IsBoolLiteral(binary.E0, out var b) && (binary.Op == BinaryExpr.Opcode.And ? b : !b)) {
+          // skip this unit element
+        } else {
+          foreach (var e in SplitExpr(binary.E0, separator)) { yield return e; }
+        }
         foreach (var e in SplitExpr(binary.E1, separator)) { yield return e; }
       } else if (binary != null && binary.Op == BinaryExpr.Opcode.Imp && separator == BinaryExpr.Opcode.Or) {
         foreach (var e in SplitExpr(Not(binary.E0), separator)) { yield return e; }
