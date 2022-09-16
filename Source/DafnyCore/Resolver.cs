@@ -7658,7 +7658,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// If "expr" contains a recursive call to "enclosingFunction" in some non-ghost sub-expressions,
+    /// If "expr" contains a recursive call to "enclosingFunction" in some non-ghost subexpressions,
     /// then returns TailStatus.NotTailRecursive (and if "reportErrors" is "true", then
     /// reports an error about the recursive call), else returns TailStatus.TriviallyTailRecursive.
     /// </summary>
@@ -7676,7 +7676,7 @@ namespace Microsoft.Dafny {
           }
           status = Function.TailStatus.NotTailRecursive;
         }
-        // skip ghost sub-expressions
+        // skip ghost subexpressions
         for (var i = 0; i < e.Function.Formals.Count; i++) {
           if (!e.Function.Formals[i].IsGhost) {
             var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
@@ -7696,7 +7696,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        // skip ghost sub-expressions
+        // skip ghost subexpressions
         for (var i = 0; i < e.LHSs.Count; i++) {
           var pat = e.LHSs[i];
           if (pat.Vars.ToList().Exists(bv => !bv.IsGhost)) {
@@ -7716,7 +7716,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
-        // skip ghost sub-expressions
+        // skip ghost subexpressions
         for (var i = 0; i < e.Ctor.Formals.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
             var s = CheckHasNoRecursiveCall(e.Arguments[i], enclosingFunction, reportErrors);
@@ -8479,7 +8479,7 @@ namespace Microsoft.Dafny {
       /// * Both step (0) and step (2) sets the .IsGhost field.  What step (0) does affects only the
       ///   rules of resolution, whereas step (2) makes a note for the later compilation phase.
       /// * It is important to do step (0) before step (1)--that is, it is important to set the statement's ghost
-      ///   status before descending into its sub-statements--because break statements look at the ghost status of
+      ///   status before descending into its substatements--because break statements look at the ghost status of
       ///   its enclosing statements.
       /// * The method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
       ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression

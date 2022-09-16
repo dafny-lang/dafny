@@ -286,7 +286,7 @@ namespace Microsoft.Dafny.Triggers {
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
       var reportingToken = q.quantifier.tok;
-      // If there is only one sub-expression, we discard the nested token information.
+      // If there is only one subexpression, we discard the nested token information.
       if (reportingToken is NestedToken nestedToken && !addHeader) {
         reportingToken = nestedToken.Outer;
       }

@@ -146,7 +146,7 @@ public abstract class Expression : INode {
 
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
-  /// may appear in subexpressions). Types occurring in sub-statements of the expression are not included.
+  /// may appear in subexpressions). Types occurring in substatements of the expression are not included.
   /// To be called after the expression has been resolved.
   /// </summary>
   public virtual IEnumerable<Type> ComponentTypes {
