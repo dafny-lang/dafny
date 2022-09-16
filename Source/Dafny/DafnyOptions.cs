@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
-    public bool EmitExecutable = true;
+    public bool EmitBinary = true;
 
     public Compiler Compiler;
     public bool CompileVerbose = true;
@@ -235,7 +235,7 @@ namespace Microsoft.Dafny {
             int compile = 0;
             if (ps.GetIntArgument(ref compile, 5)) {
               // convert option to two booleans
-              EmitExecutable = compile != 0;
+              EmitBinary = compile != 0;
               ForceCompile = compile == 2 || compile == 4;
               RunAfterCompile = compile == 3 || compile == 4;
             }
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
             }
 
             if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
-              EmitExecutable = false;
+              EmitBinary = false;
               DafnyVerify = false;
             }
           }

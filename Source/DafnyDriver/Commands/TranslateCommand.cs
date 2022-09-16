@@ -7,7 +7,7 @@ class TranslateCommand : ICommandSpec {
   public string Name => "translate";
   public string Description => "Generate source and build files in a specified target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitExecutable = false;
+    dafnyOptions.EmitBinary = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }

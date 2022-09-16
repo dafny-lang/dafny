@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
       "--compileVerbose=false",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verificationTimeLimit=300"
+      "--verification-time-limit=300"
     };
 
     public static int Main(string[] args) {
@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
           WriteModuleStats(Console.Out, moduleStats);
-          if ((DafnyOptions.O.EmitExecutable && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
+          if ((DafnyOptions.O.EmitBinary && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);

@@ -8,6 +8,6 @@ class VerifyCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitExecutable = false;
+    dafnyOptions.EmitBinary = false;
   }
 }
