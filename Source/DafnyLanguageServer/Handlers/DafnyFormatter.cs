@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,10 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
     var lastDocument = await documents.GetLastDocumentAsync(request.TextDocument.Uri);
-    if (lastDocument != null) {
+    if (lastDocument != null && !lastDocument.Diagnostics.Any(diagnostic =>
+          diagnostic.Severity == DiagnosticSeverity.Error &&
+          diagnostic.Source == MessageSource.Parser.ToString()
+          )) {
       var firstToken = lastDocument.Program.GetFirstTopLevelToken();
       string result;
       if (firstToken == null) {

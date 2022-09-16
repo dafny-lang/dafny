@@ -13,11 +13,11 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
       ensures Contains(needle)
   }
   lemma ContainsTransitive()
-     ensures forall s1: CsString, s2: CsString, s3: CsString
-             | s1.Contains(s2) && s2.Contains(s3) :: s1.Contains(s3)
+    ensures forall s1: CsString, s2: CsString, s3: CsString
+              | s1.Contains(s2) && s2.Contains(s3) :: s1.Contains(s3)
   {
     forall s1: CsString, s2: CsString, s3: CsString
-             | s1.Contains(s2) && s2.Contains(s3)
+      | s1.Contains(s2) && s2.Contains(s3)
     {
       s1.ContainsTransitive(s2, s3);
     }
@@ -40,7 +40,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
     var TrailingTrivia: CsString
     var Next: IToken?
     ghost var allTokens: seq<IToken>
-    
+
     ghost predicate Valid() reads this, allTokens decreases |allTokens| {
       && |allTokens| > 0 && allTokens[0] == this
       && (|| (|allTokens| == 1 && Next == null)
@@ -48,7 +48,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
               && Next == allTokens[1]
               && Next.allTokens == allTokens[1..]
               && Next.Valid())
-      )
+         )
     }
     lemma AlltokenSpec(i: int)
       requires Valid()
@@ -96,9 +96,9 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
     module {:extern "Formatting"} Formatting {
       import opened MicrosoftDafny
       import opened System
-      
+
       const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
-      
+
       trait IIndentationFormatter {
         function Reindent(token: IToken, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
         // Returns -1 if no indentation is set
@@ -113,7 +113,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           requires token.Valid()
           ensures token.allTokens == old(token.allTokens)
       }
-      
+
       lemma IsAllocated<T>(x: T)
         ensures allocated(x) {
       }

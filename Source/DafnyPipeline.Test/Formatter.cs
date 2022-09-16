@@ -1577,6 +1577,23 @@ predicate BadIdentifier(s: string) {
     }
 
     [Fact]
+    public void FormatterWorksForIfInLemma() {
+      FormatterWorksFor(@"
+lemma AlltokenSpec(i: int)
+  requires Valid()
+  decreases |allTokens|
+  requires 0 <= i < |allTokens|
+  ensures allTokens == allTokens[..i] + allTokens[i].allTokens
+{
+  if i == 0 {
+  } else {
+    this.Next.AlltokenSpec(i - 1);
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
