@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.Compilers {
             name = $"{name[1..]}_";
           }
           if (name.Length > 0 && char.IsDigit(name[0])) {
-            name = $"_{name}";
+            name = $"d_{name}";
           }
           break;
       }
@@ -1142,7 +1142,7 @@ namespace Microsoft.Dafny.Compilers {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {
               TupleTypeDecl => $"[{dd.Name}]",
-              _ => $".{dd.CompileName}"
+              _ => $".{IdProtect(dd.CompileName)}"
             };
             return SuffixLvalue(obj, dest);
           }
