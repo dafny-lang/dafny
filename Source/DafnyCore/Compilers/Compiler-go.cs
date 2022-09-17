@@ -211,6 +211,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetHelperModuleName() => "_dafny";
+    
+    protected string GetHelperModulePrefix() {
+      if (ModuleName == "dafny") {
+        return "";
+      }
+
+      return $"{GetHelperModuleName()}.";
+    }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
@@ -312,7 +320,7 @@ namespace Microsoft.Dafny.Compilers {
         superClasses = superClasses.Where(trait => !trait.IsObject).ToList();
 
         // Emit a method that returns the ID of each parent trait
-        var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
+        var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*{GetHelperModulePrefix()}TraitID");
         parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
           var trait = ((UserDefinedType)parent).ResolvedClass;
           return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
@@ -1404,7 +1412,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
         } else if (cl is TupleTypeDecl) {
-          return "_dafny.Tuple";
+          return GetHelperModulePrefix() + "Tuple";
         } else if (udt.IsTypeParameter) {
           return "interface{}";
         }
@@ -1425,11 +1433,11 @@ namespace Microsoft.Dafny.Compilers {
           return "*" + IdProtect(s);
         }
       } else if (xType is SetType) {
-        return "_dafny.Set";
+        return GetHelperModulePrefix() + "Set";
       } else if (xType is SeqType) {
-        return "_dafny.Sequence";
+        return GetHelperModulePrefix() + "Seq";
       } else if (xType is MultiSetType) {
-        return "_dafny.MultiSet";
+        return GetHelperModulePrefix() + "MultiSet";
       } else if (xType is MapType) {
         return "_dafny.Map";
       } else {
@@ -2358,7 +2366,11 @@ namespace Microsoft.Dafny.Compilers {
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
-            qual = cl.EnclosingModuleDefinition.CompileName;
+            if (this.ModuleName == cl.EnclosingModuleDefinition.CompileName) {
+              qual = "";
+            } else {
+              qual = cl.EnclosingModuleDefinition.CompileName;
+            }
           }
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
