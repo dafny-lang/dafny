@@ -5046,8 +5046,7 @@ namespace Microsoft.Dafny {
               var u = Types[1].NormalizeExpand();
               if (CheckTypeInference_Visitor.IsDetermined(t) &&
                   (fullstrength
-                   || !ProxyWithNoSubTypeConstraint(u, resolver)
-                   || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
+                   || !ProxyWithNoSubTypeConstraint(u, resolver))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
@@ -5091,9 +5090,6 @@ namespace Microsoft.Dafny {
             break;
           case "IsRefType":
             satisfied = t.IsRefType;
-            break;
-          case "IsNullableRefType":
-            satisfied = t.IsRefType && !t.IsNonNullRefType;
             break;
           case "Orderable_Lt":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
@@ -5319,9 +5315,6 @@ namespace Microsoft.Dafny {
                   if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
                     return false;
                   } else {
-                    if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
-                      other = other.NormalizeExpand();  // shave off all constraints
-                    }
                     satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
                     convertedIntoOtherTypeConstraints = true;
                     break;
@@ -5371,9 +5364,6 @@ namespace Microsoft.Dafny {
                   if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
                     return false;
                   } else {
-                    if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
-                      other = other.NormalizeExpand();  // shave off all constraints
-                    }
                     satisfied = resolver.AssignProxyAndHandleItsConstraints(proxy, other, true);
                     convertedIntoOtherTypeConstraints = true;
                     break;
@@ -5750,7 +5740,7 @@ namespace Microsoft.Dafny {
               var allXConstraints = AllXConstraints;
               AllXConstraints = new List<XConstraint>();
               foreach (var xc in allXConstraints) {
-                if (xc.ConstraintName == "IsRefType" || xc.ConstraintName == "IsNullableRefType") {
+                if (xc.ConstraintName == "IsRefType") {
                   var proxy = xc.Types[0].Normalize() as TypeProxy;  // before we started processing default types, this would have been a proxy (since it's still in the A
                   if (proxy != null) {
                     AssignProxyAndHandleItsConstraints(proxy, builtIns.ObjectQ());
@@ -6263,8 +6253,6 @@ namespace Microsoft.Dafny {
         // We were able to compute a join of all the subtyping constraints, so use it.
         // Well, maybe.  If "join[0]" denotes a non-null type and "proxy" is something
         // that could be assigned "null", then set "proxy" to the nullable version of "join[0]".
-        // Stated differently, think of an applicable "IsNullableRefType" constraint as
-        // being part of the join computation, essentially throwing in a "...?".
         // Except: If the join is a tight bound--meaning, it is also a meet--then pick it
         // after all, because that seems to give rise to less confusing error messages.
         if (joins[0].IsNonNullRefType) {
@@ -6273,13 +6261,6 @@ namespace Microsoft.Dafny {
             // leave it
           } else {
             CloseOverAssignableRhss(proxySubs);
-            if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
-              if (DafnyOptions.O.TypeInferenceDebug) {
-                Console.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
-              }
-              AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
-              return true;
-            }
           }
         }
         AssignProxyAndHandleItsConstraints(proxy, joins[0], true);
@@ -6306,54 +6287,6 @@ namespace Microsoft.Dafny {
           return;
         }
       }
-    }
-    private bool HasApplicableNullableRefTypeConstraint(ISet<TypeProxy> proxySet) {
-      Contract.Requires(proxySet != null);
-      var nullableProxies = new HashSet<TypeProxy>();
-      foreach (var xc in AllXConstraints) {
-        if (xc.ConstraintName == "IsNullableRefType") {
-          var npr = xc.Types[0].Normalize() as TypeProxy;
-          if (npr != null) {
-            nullableProxies.Add(npr);
-          }
-        }
-      }
-      return proxySet.Any(nullableProxies.Contains);
-    }
-    private bool HasApplicableNullableRefTypeConstraint_SubDirection(TypeProxy proxy) {
-      Contract.Requires(proxy != null);
-      var nullableProxies = new HashSet<TypeProxy>();
-      foreach (var xc in AllXConstraints) {
-        if (xc.ConstraintName == "IsNullableRefType") {
-          var npr = xc.Types[0].Normalize() as TypeProxy;
-          if (npr != null) {
-            nullableProxies.Add(npr);
-          }
-        }
-      }
-      return HasApplicableNullableRefTypeConstraint_SubDirection_aux(proxy, nullableProxies, new HashSet<TypeProxy>());
-    }
-    private bool HasApplicableNullableRefTypeConstraint_SubDirection_aux(TypeProxy proxy, ISet<TypeProxy> nullableProxies, ISet<TypeProxy> visitedProxies) {
-      Contract.Requires(proxy != null);
-      Contract.Requires(nullableProxies != null);
-      Contract.Requires(visitedProxies != null);
-
-      if (visitedProxies.Contains(proxy)) {
-        return false;
-      }
-      visitedProxies.Add(proxy);
-
-      if (nullableProxies.Contains(proxy)) {
-        return true;
-      }
-
-      foreach (var sub in proxy.SubtypesKeepConstraints_WithAssignable(AllXConstraints)) {
-        var psub = sub as TypeProxy;
-        if (psub != null && HasApplicableNullableRefTypeConstraint_SubDirection_aux(psub, nullableProxies, visitedProxies)) {
-          return true;
-        }
-      }
-      return false;
     }
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
@@ -14787,8 +14720,7 @@ namespace Microsoft.Dafny {
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
-            e.Type = new InferredTypeProxy();
-            AddXConstraint(e.tok, "IsNullableRefType", e.Type, "type of 'null' is a reference type, but it is used as {0}");
+            e.Type = builtIns.ObjectQ();
           } else if (e.Value is BigInteger) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
