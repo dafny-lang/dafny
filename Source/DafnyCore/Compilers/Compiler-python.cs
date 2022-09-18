@@ -196,7 +196,7 @@ namespace Microsoft.Dafny.Compilers {
       TopLevelDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
       // Avoids problems with member-less traits 
-      if (trait is TraitDecl tr && tr.Members.All(m => m.IsGhost)) {
+      if (trait is TraitDecl tr && tr.Members.All(m => m.IsGhost || !m.IsStatic)) {
         methodWriter.WriteLine("pass");
       }
       return new ClassWriter(this, methodWriter, methodWriter);
