@@ -811,7 +811,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var manager = createContinueLabel ? "c_label" : "label";
-      return wr.NewBlockPy($"with {DafnyRuntimeModule}.{manager}(\"{label}\"):");
+      var block = wr.NewBlockPy($"with {DafnyRuntimeModule}.{manager}(\"{label}\"):");
+      var core = block.Fork();
+      block.WriteLine("pass");
+      return core;
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
