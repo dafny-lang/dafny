@@ -1,20 +1,31 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-/// # Pop-it AI solver
+/// # Pop-it AI
+/// 
+/// The game we study in this tutorial is often a kid's toy that has 
+/// colored rows, and reversible "bubbles" that can be "poped".
+/// On the toy, once all bubbles are popped, flipping the toy makes it possible to start again.
+/// One way to play a two player game on this toy is to
+/// play a variant of the Nim's game:
+/// - A player can pop a number of consecutive bubbles from any row
+/// - The player who pops the last bubble loses
+///
+/// In this tutorial, we will use Dafny to model a brute force A.I. that can play the game,
+/// We will also show how we can test conjectures about whether states are winning or not.
 ///
 /// This tutorial covers the following Dafny notions:
 /// - Proofs by induction
 /// - Mutually recursive predicates (they are not necessary but illustrate interesting points)
-/// - Proof of a cache that compute one of the mutually recursive predicates.
-/// - Support for arguments in dafny Main functions
-/// - Extract the minimum and maximum of a multiset
-/// - Invariants for three nested while loops
+/// - Proof of a cache that computes one of the mutually recursive predicates.
+/// - Support for arguments in dafny *Main* functions
+/// - Extracting the minimum and maximum of a multiset of integers
+/// - Invariants for nested while loops
 /// - Reasoning about multisets (sum, induction)
 ///
 /// What is left to the reader:
 ///
-///   Find a simple invariant equivalent to IsWinning, test it with "run" and prove it correct
+///   Prove a tested conjecture to be tru
 /// 
 /// Usage in development:
 /// 
@@ -42,6 +53,11 @@
 ///    multiset{3, 3} is loosing.
 ///    multiset{4, 4} is loosing.
 ///    multiset{1, 2, 3} is loosing.
+///
+///    >  dotnet Popit.dll run 6 6
+///    Games to test:75
+///    Nothing could disprove this conjecture on these 75 games
+///
 
 /// First, we need to define a way to convert numbers to strings and vice-versa.
 /// This will be useful for parsing arguments
@@ -181,10 +197,9 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
 /// - that the elements we are removing between index and index+amount are within the range
 
     predicate Valid() {
-        match move {
+        match move
         case Split(row, index, amount) =>
             row in popIt && 0 <= index < index + amount <= row
-        }
     }
 
 /// Now that we defined this notion of move validity,
@@ -195,7 +210,7 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
     function Apply(): PopIt
       requires Valid()
     {
-      match move {
+      match move
       case Split(row, index, amount) =>
 
 /// In every case, Dafny will verify that we return a valid PopIt, e.g. no element is zero.
@@ -215,25 +230,24 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
 
         else
         popIt - multiset{row} + multiset{index} + multiset{row-index-amount}
-      }
     }
 
 /// Now we can prove our termination metric. If a move can be applied to a PopIt,
 /// we show that its number of elements decreases
 /// That way, we can prove that all our recursive functions terminate.
 
-    lemma {:axiom} Decreases()
+    lemma Decreases()
         requires Valid()
         ensures NumberOfElements(Apply()) < NumberOfElements(popIt)
     {
-      match move { 
+      match move
       case Split(row, index, amount) =>
         if amount == row {
 
-/// We use a Calc statement to compute how the number of bubbles evolves after application,
+/// We use a `calc` statement to compute how the number of bubbles evolves after application,
 /// depending on the type of move.
-/// "calc" takes expressions and it will try to prove that each expressions equals the next,
-/// unless another operator like "<" is provided.
+/// `calc` takes expressions and it will try to prove that each expressions equals the next,
+/// unless another operator like `<` is provided.
 /// We have to use a lemma `NumberOfElementAdditive` that helps us relate the sum of the element of the multiset
 /// when adding another element, for both adding and removing elements from the multiset. So:
 
@@ -276,7 +290,6 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
             NumberOfElements(popIt) - amount;
             < NumberOfElements(popIt);
           }
-        }
       }
     }
 
@@ -374,9 +387,9 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
 /// Note how we prove termination here by calling the lemma `Decreases`
 
     || exists 
-      row: int <- popIt, index | 0 <= index < row, amount | 1 <= amount <= row - index ::
-      var move := Split(row, index, amount);
-      IsLosing(PopItMove(popIt, move).Decreases();PopItMove(popIt, move).Apply())
+       row: int <- popIt, index | 0 <= index < row, amount | 1 <= amount <= row - index ::
+       var move := Split(row, index, amount);
+       IsLosing(PopItMove(popIt, move).Decreases();PopItMove(popIt, move).Apply())
   }
 
 /// Similarly, for a position to be losing
@@ -817,34 +830,50 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
 /// We define a method that will run this hypothesis over a sample of PopIt games
 /// and display a counter-example if it finds one
 
-  method Run(size: int, maximum: int, hypothesis: PopIt -> bool)
-    requires size >= 0 && maximum >= 1
+  method Run(popIt: PopIt, hypothesis: PopIt -> bool)
   {
     var c := new PopItSimulator();
-    var games := GamesToTest(size, maximum);
+    var winning := c.CheckWinning(popIt);
+    var cache := c.cache;
     var i := 0;
-    var total := |games|;
-    while |games| > 0
+    print "Games to test:", |cache|, "\n";
+    while |cache| > 0
+      decreases |cache|
     {
       i := i + 1;
-      var game :| game in games;
-      var w := c.CheckWinning(game);
-      if w != hypothesis(game) {
+      var game :| game in cache;
+      var w := cache[game];
+      if  w  != hypothesis(game) {
         print "This game is ", if w then "winning" else "losing", " but the hypothesis says otherwise:\n";
         print game, "\n";
+        print "It was the game number ", i, ".";
         break;
       }
-      games := games - {game};
+      cache := cache - {game};
     }
-    print "Tested ", i, " games out of ", total;
+    
+    print "Nothing could disprove this conjecture on these ", i, " games";
   }
-
-/// Here is one such conjecture (that is unfortunately wrong)
-/// A configuration might be losing if the number of even rows is even and the number of odd rows is odd.
-/// After all, 1 and 1 1 1 are losing
+/// Here is one such conjecture (that is is probably correct)
+/// Exercise left to the reader: Prove this conjecture
 
   predicate conjectureIsWinning(popIt: PopIt) {
-    !(CountIf(popIt, n => n % 2 == 0) % 2 == 0 && CountIf(popIt, n => n % 2 == 1) % 2 == 1)
+    if forall i <- popIt :: i == 1 then |popIt| % 2 == 0
+    else Reduce(popIt, 0, xor) != 0
+  }
+
+  function {:tailrecursion false} xor(a: nat, b: nat): nat
+    decreases a
+  {
+    if a == 0 then b else if b == 0 then a
+    else if a%2 == b%2 then xor(a/2, b/2)*2 else xor(a/2, b/2)*2 + 1
+  }
+
+  function Reduce<T>(popIt: PopIt, acc: T, f: (nat, T) -> T): T
+  {
+    if |popIt| == 0 then acc else
+    var x := MaximumOf(popIt);
+    Reduce(popIt-multiset{x}, f(x,acc), f)
   }
 
 /// Here is our helper that counts the number of times PopIt rows satisfy a predicate
@@ -939,25 +968,20 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
     }
     var command := args[1];
     var arguments := args[2..];
-    match command {
-      case "play" =>
-        var popit, error := ParsePopit(arguments);
-        if error != "" {
-          print error, "\n";
-        } else {
+    var popit, error := ParsePopit(arguments);
+    if error != "" {
+      print error, "\n";
+    } else {
+      match command {
+        case "play" =>
           Play(popit);
-        }
-      case "run" =>
-        Run(2, 2, conjectureIsWinning);
-      case "display" =>
-        var popit, error := ParsePopit(arguments);
-        if error != "" {
-          print error, "\n";
-        } else {
+        case "run" =>
+          Run(popit, conjectureIsWinning);
+        case "display" =>
           Display(popit);
-        }
-      case unknown =>
-        print "unknown command: ", unknown, "\nValid commands are run, display or play";
+        case unknown =>
+          print "unknown command: ", unknown, "\nValid commands are run, display or play";
+      }
     }
   }
 }
