@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
-    private readonly List<string> Imports = new() { "module_" };
+    private readonly List<string> Imports = new() { DafnyDefaultModule };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -54,6 +54,7 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     private const string DafnyRuntimeModule = "_dafny";
+    private const string DafnyDefaultModule = "module_";
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
@@ -78,10 +79,12 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      var dafnyArgs = "dafnyArgs";
+      if(mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName != DafnyDefaultModule) {
+        wr.WriteLine($"import {mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName}");
+      }
       wr.NewBlockPy("try:")
-        .WriteLine($"{dafnyArgs} = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
-        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}({dafnyArgs})");
+        .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
+        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + {DafnyRuntimeModule}.string_of(e.message) + \"\\n\")");
       Coverage.EmitTearDown(wr);
