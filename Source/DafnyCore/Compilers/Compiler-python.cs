@@ -79,8 +79,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      if(mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName != DafnyDefaultModule) {
-        wr.WriteLine($"import {mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName}");
+      var moduleName = IdProtect(mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName);
+      if(moduleName != DafnyDefaultModule) {
+        wr.WriteLine($"import {moduleName}");
       }
       wr.NewBlockPy("try:")
         .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
