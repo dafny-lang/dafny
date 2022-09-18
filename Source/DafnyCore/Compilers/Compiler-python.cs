@@ -714,6 +714,9 @@ namespace Microsoft.Dafny.Compilers {
                   ? $"{TypeDescriptor(udt, wr, tok)}()"
                   : $"{FormatDefaultTypeParameterValue(tp)}()";
 
+              case OpaqueTypeDecl opaque:
+                return FormatDefaultTypeParameterValue(opaque);
+
               case ClassDecl:
                 return "None";
             }
