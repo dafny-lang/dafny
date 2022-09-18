@@ -368,7 +368,7 @@ def euclidian_modulus(a, b):
 
 @dataclass
 class HaltException(Exception):
-    message: Seq
+    message: str
 
 def quantifier(vals, frall, pred):
     for u in vals:
