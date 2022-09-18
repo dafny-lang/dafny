@@ -496,6 +496,9 @@ namespace Microsoft.Dafny.Compilers {
       WriteFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), m.Ins, m.IsStatic, customReceiver, ref sep, wr);
       var body = wr.NewBlockPy("):", close: BlockStyle.Newline);
       if (createBody) {
+        if (m.Body.Body.All(s => s.IsGhost)) {
+          body.WriteLine("pass");
+        }
         return body;
       }
       body.WriteLine("pass");

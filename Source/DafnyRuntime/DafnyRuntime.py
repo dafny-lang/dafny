@@ -376,16 +376,19 @@ def quantifier(vals, frall, pred):
             return not frall
     return frall
 
+def AllBooleans():
+    return [False, True]
+
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
-def AllBooleans():
-    return [False, True]
+def AllIntegers():
+    return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
 
 def IntegerRange(lo, hi):
     if lo is None:
         return count(hi-1, -1)
-    elif hi is None:
+    if hi is None:
         return count(lo)
     return range(lo, hi)
 
