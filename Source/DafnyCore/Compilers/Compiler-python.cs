@@ -297,13 +297,11 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       foreach (var ctor in dt.Ctors) {
-        var ctorName = IdProtect(ctor.CompileName);
-
         // Class-level fields don't work in all python version due to metaclasses.
         // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
         var argList = ctor.Destructors.Where(d => !d.IsGhost)
           .Select(d => $"('{IdProtect(d.CompileName)}', Any)").Comma();
-        var namedtuple = $"NamedTuple('{ctorName}', [{argList}])";
+        var namedtuple = $"NamedTuple('{IdProtect(ctor.CompileName)}', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
@@ -312,7 +310,7 @@ namespace Microsoft.Dafny.Compilers {
         // def is_Ctor0(self) -> bool:
         //   return isinstance(self, Dt_Ctor0) }
         btw.WriteLine("@property");
-        btw.NewBlockPy($"def is_{ctorName}(self) -> bool:")
+        btw.NewBlockPy($"def is_{ctor.CompileName}(self) -> bool:")
           .WriteLine($"return isinstance(self, {DtCtorDeclarationName(ctor)})");
       }
 
