@@ -193,13 +193,13 @@ module {:options "/functionSyntax:4", "/quantifierSyntax:4"} PopItWorld {
 
 /// What does it mean for this move to be valid for the PopIt?
 /// it means that
-/// - that the elements we consider do exist in the original PopIt (`row in popIt`)
-/// - that the elements we are removing between index and index+amount are within the range
+/// - The elements we consider do exist in the original PopIt (`row in popIt`)
+/// - The elements we are removing between `index` and `index+amount` are within the range
 
     predicate Valid() {
         match move
         case Split(row, index, amount) =>
-            row in popIt && 0 <= index < index + amount <= row
+          row in popIt && 0 <= index < index + amount <= row
     }
 
 /// Now that we defined this notion of move validity,
