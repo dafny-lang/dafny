@@ -2495,12 +2495,10 @@ public class UserDefinedType : NonProxyType {
         //   * for each non-ghost constructor, every argument totally supports equality (an argument totally supports equality
         //       if it is non-ghost (because ghost arguments are not available at run time) and has a type that supports equality).
         var hasNonGhostConstructor = false;
-        foreach (var ctor in dt.Ctors) {
-          if (!ctor.IsGhost) {
-            hasNonGhostConstructor = true;
-            if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
-              return false;
-            }
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
+          hasNonGhostConstructor = true;
+          if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
+            return false;
           }
         }
         Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
