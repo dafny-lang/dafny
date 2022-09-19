@@ -5,4 +5,4 @@
 // CHECK: .*Foo__checked\(new BigInteger\(3\)\).*
 // CHECK: .*Bar__checked\(x\).*
 // CHECK: .*Bar__checked\(new BigInteger\(3\)\).*
-include "CheckExtern.dfy"
+include "Inputs/CheckExtern.dfy"
