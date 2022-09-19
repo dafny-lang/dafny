@@ -88,7 +88,7 @@ the abstract import.
 
 ## 22.3. Sub-module declarations
 
-With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything, then it is copied into the refinement result like any other declaration.
+With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything and not being refined, then it is copied into the refinement result like any other declaration.
 
 Here is some example code:
 ```
@@ -316,11 +316,11 @@ definitions that do not exist in the refinement parent.
 
 ## 22.9. Class, trait and iterator declarations
 
-Class, trait, and iterator declarations are refined much like modules. If a class (or trait or iterator, respectively) `C` in a refining parent contains a
+Class, trait, and iterator declarations are refined as follows: 
+- If a class (or trait or iterator, respectively) `C` in a refining parent contains a
 member that is not matched by a same-named member in the class `C` in the refining module, or vice-versa, then that class is copied as is to the 
 refinement result.
-
-When there are members with the same name in the class in the refinement parent and refining module, then the combination occurs 
+- When there are members with the same name in the class in the refinement parent and in the refining module, then the combination occurs 
 according to the rules for that category of member.
 
 Here is an example code snippet:
