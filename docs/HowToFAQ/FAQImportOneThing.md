@@ -26,7 +26,7 @@ The `export` directive in module `A` just exports the name `j` in the export set
 So then you can import just `j` in `B` by importing ``A`JustJ``.
 
 You can create as many export sets as you like, for different contexts.
-See the details [here](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-export-sets-and-access-control).
+See the details [here](../DafnyRef/DafnyRef#sec-export-sets-and-access-control).
 
 This feature does put the onus of defining the groups of exportable names on the supplying module.
 Your question asks for such control by the receiving module. The best course for the receiving
