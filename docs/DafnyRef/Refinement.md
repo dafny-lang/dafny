@@ -89,7 +89,9 @@ the abstract import.
 ## 22.3. Sub-module declarations
 
 A nested module within a refining module that does not have a name corresponding to the name of a nested module in the refinement parent 
-is copied as is into the refinement result.
+is copied as is into the refinement result. 
+Similarly, a nested module in the refinement parent that does not correspond by name to any
+nested module in the refining module is copied as is into the refinement result.
 
 If a refining module `M` that is refining a refinement parent `P` and `M` contains a nested module `M.A` with the same name as a nested
 module in `P`, then `M.A` is a refining module with `P.A` being the refinement parent. The refinement result of this combination is a
