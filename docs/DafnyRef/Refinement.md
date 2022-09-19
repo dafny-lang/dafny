@@ -299,13 +299,15 @@ is the same as for methods and lemmas, as described in the previous section.
 A refining module can also introduce new `function` declarations or
 definitions that do not exist in the refinement parent.
 
-## 22.8. Iterator declarations
 
-TODO
+## 22.9. Class, trait and iterator declarations
 
-## 22.9. Class and trait declarations
+Class, trait, and iterator declarations are refined much like modules. If a class (or trait or iterator, respectively) `C` in a refining parent contains a
+member that is not matched by a same-named member in the class `C` in the refining module, or vice-versa, then that class is copied as is to the 
+refinement result.
 
-TODO
+When there are members with the same name in the class in the refinement parent and refining module, then the combination occurs 
+according to the rules for that category of member.
 
 ## 22.10. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
