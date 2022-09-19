@@ -26,7 +26,7 @@ jobs:
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
       with:
-        filename: 'dafny/Source/Dafny/DafnyPipeline.csproj'
+        filename: 'dafny/Source/DafnyCore/DafnyCore.csproj'
         expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
 
     - uses: actions-ecosystem/action-regex-match@v2
@@ -45,12 +45,10 @@ jobs:
         ref: v${{ steps.regex-match.outputs.group1 }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
-      run: |
-        dotnet build Source/Dafny.sln
-        dotnet build -f netstandard2.0 Source/DafnyRuntime/DafnyRuntime.csproj
+      run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
