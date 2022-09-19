@@ -98,8 +98,8 @@ namespace Microsoft.Dafny {
 
     public enum ContractTestingMode {
       None,
-      TestAttribute,
-      ExternAttribute
+      AllExterns,
+      ExternsInTests,
     }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
@@ -658,12 +658,11 @@ namespace Microsoft.Dafny {
           return true;
 
         case "testContracts":
-          // TODO: support more than one argument
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("Tests")) {
-              TestContracts = ContractTestingMode.TestAttribute;
-            } else if (args[ps.i].Equals("Externs")) {
-              TestContracts = ContractTestingMode.ExternAttribute;
+            if (args[ps.i].Equals("AllExterns")) {
+              TestContracts = ContractTestingMode.AllExterns;
+            } else if (args[ps.i].Equals("ExternsInTests")) {
+              TestContracts = ContractTestingMode.ExternsInTests;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1445,15 +1444,14 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     option is useful in a diamond dependency situation, to prevent code
     from the bottom dependency from being generated more than once.
 
-/testContracts:<Tests|Externs>
+/testContracts:<AllExterns|ExternsInTests>
     Enable run-time testing of compiled function or method contracts in
-    certain situations.
+    certain situations, currently focused on :extern code.
 
-    Tests - Check contracts on functions and methods when calling them
-        directly from methods marked with the :test attribute.
-    Externs - Check contracts when calling functions or methods marked
-        with the :extern attribute.
-
+    AllExterns - Check contracts on every call to a function or
+        method marked :extern, regardless of where it occurs.
+    Externs - Check contracts on every call to a function or method
+        marked :extern when it occurs in one marked :test.
 
 ----------------------------------------------------------------------------
 

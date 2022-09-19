@@ -13,9 +13,11 @@ public class ExpectContracts : IRewriter {
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
   private readonly Dictionary<MemberDecl, string> fullNames = new();
   private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
-  private CallRedirector callRedirector = new();
+  private CallRedirector callRedirector;
 
-  public ExpectContracts(ErrorReporter reporter) : base(reporter) { }
+  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
+    callRedirector = new(reporter);
+  }
 
   /// <summary>
   /// Create an expect statement that checks the given contract clause
@@ -72,8 +74,7 @@ public class ExpectContracts : IRewriter {
   private bool ShouldGenerateWrapper(MemberDecl decl) {
     return !decl.IsGhost &&
            decl is not Constructor &&
-           (callRedirector.HasExternAttribute(decl) /*||
-            CalledFromTestMethod(decl)*/);
+           callRedirector.HasExternAttribute(decl);
   }
 
   /// <summary>
@@ -177,6 +178,11 @@ public class ExpectContracts : IRewriter {
   class CallRedirector : TopDownVisitor<MemberDecl> {
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
+    private readonly ErrorReporter reporter;
+
+    public CallRedirector(ErrorReporter reporter) {
+      this.reporter = reporter;
+    }
 
     internal void AddFullName(MemberDecl decl, string fullName) {
       newFullNames.Add(decl, fullName);
@@ -191,14 +197,18 @@ public class ExpectContracts : IRewriter {
     }
 
     private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
-      // If there's no wrapper for the callee, don't try to call it.
+      if (!HasExternAttribute(callee)) {
+        return false;
+      }
+      // If there's no wrapper for the callee, don't try to call it, but warn.
       if (!newRedirections.ContainsKey(callee)) {
+        reporter.Warning(MessageSource.Rewriter, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
         return false;
       }
 
-      var opts = DafnyOptions.O.TestContracts;
-      return ((HasTestAttribute(caller) && opts == DafnyOptions.ContractTestingMode.TestAttribute) ||
-              (HasExternAttribute(callee) && opts == DafnyOptions.ContractTestingMode.ExternAttribute)) &&
+      var opt = DafnyOptions.O.TestContracts;
+      return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.ExternsInTests) ||
+              (opt == DafnyOptions.ContractTestingMode.AllExterns)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
              !newRedirections.ContainsValue(caller);
     }
