@@ -758,3 +758,12 @@ struct std::hash<DafnyMap<T,U>> {
         return seed;
     }
 };
+
+DafnySequence<DafnySequence<char>> dafny_get_args(int argc, char* argv[]) {
+  DafnySequence<DafnySequence<char>> dafnyArgs((uint64)argc);
+  for(int i = 0; i < argc; i++) {
+    std::string s = argv[i];
+    dafnyArgs.start[i] = DafnySequenceFromString(s);
+  }
+  return dafnyArgs;
+}

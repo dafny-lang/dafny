@@ -1,19 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-      <OutputType>Exe</OutputType>
-      <AssemblyName>Dafny</AssemblyName>
+      <OutputType>Library</OutputType>
+      <AssemblyName>DafnyDriver</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
-      <VersionPrefix>3.8.1.40901</VersionPrefix>
-
-      <PackAsTool>true</PackAsTool>
-      <ToolCommandName>dafny</ToolCommandName>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+      <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -43,8 +41,7 @@
   </ItemGroup>
     
   <ItemGroup>
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
