@@ -905,7 +905,8 @@ namespace Microsoft.Dafny {
             if (e.InCompiledContext) {
               if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
                 // everything's fine
-              } else if (!e.E0.Type.SupportsEquality) {
+              } else {
+                Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
                 Contract.Assert(e.E0.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
                 var dt = e.E0.Type.AsIndDatatype;
                 Contract.Assert(dt != null); // only inductive datatypes support equality partially

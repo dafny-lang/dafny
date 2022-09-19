@@ -2488,7 +2488,9 @@ public class UserDefinedType : NonProxyType {
   public override bool PartiallySupportsEquality {
     get {
       var totalEqualitySupport = SupportsEquality;
-      if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
+      if (!totalEqualitySupport && ResolvedClass is TypeSynonymDeclBase synonymBase) {
+        return synonymBase.IsRevealedInScope(Type.GetScope()) && synonymBase.RhsWithArgument(TypeArgs).PartiallySupportsEquality;
+      } else if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
         // Equality is partially supported (at run time) for a datatype that
         //   * is inductive (because codatatypes never support equality), and
         //   * has at least one non-ghost constructor (because if all constructors are ghost, then equality is never supported), and

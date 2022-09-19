@@ -179,3 +179,20 @@ module {:options "/functionSyntax:4"} DestructorTests {
     print wcd.y, "\n"; // 12
   }
 }
+
+module {:options "/functionSyntax:4"} WhiteBoxTests {
+  // The following code tests two conditions in the implementation.
+
+  // The following List does not support equality (because of the ghost parameter)
+  datatype List = Nil | Nilly(x: int) | Konstig(ghost head: int, tail: List)
+  type RestrictedList = xs: List | xs == Nilly(2) witness *
+
+  method M(xs: RestrictedList) returns (b: bool) {
+    // "Resolver.CanCompareWith" returns "true" for the LHS in the following comparison
+    // and returns "false" for the RHS. This shows that one needs to call "Resolver.CanCompareWith"
+    // on both operands. If either of them returns true, the comparison can be compiled.
+    // Additionally, since the type of "xs" is a subset type, this test makes sure that
+    // "PartiallySupportsEquality" understands subset types.
+    b := xs == Nilly(2);
+  }
+}
