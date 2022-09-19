@@ -44,7 +44,7 @@ is properly working.
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
 
-Pull Requests should be merged using 'Squash and merge' unless otherewise noted.
+Pull Requests should be merged using 'Squash and merge' unless otherwise noted.
 
 For pull requests that move more than a thousand lines of code from an existing to a new file, please take the following steps:
 - Create a separate pull request that includes just the code move.
