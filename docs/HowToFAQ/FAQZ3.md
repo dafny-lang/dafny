@@ -1,5 +1,5 @@
 ---
-title: Why do I need to use an old Z3?
+title: Why do I need to use an old version of Z3?
 ---
 
 ## Question
