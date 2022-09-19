@@ -12,7 +12,7 @@ Before reporting an issue here, consider whether it would be better handled in o
 - [`boogie-org/boogie-friends`](https://github.com/boogie-org/boogie-friends/), Dafny's Emacs mode, for Emacs-specific problems.
 - [`boogie-org/boogie`](https://github.com/boogie-org/boogie), Dafny's intermediate verification language, for questions and issues specific to Boogie.
 
-Other issues can be reported to the [Dafny project](https://githubcom/dafny-lang/dafny/Issues).
+Other issues can be reported to the [Dafny project](https://github.com/dafny-lang/dafny/issues).
 Please include your Dafny version number, any relevant code, and expected results in the issue report.
 
 ## Contributing to the source code
@@ -24,7 +24,7 @@ Developers who would like to experiment with and perhaps modify Dafny source sho
 - Instructions for compiling Dafny are on the [wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL#building-and-developing-from-source-code)
 
 
-If you want to feed code changes for incorporation into the Dafny project, please note:
+If you want to propose code changes for the Dafny project, please note:
 - The [Dafny License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt)
 - The requirement that all contributions are made under the terms of that [MIT License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
