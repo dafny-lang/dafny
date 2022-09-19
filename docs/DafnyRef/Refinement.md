@@ -309,6 +309,23 @@ refinement result.
 When there are members with the same name in the class in the refinement parent and refining module, then the combination occurs 
 according to the rules for that category of member.
 
+Here is an example code snippet:
+```
+abstract module P {
+  class C {
+    function F(): int
+      ensures F() > 0
+  }
+}
+
+module X refines P {
+  class C ... {
+    function F...
+      ensures F() > 0
+  }
+}
+```
+
 ## 22.10. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
 
