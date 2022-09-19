@@ -1,12 +1,12 @@
 # Upcoming
 
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
-- feat: generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
+- feat: Generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 - fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
-- fix: retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
-- feat!: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
-
+- fix: Retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
+- fix: Correctly substitute variables introduced by a binding guard (https://github.com/dafny-lang/dafny/pull/2745)
+- feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
 
 # 3.8.1
 
