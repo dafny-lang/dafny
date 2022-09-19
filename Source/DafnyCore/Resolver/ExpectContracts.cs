@@ -37,9 +37,9 @@ public class ExpectContracts : IRewriter {
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       Reporter.Warning(MessageSource.Rewriter, tok,
-        $"The {exprType} clause at this location cannot be compiled to be tested at runtime, because it references ghost state.");
+        $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
-      msg += " (not checked because it references ghost state)";
+      msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
     return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
@@ -54,8 +54,8 @@ public class ExpectContracts : IRewriter {
   /// <param name="ensures">The list of ensures clause expressions.</param>
   /// <param name="callStmt">The call statement to include.</param>
   /// <returns>The newly-created block statement.</returns>
-  private BlockStmt MakeContractCheckingBody(List<AttributedExpression> requires,
-    List<AttributedExpression> ensures, Statement callStmt) {
+  private BlockStmt MakeContractCheckingBody(IEnumerable<AttributedExpression> requires,
+    IEnumerable<AttributedExpression> ensures, Statement callStmt) {
     var expectRequiresStmts = requires.Select(req =>
       CreateContractExpectStatement(req, "requires"));
     var expectEnsuresStmts = ensures.Select(ens =>
@@ -74,19 +74,19 @@ public class ExpectContracts : IRewriter {
   private bool ShouldGenerateWrapper(MemberDecl decl) {
     return !decl.IsGhost &&
            decl is not Constructor &&
-           callRedirector.HasExternAttribute(decl);
+           CallRedirector.HasExternAttribute(decl);
   }
 
   /// <summary>
   /// Create a wrapper for the given function or method declaration that
   /// dynamically checks all of its preconditions, calls it, and checks
-  /// all of its postconditions before returning. The new wrapper will
-  /// later be added as a sibling of the original declaration.
+  /// all of its postconditions before returning. Then add the new wrapper
+  /// as a sibling of the original declaration.
   /// </summary>
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
-    var tok = decl.tok; // TODO: do better
+    var tok = decl.tok; // TODO: would this be less confusing as an internal token?
 
     var newName = decl.Name + "_checked";
     MemberDecl newDecl = null;
@@ -135,8 +135,11 @@ public class ExpectContracts : IRewriter {
     }
 
     if (newDecl is not null) {
+      // We especially want to remove {:extern} from the wrapper, but also any other attributes.
       newDecl.Attributes = null;
+
       wrappedDeclarations.Add(decl, newDecl);
+      parent.Members.Add(newDecl);
       callRedirector.AddFullName(newDecl, decl.FullName + "_checked");
     }
   }
@@ -149,7 +152,6 @@ public class ExpectContracts : IRewriter {
   /// </summary>
   /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
@@ -166,16 +168,9 @@ public class ExpectContracts : IRewriter {
     foreach (var (topLevelDecl, decl) in membersToWrap) {
       GenerateWrapper(topLevelDecl, decl);
     }
-
-    // Add the generated wrappers to the module.
-    foreach (var (topLevelDecl, decl) in membersToWrap) {
-      if (wrappedDeclarations.ContainsKey(decl)) {
-        topLevelDecl.Members.Add(wrappedDeclarations[decl]);
-      }
-    }
   }
 
-  class CallRedirector : TopDownVisitor<MemberDecl> {
+  private class CallRedirector : TopDownVisitor<MemberDecl> {
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
     private readonly ErrorReporter reporter;
@@ -188,11 +183,11 @@ public class ExpectContracts : IRewriter {
       newFullNames.Add(decl, fullName);
     }
 
-    internal bool HasTestAttribute(MemberDecl decl) {
+    internal static bool HasTestAttribute(MemberDecl decl) {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
     }
 
-    internal bool HasExternAttribute(MemberDecl decl) {
+    internal static bool HasExternAttribute(MemberDecl decl) {
       return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
     }
 
