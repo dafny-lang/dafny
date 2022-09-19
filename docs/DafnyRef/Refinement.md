@@ -88,7 +88,13 @@ the abstract import.
 
 ## 22.3. Sub-module declarations
 
-TODO
+A nested module within a refining module that does not have a name corresponding to the name of a nested module in the refinement parent 
+is copied as is into the refinement result.
+
+If a refining module `M` that is refining a refinement parent `P` and `M` contains a nested module `M.A` with the same name as a nested
+module in `P`, then `M.A` is a refining module with `P.A` being the refinement parent. The refinement result of this combination is a
+nested module `A` in the refinement result of `M` and `P`. This recursive refinement is applied to all nested modules of a refining
+module, recursively. 
 
 ## 22.4. Const declarations
 
