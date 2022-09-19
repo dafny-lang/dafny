@@ -19,13 +19,13 @@ Please include your Dafny version number, any relevant code, and expected result
 
 Developers who would like to experiment with and perhaps modify Dafny source should note these resources:
 - First, there are [resources to learn about Dafny as a user](https://dafny.org/dafny/).
-- And note the [community Code of Conduct](https://github.com/dafny-lang/dafny/blob/master/.github/CODE_OF_CONDUCT.md) expected of all participating in the project.
+- And note the [community Code of Conduct](CODE_OF_CONDUCT.md) expected of all participating in the project.
 - The Dafny project is at [github](https://github.com/dafny-lang/dafny) with related [sibling repositories](https://github.com/dafny-lang).
 - Instructions for compiling Dafny are on the [wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL#building-and-developing-from-source-code)
 
 
 If you want to propose code changes for the Dafny project, please note:
-- The [Dafny License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt)
+- The [Dafny License](./LICENSE.txt)
 - The requirement that all contributions are made under the terms of that [MIT License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
 
@@ -43,6 +43,13 @@ is properly working.
   - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
+
+Pull Requests should be merged using 'Squash and merge' unless otherewise noted.
+
+For pull requests that move more than a thousand lines of code from an existing to a new file, please take the following steps:
+- Create a separate pull request that includes just the code move.
+- Use the script found in Scripts/git-cp.sh. Running git-cp.sh src dst will copy file src to dst using a branch and a merge, and you can then remove the duplicated parts from src and dst to complete the code move (this process allows git to track the file copy, as described in this StackOverflow answer).
+- Merge the pull request using 'Create a merge commit' instead of 'Squash and merge'.
 
 ## FAQ
 
