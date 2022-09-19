@@ -33,6 +33,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Dafny doesn’t like when a type and a module have the same name. How can I fix this?"](FAQNameConflict)
 - ["Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."](FAQNoBody)
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
+
 - ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
 - ["How do labels in preconditions work?"](FAQPreconditionLabels)
 - ["Where are attributes documented?"](FAQAttribute)
@@ -46,6 +47,17 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
 
+- ["How do I pattern match against a head and tail of a sequence or against a set?"](FAQMatchOnSet)
+- ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
+- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"](FAQImportOneThing)
+- ["What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?](FAQModifiesThis)
+- ["How does one define a record?"](FAQRecord)
+- ["What does `forall v :: v in vals ==> false` evaluate to if vals is non-empty?"](FAQTriggers)
+- ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
+- ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
+- ["How do `{:split_here}` and `{:focus}` work to divide up a proof?"](FAQSplitHere)
+- ["How does one declare a type to have a default initial value, say a type tagged with {:extern}?'](FAQDefaultInitialValue)
+- 
 - ["A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Please explain."](FAQImportOpened)
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
 - ["How do I read a file as a string?"](FAQReadFile)
