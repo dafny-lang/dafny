@@ -106,7 +106,7 @@ jobs:
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
-        sudo gem install rouge
+        sudo gem install rouge -v 3.30.0
     - name: Clean Dafny
       run: dotnet clean dafny/Source/Dafny.sln
     # First we build the ZIPs (which do not include the refman)

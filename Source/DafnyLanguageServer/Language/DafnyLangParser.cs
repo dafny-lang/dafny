@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           return false;
         }
       } catch (IllegalDafnyFile e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.IncludedFilename} failed.");
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
         logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.IncludedFilename);
         return false;
       } catch (IOException e) {
