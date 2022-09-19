@@ -11,7 +11,7 @@ Here is example code that produces this error:
 When a _such-that_ (`:|`) initialization is used, Dafny must be able to establish that there is at least one value
 that satisfies the predicate given on the RHS. 
 That is, in this case, it must prove
-`assert exists k | k in m;`.
+`assert exists k :: k in m;`.
 But for this example, if the map `m` is empty, there is no such value,
 so the error message results.
 
