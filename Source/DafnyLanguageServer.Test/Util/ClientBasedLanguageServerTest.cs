@@ -59,7 +59,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetLastDocumentAsync(documentItem);
+    var document = (await Documents.GetLastDocumentAsync(documentItem))!;
+    Assert.AreEqual(documentItem.Version, document.Version, "GetLastDocumentAsync version was: " + document.Version);
     Diagnostic[] result;
     do {
       result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
@@ -123,7 +124,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
@@ -140,7 +141,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
@@ -162,12 +163,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
     }
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,

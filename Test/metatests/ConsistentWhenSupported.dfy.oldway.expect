@@ -17,4 +17,4 @@ Dafny program verifier did not attempt verification
 ConsistentWhenSupported.dfy(17,9): Error: Feature not supported for this compilation target: Iterators
 
 Dafny program verifier did not attempt verification
-(0,-1): Error: Feature not supported for this compilation target: Iterators
+All done iterating!

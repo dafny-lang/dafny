@@ -12,7 +12,7 @@
 // experiences could cause a change of mind.
 
 class C { }
-function f(c: C): C
+function f(c: C): C reads c
 function g(c: C): C
 function h(c: C, i: int): C
 

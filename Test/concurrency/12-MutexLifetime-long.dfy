@@ -437,7 +437,6 @@ trait OwnedObject extends Object {
 
   twostate predicate unchangedNonvolatileFields() reads this {
     && old(owner) == owner
-    && old(lifetime) == lifetime
     && unchangedNonvolatileUserFields()
   }
 
@@ -454,7 +453,6 @@ trait OwnedObject extends Object {
 
   twostate predicate localInv2() reads * {
     && (owner != null ==> localUserInv2())
-    && old(lifetime) == lifetime
   }
 
   twostate predicate sequenceInv2() reads * {
@@ -690,8 +688,7 @@ class OutlivesClaim extends OwnedObject {
   function objectUserFields(): set<Object> reads this { { source, target } }
 
   twostate predicate unchangedNonvolatileUserFields() reads this {
-    && old(target) == target
-    && old(source) == source
+    true
   }
 
   predicate localUserInv() reads * {
@@ -699,7 +696,7 @@ class OutlivesClaim extends OwnedObject {
     && universe.outlives(target, source)
   }
   predicate userInv() reads * ensures userInv() ==> localUserInv() { localUserInv() }
-  twostate predicate localUserInv2() reads * { old(target) == target && old(source) == source }
+  twostate predicate localUserInv2() reads * { true }
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2() { localUserInv2() }
 
   twostate lemma sequenceAdmissibility(running: set<Thread>) requires goodPreAndLegalChangesSequence(running) ensures sequenceInv2() {}
