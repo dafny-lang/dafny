@@ -19,7 +19,7 @@ Please include your Dafny version number, any relevant code, and expected result
 
 Developers who would like to experiment with and perhaps modify Dafny source should note these resources:
 - First, there are [resources to learn about Dafny as a user](https://dafny.org/dafny/).
-- And note the [community Code of Conduct](CODE_OF_CONDUCT.md) expected of all participating in the project.
+- And note the [community Code of Conduct](./CODE_OF_CONDUCT) expected of all participating in the project.
 - The Dafny project is at [github](https://github.com/dafny-lang/dafny) with related [sibling repositories](https://github.com/dafny-lang).
 - Instructions for compiling Dafny are on the [wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL#building-and-developing-from-source-code)
 
