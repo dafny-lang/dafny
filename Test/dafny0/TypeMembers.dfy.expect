@@ -1,3 +1,4 @@
+TypeMembers.dfy(115,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier finished with 29 verified, 0 errors
 DaTy.Yes 10 26
