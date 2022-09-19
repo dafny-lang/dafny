@@ -198,8 +198,8 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
     }
     var startTokenPos = CodeLineToPos[range.Start.Line] + range.Start.Character;
     var endTokenPos =
-      !CodeLineToPos.ContainsKey(range.Start.Line) ? Code.Length - startTokenPos :
-        CodeLineToPos[range.End.Line] + range.End.Character;
+      CodeLineToPos.ContainsKey(range.End.Line) ? CodeLineToPos[range.End.Line] + range.End.Character :
+        Code.Length;
     var length = endTokenPos - startTokenPos;
     if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= Code.Length) {
       return ""; // Safeguard
