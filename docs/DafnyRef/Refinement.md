@@ -88,15 +88,29 @@ the abstract import.
 
 ## 22.3. Sub-module declarations
 
-A nested module within a refining module that does not have a name corresponding to the name of a nested module in the refinement parent 
-is copied as is into the refinement result. 
-Similarly, a nested module in the refinement parent that does not correspond by name to any
-nested module in the refining module is copied as is into the refinement result.
+With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything, then it is copied into the refinement result like any other declaration.
 
-If a refining module `M` that is refining a refinement parent `P` and `M` contains a nested module `M.A` with the same name as a nested
-module in `P`, then `M.A` is a refining module with `P.A` being the refinement parent. The refinement result of this combination is a
-nested module `A` in the refinement result of `M` and `P`. This recursive refinement is applied to all nested modules of a refining
-module, recursively. 
+Here is some example code:
+```
+abstract module P {
+  module A { const i := 5 }
+  abstract module B { type T }
+}
+
+module X refines P {
+  module B' refines P.B { type T = int }
+  module C { const k := 6}
+}
+
+module M {
+  import X
+  method m() {
+    var z: X.B'.T := X.A.i + X.C.k;
+  }
+}
+```
+The refinement result of `P` and `X` contains nested modules `A`, `B'`, and `C`. It is this refinement result that is imported into `M`.
+Hence the names `X.B'.T`, `X.A.i` and `X.C.k` are all valid.
 
 ## 22.4. Const declarations
 
@@ -328,7 +342,40 @@ module X refines P {
 ```
 
 ## 22.10. Type declarations
--- opaque, type synonym, subset, newtype, datatype
 
-TODO
+An opaque type (a type declaration without a definition) in an abstract module can be refined in a refining module, by giving it a definition.
+The opaque type may be refined into a class, trait, or iterator as well as a type synonym, subset type, newtype or datatype.
+Here are some examples:
+```
+abstract module P {
+  type T1
+
+  type T2
+
+  type T3 {
+    function ToString(): string
+  }
+
+  type T4
+
+  type T5
+}
+
+module X refines P {
+  type T1 = int
+
+  type T2 = i | 0 <= i < 10
+
+  newtype T3 = i | 0 <= i < 10 {
+    function ToString... { "" }
+  }
+
+  datatype T4 = A | B | C 
+
+  class T5 {}
+}
+```
+Opaque types in the abstract class may be given members if they are refined as a type, such as a `newtype` or `datatype` or `class`, that is permitted to declare members.
+
+Note that type refinements are not required to include the `...` indicator that they are refining a parent type.
 
