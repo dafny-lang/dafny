@@ -2489,9 +2489,11 @@ public class UserDefinedType : NonProxyType {
     get {
       var totalEqualitySupport = SupportsEquality;
       if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
-        // Equality is partially supported for:
-        // an inductive datatype with at least one non-ghost constructor where every argument of a non-ghost constructor
-        // totally supports equality.
+        // Equality is partially supported (at run time) for a datatype that
+        //   * is inductive (because codatatypes never support equality), and
+        //   * has at least one non-ghost constructor (because if all constructors are ghost, then equality is never supported), and
+        //   * for each non-ghost constructor, every argument totally supports equality (an argument totally supports equality
+        //       if it is non-ghost (because ghost arguments are not available at run time) and has a type that supports equality).
         var hasNonGhostConstructor = false;
         foreach (var ctor in dt.Ctors) {
           if (!ctor.IsGhost) {
