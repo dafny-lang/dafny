@@ -960,11 +960,17 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
   public virtual string FullName {
     get {
+      if (EnclosingModuleDefinition is null) {
+        return Name;
+      }
       return EnclosingModuleDefinition.FullName + "." + Name;
     }
   }
   public string FullSanitizedName {
     get {
+      if (EnclosingModuleDefinition is null) {
+        return SanitizedName;
+      }
       return EnclosingModuleDefinition.SanitizedName + "." + SanitizedName;
     }
   }

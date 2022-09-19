@@ -5056,7 +5056,10 @@ namespace Microsoft.Dafny {
               if (CheckTypeInference_Visitor.IsDetermined(t) &&
                   (fullstrength
                    || !ProxyWithNoSubTypeConstraint(u, resolver)
-                   || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
+                   || (u is TypeProxy
+                       && Types[0].NormalizeExpandKeepConstraints() is var t0constrained
+                       && (t0constrained.IsNonNullRefType || t0constrained.AsSubsetType != null)
+                       && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
