@@ -18,6 +18,13 @@
   <link rel="icon" href="dafny-favicon.ico">
   <link rel="icon" href="dafny-favicon.svg" type="image/svg+xml">
 
+    <script src="jquery.js"></script>
+    <script>
+    $(function(){
+      $("#includedContent").load("version.html");
+    });
+    </script>
+
 </head>
 
 <style>
@@ -55,7 +62,7 @@ img {
 
 <div>
 <h1>Dafny<br>
-<div w3-include-html="version.html"></div>
+<div id="includedContent"></div>
 </h1>
 </div>
 
