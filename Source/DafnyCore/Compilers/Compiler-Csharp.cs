@@ -570,11 +570,10 @@ namespace Microsoft.Dafny.Compilers {
         var wGet = w.NewBlock("get");
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
-          if (ctor.IsGhost) {
-            wGet.WriteLine($"yield return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wGet, dt.tok)};");
-          } else {
-            wGet.WriteLine($"yield return {DtT_protected}.{DtCreateName(ctor)}();");
-          }
+          var constructor = ctor.IsGhost
+            ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wGet, dt.tok)
+            : $"{DtT_protected}.{DtCreateName(ctor)}()";
+          wGet.WriteLine($"yield return {constructor};");
         }
       }
 
