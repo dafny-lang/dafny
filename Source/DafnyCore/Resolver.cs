@@ -442,6 +442,7 @@ namespace Microsoft.Dafny {
       }
 
       rewriters.Add(new UselessOldLinter(reporter));
+      rewriters.Add(new PrecedenceLinter(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));

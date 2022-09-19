@@ -110,7 +110,8 @@ function UnionC(stC: StateC, stC': StateC): StateC
 
 predicate CompatibleC(stsC: set<StateC>)
 {
-  forall stC, stC', p, h :: stC in stsC && stC' in stsC &&
+  forall stC, stC', p, h ::
+    stC in stsC && stC' in stsC &&
     p in DomSt(stC.st) && p in DomSt(stC'.st) &&
     h in DomC(stC.c) && h in DomC(stC'.c) ==>
       GetSt(p, stC.st) == GetSt(p, stC'.st) && GetC(h, stC.c) == GetC(h, stC'.c)
