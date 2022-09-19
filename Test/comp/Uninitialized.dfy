@@ -123,6 +123,10 @@ module {:options "/functionSyntax:4"} EnumerationTests {
     predicate Is(n: nat) {
       N == n
     }
+
+    method CheckIs(n: nat) returns (r: bool) {
+      r := N == n;
+    }
   }
 
   method Test() {
