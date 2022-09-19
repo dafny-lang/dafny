@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
         args = args.Skip(1).ToArray();
       }
 
-      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
+      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, action, args, out var dafnyFiles, out var otherFiles);
       var driver = new DafnyDriver(dafnyOptions, action);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
@@ -169,7 +169,8 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(DafnyOptions options, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(
+         DafnyOptions options, DriverAction action, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
@@ -190,7 +191,7 @@ namespace Microsoft.Dafny {
 
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
-      } else if (options.Files.Count == 0) {
+      } else if (options.Files.Count == 0 && action != DriverAction.Format) {
         options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -248,7 +249,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0) {
+      if (dafnyFiles.Count == 0 && action != DriverAction.Format) {
         options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -288,19 +289,6 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
 
-      if (Action == DriverAction.Format) {
-        if (0 == dafnyFiles.Count) {
-          Console.WriteLine("`dafny format` requires at least one dafny file");
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-          return exitValue;
-        }
-        if (2 <= dafnyFiles.Count) {
-          Console.WriteLine("`dafny format` takes only one file for now");
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-          return exitValue;
-        }
-      }
-
       if (DafnyOptions.O.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
           Console.WriteLine();
@@ -332,24 +320,42 @@ namespace Microsoft.Dafny {
       Program dafnyProgram;
       string err;
       if (Action == DriverAction.Format) {
-        err = Dafny.Main.Parse(dafnyFiles, programName, reporter, out dafnyProgram);
-        if (err != null) {
-          exitValue = ExitValue.DAFNY_ERROR;
-          DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, err);
-        } else {
-          var firstToken = dafnyProgram.GetFirstTopLevelToken();
-          if (firstToken != null) {
-            var result = Formatting.__default.printSourceReindent(firstToken,
-              IndentationFormatter.ForProgram(dafnyProgram));
-            if (DafnyOptions.O.PrintFile == "-") {
-              Console.Out.Write(result);
-            } else {
-              WriteFile(dafnyFiles[0].FilePath, result);
-            }
+        if (dafnyFiles.Count == 0) {
+          // Let's list all the dafny files recursively in the working directory
+          dafnyFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dfy", SearchOption.AllDirectories)
+            .Select(name => new DafnyFile(name)).ToList();
+        }
+
+        var errors = 0;
+        var unchanged = 0;
+        foreach (var dafnyFile in dafnyFiles) {
+          // Might not be totally optimized but let's do that for now
+          err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out dafnyProgram);
+          if (err != null) {
+            exitValue = ExitValue.DAFNY_ERROR;
+            Console.Error.WriteLine(err);
+            errors += 1;
           } else {
-            Console.Error.WriteLine("Could not find text there");
+            var firstToken = dafnyProgram.GetFirstTopLevelToken();
+            if (firstToken != null) {
+              var result = Formatting.__default.printSourceReindent(firstToken,
+                IndentationFormatter.ForProgram(dafnyProgram));
+              if (DafnyOptions.O.PrintFile == "-") {
+                Console.Out.Write(result);
+              } else {
+                WriteFile(dafnyFile.FilePath, result);
+              }
+            } else {
+              Console.Error.WriteLine("Could not find text there");
+              errors += 1;
+            }
           }
         }
+
+        if (dafnyFiles.Count != 1) {
+          Console.Out.WriteLine("Formatted " + (dafnyFiles.Count - errors) + " files, ignored " + errors + " files");
+        }
+
         return exitValue;
       }
 
