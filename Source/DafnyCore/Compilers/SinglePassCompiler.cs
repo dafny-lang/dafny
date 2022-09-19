@@ -2819,7 +2819,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string DefaultValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
-      Contract.Requires(type.HasCompilableValue);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
