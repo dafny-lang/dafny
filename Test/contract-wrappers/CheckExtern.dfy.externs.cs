@@ -9,5 +9,8 @@ namespace _module {
     public static BigInteger Bar(BigInteger x) {
       return BigInteger.Zero;
     }
+    public static BigInteger Baz(BigInteger x) {
+      return x;
+    }
   }
 }

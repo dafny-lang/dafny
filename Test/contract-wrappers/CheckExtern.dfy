@@ -33,3 +33,14 @@ method {:test} BarTest()
   var y := Bar(3, 20);
   expect y == 30;
 }
+
+function method {:extern} Baz(x: int): (y: int)
+  ensures y == x
+
+method {:test} BazTest()
+{
+  var y := Baz(3);
+  // An extra check just for fun. The auto-generated wrapper should
+  // already ensure that y == 3.
+  expect y != 7;
+}
