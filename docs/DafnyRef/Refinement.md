@@ -322,6 +322,7 @@ module X refines P {
   class C ... {
     function F...
       ensures F() > 0
+    { 1 }
   }
 }
 ```
