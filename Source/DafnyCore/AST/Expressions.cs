@@ -1263,6 +1263,7 @@ public class MemberSelectExpr : Expression {
   public readonly string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
+  [FilledInDuringResolution] public bool InCompiledContext;
 
   /// <summary>
   /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
@@ -2265,6 +2266,8 @@ public class BinaryExpr : Expression {
   public Expression E1;
   public enum AccumulationOperand { None, Left, Right }
   public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
+  [FilledInDuringResolution] public bool InCompiledContext;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E0 != null);
@@ -3908,7 +3911,11 @@ public class TypeExpr : ParensExpression {
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression {
   public readonly Expression Root;
   public readonly List<Tuple<IToken, string, Expression>> Updates;
+  [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
+  [FilledInDuringResolution] public bool InCompiledContext;
+  [FilledInDuringResolution] public Expression ResolvedCompiledExpression; // see comment for Resolver.ResolveDatatypeUpdate
+
   public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
     : base(tok) {
     Contract.Requires(tok != null);
