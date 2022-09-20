@@ -802,7 +802,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine();
         var w = wr.NewNamedBlock("func (_this {0}) String() string", name);
         // TODO Avoid switch if only one branch
-        var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
+        var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => !ctor.IsGhost && ctor.Formals.Exists(arg => !arg.IsGhost));
         w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine();
         var wEquals = wr.NewNamedBlock("func (_this {0}) Equals(other {0}) bool", name);
         // TODO: Way to implement shortcut check for address equality?
-        var needData1 = dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
+        var needData1 = dt.Ctors.Exists(ctor => !ctor.IsGhost && ctor.Formals.Exists(arg => !arg.IsGhost));
 
         wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
