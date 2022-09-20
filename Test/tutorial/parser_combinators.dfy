@@ -10,16 +10,32 @@
 /// ```ocaml
 /// let parentheses' () =
 ///   (either
-///      (concat (char '(') (concat parentheses' (char ')')))
+///      (concat (char '(') (concat (fun () -> parentheses' ()) (char ')')))
 ///      epsilon)
 /// let parentheses () =
 ///   (concat parentheses' eos)
 /// ```
 ///
-/// Dafny will reject this definintion because thunking isn't enough to convince
-/// it that the `parentheses'` function terminates.
+/// Dafny will reject this definition because it cannot prove that the
+/// `parentheses'` function terminates.  This is because Dafny analyses
+/// anonymous functions (“lambdas”) modularly: every time a lambda is created,
+/// as with `(fun () -> parentheses' ())`, Dafny checks that it can be call in
+/// any context.  To see why, consider the function `Apply` below and the
+/// following two uses of it:
+
+function method Apply(f: () -> int): int { f() }
+
+function F0(): int { Apply(F0) }
+function F1(): int { Apply(() => F1()) }
+
+/// Dafny rejects `F0` because it does not allow using “naked” recursive
+/// functions, so one must “eta-expand” (or “thunk”) it, as done in `F1`; but
+/// Dafny also rejects `F1`, because it is not always safe to call (in OCaml, it
+/// would loop forever).  The `parentheses'` parser above *is* always safe to
+/// call, but Dafny doesn't know that, so we need to do a bit more work to
+/// *prove* that it does.
 ///
-/// Instead, we need to use stronger specifications to enforce progress, as
+/// We do it by using stronger specifications to enforce progress, as
 /// shown in the solution below:
 
 module {:options "-functionSyntax:4"} Parsers {
@@ -50,19 +66,28 @@ module {:options "-functionSyntax:4"} Parsers {
     }
   }
 
-/// A combinator is a function from a position to a parse result.
+/// A combinator is a function from a position (an index into the input string)
+/// to a parse result.  The function is not total: for termination purposes, we
+/// may need to be able to state that a recursive call to a parser can only
+/// happen with a larger index, for example.
 
   type Parser<+T> = nat --> ParseResult<T>
 
 /// The following is a convenient trick when defining many functions that share
-/// an argument, without having to pass it around everywhere and without having
-/// to specify that multiple calls use the same value of it: we define a
-/// `Engine` to be a datatype that contains the string, and all members of the
-/// datatype can access it (though note that most of them don't).
+/// an argument without having to pass that argument everywhere and without
+/// having to specify that all calls use the same value of that argument: we
+/// define an `Engine` to be a datatype that contains an `input` string, and
+/// members of the datatype can access it through the implicit `this` pointer
+/// (of course, they don't have to: some members below are `static`).
 
   datatype Engine = Engine(input: string) {
 
-/// `Concat` takes two parsers and returns a lambda:
+/// `Concat` takes two parsers and creates a new one: a lambda (captured in the
+/// type `Parser<(L, R)>`) that returns a pair of values, or `Failure`.  Because
+/// the input parsers are partial functions, so it their combination: the
+/// `requires` clauses on the lambda specify that the left parser may be called
+/// (`left.requires(pos)`) and that the right parser may be called, but only if
+/// the left one succeeds, and only on the position returned by it.
 
     static function Concat0<L, R>(left: Parser<L>, right: Parser<R>)
       : (p: Parser<(L, R)>)
@@ -135,12 +160,13 @@ module {:options "-functionSyntax:4"} Parsers {
 
 /// Next, we define `Char`, which checks for a specific character and advances
 /// the cursor by one.  Its post-condition indicates that the cursor has
-/// advanced and that there was some input left.
+/// advanced.  It additionally states that the new position is `<= |input|`
+/// (which is equivalent to saying that the original position was `< |input|`).
 
     function {:opaque} Char(c: char): (p: Parser<char>)
       ensures forall pos: nat :: p.requires(pos)
       ensures forall pos: nat :: p(pos).Success? ==>
-        pos < |input| && p(pos).pos == pos + 1
+        p(pos).pos == pos + 1 && p(pos).pos <= |input|
     {
       (pos: nat) =>
         if pos < |input| && input[pos] == c then Success(pos + 1, c)
@@ -190,7 +216,7 @@ module {:options "-functionSyntax:4"} Parsers {
 ///          with the position returned by `left` (i.e. by `Char(…)`).  Here `right`
 ///          is `Concat(rec, Char(')'))`, and postcondition of `Char` tells us that
 ///          this position (let's call it `pos'`) is the previous position plus one,
-///          and that `pos` was `< |input|`.
+///          and that `pos'` is `<= |input|`.
 ///
 ///          0. The first `requires` on `Concat(rec, …)` states that we can call
 ///             `rec` with position `pos'`, which is `pos + 1`.  The precondition of

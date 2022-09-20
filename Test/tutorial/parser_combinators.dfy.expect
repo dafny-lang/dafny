@@ -1,4 +1,7 @@
+/home/cpitcla/git/dafny/master/Test/tutorial/parser_combinators.dfy(28,27): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+/home/cpitcla/git/dafny/master/Test/tutorial/parser_combinators.dfy(29,33): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 8 verified, 2 errors
+"": 0 nested parentheses
 "((()))": 3 nested parentheses
 "((())": no valid parse
