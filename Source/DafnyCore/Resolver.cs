@@ -16653,7 +16653,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Check whether the name we just resolved may have been resolved differently if we didn't allow member `M.M` of
     /// module `M` to shadow `M` when the user writes `import opened M`.  Raising an error in that case allowed us to
-    /// change the bahvior of `import opened` without silently changing the meaning of existing programs.
+    /// change the behavior of `import opened` without silently changing the meaning of existing programs.
     /// (https://github.com/dafny-lang/dafny/issues/1996)
     ///
     /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
