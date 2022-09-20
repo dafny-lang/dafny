@@ -8,6 +8,7 @@
 - fix: Use the right comparison operators for bitvectors in Javascript (https://github.com/dafny-lang/dafny/pull/2716)
 - fix: Retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
 - fix: Correctly substitute variables introduced by a binding guard (https://github.com/dafny-lang/dafny/pull/2745)
+- fix: Improved hints and error messages regarding variance/cardinality preservation (https://github.com/dafny-lang/dafny/pull/2774)
 
 # 3.8.1
 
