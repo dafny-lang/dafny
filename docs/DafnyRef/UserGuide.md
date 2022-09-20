@@ -1532,7 +1532,7 @@ PROVER_OPTIONS="\
 
 Much of controlling the prover is accomplished by controlling 
 verification condition generation ([25.9.7](#sec-controlling-verification)) or Boogie 
-([Section 25.9.9](#sec-controlling-boogie)). Some additional
+([Section 25.9.8](#sec-controlling-boogie)). Some additional
 commonly used options are listed here.
 
 * `-errorLimit:<n>` - limits the number of verification errors reported per procedure.
