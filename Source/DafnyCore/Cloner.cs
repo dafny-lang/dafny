@@ -1033,7 +1033,7 @@ namespace Microsoft.Dafny {
       return basem;
     }
 
-    public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
+    public override BlockStmt CloneMethodBody(Method m) {
       return null;
     }
   }
