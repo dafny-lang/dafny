@@ -197,6 +197,16 @@ public class SpecialField : Field {
   }
 }
 
+public class DatatypeDiscriminator : SpecialField {
+  public override string WhatKind {
+    get { return "discriminator"; }
+  }
+
+  public DatatypeDiscriminator(IToken tok, string name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(tok, name, specialId, idParam, isGhost, false, false, type, attributes) {
+  }
+}
+
 public class DatatypeDestructor : SpecialField {
   public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
   public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
@@ -238,18 +248,7 @@ public class DatatypeDestructor : SpecialField {
   static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
     Contract.Requires(ctors != null);
     Contract.Requires(grammaticalConjunction != null);
-    var n = ctors.Count;
-    if (n == 1) {
-      return string.Format("'{0}'", ctors[0].Name);
-    } else if (n == 2) {
-      return string.Format("'{0}' {1} '{2}'", ctors[0].Name, grammaticalConjunction, ctors[1].Name);
-    } else {
-      var s = "";
-      for (int i = 0; i < n - 1; i++) {
-        s += string.Format("'{0}', ", ctors[i].Name);
-      }
-      return s + string.Format("{0} '{1}'", grammaticalConjunction, ctors[n - 1].Name);
-    }
+    return Util.PrintableNameList(ctors.ConvertAll(ctor => ctor.Name), grammaticalConjunction);
   }
 }
 
