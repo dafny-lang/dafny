@@ -290,5 +290,5 @@ module {:options "-functionSyntax:4"} Parsers {
 /// }
 /// ```
 
-// RUN: %dafny -compile:4 "%s" --args "((()))" "((())" > "%t"
+// RUN: %dafny_0 -compile:4 "%s" --args "((()))" "((())" > "%t"
 // RUN: %diff "%s.expect" "%t"
