@@ -327,7 +327,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // Optimize a not-uncommon case
-      if (dt.Ctors.Count == 1) {
+      if (dt.IsRecordType) {
         var ctor = dt.Ctors[0];
         var ws = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
 
@@ -393,7 +393,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
 
         /*** Create one struct for each constructor ***/
-        foreach (var ctor in dt.Ctors) {
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           string structName = DatatypeSubStructName(ctor);
           var wstruct = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members
@@ -1111,7 +1111,8 @@ namespace Microsoft.Dafny.Compilers {
         ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
