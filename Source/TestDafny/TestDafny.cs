@@ -179,10 +179,10 @@ public class TestDafny {
 
     var unsupportedRegex = new Regex(
       Regex.Escape(UnsupportedFeatureException.MessagePrefix)
-      + @"(?<featureDescription>.+?)(?<customMessage> [(].*[)])$");
+      + @"(?<featureDescription>.+?)(?<customMessage> [(].*[)])?$");
 
     var m = unsupportedRegex.Match(line);
-    if (m == null) {
+    if (!m.Success) {
       return false;
     }
 
