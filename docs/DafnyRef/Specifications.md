@@ -640,4 +640,75 @@ The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 
-TO BE WRITTEN - {:autocontracts}
+AutoContracts is an experimental feature that will fill much of the dynamic-frames boilerplate
+into a class.  From the user's perspective, what needs to be done is simply:
+- mark the class with `{:autocontracts}`
+- declare a function (or predicate) called Valid()
+
+AutoContracts will then:
+
+- Declare, unless there already exist members with these names:
+```dafny
+  ghost var Repr: set(object)
+  predicate Valid()
+```
+
+- For function/predicate `Valid()`, insert:
+```dafny
+  reads this, Repr
+  ensures Valid() ==> this in Repr
+```
+- Into body of `Valid()`, insert (at the beginning of the body):
+```dafny
+  this in Repr && null !in Repr
+```
+  and also insert, for every array-valued field `A` declared in the class:
+```dafny
+  (A != null ==> A in Repr) &&
+```
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also insert:
+```dafny
+  (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
+```
+  except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
+be added.
+- For every constructor, add:
+```
+  ensures Valid() && fresh(Repr)
+```
+- At the end of the body of the constructor, add:
+```
+   Repr := {this};
+   if (A != null) { Repr := Repr + {A}; }
+   if (F != null) { Repr := Repr + {F} + F.Repr; }
+```
+
+In all the following cases, no `modifies` clause or `reads` clause is added if the user
+has given one.
+
+- For every non-static non-ghost method that is not a "simple query method",
+add:
+```
+   requires Valid()
+   modifies Repr
+   ensures Valid() && fresh(Repr - old(Repr))
+```
+- At the end of the body of the method, add:
+```
+   if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
+   if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
+```
+- For every non-static non-twostate method that is either ghost or is a "simple query method",
+add:
+```
+   requires Valid()
+```
+- For every non-static twostate method, add:
+```
+   requires old(Valid())
+```
+- For every non-"Valid" non-static function, add:
+```
+   requires Valid()
+   reads Repr
+```
