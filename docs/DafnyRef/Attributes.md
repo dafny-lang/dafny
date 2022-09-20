@@ -483,9 +483,11 @@ mocking framework. The object returned, therefore, behaves exactly as the
 postconditions specify. If there is a possibility that this behavior violates
 the specifications on the object's instance methods or hardcodes the values of
 its fields, the compiler will throw an error but the compilation will go
-through. Currently, this compilation pass is only supported in C# and requires
-adding the latest version of the Moq library to the .csproj file before
-generating the binary.
+through. 
+
+Currently, this compilation pass is only supported in C# and Java. To use it for C#, 
+add the latest version of the Moq library to the .csproj file before
+generating the binary. 
 
 Not all Dafny postconditions can be successfully compiled - below is the
 grammar for postconditions that are supported (`S` is the start symbol, `EXPR`
@@ -497,7 +499,7 @@ S         = FORALL
           | EQUALS
           | S && S
 EQUALS    = ID.ID (ARGLIST) == EXPR // stubs a function call
-          | ID.ID           == EXPR // stubs field access
+          | ID.ID           == EXPR // stubs field access, C# only
           | EQUALS && EQUALS
 FORALL    = forall BOUNDVARS :: EXPR ==> EQUALS
 ARGLIST   = ID   // this can be one of the bound variables
@@ -506,6 +508,9 @@ ARGLIST   = ID   // this can be one of the bound variables
 BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
+
+Note that stubbing field access is not supported for Java, as Java's mocking framework 
+(Mockito) does not allow fields to be stubbed.
 
 ### 23.2.23. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
