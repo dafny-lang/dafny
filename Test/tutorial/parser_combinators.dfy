@@ -16,14 +16,17 @@
 ///   (concat parentheses' eos)
 /// ```
 ///
-/// Dafny will reject this definintion definition because thunking isn't enough
-/// to convince it that the `parentheses'` function terminates.
+/// Dafny will reject this definintion because thunking isn't enough to convince
+/// it that the `parentheses'` function terminates.
 ///
 /// Instead, we need to use stronger specifications to enforce progress, as
 /// shown in the solution below:
 
 module {:options "-functionSyntax:4"} Parsers {
 
+/// (The `-functionSyntax:4` enables Dafny's new function syntax, where
+/// `function` replaces `function method`)
+///
 /// ## Utility types
 ///
 /// `Either<L, R>` represents the result of the `Either` combinator.  For `And`,
