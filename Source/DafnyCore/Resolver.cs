@@ -2145,8 +2145,8 @@ namespace Microsoft.Dafny {
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
-                false, false, false, Type.Bool, null);
+              var query = new DatatypeDiscriminator(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+                ctor.IsGhost, Type.Bool, null);
               query.InheritVisibility(dt);
               query.EnclosingClass = dt; // resolve here
               members.Add(queryName, query);
@@ -5047,7 +5047,10 @@ namespace Microsoft.Dafny {
               if (CheckTypeInference_Visitor.IsDetermined(t) &&
                   (fullstrength
                    || !ProxyWithNoSubTypeConstraint(u, resolver)
-                   || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
+                   || (u is TypeProxy
+                       && Types[0].NormalizeExpandKeepConstraints() is var t0constrained
+                       && (t0constrained.IsNonNullRefType || t0constrained.AsSubsetType != null)
+                       && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
                 if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
@@ -8154,9 +8157,9 @@ namespace Microsoft.Dafny {
                 // that's cool
               } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
-              } else if (!t0.SupportsEquality) {
+              } else if (!t0.PartiallySupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-              } else if (!t1.SupportsEquality) {
+              } else if (!t1.PartiallySupportsEquality) {
                 resolver.reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
               }
               break;
@@ -8267,32 +8270,6 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      private bool CanCompareWith(Expression expr) {
-        Contract.Requires(expr != null);
-        if (expr.Type.SupportsEquality) {
-          return true;
-        }
-        expr = expr.Resolved;
-        if (expr is DatatypeValue) {
-          var e = (DatatypeValue)expr;
-          for (int i = 0; i < e.Ctor.Formals.Count; i++) {
-            if (e.Ctor.Formals[i].IsGhost) {
-              return false;
-            } else if (!CanCompareWith(e.Arguments[i])) {
-              return false;
-            }
-          }
-          return true;
-        } else if (expr is DisplayExpression) {
-          var e = (DisplayExpression)expr;
-          return e.Elements.Count == 0;
-        } else if (expr is MapDisplayExpr) {
-          var e = (MapDisplayExpr)expr;
-          return e.Elements.Count == 0;
-        }
-        return false;
-      }
-
       public void VisitType(IToken tok, Type type, bool inGhostContext) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
@@ -8400,6 +8377,31 @@ namespace Microsoft.Dafny {
         }
         return "";
       }
+    }
+
+    public static bool CanCompareWith(Expression expr) {
+      Contract.Requires(expr != null);
+      if (expr.Type.SupportsEquality) {
+        return true;
+      }
+      expr = expr.Resolved;
+      if (expr is DatatypeValue datatypeValue && !datatypeValue.Ctor.EnclosingDatatype.HasGhostVariant) {
+        for (var i = 0; i < datatypeValue.Ctor.Formals.Count; i++) {
+          if (datatypeValue.Ctor.Formals[i].IsGhost) {
+            return false;
+          } else if (!CanCompareWith(datatypeValue.Arguments[i])) {
+            return false;
+          }
+        }
+        return true;
+      } else if (expr is DisplayExpression) {
+        var e = (DisplayExpression)expr;
+        return e.Elements.Count == 0;
+      } else if (expr is MapDisplayExpr) {
+        var e = (MapDisplayExpr)expr;
+        return e.Elements.Count == 0;
+      }
+      return false;
     }
 
     #endregion CheckTypeCharacteristics
@@ -8833,7 +8835,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source);
+          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
           }
@@ -9821,9 +9823,11 @@ namespace Microsoft.Dafny {
           }
         }
         // this constructor satisfies the requirements, check to see if it is a better fit than the
-        // one found so far. By "better" it means fewer type arguments. Between the ones with
-        // the same number of the type arguments, pick the one shows first.
-        if (groundingCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count) {
+        // one found so far. Here, "better" means
+        //   * a ghost constructor is better than a non-ghost constructor
+        //   * among those, a constructor with fewer type arguments is better
+        //   * among those, the first one is preferred.
+        if (groundingCtor == null || (!groundingCtor.IsGhost && ctor.IsGhost) || typeParametersUsed.Count < lastTypeParametersUsed.Count) {
           groundingCtor = ctor;
           lastTypeParametersUsed = typeParametersUsed;
         }
@@ -9919,12 +9923,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
-      // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
-      // the whole SCC is incapable of providing the equality operation.  Also, if any parameter of any inductive datatype
-      // is a ghost, then the whole SCC is incapable of providing the equality operation.
+
+      void MarkSCCAsNotSupportingEquality() {
+        foreach (var ddtt in scc) {
+          ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
+        }
+      }
+
+      // Look for conditions that make the whole SCC incapable of providing the equality operation:
+      //   * a datatype in the SCC has a ghost constructor
+      //   * a parameter of an inductive datatype in the SCC is ghost
+      //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         foreach (var ctor in dt.Ctors) {
+          if (ctor.IsGhost) {
+            MarkSCCAsNotSupportingEquality();
+            return;  // we are done
+          }
           foreach (var arg in ctor.Formals) {
             var anotherIndDt = arg.Type.AsIndDatatype;
             if (arg.IsGhost ||
@@ -9932,10 +9948,7 @@ namespace Microsoft.Dafny {
                 arg.Type.IsCoDatatype ||
                 arg.Type.IsArrowType) {
               // arg.Type is known never to support equality
-              // So, go around the entire SCC and record what we learnt
-              foreach (var ddtt in scc) {
-                ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
-              }
+              MarkSCCAsNotSupportingEquality();
               return;  // we are done
             }
           }
@@ -14993,12 +15006,15 @@ namespace Microsoft.Dafny {
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          List<DatatypeCtor> legalSourceConstructors;
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext, out legalSourceConstructors);
-          if (let != null) {
-            e.ResolvedExpression = let;
+          var (ghostLet, compiledLet) = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, resolutionContext,
+            out var members, out var legalSourceConstructors);
+          Contract.Assert((ghostLet == null) == (compiledLet == null));
+          if (ghostLet != null) {
+            e.ResolvedExpression = ghostLet; // this might be replaced by e.ResolvedCompiledExpression in CheckIsCompilable
+            e.ResolvedCompiledExpression = compiledLet;
+            e.Members = members;
             e.LegalSourceConstructors = legalSourceConstructors;
-            expr.Type = let.Type;
+            expr.Type = ghostLet.Type;
           }
         }
 
@@ -15700,9 +15716,18 @@ namespace Microsoft.Dafny {
     /// Attempts to rewrite a datatype update into more primitive operations, after doing the appropriate resolution checks.
     /// Upon success, returns that rewritten expression and sets "legalSourceConstructors".
     /// Upon some resolution error, return null.
+    ///
+    /// Actually, the method returns two expressions (or returns "(null, null)"). The first expression is the desugaring to be
+    /// used when the DatatypeUpdateExpr is used in a ghost context. The second is to be used for a compiled context. In either
+    /// case, "legalSourceConstructors" contains both ghost and compiled constructors.
+    ///
+    /// The reason for computing both desugarings here is that it's too early to tell if the DatatypeUpdateExpr is being used in
+    /// a ghost or compiled context. This is a consequence of doing the deguaring so early. But it's also convenient to do the
+    /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
+    /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
-      ResolutionContext resolutionContext, out List<DatatypeCtor> legalSourceConstructors) {
+    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
+      ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(dt != null);
@@ -15710,6 +15735,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       legalSourceConstructors = null;
+      members = new List<MemberDecl>();
 
       // First, compute the list of candidate result constructors, that is, the constructors
       // that have all of the mentioned destructors. Issue errors for duplicated names and for
@@ -15730,6 +15756,7 @@ namespace Microsoft.Dafny {
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
           } else {
+            members.Add(member);
             var destructor = (DatatypeDestructor)member;
             var intersection = new List<DatatypeCtor>(candidateResultCtors.Intersect(destructor.EnclosingCtors));
             if (intersection.Count == 0) {
@@ -15751,7 +15778,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (candidateResultCtors.Count == 0) {
-        return null;
+        return (null, null);
       }
 
       // Check that every candidate result constructor has given a name to all of its parameters.
@@ -15765,26 +15792,42 @@ namespace Microsoft.Dafny {
         }
       }
       if (hasError) {
-        return null;
+        return (null, null);
       }
 
       // The legal source constructors are the candidate result constructors. (Yep, two names for the same thing.)
       legalSourceConstructors = candidateResultCtors;
       Contract.Assert(1 <= legalSourceConstructors.Count);
 
-      // Rewrite the datatype update root.(x := X, y := Y, ...) to:
-      //     var d := root;
-      //     var x := X;  // EXCEPT: don't do this for ghost fields
-      //     var y := Y;
-      //     ..
-      //     if d.CandidateResultConstructor0 then
-      //       CandidateResultConstructor0(x, y, ..., d.f0, d.f1, ...)  // for a ghost field x, use the expression X directly
-      //     else if d.CandidateResultConstructor1 then
-      //       CandidateResultConstructor0(x, y, ..., d.g0, d.g1, ...)
-      //     ...
-      //     else
-      //       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
-      //
+      var desugaringForGhostContext = DesugarDatatypeUpdate(tok, root, dt, candidateResultCtors, rhsBindings, resolutionContext);
+      var nonGhostConstructors = candidateResultCtors.Where(ctor => !ctor.IsGhost).ToList();
+      if (nonGhostConstructors.Count == candidateResultCtors.Count) {
+        return (desugaringForGhostContext, desugaringForGhostContext);
+      }
+      var desugaringForCompiledContext = DesugarDatatypeUpdate(tok, root, dt, nonGhostConstructors, rhsBindings, resolutionContext);
+      return (desugaringForGhostContext, desugaringForCompiledContext);
+    }
+
+    /// <summary>
+    // Rewrite the datatype update root.(x := X, y := Y, ...) to:
+    ///     var d := root;
+    ///     var x := X;  // EXCEPT: don't do this for ghost fields
+    ///     var y := Y;
+    ///     ..
+    ///     if d.CandidateResultConstructor0 then
+    ///       CandidateResultConstructor0(x, y, ..., d.f0, d.f1, ...)  // for a ghost field x, use the expression X directly
+    ///     else if d.CandidateResultConstructor1 then
+    ///       CandidateResultConstructor0(x, y, ..., d.g0, d.g1, ...)
+    ///     ...
+    ///     else
+    ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
+    /// </summary>
+    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
+      Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings, ResolutionContext resolutionContext) {
+
+      if (candidateResultCtors.Count == 0) {
+        return root;
+      }
       Expression rewrite = null;
       // Create a unique name for d', the variable we introduce in the let expression
       var dName = FreshTempVarName("dt_update_tmp#", resolutionContext.CodeContext);
@@ -15811,7 +15854,9 @@ namespace Microsoft.Dafny {
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
         var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
-        ResolveDatatypeValue(resolutionContext, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
+        // in the following line, resolve to root.Type, so that type parameters get filled in appropriately
+        ResolveDatatypeValue(resolutionContext, ctor_call, dt, root.Type.NormalizeExpand());
+
         if (body == null) {
           body = ctor_call;
         } else {
@@ -15820,7 +15865,7 @@ namespace Microsoft.Dafny {
           body = new ITEExpr(tok, false, guard, ctor_call, body);
         }
       }
-      Contract.Assert(body != null);  // because there was at least one element in candidateResultCtors
+      Contract.Assert(body != null); // because there was at least one element in candidateResultCtors
 
       // Wrap the let's around body
       rewrite = body;
