@@ -36,6 +36,8 @@ method Main() {
   AllBerry();
   TestConflictingNames();
   TestModule();
+
+  TestGhostDestructors();
 }
 
 function method Up(m: nat, n: nat): List
@@ -137,4 +139,17 @@ method PrintMaybe(x : Module.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";
+}
+
+datatype R = R(x: int, ghost g: int)
+
+method TestGhostDestructors() {
+  var a := R(10, 20);
+  var b := a.(x := a.x + 1);
+  var c := b.(x := b.x + 1, g := b.g + 1);
+  var d := c.(g := c.g + 1, x := c.x + 1);
+  var e := d.(g := d.g + 1);
+
+  assert e == R(13, 23);
+  expect e.x == 13;
 }
