@@ -2154,6 +2154,22 @@ This is done by declaring a method with the `lemma` keyword.
 Lemmas are implicitly ghost methods and the `ghost` keyword cannot
 be applied to them.
 
+Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
+a significantly different function. First of all, a lemma is forbidden to have 
+`modifies` clause: it may not change anything about even the ghost state; ghost methods
+may have `modifies` clauses and may change ghost (but not non-ghost) state. 
+Furthermore, a lemma is not allowed to allocate any new objects.
+And a lemma may be used in the program text in places where ghost methods may not,
+such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
+
+Lemmas may, but typically do not, have out-parameters.
+
+In summary, a lemma states a logical fact, summarizing an inference that the verifier
+cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
+to use that fact at that location with the actual arguments substituted for the 
+formal parameters. The lemma is proved separately for all cases of its formal parameters
+that satisfy the preconditions of the lemma. 
+
 For an example, see the `FibProperty` lemma in
 [Section 24.5.2](#sec-proofs-in-dafny).
 
