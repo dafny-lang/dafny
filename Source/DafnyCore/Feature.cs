@@ -185,11 +185,10 @@ public class UnsupportedFeatureException : Exception {
   }
 
   public UnsupportedFeatureException(IToken token, Feature feature)
-    : this(token, feature, null) {}
+    : this(token, feature, null) { }
 
   public UnsupportedFeatureException(IToken token, Feature feature, string message)
-    : base(FormatMessage(feature, message))
-  {
+    : base(FormatMessage(feature, message)) {
     Token = token;
     Feature = feature;
   }
