@@ -685,16 +685,16 @@ notation | variance | cardinality-preserving
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
-_Cardinality preserving_ means that the cardinality of the set of all values denoted by the type parameter is not strictly less than that of the set of all values being defined by the type using this type parameter.
-For example
-
-    type T<X> = X -> bool
-
+_Cardinality preserving_ 
+means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters.
+For example `type T<X> = X -> bool`
 is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')`
 The type `X -> bool` has strictly more values than the type `X`. 
 This affects certain uses of the type, so Dafny requires the declaration of `T` to explicitly say so. 
 Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`. 
 If you use `-`, you’re also declaring `T` to be contravariant in its type argument, and if you use `!`, you’re declaring that `T` is non-variant in its type argument.
+
+means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters
 
 To fix it, we use the variance `!`:
 
