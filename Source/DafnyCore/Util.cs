@@ -849,7 +849,9 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is MemberSelectExpr selectExpr) {
-        selectExpr.InCompiledContext = true;
+        if (reporter != null) {
+          selectExpr.InCompiledContext = true;
+        }
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
@@ -861,7 +863,9 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is DatatypeUpdateExpr updateExpr) {
-        updateExpr.InCompiledContext = true;
+        if (resolver != null) {
+          updateExpr.InCompiledContext = true;
+        }
         isCompilable = CheckIsCompilable(updateExpr.Root, codeContext);
         Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
         for (var i = 0; i < updateExpr.Updates.Count; i++) {
@@ -958,7 +962,9 @@ namespace Microsoft.Dafny {
         return CheckIsCompilable(stmtExpr.E, codeContext);
 
       } else if (expr is BinaryExpr binaryExpr) {
-        binaryExpr.InCompiledContext = true;
+        if (reporter != null) {
+          binaryExpr.InCompiledContext = true;
+        }
         switch (binaryExpr.ResolvedOp_PossiblyStillUndetermined) {
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:

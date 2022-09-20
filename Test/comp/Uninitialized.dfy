@@ -196,3 +196,19 @@ module {:options "/functionSyntax:4"} WhiteBoxTests {
     b := xs == Nilly(2);
   }
 }
+
+module ConstraintsAreGhost {
+  // The constraint of a subset type is ghost. However, the Resolver calls CheckIsCompilable
+  // to determine if, perhaps, the constraint is compilable after all (because that enables
+  // the compiler to do some additional things). The .InCompiledContext fields should not be
+  // set when CheckIsCompilable is called in this mode, as is tested by the following declarations.
+
+  datatype A = ghost MakeA(x: int)
+  type B = a: A | a.x == 0 ghost witness MakeA(0)
+
+  datatype R = R(ghost x: int)
+  type S = r: R | r.x == 0 witness R(0)
+
+  datatype List = Nil | ghost Konstig(ghost head: int, tail: List)
+  type RestrictedList = xs: List | xs.Konstig? ghost witness Konstig(0, Nil)
+}
