@@ -1311,13 +1311,16 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
   public bool HasFinitePossibleValues {
     get {
+      // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.
       return (TypeArgs.Count == 0 && Ctors.TrueForAll(ctr => ctr.Formals.Count == 0));
     }
   }
 
   public bool IsRecordType {
-    get { return this is IndDatatypeDecl && Ctors.Count == 1; }
+    get { return this is IndDatatypeDecl && Ctors.Count == 1 && !Ctors[0].IsGhost; }
   }
+
+  public bool HasGhostVariant => Ctors.Any(ctor => ctor.IsGhost);
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
@@ -1388,7 +1391,7 @@ public class CoDatatypeDecl : DatatypeDecl {
   }
 
   public override DatatypeCtor GetGroundingCtor() {
-    return Ctors[0];
+    return Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
 }
 
@@ -1430,6 +1433,7 @@ public class ValuetypeDecl : TopLevelDecl {
 }
 
 public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+  public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1445,12 +1449,13 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
   [FilledInDuringResolution] public SpecialField QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
 
-  public DatatypeCtor(IToken tok, string name, [Captured] List<Formal> formals, Attributes attributes)
+  public DatatypeCtor(IToken tok, string name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
     : base(tok, name, attributes, false) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(formals));
     this.Formals = formals;
+    this.IsGhost = isGhost;
   }
 
   public string FullName {
