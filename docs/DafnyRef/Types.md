@@ -2157,7 +2157,7 @@ be applied to them.
 Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
 a significantly different function. First of all, a lemma is forbidden to have 
 `modifies` clause: it may not change anything about even the ghost state; ghost methods
-may have `modifies clauses` and may change ghost (but not non-ghost) state. 
+may have `modifies` clauses and may change ghost (but not non-ghost) state. 
 Furthermore, a lemma is not allowed to allocate any new objects.
 And a lemma may be used in the program text in places where ghost methods may not,
 such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
