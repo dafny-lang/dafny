@@ -107,7 +107,7 @@ command-line tools in Windows and Unix-like systems.
 - Files are designated by absolute paths or paths relative to the current
 working directory. A command-line argument not matching a known option is considered a filepath.
 - Files containing dafny code must have a `.dfy` suffix.
-- There must be at least one `.dfy` file.
+- There must be at least one `.dfy` file (except in the case of `dafny format`, see the [Dafny format section](#sec-formatting)) 
 - The command-line may contain other kinds of files appropriate to
 the language that the dafny files are being compiled to.
 
@@ -143,6 +143,18 @@ The dafny tool terminates with these exit codes:
 Errors in earlier phases of processing typically hide later errors.
 For example, if a program has parsing errors, verification or compilation will
 not be attempted.
+
+### 25.6.1. The Dafny formatter
+
+Dafny supports a formatter, which for now only changes the indentation of every line in a Dafny file, so that it conforms
+to a specific model that matches the format of most of what the Dafny team wrote in the past.
+For the formatter to work, the file should be parsed correctly by Dafny.
+
+There are three ways to use the formatter:
+
+* `dafny format file1.dfy file2.dfy ...` formats each file provided in arguments.
+* `dafny format /print:- file1.dfy file2.dfy ...` format each file but instead of writing files, output their formatted content in stdout
+* `dafny format` Look up for all the Dafny files recursively in the current repository and format them.
 
 ## 25.7. Verification
 
