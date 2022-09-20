@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 
@@ -602,6 +603,29 @@ public class DestructorValid : ProofObligationDescription {
   public DestructorValid(string dtorName, string ctorNames) {
     this.dtorName = dtorName;
     this.ctorNames = ctorNames;
+  }
+}
+
+public class NotGhostVariant : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"in a compiled context, {subject} is not applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+
+  public override string FailureDescription =>
+    $"in a compiled context, {subject} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
+
+  public override string ShortDescription => "not ghost variant";
+
+  private readonly string subject;
+  private readonly string ctorNames;
+
+  public NotGhostVariant(string subject, List<DatatypeCtor> ctors) {
+    this.subject = subject;
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+  }
+
+  public NotGhostVariant(string whatKind, string dtorNames, List<DatatypeCtor> ctors) {
+    this.subject = $"{whatKind} {dtorNames}";
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
   }
 }
 
