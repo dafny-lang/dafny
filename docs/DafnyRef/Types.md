@@ -694,8 +694,6 @@ This affects certain uses of the type, so Dafny requires the declaration of `T` 
 Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`. 
 If you use `-`, you’re also declaring `T` to be contravariant in its type argument, and if you use `!`, you’re declaring that `T` is non-variant in its type argument.
 
-means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters
-
 To fix it, we use the variance `!`:
 
     type T<!X> = X -> bool
