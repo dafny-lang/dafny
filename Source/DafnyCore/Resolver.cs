@@ -14668,7 +14668,7 @@ namespace Microsoft.Dafny {
             var cg = enclosingTypeDefinition.EnclosingModule.CallGraph;
             var t0 = resolvedClass as ICallable;
             if (t0 != null && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative(enclosingTypeDefinition)) {
-              reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
+              reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }
           }
           for (int i = 0; i < t.TypeArgs.Count; i++) {
