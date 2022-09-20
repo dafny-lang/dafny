@@ -14652,7 +14652,7 @@ namespace Microsoft.Dafny {
           } else if (tp.StrictVariance && lax) {
             string hint;
             if (tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
-              hint = string.Format(" (perhaps try declaring '{0}' as '!{0}')", tp.Name);
+              hint = string.Format(" (perhaps try declaring '{0}' as '-{0}' or '!{0}')", tp.Name);
             } else {
               Contract.Assert(tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.Covariant_Strict);
               hint = string.Format(" (perhaps try changing the declaration from '+{0}' to '*{0}')", tp.Name);
