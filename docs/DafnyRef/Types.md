@@ -1886,6 +1886,8 @@ that may contain members (class, trait, datatype, newtype).
 * If the declaration has an initializing expression that is a ghost
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
+* The initialization expression may refer to other constant fields declared either
+before or after this declaration, but circular references are not allowed.
 
 ## 13.3. Method Declarations {#sec-method-declarations}
 ````grammar
