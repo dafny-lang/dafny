@@ -1762,10 +1762,20 @@ namespace Microsoft.Dafny {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
+      var topLevelDeclReplacements = new List<TopLevelDecl>();
       foreach (var top in declarations) {
-        if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
+        if (top is ModuleDecl md && md.Opened) {
+          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures, out var topLevelDeclReplacement);
+          if (topLevelDeclReplacement != null) {
+            topLevelDeclReplacements.Add(topLevelDeclReplacement);
+          }
         }
+      }
+      foreach (var topLevelDeclReplacement in topLevelDeclReplacements) {
+        if (sig.TopLevels.GetValueOrDefault(topLevelDeclReplacement.Name) is ModuleDecl moduleDecl) {
+          sig.ShadowedImportedModules[topLevelDeclReplacement.Name] = moduleDecl;
+        }
+        sig.TopLevels[topLevelDeclReplacement.Name] = topLevelDeclReplacement;
       }
 
       if (resolver != null) {
@@ -1786,8 +1796,18 @@ namespace Microsoft.Dafny {
       return dd;
     }
 
-    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
-      bool useImports = true;
+    /// <summary>
+    /// Further populate "sig" with the accessible symbols from "im".
+    ///
+    /// Symbols declared locally in "moduleDef" take priority over any opened-import symbols, with one
+    /// exception:  for an "import opened M" where "M" contains a top-level symbol "M", unambiguously map the
+    /// name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping
+    /// to the caller, and let the caller remap the symbol after all opened imports have been processed.
+    /// </summary>
+    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
+      bool useCompileSignatures, out TopLevelDecl topLevelDeclReplacement) {
+
+      topLevelDeclReplacement = null;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
       if (importedSigs.Contains(s)) {
@@ -1796,81 +1816,75 @@ namespace Microsoft.Dafny {
 
       importedSigs.Add(s);
 
-      if (useImports) {
-        // classes:
-        foreach (var kv in s.TopLevels) {
-          if (!kv.Value.CanBeExported()) {
-            continue;
-          }
-
-          if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
-            TopLevelDecl d;
-            if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-              // ignore the import if the existing declaration belongs to the current module
-              if (d.EnclosingModuleDefinition != moduleDef) {
-                bool ok = false;
-                // keep just one if they normalize to the same entity
-                if (d == kv.Value) {
-                  ok = true;
-                } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
-                  var dd = ResolveAlias(d);
-                  var dk = ResolveAlias(kv.Value);
-                  ok = dd == dk;
-                } else {
-                  // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
-                  // if both are type synonyms for "int".
-                  var scope = Type.GetScope();
-                  if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
-                    var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-                    var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
-                    ok = dType.Equals(vType, true);
-                  }
-                }
-                if (!ok) {
-                  sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
-                }
-              }
-            } else {
-              sig.TopLevels.Add(kv.Key, kv.Value);
-            }
-          }
+      // top-level declarations:
+      foreach (var kv in s.TopLevels) {
+        if (!kv.Value.CanBeExported()) {
+          continue;
         }
 
-        if (useImports) {
-          // constructors:
-          foreach (var kv in s.Ctors) {
-            Tuple<DatatypeCtor, bool> pair;
-            if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
-              // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
-              // they are not duplicates.
-              if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
-                // mark it as a duplicate
-                sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
-              }
-            } else {
-              // add new
-              sig.Ctors.Add(kv.Key, kv.Value);
+        if (!sig.TopLevels.TryGetValue(kv.Key, out var d)) {
+          sig.TopLevels.Add(kv.Key, kv.Value);
+        } else if (d.EnclosingModuleDefinition == moduleDef) {
+          if (kv.Value.EnclosingModuleDefinition.DafnyName != kv.Key) {
+            // declarations in the importing module take priority over opened-import declarations
+          } else {
+            // As an exception to the rule, for an "import opened M" that contains a top-level symbol "M", unambiguously map the
+            // name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping to
+            // the caller, and let the caller remap the symbol after all opened imports have been processed.
+            topLevelDeclReplacement = kv.Value;
+          }
+        } else {
+          bool unambiguous = false;
+          // keep just one if they normalize to the same entity
+          if (d == kv.Value) {
+            unambiguous = true;
+          } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
+            var dd = ResolveAlias(d);
+            var dk = ResolveAlias(kv.Value);
+            unambiguous = dd == dk;
+          } else {
+            // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
+            // if both are type synonyms for "int".
+            var scope = Type.GetScope();
+            if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+              var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+              var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+              unambiguous = dType.Equals(vType, true);
             }
           }
-        }
-
-        if (useImports) {
-          // static members:
-          foreach (var kv in s.StaticMembers) {
-            if (!kv.Value.CanBeExported()) {
-              continue;
-            }
-
-            MemberDecl md;
-            if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
-              sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
-            } else {
-              // add new
-              sig.StaticMembers.Add(kv.Key, kv.Value);
-            }
+          if (!unambiguous) {
+            sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
           }
         }
+      }
 
+      // constructors:
+      foreach (var kv in s.Ctors) {
+        if (sig.Ctors.TryGetValue(kv.Key, out var pair)) {
+          // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
+          // they are not duplicates.
+          if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
+            // mark it as a duplicate
+            sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+          }
+        } else {
+          // add new
+          sig.Ctors.Add(kv.Key, kv.Value);
+        }
+      }
+
+      // static members:
+      foreach (var kv in s.StaticMembers) {
+        if (!kv.Value.CanBeExported()) {
+          continue;
+        }
+
+        if (sig.StaticMembers.TryGetValue(kv.Key, out var md)) {
+          sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+        } else {
+          // add new
+          sig.StaticMembers.Add(kv.Key, kv.Value);
+        }
       }
     }
 
@@ -16163,6 +16177,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, out _);
+    }
+
     /// <summary>
     /// Look up expr.Name in the following order:
     ///  0. Local variable, parameter, or bound variable.
@@ -16185,11 +16204,17 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a MemberSelectExpr whose .Member is a Method.</param>
-    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+    /// <param name="shadowedModule">If the name being resolved shadows an imported module, then that module is reported
+    /// through this parameter.  This happens when module <c>Option</c> in <c>import opened Option</c> also contains a
+    /// <c>datatype Option</c>, in which case <c>Option</c> refers to the datatype, not the module
+    /// (https://github.com/dafny-lang/dafny/issues/1996).</param>
+    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall, bool complain, out ModuleDecl shadowedModule) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
+
+      shadowedModule = null;
 
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
@@ -16250,6 +16275,10 @@ namespace Microsoft.Dafny {
         }
       } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
         // ----- 3. Member of the enclosing module
+
+        // Record which imported module, if any, was shadowed by `name` in the current module.
+        shadowedModule = moduleInfo.ShadowedImportedModules.GetValueOrDefault(name);
+
         if (decl is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)decl;
           if (complain) {
@@ -16463,8 +16492,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
 
       if (!moduleInfo.IsAbstract) {
-        var md = decl as ModuleDecl;
-        if (md != null && md.Signature.IsAbstract) {
+        if (decl is ModuleDecl md && md.Signature.IsAbstract) {
           reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
         }
       }
@@ -16513,9 +16541,10 @@ namespace Microsoft.Dafny {
 
       // resolve the LHS expression
       // LHS should not be reveal lemma
+      ModuleDecl shadowedImport = null;
       ResolutionContext nonRevealOpts = resolutionContext with { InReveal = false };
       if (expr.Lhs is NameSegment) {
-        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false, true, out shadowedImport);
       } else if (expr.Lhs is ExprDotName) {
         ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
       } else {
@@ -16659,10 +16688,42 @@ namespace Microsoft.Dafny {
         // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
         expr.Type = new InferredTypeProxy();
       } else {
+        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, useCompileSignatures, isLastNameSegment);
         expr.ResolvedExpression = r;
         expr.Type = r.Type;
       }
       return rWithArgs;
+    }
+
+    /// <summary>
+    /// Check whether the name we just resolved may have been resolved differently if we didn't allow member `M.M` of
+    /// module `M` to shadow `M` when the user writes `import opened M`.  Raising an error in that case allowed us to
+    /// change the behavior of `import opened` without silently changing the meaning of existing programs.
+    /// (https://github.com/dafny-lang/dafny/issues/1996)
+    ///
+    /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
+    /// exposed through both `M` and `M.M`, without ambiguity.
+    /// </summary>
+    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
+      IToken tok, bool useCompileSignatures, bool isLastNameSegment) {
+      if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
+        reporter.Error(MessageSource.Resolver, tok,
+          "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
+          + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
+          + "`import open XYZ = ...` instead of `import open ...`.",
+          name, moduleDecl.Name);
+      }
+    }
+
+    private bool NameConflictsWithModuleContents(ModuleDecl moduleDecl, string name, bool useCompileSignatures, bool isLastNameSegment) {
+      var sig = GetSignature(moduleDecl.AccessibleSignature(useCompileSignatures));
+      return (
+        (isLastNameSegment
+         && sig.Ctors.GetValueOrDefault(name) is { Item1: var constructor, Item2: var ambiguous }
+         && !ambiguous && constructor.EnclosingDatatype.Name != moduleDecl.Name)
+        || sig.TopLevels.ContainsKey(name)
+        || sig.StaticMembers.ContainsKey(name)
+      );
     }
 
     /// <summary>
