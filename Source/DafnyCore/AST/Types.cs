@@ -2463,7 +2463,7 @@ public class UserDefinedType : NonProxyType, INode {
         return false;
       } else if (ResolvedClass is IndDatatypeDecl) {
         var dt = (IndDatatypeDecl)ResolvedClass;
-        Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
+        //Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
         if (!dt.IsRevealedInScope(Type.GetScope())) {
           return false;
         }

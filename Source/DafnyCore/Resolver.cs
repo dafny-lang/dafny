@@ -9962,7 +9962,8 @@ namespace Microsoft.Dafny {
                 arg.Type.IsCoDatatype ||
                 arg.Type.IsArrowType ||
                 arg.Type.IsOpaqueType ||
-                !arg.Type.SupportsEquality) {
+                (anotherIndDt == null && !arg.Type.SupportsEquality) ||
+                (anotherIndDt != null && !(scc.Contains(anotherIndDt)) && !arg.Type.SupportsEquality)) {
               // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
