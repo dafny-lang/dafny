@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
       "--compileVerbose=false",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verificationTimeLimit=300"
+      "--verification-time-limit=300"
     };
 
     public static int Main(string[] args) {

@@ -1,14 +1,12 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -29,7 +27,7 @@ namespace Microsoft.Dafny {
         LibraryOption.Instance,
         DPreludeOption.Instance,
         PrintModeOption.Instance,
-        CompileVerboseOption.Instance,
+        OldCompileVerboseOption.Instance,
         OutOption.Instance,
         PluginOption.Instance,
         UseRuntimeLibOption.Instance
@@ -224,12 +222,6 @@ namespace Microsoft.Dafny {
       var args = ps.args; // convenient synonym
       switch (name) {
 
-        case "rprint":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrintResolvedFile = args[ps.i];
-          }
-
-          return true;
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
@@ -921,9 +913,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 ---- Overall reporting and printing ----------------------------------------
 
 /stats        Print interesting statistics about the Dafny files supplied.
-/rprint:<file>
-    print Dafny program after resolving it
-    (use - as <file> to print to console)
 /printIncludes:<None|Immediate|Transitive>
     None is the default.
     Immediate prints files included by files listed on the command line

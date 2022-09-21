@@ -5,9 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -26,11 +24,12 @@ static class CommandRegistry {
     LibraryOption.Instance,
     ShowSnippetsOption.Instance,
     PluginOption.Instance,
-    CompileVerboseOption.Instance, // TODO shouldn't be here but regression test passes this to verify calls.
     BoogieOption.Instance,
     PreludeOption.Instance,
     UseBaseFileNameOption.Instance,
     PrintOption.Instance,
+    ResolvedPrintOption.Instance,
+    BoogiePrintOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -39,8 +38,9 @@ static class CommandRegistry {
 
   static CommandRegistry() {
     AddCommand(new VerifyCommand());
-    AddCommand(new IntegrateCommand());
     AddCommand(new RunCommand());
+    AddCommand(new BuildCommand());
+    AddCommand(new TranslateCommand());
   }
 
   [CanBeNull]
@@ -51,13 +51,19 @@ static class CommandRegistry {
     }
 
     var first = arguments[0];
-    if (first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
+    if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
       var oldOptions = new DafnyOptions();
       if (oldOptions.Parse(arguments)) {
         return new ParseArgumentSuccess(oldOptions);
       }
 
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+    }
+
+    var allowHidden = true;
+    if (first == "--dev") {
+      allowHidden = false;
+      arguments = arguments.Skip(1).ToArray();
     }
 
     var wasInvoked = false;
@@ -75,7 +81,13 @@ static class CommandRegistry {
       }
     });
 
-    var optionToSpec = Commands.Values.SelectMany(c => c.Options).Distinct().ToDictionary(o => o.ToOption, o => o);
+    var optionToSpec = Commands.Values.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
+      var result = o.ToOption;
+      if (!allowHidden) {
+        result.IsHidden = false;
+      }
+      return result;
+    }, o => o);
     var specToOption = optionToSpec.ToDictionary(o => o.Value, o => o.Key);
     var commandToSpec = Commands.Values.ToDictionary(c => {
       var result = new Command(c.Name, c.Description);

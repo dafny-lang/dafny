@@ -4,6 +4,7 @@ class DPrintOption : PrintOption {
   public new static readonly DPrintOption Instance = new();
   public override string LongName => "dprint";
 }
+
 public class PrintOption : StringOption {
   public static readonly PrintOption Instance = new();
   public override object DefaultValue => null;
