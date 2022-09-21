@@ -136,6 +136,7 @@ namespace Microsoft.Dafny {
         expr.SubExpressions.Iter(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
+#if REVISIT_AFTER_PR_2734
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         // Handle each case like the "else" of an if-then-else
         Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
@@ -150,6 +151,7 @@ namespace Microsoft.Dafny {
           }
         }
         return false; // indicate that we've already processed expr's subexpressions
+#endif
       }
 
       return base.VisitOneExpr(expr, ref st);
