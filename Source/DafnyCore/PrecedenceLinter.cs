@@ -136,7 +136,6 @@ namespace Microsoft.Dafny {
         expr.SubExpressions.Iter(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
-#if REVISIT_AFTER_PR_2734
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         // Handle each case like the "else" of an if-then-else
         Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
@@ -144,14 +143,17 @@ namespace Microsoft.Dafny {
         var n = nestedMatchExpr.Cases.Count;
         for (var i = 0; i < n; i++) {
           var body = nestedMatchExpr.Cases[i].Body;
+#if REVISIT_AFTER_PR_2734
           if (i == n - 1 && !nestedMatchExpr.UsesOptionalBraces) {
             VisitRhsComponent(body.StartToken, body, "case expression");
           } else {
             VisitIndependentComponent(body);
           }
+#else
+          VisitIndependentComponent(body);
+#endif
         }
         return false; // indicate that we've already processed expr's subexpressions
-#endif
       }
 
       return base.VisitOneExpr(expr, ref st);
