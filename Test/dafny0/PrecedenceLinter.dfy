@@ -232,6 +232,17 @@ ghost predicate R10(P: int -> bool, Q: int -> bool, R: int -> bool) {
   R(x)
 }
 
+lemma Injective()
+  ensures forall x, y ::
+    Negate(x) == Negate(y)
+    ==> x == y
+{
+}
+
+function Negate(x: int): int {
+  -x
+}
+
 predicate Quant0(s: string) {
   && s != []
   && (|| 'a' <= s[0] <= 'z'
