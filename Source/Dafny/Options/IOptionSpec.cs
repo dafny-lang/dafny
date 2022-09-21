@@ -42,7 +42,7 @@ public interface IOptionSpec {
       foreach (var option in optionsForCategory.OrderBy(o => o.LongName)) {
         var prefix = oldStyle ? "/" : "--";
         var suffix = oldStyle ? ":" : "=";
-        var optionHelpHeader = "  " + prefix + option.LongName + suffix + "<value>";
+        var optionHelpHeader = $"  {prefix}{option.LongName}{suffix}<{(option.ArgumentName ?? "value")}>";
         var linePrefix = "\n      ";
         var optionHelp = optionHelpHeader + linePrefix + string.Join(linePrefix, option.Description.Split("\n")) + "\n";
         output.Append(optionHelp);

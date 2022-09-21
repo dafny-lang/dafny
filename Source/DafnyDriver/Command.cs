@@ -17,7 +17,7 @@ class IntegrateCommand : ICommandSpec {
   public string Name => "integrate";
   public string Description => "Generate source and build files in a specified target language.";
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitExecutable = false;
+    dafnyOptions.EmitBinary = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
@@ -43,9 +43,9 @@ class RunCommand : ICommandSpec {
     }.Concat(CommandRegistry.CommonOptions);
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitExecutable = true;
+    dafnyOptions.EmitBinary = true;
     dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceEmitBinary = NoVerifyOption.Instance.Get(options);
     dafnyOptions.CompileVerbose = false;
   }
 }
@@ -56,6 +56,6 @@ class VerifyCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitExecutable = false;
+    dafnyOptions.EmitBinary = false;
   }
 }
