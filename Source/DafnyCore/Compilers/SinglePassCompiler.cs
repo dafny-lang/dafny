@@ -3970,8 +3970,9 @@ namespace Microsoft.Dafny.Compilers {
         TrExpr(eRhs.Expr, wr, false, wStmts);
       } else {
         var nw = ProtectedFreshId("_nw");
+        var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
-        TrTypeRhs(tRhs, wRhs, wStmts);
+        TrTypeRhs(tRhs, wRhs, pwStmts);
 
         // Proceed with initialization
         if (tRhs.InitCall != null) {
