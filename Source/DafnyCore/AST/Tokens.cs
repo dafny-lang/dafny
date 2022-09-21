@@ -101,7 +101,7 @@ public abstract class TokenWrapper : IToken {
 
   public abstract IToken WithVal(string newVal);
 
-  public int col {
+  public virtual int col {
     get { return WrappedToken.col; }
     set { throw new NotSupportedException(); }
   }
@@ -120,11 +120,11 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.kind; }
     set { throw new NotSupportedException(); }
   }
-  public int line {
+  public virtual int line {
     get { return WrappedToken.line; }
     set { throw new NotSupportedException(); }
   }
-  public int pos {
+  public virtual int pos {
     get { return WrappedToken.pos; }
     set { throw new NotSupportedException(); }
   }
@@ -207,6 +207,31 @@ public class IncludeToken : TokenWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
+  }
+
+  public override int pos {
+    get { return WrappedToken.pos; }
+    set { WrappedToken.pos = value; }
+  }
+
+  public override int line {
+    get { return WrappedToken.line; }
+    set { WrappedToken.line = value; }
+  }
+
+  public override int col {
+    get { return WrappedToken.col; }
+    set { WrappedToken.col = value; }
+  }
+
+  public override IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { WrappedToken.Prev = value; }
+  }
+
+  public override IToken Next {
+    get { return WrappedToken.Next; }
+    set { WrappedToken.Next = value; }
   }
 
   public override IToken WithVal(string newVal) {
