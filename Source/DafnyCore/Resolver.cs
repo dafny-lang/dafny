@@ -9953,7 +9953,25 @@ namespace Microsoft.Dafny {
           }
 
           if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
-            CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt,dependencies);
+            if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies)) {
+              return true;
+            }
+          }
+          
+          foreach (var type in arg.Type.TypeArgs) {
+            var anotherIndDt_arg = type.AsIndDatatype;
+            if (type.IsCoDatatype || 
+                type.IsArrowType || 
+                type.IsOpaqueType || 
+                (anotherIndDt_arg != null && anotherIndDt_arg.EqualitySupport == IndDatatypeDecl.ES.Never)) {
+              return true;
+            }
+
+            if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
+              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)) {
+                return true;
+              }
+            }
           }
         }
       }
@@ -9982,6 +10000,7 @@ namespace Microsoft.Dafny {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         if (CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies)) {
           MarkSCCAsNotSupportingEquality();
+          return;
         }
       }
 
