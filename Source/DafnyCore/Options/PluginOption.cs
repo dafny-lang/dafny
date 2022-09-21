@@ -16,8 +16,10 @@ public class PluginOption : CommandLineOption<List<string>> {
   public override string Description => @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
-More information about what plugins do and how define them:
+It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
+receive arguments. More information about what plugins do and how
+to define them:
+
 https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins";
 
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {

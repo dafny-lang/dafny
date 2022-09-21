@@ -942,7 +942,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Overall reporting and printing ----------------------------------------
 
-/stats        Print interesting statistics about the Dafny files supplied.
+/stats
+    Print interesting statistics about the Dafny files supplied.
+
 /printIncludes:<None|Immediate|Transitive>
     None (default) - Print nothing.
     Immediate - Print files included by files listed on the command line.
@@ -955,13 +957,13 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     If print before the module is resolved (/dprint), then everything in the module
     is printed.
     If no view is specified, then everything in the module is printed.
-/funcCallGraph 
+/funcCallGraph
     Print out the function call graph.  Format is: func,mod=callee*
 
-/pmtrace      
+/pmtrace
     Print pattern-match compiler debug info
 
-/titrace      
+/titrace
     Print type-inference debug info
 
 /printTooltips
@@ -1268,13 +1270,13 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         target program (but still compile it, if /compile indicates to
         do so).
     1 - Write the textual target program, if it is being compiled.
-    2 - Write the textual target program, provided it passes the 
+    2 - Write the textual target program, provided it passes the
         verifier (and /noVerify is NOT used), regardless of /compile 
         setting.
-    3 - Write the textual target program, regardless of verification 
+    3 - Write the textual target program, regardless of verification
         outcome and /compile setting.
-    Note, some compiler targets may (always or in some situations) write 
-    out the textual target program as part of compilation, in which case 
+    Note, some compiler targets may (always or in some situations) write
+    out the textual target program as part of compilation, in which case
     /spillTargetCode:0 behaves the same way as /spillTargetCode:1.
 /coverage:<file>
     The compiler emits branch-coverage calls and outputs into <file> a
@@ -1287,9 +1289,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /optimizeResolution:<n>
     0 - Resolve and translate all methods
-    1 - Translate methods only in the call graph of current verification 
+    1 - Translate methods only in the call graph of current verification
         target
-    2 (default) - As in 1, but only resolve method bodies in 
+    2 (default) - As in 1, but only resolve method bodies in
         non-included Dafny sources
 /library:<file>
     The contents of this file and any files it includes can be
