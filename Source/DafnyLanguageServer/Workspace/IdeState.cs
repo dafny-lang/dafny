@@ -16,6 +16,7 @@ public record IdeState(
   DocumentTextBuffer TextDocumentItem,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
+  SignatureAndCompletionTable SignatureAndCompletionTable,
   IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
