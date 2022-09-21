@@ -4,7 +4,9 @@
 <font size="+4"><p style="text-align: center;">Dafny Reference Manual</p></font> <!-- PDFOMIT -->
 <p style="text-align: center;">The dafny-lang community</p> <!-- PDFOMIT -->
 <p style="text-align: center;"><script> document.write(new Date(document.lastModified)); </script></p> <!-- PDFOMIT -->
-
+<p style="text-align: center;">
+{% include_relative version.txt %}
+</p>
 <!--PDF NEWPAGE-->
 
 **Abstract:**
