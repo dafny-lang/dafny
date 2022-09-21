@@ -165,41 +165,41 @@ module Test {
   method g0(a: int, b: int)
   
   method g1
-    (a: int, b: int)
+  (a: int, b: int)
   
   method g2
-    (a: int, b: int)
+  (a: int, b: int)
   
   method g3
-    (
-      a: int, b: int)
+  (
+    a: int, b: int)
   
   method g4
-    (
-      a: int,
-      b: int)
+  (
+    a: int,
+    b: int)
   
   method g5
-    (  a: int,
-       b: int)
+  (  a: int,
+     b: int)
   
   method g6
-    (   a: int
-    ,   b: int)
+  (   a: int
+  ,   b: int)
   
   method g7(
-      a: int,
-      b: int)
+    a: int,
+    b: int)
   
   method g8(
-      a: int,
-      b: int
-    )
+    a: int,
+    b: int
+  )
   
   method g9(
-      a: int
-    , b: int
-    )
+    a: int
+  , b: int
+  )
   
   method r1() returns (a: int, b: int) {}
   
@@ -245,7 +245,7 @@ module Test {
   
   least lemma l3<T>
     [nat]
-    (a: T)
+  (a: T)
   
   least lemma l2<T>[nat
     ](a: T)
@@ -292,9 +292,9 @@ module Test {
 }
 
 method topLevel(
-    x: int,
-    y: int
-  ) returns (z: int)
+  x: int,
+  y: int
+) returns (z: int)
   ensures z > 10
   ensures
     && (forall j: int :: j < z || j == x)
@@ -408,7 +408,8 @@ method topLevel(
     [Fact]
     public void FormatterWorksForFunctionsIfExprAndMatchCases() {
       FormatterWorksFor(@"
-function Zipper2<T>(a: List<T>, b: List<T>): List<T>
+function Zipper2<T>(a: List<T>, b: List<T>)
+  : List<T>
   decreases /* max(a,b) */ if a < b then b else a,
             /* min(a,b) */ if a < b then a else b
 {
@@ -417,9 +418,9 @@ function Zipper2<T>(a: List<T>, b: List<T>): List<T>
   case Cons(x, c) => List.Cons(x, Zipper2(b, c))
 }
 function topLevel(
-    x: int,
-    y: int
-  ): int {
+  x: int,
+  y: int
+): int {
   if x == 2 then
     if x > 3
     then

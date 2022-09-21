@@ -274,28 +274,45 @@ public class IndentationFormatter : Formatting.IIndentationFormatter {
     }
     var rightIndent = indent2 + SpaceTab;
     var commaIndent = indent2;
+    var extraParenIndent = 0;
     foreach (var token in ownedTokens) {
       switch (token.val) {
         case "{":
           SetDelimiterIndentedRegions(token, indent);
           break;
-        case "<" or "[" or "(" when IsFollowedByNewline(token):
+        case "<" or "[" when IsFollowedByNewline(token):
           rightIndent = indent2 + SpaceTab;
           commaIndent = indent2;
           SetIndentations(token, commaIndent, commaIndent, rightIndent);
           break;
-        case "<" or "[" or "(":
+        case "<" or "[":
           // Align capabilities
           SetAlign(indent2, token, out rightIndent, out commaIndent);
           break;
+        case "(" when IsFollowedByNewline(token):
+          rightIndent = indent2 + extraParenIndent;
+          commaIndent = indent + extraParenIndent;
+          SetIndentations(token, commaIndent, commaIndent, rightIndent);
+          break;
+        case "(":
+          // Align capabilities
+          SetAlign(indent + extraParenIndent, token, out rightIndent, out commaIndent);
+          break;
         case ",":
           SetIndentations(token, rightIndent, commaIndent, rightIndent);
+          break;
+        case ")":
+          SetIndentations(token, rightIndent, indent + extraParenIndent, indent2);
           break;
         case ">" or "]" or ")":
           SetIndentations(token, rightIndent, indent2, indent2);
           break;
         case "}" when !posToIndentLineBefore.ContainsKey(token.pos):
           SetClosingIndentedRegion(token, indent);
+          break;
+        case "returns":
+        case ":":
+          extraParenIndent = SpaceTab;
           break;
         case "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant" or "yield": {
             if (IsFollowedByNewline(token)) {
