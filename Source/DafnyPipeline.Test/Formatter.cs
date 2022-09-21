@@ -1655,6 +1655,16 @@ module Test {
     }
 
     [Fact]
+    public void FormatterWorksForEqualPlus() {
+      FormatterWorksFor(@"
+function test(a: int, b: int, c: int): int 
+  requires a == b + d + e +
+                f + g + h
+{ 1 }
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

@@ -1758,7 +1758,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       SetIndentations(binaryExpr.EndToken, after: indent);
       return false;
     } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
-      var itemIndent = GetNewTokenVisualIndent(binaryExpr.E0.StartToken, indent);
+      var itemIndent = GetNewTokenVisualIndent(
+        binaryExpr.E0.EndToken.line != binaryExpr.E1.StartToken.line ?
+          binaryExpr.E0.StartToken :
+          binaryExpr.E1.StartToken, indent);
       foreach (var token in binaryExpr.OwnedTokens) {
         switch (token.val) {
           case "==":
