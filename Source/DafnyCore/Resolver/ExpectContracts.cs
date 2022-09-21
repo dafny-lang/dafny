@@ -174,6 +174,7 @@ public class ExpectContracts : IRewriter {
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
     private readonly ErrorReporter reporter;
+    internal readonly HashSet<MemberDecl> calledWrappers = new();
 
     public CallRedirector(ErrorReporter reporter) {
       this.reporter = reporter;
@@ -219,6 +220,7 @@ public class ExpectContracts : IRewriter {
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
           resolved.Name = newTarget.Name;
+          calledWrappers.Add(newTarget);
         }
       }
 
@@ -236,6 +238,7 @@ public class ExpectContracts : IRewriter {
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
           resolved.MemberName = newTarget.Name;
+          calledWrappers.Add(newTarget);
         }
       }
 
@@ -276,6 +279,20 @@ public class ExpectContracts : IRewriter {
           callRedirector.Visit(callable, decl);
         }
       }
+    }
+  }
+
+  internal override void PostResolve(Program program) {
+    if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.ExternsInTests) {
+      return;
+    }
+
+    // If running in ExternsInTests mode, warn if any :extern has no corresponding :test.
+    var uncalledRedirections =
+      callRedirector.newRedirections.ExceptBy(callRedirector.calledWrappers, x => x.Value);
+    foreach (var uncalledRedirection in uncalledRedirections) {
+      var uncalledOriginal = uncalledRedirection.Key;
+      Reporter.Warning(MessageSource.Rewriter, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
   }
 }

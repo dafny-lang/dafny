@@ -12,5 +12,8 @@ namespace _module {
     public static BigInteger Baz(BigInteger x) {
       return x;
     }
+    public static BigInteger NotCalled(BigInteger x) {
+      return BigInteger.One;
+    }
   }
 }

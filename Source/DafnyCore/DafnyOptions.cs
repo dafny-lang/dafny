@@ -1450,8 +1450,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
     AllExterns - Check contracts on every call to a function or
         method marked :extern, regardless of where it occurs.
-    Externs - Check contracts on every call to a function or method
-        marked :extern when it occurs in one marked :test.
+    ExternsInTests - Check contracts on every call to a function or
+        method marked :extern when it occurs in one marked :test, and
+        warn if no corresponding :test exists for a given :extern.
 
 ----------------------------------------------------------------------------
 

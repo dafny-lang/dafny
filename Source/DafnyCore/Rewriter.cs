@@ -73,6 +73,18 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Phase 4/8
+    /// Override this method to obtain a module definition after the module
+    /// has been cloned and re-resolved prior to compilation.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is cloned and re-resolved for compilation.</param>
+    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/8
     /// Override this method to obtain the module definition after resolution and
     /// SCC/Cyclicity/Recursivity analysis.
     /// You can then report errors using reporter.Error (see above)
@@ -84,7 +96,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 5/8
+    /// Phase 6/8
     /// Override this method to obtain the module definition after the phase decreasesResolve
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -95,7 +107,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 6/8
+    /// Phase 7/8
     /// Override this method to obtain a module definition after the entire resolution pipeline
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -106,7 +118,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 7/8
+    /// Phase 8/8
     /// Override this method to obtain the final program after the entire resolution pipeline
     /// after the individual PostResolve on every module
     /// You can then report errors using reporter.Error (see above)
@@ -114,18 +126,6 @@ namespace Microsoft.Dafny {
     /// <param name="program">The entire program after it is fully resolved</param>
     internal virtual void PostResolve(Program program) {
       Contract.Requires(program != null);
-    }
-
-    /// <summary>
-    /// Phase 8/8
-    /// Override this method to obtain a module definition after the entire resolution pipeline
-    /// has finished and the module has been cloned and resolved prior to compilation.
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
-    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
     }
   }
 

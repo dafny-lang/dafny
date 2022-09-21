@@ -485,8 +485,9 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
       AllExterns - Check contracts on every call to a function or
           method marked :extern, regardless of where it occurs.
-      Externs - Check contracts on every call to a function or method
-          marked :extern when it occurs in one marked :test.
+      ExternsInTests - Check contracts on every call to a function or
+          method marked :extern when it occurs in one marked :test, and
+          warn if no corresponding :test exists for a given :extern.
   
   ----------------------------------------------------------------------------
   
