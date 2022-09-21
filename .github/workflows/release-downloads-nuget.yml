@@ -1,4 +1,4 @@
-name: Test NuGet Tool Installation
+name: Test NuGet Packages
 
 on:
   release:
@@ -15,7 +15,7 @@ env:
   z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
 
 jobs:
-  test-dafny-tool:
+  test-dafny-cli-tool:
 
     runs-on: ${{ matrix.os }}
     strategy:
