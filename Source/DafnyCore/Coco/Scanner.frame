@@ -354,6 +354,9 @@ public class Scanner {
       }
       buffer = new UTF8Buffer(buffer); col = 0;
       NextCh();
+    } else {
+      // We consider all files to be UTF-8 by default 
+      buffer = new UTF8Buffer(buffer);
     }
     pt = tokens = new Token();  // first token is a dummy
   }
