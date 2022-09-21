@@ -9932,7 +9932,11 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, int fuel) {
+
+      if (fuel <= 0) {
+        return false;
+      }
       
       var scc = dependencies.GetSCC(dt);
       
@@ -9953,7 +9957,7 @@ namespace Microsoft.Dafny {
           }
 
           if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
-            if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies)) {
+            if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies,fuel-1)) {
               return true;
             }
           }
@@ -9968,7 +9972,7 @@ namespace Microsoft.Dafny {
             }
 
             if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
-              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)) {
+              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies,fuel-1)) {
                 return true;
               }
             }
@@ -9998,7 +10002,7 @@ namespace Microsoft.Dafny {
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
-        if (CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies)) {
+        if (CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies,10)) {
           MarkSCCAsNotSupportingEquality();
           return;
         }
