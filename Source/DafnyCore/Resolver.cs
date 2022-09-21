@@ -9932,6 +9932,32 @@ namespace Microsoft.Dafny {
       return true;
     }
 
+    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+      
+      var scc = dependencies.GetSCC(dt);
+      
+      foreach (var ctor in dt.Ctors) {
+        
+        if (ctor.IsGhost) return true;  
+        
+        foreach (var arg in ctor.Formals) {
+          var anotherIndDt = arg.Type.AsIndDatatype;
+          if (arg.IsGhost ||
+              (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
+              arg.Type.IsCoDatatype ||
+              arg.Type.IsArrowType ||
+              arg.Type.IsOpaqueType) {
+            return true;
+          }
+
+          if (anotherIndDt != null && !scc.Contains(anotherIndDt)) CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt,dependencies);
+        }
+      }
+
+      return false;
+
+    }
+    
     void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
@@ -9950,26 +9976,7 @@ namespace Microsoft.Dafny {
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            MarkSCCAsNotSupportingEquality();
-            return;  // we are done
-          }
-          foreach (var arg in ctor.Formals) {
-            var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType ||
-                arg.Type.IsOpaqueType ||
-                (anotherIndDt == null && !arg.Type.SupportsEquality) ||
-                (anotherIndDt != null && !(scc.Contains(anotherIndDt)) && !arg.Type.SupportsEquality)) {
-              // arg.Type is known never to support equality
-              MarkSCCAsNotSupportingEquality();
-              return;  // we are done
-            }
-          }
-        }
+        if (CheckIfEqualityIsDefinitelyNotSupported(dt,dependencies)) MarkSCCAsNotSupportingEquality();
       }
 
       // Now for the more involved case:  we need to determine which type parameters determine equality support for each datatype in the SCC
