@@ -1,5 +1,6 @@
 # Upcoming
 
+- feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
 - feat: Generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
@@ -8,6 +9,8 @@
 - fix: Retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
 - fix: Correctly substitute variables introduced by a binding guard (https://github.com/dafny-lang/dafny/pull/2745)
 - fix: The CLI no longer attempts to load each DLL file passed to it. (https://github.com/dafny-lang/dafny/pull/2568)
+- fix: Improved hints and error messages regarding variance/cardinality preservation (https://github.com/dafny-lang/dafny/pull/2774)
+- feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
 
 # 3.8.1
 
