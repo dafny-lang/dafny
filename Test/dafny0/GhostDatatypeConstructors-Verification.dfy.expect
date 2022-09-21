@@ -1,0 +1,18 @@
+GhostDatatypeConstructors-Verification.dfy(30,11): Error: in a compiled context, discriminator 'D1?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+GhostDatatypeConstructors-Verification.dfy(41,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(43,14): Error: in a compiled context, destructor 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+GhostDatatypeConstructors-Verification.dfy(45,14): Error: in a compiled context, destructor 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(54,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(69,14): Error: destructor 'x' can only be applied to datatype values constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(79,14): Error: source of datatype update must be constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(81,14): Error: in a compiled context, update of 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1' or 'G0')
+GhostDatatypeConstructors-Verification.dfy(89,14): Error: in a compiled context, update of 'z' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(91,14): Error: in a compiled context, update of 'z' and 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G1')
+GhostDatatypeConstructors-Verification.dfy(99,14): Error: source of datatype update must be constructed by 'D0'
+GhostDatatypeConstructors-Verification.dfy(120,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(123,2): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
+GhostDatatypeConstructors-Verification.dfy(143,9): Error: in a compiled context, discriminator 'C?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'A')
+GhostDatatypeConstructors-Verification.dfy(186,11): Error: in a compiled context, equality cannot be applied to a datatype value of a ghost variant (ghost constructor 'EnumA')
+GhostDatatypeConstructors-Verification.dfy(170,10): Error: in a compiled context, equality cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+
+Dafny program verifier finished with 4 verified, 16 errors
