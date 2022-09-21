@@ -9937,8 +9937,10 @@ namespace Microsoft.Dafny {
       var scc = dependencies.GetSCC(dt);
       
       foreach (var ctor in dt.Ctors) {
-        
-        if (ctor.IsGhost) return true;  
+
+        if (ctor.IsGhost) {
+          return true;
+        }  
         
         foreach (var arg in ctor.Formals) {
           var anotherIndDt = arg.Type.AsIndDatatype;
@@ -9950,7 +9952,9 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-          if (anotherIndDt != null && !scc.Contains(anotherIndDt)) CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt,dependencies);
+          if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
+            CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt,dependencies);
+          }
         }
       }
 
@@ -9976,7 +9980,9 @@ namespace Microsoft.Dafny {
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
-        if (CheckIfEqualityIsDefinitelyNotSupported(dt,dependencies)) MarkSCCAsNotSupportingEquality();
+        if (CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies)) {
+          MarkSCCAsNotSupportingEquality();
+        }
       }
 
       // Now for the more involved case:  we need to determine which type parameters determine equality support for each datatype in the SCC
