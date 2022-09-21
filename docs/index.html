@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Dafny</title>
+  <link href="style.css" rel="stylesheet">
   <meta name="description" content=“The Dafny Programming and Verification Language and tools.”>
   <meta name="author" content=“Dafny project“>
 
@@ -19,37 +20,6 @@
   <link rel="icon" href="dafny-favicon.svg" type="image/svg+xml">
 
 </head>
-
-<style>
-body {
-  background-color: light-blue;
-}
-
-h1 {
-  color: blue;
-  text-align: center;
-  background-color: #fceb6c
-}
-
-p {
-  font-size: 18px
-}
-
-td {
-  font-size: 18px
-}
-
-li {
-  font-size: 18px
-}
-
-img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-</style>
 
 <body>
 
@@ -82,8 +52,8 @@ thus reducing costly late-stage bugs that may be missed by testing.
 <ul>
 <li> <a href="https://github.com/dafny-lang/dafny/wiki/INSTALL"><b>Installation</b></a> 
      (or a <a href="https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode">VSCode plugin for Dafny</a>)
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a>
-<li> <a href="https://dafny.org/dafny/toc">Dafny Resources for Users</a>
+<li> <a href="./DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a>
+<li> <a href="./toc">Dafny Resources for Users</a>
 <li> <a href="https://github.com/dafny-lang/dafny">Dafny GitHub project (for developers of the Dafny tools themselves)</a>
 </ul>
 </td>
@@ -112,18 +82,18 @@ Example Dafny code in a Visual Studio IDE is shown to the right.
 <p>Dafny has support for common programming concepts such as </p>
 <ul>
 <li> mathematical and bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-inductive-datatypes">inductive datatypes</a> that can have methods and are suitable for pattern matching,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-co-inductive-datatypes">lazily unbounded datatypes</a>,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-subset-types">subset types</a>, such as for bounded integers,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-lambda-expressions">lambda expressions</a> and functional programming idioms,
-<li> and <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-collection-types">immutable and mutable data structures</a>.
+<li> <a href="./DafnyRef/DafnyRef#sec-inductive-datatypes">inductive datatypes</a> that can have methods and are suitable for pattern matching,
+<li> <a href="./DafnyRef/DafnyRef#sec-co-inductive-datatypes">lazily unbounded datatypes</a>,
+<li> <a href="./DafnyRef/DafnyRef#sec-subset-types">subset types</a>, such as for bounded integers,
+<li> <a href="./DafnyRef/DafnyRef#sec-lambda-expressions">lambda expressions</a> and functional programming idioms,
+<li> and <a href="./DafnyRef/DafnyRef#sec-collection-types">immutable and mutable data structures</a>.
 </ul>
 
 <p>Dafny also offers an extensive toolbox for mathematical proofs about software, including</p>
 <ul>
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-quantifier-domains">bounded and unbounded quantifiers</a>,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-calc-statement">calculational proofs</a> and the ability to use and prove lemmas,
-<li> <a href="https://dafny.org/dafny/DafnyRef/DafnyRef#sec-specification-clauses">pre- and post-conditions, termination conditions, loop invariants, and read/write specifications</a>.
+<li> <a href="./DafnyRef/DafnyRef#sec-quantifier-domains">bounded and unbounded quantifiers</a>,
+<li> <a href="./DafnyRef/DafnyRef#sec-calc-statement">calculational proofs</a> and the ability to use and prove lemmas,
+<li> <a href="./DafnyRef/DafnyRef#sec-specification-clauses">pre- and post-conditions, termination conditions, loop invariants, and read/write specifications</a>.
 </ul>
 
 </td>
