@@ -499,6 +499,7 @@ public class ExportSignature {
 
 public class ModuleSignature {
   public VisibilityScope VisibilityScope = null;
+  public readonly Dictionary<string, ModuleDecl> ShadowedImportedModules = new();
   public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
   public readonly Dictionary<string, ModuleExportDecl> ExportSets = new Dictionary<string, ModuleExportDecl>();
   public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
