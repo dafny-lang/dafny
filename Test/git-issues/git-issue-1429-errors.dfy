@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+	
 datatype Option<V> = Some(v: V) | None
 
 datatype X = X(ghost i: int)

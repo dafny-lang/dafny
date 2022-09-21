@@ -9946,7 +9946,9 @@ namespace Microsoft.Dafny {
             if (arg.IsGhost ||
                 (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
                 arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
+                arg.Type.IsArrowType ||
+                arg.Type.IsOpaqueType ||
+                !arg.Type.SupportsEquality) {
               // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
