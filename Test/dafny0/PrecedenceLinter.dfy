@@ -475,10 +475,12 @@ method Parentheses4(w: bool, s: Stream, t: Stream)
 {
   ghost var a := if w then true else s ==#[
     12]                              t;
-  ghost var b := if w then true else s ==#[
+  ghost var b := if w then true else s ==#[ // warning: suspicious lack of parentheses (ternary)
     12] t;
-  ghost var c := if w then true else s
+  ghost var c := if w then true else s // warning: suspicious lack of parentheses (ternary)
     !=#[12] t;
+  ghost var d := if w then true else s
+    !=#[12]                          t;
 }
 /**** revisit the following when the original match'es are being resolved (https://github.com/dafny-lang/dafny/pull/2734)
 datatype Color = Red | Blue
@@ -520,3 +522,39 @@ method Parentheses5(w: bool, color: Color) {
       + 20;
 }
 ***/
+
+module MyModule {
+  function MyFunction(x: int): int
+  lemma Lemma(x: int)
+}
+
+module QualifiedNames {
+  import MyModule
+
+  predicate P(x: int) {
+    var u := x;
+    MyModule.MyFunction(x) ==
+    x
+  }
+
+  predicate Q(x: int) {
+    var u := x;
+    MyModule.Lemma(x);
+    x == MyModule.MyFunction(x)
+  }
+
+  function F(): int
+  {
+    var p := 1000;
+    MyModule.Lemma(p);
+    p
+  }
+
+  predicate R(x: int) {
+    var u := x; // warning: suspicious lack of parentheses (let)
+                MyModule.
+                Lemma(x);
+                x ==
+             MyModule.MyFunction(x)
+  }
+}  

@@ -125,15 +125,23 @@ namespace Microsoft.Dafny {
         expr.SubExpressions.Iter(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
-      } else if (expr is FunctionCallExpr or ApplyExpr or DatatypeUpdateExpr or SeqSelectExpr or SeqUpdateExpr or MultiSelectExpr or TernaryExpr) {
-        // These expressions have the form
-        //     rootExpr  OPEN-BRACKET   arguments   CLOSE-BRACKET
-        // (Well, TernaryExpr isn't quite like that, but one can say something similar about it.)
-        // Certainly, all subexpressions contained within the parentheses/brackets have no risk of precedence confusion.
-        // Moreover, because the open parenthesis/bracket has such a high and well-known precedence, it doesn't
-        // seem likely that there would be any confusion about its precedence, either. Therefore, we treat
-        // all subexpressions of "expr" as independent components.
-        expr.SubExpressions.Iter(VisitIndependentComponent);
+      } else if (expr is FunctionCallExpr functionCallExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, functionCallExpr.Receiver, st);
+      } else if (expr is ApplyExpr applyExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, applyExpr.Function, st);
+      } else if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, datatypeUpdateExpr.Root, st);
+      } else if (expr is SeqSelectExpr selectExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, selectExpr.Seq, st);
+      } else if (expr is SeqUpdateExpr seqUpdateExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, seqUpdateExpr.Seq, st);
+      } else if (expr is MultiSelectExpr multiSelectExpr) {
+        return VisitComponentsAsIndependentExceptOne(expr, multiSelectExpr.Array, st);
+
+      } else if (expr is TernaryExpr ternaryExpr) {
+        VisitIndependentComponent(ternaryExpr.E0);
+        Visit(ternaryExpr.E1, st);
+        Visit(ternaryExpr.E2, st);
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
@@ -157,6 +165,22 @@ namespace Microsoft.Dafny {
       }
 
       return base.VisitOneExpr(expr, ref st);
+    }
+
+    /// <summary>
+    /// For each subexpression of "expr", call "VisitIndependentComponent" unless the subexpression
+    /// is "exception", in which case call "Visit(exception, st)".
+    /// For convenience to the caller, this method always returns "false".
+    /// </summary>
+    bool VisitComponentsAsIndependentExceptOne(Expression expr, Expression exception, LeftMargin st) {
+      foreach (var e in expr.SubExpressions) {
+        if (e == exception) {
+          Visit(e, st);
+        } else {
+          VisitIndependentComponent(e);
+        }
+      }
+      return false;
     }
 
     void VisitIndependentComponent(Expression expr) {
