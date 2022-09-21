@@ -39,11 +39,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
+      logger.LogDebug("Completion params received");
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
+      logger.LogDebug($"Completion params retrieved document state with version {document.Version}");
       return new CompletionProcessor(symbolGuesser, document, request, cancellationToken).Process();
     }
 

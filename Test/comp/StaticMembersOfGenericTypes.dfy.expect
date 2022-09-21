@@ -1,5 +1,7 @@
 
 Dafny program verifier finished with 9 verified, 0 errors
+
+Dafny program verifier did not attempt verification
 (0, 1) (true, 2, 3)
 0 25 (20, 21) (20, 21) 23 22
 0 25 (20, 21) (20, 21) 23 22
@@ -17,7 +19,7 @@ true false
 50 3 4
 149
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier did not attempt verification
 (0, 1) (true, 2, 3)
 0 25 (20, 21) (20, 21) 23 22
 0 25 (20, 21) (20, 21) 23 22
@@ -35,7 +37,7 @@ true false
 50 3 4
 149
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier did not attempt verification
 (0, 1) (true, 2, 3)
 0 25 (20, 21) (20, 21) 23 22
 0 25 (20, 21) (20, 21) 23 22
@@ -53,7 +55,25 @@ true false
 50 3 4
 149
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier did not attempt verification
+(0, 1) (true, 2, 3)
+0 25 (20, 21) (20, 21) 23 22
+0 25 (20, 21) (20, 21) 23 22
+0 25 (true, 20, 21) (true, 20, 21) true 22 23
+0 25 (true, 20, 21) (true, 20, 21) true 22 23
+0 25 (20, 21) (20, 21) 23 22
+0 25 (20, 21) (20, 21) 23 22
+0 25 (true, 20, 21) (true, 20, 21) true 22 23
+0 25 (true, 20, 21) (true, 20, 21) true 22 23
+(2.0, true) (3.0, false)
+(2.0, true) (3.0, false)
+true false
+(5, 2.0, true) (5, 2.0, true) (6, 3.0, false)
+(5, 2.0, true) (5, 2.0, true) (6, 3.0, false)
+50 3 4
+149
+
+Dafny program verifier did not attempt verification
 (0, 1) (true, 2, 3)
 0 25 (20, 21) (20, 21) 23 22
 0 25 (20, 21) (20, 21) 23 22

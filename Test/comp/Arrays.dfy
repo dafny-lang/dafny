@@ -71,8 +71,6 @@ method Main() {
   CharValues();
 
   TypeSynonym.Test();
-
-  PrintString();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -374,17 +372,4 @@ module TypeSynonym {
     var b := new uint8[] [19, 18, 9, 8];
     BufferTest(b);
   }
-}
-
-method PrintString() {
-  print "Strings in collections:\n";
-  print "  ", ["abc", "def"], "\n";
-  print "  ", [["abc", "def"]], "\n";
-  print "  ", {"abc", "def"}, "\n";
-  print "  ", [['a', 'b', 'c'], ['d', 'e', 'f']], "\n";
-  var a : seq<seq<char>> := [[]];
-  print "  ", a, "\n";
-  var b : seq<char>;
-  print "  ", [b], "\n";
-  print "  ", [seq(5, x => 'a')], "\n";
 }

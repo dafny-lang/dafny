@@ -36,14 +36,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
-      logger.LogTrace("received hover request for {Document}", request.TextDocument);
+      logger.LogDebug("received hover request for {Document}", request.TextDocument);
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
       var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+      if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
@@ -185,8 +185,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
 
       var currentlyHoveringPostcondition =
-        !(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
-          returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position));
+        assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+          !returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position);
 
       var obsolescence = assertionNode.StatusCurrent switch {
         CurrentStatus.Current => "",
@@ -248,6 +248,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (currentlyHoveringPostcondition) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
           ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          : "");
+      }
+
+      if (assertionNode.GetCounterExample() is CallCounterexample) {
+        information += "  \n" + (assertionNode.SecondaryPosition != null
+          ? $"Failing precondition: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 

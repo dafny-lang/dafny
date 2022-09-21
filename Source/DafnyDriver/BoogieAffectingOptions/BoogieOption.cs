@@ -1,5 +1,4 @@
 using System.Linq;
-using Dafny;
 
 namespace Microsoft.Dafny;
 
