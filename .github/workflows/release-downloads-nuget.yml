@@ -2,6 +2,10 @@ name: Test NuGet Tool Installation
 
 on:
   release:
+    # This triggers in response to a GitHub release being published,
+    # which happens to work well because we do that well after first publishing
+    # to NuGet. That gives at least 10 or 15 minutes for the newly published versions
+    # of these packages to be available for download here.
     types: [ published ]
   # For manual testing through the Actions UI
   workflow_dispatch:
@@ -11,7 +15,7 @@ env:
   z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
 
 jobs:
-  build:
+  test-dafny-tool:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -118,3 +122,34 @@ jobs:
     - name: Check Java compile
       run: |
         dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+
+  test-dafny-libraries:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        library-name: [ DafnyPipeline, DafnyLanguageServer, DafnyRuntime ]
+        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
+        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        include:
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu\-16.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'ubuntu-18.04'
+          osn: 'ubuntu\-16.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'macos-latest'
+          osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
+        - os:  'windows-2019'
+          osn: 'win'
+          z3: z3-4.8.5-x64-win
+
+    steps:
+    ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
+    ## are also published through NuGet.
+    ## Ideally we would have a test project that actually uses part of the public API of each package.
+    - name: Check library dependencies
+      run: |
+        nuget install ${{ library-name }}
