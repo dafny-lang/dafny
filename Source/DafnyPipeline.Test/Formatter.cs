@@ -1595,6 +1595,34 @@ lemma AlltokenSpec(i: int)
     }
 
     [Fact]
+    public void FormatterWorksForNestedIfElse() {
+      var testCase = @"
+function test(): int {
+  if a then
+    b
+  else if c then
+    d
+  else
+    e
+}
+";
+      FormatterWorksFor(testCase, testCase);
+    }
+
+    [Fact]
+    public void FormatterWorksForNestedConstructors() {
+      FormatterWorksFor(@"
+function test(): int {
+  assert X;
+  Some(Result(
+         data[0],
+         data[1])
+  )
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

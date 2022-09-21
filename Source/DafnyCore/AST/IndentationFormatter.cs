@@ -88,6 +88,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           var reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
           return SetIndentParensExpression(reindent, expr.OwnedTokens);
         }
+      case StmtExpr stmtExpr: {
+          return SetIndentStmtExpr(indent, stmtExpr);
+        }
     }
 
     return true;
@@ -1357,6 +1360,13 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
+  private bool SetIndentStmtExpr(int indent, StmtExpr stmtExpr) {
+    Visit(stmtExpr.S, indent);
+    SetIndentations(stmtExpr.S.EndTok, after: indent);
+    Visit(stmtExpr.E, indent);
+    return false;
+  }
+
   private bool SetIndentParensExpression(int indent, List<IToken> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
@@ -2027,7 +2037,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       }
 
       if (commentType.StartsWith("//")) {
-        if (commentType.StartsWith("///")) {
+        if (commentType.StartsWith("///") && !commentType.StartsWith("////")) {
           // No indentation
           return match.Groups["commentType"].Value;
         }
@@ -2124,5 +2134,5 @@ public static class HelperString {
   }
 
   public static readonly Regex NewlineRegex =
-    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|///? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|///?/? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 }
