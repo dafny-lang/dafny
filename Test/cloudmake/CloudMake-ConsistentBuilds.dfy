@@ -516,8 +516,8 @@ lemma CachedBuildsTheorem(prog: Program, stC: StateC)
   ensures
     var result := buildC(prog, stC);
     var expr', stC' := result.fst, result.snd;
-    ConsistentCache(stC') &&
-    expr'.exprError? ==> expr'.r != rInconsistentCache;
+    ConsistentCache(stC') && expr'.exprError? ==>
+    expr'.r != rInconsistentCache;
 {
   BuildCLemma(prog, stC);
 }
