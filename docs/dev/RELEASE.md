@@ -19,16 +19,8 @@
    use judgement. The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
-   x.y.z.40112). Edit the internal version number in the following
-   places:
-
-   * `Source/version.cs`
-
-   * `Source/Dafny/Dafny.csproj`
-
-   * `Source/DafnyPipeline/DafnyPipeline.csproj`
-
-   * `Source/DafnyLanguageServer/DafnyLanguageServer.csproj`
+   x.y.z.40112). Edit the internal version number in 
+  `Source/Directory.Build.Props`.
 
    Put the public version number in place of the "Upcoming" header in
    `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
