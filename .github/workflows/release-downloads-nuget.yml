@@ -152,4 +152,4 @@ jobs:
     ## Ideally we would have a test project that actually uses part of the public API of each package.
     - name: Check library dependencies
       run: |
-        nuget install ${{ library-name }}
+        nuget install ${{ matrix.library-name }}
