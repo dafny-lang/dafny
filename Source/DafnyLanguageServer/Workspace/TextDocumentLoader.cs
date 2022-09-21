@@ -86,26 +86,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       IncludePluginLoadErrors(errorReporter, program);
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+        return documentAfterParsing;
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+
+      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
       } else {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
+
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DocumentAfterResolution(textDocument,
         program,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        newSymbolTable,
         symbolTable,
         ghostDiagnostics
-        );
+      );
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -121,7 +126,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new IdeState(
         textDocument,
         diagnostics,
-        SymbolTable.Empty(textDocument),
+        SymbolTable.Empty(),
+        SignatureAndCompletionTable.Empty(textDocument),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
