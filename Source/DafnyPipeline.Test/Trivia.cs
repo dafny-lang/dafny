@@ -24,7 +24,7 @@ namespace DafnyPipeline.Test {
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
-// Comment before
+// Comment ∈ before
 module Test // Module docstring
 {} // Attached to }
 
@@ -97,7 +97,7 @@ ensures true
         Assert.Equal("Trait1", trait1.StartToken.Next.val);
 
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
-        AssertTrivia(moduleTest, "\n// Comment before\n", " // Module docstring\n");
+        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
         AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");

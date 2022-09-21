@@ -17,6 +17,7 @@ public interface IToken : Microsoft.Boogie.IToken {
     set => Filename = value;
   }
 
+  public string ActualFilename { get; }
   string Filename { get; set; }
 
   /// <summary>
@@ -59,6 +60,7 @@ public record Token : IToken {
 
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
+  public string ActualFilename => Filename;
   public string Filename { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
@@ -79,7 +81,7 @@ public record Token : IToken {
 
   public string TrailingTrivia { get; set; } = "";
 
-  public bool IsValid => this.Filename != null;
+  public bool IsValid => this.ActualFilename != null;
 
   public IToken Next { get; set; } // The next token
 
@@ -103,10 +105,14 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.col; }
     set { throw new NotSupportedException(); }
   }
+
+  public string ActualFilename => WrappedToken.ActualFilename;
+
   public virtual string Filename {
     get { return WrappedToken.Filename; }
     set { throw new NotSupportedException(); }
   }
+
   public bool IsValid {
     get { return WrappedToken.IsValid; }
   }

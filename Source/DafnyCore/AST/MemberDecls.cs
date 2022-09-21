@@ -103,6 +103,8 @@ public class Field : MemberDecl {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
+  public override IEnumerable<INode> Children => Type.Nodes;
+
   public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
     : this(tok, name, false, isGhost, true, true, type, attributes) {
     Contract.Requires(tok != null);
@@ -197,6 +199,16 @@ public class SpecialField : Field {
   }
 }
 
+public class DatatypeDiscriminator : SpecialField {
+  public override string WhatKind {
+    get { return "discriminator"; }
+  }
+
+  public DatatypeDiscriminator(IToken tok, string name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(tok, name, specialId, idParam, isGhost, false, false, type, attributes) {
+  }
+}
+
 public class DatatypeDestructor : SpecialField {
   public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
   public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
@@ -238,18 +250,7 @@ public class DatatypeDestructor : SpecialField {
   static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
     Contract.Requires(ctors != null);
     Contract.Requires(grammaticalConjunction != null);
-    var n = ctors.Count;
-    if (n == 1) {
-      return string.Format("'{0}'", ctors[0].Name);
-    } else if (n == 2) {
-      return string.Format("'{0}' {1} '{2}'", ctors[0].Name, grammaticalConjunction, ctors[1].Name);
-    } else {
-      var s = "";
-      for (int i = 0; i < n - 1; i++) {
-        s += string.Format("'{0}', ", ctors[i].Name);
-      }
-      return s + string.Format("{0} '{1}'", grammaticalConjunction, ctors[n - 1].Name);
-    }
+    return Util.PrintableNameList(ctors.ConvertAll(ctor => ctor.Name), grammaticalConjunction);
   }
 }
 
@@ -291,8 +292,9 @@ public class ConstantField : SpecialField, ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => true;
-}
 
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+}
 
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public override string WhatKind => "function";
@@ -314,16 +316,25 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
       } else {
         k = WhatKind;
       }
+
       return HasStaticKeyword ? "static " + k : k;
     }
   }
 
-  public override bool CanBeRevealed() { return true; }
+  public override bool CanBeRevealed() {
+    return true;
+  }
+
   [FilledInDuringResolution] public bool IsRecursive;
-  [FilledInDuringResolution] public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+
+  [FilledInDuringResolution]
+  public TailStatus
+    TailRecursion =
+      TailStatus.NotTailRecursive; // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
-  [FilledInDuringResolution] public bool IsFueled;  // if anyone tries to adjust this function's fuel
+  [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Formals;
   public readonly Formal Result;
@@ -332,18 +343,18 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public readonly List<FrameExpression> Reads;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
-  public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IToken/*?*/ ByMethodTok; // null iff ByMethodBody is null
-  public BlockStmt/*?*/ ByMethodBody;
-  [FilledInDuringResolution] public Method/*?*/ ByMethodDecl; // if ByMethodBody is non-null
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
+  public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+  public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
+  public BlockStmt /*?*/ ByMethodBody;
+  [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
+  public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
   public readonly IToken SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   public bool AllowsAllocation => true;
-
   public bool containsQuantifier;
+
   public bool ContainsQuantifier {
     set { containsQuantifier = value; }
     get { return containsQuantifier; }
@@ -364,6 +375,14 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateLeft_Concat,
     AccumulateRight_Concat,
   }
+
+  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
+    Concat<INode>(Reads).
+    Concat<INode>(Req.Select(e => e.E)).
+    Concat(Ens.Select(e => e.E)).
+    Concat(Decreases.Expressions).
+    Concat(Formals).Concat(ResultType.Nodes).
+    Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -650,6 +669,10 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
+  public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
+    Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
+    Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;

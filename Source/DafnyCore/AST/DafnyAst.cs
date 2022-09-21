@@ -24,7 +24,26 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public class Program {
+  public interface INode {
+
+    /// <summary>
+    /// These children should be such that they contain information produced by resolution such as inferred types
+    /// and resolved references. However, they should not be so transformed that source location from the initial
+    /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
+    /// losing source location information, so those transformed nodes should not be returned by this property.
+    /// </summary>
+    IEnumerable<INode> Children { get; }
+  }
+
+  public interface IDeclarationOrUsage : INode {
+    IToken NameToken { get; }
+  }
+
+  public interface IHasUsages : IDeclarationOrUsage {
+    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
+  }
+
+  public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -104,6 +123,8 @@ namespace Microsoft.Dafny {
 
       return firstToken;
     }
+
+    public IEnumerable<INode> Children => new[] { DefaultModule };
   }
 
   public class Include : IComparable {
@@ -364,7 +385,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable {
+  public interface IVariable : IDeclarationOrUsage {
     string Name {
       get;
     }
@@ -474,6 +495,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
+
+    public abstract IEnumerable<INode> Children { get; }
+    public abstract IToken NameToken { get; }
   }
 
   public abstract class NonglobalVariable : IVariable {
@@ -595,6 +619,9 @@ namespace Microsoft.Dafny {
       this.type = type;
       this.isGhost = isGhost;
     }
+
+    public IToken NameToken => tok;
+    public IEnumerable<INode> Children => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {

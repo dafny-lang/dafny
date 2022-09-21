@@ -22,6 +22,15 @@ public abstract class Type {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
+  public virtual IEnumerable<INode> Nodes {
+    get {
+      if (this is UserDefinedType udt) {
+        return new[] { udt };
+      }
+
+      return Enumerable.Empty<INode>();
+    }
+  }
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
@@ -807,11 +816,21 @@ public abstract class Type {
       return udt?.ResolvedClass as OpaqueTypeDecl;
     }
   }
-  public virtual bool SupportsEquality {
-    get {
-      return true;
-    }
-  }
+
+  /// <summary>
+  /// Returns whether or not any values of the type can be checked for equality in compiled contexts
+  /// </summary>
+  public virtual bool SupportsEquality => true;
+
+  /// <summary>
+  /// Returns whether or not some values of the type can be checked for equality in compiled contexts.
+  /// This differs from SupportsEquality for types where the equality operation is partial, e.g.,
+  /// for datatypes where some, but not all, constructors are ghost.
+  /// Note, whereas SupportsEquality sometimes consults some constituent type for SupportEquality
+  /// (e.g., seq<T> supports equality if T does), PartiallySupportsEquality does not (because the
+  /// semantic check would be more complicated and it currently doesn't seem worth the trouble).
+  /// </summary>
+  public virtual bool PartiallySupportsEquality => SupportsEquality;
 
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
@@ -2013,6 +2032,8 @@ public class ArrowType : UserDefinedType {
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
+  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
@@ -2174,7 +2195,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType {
+public class UserDefinedType : NonProxyType, INode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2404,6 +2425,8 @@ public class UserDefinedType : NonProxyType {
     return udt.TypeArgs[0];
   }
 
+  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
+
   [Pure]
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
@@ -2473,6 +2496,31 @@ public class UserDefinedType : NonProxyType {
       }
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
+    }
+  }
+
+  public override bool PartiallySupportsEquality {
+    get {
+      var totalEqualitySupport = SupportsEquality;
+      if (!totalEqualitySupport && ResolvedClass is TypeSynonymDeclBase synonymBase) {
+        return synonymBase.IsRevealedInScope(Type.GetScope()) && synonymBase.RhsWithArgument(TypeArgs).PartiallySupportsEquality;
+      } else if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
+        // Equality is partially supported (at run time) for a datatype that
+        //   * is inductive (because codatatypes never support equality), and
+        //   * has at least one non-ghost constructor (because if all constructors are ghost, then equality is never supported), and
+        //   * for each non-ghost constructor, every argument totally supports equality (an argument totally supports equality
+        //       if it is non-ghost (because ghost arguments are not available at run time) and has a type that supports equality).
+        var hasNonGhostConstructor = false;
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
+          hasNonGhostConstructor = true;
+          if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
+            return false;
+          }
+        }
+        Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
+        return hasNonGhostConstructor;
+      }
+      return totalEqualitySupport;
     }
   }
 
@@ -2553,6 +2601,9 @@ public class UserDefinedType : NonProxyType {
 
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
+
+  public IToken NameToken => tok;
+  public IEnumerable<INode> Children => new[] { NamePath };
 }
 
 public abstract class TypeProxy : Type {

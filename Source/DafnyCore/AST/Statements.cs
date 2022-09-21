@@ -2,11 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Drawing.Imaging;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration {
+public abstract class Statement : IAttributeBearingDeclaration, INode {
   public IToken StartToken;
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
@@ -163,6 +164,8 @@ public abstract class Statement : IAttributeBearingDeclaration {
       return rangeToken;
     }
   }
+
+  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 }
 
 public class LList<T> {
@@ -374,7 +377,7 @@ public class RevealStmt : Statement {
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement {
+public class BreakStmt : Statement, IHasUsages {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -406,6 +409,12 @@ public class BreakStmt : Statement {
     this.BreakAndContinueCount = breakAndContinueCount;
     this.IsContinue = isContinue;
   }
+
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+    return new[] { TargetStmt }.OfType<IDeclarationOrUsage>();
+  }
+
+  public IToken NameToken => Tok;
 }
 
 public abstract class ProduceStmt : Statement {
@@ -472,7 +481,7 @@ public class YieldStmt : ProduceStmt {
   }
 }
 
-public abstract class AssignmentRhs {
+public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
   public List<IToken> OwnedTokens = new();
 
@@ -512,6 +521,8 @@ public abstract class AssignmentRhs {
     get { yield break; }
   }
 
+  public abstract IEnumerable<INode> Children { get; }
+
   public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 }
 
@@ -533,6 +544,8 @@ public class ExprRhs : AssignmentRhs {
       yield return Expr;
     }
   }
+
+  public override IEnumerable<INode> Children => new[] { Expr };
 }
 
 /// <summary>
@@ -562,7 +575,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs {
+public class TypeRhs : AssignmentRhs, INode {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -672,6 +685,9 @@ public class TypeRhs : AssignmentRhs {
     }
   }
 
+  public IToken Start => Tok;
+  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
+
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 }
 
@@ -680,6 +696,7 @@ public class HavocRhs : AssignmentRhs {
     : base(tok) {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public class VarDeclStmt : Statement {
@@ -722,6 +739,8 @@ public class VarDeclStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Locals.Concat<INode>(SubStatements);
 }
 
 public class VarDeclPattern : Statement {
@@ -793,6 +812,8 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
     public override int Preference() => 1;
   }
 
+  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
+
   /// <summary>
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
@@ -826,6 +847,9 @@ public class UpdateStmt : ConcreteUpdateStatement {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  // Both resolved and unresolved are required. Duplicate usages will be filtered out.
+  public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
@@ -877,6 +901,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<INode> Children => ResolvedStatements;
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
@@ -1112,6 +1138,9 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
       return Tok;
     }
   }
+
+  public IToken NameToken => Tok;
+  public IEnumerable<INode> Children => type.Nodes;
 }
 
 /// <summary>
@@ -1352,7 +1381,7 @@ public class AlternativeStmt : Statement {
   }
 }
 
-public abstract class LoopStmt : Statement {
+public abstract class LoopStmt : Statement, IDeclarationOrUsage {
   public readonly List<AttributedExpression> Invariants;
   public readonly Specification<Expression> Decreases;
   [FilledInDuringResolution] public bool InferredDecreases;  // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
@@ -1423,6 +1452,8 @@ public abstract class LoopStmt : Statement {
       }
     }
   }
+
+  public IToken NameToken => Tok;
 }
 
 public abstract class OneBodyLoopStmt : LoopStmt {
@@ -2083,6 +2114,8 @@ public class MatchCaseStmt : MatchCase {
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Body));
   }
+
+  public override IEnumerable<INode> Children => body;
 
   public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

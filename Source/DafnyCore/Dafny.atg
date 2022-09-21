@@ -1423,11 +1423,16 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors, List<IToken> ownedTokens
      Attributes attrs = null;
      IToken/*!*/ id;
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     var isGhost = false;
   .)
+  // Note, "ghost" is parsed before any attributes. This means that the
+  // attributes are parsed before the "id", which is consistent with other
+  // declarations.
+  [ "ghost"   (. isGhost = true; .) ]
   { Attribute<ref attrs> }
   DatatypeMemberName<out id>  (. ownedTokens.Add(id); .)
   [ FormalsOptionalIds<formals, ownedTokens> ]
-  (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
+  (. var ctor = new DatatypeCtor(id, id.val, isGhost, formals, attrs);
      ctor.StartToken = id;
      ctor.BodyEndTok = t;
      ctor.EndToken = t;

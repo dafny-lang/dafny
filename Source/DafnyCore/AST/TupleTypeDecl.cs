@@ -73,7 +73,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       formals.Add(f);
     }
     string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
-    var ctor = new DatatypeCtor(Token.NoToken, ctorName, formals, null);
+    var ctor = new DatatypeCtor(Token.NoToken, ctorName, false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 
