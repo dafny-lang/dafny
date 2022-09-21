@@ -706,7 +706,7 @@ namespace Microsoft.Dafny.Compilers {
               case DatatypeDecl dt:
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
                 return dt is TupleTypeDecl
-                  ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})"
+                  ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))}{(relevantTypeArgs.Count == 1 ? "," : "")})"
                   : $"{DtCtorDeclarationName(dt.GetGroundingCtor())}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
 
               case TypeParameter tp:
@@ -1093,6 +1093,8 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
         wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
+      } else if (dtv.Ctor.Destructors.Count(d => !d.IsGhost) == 1) {
+        arguments += ",";
       }
       wr.Write($"({arguments})");
     }
@@ -1152,7 +1154,7 @@ namespace Microsoft.Dafny.Compilers {
       switch (member) {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {
-              TupleTypeDecl => $"[{dd.Name}]",
+              TupleTypeDecl => $"[{dd.CorrespondingFormals[0].NameForCompilation}]",
               _ => $".{IdProtect(dd.CompileName)}"
             };
             return SuffixLvalue(obj, dest);
@@ -1307,7 +1309,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       wr.Write(source);
-      wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.Name}]" : $".{IdProtect(dtor.CompileName)}");
+      wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName)}");
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
