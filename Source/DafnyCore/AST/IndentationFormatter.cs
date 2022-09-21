@@ -933,6 +933,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       switch (token.val) {
         case "if": {
             SetOpeningIndentedRegion(token, indent);
+            Visit(ifStmt.Guard, indent);
+            VisitBody(ifStmt.Thn, indent);
             break;
           }
         case "else": {
@@ -942,8 +944,6 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           }
       }
     }
-    Visit(ifStmt.Guard, indent);
-    VisitBody(ifStmt.Thn, indent);
     return false;
   }
 

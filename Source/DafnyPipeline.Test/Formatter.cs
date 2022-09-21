@@ -1623,6 +1623,38 @@ function test(): int {
     }
 
     [Fact]
+    public void FormatterWorksForParticularCase() {
+      FormatterWorksFor(@"
+module Test {
+  lemma ProveMeThis(i: nat)
+  {
+    if i == 0 {
+    } else if condition || TestIf(
+                             a,
+                             b,
+                             c
+                           ) {
+      assert false;
+    }
+  }
+  lemma ProveMeThis(i: nat)
+  {
+    if i == 0 {
+    } else if
+      condition ||
+      TestIf(
+        a,
+        b,
+        c
+      ) {
+      assert false;
+    }
+  }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
