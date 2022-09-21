@@ -1,2 +1,0 @@
-git-issue-2070.dfy(8,5): Error: type 'C' declared as supporting equality, but the RHS type (B<T>) might not
-1 resolution/type errors detected in git-issue-2070.dfy
