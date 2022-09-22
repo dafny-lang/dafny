@@ -55,8 +55,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
           statements in implementation methods. It also disables anything
           NoIncludes disables.
   /rprint:<file>
-      print Dafny program after resolving it
-      (use - as <file> to print to console)
+      Print Dafny program after resolving it. (use - as <file> to print
+      to console.)
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
       1 - Show a source code snippet for each Dafny message.
