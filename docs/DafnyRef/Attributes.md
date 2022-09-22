@@ -476,8 +476,10 @@ This is mostly helpful for debugging which assertion is taking the most time to 
 ### 23.2.22. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
-return one or more fresh objects. During compilation, 
-the postconditions associated with such a
+return one or more fresh or mocked objects. To create a fresh instance of 
+an object, use the "fresh" parameter (`{:synthesize "fresh"}`). To create a 
+mocked instance of an object, use the "mock" parameter (`{:synthesize "mock"}`).
+During compilation, the postconditions associated with such a
 method are translated to a series of API calls to the target languages's
 mocking framework. The object returned, therefore, behaves exactly as the
 postconditions specify. If there is a possibility that this behavior violates
@@ -492,7 +494,8 @@ generating the binary.
 Not all Dafny postconditions can be successfully compiled - below is the
 grammar for postconditions that are supported (`S` is the start symbol, `EXPR`
 stands for an arbitrary Dafny expression, and `ID` stands for
-variable/method/type identifiers):
+variable/method/type identifiers). Note that the grammar for Java does not include 
+field accesses, as Mockito does not support mocking fields:
 
 ```
 S         = FORALL
