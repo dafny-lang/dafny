@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
       var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+      if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
