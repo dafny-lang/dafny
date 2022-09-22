@@ -28,6 +28,8 @@ namespace Microsoft.Dafny {
         LibraryOption.Instance,
         DPreludeOption.Instance,
         PrintModeOption.Instance,
+        ResolvedPrintOption.Instance,
+        PrintModeOption.Instance,
         OldCompileVerboseOption.Instance,
         OutOption.Instance,
         PluginOption.Instance,
