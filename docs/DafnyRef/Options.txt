@@ -26,6 +26,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   /dprelude:<file>
       Choose the Dafny prelude file.
+
   /stdin
       Read standard input and treat it as an input .dfy file.
   
@@ -38,13 +39,15 @@ Usage: Dafny [ option ... ] [ filename ... ]
       can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
       receive arguments. More information about what plugins do and how
       to define them:
-
+      
       https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
+
   ---- Overall reporting and printing ----------------------------------------
   
   /dprint:<file>
       Print Dafny program after parsing it. (Use - as <file> to print
       to console.)
+
   /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
       Everything (default) - Print everything listed below.
       DllEmbed - print the source that will be included in a compiled dll.
@@ -54,12 +57,15 @@ Usage: Dafny [ option ... ] [ filename ... ]
       NoGhost - disable printing of functions, ghost methods, and proof
           statements in implementation methods. It also disables anything
           NoIncludes disables.
+
   /rprint:<file>
       Print Dafny program after resolving it. (use - as <file> to print
       to console.)
+
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
       1 - Show a source code snippet for each Dafny message.
+
   /stats
       Print interesting statistics about the Dafny files supplied.
   
@@ -386,21 +392,26 @@ Usage: Dafny [ option ... ] [ filename ... ]
       Docs/Compilation/Cpp.md). This includes lack of support for
       BigIntegers (aka int), most higher order functions, and advanced
       features like traits or co-inductive types.
+
   /compileVerbose:<value>
       0 - Don't print status of compilation to the console.
       1 (default) - Print information such as files being written by the
           compiler to the console.
+
   /library:<value>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
+
   /out:<file>
       Specify the filename and location for the generated target language
       files.
+
   /useRuntimeLib:<value>
       Refer to pre-built DafnyRuntime.dll in compiled assembly rather
       than including DafnyRuntime.cs verbatim.
+
   /compile:<n>
       0 - Do not compile Dafny program.
       1 (default) - Upon successful verification of the Dafny program,
