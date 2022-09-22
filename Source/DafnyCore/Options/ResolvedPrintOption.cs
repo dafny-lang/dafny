@@ -8,8 +8,8 @@ public class ResolvedPrintOption : StringOption {
   public override string ArgumentName => "file";
   public override string Category => "Overall reporting and printing";
   public override string Description => @"
-print Dafny program after resolving it
-(use - as <file> to print to console)".TrimStart();
+Print Dafny program after resolving it. (use - as <file> to print
+to console.)".TrimStart();
 
   public override string PostProcess(DafnyOptions options) {
     options.DafnyPrintResolvedFile = Get(options);
