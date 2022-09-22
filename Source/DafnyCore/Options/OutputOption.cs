@@ -12,7 +12,10 @@ public class OutputOption : StringOption {
   public override string ShortName => "o";
   public override string ArgumentName => "file";
   public override string Category => "Compilation options";
-  public override string Description => "filename and location for the generated target language files";
+  public override string Description => @"      
+Specify the filename and location for the generated target language
+files.".TrimStart();
+
   public override string PostProcess(DafnyOptions options) {
     options.DafnyPrintCompiledFile = Get(options);
     return null;

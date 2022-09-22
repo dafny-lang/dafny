@@ -956,17 +956,17 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /view:<view1, view2>
     Print the filtered views of a module after it is resolved (/rprint).
-    If print before the module is resolved (/dprint), then everything in the module
-    is printed.
-    If no view is specified, then everything in the module is printed.
+    If print before the module is resolved (/dprint), then everything in
+    the module is printed. If no view is specified, then everything in
+    the module is printed.
 /funcCallGraph
-    Print out the function call graph.  Format is: func,mod=callee*
+    Print out the function call graph. Format is: func,mod=callee*
 
 /pmtrace
-    Print pattern-match compiler debug info
+    Print pattern-match compiler debug info.
 
 /titrace
-    Print type-inference debug info
+    Print type-inference debug info.
 
 /printTooltips
     Dump additional positional information (displayed as mouse-over
@@ -1273,7 +1273,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         do so).
     1 - Write the textual target program, if it is being compiled.
     2 - Write the textual target program, provided it passes the
-        verifier (and /noVerify is NOT used), regardless of /compile 
+        verifier (and /noVerify is NOT used), regardless of /compile
         setting.
     3 - Write the textual target program, regardless of verification
         outcome and /compile setting.
@@ -1290,11 +1290,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Produce optimized C# code by passing the /optimize flag to csc.exe.
 
 /optimizeResolution:<n>
-    0 - Resolve and translate all methods
+    0 - Resolve and translate all methods.
     1 - Translate methods only in the call graph of current verification
-        target
+        target.
     2 (default) - As in 1, but only resolve method bodies in
-        non-included Dafny sources
+        non-included Dafny sources.
 /library:<file>
     The contents of this file and any files it includes can be
     referenced from other files as if they were included. However, these
@@ -1304,10 +1304,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ----------------------------------------------------------------------------
 
-Dafny generally accepts Boogie options and passes these on to Boogie. However,
-some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
-have the same meaning for a Dafny program as it would for a similar Boogie
-program.
+Dafny generally accepts Boogie options and passes these on to Boogie.
+However, some Boogie options, like /loopUnroll, may not be sound for
+Dafny or may not have the same meaning for a Dafny program as it would
+for a similar Boogie program.
 ".Replace("\n", "\n  ");
   }
 }

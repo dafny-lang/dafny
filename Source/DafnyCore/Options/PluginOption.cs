@@ -15,8 +15,8 @@ public class PluginOption : CommandLineOption<List<string>> {
 
   public override string Description => @"
 (experimental) One path to an assembly that contains at least one
-instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
+instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
+can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
 receive arguments. More information about what plugins do and how
 to define them:
 

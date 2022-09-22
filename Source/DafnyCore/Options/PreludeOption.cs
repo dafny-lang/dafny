@@ -11,7 +11,7 @@ public class PreludeOption : StringOption {
   public override string LongName => "prelude";
   public override string ArgumentName => "file";
   public override string Category => "Input configuration";
-  public override string Description => "Choose Dafny prelude file";
+  public override string Description => "Choose the Dafny prelude file";
 
   public override string PostProcess(DafnyOptions options) {
     options.DafnyPrelude = Get(options);

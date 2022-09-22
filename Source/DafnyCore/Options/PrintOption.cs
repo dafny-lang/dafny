@@ -13,8 +13,8 @@ public class PrintOption : StringOption {
   public override string ArgumentName => "file";
   public override string Category => "Overall reporting and printing";
   public override string Description => @"
-Print Dafny program after parsing it
-(use - as <file> to print to console)".TrimStart();
+Print Dafny program after parsing it. (Use - as <file> to print
+to console.)".TrimStart();
 
   public override string PostProcess(DafnyOptions options) {
     options.DafnyPrintFile = Get(options);

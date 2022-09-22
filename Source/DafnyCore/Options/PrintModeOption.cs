@@ -13,12 +13,15 @@ class PrintModeOption : CommandLineOption<DafnyOptions.PrintModes> {
   public override string Category => "Overall reporting and printing";
 
   public override string Description => @"
-Everything is the default.
-DllEmbed prints the source that will be included in a compiled dll.
-NoIncludes disables printing of {{:verify false}} methods incorporated via the
-include mechanism, as well as datatypes and fields included from other files.
-NoGhost disables printing of functions, ghost methods, and proof statements in
-implementation methods.  It also disables anything NoIncludes disables.";
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart();
+
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {
     if (ps.ConfirmArgumentCount(1)) {
       if (ps.args[ps.i].Equals("Everything")) {

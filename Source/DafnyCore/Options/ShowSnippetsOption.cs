@@ -11,8 +11,8 @@ public class ShowSnippetsOption : BooleanOption {
   public override string Category => "Overall reporting and printing";
 
   public override string Description => @"
-0 (default) - don't show source code snippets for Dafny messages
-1 - show a source code snippet for each Dafny message".TrimStart();
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart();
 
   public override string PostProcess(DafnyOptions options) {
     return null;

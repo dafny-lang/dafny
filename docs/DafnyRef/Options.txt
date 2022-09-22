@@ -25,7 +25,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Input configuration ---------------------------------------------------
   
   /dprelude:<file>
-      Choose Dafny prelude file
+      Choose the Dafny prelude file
   /stdin
       Read standard input and treat it as an input .dfy file.
   
@@ -34,8 +34,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /plugin:<file[,argument]*>
       
       (experimental) One path to an assembly that contains at least one
-      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-      It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
+      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
+      can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
       receive arguments. More information about what plugins do and how
       to define them:
       
@@ -43,19 +43,23 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Overall reporting and printing ----------------------------------------
   
   /dprint:<file>
-      Print Dafny program after parsing it
-      (use - as <file> to print to console)
+      Print Dafny program after parsing it. (Use - as <file> to print
+      to console.)
   /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-      
-      Everything is the default.
-      DllEmbed prints the source that will be included in a compiled dll.
-      NoIncludes disables printing of {{:verify false}} methods incorporated via the
-      include mechanism, as well as datatypes and fields included from other files.
-      NoGhost disables printing of functions, ghost methods, and proof statements in
-      implementation methods.  It also disables anything NoIncludes disables.
+      Everything (default) - Print everything listed below.
+      DllEmbed - print the source that will be included in a compiled dll.
+      NoIncludes - disable printing of {:verify false} methods
+          incorporated via the include mechanism, as well as datatypes and
+          fields included from other files.
+      NoGhost - disable printing of functions, ghost methods, and proof
+          statements in implementation methods. It also disables anything
+          NoIncludes disables.
+  /rprint:<file>
+      print Dafny program after resolving it
+      (use - as <file> to print to console)
   /showSnippets:<value>
-      0 (default) - don't show source code snippets for Dafny messages
-      1 - show a source code snippet for each Dafny message
+      0 (default) - Don't show source code snippets for Dafny messages.
+      1 - Show a source code snippet for each Dafny message.
   /stats
       Print interesting statistics about the Dafny files supplied.
   
@@ -68,17 +72,17 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   /view:<view1, view2>
       Print the filtered views of a module after it is resolved (/rprint).
-      If print before the module is resolved (/dprint), then everything in the module
-      is printed.
-      If no view is specified, then everything in the module is printed.
+      If print before the module is resolved (/dprint), then everything in
+      the module is printed. If no view is specified, then everything in
+      the module is printed.
   /funcCallGraph
-      Print out the function call graph.  Format is: func,mod=callee*
+      Print out the function call graph. Format is: func,mod=callee*
   
   /pmtrace
-      Print pattern-match compiler debug info
+      Print pattern-match compiler debug info.
   
   /titrace
-      Print type-inference debug info
+      Print type-inference debug info.
   
   /printTooltips
       Dump additional positional information (displayed as mouse-over
@@ -384,16 +388,17 @@ Usage: Dafny [ option ... ] [ filename ... ]
       features like traits or co-inductive types.
   /compileVerbose:<value>
       
-      0 - don't print status of compilation to the console
-      1 (default) - print information such as files being written by
-          the compiler to the console
+      0 - Don't print status of compilation to the console.
+      1 (default) - Print information such as files being written by the
+          compiler to the console.
   /library:<value>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
   /out:<file>
-      filename and location for the generated target language files
+      Specify the filename and location for the generated target language
+      files.
   /useRuntimeLib:<value>
       Refer to pre-built DafnyRuntime.dll in compiled assembly rather
       than including DafnyRuntime.cs verbatim.
@@ -436,7 +441,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
           do so).
       1 - Write the textual target program, if it is being compiled.
       2 - Write the textual target program, provided it passes the
-          verifier (and /noVerify is NOT used), regardless of /compile 
+          verifier (and /noVerify is NOT used), regardless of /compile
           setting.
       3 - Write the textual target program, regardless of verification
           outcome and /compile setting.
@@ -453,11 +458,11 @@ Usage: Dafny [ option ... ] [ filename ... ]
       Produce optimized C# code by passing the /optimize flag to csc.exe.
   
   /optimizeResolution:<n>
-      0 - Resolve and translate all methods
+      0 - Resolve and translate all methods.
       1 - Translate methods only in the call graph of current verification
-          target
+          target.
       2 (default) - As in 1, but only resolve method bodies in
-          non-included Dafny sources
+          non-included Dafny sources.
   /library:<file>
       The contents of this file and any files it includes can be
       referenced from other files as if they were included. However, these
@@ -467,10 +472,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ----------------------------------------------------------------------------
   
-  Dafny generally accepts Boogie options and passes these on to Boogie. However,
-  some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
-  have the same meaning for a Dafny program as it would for a similar Boogie
-  program.
+  Dafny generally accepts Boogie options and passes these on to Boogie.
+  However, some Boogie options, like /loopUnroll, may not be sound for
+  Dafny or may not have the same meaning for a Dafny program as it would
+  for a similar Boogie program.
   
   ---- Boogie options --------------------------------------------------------
 
