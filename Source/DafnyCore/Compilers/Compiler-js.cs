@@ -1922,6 +1922,18 @@ namespace Microsoft.Dafny.Compilers {
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
     }
 
+    bool IsRepresentedAsBigNumber(Type t) {
+      if (AsNativeType(t) != null) {
+        return false;
+      } else if (t.AsBitVectorType is { } bvt) {
+        return bvt.NativeType == null;
+      } else {
+        return t.IsNumericBased(Type.NumericPersuasion.Int)
+          || t.IsBitVectorType
+          || t.IsBigOrdinalType;
+      }
+    }
+
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
       Expression e0, Expression e1, IToken tok, Type resultType,
       out string opString,
@@ -2016,38 +2028,46 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = "<";
+          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
           } else {
-            opString = "<";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = "<=";
+          } else if (IsRepresentedAsBigNumber(e0.Type)) {
             callString = "isLessThanOrEqualTo";
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
           } else {
-            opString = "<=";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = ">=";
+          } else if (IsRepresentedAsBigNumber(e0.Type)) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
             reverseArguments = true;
           } else {
-            opString = ">=";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = ">";
+          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
             reverseArguments = true;
           } else {
-            opString = ">";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:

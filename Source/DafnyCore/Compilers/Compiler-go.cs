@@ -2904,7 +2904,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsOrderedByCmp(Type t) {
-      return t.IsIntegerType || t.IsRealType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
+      return t.IsIntegerType || t.IsRealType || t.IsBigOrdinalType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
     }
 
     private bool IsComparedByEquals(Type t) {
