@@ -68,8 +68,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case LetOrFailExpr:
       case LetExpr:
         return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null });
-      case ITEExpr:
-        return SetIndentITE(indent, expr.OwnedTokens);
+      case ITEExpr iteExpr:
+        return SetIndentITE(indent, iteExpr);
       case NestedMatchExpr:
         return SetIndentMatchStmt(indent, expr.OwnedTokens);
       case LambdaExpr lambaExpression:
@@ -1484,9 +1484,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           } else if (IsFollowedByNewline(token)) {
             SetIndentations(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
           } else {
-            SetIndentations(token, afterArrowIndent, afterArrowIndent);
-            var rightIndent = GetRightAlignIndentAfter(token, indent);
-            SetIndentations(token, after: rightIndent);
+            SetAlign(afterArrowIndent, token, out _, out _);
           }
 
           break;
@@ -1515,11 +1513,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private bool SetIndentITE(int indent, List<IToken> ownedTokens) {
+  private bool SetIndentITE(int indent, ITEExpr iteExpr) {
     var lineThen = 0;
     var colThen = 0;
     IToken thenToken = null;
-    foreach (var token in ownedTokens) {
+    foreach (var token in iteExpr.OwnedTokens) {
       switch (token.val) {
         case "if": {
             if (IsFollowedByNewline(token)) {
@@ -1527,37 +1525,46 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             } else {
               SetAlignOpen(token, indent);
             }
-
+            Visit(iteExpr.Test, indent);
             break;
           }
-        case "then":
-        case "else": {
-            if (token.val == "then") {
-              lineThen = token.line;
-              colThen = token.col;
-              thenToken = token;
-            }
-
-            if (token.val == "else" && token.col == colThen) {
-              // We keep the alignment.
-              var newElseIndent = GetNewTokenVisualIndent(thenToken, indent);
-              SetDelimiterIndentedRegions(token, newElseIndent);
-            } else if (token.val == "else" && (token.Next.val == "if" || token.line == lineThen)) { // Don't indent the subexpression
-              SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
-            } else if (IsFollowedByNewline(token)) {
+        case "then": {
+            lineThen = token.line;
+            colThen = token.col;
+            thenToken = token;
+            if (IsFollowedByNewline(token)) {
               SetOpeningIndentedRegion(token, indent);
             } else {
               var rightIndent = GetRightAlignIndentAfter(token, indent);
               SetIndentations(token, indent, indent, rightIndent);
             }
+            Visit(iteExpr.Thn, indent + SpaceTab);            // Override the last indentation so that comments are on the same column as "else"
+            SetIndentations(token.Prev, after: indent);
 
+            break;
+          }
+        case "else": {
+            if (token.col == colThen) {
+              // We keep the alignment.
+              var newElseIndent = GetNewTokenVisualIndent(thenToken, indent);
+              SetDelimiterIndentedRegions(token, newElseIndent);
+            } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
+              SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
+            } else if (IsFollowedByNewline(token)) {
+              SetOpeningIndentedRegion(token, indent);
+            } else {
+              SetAlign(indent, token, out _, out _);
+            }
+
+            Visit(iteExpr.Els, indent + SpaceTab);
+            // Override the last indentation so that comments are on the same column as "else"
             SetIndentations(token.Prev, after: indent);
             break;
           }
       }
     }
 
-    return true;
+    return false;
   }
 
 

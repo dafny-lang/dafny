@@ -1,12 +1,6 @@
 
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
-  type {:extern "Int32"} Int32(!new,==)
-
-  ghost function {:extern} GEq(left: Int32, right: Int32): (b: bool)
-    ensures left == right ==> b
   type {:extern "String"} CsString(!new,==) {
-    function Length(): Int32
-    ghost function StringRep(): string
     ghost predicate {:extern} Contains(needle: CsString)
     lemma {:axiom} ContainsTransitive(other: CsString, needle: CsString)
       requires Contains(other) && other.Contains(needle)
@@ -24,8 +18,6 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
   }
   class {:extern "String"} {:compile false} String {
     static function Concat(s1: CsString, s2: CsString): (r: CsString)
-      ensures GEq(r.Length(), s1.Length())
-      ensures GEq(r.Length(), s2.Length())
       ensures r.Contains(s1)
       ensures r.Contains(s2)
   }

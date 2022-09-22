@@ -1665,6 +1665,33 @@ function test(a: int, b: int, c: int): int
     }
 
     [Fact]
+    public void FormatterWorksForCommentBeforeElse() {
+      FormatterWorksFor(@"
+function test(i: int): int {
+  if true then
+    Class.StaticMethod(argument)
+  // Otherwise, we are good.
+  else
+    0
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForElseWithComplexContent() {
+      FormatterWorksFor(@"
+function Test(value: string): bool {
+  if value == """" then Constructor(arg)
+  else if value == ""1"" then Constructor1(arg)
+  else match Search(value) {
+         case None => Constructor(1)
+         case Some(ctxVal) => None
+       }
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
