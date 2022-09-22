@@ -6,6 +6,12 @@ on:
     # which happens to work well because we do that well after first publishing
     # to NuGet. That gives at least 10 or 15 minutes for the newly published versions
     # of these packages to be available for download here.
+    #
+    # Unfortunately that also means this doesn't trigger on the nightly build release,
+    # since that ends up updating an existing "nightly-..." release rather than creating a new one.
+    # For now that's a good thing since these jobs only test the latest actual released version,
+    # but ideally we'd fix both of those issues so that we test the fully NuGet publishing
+    # workflow in the nightly build.
     types: [ published ]
   # For manual testing through the Actions UI
   workflow_dispatch:
