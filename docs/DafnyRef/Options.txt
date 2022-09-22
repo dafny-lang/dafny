@@ -387,7 +387,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
       BigIntegers (aka int), most higher order functions, and advanced
       features like traits or co-inductive types.
   /compileVerbose:<value>
-      
       0 - Don't print status of compilation to the console.
       1 (default) - Print information such as files being written by the
           compiler to the console.
