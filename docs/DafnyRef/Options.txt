@@ -31,7 +31,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Plugins ---------------------------------------------------------------
   
-  /plugin:<file[,argument]*>
+  /plugin:<path-to-one-assembly[,argument]*>
       
       (experimental) One path to an assembly that contains at least one
       instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
