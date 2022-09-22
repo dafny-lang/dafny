@@ -37,8 +37,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
       instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
       It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
       receive arguments. More information about what plugins do and how
-      define them:
-
+      to define them:
+      
       https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
   ---- Overall reporting and printing ----------------------------------------
   
@@ -58,6 +58,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
       1 - show a source code snippet for each Dafny message
   /stats
       Print interesting statistics about the Dafny files supplied.
+  
   /printIncludes:<None|Immediate|Transitive>
       None (default) - Print nothing.
       Immediate - Print files included by files listed on the command line.
