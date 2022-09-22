@@ -1464,13 +1464,13 @@ method test() {
   calc {
     mult(mult(a, b), c)(i)(j);
   == {
-      forall k: Index
-        ensures Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j)
-                ==
-                Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j))
-      {
-      }
-    }
+       forall k: Index
+         ensures Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j)
+                 ==
+                 Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j))
+       {
+       }
+     }
     Sum((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
   }
 }
@@ -1687,6 +1687,28 @@ function Test(value: string): bool {
          case None => Constructor(1)
          case Some(ctxVal) => None
        }
+}
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForAligningHints() {
+      FormatterWorksFor(@"
+method Test(x: int, y: int)
+  requires xy: x > 0
+  requires y0: y == 0
+{
+  calc {
+    x + 1 - y > -2;
+  ==   // Reordering terms
+    x > y - 3;
+  <==  { assert 3 > 0; }
+    x > y;
+  <==> { reveal y0; }
+    x > 0;
+       { reveal xy; }
+    true;
+  }
 }
 ");
     }

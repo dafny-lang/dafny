@@ -1215,6 +1215,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var inCalc = false;
     var first = true;
     var innerCalcIndent = indent + SpaceTab;
+    var extraHintIndent = 0;
     // First phase: We get the alignment
     foreach (var token in calcStmt.OwnedTokens) {
       if (SetIndentLabelTokens(token, indent)) {
@@ -1235,10 +1236,16 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
               if (!IsFollowedByNewline(token) &&
                   (token.val != "==" || token.Next.val != "#") &&
                   token.val != "#" &&
-                  token.val != "[" &&
-                  token.Next.val != "{") {
-                SetIndentations(token, sameLineBefore: indent);
-                innerCalcIndent = Math.Max(innerCalcIndent, GetRightAlignIndentAfter(token, indent));
+                  token.val != "[") {
+                if (token.Next.val != "{") {
+                  SetIndentations(token, sameLineBefore: indent);
+                  innerCalcIndent = Math.Max(innerCalcIndent, GetRightAlignIndentAfter(token, indent));
+                } else {// It's an hint! If there is no comment and no newline between them, we align the hints as well.
+                  if ((token.TrailingTrivia + token.Next.LeadingTrivia).Trim() == "" &&
+                      token.line == token.Next.line) {
+                    extraHintIndent = Math.Max(extraHintIndent, GetRightAlignIndentAfter(token, indent) - (indent + SpaceTab));
+                  }
+                }
               }
             }
 
@@ -1281,7 +1288,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       // This block
       if (hint.Tok.pos != hint.EndTok.pos) {
         foreach (var hintStep in hint.Body) {
-          SetOpeningIndentedRegion(hintStep.StartToken, indent + SpaceTab);
+          SetOpeningIndentedRegion(hintStep.StartToken, indent + SpaceTab + extraHintIndent);
         }
       }
     }
