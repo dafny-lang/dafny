@@ -135,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        library-name: [ DafnyPipeline, DafnyLanguageServer, DafnyRuntime ]
+        library-name: [ DafnyPipeline, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
         include:
