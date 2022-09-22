@@ -25,7 +25,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Input configuration ---------------------------------------------------
   
   /dprelude:<file>
-      Choose the Dafny prelude file
+      Choose the Dafny prelude file.
   /stdin
       Read standard input and treat it as an input .dfy file.
   
@@ -38,7 +38,7 @@ Usage: Dafny [ option ... ] [ filename ... ]
       can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
       receive arguments. More information about what plugins do and how
       to define them:
-      
+
       https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
   ---- Overall reporting and printing ----------------------------------------
   
