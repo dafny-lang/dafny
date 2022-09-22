@@ -86,9 +86,9 @@ public class ExpectContracts : IRewriter {
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
-    var tok = decl.tok; // TODO: would this be less confusing as an internal token?
+    var tok = decl.tok;
 
-    var newName = decl.Name + "_checked";
+    var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
     if (decl is Method origMethod) {
@@ -140,7 +140,7 @@ public class ExpectContracts : IRewriter {
 
       wrappedDeclarations.Add(decl, newDecl);
       parent.Members.Add(newDecl);
-      callRedirector.AddFullName(newDecl, decl.FullName + "_checked");
+      callRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
     }
   }
 
@@ -213,10 +213,8 @@ public class ExpectContracts : IRewriter {
       if (expr is FunctionCallExpr fce) {
         var f = fce.Function;
         var targetName = f.Name;
-        //Console.WriteLine($"Function call to {targetName}");
         if (ShouldCallWrapper(decl, f)) {
           var newTarget = newRedirections[f];
-          //Console.WriteLine($"Call (expression) to {f.FullName} redirecting to {newTarget.FullName}");
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
           resolved.Name = newTarget.Name;
@@ -231,10 +229,8 @@ public class ExpectContracts : IRewriter {
       if (stmt is CallStmt cs) {
         var m = cs.Method;
         var targetName = m.Name;
-        //Console.WriteLine($"Method call to {m.FullName}");
         if (ShouldCallWrapper(decl, m)) {
           var newTarget = newRedirections[m];
-          //Console.WriteLine($"Call (statement) to {m.FullName} redirecting to {newTarget.FullName}");
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
           resolved.MemberName = newTarget.Name;
@@ -253,7 +249,6 @@ public class ExpectContracts : IRewriter {
       // existed prior to processing by CompilationCloner).
       foreach (var decl in topLevelDecl.Members) {
         var noCompileName = decl.FullName.Replace("_Compile", "");
-        //Console.WriteLine(($"Adding {noCompileName}"));
         newDeclarationsByName.Add(noCompileName, decl);
       }
     }
@@ -261,7 +256,6 @@ public class ExpectContracts : IRewriter {
     foreach (var (caller, callee) in wrappedDeclarations) {
       var callerFullName = caller.FullName;
       var calleeFullName = callRedirector.newFullNames[callee];
-      //Console.WriteLine($"Looking up {caller.FullName} -> {calleeFullName}");
       if (newDeclarationsByName.ContainsKey(callerFullName) &&
           newDeclarationsByName.ContainsKey(calleeFullName)) {
         var callerDecl = newDeclarationsByName[caller.FullName];
@@ -275,7 +269,6 @@ public class ExpectContracts : IRewriter {
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
-          //Console.WriteLine($"Visiting {decl.FullName}");
           callRedirector.Visit(callable, decl);
         }
       }
