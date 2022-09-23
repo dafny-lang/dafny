@@ -9387,9 +9387,10 @@ namespace Microsoft.Dafny {
               return false;
             } else if (type is UserDefinedType uty) {
               if (uty.IsTypeParameter) {
-                // This case is delicate
+                // Leads to numerous failure to turn to true
                 return false;
               } else if (uty.IsOpaqueType) {
+                // Not right? For example, what about module refinement?
                 return false;
               } else if (uty.IsArrowType) {
                 // AsArrowType changes read and partial information
@@ -9413,8 +9414,10 @@ namespace Microsoft.Dafny {
                 }
                 return false;
               } else if (uty.IsTraitType) {
+                // Not right
                 return false;
               } else if (uty.IsRefType) {
+                // Not right
                 return false;
               } else {
                 return false;
@@ -9425,9 +9428,27 @@ namespace Microsoft.Dafny {
             }
           }
 
+          bool FindDanger(string name, Type ty) {
+            // In general we also need to pay attention to subtyping and type arguments of user defined types
+            if (ty is UserDefinedType uty) {
+              if (uty.Name == name) {
+                return true;
+              }
+            }
+
+            return false;
+          }
+
           // The following code is used to collect Data
           if (member is ConstantField) {
-            // var ty = ((Field)member).Type;
+            var ty = ((Field)member).Type;
+            if (ty.IsArrowType) {
+              var name = member.EnclosingClass.Name;
+              var search = ty.AsArrowType.TypeArgs[0];
+              if (FindDanger(name, search)) {
+                reporter.Error(MessageSource.Resolver, member.tok, "Danger 1");
+              }
+            }
             // if (ty != null) {
             //   if (!ty.IsArrowTypeWithoutReadEffects) {
             //     Contract.Assert(false);
@@ -9438,7 +9459,7 @@ namespace Microsoft.Dafny {
             var ty = ((Field)member).Type;
             // Forbid arrow type that has read effects
             if (LookForDanger(ty)) {
-              reporter.Error(MessageSource.Resolver, member.tok, "Danger");
+              reporter.Error(MessageSource.Resolver, member.tok, "Danger 2");
             }
             // Warning: the type could contain arrow types, not be closed
           }
