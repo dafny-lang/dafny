@@ -135,7 +135,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        library-name: [ DafnyPipeline, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
+        # Hopefully we can automatically populate this list in the future,
+        # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
+        library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
         include:
