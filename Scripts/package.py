@@ -137,7 +137,6 @@ class Release:
             remaining -= 1
             exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
                 "--nologo",
-                "-f", "net6.0",
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
