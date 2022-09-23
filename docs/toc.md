@@ -15,7 +15,7 @@ layout: page
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
-This site contains links to Dafny documentation.
+This page contains links to Dafny documentation.
 
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
 
