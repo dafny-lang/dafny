@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Diagnostics.Tracing;
 using System.IO;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -9371,6 +9372,77 @@ namespace Microsoft.Dafny {
             // even if we don't detect this cycle.
             ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
           }
+
+          bool LookForDanger(Type type) {
+            if (type is BasicType bty) {
+              // Covers Bool, Char, Int, Real, BigOrdinal, Bitvector, EverIncreasing
+              return false;
+            } else if (type is CollectionType cty) {
+              // Covers Map, MultiSet, Seq, Set (what about Arrays?)
+              foreach (var t in cty.TypeArgs) {
+                if (LookForDanger(t)) {
+                  return true;
+                }
+              }
+              return false;
+            } else if (type is UserDefinedType uty) {
+              if (uty.IsTypeParameter) {
+                // This case is delicate
+                return false;
+              } else if (uty.IsOpaqueType) {
+                return false;
+              } else if (uty.IsArrowType) {
+                // AsArrowType changes read and partial information
+                //var uaty = uty.AsArrowType;
+                if (!uty.IsArrowTypeWithoutReadEffects) {
+                  return true;
+                } else {
+                  foreach (var t in uty.TypeArgs) {
+                    if (LookForDanger(t)) {
+                      return true;
+                    }
+                  }
+                  return false;
+                }
+              } else if (uty.IsIndDatatype) {
+                // Covers tuples
+                foreach (var targ in uty.TypeArgs) {
+                  if (LookForDanger(targ)) {
+                    return true;
+                  }
+                }
+                return false;
+              } else if (uty.IsTraitType) {
+                return false;
+              } else if (uty.IsRefType) {
+                return false;
+              } else {
+                return false;
+              }
+            } else {
+              // We're not being conservative on purpose, for now
+              return false;
+            }
+          }
+
+          // The following code is used to collect Data
+          if (member is ConstantField) {
+            // var ty = ((Field)member).Type;
+            // if (ty != null) {
+            //   if (!ty.IsArrowTypeWithoutReadEffects) {
+            //     Contract.Assert(false);
+            //   }
+            // }
+          } else {
+            // Mutable fields do not have initializers and must have a declared type
+            var ty = ((Field)member).Type;
+            // Forbid arrow type that has read effects
+            if (LookForDanger(ty)) {
+              reporter.Error(MessageSource.Resolver, member.tok, "Danger");
+            }
+            // Warning: the type could contain arrow types, not be closed
+          }
+
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
