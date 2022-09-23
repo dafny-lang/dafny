@@ -9735,6 +9735,9 @@ namespace Microsoft.Dafny {
           dependencies.AddVertex(idt);
           foreach (Formal p in ctor.Formals) {
             AddDatatypeDependencyEdge(idt, p.Type, dependencies);
+            foreach (Type t in p.Type.TypeArgs) {
+              AddDatatypeDependencyEdge(idt, t, dependencies);
+            }
           }
         } else {
           // The dependencies of interest among codatatypes are just the top-level types of parameters.
@@ -9953,7 +9956,7 @@ namespace Microsoft.Dafny {
               (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
               arg.Type.IsCoDatatype ||
               arg.Type.IsArrowType ||
-              arg.Type.IsOpaqueType) {
+              (arg.Type.IsOpaqueType && !arg.Type.SupportsEquality)) {
             return toplevel;
           }
 
@@ -9961,7 +9964,7 @@ namespace Microsoft.Dafny {
             var anotherIndDt_arg = type.AsIndDatatype;
             if (type.IsCoDatatype ||
                 type.IsArrowType ||
-                type.IsOpaqueType ||
+                (type.IsOpaqueType && !arg.Type.SupportsEquality) ||
                 (anotherIndDt_arg != null && anotherIndDt_arg.EqualitySupport == IndDatatypeDecl.ES.Never)) {
               return toplevel;
             }
