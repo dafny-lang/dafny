@@ -1,3 +1,6 @@
+---
+layout: page
+---
 <link rel="stylesheet" href="../assets/main.css">
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
