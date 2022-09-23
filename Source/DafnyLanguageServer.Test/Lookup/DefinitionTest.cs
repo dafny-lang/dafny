@@ -29,16 +29,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var source = @"
 method HasLoop() {
   var x := 1;
-  while(true) {
+  [|while|](true) {
     if (x > 2) {
-      break;
+      br$$eak;
     }
     x := x + 1;
   }
 }
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      MarkupTestFile.GetPositionAndSpan(source, out var cleanSource, out var requestPosition, out var resultSpan);
+      var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var whileReference = (await RequestDefinition(documentItem, (4, 8)).AsTask()).Single();
       Assert.AreEqual(new Range((2, 2), (2, 7)), whileReference.Location!.Range);
