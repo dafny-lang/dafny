@@ -216,6 +216,11 @@ namespace Microsoft.Dafny.LanguageServer
         public static void GetSpans(string input, out string output, out IDictionary<string, ImmutableArray<TextSpan>> spans)
             => GetIndexAndSpans(input, out output, out var cursorPositionOpt, out spans);
 
+        public static void GetPositionAndRange(string input, out string output, out Position position, out Range range) {
+          GetPositionAndRanges(input, out output, out position, out var resultRanges);
+          range = resultRanges.Single();
+        }
+
         public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges)
         {
           GetIndexAndSpans(input, out output, out int index, out ImmutableArray<TextSpan> spans);

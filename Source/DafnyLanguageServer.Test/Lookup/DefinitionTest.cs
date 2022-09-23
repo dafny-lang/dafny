@@ -38,11 +38,11 @@ method HasLoop() {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionAndSpan(source, out var cleanSource, out var requestPosition, out var resultSpan);
+      MarkupTestFile.GetPositionAndRange(source, out var cleanSource, out var requestPosition, out var resultRange);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var whileReference = (await RequestDefinition(documentItem, (4, 8)).AsTask()).Single();
-      Assert.AreEqual(new Range((2, 2), (2, 7)), whileReference.Location!.Range);
+      var whileReference = (await RequestDefinition(documentItem, requestPosition).AsTask()).Single();
+      Assert.AreEqual(resultRange, whileReference.Location!.Range);
     }
 
     [TestMethod]
@@ -71,6 +71,7 @@ datatype Result<T, E> = Ok(value: T) | Err(error: E) {
 
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      MarkupTestFile.GetPositionAndRange(source, out var cleanSource, out var requestPosition, out var resultRange);
       var noneCreation = (await RequestDefinition(documentItem, (4, 19)).AsTask()).Single();
       Assert.AreEqual(new Range((0, 22), (0, 26)), noneCreation.Location.Range);
 
