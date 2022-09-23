@@ -9935,19 +9935,14 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    // 0 is false, 1 is true toplevel, 2 is true dependency
-    int CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, int fuel, int toplevel) {
-
-      if (fuel <= 0) {
-        Contract.Assert(false);
-      }
+    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
 
       var scc = dependencies.GetSCC(dt);
 
       foreach (var ctor in dt.Ctors) {
 
         if (ctor.IsGhost) {
-          return toplevel;
+          return true;
         }
 
         foreach (var arg in ctor.Formals) {
@@ -9957,32 +9952,31 @@ namespace Microsoft.Dafny {
               arg.Type.IsCoDatatype ||
               arg.Type.IsArrowType ||
               (arg.Type.IsOpaqueType && !arg.Type.SupportsEquality)) {
-            return toplevel;
+            return true;
+          }
+
+          if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
+            CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies);
           }
 
           foreach (var type in arg.Type.TypeArgs) {
             var anotherIndDt_arg = type.AsIndDatatype;
-            if (type.IsCoDatatype ||
+            if ((anotherIndDt_arg != null && anotherIndDt_arg.EqualitySupport == IndDatatypeDecl.ES.Never) ||
+                type.IsCoDatatype ||
                 type.IsArrowType ||
-                (type.IsOpaqueType && !arg.Type.SupportsEquality) ||
-                (anotherIndDt_arg != null && anotherIndDt_arg.EqualitySupport == IndDatatypeDecl.ES.Never)) {
-              return toplevel;
-            }
-
-            // The tests are in this order for a reason, we need to do a BFS at the toplevel
-            if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
-              CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies, fuel - 1, 2);
+                (type.IsOpaqueType && !arg.Type.SupportsEquality)) {
+              return true;
             }
 
             if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
-              CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies, fuel - 1, 2);
+              CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies);
             }
 
           }
         }
       }
 
-      return 0;
+      return false;
 
     }
 
@@ -9999,17 +9993,11 @@ namespace Microsoft.Dafny {
       }
 
       // Look for conditions that make the whole SCC incapable of providing the equality operation:
-      //   * a datatype in the SCC has a ghost constructor
-      //   * a parameter of an inductive datatype in the SCC is ghost
-      //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
-        var res = CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies, 10, 1);
-        if (res == 1) {
+        if (CheckIfEqualityIsDefinitelyNotSupported(dt, dependencies)) {
           MarkSCCAsNotSupportingEquality();
           return;
-        } else if (res == 2) {
-          MarkSCCAsNotSupportingEquality();
         }
       }
 
