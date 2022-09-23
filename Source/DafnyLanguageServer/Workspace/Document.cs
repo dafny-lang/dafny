@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Threading;
 using IntervalTree;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
@@ -140,10 +141,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class DocumentTextBuffer {
     public TextDocumentItem TextDocumentItem { get; }
-    private TextBuffer Buffer { get; }
+    public TextBuffer Buffer { get; }
     public DocumentTextBuffer(TextDocumentItem documentItem) {
       TextDocumentItem = documentItem;
       Buffer = new TextBuffer(documentItem.Text);
+    }
+    
+    public Position FromIndex(int index) {
+      return Buffer.FromIndex(index);
+    }
+    
+    public int ToIndex(Position position) {
+      return Buffer.ToIndex(position);
     }
 
     public static implicit operator TextDocumentItem(DocumentTextBuffer buffer) => buffer.TextDocumentItem;
@@ -157,33 +166,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
   
   public class TextBuffer {
-    private readonly string text;
-    
+    public string Text { get; }
+
     private readonly IIntervalTree<int, BufferLine> indexToLine = new IntervalTree<int, BufferLine>();
     public readonly IReadOnlyList<BufferLine> Lines;
 
     public TextBuffer(string text) {
-      this.text = text;
+      this.Text = text;
       
-      var lineInfos = new List<BufferLine>();
+      var lines = new List<BufferLine>();
       var startIndex = 0;
       for (var index = 0; index < text.Length; index++) {
         if (text[index] == '\n') {
-          lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, index));
+          lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 1;
         }
         if (text.Substring(index, 2) == "\r\n") {
-          lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, index));
+          lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 2;
         }
       }
-      lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, text.Length));
+      lines.Add(new BufferLine(lines.Count, startIndex, text.Length));
 
-      foreach (var lineInfo in lineInfos) {
+      foreach (var lineInfo in lines) {
         indexToLine.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
       }
 
-      this.Lines = lineInfos;
+      Lines = lines;
     }
 
     public Position FromIndex(int index) {
@@ -193,6 +202,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     
     public int ToIndex(Position position) {
       return Lines[position.Line].StartIndex + position.Character;
+    }
+
+    public TextBuffer ApplyTextChange(TextDocumentContentChangeEvent change) {
+      if (change.Range == null) {
+        // https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/#textDocumentContentChangeEvent
+        return new TextBuffer(change.Text);
+      }
+
+      int absoluteStart = ToIndex(change.Range.Start);
+      int absoluteEnd = ToIndex(change.Range.End);
+      return new TextBuffer(Text[..absoluteStart] + change.Text + Text[absoluteEnd..]);
     }
   }
 }
