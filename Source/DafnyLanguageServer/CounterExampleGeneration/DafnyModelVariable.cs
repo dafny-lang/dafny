@@ -1,15 +1,15 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
+#nullable disable
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
-using Microsoft.Dafny;
-using MapType = Microsoft.Dafny.MapType;
 
-namespace DafnyServer.CounterexampleGeneration {
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
   /// <summary>
   /// A static class for generating instance of DafnyModelvariable and its
