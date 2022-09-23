@@ -8,11 +8,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class TextChangeProcessor : ITextChangeProcessor {
     public DocumentTextBuffer ApplyChange(DocumentTextBuffer originalTextDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var newText = ApplyTextChanges(originalTextDocument.Text, originalTextDocument.NumberOfLines, documentChange.ContentChanges, out var newNumberOfLines, cancellationToken);
-      return originalTextDocument with {
+      return new DocumentTextBuffer(new TextDocumentItem() {
         Version = documentChange.TextDocument.Version,
-        Text = newText,
-        NumberOfLines = newNumberOfLines
-      };
+        Text = newText
+      });
     }
 
     private static string ApplyTextChanges(string originalText, int originalLines, Container<TextDocumentContentChangeEvent> changes, out int numberOfLines, CancellationToken cancellationToken) {

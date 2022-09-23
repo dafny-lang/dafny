@@ -4,7 +4,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using IntervalTree;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -136,14 +138,61 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 
-  public record DocumentTextBuffer(int NumberOfLines) : TextDocumentItem {
-    public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
-      return new DocumentTextBuffer(TextChangeProcessor.ComputeNumberOfLines(textDocumentItem.Text)) {
-        Text = textDocumentItem.Text,
-        Uri = textDocumentItem.Uri,
-        Version = textDocumentItem.Version,
-        LanguageId = textDocumentItem.LanguageId
-      };
+  public class DocumentTextBuffer {
+    public TextDocumentItem TextDocumentItem { get; }
+    private TextBuffer Buffer { get; }
+    public DocumentTextBuffer(TextDocumentItem documentItem) {
+      TextDocumentItem = documentItem;
+      Buffer = new TextBuffer(documentItem.Text);
+    }
+
+    public static implicit operator TextDocumentItem(DocumentTextBuffer buffer) => buffer.TextDocumentItem;
+    public string Text => TextDocumentItem.Text;
+    public DocumentUri Uri => TextDocumentItem.Uri;
+    public int? Version => TextDocumentItem.Version;
+
+    public int NumberOfLines => Buffer.Lines.Count;
+  }
+
+  public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
+  
+  public class TextBuffer {
+    private readonly string text;
+    
+    private readonly IIntervalTree<int, BufferLine> indexToLine = new IntervalTree<int, BufferLine>();
+    public readonly IReadOnlyList<BufferLine> Lines;
+
+    public TextBuffer(string text) {
+      this.text = text;
+      
+      var lineInfos = new List<BufferLine>();
+      var startIndex = 0;
+      for (var index = 0; index < text.Length; index++) {
+        if (text[index] == '\n') {
+          lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, index));
+          startIndex = index + 1;
+        }
+        if (text.Substring(index, 2) == "\r\n") {
+          lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, index));
+          startIndex = index + 2;
+        }
+      }
+      lineInfos.Add(new BufferLine(lineInfos.Count, startIndex, text.Length));
+
+      foreach (var lineInfo in lineInfos) {
+        indexToLine.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
+      }
+
+      this.Lines = lineInfos;
+    }
+
+    public Position FromIndex(int index) {
+      var line = indexToLine.Query(index).Single();
+      return new Position(line.LineNumber, index - line.StartIndex);
+    }
+    
+    public int ToIndex(Position position) {
+      return Lines[position.Line].StartIndex + position.Character;
     }
   }
 }

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -215,10 +216,13 @@ namespace Microsoft.Dafny.LanguageServer
         public static void GetSpans(string input, out string output, out IDictionary<string, ImmutableArray<TextSpan>> spans)
             => GetIndexAndSpans(input, out output, out var cursorPositionOpt, out spans);
 
-        public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> spans)
+        public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges)
         {
-          GetIndexAndSpans(input, out output, out var index, out var spans);
-          cursorPosition = pos.Value;
+          GetIndexAndSpans(input, out output, out int index, out ImmutableArray<TextSpan> spans);
+          var buffer = new TextBuffer(input);
+          cursorPosition = buffer.FromIndex(index);
+          ranges = spans.Select(span => new Range(buffer.FromIndex(span.Start), buffer.FromIndex(span.End)))
+            .ToImmutableArray();
         }
         
         public static void GetIndexAndSpans(string input, out string output, out int cursorPosition, out ImmutableArray<TextSpan> spans)
