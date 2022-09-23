@@ -1,5 +1,5 @@
 <p></p>
-<link rel="stylesheet" href="assets/main.css">
+<link rel="stylesheet" href="style.css">
 
 # Dafny Quick Reference
 
