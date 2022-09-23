@@ -2233,8 +2233,10 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ta in typeParams) {
         var tp = ta.Formal;
         if (NeedsTypeDescriptor(tp)) {
-          wr.Write($"{prefix}{formatter(tp)}");
+          var formatted = formatter(tp);
+          wr.Write($"{prefix}{formatted}");
           prefix = ", ";
+
           c++;
         }
       }

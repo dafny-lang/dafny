@@ -1766,12 +1766,18 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine("return theDefault;");
       } else {
         wr.Write($"public static{justTypeArgs} {DtT_protected} Default(");
+        var typeParameters = Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}");
+        wr.Write(typeParameters);
+        var w = wr.NewBlock(")");
         var sep = "";
         var typeArguments = TypeArgumentInstantiation.ListFromFormals(dt.TypeArgs);
-        WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArguments, dt, null, false), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
-        var typeParameters = Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}");
-        wr.Write(typeParameters != "" ? sep + typeParameters : "");
-        var w = wr.NewBlock(")");
+        WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArguments, dt, null, false), w, ref sep,
+          tp => {
+            sep = "";
+            return
+              $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)} = ({DafnyTypeDescriptor}<{tp.CompileName}>)dafny.TypeDescriptor.OBJECT;\n    ";
+          });
+
         w.Write("return ");
         wDefault = w.Fork();
         w.WriteLine(";");
