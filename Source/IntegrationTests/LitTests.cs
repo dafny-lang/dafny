@@ -20,7 +20,7 @@ namespace IntegrationTests {
     // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
     private const bool InvokeMainMethodsDirectly = false;
 
-    private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+    private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 

@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
       } else if (options.Files.Count == 0) {
-        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified.");
+        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
@@ -513,7 +513,7 @@ namespace Microsoft.Dafny {
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
           WriteModuleStats(Console.Out, moduleStats);
-          if ((DafnyOptions.O.EmitBinary && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
+          if ((DafnyOptions.O.EmitBinary && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceEmitBinary) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
@@ -521,8 +521,8 @@ namespace Microsoft.Dafny {
           break;
         case PipelineOutcome.Done:
           WriteModuleStats(Console.Out, moduleStats);
-          if (DafnyOptions.O.ForceCompile || 3 <= DafnyOptions.O.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceCompile);
+          if (DafnyOptions.O.ForceEmitBinary || 3 <= DafnyOptions.O.SpillTargetCode) {
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceEmitBinary);
           }
           break;
         default:
