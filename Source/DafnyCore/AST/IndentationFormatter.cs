@@ -1581,6 +1581,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var afterSemicolonIndent = indent;
     var hadGhost = false;
     var assignOpIndent = noLHS ? indent : indent + SpaceTab;
+    var isAmpVar = false;
+    var ampVarIndent = indent;
     foreach (var token in ownedTokens) {
       if (SetIndentLabelTokens(token, indent)) {
         continue;
@@ -1593,6 +1595,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case "var": {
+            if (token.Prev.val == "&&") {
+              isAmpVar = true;
+              ampVarIndent = GetNewTokenVisualIndent(token.Prev, indent);
+            }
             if (!hadGhost) {
               afterSemicolonIndent = GetNewTokenVisualIndent(token, indent);
             }
@@ -1622,7 +1628,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           break;
         case ";":
           SetIndentations(token, afterSemicolonIndent + SpaceTab,
-            afterSemicolonIndent + SpaceTab, afterSemicolonIndent);
+            afterSemicolonIndent + SpaceTab,
+            isAmpVar ? ampVarIndent :
+            afterSemicolonIndent);
           break;
           // Otherwise, these are identifiers, We don't need to specify their indentation.
       }

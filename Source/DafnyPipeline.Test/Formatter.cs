@@ -1714,6 +1714,20 @@ method Test(x: int, y: int)
     }
 
     [Fact]
+    public void FormatterWorksForAlignedAmpVar() {
+      FormatterWorksFor(@"
+method Test()
+  ensures
+    && P()
+    && var x := 7;
+    && var y := x;
+    && F(x, y)
+{
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
