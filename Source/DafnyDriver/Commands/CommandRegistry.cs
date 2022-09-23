@@ -70,8 +70,7 @@ static class CommandRegistry {
     string optionFailure = null;
     var dafnyOptions = new DafnyOptions();
     var optionValues = new Dictionary<IOptionSpec, object>();
-    var optionLessValues = new List<string>();
-    var options = new Options(optionLessValues, optionValues);
+    var options = new Options(optionValues);
     dafnyOptions.Options = options;
     var filesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
     filesArgument.AddValidator(r => {
@@ -111,15 +110,16 @@ static class CommandRegistry {
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
       foreach (var option in command.Options) {
-        if (context.ParseResult.HasOption(option)) {
-          var optionSpec = optionToSpec[option];
-          var value = context.ParseResult.GetValueForOption(option);
-          options.OptionArguments[optionSpec] = value;
-          var failure = optionSpec.PostProcess(dafnyOptions);
-          if (failure != null) {
-            optionFailure = failure;
-            break;
-          }
+        if (!context.ParseResult.HasOption(option)) {
+          continue;
+        }
+
+        var optionSpec = optionToSpec[option];
+        var value = context.ParseResult.GetValueForOption(option);
+        options.OptionArguments[optionSpec] = value;
+        optionFailure ??= optionSpec.PostProcess(dafnyOptions);
+        if (optionFailure != null) {
+          break;
         }
       }
 

@@ -1,9 +1,9 @@
 // RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %baredafny run --noVerify -t=cs %args "%s" >> "%t"
-// RUN: %baredafny run --noVerify -t=js %args "%s" >> "%t"
-// RUN: %baredafny run --noVerify -t=go %args "%s" >> "%t"
-// RUN: %baredafny run --noVerify -t=java %args "%s" >> "%t"
-// RUN: %baredafny run --noVerify -t=py %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=cs %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=js %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=go %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=java %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=py %args "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

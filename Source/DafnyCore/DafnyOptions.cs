@@ -15,7 +15,7 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public record Options(List<string> FreeArguments, IDictionary<IOptionSpec, object> OptionArguments);
+  public record Options(IDictionary<IOptionSpec, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
     public void AddFile(string file) => base.AddFile(file, null);
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Options Options { get; set; } = new(new(), new Dictionary<IOptionSpec, object>());
+    public Options Options { get; set; } = new(new Dictionary<IOptionSpec, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
