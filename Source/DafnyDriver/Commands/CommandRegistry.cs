@@ -129,6 +129,7 @@ static class CommandRegistry {
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       commandSpec.PostProcess(dafnyOptions, options);
+
     }
 
     var exitCode = rootCommand.InvokeAsync(arguments).Result;

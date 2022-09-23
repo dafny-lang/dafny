@@ -22,7 +22,7 @@ public interface IOptionSpec {
   string PostProcess(DafnyOptions options);
 
   public static string GenerateHelp(string template, IEnumerable<IOptionSpec> options, bool oldStyle = false) {
-    var regex = new Regex(@"----\s([^-]+)\s-+(?:\r\n|\r|\n)\ *(?:\r\n|\r|\n)");
+    var regex = new Regex(@"---- ([^-]+) -+\r?\n *\r?\n");
     var categories = regex.Matches(template).ToArray();
 
     var optionsByCategory = options.GroupBy(option => option.Category).
@@ -45,7 +45,7 @@ public interface IOptionSpec {
         var optionHelpHeader = $"  {prefix}{option.LongName}{suffix}<{(option.ArgumentName ?? "value")}>";
         var linePrefix = "\n      ";
         var optionHelp = optionHelpHeader + linePrefix + string.Join(linePrefix, option.Description.Split("\n")) + "\n";
-        output.Append(optionHelp);
+        output.AppendLine(optionHelp);
       }
     }
     output.Append(template.Substring(outputIndex));
@@ -60,7 +60,7 @@ public abstract class CommandLineOption<T> : IOptionSpec {
   }
 
   protected void InvalidArgumentError(string name, Boogie.CommandLineParseState ps) {
-    ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
+    ps.Error($"Invalid argument to option {name}: {ps.args[ps.i]}");
   }
 
   public T Get(Options options) {
