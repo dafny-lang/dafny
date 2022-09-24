@@ -78,7 +78,7 @@ ExportResolve.dfy(254,44): Error: member 'N' has not been imported in this scope
 ExportResolve.dfy(256,15): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(256,22): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(256,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(258,13): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(258,19): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(273,15): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(273,28): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(273,41): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
@@ -93,7 +93,7 @@ ExportResolve.dfy(288,28): Error: member 'More?' has not been imported in this s
 ExportResolve.dfy(288,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(290,18): Error: type of corresponding source/RHS (G.Trait) does not match type of bound variable (object?)
 ExportResolve.dfy(290,46): Error: type of corresponding source/RHS (G.Klass) does not match type of bound variable (object?)
-ExportResolve.dfy(298,13): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(298,19): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(342,15): Error: unresolved identifier: reveal_OpaqueFunction
 ExportResolve.dfy(342,29): Error: expression has no reveal lemma
 ExportResolve.dfy(414,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here

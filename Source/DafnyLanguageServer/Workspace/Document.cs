@@ -6,8 +6,8 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState() {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(TextDocumentItem)));
@@ -83,13 +83,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      SymbolTable symbolTable,
+      SymbolTable? newSymbolTable,
+      SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, signatureAndCompletionTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;
