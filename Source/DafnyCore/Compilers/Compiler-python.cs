@@ -277,14 +277,14 @@ namespace Microsoft.Dafny.Compilers {
 
       if (dt is CoDatatypeDecl) {
         var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
-        w.NewBlockPy("def __init__(self, c):")
-          .WriteLine("self.c = c")
-          .WriteLine("self.d = None");
+        w.NewBlockPy("def __init__(self, _c):")
+          .WriteLine("self._c = _c")
+          .WriteLine("self._d = None");
         var get = w.NewBlockPy($"def _get(self):");
-        get.NewBlockPy("if self.c is not None:")
-          .WriteLine("self.d = self.c()")
-          .WriteLine("self.c = None");
-        get.WriteLine("return self.d");
+        get.NewBlockPy("if self._c is not None:")
+          .WriteLine("self._d = self._c()")
+          .WriteLine("self._c = None");
+        get.WriteLine("return self._d");
         w.NewBlockPy("def __dafnystr__(self) -> str:")
           .WriteLine($"return {DafnyRuntimeModule}.string_of(self._get())");
         foreach (var destructor in from ctor in dt.Ctors
@@ -371,6 +371,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         block.Write(TypeInitializationValue(udt, wr, d.tok, false, false));
       }
+      block.WriteLine();
       return cw;
     }
 
@@ -1174,7 +1175,8 @@ namespace Microsoft.Dafny.Compilers {
               var sep = "(";
               EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
               if (customReceiver) {
-                w.Write(sep + "self");
+                w.Write(sep);
+                obj(w);
                 sep = ", ";
               }
               if (sep != "(") {
