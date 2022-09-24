@@ -10,7 +10,7 @@ let _dafny = (function() {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
-    } else if (a._tname !== undefined) {
+    } else if (a._tname !== undefined || (Array.isArray(a) && a.constructor.name == "Array")) {
       return a === b;  // pointer equality
     } else {
       return a.equals(b);  // value-type equality
