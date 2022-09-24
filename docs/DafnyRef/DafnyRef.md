@@ -3,6 +3,7 @@ layout: default
 ---
 <link rel="stylesheet" href="../assets/main.css">
 <link rel="icon" href="../images/dafny-favicon.ico">
+<link rel="icon" href="../images/dafny-favicon.png" type="image/png">
 <link rel="icon" href="../images/dafny-favicon.svg" type="image/svg+xml">
 
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
