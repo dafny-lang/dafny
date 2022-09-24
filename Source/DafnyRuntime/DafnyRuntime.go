@@ -469,7 +469,7 @@ func SeqOfString(str string) Seq {
 }
 
 func (seq Seq) SetString() Seq {
-        return Seq{seq.contents, true}
+  return Seq{seq.contents, true}
 }
 
 // Index finds the sequence element at the given index.
@@ -622,7 +622,6 @@ func newArray(dims ...Int) *Array {
   intDims := make([]int, len(dims))
   size := 1
   for d := len(dims) - 1; d >= 0; d-- {
-    //    sizes[d] = size
     intDims[d] = dims[d].Int()
     size *= intDims[d]
   }
@@ -738,15 +737,15 @@ func (array *Array) RangeToSeq(lo, hi Int) Seq {
   if len(array.dims) != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
-        isString := false;
-        if len(array.contents) > 0 {
-            _, isString = array.contents[0].(Char)
-        }
+  isString := false;
+  if len(array.contents()) > 0 {
+    _, isString = array.contents()[0].(Char)
+  }
 
   // TODO Should set isString to true if this is an array of characters
   // Do not know if it is an array of characters if the array is empty
   seq := SeqOf(array.contents...)
-        seq.isString = isString
+  seq.isString = isString
 
   return seq.Subseq(lo, hi)
 }
