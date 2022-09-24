@@ -1512,7 +1512,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
-      if (stmts.Count == 0) {
+      if (stmts.All(s => s.IsGhost)) {
         writer.WriteLine("pass");
       }
       base.TrStmtList(stmts, writer);
