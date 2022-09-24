@@ -21,6 +21,15 @@ public abstract class Type {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
+  public virtual IEnumerable<INode> Nodes {
+    get {
+      if (this is UserDefinedType udt) {
+        return new[] { udt };
+      }
+
+      return Enumerable.Empty<INode>();
+    }
+  }
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
@@ -2022,6 +2031,8 @@ public class ArrowType : UserDefinedType {
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
+  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
@@ -2183,7 +2194,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType {
+public class UserDefinedType : NonProxyType, INode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2413,6 +2424,8 @@ public class UserDefinedType : NonProxyType {
     return udt.TypeArgs[0];
   }
 
+  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
+
   [Pure]
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
@@ -2587,6 +2600,9 @@ public class UserDefinedType : NonProxyType {
 
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
+
+  public IToken NameToken => tok;
+  public IEnumerable<INode> Children => new[] { NamePath };
 }
 
 public abstract class TypeProxy : Type {

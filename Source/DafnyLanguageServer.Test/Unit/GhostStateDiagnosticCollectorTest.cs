@@ -71,7 +71,7 @@ public class GhostStateDiagnosticCollectorTest {
     var reporter = new CollectingErrorReporter();
     var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SymbolTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);
     Assert.AreEqual(0, ghostDiagnostics.Count());
   }
