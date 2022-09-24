@@ -610,15 +610,45 @@ func (seq Seq) String() string {
  * Arrays
  ******************************************************************************/
 
-// An Array is a Go slice representing a (possibly) multidimensional array,
-// along with metadata.  There aren't any methods for updating; instead, you can
-// update through the pointer returned by Index.
-type Array struct {
-  contents []interface{} // stored as a flat one-dimensional slice
-  dims     []int
+// An Array is an interface with a slice ("contents()") representing a (possibly)
+// multidimensional array, along with metadata.  There aren't any methods for
+// updating; instead, you can update through the pointer returned by Index.
+type Array interface {
+  contents() []interface{} // stored as a flat one-dimensional slice
+  dims()     []int
 }
 
-func newArray(dims ...Int) *Array {
+type ArrayStruct struct {
+  xcontents []interface{} // stored as a flat one-dimensional slice
+  xdims     []int
+}
+
+func (_this ArrayStruct) contents() []interface{} {
+  return _this.xcontents
+}
+
+func (_this ArrayStruct) dims() []int {
+  return _this.xdims
+}
+
+// EqualsGeneric implements the EqualsGeneric interface.
+func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
+  otherArray, ok := other.(*ArrayStruct)
+  if !ok {
+    return false
+  }
+  lenThis := len(_this.xcontents)
+  lenOther := len(otherArray.xcontents)
+  return lenThis == lenOther && (lenThis == 0 || &_this.xcontents[0] == &otherArray.xcontents[0])
+}
+
+func ArrayCastTo(x interface{}) Array {
+  var t Array
+  t, _ = x.(Array)
+  return t
+}
+
+func newArray(dims ...Int) Array {
   intDims := make([]int, len(dims))
   size := 1
   for d := len(dims) - 1; d >= 0; d-- {
@@ -627,9 +657,9 @@ func newArray(dims ...Int) *Array {
   }
   // Bypass the SeqOf constructor to avoid defensive copy
   contents := make([]interface{}, size)
-  return &Array{
-    contents: contents,
-    dims:     intDims,
+  return &ArrayStruct{
+    xcontents: contents,
+    xdims:     intDims,
   }
 }
 
@@ -637,16 +667,16 @@ func newArray(dims ...Int) *Array {
 var EmptyArray = NewArray(Zero)
 
 // NewArray returns a new Array full of the default value of the given type.
-func NewArray(dims ...Int) *Array {
+func NewArray(dims ...Int) Array {
   return NewArrayWithValue(nil, dims...)
 }
 
 // NewArrayWithValue returns a new Array full of the given initial value.
-func NewArrayWithValue(init interface{}, dims ...Int) *Array {
+func NewArrayWithValue(init interface{}, dims ...Int) Array {
   ans := newArray(dims...)
   if init != nil {
-    for i := range ans.contents {
-      ans.contents[i] = init
+    for i := range ans.contents() {
+      ans.contents()[i] = init
     }
   }
   return ans
@@ -654,87 +684,60 @@ func NewArrayWithValue(init interface{}, dims ...Int) *Array {
 
 // NewArrayWithValues returns a new one-dimensional Array with the given initial
 // values.
-func NewArrayWithValues(values ...interface{}) *Array {
+func NewArrayWithValues(values ...interface{}) Array {
   arr := make([]interface{}, len(values))
   copy(arr, values)
-  return &Array{
-    contents: arr,
-    dims:     []int{len(values)},
+  return &ArrayStruct{
+    xcontents: arr,
+    xdims:     []int{len(values)},
   }
 }
 
-// Len returns the length of the array in the given dimension.
-func (array *Array) Len(dim int) Int {
-  return IntOf(array.LenInt(dim))
+// ArrayLen returns the length of the array in the given dimension.
+func ArrayLen(array Array, dim int) Int {
+  return IntOf(ArrayLenInt(array, dim))
 }
 
-// LenInt returns the length of the array in the given dimension, as an int.
-func (array *Array) LenInt(dim int) int {
-  return array.dims[dim]
+// ArrayLenInt returns the length of the array in the given dimension, as an int.
+func ArrayLenInt(array Array, dim int) int {
+  return array.dims()[dim]
 }
 
-// Equals compares two arrays for equality.  Values are compared using
-// dafny.AreEqual.
-func (array *Array) Equals(array2 *Array) bool {
-  if array == array2 {
-    return true
-  }
-  if array == nil || array2 == nil {
-    return false // we already know they're not equal as pointers
-  }
-  if len(array.dims) != len(array2.dims) {
-    return false
-  }
-  for i, d := range array.dims {
-    if d != array2.dims[i] {
-      return false
-    }
-  }
-
-  return sliceIsPrefixAfterLengthCheck(array.contents, array2.contents)
-}
-
-// EqualsGeneric implements the EqualsGeneric interface.
-func (array *Array) EqualsGeneric(other interface{}) bool {
-  array2, ok := other.(*Array)
-  return ok && array.Equals(array2)
-}
-
-func (array *Array) findIndex(ixs ...int) int {
+func arrayFindIndex(array Array, ixs ...int) int {
   i := 0
   size := 1
-  for d := len(array.dims) - 1; d >= 0; d-- {
+  for d := len(array.dims()) - 1; d >= 0; d-- {
     i += size * ixs[d]
-    size *= array.dims[d]
+    size *= array.dims()[d]
   }
   return i
 }
 
 // Index gets the element at the given indices into the array.
-func (array *Array) Index(ixs ...Int) *interface{} {
-  if len(ixs) != len(array.dims) {
-    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims), len(ixs)))
+func ArrayIndex(array Array, ixs ...Int) *interface{} {
+  if len(ixs) != len(array.dims()) {
+    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
   }
   ints := make([]int, len(ixs))
   for i, ix := range ixs {
     ints[i] = ix.Int()
   }
-  return array.IndexInts(ints...)
+  return ArrayIndexInts(array, ints...)
 }
 
 // IndexInts gets the element at the given indices into the array.
-func (array *Array) IndexInts(ixs ...int) *interface{} {
-  return &array.contents[array.findIndex(ixs...)]
+func ArrayIndexInts(array Array, ixs ...int) *interface{} {
+  return &array.contents()[arrayFindIndex(array, ixs...)]
 }
 
 // Iterator iterates over the array.
-func (array *Array) Iterator() Iterator {
-  return sliceIterator(array.contents)
+func ArrayIterator(array Array) Iterator {
+  return sliceIterator(array.contents())
 }
 
 // RangeToSeq converts the selected portion of the array to a sequence.
-func (array *Array) RangeToSeq(lo, hi Int) Seq {
-  if len(array.dims) != 1 {
+func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
+  if len(array.dims()) != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
   isString := false;
@@ -744,7 +747,7 @@ func (array *Array) RangeToSeq(lo, hi Int) Seq {
 
   // TODO Should set isString to true if this is an array of characters
   // Do not know if it is an array of characters if the array is empty
-  seq := SeqOf(array.contents...)
+  seq := SeqOf(array.contents()...)
   seq.isString = isString
 
   return seq.Subseq(lo, hi)
@@ -753,39 +756,39 @@ func (array *Array) RangeToSeq(lo, hi Int) Seq {
 // Update updates a location in a one-dimensional array.  (Must be
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
-func (array *Array) Update(ix Int, value interface{}) {
-  array.UpdateInt(ix.Int(), value)
+func ArrayUpdate(array Array, ix Int, value interface{}) {
+  ArrayUpdateInt(array, ix.Int(), value)
 }
 
 // UpdateInt updates a location in a one-dimensional array.  (Must be
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
-func (array *Array) UpdateInt(ix int, value interface{}) {
-  if len(array.dims) != 1 {
+func ArrayUpdateInt(array Array, ix int, value interface{}) {
+  if len(array.dims()) != 1 {
     panic("Can't update a multidimensional array")
   }
-  array.contents[ix] = value
+  array.contents()[ix] = value
 }
 
-func (array *Array) stringOfSubspace(d int, ixs []int) string {
-  if d == len(array.dims) {
-    return String(*array.IndexInts(ixs...))
+func arrayStringOfSubspace(array Array, d int, ixs []int) string {
+  if d == len(array.dims()) {
+    return String(*ArrayIndexInts(array, ixs...))
   }
   s := "["
-  for i := 0; i < array.dims[d]; i++ {
+  for i := 0; i < array.dims()[d]; i++ {
     if i > 0 {
       s += ", "
     }
     ixs[d] = i
-    s += array.stringOfSubspace(d+1, ixs)
+    s += arrayStringOfSubspace(array, d+1, ixs)
   }
   s += "]"
   return s
 }
 
-func (array *Array) String() string {
-  ixs := make([]int, len(array.dims))
-  return array.stringOfSubspace(0, ixs)
+func ArrayString(array Array) string {
+  ixs := make([]int, len(array.dims()))
+  return arrayStringOfSubspace(array, 0, ixs)
 }
 
 /******************************************************************************
@@ -878,7 +881,7 @@ func (builder *Builder) Add(value interface{}) {
 }
 
 // ToArray creates an Array with the accumulated values.
-func (builder *Builder) ToArray() *Array {
+func (builder *Builder) ToArray() Array {
   return NewArrayWithValues(*builder...)
 }
 

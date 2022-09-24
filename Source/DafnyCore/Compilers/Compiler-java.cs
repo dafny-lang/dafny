@@ -241,7 +241,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("(");
       var lhs = (SeqSelectExpr)s0.Lhs;
       ConcreteSyntaxTree wColl, wIndex, wValue;
-      EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      EmitIndexCollectionUpdate(lhs.Seq.Type, out wColl, out wIndex, out wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       wCoerce.Write($"({TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok)})");
       EmitTupleSelect(tup, 0, wCoerce);

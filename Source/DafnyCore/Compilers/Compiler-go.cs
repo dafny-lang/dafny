@@ -1401,7 +1401,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType.IsObjectQ) {
         return "interface{}";
       } else if (xType.IsArrayType) {
-        return "*_dafny.Array";
+        return "_dafny.Array";
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
@@ -2444,10 +2444,9 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          compiledName = string.Format("Len({0})", idParam == null ? 0 : (int)idParam);
-          if (id == SpecialField.ID.ArrayLengthInt) {
-            postString = ".Int()";
-          }
+          preString = "_dafny.ArrayLen(";
+          postString = string.Format(", {0}){1}", idParam == null ? 0 : (int)idParam,
+            id == SpecialField.ID.ArrayLengthInt ? ".Int()" : "");
           break;
         case SpecialField.ID.Floor:
           compiledName = "Int()";
@@ -2615,9 +2614,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("*(");
+      wr.Write("*_dafny.ArrayIndex(");
       var w = wr.Fork();
-      wr.Write(".Index({0}))", Util.Comma(indices, IntOfAny));
+      wr.Write(", {0})", Util.Comma(indices, IntOfAny));
       return w;
     }
 
@@ -2625,18 +2624,15 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("(*");
+      wr.Write("(*_dafny.ArrayIndex(");
       var w = wr.Fork();
-      wr.Write(".Index(");
-      var sep = "";
       foreach (var index in indices) {
-        wr.Write(sep);
+        wr.Write(", ");
         if (!index.Type.IsIntegerType) {
           wr.Write("_dafny.IntOfAny");
         }
         // No need for IntOfAny; things coming from user code are presumed Ints
         TrParenExpr(index, wr, inLetExprBody, wStmts);
-        sep = ", ";
       }
       wr.Write("))");
       return w;
@@ -2644,14 +2640,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
       return SimpleLvalue(wr =>
-        wr.Write("*({0}.Index({1}))", array, Util.Comma(indices, IntOfAny))
+        wr.Write("*_dafny.ArrayIndex({0}, {1})", array, Util.Comma(indices, IntOfAny))
       );
     }
 
     protected override ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
-      wr.Write("*(");
+      wr.Write("*_dafny.ArrayIndex(");
       var w = wr.Fork();
-      wr.Write(".Index({0})) = {1}", Util.Comma(indices, IntOfAny), rhs);
+      wr.Write(", {0}) = {1}", Util.Comma(indices, IntOfAny), rhs);
       return w;
     }
 
@@ -2691,7 +2687,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr, false);
+      EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
       TrParenExpr(source, wSource, inLetExprBody, wSource);
       if (source.Type.AsSeqType != null) {
         TrExprToBigInt(index, wIndex, inLetExprBody);
@@ -2701,9 +2697,15 @@ namespace Microsoft.Dafny.Compilers {
       TrExpr(value, wValue, inLetExprBody, wSource);
     }
 
-    protected override void EmitIndexCollectionUpdate(out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
-      wSource = wr.Fork();
-      wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
+    protected override void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
+      if (sourceType.IsArrayType) {
+        wr.Write("_dafny.ArrayUpdate{0}(", nativeIndex ? "Int" : "");
+        wSource = wr.Fork();
+        wr.Write(", ");
+      } else {
+        wSource = wr.ForkInParens();
+        wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
+      }
       wIndex = wr.Fork();
       wr.Write(", ");
       wValue = wr.Fork();
@@ -2712,8 +2714,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
         bool fromArray, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrParenExpr(source, wr, inLetExprBody, wStmts);
-      wr.Write(fromArray ? ".RangeToSeq(" : ".Subseq(");
+      if (fromArray) {
+        wr.Write("_dafny.ArrayRangeToSeq(");
+        TrExpr(source, wr, inLetExprBody, wStmts);
+        wr.Write(", ");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody, wStmts);
+        wr.Write(".Subseq(");
+      }
 
       if (lo == null) {
         wr.Write("_dafny.NilInt");
@@ -2900,7 +2908,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null ||
+      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
              (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && !t.IsTraitType && udt.ResolvedClass is ClassDecl);
     }
 
@@ -2909,7 +2917,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsComparedByEquals(Type t) {
-      return t.IsArrayType || t.IsIndDatatype || t.NormalizeExpand() is CollectionType;
+      return t.IsIndDatatype || t.NormalizeExpand() is CollectionType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -3257,9 +3265,9 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(".CardinalityInt())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
-              wr.Write("{0}(", GetNativeTypeName(toNative));
-              TrParenExpr(m.Obj, wr, inLetExprBody, wStmts);
-              wr.Write(".LenInt(0))");
+              wr.Write("{0}(_dafny.ArrayLenInt(", GetNativeTypeName(toNative));
+              TrExpr(m.Obj, wr, inLetExprBody, wStmts);
+              wr.Write(", 0))");
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
@@ -3391,6 +3399,11 @@ namespace Microsoft.Dafny.Compilers {
           return wr;
         } else if (to.IsTraitType) {
           wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+          var w = wr.Fork();
+          wr.Write(")");
+          return w;
+        } else if (to.IsArrayType) {
+          wr.Write("_dafny.ArrayCastTo(");
           var w = wr.Fork();
           wr.Write(")");
           return w;
