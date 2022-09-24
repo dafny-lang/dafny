@@ -4033,6 +4033,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      wr.Write("({0})", TypeName(bodyType, wr, bodyTok));
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
