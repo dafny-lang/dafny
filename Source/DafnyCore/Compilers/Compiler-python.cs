@@ -339,7 +339,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       wr.NewBlockPy("def __dafnystr__(self) -> str:")
-        .WriteLine($"return f\'{fString}\'");
+        .WriteLine($"return f\'{fString.Replace("\'", "\\\'")}\'");
 
       var argList = ctor.Formals
         .Where(f => !f.IsGhost)
