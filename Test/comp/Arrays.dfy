@@ -72,6 +72,8 @@ method Main() {
   CharValues();
 
   TypeSynonym.Test();
+
+  MoreArrays.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -372,5 +374,78 @@ module TypeSynonym {
   method Test() {
     var b := new uint8[] [19, 18, 9, 8];
     BufferTest(b);
+  }
+}
+
+module MoreArrays {
+  newtype byte = x | 0 <= x < 256
+
+  class MyClass { }
+
+  method Test() {
+    TestEqualityOfSomeNonArraysToo();
+
+    var a := StringToByteArray("hello there");
+    WriteLine(a);
+
+    var b := StringToByteArray("hello there");
+    print a == b; // false
+    CheckEquality(a, b); // false
+    print a == a; // true
+    CheckEquality(a, a); // true
+    var c: array?<byte> := null;
+    print a == c; // false
+    CheckEquality(a, c); // false
+    print c == a; // false
+    CheckEquality(c, a); // false
+  }
+
+  method TestEqualityOfSomeNonArraysToo() {
+    var bb: byte := 76;
+    CheckEquality(bb, bb); // true
+    CheckEquality(bb, bb + 1); // false
+
+    var cc0 := new MyClass;
+    var cc1 := new MyClass;
+    CheckEquality(cc0, cc0); // true
+    CheckEquality(cc0, cc1); // false
+    CheckEquality(cc0, null); // false
+    CheckEquality(null, cc0); // false
+    CheckEquality(null, null); // true
+
+    var s0 := [20, 10, 20];
+    var s1 := [20, 10, 20];
+    var s2 := [20, 10, 22];
+    CheckEquality(s0, s1); // true
+    CheckEquality(s0, s2); // false
+
+    CheckEquality((true, 100), (true, 100)); // true
+    CheckEquality((true, 100), (false, 100)); // false
+
+    var m0 := map[4 := true, 3 := false];
+    var m1 := map[4 := true][3 := false];
+    var m2 := map[3 := false][4 := true][3 := false][4 := true];
+    var m3 := map[3 := false][4 := false][3 := false][3 := false];
+    CheckEquality(m0, m1); // true
+    CheckEquality(m0, m2); // true
+    CheckEquality(m0, m3); // false
+  }
+
+  method StringToByteArray(s: string) returns (arr: array<byte>) {
+    arr := new [|s|];
+    forall i | 0 <= i < |s| {
+      arr[i] := (var ch := s[i]; if ' ' <= ch <= 'z' then ch else 'X') as byte;
+    }
+  }
+
+  method WriteLine(arr: array<byte>) {
+    for i := 0 to arr.Length {
+      print [arr[i] as char];
+    }
+    print "\n";
+  }
+
+  method CheckEquality<T(==)>(x: T, y: T) {
+    print " ", x == y, "\n";
   }
 }
