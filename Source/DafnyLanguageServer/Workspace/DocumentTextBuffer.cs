@@ -11,7 +11,7 @@ public class DocumentTextBuffer {
     TextDocumentItem = documentItem;
     Buffer = new TextBuffer(documentItem.Text);
   }
-  
+
   public DocumentTextBuffer(TextDocumentItem documentItem, TextBuffer buffer) {
     TextDocumentItem = documentItem;
     Buffer = buffer;
@@ -24,7 +24,7 @@ public class DocumentTextBuffer {
   public int ToIndex(Position position) {
     return Buffer.ToIndex(position);
   }
-  
+
   public string Extract(Range range) {
     return Buffer.Extract(range);
   }
