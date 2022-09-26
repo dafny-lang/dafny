@@ -1042,7 +1042,10 @@ code (which can be helpful for debugging).
   * `Transitive` - print files transitively included by files specified
     on the command line. Exit after printing.
 
-* `-view:<view1, view2>` - TO BE WRITTEN
+* `-view:<view1, view2>` - this option limits what is printed by /rprint
+  for a module to the names that are part of the given export set;
+  the option argument is a comma-separated list of fully-qualified export
+  set names.
 
 * `-funcCallGraph` - print out the function call graph. Each line has
   the format `func,mod=callee*`, where `func` is the name of a function,
@@ -1527,11 +1530,24 @@ PROVER_OPTIONS="\
 
 ### 25.9.9. Controlling the prover {#sec-controlling-prover}
 
-TO BE WRITTEN
+Much of controlling the prover is accomplished by controlling 
+verification condition generation ([25.9.7](#sec-controlling-verification)) or Boogie 
+([Section 25.9.8](#sec-controlling-boogie)). 
+The following options are also commonly used:
+
+* `-errorLimit:<n>` - limits the number of verification errors reported per procedure.
+  Default is 5; 0 means as many as possible; a small positive number runs faster
+  but a large positive number reports more errors per run
+
+* `timeLimit:<n>` - limits the number of seconds spent trying to verify each procedure.
+
 
 ### 25.9.10. Controlling test generation {#sec-controlling-test-gen}
 
-TO BE WRITTEN
+Dafny is capable of generating unit (runtime) tests. It does so by asking the prover to solve
+for values of inputs to a method that cause the program to execute specific blocks or paths.
+A detailed description of how to do this is given in
+[a separate document](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyTestGeneration/README.md).
 
 ### 25.9.11. Controlling compilation {#sec-controlling-compilation}
 
