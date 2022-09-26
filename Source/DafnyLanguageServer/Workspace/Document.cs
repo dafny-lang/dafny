@@ -147,11 +147,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       TextDocumentItem = documentItem;
       Buffer = new TextBuffer(documentItem.Text);
     }
-    
+
     public Position FromIndex(int index) {
       return Buffer.FromIndex(index);
     }
-    
+
     public int ToIndex(Position position) {
       return Buffer.ToIndex(position);
     }
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   }
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
-  
+
   public class TextBuffer {
     public string Text { get; }
 
@@ -175,27 +175,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private TextBuffer(string text, IReadOnlyList<BufferLine> lines) {
       Text = text;
       Lines = lines;
-      
+
       foreach (var lineInfo in lines) {
         indexToLineTree.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
       }
     }
-    
+
     public TextBuffer(string text) : this(text, ComputeLines(text, 0, text.Length)) { }
 
-    private static List<BufferLine> ComputeLines(string text, int startIndex, int endIndex)
-    {
+    private static List<BufferLine> ComputeLines(string text, int startIndex, int endIndex) {
       var lines = new List<BufferLine>();
-      for (var index = 0; index < endIndex; index++)
-      {
-        if (text[index] == '\n')
-        {
+      for (var index = 0; index < endIndex; index++) {
+        if (text[index] == '\n') {
           lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 1;
         }
 
-        if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n")
-        {
+        if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n") {
           lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 2;
         }
@@ -210,8 +206,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new Position(line.LineNumber, index - line.StartIndex);
     }
 
-    private BufferLine IndexToLine(int index)
-    {
+    private BufferLine IndexToLine(int index) {
       return indexToLineTree.Query(index).Single();
     }
 

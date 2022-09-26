@@ -221,7 +221,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           return new Position(changeStart.Line + changeEof.Line, characterOffset);
         }
       }
-      
+
       /// <summary>
       /// Gets the LSP position at the end of the given text.
       /// </summary>

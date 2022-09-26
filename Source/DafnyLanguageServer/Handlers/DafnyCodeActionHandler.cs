@@ -164,7 +164,7 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
       }
 
       return Code.Substring(startTokenPos, length);
-    } catch(ArgumentOutOfRangeException) {
+    } catch (ArgumentOutOfRangeException) {
       return ""; // Out of range
     }
   }

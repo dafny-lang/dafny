@@ -93,7 +93,7 @@ function Bar(): Zaz.E {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, 
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -119,17 +119,17 @@ function [|Fibo$$nacciSpec|]($$n: nat): nat {
 type seq31<[|T|]> = x: seq<$$T> | 0 <= |x| <= 32 as int
 ".TrimStart();
 
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, 
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      
+
       var fibonacciSpecOnItself = (await RequestDefinition(documentItem, positions[0]).AsTask());
       Assert.IsFalse(fibonacciSpecOnItself.Any());
-      
+
       var nOnItself = (await RequestDefinition(documentItem, positions[1]).AsTask());
       Assert.IsFalse(nOnItself.Any());
-      
+
       var fibonacciCall = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
       Assert.AreEqual(ranges[0], fibonacciCall.Location!.Range);
 
@@ -160,7 +160,7 @@ method Bar([|value|]: Identity<Colors>) returns (x: bool) {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, 
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -203,7 +203,7 @@ module Consumer {
     le$$ngth := 4;
   }
 }".TrimStart();
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, 
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -252,13 +252,13 @@ module Consumer2 {
 
   type A2 = Pro$$vider.A
 }".TrimStart();
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, 
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var xInFrame = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
       Assert.AreEqual(ranges[0], xInFrame.Location!.Range);
-      
+
       var getXCall = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
       Assert.AreEqual(ranges[1], getXCall.Location!.Range);
 

@@ -28,8 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishTelemetry(kind, payload);
     }
 
-    private void PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload)
-    {
+    private void PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = new Dictionary<string, object> {
           {"kind", kind.ToString()},
