@@ -4286,4 +4286,17 @@ public class ApplySuffix : SuffixExpr {
       FormatTokens = new[] { closeParen };
     }
   }
+
+  /// <summary>
+  /// Create an ApplySuffix expression using the most basic pieces: a target name and a list of expressions.
+  /// </summary>
+  /// <param name="tok">The location to associate with the new ApplySuffix expression.</param>
+  /// <param name="name">The name of the target function or method.</param>
+  /// <param name="args">The arguments to apply the function or method to.</param>
+  /// <returns></returns>
+  public static Expression MakeRawApplySuffix(IToken tok, string name, List<Expression> args) {
+    var nameExpr = new NameSegment(tok, name, null);
+    var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
+    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+  }
 }

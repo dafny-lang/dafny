@@ -75,12 +75,6 @@ public class ExpectContracts : IRewriter {
     return new BlockStmt(callStmt.Tok, callStmt.EndTok, bodyStatements.ToList());
   }
 
-  private static Expression MakeApplySuffix(IToken tok, string name, List<Expression> args) {
-    var nameExpr = new NameSegment(tok, name, null);
-    var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
-    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
-  }
-
   private bool ShouldGenerateWrapper(MemberDecl decl) {
     return !decl.IsGhost &&
            decl is not Constructor &&
@@ -107,7 +101,7 @@ public class ExpectContracts : IRewriter {
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var applyExpr = MakeApplySuffix(tok, origMethod.Name, args);
+      var applyExpr = ApplySuffix.MakeRawApplySuffix(tok, origMethod.Name, args);
       var applyRhs = new ExprRhs(applyExpr);
       var callStmt = new UpdateStmt(tok, tok, outs, new List<AssignmentRhs>() { applyRhs });
 
@@ -119,7 +113,7 @@ public class ExpectContracts : IRewriter {
       newFunc.Name = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var callExpr = MakeApplySuffix(tok, origFunc.Name, args);
+      var callExpr = ApplySuffix.MakeRawApplySuffix(tok, origFunc.Name, args);
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
