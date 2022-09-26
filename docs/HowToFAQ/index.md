@@ -54,7 +54,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
 - ["How do `{:split_here}` and `{:focus}` work to divide up a proof?"](FAQSplitHere)
 - ["How does one declare a type to have a default initial value, say a type tagged with {:extern}?'](FAQDefaultInitialValue)
-- 
 - ["A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Please explain."](FAQImportOpened)
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
 - ["How do I read a file as a string?"](FAQReadFile)
@@ -84,3 +83,17 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
 - ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
 - ["What compiler target languages are in development?"](FAQCompileTargets)
+
+# Errors
+
+- ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
+- ["rbrace expected"](ERROR_Rbrace)
+- ["closeparen expected"](ERROR_CloseParen)
+- ["cannot establish the existence of LHS values that satisfy the such-that predicate"](ERROR_NoLHS)
+- ["type parameter 0 (K) passed to type A must support no references"](ERROR_NoReferenceTypeParameter)
+- ["a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"](ERROR_ModifiesValue)
+- ["name of datatype (String) is used as a function"](ERROR_DataTypeName)
+- ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
+- ["type ? does not have a member IsFailure"](ERROR_IsFailure)
+- ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
+
