@@ -641,9 +641,19 @@ func NewArrayWithValues(values ...interface{}) Array {
   }
 }
 
-// NewArrayWithValue returns a new Array full of the given initial value.
-func NewArrayWithValue(init interface{}, dims ...Int) Array {
-  totalLength, intDims := computeArrayDims(dims)
+// NewArrayFromExample returns a new Array.
+// If "init" is non-nil, it is used to initialize all elements of the array.
+// "example" is used only to figure out the right kind of Array to return.
+// If "init" is non-nil, the types of "example" and "init" must agree.
+func NewArrayFromExample(example interface{}, init interface{}, dims []Int) Array {
+  numberOfDimensions := len(dims)
+  intDims := make([]int, len(dims))
+  totalLength := 1
+  for d := 0; d < numberOfDimensions; d++ {
+    intDims[d] = dims[d].Int() // TODO: panic (or, better, report "out of memory") if dims[d]
+    totalLength *= intDims[d] // TODO: panic (or, better, report "out of memory") if this overflows
+  }
+
   if totalLength == 0 {
     return &ArrayStruct{
       xcontents: nil,
@@ -651,7 +661,7 @@ func NewArrayWithValue(init interface{}, dims ...Int) Array {
     }
   }
 
-  // TODO: inspect the type of init to consider Array specialization
+  // TODO: inspect the type of "example" to consider Array specialization
 
   arr := make([]interface{}, totalLength)
   if init != nil {
@@ -665,21 +675,14 @@ func NewArrayWithValue(init interface{}, dims ...Int) Array {
   }
 }
 
-// "dims" is expected to be a nonempty array of non-negative integers
-func computeArrayDims(dims []Int) (int, []int) {
-  numberOfDimensions := len(dims)
-  intDims := make([]int, len(dims))
-  totalLength := 1
-  for d := 0; d < numberOfDimensions; d++ {
-    intDims[d] = dims[d].Int() // TODO: panic (or, better, report "out of memory") if dims[d]
-    totalLength *= intDims[d] // TODO: panic (or, better, report "out of memory") if this overflows
-  }
-  return totalLength, intDims
+// NewArrayWithValue returns a new Array full of the given initial value.
+func NewArrayWithValue(init interface{}, dims ...Int) Array {
+  return NewArrayFromExample(init, init, dims)
 }
 
 // NewArray returns a new Array full of the default value of the given type.
 func NewArray(dims ...Int) Array {
-  return NewArrayWithValue(nil, dims...)
+  return NewArrayFromExample(nil, nil, dims)
 }
 
 /***** ArrayStruct is default implementation of the Array interface. *****/
