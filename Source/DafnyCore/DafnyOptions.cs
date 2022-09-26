@@ -1445,8 +1445,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     from the bottom dependency from being generated more than once.
 
 /testContracts:<Externs|TestedExterns>
-    Enable run-time testing of compiled function or method contracts in
-    certain situations, currently focused on {{:extern}} code.
+    Enable run-time testing of the compilable portions of certain function
+    or method contracts, at their call sites. The current implementation
+    focuses on {{:extern}} code but may support other code in the future.
 
     Externs - Check contracts on every call to a function or method marked
         with the {{:extern}} attribute, regardless of where it occurs.
