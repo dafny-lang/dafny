@@ -1013,11 +1013,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      // (( e0 op1 e1) | (e0 op2 (width - e1)))
+      wr = wr.ForkInParens();
       EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, true, wr.ForkInParens(), inLetExprBody, wStmts, tr);
-
       wr.Write(" | ");
-
       EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, false, wr.ForkInParens(), inLetExprBody, wStmts, tr);
     }
 
@@ -1400,6 +1399,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.LeftShift:
           opString = "<<";
+          truncateResult = true;
           break;
 
         case BinaryExpr.ResolvedOpcode.RightShift:
