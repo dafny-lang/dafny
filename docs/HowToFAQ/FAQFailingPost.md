@@ -14,6 +14,8 @@ harder to spot exit path is the `:-` let-or-fail assignment.
 Here is a sketch of that kind of problem:
 
 ```dafny
+include "library/Wrappers.dfy"
+
 method test(MyClass o) returns (r: Wrappers.Result<int>)
   modifies o;
   ensures o.ok == true;
@@ -24,7 +26,7 @@ method test(MyClass o) returns (r: Wrappers.Result<int>)
   return;
 }
 ```
-(This example uses the `Result` type from the [standard library](https://github.com/dafny-lang/libraries/blob/master/src/Wrappers.dfy).)
+(This example uses the `Result` type from the [standard library](https://github.com/dafny-lang/libraries/blob/master/src/Wrappers.dfy). The `include` directive in the example requires that you have a copy of the standard library in `./library`.)
 
 This method can exit either through the `return` at the end or through the failure return if a failure value is returned
 from `MyMethod`. That return happens before the `assert` that is intended to do a pre-check of the postcondition; depending
