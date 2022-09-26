@@ -213,7 +213,7 @@ public class ExpectContracts : IRewriter {
 
       var opt = DafnyOptions.O.TestContracts;
       return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
-              (opt == DafnyOptions.ContractTestingMode.AllExterns)) &&
+              (opt == DafnyOptions.ContractTestingMode.Externs)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
              !newRedirections.ContainsValue(caller);
     }

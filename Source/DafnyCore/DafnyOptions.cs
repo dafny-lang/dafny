@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
 
     public enum ContractTestingMode {
       None,
-      AllExterns,
+      Externs,
       TestedExterns,
     }
 
@@ -660,7 +660,7 @@ namespace Microsoft.Dafny {
         case "testContracts":
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].Equals("Externs")) {
-              TestContracts = ContractTestingMode.AllExterns;
+              TestContracts = ContractTestingMode.Externs;
             } else if (args[ps.i].Equals("TestedExterns")) {
               TestContracts = ContractTestingMode.TestedExterns;
             } else {
