@@ -3405,9 +3405,11 @@ namespace Microsoft.Dafny.Compilers {
         EmitTupleSelect(tup, i + 1, wIndex);
         indices.Add(wIndex.ToString());
       }
-      var lvalue = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wRhs = lvalue.EmitWrite(wr);
+      var wRhs = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       EmitTupleSelect(tup, L - 1, wRhs);
+      var rhs = wRhs.ToString();
+      var wrArray = EmitArrayUpdate(indices, rhs, tupleTypeArgsList[L - 1], wr);
+      wrArray.Write(array);
       EndStmt(wr);
     }
 
