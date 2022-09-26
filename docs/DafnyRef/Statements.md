@@ -5,13 +5,13 @@ NonLabeledStmt =
   ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
   | CalcStmt | ExpectStmt | ForallStmt | IfStmt
   | MatchStmt | ModifyStmt
-  | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
+  | PrintStmt | ReturnStmt | RevealStmt
   | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
   )
 ````
 <!--
-TODO: RevealStmt, SkeletonStmt
+TODO: RevealStmt,
 -->
 
 Many of Dafny's statements are similar to those in traditional
@@ -880,7 +880,6 @@ IfStmt = "if"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
-    | ellipsis
     )
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
@@ -941,7 +940,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-TODO: Describe the ... refinement
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
 ## 20.12. While Statement {#sec-while-statement}
 ````grammar
@@ -949,10 +948,9 @@ WhileStmt =
   "while"
   ( LoopSpec
     AlternativeBlock(allowBindingGuards: false)
-  | ( Guard | ellipsis )
+  | Guard
     LoopSpec
     ( BlockStmt
-    | ellipsis
     | /* go body-less */
     )
   )
@@ -987,14 +985,12 @@ iteration of the loop. If false then terminate the loop.
 Keep the following commented out until we decide a better
 place to put it.
 
-* An ellipsis (`...`), which makes the while statement a _skeleton_
-`while` statement. TODO: What does that mean?
-
 The _body_ of the loop is usually a block statement, but it can also
-be a _skeleton_, denoted by ellipsis, or missing altogether.
+be missing altogether.
 TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
 a block statement with no statements inside?
 -->
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
 The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
@@ -1015,8 +1011,6 @@ until one is found that is true, in which case the corresponding statements
 are executed and the while statement is repeated.
 If none of the guards evaluates to true, then the
 loop execution is terminated.
-
-TODO: Describe ... refinement
 
 ## 20.13. For Loops {#sec-for-loops}
 ````grammar
@@ -1514,13 +1508,11 @@ infinite.
 AssertStmt =
     "assert"
     { Attribute }
-    ( [ LabelName ":" ]
-      Expression(allowLemma: false, allowLambda: true)
-      ( ";"
-      | "by" BlockStmt
-      )
-    | ellipsis
-      ";"
+    [ LabelName ":" ]
+    Expression(allowLemma: false, allowLambda: true)
+    ( ";"
+    | "by" BlockStmt
+    )
 ````
 
 `Assert` statements are used to express logical proposition that are
@@ -1535,7 +1527,7 @@ much as lemmas might be used in mathematical proofs.
 
 `Assert` statements are ignored by the compiler.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
 In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
 Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
@@ -1555,7 +1547,6 @@ AssumeStmt =
     "assume"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     ";"
 ````
@@ -1574,7 +1565,7 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
 ## 20.18. Expect Statement {#sec-expect-statement}
 
@@ -1583,7 +1574,6 @@ ExpectStmt =
     "expect"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     [ "," Expression(allowLemma: false, allowLambda: true) ]
     ";"
@@ -1685,13 +1675,7 @@ then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
-Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
-
-<!--
-Describe where refinement is described.
-
-If the proposition is `...` then (TODO: what does this mean?).
--->
+Using `...` as the argument of the statement is deprecated.
 
 ## 20.19. Print Statement {#sec-print-statement}
 ````grammar
@@ -1950,10 +1934,8 @@ co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
 ModifyStmt =
   "modify"
   { Attribute }
-  ( FrameExpression(allowLemma: false, allowLambda: true)
-    { "," FrameExpression(allowLemma: false, allowLambda: true) }
-  | ellipsis
-  )
+  FrameExpression(allowLemma: false, allowLambda: true)
+  { "," FrameExpression(allowLemma: false, allowLambda: true) }
   ( BlockStmt
   | ";"
   )
@@ -2049,7 +2031,7 @@ Finally, the fourth example shows that the restrictions imposed by
 the modify statement do not apply to local variables, only those
 that are heap-based.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
 ## 20.23. Calc Statement {#sec-calc-statement}
 ````grammar
@@ -2177,10 +2159,3 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 20.24. Skeleton Statement {#sec-skeleton-statement}
-````grammar
-SkeletonStmt =
-  ellipsis
-  ";"
-````
-TODO: Move to discussion of refinement?
