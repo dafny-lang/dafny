@@ -640,43 +640,43 @@ The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 
-AutoContracts is an experimental feature that will fill much of the dynamic-frames boilerplate
-into a class.  From the user's perspective, what needs to be done is simply:
-- mark the class with `{:autocontracts}`
-- declare a function (or predicate) called Valid()
+AutoContracts is an experimental feature that inserts much of the dynamic-frames boilerplate
+into a class. The user simply
+- marks the class with `{:autocontracts}` and
+- declares a function (or predicate) called Valid().
 
-AutoContracts will then:
+AutoContracts then
 
-- Declare, unless there already exist members with these names:
+- Declares, unless there already exist members with these names:
 ```dafny
   ghost var Repr: set(object)
   predicate Valid()
 ```
 
-- For function/predicate `Valid()`, insert:
+- For function/predicate `Valid()`, inserts
 ```dafny
   reads this, Repr
   ensures Valid() ==> this in Repr
 ```
-- Into body of `Valid()`, insert (at the beginning of the body):
+- Into body of `Valid()`, inserts (at the beginning of the body)
 ```dafny
   this in Repr && null !in Repr
 ```
-  and also insert, for every array-valued field `A` declared in the class:
+  and also inserts, for every array-valued field `A` declared in the class:
 ```dafny
   (A != null ==> A in Repr) &&
 ```
-  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also insert:
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts:
 ```dafny
   (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
 ```
   except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
 be added.
-- For every constructor, add:
+- For every constructor, adds:
 ```
   ensures Valid() && fresh(Repr)
 ```
-- At the end of the body of the constructor, add:
+- At the end of the body of the constructor, adds
 ```
    Repr := {this};
    if (A != null) { Repr := Repr + {A}; }
@@ -687,13 +687,13 @@ In all the following cases, no `modifies` clause or `reads` clause is added if t
 has given one.
 
 - For every non-static non-ghost method that is not a "simple query method",
-add:
+adds:
 ```
    requires Valid()
    modifies Repr
    ensures Valid() && fresh(Repr - old(Repr))
 ```
-- At the end of the body of the method, add:
+- At the end of the body of the method, adds
 ```
    if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
    if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
@@ -703,11 +703,11 @@ add:
 ```
    requires Valid()
 ```
-- For every non-static twostate method, add:
+- For every non-static twostate method, adds
 ```
    requires old(Valid())
 ```
-- For every non-"Valid" non-static function, add:
+- For every non-"Valid" non-static function, adds
 ```
    requires Valid()
    reads Repr
