@@ -685,13 +685,14 @@ notation | variance | cardinality-preserving
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
-_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
-For example
-
-    type T<X> = X -> bool
-
-is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
-The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+_Cardinality preserving_ 
+means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters.
+For example `type T<X> = X -> bool`
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')`
+The type `X -> bool` has strictly more values than the type `X`. 
+This affects certain uses of the type, so Dafny requires the declaration of `T` to explicitly say so. 
+Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`. 
+If you use `-`, you’re also declaring `T` to be contravariant in its type argument, and if you use `!`, you’re declaring that `T` is non-variant in its type argument.
 
 To fix it, we use the variance `!`:
 
@@ -2171,6 +2172,22 @@ this happens, we can often give Dafny assistance by providing a lemma.
 This is done by declaring a method with the `lemma` keyword.
 Lemmas are implicitly ghost methods and the `ghost` keyword cannot
 be applied to them.
+
+Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
+a significantly different function. First of all, a lemma is forbidden to have 
+`modifies` clause: it may not change anything about even the ghost state; ghost methods
+may have `modifies` clauses and may change ghost (but not non-ghost) state. 
+Furthermore, a lemma is not allowed to allocate any new objects.
+And a lemma may be used in the program text in places where ghost methods may not,
+such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
+
+Lemmas may, but typically do not, have out-parameters.
+
+In summary, a lemma states a logical fact, summarizing an inference that the verifier
+cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
+to use that fact at that location with the actual arguments substituted for the 
+formal parameters. The lemma is proved separately for all cases of its formal parameters
+that satisfy the preconditions of the lemma. 
 
 For an example, see the `FibProperty` lemma in
 [Section 24.5.2](#sec-proofs-in-dafny).
