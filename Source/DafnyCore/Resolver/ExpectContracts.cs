@@ -8,6 +8,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// This class implements a rewriter that will insert dynamic checks of
+/// the contracts on certain functions and methods. It proceeds by
+///
+/// 1. identifying each declaration that should have its contract checked,
+/// 2. creating a new wrapper definition that uses expect statements to
+///    check all contract clauses for that declarations, and
+/// 3. replacing calls to the original definition with calls to the new
+///    wrapper definition.
+/// </summary>
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
@@ -170,6 +180,11 @@ public class ExpectContracts : IRewriter {
     }
   }
 
+  /// <summary>
+  /// This class implements a top-down AST traversal to replace certain
+  /// function and method calls with calls to wrappers that dynamically
+  /// check contracts using expect statements.
+  /// </summary>
   private class CallRedirector : TopDownVisitor<MemberDecl> {
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
