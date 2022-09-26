@@ -75,9 +75,10 @@ public class TextBuffer {
     var newText = Text[..startIndex] + change.Text + Text[endIndex..];
     var changeStartLine = IndexToLine(startIndex);
     var changeEndLine = IndexToLine(endIndex);
-    var freshLines = ComputeLines(newText, changeStartLine.LineNumber, changeStartLine.StartIndex, changeStartLine.StartIndex + change.Text.Length);
-    var lineDelta = freshLines.Count - (changeEndLine.LineNumber - changeStartLine.LineNumber + 1);
+
     var indexDelta = newText.Length - Text.Length;
+    var freshLines = ComputeLines(newText, changeStartLine.LineNumber, changeStartLine.StartIndex, changeStartLine.EndIndex + indexDelta);
+    var lineDelta = freshLines.Count - (changeEndLine.LineNumber - changeStartLine.LineNumber + 1);
     var migratedLinesAfterChange =
       Lines.Skip(1 + changeEndLine.LineNumber).
       Select(line => new BufferLine(
