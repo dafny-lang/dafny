@@ -51,9 +51,9 @@ namespace Microsoft.Dafny.LanguageServer
             RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
 
         private static void Parse(
-            string input, out string output, out int? position, out IDictionary<string, List<TextSpan>> spans)
+            string input, out string output, out List<int> positions, out IDictionary<string, List<TextSpan>> spans)
         {
-            position = null;
+            positions = new List<int>();
             var tempSpans = new Dictionary<string, List<TextSpan>>();
 
             var outputBuilder = new StringBuilder();
@@ -120,12 +120,7 @@ namespace Microsoft.Dafny.LanguageServer
                 switch (matchString.Substring(0, 2))
                 {
                     case PositionString:
-                        if (position.HasValue)
-                        {
-                            throw new ArgumentException(string.Format("Saw multiple occurrences of {0}", PositionString));
-                        }
-
-                        position = matchIndexInOutput;
+                        positions.Add(matchIndexInOutput);
                         break;
 
                     case SpanStartString:
@@ -197,9 +192,9 @@ namespace Microsoft.Dafny.LanguageServer
         }
 
         private static void GetIndexAndSpans(
-            string input, out string output, out int? cursorPositionOpt, out ImmutableArray<TextSpan> spans)
+            string input, out string output, out List<int> positions, out ImmutableArray<TextSpan> spans)
         {
-            Parse(input, out output, out cursorPositionOpt, out var dictionary);
+            Parse(input, out output, out positions, out var dictionary);
 
             var builder = dictionary.GetOrCreate(string.Empty, () => new List<TextSpan>());
             builder.Sort((left, right) => left.Start - right.Start);
@@ -207,9 +202,9 @@ namespace Microsoft.Dafny.LanguageServer
         }
 
         public static void GetIndexAndSpans(
-            string input, out string output, out int? cursorPositionOpt, out IDictionary<string, ImmutableArray<TextSpan>> spans)
+            string input, out string output, out List<int> positions, out IDictionary<string, ImmutableArray<TextSpan>> spans)
         {
-            Parse(input, out output, out cursorPositionOpt, out var dictionary);
+            Parse(input, out output, out positions, out var dictionary);
             spans = dictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToImmutableArray());
         }
 
@@ -221,26 +216,23 @@ namespace Microsoft.Dafny.LanguageServer
           range = resultRanges.Single();
         }
 
-        public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges)
+        public static void GetPositionsAndRanges(string input, out string output, out IList<Position> positions, out ImmutableArray<Range> ranges)
         {
-          GetIndexAndSpans(input, out output, out int index, out ImmutableArray<TextSpan> spans);
+          GetIndexAndSpans(input, out output, out var positionIndices, out ImmutableArray<TextSpan> spans);
           var buffer = new TextBuffer(input);
-          cursorPosition = buffer.FromIndex(index);
+          positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
           ranges = spans.Select(span => new Range(buffer.FromIndex(span.Start), buffer.FromIndex(span.End)))
             .ToImmutableArray();
         }
         
-        public static void GetIndexAndSpans(string input, out string output, out int cursorPosition, out ImmutableArray<TextSpan> spans)
+        public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges)
         {
-            GetIndexAndSpans(input, out output, out int? pos, out spans);
-            cursorPosition = pos.Value;
+          GetPositionsAndRanges(input, out output, out var positions, out ranges);
+          cursorPosition = positions.Single();
         }
 
-        public static void GetPosition(string input, out string output, out int? cursorPosition)
-            => GetIndexAndSpans(input, out output, out cursorPosition, out ImmutableArray<TextSpan> spans);
-
-        public static void GetPosition(string input, out string output, out int cursorPosition)
-            => GetIndexAndSpans(input, out output, out cursorPosition, out var spans);
+        public static void GetPosition(string input, out string output, out List<int> positions)
+            => GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
 
         // public static void GetPositionAndSpan(string input, out string output, out int? cursorPosition, out TextSpan? textSpan)
         // {
@@ -248,15 +240,15 @@ namespace Microsoft.Dafny.LanguageServer
         //     textSpan = spans.Length == 0 ? null : (TextSpan?)spans.Single();
         // }
 
-        public static void GetPositionAndSpan(string input, out string output, out int cursorPosition, out TextSpan textSpan)
+        public static void GetPositionAndSpan(string input, out string output, out List<int> positions, out TextSpan textSpan)
         {
-            GetIndexAndSpans(input, out output, out cursorPosition, out var spans);
+            GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
             textSpan = spans.Single();
         }
 
         public static void GetSpans(string input, out string output, out ImmutableArray<TextSpan> spans)
         {
-            GetIndexAndSpans(input, out output, out int? pos, out spans);
+            GetIndexAndSpans(input, out output, out var pos, out spans);
         }
 
         public static void GetSpan(string input, out string output, out TextSpan textSpan)
