@@ -190,7 +190,7 @@ module M {
     if 0 <= n < mx && n < mxch {
       print n as char, " ", n as int, " ", n as real, " ", n as bv, " ", n as ORDINAL, "\n";
     }
-    }
+  }
 
   method Test2b(b: bv, n: int, c: char, r: real, o: ORDINAL) {
     assert r == r as real;
