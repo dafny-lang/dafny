@@ -567,7 +567,7 @@ func (seq Seq) Equals(seq2 Seq) bool {
   return sliceEquals(seq.contents, seq2.contents)
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// Seq implements the EqualsGeneric interface.
 func (seq Seq) EqualsGeneric(other interface{}) bool {
   seq2, ok := other.(Seq)
   return ok && seq.Equals(seq2)
@@ -618,6 +618,9 @@ type Array interface {
   dims()     []int
 }
 
+/***** ArrayStruct is default implementation of the Array interface.
+ *****/
+
 type ArrayStruct struct {
   xcontents []interface{} // stored as a flat one-dimensional slice
   xdims     []int
@@ -631,22 +634,16 @@ func (_this ArrayStruct) dims() []int {
   return _this.xdims
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// ArrayStruct implements the EqualsGeneric interface.
 func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
   otherArray, ok := other.(*ArrayStruct)
   if !ok {
     return false
   }
-  lenThis := len(_this.xcontents)
-  lenOther := len(otherArray.xcontents)
-  return lenThis == lenOther && (lenThis == 0 || &_this.xcontents[0] == &otherArray.xcontents[0])
+  return &_this.xdims[0] == &otherArray.xdims[0]
 }
 
-func ArrayCastTo(x interface{}) Array {
-  var t Array
-  t, _ = x.(Array)
-  return t
-}
+/***** End of ArrayStruct *****/
 
 func newArray(dims ...Int) Array {
   intDims := make([]int, len(dims))
@@ -655,7 +652,6 @@ func newArray(dims ...Int) Array {
     intDims[d] = dims[d].Int()
     size *= intDims[d]
   }
-  // Bypass the SeqOf constructor to avoid defensive copy
   contents := make([]interface{}, size)
   return &ArrayStruct{
     xcontents: contents,
@@ -691,6 +687,12 @@ func NewArrayWithValues(values ...interface{}) Array {
     xcontents: arr,
     xdims:     []int{len(values)},
   }
+}
+
+func ArrayCastTo(x interface{}) Array {
+  var t Array
+  t, _ = x.(Array)
+  return t
 }
 
 // ArrayLen returns the length of the array in the given dimension.
@@ -812,7 +814,7 @@ func (tuple Tuple) Equals(other Tuple) bool {
   return sliceEquals(tuple.contents, other.contents)
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// Tuple implements the EqualsGeneric interface.
 func (tuple Tuple) EqualsGeneric(other interface{}) bool {
   tuple2, ok := other.(Tuple)
   return ok && tuple.Equals(tuple2)
@@ -1022,7 +1024,7 @@ func (set Set) Equals(set2 Set) bool {
     set.isSubsetAfterCardinalityCheck(set2)
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// Set implements the EqualsGeneric interface.
 func (set Set) EqualsGeneric(other interface{}) bool {
   set2, ok := other.(Set)
   return ok && set.Equals(set2)
@@ -1375,7 +1377,7 @@ func (mset MultiSet) Equals(mset2 MultiSet) bool {
   return mset.CardinalityInt() == mset2.CardinalityInt()
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// MultiSet implements the EqualsGeneric interface.
 func (mset MultiSet) EqualsGeneric(other interface{}) bool {
   mset2, ok := other.(MultiSet)
   return ok && mset.Equals(mset2)
@@ -1554,7 +1556,7 @@ func (m Map) Equals(m2 Map) bool {
   return true
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
+// Map implements the EqualsGeneric interface.
 func (m Map) EqualsGeneric(other interface{}) bool {
   m2, ok := other.(Map)
   return ok && m.Equals(m2)
