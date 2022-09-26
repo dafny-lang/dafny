@@ -304,7 +304,7 @@ module X {
 }
 ```
 `Option.a` now means the `a` in the datatype instead of the `a` in the module.
-To avoid confusion in such cases, it is now an ambiguity error to `import open`
+To avoid confusion in such cases, it is an ambiguity error to `import open`
 a module without renaming that contains a declaration with the same name as a declaration in 
 a type in the module when the type has the same name as the module.
 
