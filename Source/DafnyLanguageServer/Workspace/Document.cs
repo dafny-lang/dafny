@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading;
 using IntervalTree;
 using Microsoft.Boogie;
@@ -168,38 +169,52 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class TextBuffer {
     public string Text { get; }
 
-    private readonly IIntervalTree<int, BufferLine> indexToLine = new IntervalTree<int, BufferLine>();
+    private readonly IIntervalTree<int, BufferLine> indexToLineTree = new IntervalTree<int, BufferLine>();
     public readonly IReadOnlyList<BufferLine> Lines;
 
-    public TextBuffer(string text) {
-      this.Text = text;
+    private TextBuffer(string text, IReadOnlyList<BufferLine> lines) {
+      Text = text;
+      Lines = lines;
       
+      foreach (var lineInfo in lines) {
+        indexToLineTree.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
+      }
+    }
+    
+    public TextBuffer(string text) : this(text, ComputeLines(text, 0, text.Length)) { }
+
+    private static List<BufferLine> ComputeLines(string text, int startIndex, int endIndex)
+    {
       var lines = new List<BufferLine>();
-      var startIndex = 0;
-      for (var index = 0; index < text.Length; index++) {
-        if (text[index] == '\n') {
+      for (var index = 0; index < endIndex; index++)
+      {
+        if (text[index] == '\n')
+        {
           lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 1;
         }
-        if (text.Substring(index, 2) == "\r\n") {
+
+        if (text.Substring(index, 2) == "\r\n")
+        {
           lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 2;
         }
       }
-      lines.Add(new BufferLine(lines.Count, startIndex, text.Length));
 
-      foreach (var lineInfo in lines) {
-        indexToLine.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
-      }
-
-      Lines = lines;
+      lines.Add(new BufferLine(lines.Count, startIndex, endIndex));
+      return lines;
     }
 
     public Position FromIndex(int index) {
-      var line = indexToLine.Query(index).Single();
+      var line = IndexToLine(index);
       return new Position(line.LineNumber, index - line.StartIndex);
     }
-    
+
+    private BufferLine IndexToLine(int index)
+    {
+      return indexToLineTree.Query(index).Single();
+    }
+
     public int ToIndex(Position position) {
       return Lines[position.Line].StartIndex + position.Character;
     }
@@ -210,9 +225,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new TextBuffer(change.Text);
       }
 
-      int absoluteStart = ToIndex(change.Range.Start);
-      int absoluteEnd = ToIndex(change.Range.End);
-      return new TextBuffer(Text[..absoluteStart] + change.Text + Text[absoluteEnd..]);
+      int startIndex = ToIndex(change.Range.Start);
+      int endIndex = ToIndex(change.Range.End);
+      var newText = Text[..startIndex] + change.Text + Text[endIndex..];
+      var changeStartLine = IndexToLine(startIndex);
+      var changeEndLine = IndexToLine(endIndex);
+      var freshLines = ComputeLines(newText, changeStartLine.StartIndex, changeEndLine.EndIndex + change.Text.Length);
+      var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(Lines.TakeLast(changeEndLine.LineNumber));
+      return new TextBuffer(newText, newTotalLines.ToList());
     }
   }
 }
