@@ -1453,7 +1453,6 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    // TODO: Generalize the EmitArraySelectAsLvalue API to be rid of this duplication
     protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree wArray, wRhs;
       if (indices.Count == 1) {
@@ -1482,51 +1481,6 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       return (wArray, wRhs);
-    }
-
-    protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
-      if (elmtType.IsTypeParameter) {
-        return new GenericArrayElementLvalue(this, array, indices, elmtType.AsTypeParameter);
-      } else {
-        return SimpleLvalue(wr => {
-          var wArray = EmitArraySelect(indices, elmtType, wr);
-          wArray.Write(array);
-        });
-      }
-    }
-
-    private class GenericArrayElementLvalue : ILvalue {
-      private readonly JavaCompiler Compiler;
-      private readonly string Array;
-      private readonly List<string> Indices;
-      private readonly TypeParameter ElmtTypeParameter;
-
-      public GenericArrayElementLvalue(JavaCompiler compiler, string array, List<string> indices, TypeParameter elmtTypeParameter) {
-        Compiler = compiler;
-        Array = array;
-        Indices = indices;
-        ElmtTypeParameter = elmtTypeParameter;
-      }
-
-      public void EmitRead(ConcreteSyntaxTree wr) {
-        var wArray = Compiler.EmitArraySelect(Indices, new UserDefinedType(ElmtTypeParameter), wr);
-        wArray.Write(Array);
-      }
-
-      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
-        ConcreteSyntaxTree w;
-        if (Indices.Count == 1) {
-          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]},");
-          w = wr.Fork();
-          wr.Write(")");
-        } else {
-          wr.Write($"{Array}.set({Util.Comma("", Indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")}), ");
-          w = wr.Fork();
-          wr.Write(")");
-        }
-        Compiler.EndStmt(wr);
-        return w;
-      }
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,

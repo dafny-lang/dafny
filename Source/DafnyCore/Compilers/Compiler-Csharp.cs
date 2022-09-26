@@ -2646,7 +2646,7 @@ namespace Microsoft.Dafny.Compilers {
         ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
       var wrArrName = EmitArrayUpdate(new List<string> { ixVar }, body, wrLoopBody);
       wrArrName.Write(arrVar);
-      wrLoopBody.WriteLine(";");
+      EndStmt(wrLoopBody);
 
       wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});", DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
     }

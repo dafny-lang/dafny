@@ -2638,12 +2638,6 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
-      return SimpleLvalue(wr =>
-        wr.Write("*_dafny.ArrayIndex({0}, {1})", array, Util.Comma(indices, IntOfAny))
-      );
-    }
-
     protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       wr.Write("*_dafny.ArrayIndex(");
       var wArray = wr.Fork();

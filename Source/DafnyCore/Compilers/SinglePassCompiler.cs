@@ -433,34 +433,35 @@ namespace Microsoft.Dafny.Compilers {
           ILvalue lhs = lhss[i];
           if (lexpr is IdentifierExpr) {
             lhssn.Add(lhs);
-          } else if (lexpr is MemberSelectExpr) {
-            var resolved = (MemberSelectExpr)lexpr;
-            string target = EmitAssignmentLhs(resolved.Obj, wr);
-            var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type, internalAccess: enclosingMethod is Constructor);
+
+          } else if (lexpr is MemberSelectExpr memberSelectExpr) {
+            string target = EmitAssignmentLhs(memberSelectExpr.Obj, wr);
+            var typeArgs = TypeArgumentInstantiation.ListFromMember(memberSelectExpr.Member,
+              null, memberSelectExpr.TypeApplication_JustMember);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
+              memberSelectExpr.TypeArgumentSubstitutionsWithParents(), memberSelectExpr.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
-          } else if (lexpr is SeqSelectExpr) {
-            var seqExpr = (SeqSelectExpr)lexpr;
-            string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
-            string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
-            if (seqExpr.Seq.Type.IsArrayType || seqExpr.Seq.Type.AsSeqType != null) {
-              targetIndex = ArrayIndexToNativeInt(targetIndex, seqExpr.E0.Type);
+
+          } else if (lexpr is SeqSelectExpr selectExpr) {
+            string targetArray = EmitAssignmentLhs(selectExpr.Seq, wr);
+            string targetIndex = EmitAssignmentLhs(selectExpr.E0, wr);
+            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
+              targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
-              new List<string>() { targetIndex }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
-          } else if (lexpr is MultiSelectExpr) {
-            var seqExpr = (MultiSelectExpr)lexpr;
-            Expression array = seqExpr.Array;
-            List<Expression> indices = seqExpr.Indices;
-            string targetArray = EmitAssignmentLhs(array, wr);
+
+          } else if (lexpr is MultiSelectExpr multiSelectExpr) {
+            string targetArray = EmitAssignmentLhs(multiSelectExpr.Array, wr);
             var targetIndices = new List<string>();
-            foreach (var index in indices) {
+            foreach (var index in multiSelectExpr.Indices) {
               string targetIndex = EmitAssignmentLhs(index, wr);
+              targetIndex = ArrayIndexToNativeInt(targetIndex, index.Type);
               targetIndices.Add(targetIndex);
             }
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, targetIndices, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, targetIndices, lhsTypes[i]);
             lhssn.Add(newLhs);
+
           } else {
             Contract.Assert(false); // Unknown kind of expression
             lhssn.Add(lhs);
@@ -997,12 +998,6 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
-    protected virtual ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
-      return SimpleLvalue(wr => {
-        wr.Write(array);
-        EmitArraySelect(indices, elmtType, wr);
-      });
-    }
     protected virtual (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       var wArray = EmitArraySelect(indices, elementType, wr);
       wr.Write(" = ");
@@ -3869,6 +3864,32 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private class ArrayLvalueImpl : ILvalue {
+      private readonly SinglePassCompiler compiler;
+      private readonly string array;
+      private readonly List<string> indices;
+      private readonly Type lhsType;
+
+      public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<string> indices, Type lhsType) {
+        this.compiler = compiler;
+        this.array = array;
+        this.indices = indices;
+        this.lhsType = lhsType;
+      }
+
+      public void EmitRead(ConcreteSyntaxTree wr) {
+        var wrArray = compiler.EmitArraySelect(indices, lhsType, wr);
+        wrArray.Write(array);
+      }
+
+      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
+        var (wrArray, wrRhs) = compiler.EmitArrayUpdate(indices, lhsType, wr);
+        wrArray.Write(array);
+        compiler.EndStmt(wr);
+        return wrRhs;
+      }
+    }
+
     ILvalue CreateLvalue(Expression lhs, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Requires(lhs != null);
       Contract.Requires(wr != null);
@@ -3877,6 +3898,7 @@ namespace Microsoft.Dafny.Compilers {
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return StringLvalue(IdName(ll.Var));
+
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
@@ -3884,6 +3906,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
         return EmitMemberSelect(w => w.Write(obj), ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
+
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
@@ -3891,7 +3914,8 @@ namespace Microsoft.Dafny.Compilers {
         if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
           index = ArrayIndexToNativeInt(index, ll.E0.Type);
         }
-        return EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type);
+        return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
+
       } else {
         var ll = (MultiSelectExpr)lhs;
         string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
@@ -3903,7 +3927,7 @@ namespace Microsoft.Dafny.Compilers {
           indices.Add(index);
           i++;
         }
-        return EmitArraySelectAsLvalue(arr, indices, ll.Type);
+        return new ArrayLvalueImpl(this, arr, indices, ll.Type);
       }
     }
 

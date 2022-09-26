@@ -75,6 +75,7 @@ method Main() {
 
   MoreArrays.Test();
   NativeArrays.Test();
+  SimultaneousAssignment.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -477,5 +478,21 @@ module NativeArrays {
       print if i == 0 then "" else ", ", a[i];
     }
     print "]\n";
+  }
+}
+
+module SimultaneousAssignment {
+  method Test() {
+    var arr := new int[250];
+    var m := new int[20, 30];
+    var arr', m' := arr, m;
+
+    var a, b, c := 18, 28, 38;
+    var arr'' := new int[1];
+    var m'' := new int[1, 1];
+
+    arr, a, arr[a + b], m, arr, c, m[a, b], b, m := arr'', 100, 120, m'', arr'', 300, c, 200, m'';
+
+    print a, " ", b, " ", c, " ", arr'[46], " ", m'[18, 28], "\n"; // 100 120 200 300 38
   }
 }
