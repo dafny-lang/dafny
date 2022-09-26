@@ -994,9 +994,6 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
-    protected void EmitArraySelect(string index, Type elmtType, ConcreteSyntaxTree wr) {
-      EmitArraySelect(new List<string>() { index }, elmtType, wr);
-    }
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
