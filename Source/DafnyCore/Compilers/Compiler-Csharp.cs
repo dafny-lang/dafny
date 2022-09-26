@@ -2048,9 +2048,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<char>.FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
-        string nativeName = null, literalSuffix = null;
-        bool needsCastAfterArithmetic = false;
-        GetNativeInfo(AsNativeType(e.Type).Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(AsNativeType(e.Type).Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+        if (needsCastAfterArithmetic) {
+          wr = wr.Write($"({nativeName})").ForkInParens();
+        }
         wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
@@ -2098,9 +2099,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out var needsCastAfterArithmetic);
       }
 
       // --- Before
