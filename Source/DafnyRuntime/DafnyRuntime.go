@@ -618,8 +618,71 @@ type Array interface {
   dims()     []int
 }
 
-/***** ArrayStruct is default implementation of the Array interface.
- *****/
+/***** newArray *****/
+
+// NewArrayWithValues returns a new one-dimensional Array with the given initial
+// values.
+func NewArrayWithValues(values ...interface{}) Array {
+  length := len(values)
+  if length == 0 {
+    return &ArrayStruct{
+      xcontents: nil,
+      xdims:     []int{length},
+    }
+  }
+
+  // TODO: inspect the type of values[0] to consider Array specialization
+
+  arr := make([]interface{}, len(values))
+  copy(arr, values)
+  return &ArrayStruct{
+    xcontents: arr,
+    xdims:     []int{length},
+  }
+}
+
+// NewArrayWithValue returns a new Array full of the given initial value.
+func NewArrayWithValue(init interface{}, dims ...Int) Array {
+  totalLength, intDims := computeArrayDims(dims)
+  if totalLength == 0 {
+    return &ArrayStruct{
+      xcontents: nil,
+      xdims:     intDims,
+    }
+  }
+
+  // TODO: inspect the type of init to consider Array specialization
+
+  arr := make([]interface{}, totalLength)
+  if init != nil {
+    for i := range arr {
+      arr[i] = init
+    }
+  }
+  return &ArrayStruct{
+    xcontents: arr,
+    xdims:     intDims,
+  }
+}
+
+// "dims" is expected to be a nonempty array of non-negative integers
+func computeArrayDims(dims []Int) (int, []int) {
+  numberOfDimensions := len(dims)
+  intDims := make([]int, len(dims))
+  totalLength := 1
+  for d := 0; d < numberOfDimensions; d++ {
+    intDims[d] = dims[d].Int() // TODO: panic (or, better, report "out of memory") if dims[d]
+    totalLength *= intDims[d] // TODO: panic (or, better, report "out of memory") if this overflows
+  }
+  return totalLength, intDims
+}
+
+// NewArray returns a new Array full of the default value of the given type.
+func NewArray(dims ...Int) Array {
+  return NewArrayWithValue(nil, dims...)
+}
+
+/***** ArrayStruct is default implementation of the Array interface. *****/
 
 type ArrayStruct struct {
   xcontents []interface{} // stored as a flat one-dimensional slice
@@ -643,51 +706,10 @@ func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
   return &_this.xdims[0] == &otherArray.xdims[0]
 }
 
-/***** End of ArrayStruct *****/
-
-func newArray(dims ...Int) Array {
-  intDims := make([]int, len(dims))
-  size := 1
-  for d := len(dims) - 1; d >= 0; d-- {
-    intDims[d] = dims[d].Int()
-    size *= intDims[d]
-  }
-  contents := make([]interface{}, size)
-  return &ArrayStruct{
-    xcontents: contents,
-    xdims:     intDims,
-  }
-}
+/***** other Array methods *****/
 
 // EmptyArray is an empty one-dimensional array.
 var EmptyArray = NewArray(Zero)
-
-// NewArray returns a new Array full of the default value of the given type.
-func NewArray(dims ...Int) Array {
-  return NewArrayWithValue(nil, dims...)
-}
-
-// NewArrayWithValue returns a new Array full of the given initial value.
-func NewArrayWithValue(init interface{}, dims ...Int) Array {
-  ans := newArray(dims...)
-  if init != nil {
-    for i := range ans.contents() {
-      ans.contents()[i] = init
-    }
-  }
-  return ans
-}
-
-// NewArrayWithValues returns a new one-dimensional Array with the given initial
-// values.
-func NewArrayWithValues(values ...interface{}) Array {
-  arr := make([]interface{}, len(values))
-  copy(arr, values)
-  return &ArrayStruct{
-    xcontents: arr,
-    xdims:     []int{len(values)},
-  }
-}
 
 func ArrayCastTo(x interface{}) Array {
   var t Array
