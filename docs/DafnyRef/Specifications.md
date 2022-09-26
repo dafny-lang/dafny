@@ -666,13 +666,13 @@ AutoContracts then
 ```dafny
   (A != null ==> A in Repr) &&
 ```
-  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts:
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts
 ```dafny
   (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
 ```
   except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
 be added.
-- For every constructor, adds:
+- For every constructor, inserts
 ```
   ensures Valid() && fresh(Repr)
 ```
@@ -687,13 +687,13 @@ In all the following cases, no `modifies` clause or `reads` clause is added if t
 has given one.
 
 - For every non-static non-ghost method that is not a "simple query method",
-adds:
+inserts
 ```
    requires Valid()
    modifies Repr
    ensures Valid() && fresh(Repr - old(Repr))
 ```
-- At the end of the body of the method, adds
+- At the end of the body of the method, inserts
 ```
    if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
    if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
@@ -703,11 +703,11 @@ add:
 ```
    requires Valid()
 ```
-- For every non-static twostate method, adds
+- For every non-static twostate method, inserts
 ```
    requires old(Valid())
 ```
-- For every non-"Valid" non-static function, adds
+- For every non-"Valid" non-static function, inserts
 ```
    requires Valid()
    reads Repr
