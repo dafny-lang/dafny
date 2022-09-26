@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {
@@ -189,7 +190,7 @@ module M {
     if 0 <= n < mx && n < mxch {
       print n as char, " ", n as int, " ", n as real, " ", n as bv, " ", n as ORDINAL, "\n";
     }
-  }
+    }
 
   method Test2b(b: bv, n: int, c: char, r: real, o: ORDINAL) {
     assert r == r as real;
