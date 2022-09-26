@@ -1,3 +1,4 @@
+Include.dfy(31,7): Warning: the ... refinement feature in statements is deprecated
 Include.dfy(19,18): Error: A postcondition might not hold on this return path.
 Includee.dfy(17,19): Related location: This is the postcondition that might not hold.
 Includee.dfy[Concrete](22,15): Error: assertion might not hold
