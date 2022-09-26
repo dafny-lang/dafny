@@ -219,7 +219,7 @@ namespace Microsoft.Dafny.LanguageServer
         public static void GetPositionsAndRanges(string input, out string output, out IList<Position> positions, out ImmutableArray<Range> ranges)
         {
           GetIndexAndSpans(input, out output, out var positionIndices, out ImmutableArray<TextSpan> spans);
-          var buffer = new TextBuffer(input);
+          var buffer = new TextBuffer(output);
           positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
           ranges = spans.Select(span => new Range(buffer.FromIndex(span.Start), buffer.FromIndex(span.End)))
             .ToImmutableArray();

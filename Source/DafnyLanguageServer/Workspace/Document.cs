@@ -194,7 +194,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           startIndex = index + 1;
         }
 
-        if (text.Substring(index, 2) == "\r\n")
+        if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n")
         {
           lines.Add(new BufferLine(lines.Count, startIndex, index));
           startIndex = index + 2;

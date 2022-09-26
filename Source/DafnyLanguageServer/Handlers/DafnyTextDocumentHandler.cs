@@ -106,7 +106,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         notificationPublisher.HideDiagnostics(documentId);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
-        logger.LogError(e, "error while closing the document");
       }
 
     }

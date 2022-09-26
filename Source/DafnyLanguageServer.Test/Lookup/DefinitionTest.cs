@@ -176,7 +176,7 @@ method Bar([|value|]: Identity<Colors>) returns (x: bool) {
       // Assert.AreEqual(ranges[1], green.Location!.Range);
 
       var matchSourceStmt = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
-      Assert.AreEqual(ranges[2], matchSourceStmt.Location!.Range);
+      Assert.AreEqual(ranges[3], matchSourceStmt.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
       // var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
@@ -190,7 +190,7 @@ method Bar([|value|]: Identity<Colors>) returns (x: bool) {
     [TestMethod]
     public async Task JumpToExternModule() {
       var source = @"
-module {:extern} Provider {
+module {:extern} [|Provider|] {
   newtype nat64 = x: int | 0 <= x <= 0xffff_ffff_ffff_ffff
   type [|usize|] = nat64
 }
@@ -199,7 +199,7 @@ module Consumer {
   import opened P$$rovider
 
   method DoIt() {
-    var le$$ngth: u$$size := 3;
+    var [|le$$ngth|]: u$$size := 3;
     le$$ngth := 4;
   }
 }".TrimStart();
