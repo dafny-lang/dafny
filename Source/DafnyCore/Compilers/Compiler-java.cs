@@ -254,27 +254,32 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
-      wr.Write("(");
+      var arrayType = tupleTypeArgsList[0];
+      var rhsType = tupleTypeArgsList[L - 1];
+
+      string rhs;
+      {
+        var wrRhs = new ConcreteSyntaxTree();
+        wrRhs.Write($"({TypeName(rhsType, wr, s0.Tok)})");
+        EmitTupleSelect(tup, L - 1, wrRhs);
+        rhs = wrRhs.ToString();
+      }
+
       var lhs = (MultiSelectExpr)s0.Lhs;
-      var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
-      wCoerced.Write($"({TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok)})");
-      EmitTupleSelect(tup, 0, wCoerced);
-      wArray.Write(")");
-      var array = wArray.ToString();
       var indices = new List<string>();
-      for (int i = 0; i < lhs.Indices.Count; i++) {
+      for (var i = 0; i < lhs.Indices.Count; i++) {
         var wIndex = new ConcreteSyntaxTree();
         wIndex.Write("((java.math.BigInteger)");
         EmitTupleSelect(tup, i + 1, wIndex);
         wIndex.Write(")");
         indices.Add(wIndex.ToString());
       }
-      var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
-      wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
-      EmitTupleSelect(tup, L - 1, wrRhs);
-      wrRhs.Write(")");
+
+      var wArray = EmitArrayUpdate(indices, rhs, rhsType, wr);
+      wArray = EmitCoercionIfNecessary(from: null, to: arrayType, tok: s0.Tok, wr: wArray);
+      wArray.Write($"({TypeName(arrayType.NormalizeExpand(), wArray, s0.Tok)})");
+      EmitTupleSelect(tup, 0, wArray);
+
       EndStmt(wr);
     }
 
