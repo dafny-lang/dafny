@@ -2158,6 +2158,11 @@ public static class HelperString {
     return FinishesByNewlineRegex.IsMatch(s);
   }
 
+  private static readonly string NoCommentDelimiter = @"(?:(?!\/\*|\*\/)[\s\S])*";
+
+  private static readonly string MultilineCommentContent =
+    $@"(?:{NoCommentDelimiter}(?:(?'Open'\/\*)|(?'-Open'\*\/)))*{NoCommentDelimiter}";
+
   public static readonly Regex NewlineRegex =
-    new(@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*[\s\S]*\*/|///?/? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new($@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<commentType>/\*{MultilineCommentContent}\*/|///?/? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
 }

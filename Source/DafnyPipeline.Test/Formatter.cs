@@ -1728,6 +1728,21 @@ method Test()
     }
 
     [Fact]
+    public void FormatterWorksForDoublecomment() {
+      FormatterWorksFor(@"
+datatype Test =
+  | Zero
+    /* Zero */
+  | One
+    // One
+  | MOne /* -1 */
+    // Minus one
+  | Both /* 2 */
+    /* Two */
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
@@ -1850,7 +1865,7 @@ abstract module M0 {
   function UpdateC(cmd: string, deps: set<Path>, exps: set<string>, st: State): State
 
   /******* Semantics *******/
-    
+
   /******* Function 'build' *******/
   function build(prog: Program, st: State, useCache: bool): Tuple<Expression, State>
     requires Legal(prog.stmts);
