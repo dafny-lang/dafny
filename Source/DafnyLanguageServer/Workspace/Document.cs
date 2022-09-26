@@ -6,7 +6,6 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Net.Mime;
 using System.Threading;
-using IntervalTree;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -140,94 +139,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 
-  public class DocumentTextBuffer {
-    public TextDocumentItem TextDocumentItem { get; }
-    public TextBuffer Buffer { get; }
-    public DocumentTextBuffer(TextDocumentItem documentItem) {
-      TextDocumentItem = documentItem;
-      Buffer = new TextBuffer(documentItem.Text);
-    }
-
-    public Position FromIndex(int index) {
-      return Buffer.FromIndex(index);
-    }
-
-    public int ToIndex(Position position) {
-      return Buffer.ToIndex(position);
-    }
-
-    public static implicit operator TextDocumentItem(DocumentTextBuffer buffer) => buffer.TextDocumentItem;
-    public string Text => TextDocumentItem.Text;
-    public DocumentUri Uri => TextDocumentItem.Uri;
-    public int? Version => TextDocumentItem.Version;
-
-    public int NumberOfLines => Buffer.Lines.Count;
-  }
-
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
-
-  public class TextBuffer {
-    public string Text { get; }
-
-    private readonly IIntervalTree<int, BufferLine> indexToLineTree = new IntervalTree<int, BufferLine>();
-    public readonly IReadOnlyList<BufferLine> Lines;
-
-    private TextBuffer(string text, IReadOnlyList<BufferLine> lines) {
-      Text = text;
-      Lines = lines;
-
-      foreach (var lineInfo in lines) {
-        indexToLineTree.Add(lineInfo.StartIndex, lineInfo.EndIndex, lineInfo);
-      }
-    }
-
-    public TextBuffer(string text) : this(text, ComputeLines(text, 0, text.Length)) { }
-
-    private static List<BufferLine> ComputeLines(string text, int startIndex, int endIndex) {
-      var lines = new List<BufferLine>();
-      for (var index = 0; index < endIndex; index++) {
-        if (text[index] == '\n') {
-          lines.Add(new BufferLine(lines.Count, startIndex, index));
-          startIndex = index + 1;
-        }
-
-        if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n") {
-          lines.Add(new BufferLine(lines.Count, startIndex, index));
-          startIndex = index + 2;
-        }
-      }
-
-      lines.Add(new BufferLine(lines.Count, startIndex, endIndex));
-      return lines;
-    }
-
-    public Position FromIndex(int index) {
-      var line = IndexToLine(index);
-      return new Position(line.LineNumber, index - line.StartIndex);
-    }
-
-    private BufferLine IndexToLine(int index) {
-      return indexToLineTree.Query(index).Single();
-    }
-
-    public int ToIndex(Position position) {
-      return Lines[position.Line].StartIndex + position.Character;
-    }
-
-    public TextBuffer ApplyTextChange(TextDocumentContentChangeEvent change) {
-      if (change.Range == null) {
-        // https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/#textDocumentContentChangeEvent
-        return new TextBuffer(change.Text);
-      }
-
-      int startIndex = ToIndex(change.Range.Start);
-      int endIndex = ToIndex(change.Range.End);
-      var newText = Text[..startIndex] + change.Text + Text[endIndex..];
-      var changeStartLine = IndexToLine(startIndex);
-      var changeEndLine = IndexToLine(endIndex);
-      var freshLines = ComputeLines(newText, changeStartLine.StartIndex, changeEndLine.EndIndex + change.Text.Length);
-      var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(Lines.TakeLast(changeEndLine.LineNumber));
-      return new TextBuffer(newText, newTotalLines.ToList());
-    }
-  }
 }

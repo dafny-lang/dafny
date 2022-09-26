@@ -156,16 +156,9 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public string Extract(Range range) {
     var buffer = Document.TextDocumentItem;
     try {
-      var startTokenPos = buffer.ToIndex(range.Start);
-      var endTokenPos = buffer.ToIndex(range.End);
-      var length = endTokenPos - startTokenPos;
-      if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= Code.Length) {
-        return ""; // Safeguard
-      }
-
-      return Code.Substring(startTokenPos, length);
-    } catch (ArgumentOutOfRangeException) {
-      return ""; // Out of range
+      return buffer.Extract(range);
+    } catch (ArgumentException) {
+      return "";
     }
   }
 }
