@@ -748,8 +748,8 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
+Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny

@@ -11,11 +11,11 @@ using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyServer {
-  public class SymbolTable {
+  public class LegacySymbolTable {
     private readonly Program _dafnyProgram;
     private readonly List<SymbolInformation> _information = new List<SymbolInformation>();
 
-    public SymbolTable(Program dafnyProgram) {
+    public LegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
     }
 
