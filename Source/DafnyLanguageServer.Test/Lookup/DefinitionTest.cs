@@ -38,17 +38,13 @@ method HasLoop() {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionAndRange(source, out var cleanSource, out var requestPosition, out var resultRange);
-      var documentItem = CreateTestDocument(cleanSource);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var whileReference = (await RequestDefinition(documentItem, requestPosition).AsTask()).Single();
-      Assert.AreEqual(resultRange, whileReference.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
-datatype Option<+U> = [|None|] | Some(val: U) {
+datatype Option<+U> = {|0:None|} | Some(val: U) {
 
   function FMap<V>(f: U -> V): Option<V> {
     match this
@@ -60,7 +56,7 @@ datatype Option<+U> = [|None|] | Some(val: U) {
 datatype A = A {
   static method create() returns (ret: A)
 }
-datatype Result<T, E> = Ok(value: T) | Err([|error|]: E) {
+datatype Result<T, E> = Ok(value: T) | Err({|1:error|}: E) {
   function method PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
@@ -69,14 +65,21 @@ datatype Result<T, E> = Ok(value: T) | Err([|error|]: E) {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource, out var positions, out var ranges);
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    private async Task AssertPositionsLineUpWithRanges(string source) {
+      MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var noneCreation = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
-      Assert.AreEqual(ranges[0], noneCreation.Location!.Range);
-
-      var errorInThisDotError = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      Assert.AreEqual(ranges[1], errorInThisDotError.Location!.Range);
+      for (var index = 0; index < positions.Count; index++) {
+        var position = positions[index];
+        var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+        var result = (await RequestDefinition(documentItem, position).AsTask()).Single();
+        Assert.AreEqual(range, result.Location!.Range);
+      }
     }
 
     [TestMethod]
@@ -93,18 +96,7 @@ function Bar(): Zaz.E {
 }
 ".TrimStart();
 
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
-        out var positions, out var ranges);
-      var documentItem = CreateTestDocument(cleanSource);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var zazReference = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
-      Assert.AreEqual(ranges[0], zazReference.Location!.Range);
-
-      var eReference = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      Assert.AreEqual(ranges[1], eReference.Location!.Range);
-
-      var fooReference = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      Assert.AreEqual(ranges[2], fooReference.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]
@@ -252,18 +244,8 @@ module Consumer2 {
 
   type A2 = Pro$$vider.A
 }".TrimStart();
-      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
-        out var positions, out var ranges);
-      var documentItem = CreateTestDocument(cleanSource);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var xInFrame = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
-      Assert.AreEqual(ranges[0], xInFrame.Location!.Range);
 
-      var getXCall = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      Assert.AreEqual(ranges[1], getXCall.Location!.Range);
-
-      var providerQualifier = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      Assert.AreEqual(ranges[2], providerQualifier.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]

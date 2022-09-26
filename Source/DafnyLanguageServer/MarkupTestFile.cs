@@ -198,6 +198,16 @@ namespace Microsoft.Dafny.LanguageServer {
       range = resultRanges.Single();
     }
 
+    public static void GetPositionsAndNamedRanges(string input, out string output, out IList<Position> positions,
+      out IDictionary<string, ImmutableArray<Range>> ranges) {
+      GetIndexAndSpans(input, out output, out var positionIndices, out IDictionary<string, ImmutableArray<TextSpan>> spans);
+      var buffer = new TextBuffer(output);
+      positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
+      ranges = spans.ToDictionary(span => span.Key,
+        span => span.Value.Select(s =>
+          new Range(buffer.FromIndex(s.Start), buffer.FromIndex(s.End))).ToImmutableArray());
+    }
+
     public static void GetPositionsAndRanges(string input, out string output, out IList<Position> positions, out ImmutableArray<Range> ranges) {
       GetIndexAndSpans(input, out output, out var positionIndices, out ImmutableArray<TextSpan> spans);
       var buffer = new TextBuffer(output);
