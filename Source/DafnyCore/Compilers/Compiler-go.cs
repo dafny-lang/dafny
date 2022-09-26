@@ -2644,11 +2644,12 @@ namespace Microsoft.Dafny.Compilers {
       );
     }
 
-    protected override ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       wr.Write("*_dafny.ArrayIndex(");
-      var w = wr.Fork();
-      wr.Write(", {0}) = {1}", Util.Comma(indices, IntOfAny), rhs);
-      return w;
+      var wArray = wr.Fork();
+      wr.Write(", {0}) = ", indices.Comma(IntOfAny));
+      var wRhs = wr.Fork();
+      return (wArray, wRhs);
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

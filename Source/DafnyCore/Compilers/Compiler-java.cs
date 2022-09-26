@@ -257,14 +257,6 @@ namespace Microsoft.Dafny.Compilers {
       var arrayType = tupleTypeArgsList[0];
       var rhsType = tupleTypeArgsList[L - 1];
 
-      string rhs;
-      {
-        var wrRhs = new ConcreteSyntaxTree();
-        wrRhs.Write($"({TypeName(rhsType, wr, s0.Tok)})");
-        EmitTupleSelect(tup, L - 1, wrRhs);
-        rhs = wrRhs.ToString();
-      }
-
       var lhs = (MultiSelectExpr)s0.Lhs;
       var indices = new List<string>();
       for (var i = 0; i < lhs.Indices.Count; i++) {
@@ -275,10 +267,13 @@ namespace Microsoft.Dafny.Compilers {
         indices.Add(wIndex.ToString());
       }
 
-      var wArray = EmitArrayUpdate(indices, rhs, rhsType, wr);
+      var (wArray, wRhs) = EmitArrayUpdate(indices, rhsType, wr);
       wArray = EmitCoercionIfNecessary(from: null, to: arrayType, tok: s0.Tok, wr: wArray);
       wArray.Write($"({TypeName(arrayType.NormalizeExpand(), wArray, s0.Tok)})");
       EmitTupleSelect(tup, 0, wArray);
+
+      wRhs.Write($"({TypeName(rhsType, wr, s0.Tok)})");
+      EmitTupleSelect(tup, L - 1, wRhs);
 
       EndStmt(wr);
     }
@@ -1459,28 +1454,34 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // TODO: Generalize the EmitArraySelectAsLvalue API to be rid of this duplication
-    protected override ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
-      ConcreteSyntaxTree w;
+    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree wArray, wRhs;
       if (indices.Count == 1) {
-        if (elmtType.IsTypeParameter) {
-          wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.setArrayElement(");
-          w = wr.Fork();
-          wr.Write($", {DafnyHelpersClass}.toInt({indices[0]}), {rhs})");
+        if (elementType.IsTypeParameter) {
+          wr.Write($"{FormatTypeDescriptorVariable(elementType.AsTypeParameter)}.setArrayElement(");
+          wArray = wr.Fork();
+          wr.Write($", {DafnyHelpersClass}.toInt({indices[0]}), ");
+          wRhs = wr.Fork();
+          wr.Write(")");
         } else {
-          w = wr.Fork();
-          wr.Write($"[{DafnyHelpersClass}.toInt({indices[0]})] = {rhs}");
+          wArray = wr.Fork();
+          wr.Write($"[{DafnyHelpersClass}.toInt({indices[0]})] = ");
+          wRhs = wr.Fork();
         }
       } else {
-        if (elmtType.IsTypeParameter) {
-          w = wr.Fork();
-          wr.Write($".set({Util.Comma(indices, ix => $"{DafnyHelpersClass}.toInt({ix})")}, {rhs})");
+        if (elementType.IsTypeParameter) {
+          wArray = wr.Fork();
+          wr.Write($".set({indices.Comma(ix => $"{DafnyHelpersClass}.toInt({ix})")}, ");
+          wRhs = wr.Fork();
+          wr.Write(")");
         } else {
-          wr.Write($"(({TypeName(elmtType, wr, Token.NoToken)}{Repeat("[]", indices.Count)}) (");
-          w = wr.Fork();
-          wr.Write($").elmts){Util.Comma("", indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")} = {rhs}");
+          wr.Write($"(({TypeName(elementType, wr, Token.NoToken)}{Repeat("[]", indices.Count)}) (");
+          wArray = wr.Fork();
+          wr.Write($").elmts){Util.Comma("", indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")} = ");
+          wRhs = wr.Fork();
         }
       }
-      return w;
+      return (wArray, wRhs);
     }
 
     protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {

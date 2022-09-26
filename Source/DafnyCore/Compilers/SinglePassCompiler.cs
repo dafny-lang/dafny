@@ -1003,15 +1003,16 @@ namespace Microsoft.Dafny.Compilers {
         EmitArraySelect(indices, elmtType, wr);
       });
     }
-    protected virtual ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
-      var w = EmitArraySelect(indices, elmtType, wr);
-      wr.Write(" = {0}", rhs);
-      return w;
+    protected virtual (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+      var wArray = EmitArraySelect(indices, elementType, wr);
+      wr.Write(" = ");
+      var wRhs = wr.Fork();
+      return (wArray, wRhs);
     }
     protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
-      var w = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      TrExpr(rhs, w, false, wr);
-      return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
+      var (wArray, wRhs) = EmitArrayUpdate(indices, rhs.Type, wr);
+      TrExpr(rhs, wRhs, false, wr);
+      return wArray;
     }
     protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
       Contract.Requires(arrayIndex != null);
@@ -3405,10 +3406,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitTupleSelect(tup, i + 1, wIndex);
         indices.Add(wIndex.ToString());
       }
-      var wRhs = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      EmitTupleSelect(tup, L - 1, wRhs);
-      var rhs = wRhs.ToString();
-      var wrArray = EmitArrayUpdate(indices, rhs, tupleTypeArgsList[L - 1], wr);
+      var (wrArray, wrRhs) = EmitArrayUpdate(indices, tupleTypeArgsList[L - 1], wr);
+      EmitTupleSelect(tup, L - 1, wrRhs);
       wrArray.Write(array);
       EndStmt(wr);
     }
@@ -4016,8 +4015,8 @@ namespace Microsoft.Dafny.Compilers {
             var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
-          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
-          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
+          var (wArray, wrRhs) = EmitArrayUpdate(indices, tRhs.EType, w);
+          wrRhs.Write("{0}{2}({1})", f, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
           wArray.Write(nw);
           EndStmt(w);
         } else if (tRhs.InitDisplay != null) {
