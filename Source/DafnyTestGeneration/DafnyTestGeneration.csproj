@@ -6,7 +6,6 @@
         <IsPackable>false</IsPackable>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <DefineConstants>TRACE</DefineConstants>
-        <PackageVersion>1.1.0</PackageVersion>
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
@@ -15,10 +14,6 @@
     <ItemGroup>
       <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
       <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Include="..\version.cs" />
     </ItemGroup>
 
 </Project>
