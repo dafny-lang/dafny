@@ -69,6 +69,24 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static string PrintableNameList(List<string> names, string grammaticalConjunction) {
+      Contract.Requires(names != null);
+      Contract.Requires(1 <= names.Count);
+      Contract.Requires(grammaticalConjunction != null);
+      var n = names.Count;
+      if (n == 1) {
+        return string.Format("'{0}'", names[0]);
+      } else if (n == 2) {
+        return string.Format("'{0}' {1} '{2}'", names[0], grammaticalConjunction, names[1]);
+      } else {
+        var s = "";
+        for (int i = 0; i < n - 1; i++) {
+          s += string.Format("'{0}', ", names[i]);
+        }
+        return s + string.Format("{0} '{1}'", grammaticalConjunction, names[n - 1]);
+      }
+    }
+
     public static string Repeat(int count, string s) {
       Contract.Requires(0 <= count);
       Contract.Requires(s != null);
@@ -336,7 +354,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static V GetOrDefault<K, V>(this IReadOnlyDictionary<K, V> dictionary, K key, Func<V> createValue) {
+    public static V GetOrDefault<K, V, V2>(this IReadOnlyDictionary<K, V2> dictionary, K key, Func<V> createValue)
+      where V2 : V {
       if (dictionary.TryGetValue(key, out var result)) {
         return result;
       }
@@ -831,11 +850,41 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is MemberSelectExpr selectExpr) {
+        if (reporter != null) {
+          selectExpr.InCompiledContext = true;
+        }
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
+        } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
+          var what = selectExpr.Member.WhatKind;
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
+          return false;
         }
+
+      } else if (expr is DatatypeUpdateExpr updateExpr) {
+        if (resolver != null) {
+          updateExpr.InCompiledContext = true;
+        }
+        isCompilable = CheckIsCompilable(updateExpr.Root, codeContext);
+        Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+        for (var i = 0; i < updateExpr.Updates.Count; i++) {
+          var member = (DatatypeDestructor)updateExpr.Members[i];
+          if (!member.IsGhost) {
+            isCompilable = CheckIsCompilable(updateExpr.Updates[i].Item3, codeContext) && isCompilable;
+          }
+        }
+        if (updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost)) {
+          var dtors = Util.PrintableNameList(updateExpr.Members.ConvertAll(dtor => dtor.Name), "and");
+          var ctorNames = DatatypeDestructor.PrintableCtorNameList(updateExpr.LegalSourceConstructors, "or");
+          reporter?.Error(MessageSource.Resolver, updateExpr,
+            $"in a compiled context, update of {dtors} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})");
+          isCompilable = false;
+        }
+        // switch to the desugared expression for compiled contexts, but don't step into it
+        updateExpr.ResolvedExpression = updateExpr.ResolvedCompiledExpression;
+        return isCompilable;
 
       } else if (expr is FunctionCallExpr callExpr) {
         if (callExpr.Function != null) {
@@ -878,6 +927,10 @@ namespace Microsoft.Dafny {
         return isCompilable;
 
       } else if (expr is DatatypeValue value) {
+        if (value.Ctor.IsGhost) {
+          reporter?.Error(MessageSource.Resolver, expr, "ghost constructor is allowed only in specification contexts");
+          isCompilable = false;
+        }
         // check all NON-ghost arguments
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < value.Arguments.Count; i++) {
@@ -910,6 +963,9 @@ namespace Microsoft.Dafny {
         return CheckIsCompilable(stmtExpr.E, codeContext);
 
       } else if (expr is BinaryExpr binaryExpr) {
+        if (reporter != null) {
+          binaryExpr.InCompiledContext = true;
+        }
         switch (binaryExpr.ResolvedOp_PossiblyStillUndetermined) {
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:
@@ -997,6 +1053,14 @@ namespace Microsoft.Dafny {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
         return chainingExpression.Operands.TrueForAll(ee => CheckIsCompilable(ee, codeContext));
+
+      } else if (expr is MatchExpr matchExpr) {
+        var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
+        if (mc != null) {
+          reporter?.Error(MessageSource.Resolver, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+          isCompilable = false;
+        }
+        // other conditions are checked below
       }
 
       foreach (var ee in expr.SubExpressions) {
@@ -1079,6 +1143,10 @@ namespace Microsoft.Dafny {
         return cce.NonNull(e.Var).IsGhost;
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
+        if (e.Ctor.IsGhost) {
+          return true;
+        }
+
         // check all NON-ghost arguments
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < e.Arguments.Count; i++) {
@@ -1094,12 +1162,30 @@ namespace Microsoft.Dafny {
         MapDisplayExpr e = (MapDisplayExpr)expr;
         return e.Elements.Exists(p => UsesSpecFeatures(p.A) || UsesSpecFeatures(p.B));
       } else if (expr is MemberSelectExpr) {
-        MemberSelectExpr e = (MemberSelectExpr)expr;
-        if (e.Member != null) {
-          return cce.NonNull(e.Member).IsGhost || UsesSpecFeatures(e.Obj);
+        var e = (MemberSelectExpr)expr;
+        if (UsesSpecFeatures(e.Obj)) {
+          return true;
+        } else if (e.Member != null && e.Member.IsGhost) {
+          return true;
+        } else if (e.Member is DatatypeDestructor dtor) {
+          return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
         } else {
           return false;
         }
+      } else if (expr is DatatypeUpdateExpr updateExpr) {
+        if (UsesSpecFeatures(updateExpr.Root)) {
+          return true;
+        }
+        Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+        for (var i = 0; i < updateExpr.Updates.Count; i++) {
+          var member = (DatatypeDestructor)updateExpr.Members[i];
+          // note, updating a ghost field does not make the expression ghost (cf. ghost let expressions)
+          if (!member.IsGhost && UsesSpecFeatures(updateExpr.Updates[i].Item3)) {
+            return true;
+          }
+        }
+        return updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost);
+
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         return UsesSpecFeatures(e.Seq) ||
@@ -1200,7 +1286,7 @@ namespace Microsoft.Dafny {
         return UsesSpecFeatures(((NestedMatchExpr)expr).ResolvedExpression);
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        if (UsesSpecFeatures(me.Source)) {
+        if (UsesSpecFeatures(me.Source) || FirstCaseThatDependsOnGhostCtor(me.Cases) != null) {
           return true;
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
@@ -1240,6 +1326,13 @@ namespace Microsoft.Dafny {
       if (arg.Ctor != null) {
         MakeGhostAsNeeded(arg);
       }
+    }
+
+    /// <summary>
+    /// Return the first ghost constructor listed in a case, or null, if there is none.
+    /// </summary>
+    public static MC FirstCaseThatDependsOnGhostCtor<MC>(List<MC> cases) where MC : MatchCase {
+      return cases.FirstOrDefault(kees => kees.Ctor.IsGhost, null);
     }
   }
 }

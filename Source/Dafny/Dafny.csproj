@@ -3,12 +3,11 @@
   <PropertyGroup>
       <OutputType>Exe</OutputType>
       <AssemblyName>Dafny</AssemblyName>
-      <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+      <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
-      <VersionPrefix>3.8.1.40901</VersionPrefix>
 
       <PackAsTool>true</PackAsTool>
       <ToolCommandName>dafny</ToolCommandName>
@@ -28,9 +27,5 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\version.cs" />
   </ItemGroup>
 </Project>

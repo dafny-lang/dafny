@@ -1,0 +1,2 @@
+ERROR_ModifiesValue.dfy(3,11): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)
+1 resolution/type errors detected in ERROR_ModifiesValue.dfy

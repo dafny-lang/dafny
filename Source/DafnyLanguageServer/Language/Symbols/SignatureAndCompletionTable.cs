@@ -12,8 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>
-  public class SymbolTable {
-    private readonly ILogger<SymbolTable> logger;
+  public class SignatureAndCompletionTable {
+    private readonly ILogger<SignatureAndCompletionTable> logger;
 
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
@@ -40,10 +40,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SymbolTable Empty(DocumentTextBuffer textDocument) {
+    public static SignatureAndCompletionTable Empty(DocumentTextBuffer textDocument) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-      return new SymbolTable(
-        NullLogger<SymbolTable>.Instance,
+      return new SignatureAndCompletionTable(
+        NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(new Dafny.Program(
           textDocument.Uri.ToString(),
           new LiteralModuleDecl(new DefaultModuleDecl(), null),
@@ -57,8 +57,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved: false);
     }
 
-    public SymbolTable(
-        ILogger<SymbolTable> iLogger,
+    public SignatureAndCompletionTable(
+        ILogger<SignatureAndCompletionTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ISymbol, SymbolLocation> locations,
