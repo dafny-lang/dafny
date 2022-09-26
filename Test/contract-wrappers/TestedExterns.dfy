@@ -1,6 +1,6 @@
-// RUN: %dafny /compile:4 /noVerify /runAllTests:1 /testContracts:ExternsInTests %s %s.externs.cs > %t
+// RUN: %dafny /compile:4 /noVerify /runAllTests:1 /testContracts:TestedExterns %s %s.externs.cs > %t
 // RUN: %diff "%s.expect" "%t"
-// RUN: %OutputCheck --file-to-check "%S/ExternsInTests.cs" "%s"
+// RUN: %OutputCheck --file-to-check "%S/TestedExterns.cs" "%s"
 // CHECK-NOT: .*Foo____dafny__checked\(x\).*
 // CHECK: .*Foo____dafny__checked\(new BigInteger\(3\)\).*
 // CHECK-NOT: .*Bar____dafny__checked\(x\).*

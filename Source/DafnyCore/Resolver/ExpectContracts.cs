@@ -203,7 +203,7 @@ public class ExpectContracts : IRewriter {
       }
 
       var opt = DafnyOptions.O.TestContracts;
-      return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.ExternsInTests) ||
+      return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
               (opt == DafnyOptions.ContractTestingMode.AllExterns)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
              !newRedirections.ContainsValue(caller);
@@ -276,11 +276,11 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.ExternsInTests) {
+    if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
       return;
     }
 
-    // If running in ExternsInTests mode, warn if any :extern has no corresponding :test.
+    // If running in TestedExterns, warn if any extern has no corresponding test.
     var uncalledRedirections =
       callRedirector.newRedirections.ExceptBy(callRedirector.calledWrappers, x => x.Value);
     foreach (var uncalledRedirection in uncalledRedirections) {

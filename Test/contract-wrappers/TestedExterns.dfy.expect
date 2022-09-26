@@ -1,6 +1,6 @@
 CheckExtern.dfy(20,13): Warning: The requires clause at this location cannot be compiled to be tested at runtime because it references ghost state.
 CheckExtern.dfy(22,12): Warning: The ensures clause at this location cannot be compiled to be tested at runtime because it references ghost state.
-ExternsInTests.dfy(10,17): Warning: No :test code calls NotCalled
+TestedExterns.dfy(10,17): Warning: No :test code calls NotCalled
 
 Dafny program verifier did not attempt verification
 FooTest: FAILED

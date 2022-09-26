@@ -99,7 +99,7 @@ namespace Microsoft.Dafny {
     public enum ContractTestingMode {
       None,
       AllExterns,
-      ExternsInTests,
+      TestedExterns,
     }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
@@ -659,10 +659,10 @@ namespace Microsoft.Dafny {
 
         case "testContracts":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("AllExterns")) {
+            if (args[ps.i].Equals("Externs")) {
               TestContracts = ContractTestingMode.AllExterns;
-            } else if (args[ps.i].Equals("ExternsInTests")) {
-              TestContracts = ContractTestingMode.ExternsInTests;
+            } else if (args[ps.i].Equals("TestedExterns")) {
+              TestContracts = ContractTestingMode.TestedExterns;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1444,15 +1444,16 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     option is useful in a diamond dependency situation, to prevent code
     from the bottom dependency from being generated more than once.
 
-/testContracts:<AllExterns|ExternsInTests>
+/testContracts:<Externs|TestedExterns>
     Enable run-time testing of compiled function or method contracts in
-    certain situations, currently focused on :extern code.
+    certain situations, currently focused on {{:extern}} code.
 
-    AllExterns - Check contracts on every call to a function or
-        method marked :extern, regardless of where it occurs.
-    ExternsInTests - Check contracts on every call to a function or
-        method marked :extern when it occurs in one marked :test, and
-        warn if no corresponding :test exists for a given :extern.
+    Externs - Check contracts on every call to a function or method marked
+        with the {{:extern}} attribute, regardless of where it occurs.
+    TestedExterns - Check contracts on every call to a function or method
+        marked with the {{:extern}} attribute when it occurs in a method
+        with the {{:test}} attribute, and warn if no corresponding test
+        exists for a given external declaration.
 
 ----------------------------------------------------------------------------
 
