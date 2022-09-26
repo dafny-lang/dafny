@@ -74,6 +74,7 @@ method Main() {
   TypeSynonym.Test();
 
   MoreArrays.Test();
+  NativeArrays.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -447,5 +448,34 @@ module MoreArrays {
 
   method CheckEquality<T(==)>(x: T, y: T) {
     print " ", x == y, "\n";
+  }
+}
+
+module NativeArrays {
+  newtype byte = x | 0 <= x < 256
+  newtype onebyte = x | 0 < x < 256 witness 1
+
+  method Test() {
+    var aa := new byte[3];
+    PrintArray(aa, "uninitialized bytes");
+    aa := new byte[] [7, 8, 9];
+    PrintArray(aa, "bytes from display");
+    aa := new byte[3](i => if 0 <= i < 10 then (20 + i) as byte else 88);
+    PrintArray(aa, "bytes from lambda");
+
+    var bb := new onebyte[3];
+    PrintArray(bb, "uninitialized 1bytes");
+    bb := new onebyte[] [7, 8, 9];
+    PrintArray(bb, "1bytes from display");
+    bb := new onebyte[3](i => if 0 <= i < 10 then (20 + i) as onebyte else 88);
+    PrintArray(bb, "1bytes from lambda");
+  }
+
+  method PrintArray(a: array, title: string) {
+    print title, ": array[";
+    for i := 0 to a.Length {
+      print if i == 0 then "" else ", ", a[i];
+    }
+    print "]\n";
   }
 }
