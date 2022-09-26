@@ -250,7 +250,7 @@ namespace Microsoft.Dafny.Compilers {
       //   Type1 _dafny.TypeDescriptor
       // }
       //
-      // func (_this type_Class_) Default() interface{} {
+      // func (_this type_Class_) Default() any {
       //   return (*Class)(nil)
       // }
       //
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       //   StaticField1: ...,
       // }
       //
-      // func (_static *companionStruct_Trait) CastTo_(x interface{}) Trait {
+      // func (_static *companionStruct_Trait) CastTo_(x any) Trait {
       //   var t Trait
       //   t, _ = x.(Trait)
       //   return t
@@ -549,11 +549,11 @@ namespace Microsoft.Dafny.Compilers {
       //
       // func (_this Dt) String() { ... }
       //
-      // func (_this Dt) EqualsGeneric(other interface{}) bool { ... }
+      // func (_this Dt) EqualsGeneric(other any) bool { ... }
       //
       // func (CompanionStruct_Dt_) AllSingletonConstructors() _dafny.Iterator {
       //   i := -1
-      //   return func() (interface{}, bool) {
+      //   return func() (any, bool) {
       //     i++
       //     switch i {
       //       case 0:
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
       //   tyArg1 Type
       // }
       //
-      // func (ty type_Dt_) Default() interface{} {
+      // func (ty type_Dt_) Default() any {
       //   tyArg0 := ty.tyArg0
       //   tyArg1 := ty.tyArg1
       //   return Companion_Dt_.Create_CtorK(...)
@@ -727,7 +727,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      /* func (_static CompanionStruct_Dt_) Default(_default_A interface{}, _default_B interface{}) Dt {
+      /* func (_static CompanionStruct_Dt_) Default(_default_A any, _default_B any) Dt {
        *   return Dt{Dt_GroundingCtor{...}}
        * }
        */
@@ -901,7 +901,7 @@ namespace Microsoft.Dafny.Compilers {
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo _dafny.Int, hi _dafny.Int) _dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
         wIntegerRangeBody.WriteLine("iter := _dafny.IntegerRange(lo, hi)");
-        var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (interface{}, bool)");
+        var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (any, bool)");
         wIterFuncBody.WriteLine("next, ok := iter()");
         wIterFuncBody.WriteLine("if !ok {{ return {0}(0), false }}", nativeType);
         wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
@@ -1374,7 +1374,7 @@ namespace Microsoft.Dafny.Compilers {
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "interface{}";
+        return "any";
       }
 
       if (xType is SpecialNativeType snt) {
@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
       } else if (xType.IsObjectQ) {
-        return "interface{}";
+        return "any";
       } else if (xType.IsArrayType) {
         return "_dafny.Array";
       } else if (xType is UserDefinedType udt) {
@@ -1413,7 +1413,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is TupleTypeDecl) {
           return "_dafny.Tuple";
         } else if (udt.IsTypeParameter) {
-          return "interface{}";
+          return "any";
         }
         if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
           // To use an external interface, we need to have values of the
@@ -3395,7 +3395,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
         // downcast (allowed?) or implicit cast from parameter
         if (to.IsObjectQ || to.IsObject) {
-          // a cast to interface{} can be omitted
+          // a cast to any can be omitted
           return wr;
         } else if (to.IsTraitType) {
           wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));

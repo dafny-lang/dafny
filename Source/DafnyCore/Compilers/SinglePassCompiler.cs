@@ -4113,7 +4113,7 @@ namespace Microsoft.Dafny.Compilers {
               // The method Gimme will be compiled down to Go (or JavaScript)
               // as a function which returns any value (some details omitted):
               //
-              //   func Gimmie(ty _dafny.Type) interface{} {
+              //   func Gimmie(ty _dafny.Type) any {
               //     return ty.Default()
               //   }
               //
@@ -4127,7 +4127,7 @@ namespace Microsoft.Dafny.Compilers {
               // returned.  Therefore what we want to do is this:
               //
               //   var lhs dafny.Int
-              //   var _out interface{}
+              //   var _out any
               //
               //   _out = Gimmie(dafny.IntType)
               //

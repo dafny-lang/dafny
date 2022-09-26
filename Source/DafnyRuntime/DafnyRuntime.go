@@ -12,7 +12,7 @@ import (
 
 func FromMainArguments(args []string) Seq {
   var size = len(args)
-  var dafnyArgs []interface{} = make([]interface{}, size)
+  var dafnyArgs []any = make([]any, size)
   for i, item := range args {
     dafnyArgs[i] = SeqOfString(item)
   }
@@ -26,14 +26,14 @@ func FromMainArguments(args []string) Seq {
 // An EqualsGeneric can be compared to any other object.  This method should
 // *only* return true when the other value is of the same type.
 type EqualsGeneric interface {
-  EqualsGeneric(other interface{}) bool
+  EqualsGeneric(other any) bool
 }
 
 // AreEqual compares two values for equality in a generic way.  Besides the
 // refl.DeepEqual logic (to which this method defers as a last resort), the
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
-func AreEqual(x, y interface{}) bool {
+func AreEqual(x, y any) bool {
   if IsDafnyNull(x) {
     return IsDafnyNull(y)
   }
@@ -54,7 +54,7 @@ func AreEqual(x, y interface{}) bool {
   }
 }
 
-func IsDafnyNull(x interface{}) bool {
+func IsDafnyNull(x any) bool {
   if x == nil {
     return true
   }
@@ -78,7 +78,7 @@ func isNil(v refl.Value) bool {
 
 // String formats the given value using fmt.Sprint, unless it's nil, in which
 // case it formats it as "null" to conform to other languages' output.
-func String(x interface{}) string {
+func String(x any) string {
   if x == nil {
     return "null"
   }
@@ -93,13 +93,13 @@ func String(x interface{}) string {
 }
 
 // Print prints the given value using fmt.Print, formatted using String.
-func Print(x interface{}) {
+func Print(x any) {
   fmt.Print(String(x))
 }
 
 // SetFinalizer is a re-export of runtime.SetFinalizer.  Included here so that
 // only this module needs to be imported by every Dafny module.
-func SetFinalizer(x interface{}, f interface{}) {
+func SetFinalizer(x any, f any) {
   runtime.SetFinalizer(x, f)
 }
 
@@ -109,18 +109,18 @@ func SetFinalizer(x interface{}, f interface{}) {
 
 // A TypeDescriptor has the ability to produce a default value for an associated type.
 type TypeDescriptor interface {
-  Default() interface{}
+  Default() any
 }
 
-func CreateStandardTypeDescriptor(value interface{}) TypeDescriptor {
+func CreateStandardTypeDescriptor(value any) TypeDescriptor {
   return standardTypeDescriptor{value}
 }
 
 type standardTypeDescriptor struct {
-  defaultValue interface{}
+  defaultValue any
 }
 
-func (rtd standardTypeDescriptor) Default() interface{} {
+func (rtd standardTypeDescriptor) Default() any {
   return rtd.defaultValue
 }
 
@@ -140,7 +140,7 @@ var RealType = CreateStandardTypeDescriptor(ZeroReal)
 var Int64Type = CreateStandardTypeDescriptor(int64(0))
 
 // PossiblyNullType is the RTD of any possibly null reference type
-var PossiblyNullType = CreateStandardTypeDescriptor((*interface{})(nil))
+var PossiblyNullType = CreateStandardTypeDescriptor((*any)(nil))
 
 // Uint8Type is the RTD of uint8
 var Uint8Type = CreateStandardTypeDescriptor(uint8(0))
@@ -202,7 +202,7 @@ func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
 // type of "q"). More generally, this method returns true if p and q are of the
 // same type. It is assumed that neither "p" nor "q" denotes a Dafny "null" value.
 
-func InstanceOf(p interface{}, q interface{}) bool {
+func InstanceOf(p any, q any) bool {
   return refl.TypeOf(p) == refl.TypeOf(q)
 }
 
@@ -223,7 +223,7 @@ func (_this *Object) Equals(other *Object) bool {
   return _this == other
 }
 
-func (_this *Object) EqualsGeneric(x interface{}) bool {
+func (_this *Object) EqualsGeneric(x any) bool {
   other, ok := x.(*Object)
   return ok && _this.Equals(other)
 }
@@ -252,7 +252,7 @@ func (char Char) String() string {
 // AllChars returns an iterator that returns all 16-bit characters.
 func AllChars() Iterator {
   c := int32(0)
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if c >= 0x10000 {
       return -1, false
     } else {
@@ -267,19 +267,19 @@ func AllChars() Iterator {
  * Slices
  ******************************************************************************/
 
-func sliceEquals(s1, s2 []interface{}) bool {
+func sliceEquals(s1, s2 []any) bool {
   return len(s1) == len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
 }
 
-func sliceIsPrefixOf(s1, s2 []interface{}) bool {
+func sliceIsPrefixOf(s1, s2 []any) bool {
   return len(s1) <= len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
 }
 
-func sliceIsProperPrefixOf(s1, s2 []interface{}) bool {
+func sliceIsProperPrefixOf(s1, s2 []any) bool {
   return len(s1) < len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
 }
 
-func sliceIsPrefixAfterLengthCheck(s1, s2 []interface{}) bool {
+func sliceIsPrefixAfterLengthCheck(s1, s2 []any) bool {
   for i, v := range s1 {
     if !(AreEqual(v, s2[i])) {
       return false
@@ -288,7 +288,7 @@ func sliceIsPrefixAfterLengthCheck(s1, s2 []interface{}) bool {
   return true
 }
 
-func sliceContains(s []interface{}, value interface{}) bool {
+func sliceContains(s []any, value any) bool {
   for _, v := range s {
     if AreEqual(v, value) {
       return true
@@ -298,10 +298,10 @@ func sliceContains(s []interface{}, value interface{}) bool {
 }
 
 // Iterator returns an iterator over the sequence.
-func sliceIterator(s []interface{}) Iterator {
+func sliceIterator(s []any) Iterator {
   i := 0
   n := len(s)
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if i >= n {
       return nil, false
     }
@@ -311,7 +311,7 @@ func sliceIterator(s []interface{}) Iterator {
   }
 }
 
-func stringOfElements(s []interface{}) string {
+func stringOfElements(s []any) string {
   str := ""
   for i, v := range s {
     if i > 0 {
@@ -328,7 +328,7 @@ func stringOfElements(s []interface{}) string {
 
 // An Iterator is a function that can be called multiple times to get successive
 // values, until the second value returned is false.
-type Iterator = func() (interface{}, bool)
+type Iterator = func() (any, bool)
 
 // An Iterable can produce an iterator, which we represent as a function which
 // can be called to get successive values.
@@ -338,7 +338,7 @@ type Iterable interface {
 
 // Iterate gets an iterator from a value that is either an iterator or an
 // iterable.
-func Iterate(over interface{}) Iterator {
+func Iterate(over any) Iterator {
   switch over := over.(type) {
   case Iterator:
     return over
@@ -353,11 +353,11 @@ func Iterate(over interface{}) Iterator {
   }
 }
 
-func anySliceIterator(slice interface{}) Iterator {
+func anySliceIterator(slice any) Iterator {
   val := refl.ValueOf(slice)
   n := val.Len()
   i := 0
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if i >= n {
       return nil, false
     } else {
@@ -370,7 +370,7 @@ func anySliceIterator(slice interface{}) Iterator {
 
 // Quantifier calculates whether a predicate holds either for all values yielded
 // by an iterator or for at least one.
-func Quantifier(iter interface{}, isForAll bool, pred interface{}) bool {
+func Quantifier(iter any, isForAll bool, pred any) bool {
   predVal := refl.ValueOf(pred)
 
   for i := Iterate(iter); ; {
@@ -385,9 +385,9 @@ func Quantifier(iter interface{}, isForAll bool, pred interface{}) bool {
 }
 
 // SingleValue produces an iterator that yields only a single value.
-func SingleValue(value interface{}) Iterator {
+func SingleValue(value any) Iterator {
   done := false
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if done {
       return nil, false
     } else {
@@ -400,7 +400,7 @@ func SingleValue(value interface{}) Iterator {
 // AllBooleans returns an iterator that returns false, then returns true.
 func AllBooleans() Iterator {
   phase := 0
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     switch phase {
     case 0:
       phase = 1
@@ -423,7 +423,7 @@ func AllBooleans() Iterator {
 // by Index (either by using its Set method or by getting a pointer using its
 // Addr method).
 type Seq struct {
-  contents []interface{}
+  contents []any
   isString bool
 }
 
@@ -431,9 +431,9 @@ type Seq struct {
 var EmptySeq = SeqOf()
 
 // Create a sequence from a length and an element initializer
-func SeqCreate(n Int, init func (Int) interface{}) Seq {
+func SeqCreate(n Int, init func (Int) any) Seq {
   len := n.Int()
-  arr := make([]interface{}, len)
+  arr := make([]any, len)
   for i := 0; i < len; i++ {
     arr[i] = init(IntOf(i))
   }
@@ -441,17 +441,17 @@ func SeqCreate(n Int, init func (Int) interface{}) Seq {
 }
 
 // SeqOf returns a sequence containing the given values.
-func SeqOf(values ...interface{}) Seq {
+func SeqOf(values ...any) Seq {
   // Making a defensive copy here because variadic functions can get hinky
   // if someone says SeqOf(slice...) and then mutates slice.
-  arr := make([]interface{}, len(values))
+  arr := make([]any, len(values))
   copy(arr, values)
   return Seq{arr, false}
 }
 
 // SeqOfChars returns a sequence containing the given character values.
 func SeqOfChars(values ...Char) Seq {
-  arr := make([]interface{}, len(values))
+  arr := make([]any, len(values))
   for i, v := range values {
     arr[i] = v
   }
@@ -461,7 +461,7 @@ func SeqOfChars(values ...Char) Seq {
 // SeqOfString converts the given string into a sequence of characters.
 func SeqOfString(str string) Seq {
   // Need to make sure the elements of the array are Chars
-  arr := make([]interface{}, len(str))
+  arr := make([]any, len(str))
   for i, v := range str {
     arr[i] = Char(v)
   }
@@ -473,23 +473,23 @@ func (seq Seq) SetString() Seq {
 }
 
 // Index finds the sequence element at the given index.
-func (seq Seq) Index(i Int) interface{} {
+func (seq Seq) Index(i Int) any {
   return seq.IndexInt(i.Int())
 }
 
 // IndexInt finds the sequence element at the given index.
-func (seq Seq) IndexInt(i int) interface{} {
+func (seq Seq) IndexInt(i int) any {
   return seq.contents[i]
 }
 
 // Update returns a new sequence with the given index set to the given value.
-func (seq Seq) Update(i Int, v interface{}) Seq {
+func (seq Seq) Update(i Int, v any) Seq {
   return seq.UpdateInt(i.Int(), v)
 }
 
 // UpdateInt returns a new sequence with the given index set to the given value.
-func (seq Seq) UpdateInt(i int, v interface{}) Seq {
-  arr := make([]interface{}, len(seq.contents))
+func (seq Seq) UpdateInt(i int, v any) Seq {
+  arr := make([]any, len(seq.contents))
   copy(arr, seq.contents[:i])
   arr[i] = v
   copy(arr[i+1:], seq.contents[i+1:])
@@ -517,7 +517,7 @@ func (seq Seq) CardinalityInt() int {
 }
 
 // Contains finds whether the value is equal to any element in the sequence.
-func (seq Seq) Contains(value interface{}) bool {
+func (seq Seq) Contains(value any) bool {
   return sliceContains(seq.contents, value)
 }
 
@@ -528,7 +528,7 @@ func (seq Seq) Iterator() Iterator {
 
 // Subseq gets the selected portion of the sequence as a new sequence.
 func (seq Seq) Subseq(lo, hi Int) Seq {
-  var slice []interface{}
+  var slice []any
   if !lo.IsNilInt() {
     if !hi.IsNilInt() {
       slice = seq.contents[lo.Int():hi.Int()]
@@ -556,7 +556,7 @@ func (seq Seq) Concat(seq2 Seq) Seq {
   }
 
   n, n2 := len(seq.contents), len(seq2.contents)
-  newSlice := make([]interface{}, n+n2)
+  newSlice := make([]any, n+n2)
   copy(newSlice, seq.contents)
   copy(newSlice[len(seq.contents):], seq2.contents)
   return Seq{newSlice, seq.isString || seq2.isString}
@@ -568,7 +568,7 @@ func (seq Seq) Equals(seq2 Seq) bool {
 }
 
 // Seq implements the EqualsGeneric interface.
-func (seq Seq) EqualsGeneric(other interface{}) bool {
+func (seq Seq) EqualsGeneric(other any) bool {
   seq2, ok := other.(Seq)
   return ok && seq.Equals(seq2)
 }
@@ -614,7 +614,7 @@ func (seq Seq) String() string {
 // multidimensional array, along with metadata.  There aren't any methods for
 // updating; instead, you can update through the pointer returned by Index.
 type Array interface {
-  contents() []interface{} // stored as a flat one-dimensional slice
+  contents() []any // stored as a flat one-dimensional slice
   dims()     []int
 }
 
@@ -622,7 +622,7 @@ type Array interface {
 
 // NewArrayWithValues returns a new one-dimensional Array with the given initial
 // values.
-func NewArrayWithValues(values ...interface{}) Array {
+func NewArrayWithValues(values ...any) Array {
   length := len(values)
   if length == 0 {
     return &ArrayStruct{
@@ -633,7 +633,7 @@ func NewArrayWithValues(values ...interface{}) Array {
 
   // TODO: inspect the type of values[0] to consider Array specialization
 
-  arr := make([]interface{}, len(values))
+  arr := make([]any, len(values))
   copy(arr, values)
   return &ArrayStruct{
     xcontents: arr,
@@ -645,7 +645,7 @@ func NewArrayWithValues(values ...interface{}) Array {
 // If "init" is non-nil, it is used to initialize all elements of the array.
 // "example" is used only to figure out the right kind of Array to return.
 // If "init" is non-nil, the types of "example" and "init" must agree.
-func NewArrayFromExample(example interface{}, init interface{}, dims []Int) Array {
+func NewArrayFromExample(example any, init any, dims []Int) Array {
   numberOfDimensions := len(dims)
   intDims := make([]int, len(dims))
   totalLength := 1
@@ -663,7 +663,7 @@ func NewArrayFromExample(example interface{}, init interface{}, dims []Int) Arra
 
   // TODO: inspect the type of "example" to consider Array specialization
 
-  arr := make([]interface{}, totalLength)
+  arr := make([]any, totalLength)
   if init != nil {
     for i := range arr {
       arr[i] = init
@@ -676,7 +676,7 @@ func NewArrayFromExample(example interface{}, init interface{}, dims []Int) Arra
 }
 
 // NewArrayWithValue returns a new Array full of the given initial value.
-func NewArrayWithValue(init interface{}, dims ...Int) Array {
+func NewArrayWithValue(init any, dims ...Int) Array {
   return NewArrayFromExample(init, init, dims)
 }
 
@@ -688,11 +688,11 @@ func NewArray(dims ...Int) Array {
 /***** ArrayStruct is default implementation of the Array interface. *****/
 
 type ArrayStruct struct {
-  xcontents []interface{} // stored as a flat one-dimensional slice
+  xcontents []any // stored as a flat one-dimensional slice
   xdims     []int
 }
 
-func (_this ArrayStruct) contents() []interface{} {
+func (_this ArrayStruct) contents() []any {
   return _this.xcontents
 }
 
@@ -701,7 +701,7 @@ func (_this ArrayStruct) dims() []int {
 }
 
 // ArrayStruct implements the EqualsGeneric interface.
-func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
+func (_this ArrayStruct) EqualsGeneric(other any) bool {
   otherArray, ok := other.(*ArrayStruct)
   if !ok {
     return false
@@ -714,7 +714,7 @@ func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
 // EmptyArray is an empty one-dimensional array.
 var EmptyArray = NewArray(Zero)
 
-func ArrayCastTo(x interface{}) Array {
+func ArrayCastTo(x any) Array {
   var t Array
   t, _ = x.(Array)
   return t
@@ -741,7 +741,7 @@ func arrayFindIndex(array Array, ixs ...int) int {
 }
 
 // Index gets the element at the given indices into the array.
-func ArrayIndex(array Array, ixs ...Int) *interface{} {
+func ArrayIndex(array Array, ixs ...Int) *any {
   if len(ixs) != len(array.dims()) {
     panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
   }
@@ -753,7 +753,7 @@ func ArrayIndex(array Array, ixs ...Int) *interface{} {
 }
 
 // IndexInts gets the element at the given indices into the array.
-func ArrayIndexInts(array Array, ixs ...int) *interface{} {
+func ArrayIndexInts(array Array, ixs ...int) *any {
   return &array.contents()[arrayFindIndex(array, ixs...)]
 }
 
@@ -783,14 +783,14 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
 // Update updates a location in a one-dimensional array.  (Must be
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
-func ArrayUpdate(array Array, ix Int, value interface{}) {
+func ArrayUpdate(array Array, ix Int, value any) {
   ArrayUpdateInt(array, ix.Int(), value)
 }
 
 // UpdateInt updates a location in a one-dimensional array.  (Must be
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
-func ArrayUpdateInt(array Array, ix int, value interface{}) {
+func ArrayUpdateInt(array Array, ix int, value any) {
   if len(array.dims()) != 1 {
     panic("Can't update a multidimensional array")
   }
@@ -824,12 +824,12 @@ func ArrayString(array Array) string {
 
 // A Tuple is a one-dimensional heterogeneous array.
 type Tuple struct {
-  contents []interface{}
+  contents []any
 }
 
 // TupleOf creates a tuple with the given values.
-func TupleOf(values ...interface{}) Tuple {
-  arr := make([]interface{}, len(values))
+func TupleOf(values ...any) Tuple {
+  arr := make([]any, len(values))
   copy(arr, values)
   return Tuple{arr}
 }
@@ -840,7 +840,7 @@ func (tuple Tuple) Equals(other Tuple) bool {
 }
 
 // Tuple implements the EqualsGeneric interface.
-func (tuple Tuple) EqualsGeneric(other interface{}) bool {
+func (tuple Tuple) EqualsGeneric(other any) bool {
   tuple2, ok := other.(Tuple)
   return ok && tuple.Equals(tuple2)
 }
@@ -850,12 +850,12 @@ func (tuple Tuple) String() string {
 }
 
 // Index looks up the address of the ith element of the tuple.
-func (tuple Tuple) Index(i Int) *interface{} {
+func (tuple Tuple) Index(i Int) *any {
   return tuple.IndexInt(i.Int())
 }
 
 // IndexInt looks up the address of the ith element of the tuple.
-func (tuple Tuple) IndexInt(i int) *interface{} {
+func (tuple Tuple) IndexInt(i int) *any {
   return &tuple.contents[i]
 }
 
@@ -870,8 +870,8 @@ type tupleType struct {
   eltTys []TypeDescriptor
 }
 
-func (tt tupleType) Default() interface{} {
-  values := make([]interface{}, len(tt.eltTys))
+func (tt tupleType) Default() any {
+  values := make([]any, len(tt.eltTys))
   for i, ty := range tt.eltTys {
     values[i] = ty.Default()
   }
@@ -895,7 +895,7 @@ func (tt tupleType) String() string {
 
 // A Builder holds values as they're imperatively accumulated in order to build
 // an Array, Set, or MultiSet.
-type Builder []interface{}
+type Builder []any
 
 // NewBuilder creates a new Builder.
 func NewBuilder() *Builder {
@@ -903,7 +903,7 @@ func NewBuilder() *Builder {
 }
 
 // Add adds a new value to a Builder.
-func (builder *Builder) Add(value interface{}) {
+func (builder *Builder) Add(value any) {
   *builder = append(*builder, value)
 }
 
@@ -928,15 +928,15 @@ func (builder *Builder) Iterator() Iterator {
 
 // A Set is a sequence without duplicates.
 type Set struct {
-  contents []interface{}
+  contents []any
 }
 
 // EmptySet is the empty set.
 var EmptySet = SetOf()
 
 // SetOf creates a set with the given values.
-func SetOf(values ...interface{}) Set {
-  uniq := make([]interface{}, 0, len(values))
+func SetOf(values ...any) Set {
+  uniq := make([]any, 0, len(values))
 NEXT_INPUT:
   for _, v := range values {
     for _, u := range uniq {
@@ -960,7 +960,7 @@ func (set Set) CardinalityInt() int {
 }
 
 // Contains returns whether the given value is an element of the set.
-func (set Set) Contains(value interface{}) bool {
+func (set Set) Contains(value any) bool {
   return sliceContains(set.contents, value)
 }
 
@@ -979,7 +979,7 @@ func (set Set) Union(set2 Set) Set {
   }
 
   n := set.CardinalityInt()
-  uniq := make([]interface{}, n)
+  uniq := make([]any, n)
   copy(uniq, set.contents)
 NEXT_INPUT:
   for _, v := range set2.contents {
@@ -1001,7 +1001,7 @@ func (set Set) Intersection(set2 Set) Set {
     return EmptySet
   }
 
-  uniq := make([]interface{}, 0)
+  uniq := make([]any, 0)
   for _, v := range set.contents {
     if set2.Contains(v) {
       uniq = append(uniq, v)
@@ -1018,7 +1018,7 @@ func (set Set) Difference(set2 Set) Set {
     return set
   }
 
-  elts := make([]interface{}, 0, max(0, set.CardinalityInt()-set2.CardinalityInt()))
+  elts := make([]any, 0, max(0, set.CardinalityInt()-set2.CardinalityInt()))
   for _, v := range set.contents {
     if !set2.Contains(v) {
       elts = append(elts, v)
@@ -1050,7 +1050,7 @@ func (set Set) Equals(set2 Set) bool {
 }
 
 // Set implements the EqualsGeneric interface.
-func (set Set) EqualsGeneric(other interface{}) bool {
+func (set Set) EqualsGeneric(other any) bool {
   set2, ok := other.(Set)
   return ok && set.Equals(set2)
 }
@@ -1087,11 +1087,11 @@ func (set Set) AllSubsets() Iterator {
   // Use a big integer to range from 0 to 2^n
   r := new(big.Int)
   limit := new(big.Int).Lsh(One.impl, uint(set.CardinalityInt()))
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if r.Cmp(limit) == 0 {
       return Set{}, false
     } else {
-      values := make([]interface{}, 0, len(set.contents))
+      values := make([]any, 0, len(set.contents))
       i := 0
       s := new(big.Int).Set(r)
       mod := new(big.Int)
@@ -1111,8 +1111,8 @@ func (set Set) AllSubsets() Iterator {
   }
 }
 
-func reverse(values []interface{}) []interface{} {
-  ans := make([]interface{}, len(values))
+func reverse(values []any) []any {
+  ans := make([]any, len(values))
   n := len(values)
   for i, v := range values {
     ans[n-1-i] = v
@@ -1134,7 +1134,7 @@ type MultiSet struct {
 }
 
 type msetElt struct {
-  value interface{}
+  value any
   count Int
 }
 
@@ -1142,7 +1142,7 @@ type msetElt struct {
 var EmptyMultiSet = MultiSetOf()
 
 // MultiSetOf creates a MultiSet with the given elements.
-func MultiSetOf(values ...interface{}) MultiSet {
+func MultiSetOf(values ...any) MultiSet {
   elts := make([]msetElt, 0, len(values))
 NEXT_INPUT:
   for _, v := range values {
@@ -1179,7 +1179,7 @@ func (mset MultiSet) clone() MultiSet {
   return MultiSet{elts}
 }
 
-func (mset MultiSet) findIndex(value interface{}) (int, bool) {
+func (mset MultiSet) findIndex(value any) (int, bool) {
   for i, e := range mset.elts {
     if AreEqual(e.value, value) {
       return i, true
@@ -1190,7 +1190,7 @@ func (mset MultiSet) findIndex(value interface{}) (int, bool) {
 
 // Update changes the cardinality of the given value in the multiset, returning
 // a new multiset unless the cardinality did not actually change.
-func (mset MultiSet) Update(value interface{}, n Int) MultiSet {
+func (mset MultiSet) Update(value any, n Int) MultiSet {
   i, found := mset.findIndex(value)
   if found {
     if mset.elts[i].count == n {
@@ -1229,7 +1229,7 @@ func (mset MultiSet) CardinalityInt() int {
 
 // Index returns the ith element of the multiset, which is arbitrary except that
 // it is different from the jth element when i /= j.  (Repetitions are ignored.)
-func (mset MultiSet) Index(i Int) interface{} {
+func (mset MultiSet) Index(i Int) any {
   return mset.elts[i.Int()]
 }
 
@@ -1237,7 +1237,7 @@ func (mset MultiSet) Index(i Int) interface{} {
 func (mset MultiSet) Iterator() Iterator {
   i := 0
   n := new(big.Int)
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     for {
       if i >= len(mset.elts) {
         return nil, false
@@ -1258,13 +1258,13 @@ func (mset MultiSet) Iterator() Iterator {
 
 // Contains returns whether the multiset contains the given element (at least
 // once).
-func (mset MultiSet) Contains(value interface{}) bool {
+func (mset MultiSet) Contains(value any) bool {
   return mset.Multiplicity(value).Cmp(Zero) > 0
 }
 
 // Multiplicity returns the number of times a given element occurs in the
 // multiset.
-func (mset MultiSet) Multiplicity(value interface{}) Int {
+func (mset MultiSet) Multiplicity(value any) Int {
   i, found := mset.findIndex(value)
   if found {
     return mset.elts[i].count
@@ -1275,10 +1275,10 @@ func (mset MultiSet) Multiplicity(value interface{}) Int {
 
 // Elements returns an iterator that yields each element in the multiset, as
 // many times as it appears.
-func (mset MultiSet) Elements() func() (interface{}, bool) {
+func (mset MultiSet) Elements() func() (any, bool) {
   i := 0
   n := new(big.Int)
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     for {
       if i >= len(mset.elts) {
         return nil, false
@@ -1297,9 +1297,9 @@ func (mset MultiSet) Elements() func() (interface{}, bool) {
 
 // UniqueElements returns an iterator that yields each element in the multiset
 // once.
-func (mset MultiSet) UniqueElements() func() (interface{}, bool) {
+func (mset MultiSet) UniqueElements() func() (any, bool) {
   i := 0
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     if i >= len(mset.elts) {
       return nil, false
     } else {
@@ -1403,7 +1403,7 @@ func (mset MultiSet) Equals(mset2 MultiSet) bool {
 }
 
 // MultiSet implements the EqualsGeneric interface.
-func (mset MultiSet) EqualsGeneric(other interface{}) bool {
+func (mset MultiSet) EqualsGeneric(other any) bool {
   mset2, ok := other.(MultiSet)
   return ok && mset.Equals(mset2)
 }
@@ -1450,7 +1450,7 @@ type Map struct {
 }
 
 type mapElt struct {
-  key, value interface{}
+  key, value any
 }
 
 // A MapBuilder creates a new Map by accumulating elements imperatively.
@@ -1462,7 +1462,7 @@ func NewMapBuilder() *MapBuilder {
 }
 
 // Add adds a key and value to the map being built.
-func (mb *MapBuilder) Add(k, v interface{}) *MapBuilder {
+func (mb *MapBuilder) Add(k, v any) *MapBuilder {
   *mb = append(*mb, mapElt{k, v})
   return mb
 }
@@ -1481,7 +1481,7 @@ func (m Map) clone() Map {
   return Map{elts}
 }
 
-func (m Map) findIndex(key interface{}) (int, bool) {
+func (m Map) findIndex(key any) (int, bool) {
   for i, e := range m.elts {
     if AreEqual(e.key, key) {
       return i, true
@@ -1501,7 +1501,7 @@ func (m Map) CardinalityInt() int {
 }
 
 // Find finds the given key in the map, returning it and a success flag.
-func (m Map) Find(key interface{}) (interface{}, bool) {
+func (m Map) Find(key any) (any, bool) {
   i, found := m.findIndex(key)
   if found {
     return m.elts[i].value, true
@@ -1511,19 +1511,19 @@ func (m Map) Find(key interface{}) (interface{}, bool) {
 }
 
 // Get finds the given key in the map, returning it or nil.
-func (m Map) Get(key interface{}) interface{} {
+func (m Map) Get(key any) any {
   v, _ := m.Find(key)
   return v
 }
 
 // Contains returns whether the given key is in the map.
-func (m Map) Contains(key interface{}) bool {
+func (m Map) Contains(key any) bool {
   _, found := m.findIndex(key)
   return found
 }
 
 // Update returns a new Map which associates the given key and value.
-func (m Map) Update(key, value interface{}) Map {
+func (m Map) Update(key, value any) Map {
   ans := m.clone()
   i, found := ans.findIndex(key)
   if found {
@@ -1582,7 +1582,7 @@ func (m Map) Equals(m2 Map) bool {
 }
 
 // Map implements the EqualsGeneric interface.
-func (m Map) EqualsGeneric(other interface{}) bool {
+func (m Map) EqualsGeneric(other any) bool {
   m2, ok := other.(Map)
   return ok && m.Equals(m2)
 }
@@ -1758,7 +1758,7 @@ func IntOfString(s string) Int {
 // IntOfAny converts from many different things to Int.  Note that
 // switch-on-type does a linear search, so this can be slow for less common
 // cases.
-func IntOfAny(x interface{}) Int {
+func IntOfAny(x any) Int {
   switch x := x.(type) {
   // Try and put the most common cases earliest.
   case Int:
@@ -1964,7 +1964,7 @@ func (i Int) Sign() int {
 }
 
 // EqualsGeneric compares an int to another value.
-func (i Int) EqualsGeneric(other interface{}) bool {
+func (i Int) EqualsGeneric(other any) bool {
   j, ok := other.(Int)
   return ok && i.Cmp(j) == 0
 }
@@ -2076,7 +2076,7 @@ func (i Int) dividesAPowerOf10() (yes bool, factor Int, log10 int) {
 func IntegerRange(lo, hi Int) Iterator {
   if lo.impl != nil {
     i := lo
-    return func() (interface{}, bool) {
+    return func() (any, bool) {
       if hi.impl != nil && i.Cmp(hi) >= 0 {
         return nil, false
       } else {
@@ -2087,7 +2087,7 @@ func IntegerRange(lo, hi Int) Iterator {
     }
   } else if hi.impl != nil {
     i := hi
-    return func() (interface{}, bool) {
+    return func() (any, bool) {
       ans := i
       i = i.Minus(One)
       return ans, true
@@ -2110,7 +2110,7 @@ func AllIntegers() Iterator {
   i := Zero
   p := zeroPhase
 
-  return func() (interface{}, bool) {
+  return func() (any, bool) {
     switch p {
     case zeroPhase:
       i = One
@@ -2319,7 +2319,7 @@ func (x Real) Sign() int {
 }
 
 // EqualsGeneric compares an int to another value.
-func (x Real) EqualsGeneric(other interface{}) bool {
+func (x Real) EqualsGeneric(other any) bool {
   y, ok := other.(Real)
   return ok && x.Cmp(y) == 0
 }
