@@ -640,4 +640,75 @@ The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 
-TO BE WRITTEN - {:autocontracts}
+AutoContracts is an experimental feature that inserts much of the dynamic-frames boilerplate
+into a class. The user simply
+- marks the class with `{:autocontracts}` and
+- declares a function (or predicate) called Valid().
+
+AutoContracts then
+
+- Declares, unless there already exist members with these names:
+```dafny
+  ghost var Repr: set(object)
+  predicate Valid()
+```
+
+- For function/predicate `Valid()`, inserts
+```dafny
+  reads this, Repr
+  ensures Valid() ==> this in Repr
+```
+- Into body of `Valid()`, inserts (at the beginning of the body)
+```dafny
+  this in Repr && null !in Repr
+```
+  and also inserts, for every array-valued field `A` declared in the class:
+```dafny
+  (A != null ==> A in Repr) &&
+```
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts
+```dafny
+  (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
+```
+  except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
+be added.
+- For every constructor, inserts
+```
+  ensures Valid() && fresh(Repr)
+```
+- At the end of the body of the constructor, adds
+```
+   Repr := {this};
+   if (A != null) { Repr := Repr + {A}; }
+   if (F != null) { Repr := Repr + {F} + F.Repr; }
+```
+
+In all the following cases, no `modifies` clause or `reads` clause is added if the user
+has given one.
+
+- For every non-static non-ghost method that is not a "simple query method",
+inserts
+```
+   requires Valid()
+   modifies Repr
+   ensures Valid() && fresh(Repr - old(Repr))
+```
+- At the end of the body of the method, inserts
+```
+   if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
+   if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
+```
+- For every non-static non-twostate method that is either ghost or is a "simple query method",
+add:
+```
+   requires Valid()
+```
+- For every non-static twostate method, inserts
+```
+   requires old(Valid())
+```
+- For every non-"Valid" non-static function, inserts
+```
+   requires Valid()
+   reads Repr
+```
