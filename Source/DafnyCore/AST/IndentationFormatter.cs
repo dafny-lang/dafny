@@ -1784,19 +1784,29 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         binaryExpr.E0.EndToken.line != binaryExpr.E1.StartToken.line ?
           binaryExpr.E0.StartToken :
           binaryExpr.E1.StartToken, indent);
-      foreach (var token in binaryExpr.OwnedTokens) {
-        switch (token.val) {
-          case "==":
-          case "<=":
-          case "<":
-          case ">=":
-          case ">":
-          case "<==>":
-          case "!=": {
-              var selfIndent = IsFollowedByNewline(token) ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
-              SetIndentations(token, itemIndent, selfIndent, itemIndent);
-              break;
-            }
+      var startToken = binaryExpr.E0.StartToken;
+      if (startToken.Prev.line == startToken.line) {
+        // like assert E0
+        //          == E1
+        // Careful: The binaryExpr.op's first column should be greater than the
+        // token's first column before E0.StartToken. 
+        foreach (var token in binaryExpr.OwnedTokens) {
+          switch (token.val) {
+            case "==":
+            case "<=":
+            case "<":
+            case ">=":
+            case ">":
+            case "<==>":
+            case "!=": {
+                var selfIndent = IsFollowedByNewline(token) ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
+                if (GetNewTokenVisualIndent(startToken.Prev, itemIndent) < selfIndent) {
+                  SetIndentations(token, itemIndent, selfIndent, itemIndent);
+                }
+
+                break;
+              }
+          }
         }
       }
       Visit(binaryExpr.E0, itemIndent);

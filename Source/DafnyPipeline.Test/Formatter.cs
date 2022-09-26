@@ -1743,6 +1743,34 @@ datatype Test =
     }
 
     [Fact]
+    public void FormatterWorksForEqualityOnItsOwnLine() {
+      FormatterWorksFor(@"
+function Test(): int {
+  if A then
+    assert C(a1, b1, c1)
+         < D(a2, b2, c2);
+    assert (C(a1, b1, c1)
+            < D(a2, b2, c2));
+    assert (  C(a1, b1, c1)
+            < D(a2, b2, c2));
+    assert A
+           && C(a1, b1, c1)
+            < D(a2, b2, c2);
+    assert A
+           && C(a1, b1, c1)
+              == D(a2, b2, c2);
+    assert A
+           &&    C(a1, b1, c1)
+              == D(a2, b2, c2);
+    ( C(a1, b1, c1)
+      < D(a2, b2, c2) )
+  else
+    C(a1, b1, c1)
+    == D(a2, b2, c2)
+}");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
