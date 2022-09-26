@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -9,6 +10,11 @@ public class DocumentTextBuffer {
   public DocumentTextBuffer(TextDocumentItem documentItem) {
     TextDocumentItem = documentItem;
     Buffer = new TextBuffer(documentItem.Text);
+  }
+  
+  public DocumentTextBuffer(TextDocumentItem documentItem, TextBuffer buffer) {
+    TextDocumentItem = documentItem;
+    Buffer = buffer;
   }
 
   public Position FromIndex(int index) {

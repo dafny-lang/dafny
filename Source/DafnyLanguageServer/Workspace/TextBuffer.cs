@@ -22,23 +22,32 @@ public class TextBuffer {
     }
   }
 
-  public TextBuffer(string text) : this(text, ComputeLines(text, 0, text.Length)) { }
+  public TextBuffer(string text) : this(text, ComputeLines(text, 0, 0, text.Length)) { }
 
-  private static List<BufferLine> ComputeLines(string text, int startIndex, int endIndex) {
+  private static List<BufferLine> ComputeLines(string text, int lineIndexStart, int startIndex, int endIndex) {
     var lines = new List<BufferLine>();
-    for (var index = 0; index < endIndex; index++) {
+    var index = startIndex;
+    for (; index < text.Length;) {
       if (text[index] == '\n') {
-        lines.Add(new BufferLine(lines.Count, startIndex, index));
-        startIndex = index + 1;
-      }
-
-      if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n") {
-        lines.Add(new BufferLine(lines.Count, startIndex, index));
-        startIndex = index + 2;
+        lines.Add(new BufferLine(lineIndexStart + lines.Count, startIndex, index));
+        index += 1;
+        startIndex = index;
+        if (index > endIndex) {
+          return lines;
+        }
+      } else if (text.Length > index + 1 && text.Substring(index, 2) == "\r\n") {
+        lines.Add(new BufferLine(lineIndexStart + lines.Count, startIndex, index));
+        index += 2;
+        startIndex = index;
+        if (index > endIndex) {
+          return lines;
+        }
+      } else {
+        index += 1;
       }
     }
 
-    lines.Add(new BufferLine(lines.Count, startIndex, endIndex));
+    lines.Add(new BufferLine(lineIndexStart + lines.Count, startIndex, index));
     return lines;
   }
 
@@ -66,9 +75,17 @@ public class TextBuffer {
     var newText = Text[..startIndex] + change.Text + Text[endIndex..];
     var changeStartLine = IndexToLine(startIndex);
     var changeEndLine = IndexToLine(endIndex);
-    var freshLines = ComputeLines(newText, changeStartLine.StartIndex, changeEndLine.EndIndex + change.Text.Length);
-    var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(Lines.TakeLast(changeEndLine.LineNumber));
-    return new TextBuffer(newText, newTotalLines.ToList());
+    var freshLines = ComputeLines(newText, changeStartLine.LineNumber, changeStartLine.StartIndex, changeStartLine.StartIndex + change.Text.Length);
+    var lineDelta = freshLines.Count - (changeEndLine.LineNumber - changeStartLine.LineNumber + 1);
+    var indexDelta = newText.Length - Text.Length;
+    var migratedLinesAfterChange = 
+      Lines.Skip(1 + changeEndLine.LineNumber).
+      Select(line => new BufferLine(
+        line.LineNumber + lineDelta, 
+        line.StartIndex + indexDelta, 
+        line.EndIndex + indexDelta));
+    var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(migratedLinesAfterChange).ToList();
+    return new TextBuffer(newText, newTotalLines);
   }
     
   public string Extract(Range range) {

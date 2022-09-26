@@ -7,11 +7,12 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class TextChangeProcessor : ITextChangeProcessor {
     public DocumentTextBuffer ApplyChange(DocumentTextBuffer originalTextDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
-      var newText = ApplyTextChanges(originalTextDocument.Buffer, documentChange.ContentChanges, cancellationToken);
+      var newBuffer = ApplyTextChanges(originalTextDocument.Buffer, documentChange.ContentChanges, cancellationToken);
       return new DocumentTextBuffer(new TextDocumentItem {
         Version = documentChange.TextDocument.Version,
-        Text = newText.Text
-      });
+        Uri = originalTextDocument.Uri,
+        Text = newBuffer.Text
+      }, newBuffer);
     }
 
     private static TextBuffer ApplyTextChanges(TextBuffer buffer, Container<TextDocumentContentChangeEvent> changes, CancellationToken cancellationToken) {
