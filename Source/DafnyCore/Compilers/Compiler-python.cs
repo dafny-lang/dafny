@@ -259,17 +259,26 @@ namespace Microsoft.Dafny.Compilers {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");
         var w = btw.NewBlockPy(
           $"def AllSingletonConstructors(cls):");
-        w.WriteLine($"return [{dt.Ctors.Select(ctor => $"{DtCtorDeclarationName(ctor, false)}()").Comma()}]");
+        var values = dt.Ctors.Select(ctor =>
+          ctor.IsGhost
+          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok)
+          : $"{DtCtorDeclarationName(ctor, false)}()");
+        w.WriteLine($"return [{values.Comma()}]");
       }
 
       btw.WriteLine($"@classmethod");
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
-      var arguments = dt.GetGroundingCtor().Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
-      var constructorCall = $"{DtCtorDeclarationName(dt.GetGroundingCtor(), false)}({arguments})";
-      if (dt is CoDatatypeDecl) {
-        constructorCall = $"{dt.CompileName}__Lazy(lambda: {constructorCall})";
+      var groundingCtor = dt.GetGroundingCtor();
+      if (groundingCtor.IsGhost) {
+        wDefault.WriteLine($"return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+      } else {
+        var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+        var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";
+        if (dt is CoDatatypeDecl) {
+          constructorCall = $"{dt.CompileName}__Lazy(lambda: {constructorCall})";
+        }
+        wDefault.WriteLine($"return lambda: {constructorCall}");
       }
-      wDefault.WriteLine($"return lambda: {constructorCall}");
 
       // Ensures the inequality is based on equality defined in the constructor
       btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
@@ -300,7 +309,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      foreach (var ctor in dt.Ctors) {
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // Class-level fields don't work in all python version due to metaclasses.
         // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
         var argList = ctor.Destructors.Where(d => !d.IsGhost)
@@ -651,9 +660,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+
+      if (usePlaceboValue) {
+        return "None";
+      }
+
       var xType = type.NormalizeExpandKeepConstraints();
 
-      if (usePlaceboValue || xType.IsObjectQ) {
+      if (xType.IsObjectQ) {
         return "None";
       }
 
@@ -730,7 +744,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
-        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       return fullCompileName;
     }
 

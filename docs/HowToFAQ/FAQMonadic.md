@@ -10,7 +10,7 @@ Does Dafny have monadic error handling?
 
 Yes.
 
-In particular, see the section of the reference manual on [Update with Failure statements](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-update-failure).
+In particular, see the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-failure).
 The (draft) standard library includes [some types needed for error handling](https://github.com/dafny-lang/libraries/blob/master/src/Wrappers.dfy).
 
 You can define your own monadic error type by following examples in the RM and the draft library. A simple case is

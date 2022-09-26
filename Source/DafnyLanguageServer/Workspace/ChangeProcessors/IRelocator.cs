@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <returns>A new symbol table whose symbols are placed according to the given changes.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
+    SignatureAndCompletionTable RelocateSymbols(SignatureAndCompletionTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
 
     /// <summary>
     /// Relocates diagnostics
