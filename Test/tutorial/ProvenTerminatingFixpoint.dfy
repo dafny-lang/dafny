@@ -19,7 +19,7 @@ module {:options "-functionSyntax:4"} Fixpoints {
   function Fib1(n: nat): nat
     decreases n
   {
-    if n <= 1 then 1 else Fib1(n-1) + Fib1(n-2)
+    if n <= 1 then n else Fib1(n-1) + Fib1(n-2)
   }
 
 /// This is nice, but mathematically speaking, we are still defining a function in terms of itself,
@@ -33,7 +33,7 @@ module {:options "-functionSyntax:4"} Fixpoints {
 
   function Fib2(n: nat): nat {
     var comb :=
-      (f: nat -> nat, n: nat) => if n <= 1 then 1 as nat else f(n-1) + f(n-2);
+      (f: nat -> nat, n': nat) => if n' <= 1 then n' as nat else f(n'-1) + f(n'-2);
     fixpoint2(comb, n)
   }
 
@@ -98,7 +98,7 @@ module {:options "-functionSyntax:4"} Fixpoints {
 
 /// Now, we one error. We don't know if `comb` can be applied on `callback` and `u`.
 /// What is needed for that?
-/// We need to prove that comb.requires(callback, u)
+/// We need to prove that `comb.requires(callback, u)`
 /// but it's not general enough to put it as a `requires` clause. If we try, we get another error
 
   function fixpoint6(comb: (nat --> nat, nat) --> nat, u: nat): nat
