@@ -743,26 +743,8 @@ func computeArrayIndex(array Array, ixs ...Int) int {
   return i
 }
 
-func computeArrayIndexFromInts(array Array, ixs ...int) int {
-  if len(ixs) != len(array.dims()) {
-    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
-  }
-  i := 0
-  size := 1
-  for d := len(array.dims()) - 1; d >= 0; d-- {
-    i += size * ixs[d]
-    size *= array.dims()[d]
-  }
-  return i
-}
-
 func ArrayGet(array Array, ixs ...Int) any {
   index := computeArrayIndex(array, ixs...)
-  return ArrayGet1(array, index)
-}
-
-func ArrayGetFromInts(array Array, ixs ...int) any {
-  index := computeArrayIndexFromInts(array, ixs...)
   return ArrayGet1(array, index)
 }
 
@@ -775,11 +757,6 @@ func ArraySet(array Array, value any, ixs ...Int) {
   ArraySet1(array, value, index)
 }
 
-func ArraySetFromInts(array Array, value any, ixs ...int) {
-  index := computeArrayIndexFromInts(array, ixs...)
-  ArraySet1(array, value, index)
-}
-
 func ArraySet1(array Array, value any, index int) {
   array.contents()[index] = value
 }
@@ -787,11 +764,6 @@ func ArraySet1(array Array, value any, index int) {
 // Index gets the element at the given indices into the array.
 func ArrayIndex(array Array, ixs ...Int) *any {
   return &array.contents()[computeArrayIndex(array, ixs...)]
-}
-
-// Iterator iterates over the array.
-func ArrayIterator(array Array) Iterator {
-  return sliceIterator(array.contents())
 }
 
 // RangeToSeq converts the selected portion of the array to a sequence.
@@ -827,28 +799,6 @@ func ArrayUpdateInt(array Array, ix int, value any) {
     panic("Can't update a multidimensional array")
   }
   array.contents()[ix] = value
-}
-
-func arrayStringOfSubspace(array Array, d int, ixs []int) string {
-  if d == len(array.dims()) {
-    index := computeArrayIndexFromInts(array, ixs...)
-    return String(ArrayGet1(array, index))
-  }
-  s := "["
-  for i := 0; i < array.dims()[d]; i++ {
-    if i > 0 {
-      s += ", "
-    }
-    ixs[d] = i
-    s += arrayStringOfSubspace(array, d+1, ixs)
-  }
-  s += "]"
-  return s
-}
-
-func ArrayString(array Array) string {
-  ixs := make([]int, len(array.dims()))
-  return arrayStringOfSubspace(array, 0, ixs)
 }
 
 /******************************************************************************
