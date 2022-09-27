@@ -450,6 +450,40 @@ function topLevel(
     }
 
     [Fact]
+    public void FormatterWorksForCaseComments() {
+      FormatterWorksFor(@"
+predicate SmallOdd(i: int) {
+  match i
+  // Case small odd
+  case 1 => true
+  case 3 => true
+  // case small even
+  case 0 => false
+  /* Nested /*case*/ comment */
+  case 2 => false
+  /* All other cases */
+  case i => SmallOdd(i-2)
+}
+method SmallOdd(i: int) returns (j: bool) {
+  match i
+  // Case small odd
+  case 1 =>
+    j := true;
+  case 3 => 
+    j := true;
+  // case small even
+  case 0 =>
+    j := false;
+  case 2 =>
+    j := false;
+  /* All other cases */
+  case i =>
+    j := SmallOdd(i-2);
+}
+");
+    }
+
+    [Fact]
     public void FormatterworksForMatchStatementsAndExpressions() {
       FormatterWorksFor(@"
 method Test(z: int) {

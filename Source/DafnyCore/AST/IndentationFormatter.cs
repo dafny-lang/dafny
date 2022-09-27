@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny;
@@ -53,6 +54,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return indentationFormatter;
   }
 
+  protected IEnumerable<Expression> SubExpressions(Expression expr) {
+    return expr is ConcreteSyntaxExpression concreteSyntaxExpression
+      ? concreteSyntaxExpression.PreResolveSubExpressions
+      : expr.SubExpressions;
+  }
+
 
   protected override bool VisitOneExpr(Expression expr, ref int unusedIndent) {
     if (expr == null) {
@@ -71,7 +78,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case ITEExpr iteExpr:
         return SetIndentITE(indent, iteExpr);
       case NestedMatchExpr:
-        return SetIndentMatchStmt(indent, expr.OwnedTokens);
+        var i = unusedIndent;
+        return SetIndentCases(indent, expr.OwnedTokens, () => {
+          foreach (var e in SubExpressions(expr)) {
+            Visit(e, i);
+          }
+        });
       case LambdaExpr lambaExpression:
         return SetIndentLambdaExpr(indent, lambaExpression);
       case ComprehensionExpr:
@@ -112,11 +124,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentCalcStmt(indent, calcStmt);
       case SkeletonStatement:
         return true;
-      case AlternativeStmt alternativeStmt: {
-          SetIndentMatchStmt(indent, alternativeStmt.OwnedTokens);
+      case AlternativeStmt alternativeStmt:
+        return SetIndentCases(indent, alternativeStmt.OwnedTokens, () => {
           VisitAlternatives(alternativeStmt.Alternatives, indent);
-          return false;
-        }
+        });
       case ForallStmt forallStmt: {
           SetIndentLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
           foreach (var ens in forallStmt.Ens) {
@@ -139,7 +150,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case UpdateStmt:
         return SetIndentUpdateStmt(stmt, indent);
       case NestedMatchStmt:
-        return SetIndentMatchStmt(indent, stmt.OwnedTokens);
+        var i = unusedIndent;
+        return SetIndentCases(indent, stmt.OwnedTokens, () => {
+          foreach (var e in stmt.PreResolveSubExpressions) {
+            Visit(e, i);
+          }
+          foreach (var s in stmt.PreResolveSubStatements) {
+            Visit(s, i);
+          }
+        });
       case RevealStmt:
       case PrintStmt:
         return SetIndentPrintRevealStmt(indent, stmt);
@@ -1034,21 +1053,20 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   private bool SetIndentAlternativeLoopStmt(int indent, AlternativeLoopStmt alternativeLoopStmt) {
-    SetIndentMatchStmt(indent, alternativeLoopStmt.OwnedTokens);
-    foreach (var ens in alternativeLoopStmt.Invariants) {
-      SetAttributedExpressionIndentation(ens, indent + SpaceTab);
-    }
+    return SetIndentCases(indent, alternativeLoopStmt.OwnedTokens, () => {
+      foreach (var ens in alternativeLoopStmt.Invariants) {
+        SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+      }
 
-    foreach (var dec in alternativeLoopStmt.Decreases.Expressions) {
-      SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
-    }
+      foreach (var dec in alternativeLoopStmt.Decreases.Expressions) {
+        SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
+      }
 
-    VisitAlternatives(alternativeLoopStmt.Alternatives, indent);
-    if (alternativeLoopStmt.EndTok.val == "}") {
-      SetClosingIndentedRegion(alternativeLoopStmt.EndTok, indent);
-    }
-
-    return false;
+      VisitAlternatives(alternativeLoopStmt.Alternatives, indent);
+      if (alternativeLoopStmt.EndTok.val == "}") {
+        SetClosingIndentedRegion(alternativeLoopStmt.EndTok, indent);
+      }
+    });
   }
 
   private bool SetIndentForLoopStmt(ForLoopStmt forLoopStmt, int indent) {
@@ -1447,7 +1465,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private bool SetIndentMatchStmt(int indent, List<IToken> ownedTokens) {
+  private bool SetIndentCases(int indent, List<IToken> ownedTokens, Action indentInside) {
     var matchCaseNoIndent = false;
     var caseIndent = indent;
     var afterArrowIndent = indent + SpaceTab;
@@ -1517,7 +1535,18 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       }
     }
 
-    return true;
+    indentInside();
+
+    // Ensure comments just before a "case" are aligned with this case.
+    foreach (var token in ownedTokens) {
+      switch (token.val) {
+        case "case":
+          SetIndentations(token.Prev, after: caseIndent);
+          break;
+      }
+    }
+
+    return false;
   }
 
   private bool SetIndentITE(int indent, ITEExpr iteExpr) {
