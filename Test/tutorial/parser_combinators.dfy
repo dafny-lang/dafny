@@ -4,6 +4,14 @@
 /// expressions of the form `(ⁿ)ⁿ` (`n` opening parentheses followed by `n`
 /// closing parentheses).
 ///
+/// For a refresher on parser combinators, you may find the following tutorials useful:
+///
+/// - An Introduction To Scala Parser Combinators - Part 1: Parser Basics
+///   https://henkelmann.eu/2011/01/an-introduction-to-scala-parser-combinators---part-1-parser-basics/
+///
+/// - Using Parsec (from _Real World Haskell_)
+///   http://book.realworldhaskell.org/read/using-parsec.html
+///
 /// This challenge is tricky because we can't write what we'd usually write in
 /// Haskell or OCaml:
 ///
@@ -16,12 +24,12 @@
 ///   (concat parentheses' eos)
 /// ```
 ///
-/// Dafny will reject this definition because it cannot prove that the
+/// Dafny rejects this definition because it cannot prove that the
 /// `parentheses'` function terminates.  This is because Dafny analyses
 /// anonymous functions (“lambdas”) modularly: every time a lambda is created,
-/// as with `(fun () -> parentheses' ())`, Dafny checks that it can be called in
-/// any context.  To see why, consider the function `Apply` below and the
-/// following two uses of it:
+/// as with `(fun () -> parentheses' ())`, Dafny checks that the function can be
+/// called in any context.  To see why, consider the function `Apply` below and
+/// the following two uses of it:
 
 function method Apply(f: () -> int): int { f() }
 
@@ -75,11 +83,11 @@ module {:options "-functionSyntax:4"} Parsers {
     }
   }
 
-/// We can then define combinators as functions that produce `ParseResult`s.
-/// A combinator is a function from a position (an index into the input string)
-/// to a parse result.  The function is not total: for termination purposes, we
-/// may need to be able to state that a recursive call to a parser can only
-/// happen with a larger index, for example.
+/// We can then define combinators as functions that produce `ParseResult`s.  A
+/// combinator is a partial function from a position (an index into the input
+/// string) to a parse result.  Using partial functions allows us to prove
+/// termination: for example, we may state that a recursive call to a parser may
+/// only happen with an index larger than the current one.
 
   type Parser<+T> = nat --> ParseResult<T>
 
