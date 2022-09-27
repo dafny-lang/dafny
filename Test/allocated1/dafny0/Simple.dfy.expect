@@ -1,3 +1,5 @@
+Simple.dfy(98,7): Warning: the ... refinement feature in statements is deprecated
+Simple.dfy(101,7): Warning: the ... refinement feature in statements is deprecated
 // Simple.dfy
 
 lemma M(x: int)
