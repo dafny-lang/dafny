@@ -614,8 +614,11 @@ func (seq Seq) String() string {
 // multidimensional array, along with metadata.  There aren't any methods for
 // updating; instead, you can update through the pointer returned by Index.
 type Array interface {
+  dimensionCount() int
+  dimensionLength(dim int) int
   contents() []any // stored as a flat one-dimensional slice
-  dims()     []int
+  ArrayGet1(index int) any
+  ArraySet1(value any, index int)
 }
 
 /***** newArray *****/
@@ -696,8 +699,12 @@ func (_this ArrayStruct) contents() []any {
   return _this.xcontents
 }
 
-func (_this ArrayStruct) dims() []int {
-  return _this.xdims
+func (_this ArrayStruct) dimensionCount() int {
+  return len(_this.xdims)
+}
+
+func (_this ArrayStruct) dimensionLength(dim int) int {
+  return _this.xdims[dim]
 }
 
 // ArrayStruct implements the EqualsGeneric interface.
@@ -727,18 +734,19 @@ func ArrayLen(array Array, dim int) Int {
 
 // ArrayLenInt returns the length of the array in the given dimension, as an int.
 func ArrayLenInt(array Array, dim int) int {
-  return array.dims()[dim]
+  return array.dimensionLength(dim)
 }
 
 func computeArrayIndex(array Array, ixs ...Int) int {
-  if len(ixs) != len(array.dims()) {
-    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
+  dimensionCount := array.dimensionCount()
+  if len(ixs) != dimensionCount {
+    panic(fmt.Sprintf("Expected %d indices but got %d", dimensionCount, len(ixs)))
   }
   i := 0
   size := 1
-  for d := len(array.dims()) - 1; d >= 0; d-- {
+  for d := dimensionCount - 1; d >= 0; d-- {
     i += size * ixs[d].Int()
-    size *= array.dims()[d]
+    size *= array.dimensionLength(d)
   }
   return i
 }
@@ -768,7 +776,7 @@ func ArrayIndex(array Array, ixs ...Int) *any {
 
 // RangeToSeq converts the selected portion of the array to a sequence.
 func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
-  if len(array.dims()) != 1 {
+  if array.dimensionCount() != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
   isString := false;
@@ -795,7 +803,7 @@ func ArrayUpdate(array Array, ix Int, value any) {
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
 func ArrayUpdateInt(array Array, ix int, value any) {
-  if len(array.dims()) != 1 {
+  if array.dimensionCount() != 1 {
     panic("Can't update a multidimensional array")
   }
   array.contents()[ix] = value
