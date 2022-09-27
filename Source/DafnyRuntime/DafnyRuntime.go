@@ -769,11 +769,6 @@ func ArraySet(array Array, value any, ixs ...Int) {
   array.ArraySet1(value, index)
 }
 
-// Index gets the element at the given indices into the array.
-func ArrayIndex(array Array, ixs ...Int) *any {
-  return &array.contents()[computeArrayIndex(array, ixs...)]
-}
-
 // RangeToSeq converts the selected portion of the array to a sequence.
 func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
   if array.dimensionCount() != 1 {
@@ -790,23 +785,6 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
   seq.isString = isString
 
   return seq.Subseq(lo, hi)
-}
-
-// Update updates a location in a one-dimensional array.  (Must be
-// one-dimensional so that this function is uniform with the other Update
-// methods.)
-func ArrayUpdate(array Array, ix Int, value any) {
-  ArrayUpdateInt(array, ix.Int(), value)
-}
-
-// UpdateInt updates a location in a one-dimensional array.  (Must be
-// one-dimensional so that this function is uniform with the other Update
-// methods.)
-func ArrayUpdateInt(array Array, ix int, value any) {
-  if array.dimensionCount() != 1 {
-    panic("Can't update a multidimensional array")
-  }
-  array.contents()[ix] = value
 }
 
 /******************************************************************************

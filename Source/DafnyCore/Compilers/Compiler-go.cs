@@ -2695,17 +2695,21 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       if (sourceType.IsArrayType) {
-        wr.Write("_dafny.ArrayUpdate{0}(", nativeIndex ? "Int" : "");
+        Contract.Assume(nativeIndex);
         wSource = wr.Fork();
+        wr.Write(".ArraySet1(");
+        wValue = wr.Fork();
         wr.Write(", ");
+        wIndex = wr.Fork();
+        wr.Write(")");
       } else {
         wSource = wr.ForkInParens();
         wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
+        wIndex = wr.Fork();
+        wr.Write(", ");
+        wValue = wr.Fork();
+        wr.Write(")");
       }
-      wIndex = wr.Fork();
-      wr.Write(", ");
-      wValue = wr.Fork();
-      wr.Write(")");
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
