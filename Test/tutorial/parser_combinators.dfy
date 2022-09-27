@@ -19,7 +19,7 @@
 /// Dafny will reject this definition because it cannot prove that the
 /// `parentheses'` function terminates.  This is because Dafny analyses
 /// anonymous functions (“lambdas”) modularly: every time a lambda is created,
-/// as with `(fun () -> parentheses' ())`, Dafny checks that it can be call in
+/// as with `(fun () -> parentheses' ())`, Dafny checks that it can be called in
 /// any context.  To see why, consider the function `Apply` below and the
 /// following two uses of it:
 
@@ -54,8 +54,17 @@ module {:options "-functionSyntax:4"} Parsers {
 /// success that moves the cursor.  An alternative encoding would record the
 /// `delta` by which an operation moved the cursor, rather than its new position
 /// (the verification works the same way).
+///
+/// Concretely, we define a `ParseResult` datatype with two cases, `Failure` and
+/// `Success` (for simplicity, `Failure` does not record error locations).
 
   datatype ParseResult<+T> = Failure | Success(pos: nat, t: T) {
+
+/// Then, we augment `ParseResult` that turn it into a “failure-compatible” type
+/// (https://dafny.org/dafny/DafnyRef/DafnyRef#sec-failure-compatible-types),
+/// i.e. one that can be used with the monadic `:-` operator.  This makes
+/// error handling much less intrusive.
+
     predicate IsFailure() { Failure? }
     function PropagateFailure<U>(): ParseResult<U> requires Failure? { Failure() }
     function Extract(): (nat, T) requires Success? { (pos, t) }
@@ -66,6 +75,7 @@ module {:options "-functionSyntax:4"} Parsers {
     }
   }
 
+/// We can then define combinators as functions that produce `ParseResult`s.
 /// A combinator is a function from a position (an index into the input string)
 /// to a parse result.  The function is not total: for termination purposes, we
 /// may need to be able to state that a recursive call to a parser can only
@@ -78,7 +88,9 @@ module {:options "-functionSyntax:4"} Parsers {
 /// having to specify that all calls use the same value of that argument: we
 /// define an `Engine` to be a datatype that contains an `input` string, and
 /// members of the datatype can access it through the implicit `this` pointer
-/// (of course, they don't have to: some members below are `static`).
+/// (of course, they don't have to: some members below are `static`).  This is
+/// similar to using a `class` or `trait` to hold together related pieces of
+/// information and to define functions on them.
 
   datatype Engine = Engine(input: string) {
 
@@ -135,7 +147,8 @@ module {:options "-functionSyntax:4"} Parsers {
 ///
 /// This does not say that the parser must accept all inputs: only that the
 /// condition `(precondition of the parser)` is sufficient to call the opaque
-/// function `p` that `Concat` returns.
+/// function `p` that `Concat` return. (For clarity, a real implementation would
+/// likely define a predicate to avoid repeating the precondition.)
 ///
 /// With that in mind, we can define `Either` in the same way:
 
@@ -247,11 +260,12 @@ module {:options "-functionSyntax:4"} Parsers {
 /// which you can invoke by passing input strings as command line arguments:
 ///
 /// ```
-/// $ Dafny -compile:4 parser_combinators.dfy --args "" "((()))" "((())"
+/// $ Dafny -compile:4 parser_combinators.dfy --args "" "((()))" "((()))no" "((())"
 ///
 /// Dafny program verifier finished with 8 verified, 0 errors
 /// "": 0 nested parentheses
 /// "((()))": 3 nested parentheses
+/// "((()))no": no valid parse
 /// "((())": no valid parse
 /// ```
 
@@ -290,5 +304,5 @@ module {:options "-functionSyntax:4"} Parsers {
 /// }
 /// ```
 
-// RUN: %dafny_0 -compile:4 "%s" --args "((()))" "((())" > "%t"
+// RUN: %dafny_0 -compile:4 "%s" --args "((()))" "((()))no" "((())" > "%t"
 // RUN: %diff "%s.expect" "%t"

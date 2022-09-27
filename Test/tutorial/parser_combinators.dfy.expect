@@ -3,4 +3,5 @@ parser_combinators.dfy(29,33): Error: cannot prove termination; try supplying a 
 
 Dafny program verifier finished with 8 verified, 2 errors
 "((()))": 3 nested parentheses
+"((()))no": no valid parse
 "((())": no valid parse
