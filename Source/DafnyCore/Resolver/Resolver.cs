@@ -235,6 +235,9 @@ namespace Microsoft.Dafny {
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
+    public Resolver() {
+    }
+
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
 

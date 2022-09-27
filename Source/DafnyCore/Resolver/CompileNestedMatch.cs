@@ -11,7 +11,6 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   private readonly Resolver resolver;
 
   public CompileNestedMatch(Resolver resolver) {
-    this.resolutionContext = resolutionContext;
     this.resolver = resolver;
   }
 
@@ -33,12 +32,14 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     }
   }
 
+  private int count = 0;
+
   private void Visit(MemberDecl topLevelDecl) {
     if (topLevelDecl is Method callable) {
-      Visit(callable);
+      Visit(callable, Unit.Default);
     }
     if (topLevelDecl is Function function) {
-      Visit(function);
+      Visit(function, Unit.Default);
     }
   }
 
