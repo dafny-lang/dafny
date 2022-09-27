@@ -1,5 +1,7 @@
 /// # Parser combinators in Dafny
 ///
+/// *Clément Pit-Claudel*, 2022-09-27
+///
 /// Challenge: define parse combinators.  As a usability test, use them to parse
 /// expressions of the form `(ⁿ)ⁿ` (`n` opening parentheses followed by `n`
 /// closing parentheses).
