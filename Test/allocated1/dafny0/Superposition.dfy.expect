@@ -1,3 +1,4 @@
+Superposition.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
 
 Verifying M0.C.M (correctness) ...
   [4 proof obligations]  verified
