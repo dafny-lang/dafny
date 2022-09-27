@@ -707,6 +707,14 @@ func (_this ArrayStruct) dimensionLength(dim int) int {
   return _this.xdims[dim]
 }
 
+func (array ArrayStruct) ArrayGet1(index int) any {
+  return array.xcontents[index]
+}
+
+func (array ArrayStruct) ArraySet1(value any, index int) {
+  array.xcontents[index] = value
+}
+
 // ArrayStruct implements the EqualsGeneric interface.
 func (_this ArrayStruct) EqualsGeneric(other any) bool {
   otherArray, ok := other.(*ArrayStruct)
@@ -753,20 +761,12 @@ func computeArrayIndex(array Array, ixs ...Int) int {
 
 func ArrayGet(array Array, ixs ...Int) any {
   index := computeArrayIndex(array, ixs...)
-  return ArrayGet1(array, index)
-}
-
-func ArrayGet1(array Array, index int) any {
-  return array.contents()[index]
+  return array.ArrayGet1(index)
 }
 
 func ArraySet(array Array, value any, ixs ...Int) {
   index := computeArrayIndex(array, ixs...)
-  ArraySet1(array, value, index)
-}
-
-func ArraySet1(array Array, value any, index int) {
-  array.contents()[index] = value
+  array.ArraySet1(value, index)
 }
 
 // Index gets the element at the given indices into the array.
