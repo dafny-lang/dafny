@@ -96,6 +96,12 @@ namespace Microsoft.Dafny {
       NoGhost
     }
 
+    public enum ContractTestingMode {
+      None,
+      Externs,
+      TestedExterns,
+    }
+
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
@@ -133,6 +139,7 @@ namespace Microsoft.Dafny {
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; } = new();
+    public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -644,6 +651,18 @@ namespace Microsoft.Dafny {
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
+        case "testContracts":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("Externs")) {
+              TestContracts = ContractTestingMode.Externs;
+            } else if (args[ps.i].Equals("TestedExterns")) {
+              TestContracts = ContractTestingMode.TestedExterns;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1424,6 +1443,18 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     contents are skipped during code generation and verification. This
     option is useful in a diamond dependency situation, to prevent code
     from the bottom dependency from being generated more than once.
+
+/testContracts:<Externs|TestedExterns>
+    Enable run-time testing of the compilable portions of certain function
+    or method contracts, at their call sites. The current implementation
+    focuses on {{:extern}} code but may support other code in the future.
+
+    Externs - Check contracts on every call to a function or method marked
+        with the {{:extern}} attribute, regardless of where it occurs.
+    TestedExterns - Check contracts on every call to a function or method
+        marked with the {{:extern}} attribute when it occurs in a method
+        with the {{:test}} attribute, and warn if no corresponding test
+        exists for a given external declaration.
 
 ----------------------------------------------------------------------------
 
