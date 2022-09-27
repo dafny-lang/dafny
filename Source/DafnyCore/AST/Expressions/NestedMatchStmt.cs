@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : ConcreteSyntaxStatement {
+public class NestedMatchStmt : Statement {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -31,9 +31,7 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
       foreach (var e in base.NonSpecificationSubExpressions) {
         yield return e;
       }
-      if (this.ResolvedStatement == null) {
-        yield return Source;
-      }
+      yield return Source;
     }
   }
   public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)

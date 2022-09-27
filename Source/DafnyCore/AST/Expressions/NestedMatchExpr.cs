@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchExpr : ConcreteSyntaxExpression {
+public class NestedMatchExpr : Expression {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseExpr> Cases;
   public readonly bool UsesOptionalBraces;
@@ -19,6 +19,9 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.UsesOptionalBraces = usesOptionalBraces;
     this.Attributes = attrs;
   }
+
+  public override IEnumerable<Expression> SubExpressions => 
+    new[] { Source }.Concat(Cases.Select(c => c.Body));
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 

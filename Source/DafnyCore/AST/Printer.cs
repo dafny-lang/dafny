@@ -1400,22 +1400,22 @@ namespace Microsoft.Dafny {
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          wr.WriteLine();
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-          }
-
-          var savedDesugarMode = printingDesugared;
-          printingDesugared = true;
-          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
-          printingDesugared = savedDesugarMode;
-
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          }
-          Indent(indent);
-        }
+        // if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        //   wr.WriteLine();
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+        //   }
+        //
+        //   var savedDesugarMode = printingDesugared;
+        //   printingDesugared = true;
+        //   Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+        //   printingDesugared = savedDesugarMode;
+        //
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        //   }
+        //   Indent(indent);
+        // }
 
         if (!printingDesugared) {
           wr.Write("match");
@@ -1888,21 +1888,21 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          wr.WriteLine();
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-          }
-
-          var savedDesugarMode = printingDesugared;
-          printingDesugared = true;
-          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-          printingDesugared = savedDesugarMode;
-
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          }
-        }
+        // if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        //   wr.WriteLine();
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+        //   }
+        //
+        //   var savedDesugarMode = printingDesugared;
+        //   printingDesugared = true;
+        //   PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+        //   printingDesugared = savedDesugarMode;
+        //
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        //   }
+        // }
         if (!printingDesugared) {
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
@@ -2739,9 +2739,9 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null) {
-          PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
-        } else {
+        // if (e.ResolvedExpression != null) {
+        //   PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        // } else {
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
           if (parensNeeded) { wr.Write("("); }
           wr.Write("match ");
@@ -2756,7 +2756,7 @@ namespace Microsoft.Dafny {
             i++;
           }
           if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
-        }
+        // }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {

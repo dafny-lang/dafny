@@ -973,7 +973,7 @@ namespace Microsoft.Dafny {
       }
       //TODO More?
     }
-    public void Visit(Method method, State st) {
+    public virtual void Visit(Method method, State st) {
       Visit(method.Ens, st);
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
       if (method.Body != null) { Visit(method.Body, st); }
       //TODO More?
     }
-    public void Visit(Function function, State st) {
+    public virtual void Visit(Function function, State st) {
       Visit(function.Ens, st);
       Visit(function.Req, st);
       Visit(function.Reads, st);

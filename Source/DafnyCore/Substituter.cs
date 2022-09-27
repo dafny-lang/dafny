@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -250,6 +252,57 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr letExpr) {
         newExpr = LetExpr(letExpr);
+      } else if (expr is NestedMatchExpr) {
+        var e = (NestedMatchExpr)expr;
+        var src = Substitute(e.Source);
+        bool anythingChanged = src != e.Source;
+        var cases = new List<NestedMatchCaseExpr>();
+        foreach (var mc in e.Cases) {
+
+          List<BoundVar> discoveredBvs = new();
+          ExtendedPattern SubstituteForPattern(ExtendedPattern pattern) {
+            switch (pattern) {
+              case DisjunctivePattern disjunctivePattern:
+                return new DisjunctivePattern(disjunctivePattern.Tok,
+                  disjunctivePattern.Alternatives.Select(SubstituteForPattern).ToList(), disjunctivePattern.IsGhost);
+              case IdPattern idPattern:
+                if (idPattern.BoundVar == null) {
+                  return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
+                    idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                }
+
+                discoveredBvs.Add(idPattern.BoundVar);
+                var result = new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type, null, idPattern.IsGhost) {
+                  BoundVar = CreateBoundVarSubstitutions(new[] {idPattern.BoundVar}.ToList(), false)[0]
+                };
+                if (idPattern.BoundVar != result.BoundVar) {
+                  anythingChanged = true;
+                }
+                return result;
+              case LitPattern litPattern:
+                return litPattern;
+              default:
+                throw new ArgumentOutOfRangeException(nameof(pattern));
+            }
+          }
+          var pattern = SubstituteForPattern(mc.Pat);
+          var body = Substitute(mc.Body);
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
+          foreach (var bv in discoveredBvs) {
+            substMap.Remove(bv);
+          }
+          // Put things together
+          if (body != mc.Body) {
+            anythingChanged = true;
+          }
+
+          var newCaseExpr = new NestedMatchCaseExpr(mc.Tok, pattern, body, mc.Attributes);
+          cases.Add(newCaseExpr);
+        }
+        if (anythingChanged) {
+          newExpr = new NestedMatchExpr(expr.tok, src, cases, e.UsesOptionalBraces);
+        }
+
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var src = Substitute(e.Source);

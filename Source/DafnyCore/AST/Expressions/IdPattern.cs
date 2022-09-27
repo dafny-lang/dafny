@@ -11,6 +11,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
+  public BoundVar BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
   [FilledInDuringResolution]
@@ -58,10 +59,11 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
-      var boundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); //new BoundVar(Tok, Id, substitutedSourceType);
+      //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
+      BoundVar = new BoundVar(Tok, Id, substitutedSourceType);
 
-      resolver.scope.Push(Id, boundVar);
-      resolver.ResolveType(boundVar.tok, boundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+      resolver.scope.Push(Id, BoundVar);
+      resolver.ResolveType(BoundVar.tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
     } else {
       if (Ctor != null) {

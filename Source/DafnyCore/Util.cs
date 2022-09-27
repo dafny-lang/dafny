@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny {
         ITEExpr e = (ITEExpr)expr;
         return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
       } else if (expr is NestedMatchExpr) {
-        return UsesSpecFeatures(((NestedMatchExpr)expr).ResolvedExpression);
+        return expr.SubExpressions.Any(child => UsesSpecFeatures(child));
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         if (UsesSpecFeatures(me.Source)) {
