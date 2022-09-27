@@ -108,13 +108,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       var dafnyOptions = new DafnyOptions();
-      var action = DriverAction.Run;
-      if (args.Length > 0 && args[0] == "format") {
-        action = DriverAction.Format;
-        args = args.Skip(1).ToArray();
-      }
-
-      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, action, args, out var dafnyFiles, out var otherFiles);
+      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, out var action, args, out var dafnyFiles, out var otherFiles);
       var driver = new DafnyDriver(dafnyOptions, action);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
@@ -170,9 +164,16 @@ namespace Microsoft.Dafny {
     }
 
     public static CommandLineArgumentsResult ProcessCommandLineArguments(
-         DafnyOptions options, DriverAction action, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
+         DafnyOptions options, out DriverAction action, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
+
+      if (args.Length > 0 && args[0] == "format") {
+        action = DriverAction.Format;
+        args = args.Skip(1).ToArray();
+      } else {
+        action = DriverAction.Run;
+      }
 
       options.RunningBoogieFromCommandLine = true;
       try {
@@ -326,7 +327,7 @@ namespace Microsoft.Dafny {
             .Select(name => new DafnyFile(name)).ToList();
         }
 
-        var errors = 0;
+        var failedToParse = new List<string>();
         var unchanged = 0;
         foreach (var dafnyFile in dafnyFiles) {
           // Might not be totally optimized but let's do that for now
@@ -334,7 +335,7 @@ namespace Microsoft.Dafny {
           if (err != null) {
             exitValue = ExitValue.DAFNY_ERROR;
             Console.Error.WriteLine(err);
-            errors += 1;
+            failedToParse.Add(dafnyFile.FilePath);
           } else {
             var firstToken = dafnyProgram.GetFirstTopLevelToken();
             if (firstToken != null) {
@@ -346,14 +347,14 @@ namespace Microsoft.Dafny {
                 WriteFile(dafnyFile.FilePath, result);
               }
             } else {
-              Console.Error.WriteLine("Could not find text there");
-              errors += 1;
+              failedToParse.Add(dafnyFile.FilePath);
             }
           }
         }
 
         if (dafnyFiles.Count != 1) {
-          Console.Out.WriteLine("Formatted " + (dafnyFiles.Count - errors) + " files, ignored " + errors + " files");
+          var errorMsg = failedToParse.Count > 0 ? $" {failedToParse.Count} files failed to parse or were empty:\n" + string.Join("\n", failedToParse) : "";
+          Console.Out.WriteLine("Formatted " + (dafnyFiles.Count - failedToParse.Count) + " files." + errorMsg);
         }
 
         return exitValue;
