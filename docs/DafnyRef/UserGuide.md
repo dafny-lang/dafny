@@ -147,7 +147,7 @@ not be attempted.
 ### 25.6.1. The Dafny formatter
 
 Dafny supports a formatter, which for now only changes the indentation of every line in a Dafny file, so that it conforms
-to a specific model that matches the format of most of what the Dafny team wrote in the past.
+to the idiomatic Dafny code formatting style.
 For the formatter to work, the file should be parsed correctly by Dafny.
 
 There are three ways to use the formatter:
