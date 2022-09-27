@@ -76,6 +76,7 @@ method Main() {
   MoreArrays.Test();
   NativeArrays.Test();
   SimultaneousAssignment.Test();
+  ArrayToSeq.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -518,5 +519,42 @@ module SimultaneousAssignment {
     arr, a, arr[a + b], m, arr, c, m[a, b], b, m := arr'', 100, 120, m'', arr'', 300, c, 200, m'';
 
     print a, " ", b, " ", c, " ", arr'[46], " ", m'[18, 28], "\n"; // 100 120 200 300 38
+  }
+}
+
+module ArrayToSeq {
+  newtype byte = x | 0 <= x < 256
+
+  trait TraitMeRite {
+  }
+
+  class MyClass extends TraitMeRite {
+  }
+
+  method Test() {
+    var arrChar := new [] ['h', 'e', 'l', 'l', 'o'];
+    var arrInt := new int[5](i => i);
+    var arrByte := new byte[5](_ => 2);
+    var c: MyClass := new MyClass;
+    var tr: TraitMeRite := c;
+    var arrClass := new MyClass[] [c, c, c];
+    var arrTrait := new TraitMeRite[] [tr, c, tr];
+
+    var s0 := arrChar[..];
+    var s1 := arrInt[..];
+    var s2 := arrByte[..];
+    var s3 := arrClass[..];
+    var s4 := arrTrait[..];
+
+    expect s0 == "hello";
+    expect arrInt[1..][..2] == arrInt[..3][1..];
+    expect arrInt[1 as byte..][..2] == arrInt[..3 as byte][1..];
+    expect arrInt[1 as byte..3] == arrInt[1..3 as byte];
+    expect arrByte[..0] <= arrByte[5..] <= arrByte[..3] <= s2;
+    expect s3 == s4;
+
+    print s0, " ";
+    print s1, " ";
+    print s2, "\n";
   }
 }

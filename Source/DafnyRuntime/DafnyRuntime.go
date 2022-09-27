@@ -616,9 +616,9 @@ func (seq Seq) String() string {
 type Array interface {
   dimensionCount() int
   dimensionLength(dim int) int
-  contents() []any // stored as a flat one-dimensional slice
   ArrayGet1(index int) any
   ArraySet1(value any, index int)
+  anySlice(lo, hi Int) []any
 }
 
 /***** newArray *****/
@@ -707,12 +707,25 @@ func (_this ArrayStruct) dimensionLength(dim int) int {
   return _this.xdims[dim]
 }
 
-func (array ArrayStruct) ArrayGet1(index int) any {
-  return array.xcontents[index]
+func (_this ArrayStruct) ArrayGet1(index int) any {
+  return _this.xcontents[index]
 }
 
-func (array ArrayStruct) ArraySet1(value any, index int) {
-  array.xcontents[index] = value
+func (_this ArrayStruct) ArraySet1(value any, index int) {
+  _this.xcontents[index] = value
+}
+
+func (_this ArrayStruct) anySlice(lo, hi Int) []any {
+  if lo.IsNilInt() && hi.IsNilInt() {
+    return _this.xcontents
+  }
+  if lo.IsNilInt() {
+    return _this.xcontents[:hi.Int()]
+  }
+  if hi.IsNilInt() {
+    return _this.xcontents[lo.Int():]
+  }
+  return _this.xcontents[lo.Int():hi.Int()]
 }
 
 // ArrayStruct implements the EqualsGeneric interface.
@@ -775,16 +788,14 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
     panic("Can't take a slice of a multidimensional array")
   }
   isString := false;
-  if len(array.contents()) > 0 {
-    _, isString = array.contents()[0].(Char)
+  if array.dimensionLength(0) > 0 {
+    _, isString = array.ArrayGet1(0).(Char)
   }
 
-  // TODO Should set isString to true if this is an array of characters
-  // Do not know if it is an array of characters if the array is empty
-  seq := SeqOf(array.contents()...)
+  anySlice := array.anySlice(lo, hi)
+  seq := SeqOf(anySlice...)
   seq.isString = isString
-
-  return seq.Subseq(lo, hi)
+  return seq
 }
 
 /******************************************************************************
