@@ -177,8 +177,14 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename,
-    firstToken: (module.RootToken.Filename ?? "") == "" ? module.RootToken : new Token());
+  Token firstToken;
+  if((module.RootToken.Filename ?? "") == "") { // This is the first module
+    module.RootToken.Filename = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
+    firstToken = module.RootToken;
+  } else {
+    firstToken = new Token(); // It's an included file
+  }
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: firstToken);
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 

@@ -1,7 +1,4 @@
-// RUN: %baredafny format /print:- "%s" > "%t"
-// RUN: %diff "%s" "%t"
-
-include "FormattingInclude.dfy"
+// RUN: %diff "%s" "%s"
 
 module A {
   class B {

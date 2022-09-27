@@ -335,7 +335,7 @@ namespace Microsoft.Dafny {
           if (err != null) {
             exitValue = ExitValue.DAFNY_ERROR;
             Console.Error.WriteLine(err);
-            failedToParse.Add(dafnyFile.FilePath);
+            failedToParse.Add(dafnyFile.BaseName);
           } else {
             var firstToken = dafnyProgram.GetFirstTopLevelToken();
             if (firstToken != null) {
@@ -347,7 +347,8 @@ namespace Microsoft.Dafny {
                 WriteFile(dafnyFile.FilePath, result);
               }
             } else {
-              failedToParse.Add(dafnyFile.FilePath);
+              Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+              failedToParse.Add(dafnyFile.BaseName);
             }
           }
         }
