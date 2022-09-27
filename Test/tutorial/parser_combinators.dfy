@@ -37,11 +37,13 @@ function F0(): int { Apply(F0) }
 function F1(): int { Apply(() => F1()) }
 
 /// Dafny rejects `F0` because it does not allow using “naked” recursive
-/// functions, so one must “eta-expand” (or “thunk”) it, as done in `F1`; but
-/// Dafny also rejects `F1`, because it is not always safe to call (in OCaml, it
-/// would loop forever).  The `parentheses'` parser above *is* always safe to
-/// call, but Dafny doesn't know that, so we need to do a bit more work to
-/// *prove* that it does.
+/// functions, so one must wrap it in an anonymous function, as done in `F1
+/// (this is called “eta-expanding”, or “thunking”).  Dafny also rejects `F1`,
+/// however, because it is not always safe to call (in OCaml, it would loop
+/// forever).
+///
+/// The `parentheses'` parser above *is* always safe to call, but Dafny doesn't
+/// know that, so we need to do a bit more work to *prove* that it does.
 ///
 /// We do it by using stronger specifications to enforce progress, as
 /// shown in the solution below:
