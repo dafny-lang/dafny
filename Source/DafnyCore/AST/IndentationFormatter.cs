@@ -1624,7 +1624,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case "var": {
-            if (token.Prev.val == "&&") {
+            if (token.Prev.val == "&&" && token.Prev.line == token.line) {
               isAmpVar = true;
               ampVarIndent = GetNewTokenVisualIndent(token.Prev, indent);
             }

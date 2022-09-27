@@ -1758,6 +1758,15 @@ method Test()
     && F(x, y)
 {
 }
+function Align(longVariableName: bool): int
+{
+  longVariableName &&
+  var x2 := LongModuleName.LongStaticMethodName(longVariableName);
+  match A
+  {
+    case _ => 1
+  }
+}
 ");
     }
 
