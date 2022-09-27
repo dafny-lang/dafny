@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 52 verified, 0 errors
+Dafny program verifier finished with 53 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -76,6 +76,7 @@ bytes from lambda: array[20, 21, 22]
 uninitialized 1bytes: array[1, 1, 1]
 1bytes from display: array[7, 8, 9]
 1bytes from lambda: array[20, 21, 22]
+17 19 18 20
 100 200 300 120 38
 
 Dafny program verifier did not attempt verification
@@ -153,6 +154,7 @@ bytes from lambda: array[20, 21, 22]
 uninitialized 1bytes: array[1, 1, 1]
 1bytes from display: array[7, 8, 9]
 1bytes from lambda: array[20, 21, 22]
+17 19 18 20
 100 200 300 120 38
 
 Dafny program verifier did not attempt verification
@@ -230,6 +232,7 @@ bytes from lambda: array[20, 21, 22]
 uninitialized 1bytes: array[1, 1, 1]
 1bytes from display: array[7, 8, 9]
 1bytes from lambda: array[20, 21, 22]
+17 19 18 20
 100 200 300 120 38
 
 Dafny program verifier did not attempt verification
@@ -307,6 +310,7 @@ bytes from lambda: array[20, 21, 22]
 uninitialized 1bytes: array[1, 1, 1]
 1bytes from display: array[7, 8, 9]
 1bytes from lambda: array[20, 21, 22]
+17 19 18 20
 100 200 300 120 38
 
 Dafny program verifier did not attempt verification
@@ -384,4 +388,5 @@ bytes from lambda: array[20, 21, 22]
 uninitialized 1bytes: array[1, 1, 1]
 1bytes from display: array[7, 8, 9]
 1bytes from lambda: array[20, 21, 22]
+17 19 18 20
 100 200 300 120 38

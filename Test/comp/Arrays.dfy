@@ -470,6 +470,8 @@ module NativeArrays {
     PrintArray(bb, "1bytes from display");
     bb := new onebyte[3](i => if 0 <= i < 10 then (20 + i) as onebyte else 88);
     PrintArray(bb, "1bytes from lambda");
+
+    TestVariousFlavorsOfIndices();
   }
 
   method PrintArray(a: array, title: string) {
@@ -478,6 +480,28 @@ module NativeArrays {
       print if i == 0 then "" else ", ", a[i];
     }
     print "]\n";
+  }
+
+  method TestVariousFlavorsOfIndices() {
+    var arr := new int[250];
+    var m := new int[20, 30];
+
+    arr[3 as bv19] := 17;
+    arr[4 as bv5] := 19;
+    var iIndex: int, bIndex: byte, bvIndex: bv9 := 3, 4, 5;
+    m[iIndex, bIndex] := arr[iIndex];
+    arr[iIndex] := m[iIndex, bvIndex - 1];
+    assert arr[iIndex] == 17;
+    print arr[iIndex], " "; // 17
+    m[bIndex, iIndex] := arr[bIndex];
+    arr[bIndex] := m[bvIndex - 1, iIndex];
+    assert arr[bIndex] == 19;
+    print arr[bIndex], " "; // 19
+    m[iIndex, iIndex] := arr[iIndex] + 1;
+    arr[iIndex] := m[iIndex, iIndex];
+    m[bIndex, bIndex] := arr[bIndex] + 1;
+    arr[bIndex] := m[bIndex, bIndex];
+    print arr[iIndex], " ", arr[bIndex], "\n"; // 18 20
   }
 }
 

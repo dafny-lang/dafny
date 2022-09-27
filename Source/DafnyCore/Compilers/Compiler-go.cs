@@ -2614,9 +2614,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("*_dafny.ArrayIndex(");
+      wr.Write("_dafny.ArrayGet(");
       var w = wr.Fork();
-      wr.Write(", {0})", Util.Comma(indices, IntOfAny));
+      wr.Write(", {0})", indices.Comma(IntOfAny));
       return w;
     }
 
@@ -2624,7 +2624,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("(*_dafny.ArrayIndex(");
+      wr.Write("_dafny.ArrayGet(");
       var w = wr.Fork();
       foreach (var index in indices) {
         wr.Write(", ");
@@ -2634,15 +2634,16 @@ namespace Microsoft.Dafny.Compilers {
         // No need for IntOfAny; things coming from user code are presumed Ints
         TrParenExpr(index, wr, inLetExprBody, wStmts);
       }
-      wr.Write("))");
+      wr.Write(")");
       return w;
     }
 
     protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
-      wr.Write("*_dafny.ArrayIndex(");
+      wr.Write("_dafny.ArraySet(");
       var wArray = wr.Fork();
-      wr.Write(", {0}) = ", indices.Comma(IntOfAny));
+      wr.Write(", ");
       var wRhs = wr.Fork();
+      wr.Write(", {0})", indices.Comma(IntOfAny));
       return (wArray, wRhs);
     }
 

@@ -730,7 +730,23 @@ func ArrayLenInt(array Array, dim int) int {
   return array.dims()[dim]
 }
 
-func arrayFindIndex(array Array, ixs ...int) int {
+func computeArrayIndex(array Array, ixs ...Int) int {
+  if len(ixs) != len(array.dims()) {
+    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
+  }
+  i := 0
+  size := 1
+  for d := len(array.dims()) - 1; d >= 0; d-- {
+    i += size * ixs[d].Int()
+    size *= array.dims()[d]
+  }
+  return i
+}
+
+func computeArrayIndexFromInts(array Array, ixs ...int) int {
+  if len(ixs) != len(array.dims()) {
+    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
+  }
   i := 0
   size := 1
   for d := len(array.dims()) - 1; d >= 0; d-- {
@@ -740,21 +756,37 @@ func arrayFindIndex(array Array, ixs ...int) int {
   return i
 }
 
-// Index gets the element at the given indices into the array.
-func ArrayIndex(array Array, ixs ...Int) *any {
-  if len(ixs) != len(array.dims()) {
-    panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims()), len(ixs)))
-  }
-  ints := make([]int, len(ixs))
-  for i, ix := range ixs {
-    ints[i] = ix.Int()
-  }
-  return ArrayIndexInts(array, ints...)
+func ArrayGet(array Array, ixs ...Int) any {
+  index := computeArrayIndex(array, ixs...)
+  return ArrayGet1(array, index)
 }
 
-// IndexInts gets the element at the given indices into the array.
-func ArrayIndexInts(array Array, ixs ...int) *any {
-  return &array.contents()[arrayFindIndex(array, ixs...)]
+func ArrayGetFromInts(array Array, ixs ...int) any {
+  index := computeArrayIndexFromInts(array, ixs...)
+  return ArrayGet1(array, index)
+}
+
+func ArrayGet1(array Array, index int) any {
+  return array.contents()[index]
+}
+
+func ArraySet(array Array, value any, ixs ...Int) {
+  index := computeArrayIndex(array, ixs...)
+  ArraySet1(array, value, index)
+}
+
+func ArraySetFromInts(array Array, value any, ixs ...int) {
+  index := computeArrayIndexFromInts(array, ixs...)
+  ArraySet1(array, value, index)
+}
+
+func ArraySet1(array Array, value any, index int) {
+  array.contents()[index] = value
+}
+
+// Index gets the element at the given indices into the array.
+func ArrayIndex(array Array, ixs ...Int) *any {
+  return &array.contents()[computeArrayIndex(array, ixs...)]
 }
 
 // Iterator iterates over the array.
@@ -799,7 +831,8 @@ func ArrayUpdateInt(array Array, ix int, value any) {
 
 func arrayStringOfSubspace(array Array, d int, ixs []int) string {
   if d == len(array.dims()) {
-    return String(*ArrayIndexInts(array, ixs...))
+    index := computeArrayIndexFromInts(array, ixs...)
+    return String(ArrayGet1(array, index))
   }
   s := "["
   for i := 0; i < array.dims()[d]; i++ {
