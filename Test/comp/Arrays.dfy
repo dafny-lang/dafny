@@ -571,6 +571,10 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
   function ByteF(i: nat): byte { if 20 <= i < 30 then i as byte else 60 }
   function CharF(i: nat): char { if 20 <= i < 30 then 'a' + (i - 20) as char else 'g' }
 
+  function AutoInitF2(i: nat, j: nat): AutoInit { if i == j then 50 else 78 }
+  function ByteF2(i: nat, j: nat): byte { if i == j then 50 else 60 }
+  function CharF2(i: nat, j: nat): char { if i == j then 'a' else 'g' }
+
   method Test() {
     TestAutoInit();
     TestTypeParameter(AutoInitF);
@@ -582,6 +586,11 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
 
     TestChar();
     TestTypeParameter(CharF);
+
+    TestMatrixAutoInit();
+    TestMatrixTypeParameter(AutoInitF2);
+    TestMatrixTypeParameter(ByteF2);
+    TestMatrixTypeParameter(CharF2);
   }
 
   method TestAutoInit() {
@@ -705,6 +714,78 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
     s := s + a[..];
     a := new T[five](initF);
     s := s + a[..];
+
+    print s, "\n";
+  }
+
+  function MatrixToSequence<T>(m: array2<T>): seq<T>
+    reads m
+  {
+    M2S(m, 0, 0)
+  }
+
+  function M2S<T>(m: array2<T>, i: nat, j: nat): seq<T>
+    requires i <= m.Length0 && j <= m.Length1
+    requires i == m.Length0 ==> j == 0
+    reads m
+    decreases m.Length0 - i, m.Length1 - j
+  {
+    if i == m.Length0 then
+      []
+    else if j == m.Length1 then
+      M2S(m, i + 1, 0)
+    else
+      [m[i, j]] + M2S(m, i, j + 1)
+  }
+
+  method TestMatrixAutoInit() {
+    var zero, two, five := 0, 2, 5;
+    var a: array2<AutoInit>;
+    var s := [];
+
+    a := new AutoInit[zero, zero];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[zero, five];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[five, zero];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[two, five]; // initialized by the default element
+    s := s + MatrixToSequence(a);
+    
+    a := new AutoInit[zero, zero](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[zero, five](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[five, zero](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[two, five](AutoInitF2);
+    s := s + MatrixToSequence(a);
+
+    print s, "\n";
+  }
+
+  method TestMatrixTypeParameter<T(0)>(initF2: (nat, nat) -> T) {
+    var zero, two, five := 0, 2, 5;
+    var a: array2<T>;
+    var s := [];
+
+    a := new T[zero, zero];
+    s := s + MatrixToSequence(a);
+    a := new T[zero, five];
+    s := s + MatrixToSequence(a);
+    a := new T[five, zero];
+    s := s + MatrixToSequence(a);
+    a := new T[two, five]; // initialized by the default element
+    s := s + MatrixToSequence(a);
+
+    a := new T[zero, zero](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[zero, five](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[five, zero](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[two, five](initF2);
+    s := s + MatrixToSequence(a);
 
     print s, "\n";
   }
