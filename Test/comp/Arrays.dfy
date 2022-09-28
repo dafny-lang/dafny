@@ -77,6 +77,8 @@ method Main() {
   NativeArrays.Test();
   SimultaneousAssignment.Test();
   ArrayToSeq.Test();
+
+  ArrayAllocationInitialization.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -556,5 +558,57 @@ module ArrayToSeq {
     print s0, " ";
     print s1, " ";
     print s2, "\n";
+  }
+}
+
+module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
+  newtype AutoInit = x | 20 <= x < 2_000_000 witness 77
+  newtype NonAutoInit = x | 20 <= x < 2_000_000 witness *
+
+  function AutoInitF(i: nat): AutoInit { 78 }
+  function NonAutoInitF(i: nat): NonAutoInit { 82 }
+
+  method Test() {
+    var zero, five := 0, 5;
+    var a: array<AutoInit>;
+    var b: array<NonAutoInit>;
+    var s, t := [], [];
+
+    a := new AutoInit[zero];
+    s := s + a[..];
+    a := new AutoInit[five]; // initialized by the default element of AutoInit
+    s := s + a[..];
+    a := new AutoInit[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new AutoInit[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new AutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new AutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new AutoInit[zero](AutoInitF);
+    s := s + a[..];
+    a := new AutoInit[five](AutoInitF);
+    s := s + a[..];
+
+    b := new NonAutoInit[zero];
+    t := t + b[..];
+    // Note, "new NonAutoInit[five]" is not allowed for a non-auto-init type
+    t := t + [99, 99, 99, 99, 99];
+    b := new NonAutoInit[zero] []; // initialized as given (no elements)
+    t := t + b[..];
+    b := new NonAutoInit[] []; // initialized as given (no elements)
+    t := t + b[..];
+    b := new NonAutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    t := t + b[..];
+    b := new NonAutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    t := t + b[..];
+    b := new NonAutoInit[zero](NonAutoInitF);
+    t := t + b[..];
+    b := new NonAutoInit[five](NonAutoInitF);
+    t := t + b[..];
+
+    print s, "\n";
+    print t, "\n";
   }
 }

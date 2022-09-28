@@ -4024,53 +4024,104 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(!(rhs is HavocRhs));
       Contract.Requires(wr != null);
 
-      var tRhs = rhs as TypeRhs;
+      var typeRhs = rhs as TypeRhs;
 
-      if (tRhs == null) {
-        var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
+      if (typeRhs == null) {
+        var eRhs = (ExprRhs)rhs; // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
         TrExpr(eRhs.Expr, wr, false, wStmts);
-      } else {
-        var nw = ProtectedFreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
-        TrTypeRhs(tRhs, wRhs, wStmts);
 
+      } else if (typeRhs.ArrayDimensions != null) {
+        var nw = ProtectedFreshId("_nw");
+        TrRhsArray(typeRhs, nw, wr, wStmts);
+        wr.Write(nw);
+
+      } else {
+        // Allocate and initialize a new object
+        var nw = ProtectedFreshId("_nw");
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, rhs.Tok, wStmts);
+        var constructor = typeRhs.InitCall?.Method as Constructor;
+        EmitNew(typeRhs.EType, typeRhs.Tok, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
-        if (tRhs.InitCall != null) {
-          string q, n;
-          if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
+        if (typeRhs.InitCall != null) {
+          if (constructor != null && constructor.IsExtern(out _, out _)) {
             // initialization was done at the time of allocation
           } else {
-            TrCallStmt(tRhs.InitCall, nw, wStmts);
-          }
-        } else if (tRhs.ElementInit != null) {
-          // Compute the array-initializing function once and for all (as required by the language definition)
-          string f = ProtectedFreshId("_arrayinit");
-          DeclareLocalVar(f, tRhs.ElementInit.Type, tRhs.ElementInit.tok, tRhs.ElementInit, false, wStmts);
-          // Build a loop nest that will call the initializer for all indices
-          var indices = Util.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => ProtectedFreshId("_arrayinit_" + ii));
-          var w = wStmts;
-          for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-            string len, pre, post;
-            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, tRhs.Type, out len, out pre, out post);
-            var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
-            w = CreateForLoop(indices[d], bound, w);
-          }
-          var (wArray, wrRhs) = EmitArrayUpdate(indices, tRhs.EType, w);
-          wrRhs.Write("{0}{2}({1})", f, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
-          wArray.Write(nw);
-          EndStmt(w);
-        } else if (tRhs.InitDisplay != null) {
-          var ii = 0;
-          foreach (var v in tRhs.InitDisplay) {
-            var wArray = EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
-            wArray.Write(nw);
-            EndStmt(wStmts);
-            ii++;
+            TrCallStmt(typeRhs.InitCall, nw, wStmts);
           }
         }
-
         // Assign to the final LHS
         wr.Write(nw);
+      }
+    }
+
+    /// <summary>
+    /// Translate the right-hand side of an assignment.
+    /// </summary>
+    /// <param name="rhs">The RHS to translate</param>
+    /// <param name="nw">Name of the variable to hold the array to be allocated</param>
+    /// <param name="wr">The writer at the position for the translated RHS</param>
+    /// <param name="wStmts">A writer at an earlier position where extra statements may be written</param>
+    void TrRhsArray(TypeRhs typeRhs, string nw, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      Contract.Requires(typeRhs.ArrayDimensions != null);
+
+      if (typeRhs.ElementInit == null && (typeRhs.InitDisplay == null || typeRhs.InitDisplay.Count == 0)) {
+        // This is either
+        //   * an array with an auto-init element type, where no other initialization is given, or
+        //   * a 0-length array (as evidenced by the given 0-length .InitDisplay or as confirmed by the verifier for a non-auto-init element type).
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, typeRhs.EType.HasCompilableValue, null, wRhs, wStmts);
+        return;
+      }
+
+      if (typeRhs.ElementInit == null) {
+        Contract.Assert(typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0);
+
+        // We use the first element of the array as an "example" for the array to be allocated
+        string nwElement0;
+        if (DeterminesArrayTypeFromExampleElement) {
+          nwElement0 = ProtectedFreshId("_nwElement0_");
+          var wrElement0 = DeclareLocalVar(nwElement0, typeRhs.EType, typeRhs.InitDisplay[0].tok, wStmts);
+          TrExpr(typeRhs.InitDisplay[0], wrElement0, false, wStmts);
+        } else {
+          nwElement0 = null;
+        }
+
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, nwElement0, wRhs, wStmts);
+
+        var ii = 0;
+        foreach (var v in typeRhs.InitDisplay) {
+          var (wArray, wElement) = EmitArrayUpdate(new List<string> { ii.ToString() }, v.Type, wStmts);
+          if (ii == 0 && nwElement0 != null) {
+            wElement.Write(nwElement0);
+          } else {
+            TrExpr(v, wElement, false, wStmts);
+          }
+          wArray.Write(nw);
+          EndStmt(wStmts);
+          ii++;
+        }
+
+      } else {
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        TrTypeRhs(typeRhs, wRhs, wStmts);
+
+        // Compute the array-initializing function once and for all (as required by the language definition)
+        string f = ProtectedFreshId("_arrayinit");
+        DeclareLocalVar(f, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wStmts);
+        // Build a loop nest that will call the initializer for all indices
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId("_arrayinit_" + ii));
+        var w = wStmts;
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          string len, pre, post;
+          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : (object)d, typeRhs.Type, out len, out pre, out post);
+          var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
+          w = CreateForLoop(indices[d], bound, w);
+        }
+        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs.Write("{0}{2}({1})", f, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
+        wArray.Write(nw);
+        EndStmt(w);
       }
     }
 
@@ -4351,11 +4402,9 @@ namespace Microsoft.Dafny.Compilers {
     void TrTypeRhs(TypeRhs tp, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Requires(tp != null);
       Contract.Requires(wr != null);
+      Contract.Requires(tp.ArrayDimensions != null);
 
-      if (tp.ArrayDimensions == null) {
-        var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
-        EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null) {
+      if (tp.ElementInit != null || tp.InitDisplay != null) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, null, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation

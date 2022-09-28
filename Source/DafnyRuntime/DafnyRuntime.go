@@ -648,7 +648,7 @@ func NewArrayWithValues(values ...any) Array {
 // If "init" is non-nil, it is used to initialize all elements of the array.
 // "example" is used only to figure out the right kind of Array to return.
 // If "init" is non-nil, the types of "example" and "init" must agree.
-func NewArrayFromExample(example any, init any, dims []Int) Array {
+func NewArrayFromExample(example any, init any, dims ...Int) Array {
   numberOfDimensions := len(dims)
   intDims := make([]int, len(dims))
   totalLength := 1
@@ -680,12 +680,12 @@ func NewArrayFromExample(example any, init any, dims []Int) Array {
 
 // NewArrayWithValue returns a new Array full of the given initial value.
 func NewArrayWithValue(init any, dims ...Int) Array {
-  return NewArrayFromExample(init, init, dims)
+  return NewArrayFromExample(init, init, dims...)
 }
 
 // NewArray returns a new Array full of the default value of the given type.
 func NewArray(dims ...Int) Array {
-  return NewArrayFromExample(nil, nil, dims)
+  return NewArrayFromExample(nil, nil, dims...)
 }
 
 /***** ArrayStruct is default implementation of the Array interface. *****/

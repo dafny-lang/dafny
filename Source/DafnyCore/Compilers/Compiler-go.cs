@@ -2036,12 +2036,16 @@ namespace Microsoft.Dafny.Compilers {
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       string sep;
-      if (!mustInitialize) {
-        wr.Write("_dafny.NewArray(");
-        sep = "";
-      } else {
+      if (mustInitialize) {
+        var initValue = DefaultValue(elementType, wr, tok, true);
         wr.Write("_dafny.NewArrayWithValue({0}", initValue);
         sep = ", ";
+      } else if (exampleElement != null) {
+        wr.Write("_dafny.NewArrayFromExample({0}, nil", exampleElement);
+        sep = ", ";
+      } else {
+        wr.Write("_dafny.NewArray(");
+        sep = "";
       }
 
       foreach (Expression dim in dimensions) {
