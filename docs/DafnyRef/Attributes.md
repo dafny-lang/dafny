@@ -300,26 +300,6 @@ allowed to use a `{:print}` attribute only if the overridden method
 does.
 Print effects are enforced only with `/trackPrintEffects:1`.
 
-<!--
-Describe this where refinement is described, as appropriate.
-
--### 22.1.15. prependAssertToken
-This is used internally in Dafny as part of module refinement.
-It is an attribute on an assert statement.
-The Dafny code has the following comment:
-
-```dafny
-// Clone the expression, but among the new assert's attributes, indicate
-// that this assertion is supposed to be translated into a check.  That is,
-// it is not allowed to be just assumed in the translation, despite the fact
-// that the condition is inherited.
-```
-
-TODO: Decide if we want to describe this in more detail, or whether
-the functionality is already adequately described where
-refinement is described.
--->
-
 ### 23.2.10. `{:priority}`
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
