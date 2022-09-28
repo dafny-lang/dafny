@@ -1973,6 +1973,19 @@ class A
     D
   > {
 }
+
+class V
+  extends 
+    A,
+    B
+  , C {
+}
+
+class W extends 
+  AA,
+  BB
+, CC {
+}
 ");
     }
 

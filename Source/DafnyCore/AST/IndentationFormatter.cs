@@ -656,6 +656,32 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   private void SetClassDeclIndent(int indent, ClassDecl classDecl) {
+    IToken classToken = null;
+    IToken extendsToken = null;
+    var parentTraitIndent = indent + SpaceTab;
+    var commaIndent = indent;
+    var extraIndent = 0;
+
+    foreach (var token in classDecl.OwnedTokens) {
+      switch (token.val) {
+        case "class": {
+            classToken = token;
+            break;
+          }
+        case "extends": {
+            extendsToken = token;
+            if (extendsToken.line != extendsToken.Next.line) {
+              extraIndent = classToken != null && classToken.line == extendsToken.line ? 0 : SpaceTab;
+              SetIndentations(extendsToken, after: indent + SpaceTab + extraIndent);
+            }
+            break;
+          }
+        case ",": {
+            SetIndentations(token, parentTraitIndent + extraIndent, commaIndent + extraIndent, parentTraitIndent + extraIndent);
+            break;
+          }
+      }
+    }
     foreach (var parent in classDecl.ParentTraits) {
       SetTypeIndentation(parent);
     }
