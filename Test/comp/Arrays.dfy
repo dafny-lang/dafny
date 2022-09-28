@@ -564,19 +564,34 @@ module ArrayToSeq {
 module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
   newtype AutoInit = x | 20 <= x < 2_000_000 witness 77
   newtype NonAutoInit = x | 20 <= x < 2_000_000 witness *
+  newtype byte = x | 0 <= x < 256
 
-  function AutoInitF(i: nat): AutoInit { 78 }
+  function AutoInitF(i: nat): AutoInit { if 20 <= i < 30 then i as AutoInit else 78 }
   function NonAutoInitF(i: nat): NonAutoInit { 82 }
+  function ByteF(i: nat): byte { if 20 <= i < 30 then i as byte else 60 }
+  function CharF(i: nat): char { if 20 <= i < 30 then 'a' + (i - 20) as char else 'g' }
 
   method Test() {
+    TestAutoInit();
+    TestTypeParameter(AutoInitF);
+
+    TestNonAutoInit();
+
+    TestByte();
+    TestTypeParameter(ByteF);
+
+    TestChar();
+    TestTypeParameter(CharF);
+  }
+
+  method TestAutoInit() {
     var zero, five := 0, 5;
     var a: array<AutoInit>;
-    var b: array<NonAutoInit>;
-    var s, t := [], [];
+    var s := [];
 
     a := new AutoInit[zero];
     s := s + a[..];
-    a := new AutoInit[five]; // initialized by the default element of AutoInit
+    a := new AutoInit[five]; // initialized by the default element
     s := s + a[..];
     a := new AutoInit[zero] []; // initialized as given (no elements)
     s := s + a[..];
@@ -591,24 +606,106 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
     a := new AutoInit[five](AutoInitF);
     s := s + a[..];
 
-    b := new NonAutoInit[zero];
-    t := t + b[..];
+    print s, "\n";
+  }
+
+  method TestNonAutoInit() {
+    var zero, five := 0, 5;
+    var a: array<NonAutoInit>;
+    var s := [];
+
+    a := new NonAutoInit[zero];
+    s := s + a[..];
     // Note, "new NonAutoInit[five]" is not allowed for a non-auto-init type
-    t := t + [99, 99, 99, 99, 99];
-    b := new NonAutoInit[zero] []; // initialized as given (no elements)
-    t := t + b[..];
-    b := new NonAutoInit[] []; // initialized as given (no elements)
-    t := t + b[..];
-    b := new NonAutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
-    t := t + b[..];
-    b := new NonAutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
-    t := t + b[..];
-    b := new NonAutoInit[zero](NonAutoInitF);
-    t := t + b[..];
-    b := new NonAutoInit[five](NonAutoInitF);
-    t := t + b[..];
+    s := s + [99, 99, 99, 99, 99];
+    a := new NonAutoInit[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new NonAutoInit[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new NonAutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new NonAutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new NonAutoInit[zero](NonAutoInitF);
+    s := s + a[..];
+    a := new NonAutoInit[five](NonAutoInitF);
+    s := s + a[..];
 
     print s, "\n";
-    print t, "\n";
+  }
+
+  method TestByte() {
+    var zero, five := 0, 5;
+    var a: array<byte>;
+    var s := [];
+
+    a := new byte[zero];
+    s := s + a[..];
+    a := new byte[five]; // initialized by the default element
+    s := s + a[..];
+    a := new byte[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new byte[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new byte[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new byte[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new byte[zero](ByteF);
+    s := s + a[..];
+    a := new byte[five](ByteF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestChar() {
+    var zero, five := 0, 5;
+    var a: array<char>;
+    var s := [];
+
+    a := new char[zero];
+    s := s + a[..];
+    a := new char[five]; // initialized by the default element
+    s := s + a[..];
+    a := new char[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new char[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new char[five] ['a', 'b', 'c', 'd', 'e']; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new char[] ['a', 'b', 'c', 'd', 'e']; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new char[zero](CharF);
+    s := s + a[..];
+    a := new char[five](CharF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestTypeParameter<T(0)>(initF: nat -> T) {
+    var zero, five := 0, 5;
+    var a: array<T>;
+    var s := [];
+
+    a := new T[zero];
+    s := s + a[..];
+    a := new T[five]; // initialized by the default element
+    s := s + a[..];
+    a := new T[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new T[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new T[five] [initF(20), initF(21), initF(22), initF(23), initF(24)]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new T[] [initF(20), initF(21), initF(22), initF(23), initF(24)]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new T[zero](initF);
+    s := s + a[..];
+    a := new T[five](initF);
+    s := s + a[..];
+
+    print s, "\n";
   }
 }
