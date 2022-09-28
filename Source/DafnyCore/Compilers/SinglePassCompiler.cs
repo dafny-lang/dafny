@@ -554,7 +554,7 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = wr.NewBlock(")");
       return wBody;
     }
-    protected abstract ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null);
     protected abstract ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr);
     protected abstract void EmitIncrementVar(string varName, ConcreteSyntaxTree wr);  // increments a BigInteger by 1
     protected abstract void EmitDecrementVar(string varName, ConcreteSyntaxTree wr);  // decrements a BigInteger by 1

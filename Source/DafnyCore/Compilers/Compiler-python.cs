@@ -888,8 +888,12 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewBlockPy($"for {indexVar} in range({bound}):");
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      if (start == null) {
+        return wr.NewBlockPy($"for {indexVar} in range({bound}):");
+      } else {
+        return wr.NewBlockPy($"for {indexVar} in range({start}, {bound}):");
+      }
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
