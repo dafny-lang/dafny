@@ -1,10 +1,18 @@
+---
+layout: default
+---
 <link rel="stylesheet" href="../assets/main.css">
+<link rel="icon" href="../images/dafny-favicon.png" type="image/png">
+<link rel="icon" href="../images/dafny-favicon.svg" type="image/svg+xml">
+
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 <font size="+4"><p style="text-align: center;">Dafny Reference Manual</p></font> <!-- PDFOMIT -->
 <p style="text-align: center;">The dafny-lang community</p> <!-- PDFOMIT -->
 <p style="text-align: center;"><script> document.write(new Date(document.lastModified)); </script></p> <!-- PDFOMIT -->
-
+<p style="text-align: center;">
+{% include_relative version.txt %}
+</p>
 <!--PDF NEWPAGE-->
 
 **Abstract:**
