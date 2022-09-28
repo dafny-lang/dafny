@@ -610,9 +610,10 @@ func (seq Seq) String() string {
  * Arrays
  ******************************************************************************/
 
-// An Array is an interface with a slice ("contents()") representing a (possibly)
-// multidimensional array, along with metadata.  There aren't any methods for
-// updating; instead, you can update through the pointer returned by Index.
+// Array is the general interface for arrays. Conceptually, it contains some
+// underlying storage (a slice) of elements, together with a record of the length
+// of each dimension. Thus, this general interface supports 1- and multi-dimensional
+// Dafny arrays.
 type Array interface {
   dimensionCount() int
   dimensionLength(dim int) int
@@ -622,27 +623,6 @@ type Array interface {
 }
 
 /***** newArray *****/
-
-// NewArrayWithValues returns a new one-dimensional Array with the given initial
-// values.
-func NewArrayWithValues(values ...any) Array {
-  length := len(values)
-  if length == 0 {
-    return &ArrayStruct{
-      xcontents: nil,
-      xdims:     []int{length},
-    }
-  }
-
-  // TODO: inspect the type of values[0] to consider Array specialization
-
-  arr := make([]any, len(values))
-  copy(arr, values)
-  return &ArrayStruct{
-    xcontents: arr,
-    xdims:     []int{length},
-  }
-}
 
 // NewArrayFromExample returns a new Array.
 // If "init" is non-nil, it is used to initialize all elements of the array.
@@ -659,8 +639,8 @@ func NewArrayFromExample(example any, init any, dims ...Int) Array {
 
   if totalLength == 0 {
     return &ArrayStruct{
-      xcontents: nil,
-      xdims:     intDims,
+      contents: nil,
+      dims:     intDims,
     }
   }
 
@@ -673,8 +653,29 @@ func NewArrayFromExample(example any, init any, dims ...Int) Array {
     }
   }
   return &ArrayStruct{
-    xcontents: arr,
-    xdims:     intDims,
+    contents: arr,
+    dims:     intDims,
+  }
+}
+
+// newArrayWithValues returns a new one-dimensional Array with the given initial
+// values. It is only used internally, by *Builder.ToArray().
+func newArrayWithValues(values ...any) Array {
+  length := len(values)
+  if length == 0 {
+    return &ArrayStruct{
+      contents: nil,
+      dims:     []int{length},
+    }
+  }
+
+  // TODO: inspect the type of values[0] to consider Array specialization
+
+  arr := make([]any, len(values))
+  copy(arr, values)
+  return &ArrayStruct{
+    contents: arr,
+    dims:     []int{length},
   }
 }
 
@@ -691,41 +692,37 @@ func NewArray(dims ...Int) Array {
 /***** ArrayStruct is default implementation of the Array interface. *****/
 
 type ArrayStruct struct {
-  xcontents []any // stored as a flat one-dimensional slice
-  xdims     []int
-}
-
-func (_this ArrayStruct) contents() []any {
-  return _this.xcontents
+  contents []any // stored as a flat one-dimensional slice
+  dims     []int
 }
 
 func (_this ArrayStruct) dimensionCount() int {
-  return len(_this.xdims)
+  return len(_this.dims)
 }
 
 func (_this ArrayStruct) dimensionLength(dim int) int {
-  return _this.xdims[dim]
+  return _this.dims[dim]
 }
 
 func (_this ArrayStruct) ArrayGet1(index int) any {
-  return _this.xcontents[index]
+  return _this.contents[index]
 }
 
 func (_this ArrayStruct) ArraySet1(value any, index int) {
-  _this.xcontents[index] = value
+  _this.contents[index] = value
 }
 
 func (_this ArrayStruct) anySlice(lo, hi Int) []any {
   if lo.IsNilInt() && hi.IsNilInt() {
-    return _this.xcontents
+    return _this.contents
   }
   if lo.IsNilInt() {
-    return _this.xcontents[:hi.Int()]
+    return _this.contents[:hi.Int()]
   }
   if hi.IsNilInt() {
-    return _this.xcontents[lo.Int():]
+    return _this.contents[lo.Int():]
   }
-  return _this.xcontents[lo.Int():hi.Int()]
+  return _this.contents[lo.Int():hi.Int()]
 }
 
 // ArrayStruct implements the EqualsGeneric interface.
@@ -734,7 +731,7 @@ func (_this ArrayStruct) EqualsGeneric(other any) bool {
   if !ok {
     return false
   }
-  return &_this.xdims[0] == &otherArray.xdims[0]
+  return &_this.dims[0] == &otherArray.dims[0]
 }
 
 /***** other Array methods *****/
@@ -889,7 +886,7 @@ func (builder *Builder) Add(value any) {
 
 // ToArray creates an Array with the accumulated values.
 func (builder *Builder) ToArray() Array {
-  return NewArrayWithValues(*builder...)
+  return newArrayWithValues(*builder...)
 }
 
 // ToSet creates a Set with the accumulated values.
