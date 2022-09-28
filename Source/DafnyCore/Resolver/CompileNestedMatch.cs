@@ -179,7 +179,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   /// Input is an unresolved NestedMatchStmt with potentially nested, overlapping patterns
   /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
   /// </summary>
-  private MatchStmt CompileNestedMatchStmt(NestedMatchStmt s) {
+  private Statement CompileNestedMatchStmt(NestedMatchStmt s) {
 
     if (DafnyOptions.O.MatchCompilerDebug) {
       Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
@@ -216,7 +216,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
         }
       }
 
-      return (MatchStmt) result;
+      return result;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
