@@ -1288,14 +1288,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : null;
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("Array(");
-        TrParenExpr(dimensions[0], wr, false, wStmts);
-        wr.Write(".toNumber())");
+        wr.Write($"Array(({dimensions[0]}).toNumber())");
         if (initValue != null) {
           wr.Write(".fill({0})", initValue);
         }
@@ -1303,9 +1301,7 @@ namespace Microsoft.Dafny.Compilers {
         // the general case
         wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
         foreach (var dim in dimensions) {
-          wr.Write(", ");
-          TrParenExpr(dim, wr, false, wStmts);
-          wr.Write(".toNumber()");
+          wr.Write($", ({dim}).toNumber()");
         }
         wr.Write(")");
       }

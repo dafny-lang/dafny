@@ -1952,11 +1952,11 @@ namespace Microsoft.Dafny.Compilers {
       arguments.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
     }
 
-    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var wrs = EmitNewArray(elementType, tok, dimensions.Count, mustInitialize, wr);
       for (var i = 0; i < wrs.Count; i++) {
-        TrExpr(dimensions[i], wrs[i], false, wStmts);
+        wrs[i].Write(dimensions[i]);
       }
     }
 

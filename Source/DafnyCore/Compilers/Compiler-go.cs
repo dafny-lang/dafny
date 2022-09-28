@@ -2033,7 +2033,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool DeterminesArrayTypeFromExampleElement => true;
 
-    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       string sep;
@@ -2049,9 +2049,8 @@ namespace Microsoft.Dafny.Compilers {
         sep = "";
       }
 
-      foreach (Expression dim in dimensions) {
-        wr.Write(sep);
-        TrExpr(dim, wr, false, wStmts);
+      foreach (var dim in dimensions) {
+        wr.Write($"{sep}{dim}", sep, dim);
         sep = ", ";
       }
 

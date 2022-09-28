@@ -3494,21 +3494,30 @@ namespace Microsoft.Dafny.Compilers {
     // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
     // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
     private void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        bool checkRange = false, string msg = null) {
-      var nt = AsNativeType(expr.Type);
+      bool checkRange = false, string msg = null) {
+      var wrExpr = new ConcreteSyntaxTree();
+      TrExpr(expr, wrExpr, inLetExprBody, wStmts);
+      TrExprAsInt(wrExpr.ToString(), expr.Type, wr, checkRange, msg);
+    }
+
+    // if checkRange is false, msg is ignored
+    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
+    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
+    private void TrExprAsInt(string expr, Type type, ConcreteSyntaxTree wr, bool checkRange = false, string msg = null) {
+      var nt = AsNativeType(type);
       if (nt == null) {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
-        TrParenExpr(expr, wr, inLetExprBody, wStmts);
+        wr.Write($"({expr})");
         if (checkRange) {
           wr.Write(msg == null ? ", null" : $", \"{msg}\"");
         }
 
         wr.Write(")");
       } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
-        TrExpr(expr, wr, inLetExprBody, wStmts);
+        wr.Write(expr);
       } else if (IsUnsignedJavaNativeType(nt)) {
         wr.Write($"{DafnyHelpersClass}.unsignedToInt" + (checkRange ? "Checked(" : "("));
-        TrExpr(expr, wr, inLetExprBody, wStmts);
+        wr.Write(expr);
         if (checkRange) {
           wr.Write(msg == null ? ", null" : $", \"{msg}\"");
         }
@@ -3516,7 +3525,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
       } else {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
-        TrExpr(expr, wr, inLetExprBody, wStmts);
+        wr.Write(expr);
         if (checkRange) {
           wr.Write(msg == null ? ", null" : $", \"{msg}\"");
         }
@@ -3531,7 +3540,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // Where to put the array to be wrapped
       ConcreteSyntaxTree wBareArray;
@@ -3539,7 +3548,7 @@ namespace Microsoft.Dafny.Compilers {
         arrays.Add(dimensions.Count);
         wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elementType, wr, tok)}, ");
         foreach (var dim in dimensions) {
-          TrExprAsInt(dim, wr, inLetExprBody: false, wStmts: wStmts, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
+          TrExprAsInt(dim, Type.Int, wr, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
           wr.Write(", ");
         }
         wBareArray = wr.Fork();
@@ -3567,7 +3576,7 @@ namespace Microsoft.Dafny.Compilers {
       var sep = "";
       foreach (var dim in dimensions) {
         wBareArray.Write(sep);
-        TrExprAsInt(dim, wBareArray, inLetExprBody: false, wStmts: wStmts, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
+        TrExprAsInt(dim, Type.Int, wBareArray, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
         sep = ", ";
       }
       wBareArray.Write(")");

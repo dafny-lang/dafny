@@ -679,8 +679,22 @@ namespace Microsoft.Dafny.Compilers {
     ///
     /// "exampleElement" is always null if "DeterminesArrayTypeFromExampleElement" is false.
     /// </summary>
-    protected abstract void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected abstract void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    /// <summary>
+    /// Same as the EmitNewArray overload above, except that "dimensions" is "List<Expression>" instead of "List<string>".
+    /// </summary>
+    protected void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+
+      var dimStrings = dimensions.ConvertAll(expr => {
+        var w = new ConcreteSyntaxTree();
+        TrExpr(expr, w, false, wStmts);
+        return w.ToString();
+      });
+      EmitNewArray(elementType, tok, dimStrings, mustInitialize, exampleElement, wr, wStmts);
+    }
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);

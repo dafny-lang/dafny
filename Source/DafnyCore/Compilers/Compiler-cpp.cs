@@ -1422,15 +1422,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elementType, wr, tok) : null;
       // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("DafnyArray<{0}>::New(", TypeName(elementType, wr, tok));
-        TrExpr(dimensions[0], wr, false, wStmts);
-        wr.Write(")");
+        wr.Write("DafnyArray<{0}>::New({1})", TypeName(elementType, wr, tok), dimensions[0]);
       } else {
         throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
       }
