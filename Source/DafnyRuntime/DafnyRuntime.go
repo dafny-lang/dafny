@@ -638,14 +638,38 @@ func NewArrayFromExample(example any, init any, dims ...Int) Array {
   }
 
   if totalLength == 0 {
-    return &ArrayStruct{
-      contents: nil,
+    return newZeroLengthArray(intDims)
+  }
+
+  // Inspect the type of "example" to consider Array specialization
+  if _, ok := example.(byte); ok {
+    arr := make([]byte, totalLength)
+    if init != nil {
+      x := init.(byte)
+      for i := range arr {
+        arr[i] = x
+      }
+    }
+    return &ArrayForByte{
+      contents: arr,
+      dims:     intDims,
+    }
+  }
+  if _, ok := example.(Char); ok {
+    arr := make([]Char, totalLength)
+    if init != nil {
+      x := init.(Char)
+      for i := range arr {
+        arr[i] = x
+      }
+    }
+    return &ArrayForChar{
+      contents: arr,
       dims:     intDims,
     }
   }
 
-  // TODO: inspect the type of "example" to consider Array specialization
-
+  // Use the default representation
   arr := make([]any, totalLength)
   if init != nil {
     for i := range arr {
@@ -658,24 +682,51 @@ func NewArrayFromExample(example any, init any, dims ...Int) Array {
   }
 }
 
+func newZeroLengthArray(intDims []int) Array {
+  // Use the default representation
+  return &ArrayStruct{
+    contents: nil,
+    dims:     intDims,
+  }
+}
+
 // newArrayWithValues returns a new one-dimensional Array with the given initial
 // values. It is only used internally, by *Builder.ToArray().
 func newArrayWithValues(values ...any) Array {
-  length := len(values)
-  if length == 0 {
-    return &ArrayStruct{
-      contents: nil,
-      dims:     []int{length},
+  totalLength := len(values)
+  intDims := []int{totalLength}
+  if totalLength == 0 {
+    return newZeroLengthArray(intDims)
+  }
+
+  // Inspect the type of "values[0]" to consider Array specialization
+  if _, ok := values[0].(byte); ok {
+    arr := make([]byte, totalLength)
+    for i := range arr {
+      arr[i] = values[i].(byte)
+    }
+    return &ArrayForByte{
+      contents: arr,
+      dims:     intDims,
+    }
+  }
+  if _, ok := values[0].(Char); ok {
+    arr := make([]Char, totalLength)
+    for i := range arr {
+      arr[i] = values[i].(Char)
+    }
+    return &ArrayForChar{
+      contents: arr,
+      dims:     intDims,
     }
   }
 
-  // TODO: inspect the type of values[0] to consider Array specialization
-
-  arr := make([]any, len(values))
+  // Use the default representation
+  arr := make([]any, totalLength)
   copy(arr, values)
   return &ArrayStruct{
     contents: arr,
-    dims:     []int{length},
+    dims:     intDims,
   }
 }
 
@@ -728,6 +779,102 @@ func (_this ArrayStruct) anySlice(lo, hi Int) []any {
 // ArrayStruct implements the EqualsGeneric interface.
 func (_this ArrayStruct) EqualsGeneric(other any) bool {
   otherArray, ok := other.(*ArrayStruct)
+  if !ok {
+    return false
+  }
+  return &_this.dims[0] == &otherArray.dims[0]
+}
+
+/***** ArrayForByte is the Array interface specialized for byte. *****/
+
+type ArrayForByte struct {
+  contents []byte // stored as a flat one-dimensional slice
+  dims     []int
+}
+
+func (_this ArrayForByte) dimensionCount() int {
+  return len(_this.dims)
+}
+
+func (_this ArrayForByte) dimensionLength(dim int) int {
+  return _this.dims[dim]
+}
+
+func (_this ArrayForByte) ArrayGet1(index int) any {
+  return _this.contents[index]
+}
+
+func (_this ArrayForByte) ArraySet1(value any, index int) {
+  _this.contents[index] = value.(byte)
+}
+
+func (_this ArrayForByte) anySlice(lo, hi Int) []any {
+  if lo.IsNilInt() {
+    lo = Zero
+  }
+  if hi.IsNilInt() {
+    hi = IntOf(len(_this.contents))
+  }
+  iLo := lo.Int()
+  iHi := hi.Int()
+  anyArray := make([]any, iHi - iLo)
+  for i := iLo; i < iHi; i++ {
+    anyArray[i] = _this.contents[i]
+  }
+  return anyArray
+}
+
+// ArrayForByte implements the EqualsGeneric interface.
+func (_this ArrayForByte) EqualsGeneric(other any) bool {
+  otherArray, ok := other.(*ArrayForByte)
+  if !ok {
+    return false
+  }
+  return &_this.dims[0] == &otherArray.dims[0]
+}
+
+/***** ArrayForChar is the Array interface specialized for char. *****/
+
+type ArrayForChar struct {
+  contents []Char // stored as a flat one-dimensional slice
+  dims     []int
+}
+
+func (_this ArrayForChar) dimensionCount() int {
+  return len(_this.dims)
+}
+
+func (_this ArrayForChar) dimensionLength(dim int) int {
+  return _this.dims[dim]
+}
+
+func (_this ArrayForChar) ArrayGet1(index int) any {
+  return _this.contents[index]
+}
+
+func (_this ArrayForChar) ArraySet1(value any, index int) {
+  _this.contents[index] = value.(Char)
+}
+
+func (_this ArrayForChar) anySlice(lo, hi Int) []any {
+  if lo.IsNilInt() {
+    lo = Zero
+  }
+  if hi.IsNilInt() {
+    hi = IntOf(len(_this.contents))
+  }
+  iLo := lo.Int()
+  iHi := hi.Int()
+  anyArray := make([]any, iHi - iLo)
+  for i := iLo; i < iHi; i++ {
+    anyArray[i] = _this.contents[i]
+  }
+  return anyArray
+}
+
+// ArrayForChar implements the EqualsGeneric interface.
+func (_this ArrayForChar) EqualsGeneric(other any) bool {
+  otherArray, ok := other.(*ArrayForChar)
   if !ok {
     return false
   }
