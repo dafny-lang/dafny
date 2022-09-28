@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reactive;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
@@ -14,6 +15,28 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     this.resolver = resolver;
   }
 
+  public void Visit2(Program program) {
+    ((INode) program).Visit(node => {
+      if (node is ICallable callable) {
+        this.resolutionContext = new ResolutionContext(callable, false);
+      }
+      ReflectiveTraverser.UpdateFieldsOfType<Statement>(node, stmt => {
+        if (stmt is NestedMatchStmt nestedMatchStmt) {
+          return CompileNestedMatchStmt(nestedMatchStmt);
+        }
+        return stmt;
+      });
+      
+      ReflectiveTraverser.UpdateFieldsOfType<Expression>(node, expr => {
+        if (expr is NestedMatchExpr nestedMatchExpr) {
+          return CompileNestedMatchExpr(nestedMatchExpr);
+        }
+        return expr;
+      });
+      return true;
+    });
+  }
+  
   public void Visit(Program program) {
     foreach (var module in program.Modules()) {
       Visit(module);
@@ -31,8 +54,6 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       Visit(member);
     }
   }
-
-  private int count = 0;
 
   private void Visit(MemberDecl topLevelDecl) {
     if (topLevelDecl is Method callable) {
@@ -109,7 +130,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     }
 
     var cases = e.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
-    MatchTempInfo mti = new MatchTempInfo(e.tok, cases.Count, resolutionContext.CodeContext, DafnyOptions.O.MatchCompilerDebug);
+    MatchTempInfo mti = new MatchTempInfo(e.Type, e.tok, cases.Count, resolutionContext.CodeContext, DafnyOptions.O.MatchCompilerDebug);
 
     // create Rbranches from MatchCaseExpr and set the branch tokens in mti
     List<RBranch> branches = new List<RBranch>();
@@ -535,6 +556,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       return new CStmt(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
+      newMatchExpr.Type = mti.Type;
       return new CExpr(null, newMatchExpr);
     }
   }
@@ -602,7 +624,8 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     if (dtd == null) {
       ctors = null;
     } else {
-      ctors = resolver.datatypeCtors[dtd];
+
+      ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c);//resolver.datatypeCtors[dtd];
       Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
       subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs, currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
     }
@@ -724,6 +747,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   
   /* Temporary information about the Match being desugared  */
   private class MatchTempInfo {
+    public Type Type { get; }
     public IToken Tok;
     public IToken EndTok;
     public IToken[] BranchTok;
@@ -734,7 +758,9 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     public List<ExtendedPattern> MissingCases;
     public Attributes Attributes;
 
-    public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
+    public MatchTempInfo(Type type, IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false,
+      Attributes attrs = null) {
+      Type = type;
       int[] init = new int[branchidnum];
       for (int i = 0; i < branchidnum; i++) {
         init[i] = 1;
@@ -850,9 +876,13 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x => cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
   }
 
+  // TODO, why are we cloning?
   private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
     Cloner cloner = new Cloner();
-    return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
+    var clonedBody = cloner.CloneExpr(branch.Body); 
+    clonedBody.Type = branch.Body.Type;
+    return new RBranchExpr(branch.Tok, branch.BranchID, 
+      branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), clonedBody, cloner.CloneAttributes((branch.Attributes)));
   }
 
   private static RBranch CloneRBranch(RBranch branch) {

@@ -14,9 +14,9 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 using Microsoft.Boogie;
+using Action = System.Action;
 
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
@@ -28,17 +28,6 @@ namespace Microsoft.Dafny {
 
   public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
-  }
-
-  public interface INode {
-
-    /// <summary>
-    /// These children should be such that they contain information produced by resolution such as inferred types
-    /// and resolved references. However, they should not be so transformed that source location from the initial
-    /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
-    /// losing source location information, so those transformed nodes should not be returned by this property.
-    /// </summary>
-    IEnumerable<INode> Children { get; }
   }
 
   public class Program : INode {
