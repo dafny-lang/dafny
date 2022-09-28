@@ -2030,9 +2030,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = DefaultValue(elmtType, wr, tok, true);
+    protected override bool DeterminesArrayTypeFromExampleElement => true;
+
+    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       string sep;
       if (!mustInitialize) {

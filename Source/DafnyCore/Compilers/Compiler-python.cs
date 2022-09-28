@@ -937,9 +937,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
+    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : "None";
       wr.Write($"{DafnyArrayClass}({initValue}");
       foreach (var dim in dimensions) {
         wr.Write(", ");

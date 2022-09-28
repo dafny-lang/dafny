@@ -16,6 +16,7 @@ using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
@@ -3530,13 +3531,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // Where to put the array to be wrapped
       ConcreteSyntaxTree wBareArray;
       if (dimensions.Count > 1) {
         arrays.Add(dimensions.Count);
-        wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elmtType, wr, tok)}, ");
+        wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elementType, wr, tok)}, ");
         foreach (var dim in dimensions) {
           TrExprAsInt(dim, wr, inLetExprBody: false, wStmts: wStmts, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
           wr.Write(", ");
@@ -3544,25 +3545,25 @@ namespace Microsoft.Dafny.Compilers {
         wBareArray = wr.Fork();
         wr.Write(")");
         if (mustInitialize) {
-          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, true)})");
+          wr.Write($".fillThenReturn({DefaultValue(elementType, wr, tok, true)})");
         }
       } else {
-        if (!elmtType.IsTypeParameter) {
-          wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok)}) ");
+        if (!elementType.IsTypeParameter) {
+          wr.Write($"({ArrayTypeName(elementType, dimensions.Count, wr, tok)}) ");
         }
         if (mustInitialize) {
-          wr.Write($"{TypeDescriptor(elmtType, wr, tok)}.fillThenReturnArray(");
+          wr.Write($"{TypeDescriptor(elementType, wr, tok)}.fillThenReturnArray(");
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
-          wr.Write($", {DefaultValue(elmtType, wr, tok, true)})");
+          wr.Write($", {DefaultValue(elementType, wr, tok, true)})");
         }
       }
 
       if (dimensions.Count > 1) {
         wBareArray.Write($"(Object{Repeat("[]", dimensions.Count - 1)}) ");
       }
-      wBareArray.Write($"{TypeDescriptor(elmtType, wr, tok)}.newArray(");
+      wBareArray.Write($"{TypeDescriptor(elementType, wr, tok)}.newArray(");
       var sep = "";
       foreach (var dim in dimensions) {
         wBareArray.Write(sep);

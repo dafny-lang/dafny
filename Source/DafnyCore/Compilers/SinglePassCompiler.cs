@@ -663,8 +663,24 @@ namespace Microsoft.Dafny.Compilers {
       }
       return (arguments.Any() ? sep : "") + arguments.Comma();
     }
-    protected abstract void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-      bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    protected virtual bool DeterminesArrayTypeFromExampleElement => false;
+
+    /// <summary>
+    /// Allocates a new array with element type "elementType" and lengths "dimensions" in each dimension.
+    /// Note that "elementType" may be a type parameter.
+    ///
+    /// If "mustInitialize" is true, then fills each array element with a default value of type "elementType".
+    /// In this case, "exampleElement" must be null.
+    ///
+    /// If "mustInitialize" is false, then the array's elements are left uninitialized.
+    /// In this case, "exampleElement" may be non-null as a guide to figuring out what run-time type the array should have.
+    /// Note that "exampleElement" is not written to the array.
+    ///
+    /// "exampleElement" is always null if "DeterminesArrayTypeFromExampleElement" is false.
+    /// </summary>
+    protected abstract void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
@@ -4340,11 +4356,11 @@ namespace Microsoft.Dafny.Compilers {
         var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
         EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
       } else if (tp.ElementInit != null || tp.InitDisplay != null) {
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
+        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, null, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
         // is if the requested size is 0.
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, wr, wStmts);
+        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, null, wr, wStmts);
       }
     }
 
