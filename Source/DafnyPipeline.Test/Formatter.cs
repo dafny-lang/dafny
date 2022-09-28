@@ -1963,6 +1963,20 @@ method test() {
     }
 
     [Fact]
+    public void FormatterWorksForClassExtend() {
+      FormatterWorksFor(@"
+class A
+  extends B<
+    C<
+      E
+    >,
+    D
+  > {
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {

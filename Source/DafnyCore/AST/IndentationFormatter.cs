@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic;
 
 namespace Microsoft.Dafny;
 
@@ -577,7 +578,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
       } else if (topLevelDecl is IteratorDecl iteratorDecl) {
         SetIteratorDeclIndent(indent, iteratorDecl);
-
+      } else if (topLevelDecl is ClassDecl classDecl) {
+        SetClassDeclIndent(indent, classDecl);
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
@@ -650,6 +652,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
     if (iteratorDecl.Body != null) {
       SetStatementIndentation(iteratorDecl.Body);
+    }
+  }
+
+  private void SetClassDeclIndent(int indent, ClassDecl classDecl) {
+    foreach (var parent in classDecl.ParentTraits) {
+      SetTypeIndentation(parent);
     }
   }
 
