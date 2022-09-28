@@ -2118,7 +2118,7 @@ public class BinaryExpr : Expression {
       _theResolvedOp = value;
     }
     get {
-      Contract.Assume(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
+      Debug.Assert(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
       return _theResolvedOp;
     }
   }
@@ -2316,6 +2316,9 @@ public class BinaryExpr : Expression {
     this.Op = op;
     this.E0 = e0;
     this.E1 = e1;
+    if (this.ToString() == "y % == 12") {
+      Console.Write("");
+    }
   }
 
   /// <summary>

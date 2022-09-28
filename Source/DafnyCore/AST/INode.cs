@@ -33,7 +33,7 @@ public interface INode {
 
       foreach (var child in current.Children) {
         if (child == null) {
-          throw new Exception();
+          throw new Exception($"Object of type {current.GetType()} has null child");
         }
         toVisit.Push(child);
       }
