@@ -879,8 +879,9 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   // TODO, why are we cloning?
   private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
     Cloner cloner = new Cloner();
-    var clonedBody = cloner.CloneExpr(branch.Body); 
-    clonedBody.Type = branch.Body.Type;
+    var clonedBody = branch.Body;
+    // cloner.CloneExpr(branch.Body); 
+    // clonedBody.Type = branch.Body.Type;
     return new RBranchExpr(branch.Tok, branch.BranchID, 
       branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), clonedBody, cloner.CloneAttributes((branch.Attributes)));
   }
@@ -915,20 +916,20 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       }
     }
     if (branch is RBranchStmt branchStmt) {
-      var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-      var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-      branchStmt.Body.Insert(0, cLet);
+      // var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
+      // var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+      // var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
+      // branchStmt.Body.Insert(0, cLet);
     } else if (branch is RBranchExpr branchExpr) {
-      var cBVar = new BoundVar(var.Tok, name, type);
-      cBVar.IsGhost = isGhost;
-      var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
-      var cPats = new List<CasePattern<BoundVar>>();
-      cPats.Add(cPat);
-      var exprs = new List<Expression>();
-      exprs.Add(expr);
-      var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
-      branchExpr.Body = cLet;
+      // var cBVar = new BoundVar(var.Tok, name, type);
+      // cBVar.IsGhost = isGhost;
+      // var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
+      // var cPats = new List<CasePattern<BoundVar>>();
+      // cPats.Add(cPat);
+      // var exprs = new List<Expression>();
+      // exprs.Add(expr);
+      // var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
+      // branchExpr.Body = cLet;
     }
     return;
   }
