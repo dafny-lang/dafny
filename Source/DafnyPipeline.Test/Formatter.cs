@@ -508,15 +508,26 @@ method Test(z: int) {
       =>
   }
   var x :=match z
-          case 1 =>
-            var x := 2;
-            x
-          case 3 => var x := 4;
-                    x
-          case 5
-            => var x := 6;
-               x
+    case 1 =>
+      var x := 2;
+      x
+    case 3 => var x := 4;
+              x
+    case 5
+      => var x := 6;
+         x
     ;
+  
+  var x :=(match z
+           case 1 =>
+             var x := 2;
+             x
+           case 3 => var x := 4;
+                     x
+           case 5
+             => var x := 6;
+                x
+          );
   var x :=
     match z {
       case 1 => 2
@@ -1815,8 +1826,8 @@ function Test(): int {
 
     [Fact]
     public void FormatterWorksForObjectCreation() {
-      var prev = IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment;
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = true;
+      var prev = IndentationFormatter.ReduceBlockiness;
+      IndentationFormatter.ReduceBlockiness = true;
       FormatterWorksFor(@"
 method Test() {
   var g := new ClassName.ConstructorName(
@@ -1848,7 +1859,7 @@ method Test() {
     );
 }
 ");
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = false;
+      IndentationFormatter.ReduceBlockiness = false;
       FormatterWorksFor(@"
 method Test() {
   var g := new ClassName.ConstructorName(
@@ -1880,27 +1891,75 @@ method Test() {
     );
 }
 ");
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = prev;
+      IndentationFormatter.ReduceBlockiness = prev;
     }
 
     [Fact]
     public void FormatterWorksForSingleDatatypeConstructor() {
-      var prev = IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment;
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = true;
+      var prev = IndentationFormatter.ReduceBlockiness;
+      IndentationFormatter.ReduceBlockiness = true;
       FormatterWorksFor(@"
 datatype C = C(
   arg1: int,
   arg2: int
 )
 ");
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = false;
+      IndentationFormatter.ReduceBlockiness = false;
       FormatterWorksFor(@"
 datatype C = C(
                arg1: int,
                arg2: int
              )
 ");
-      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = prev;
+      IndentationFormatter.ReduceBlockiness = prev;
+    }
+
+    [Fact]
+    public void FormatterWorksForUsualMatchCasePatterns() {
+      var prev = IndentationFormatter.ReduceBlockiness;
+      IndentationFormatter.ReduceBlockiness = true;
+      FormatterWorksFor(@"
+method test() {
+  var longName := match x {
+    case 1 => Hello(
+      arg1,
+      arg2
+    )
+    case 2 => match z {
+      case 1 => b 
+      case 2 => c
+    }
+  };
+  match x {
+    case 1 => Bring(
+      [ 1
+      , 2]
+    );
+  }
+}
+");
+      IndentationFormatter.ReduceBlockiness = false;
+      FormatterWorksFor(@"
+method test() {
+  var longName := match x {
+                    case 1 => World(
+                                arg3,
+                                arg4
+                              )
+                    case 2 => match z {
+                                case 1 => b 
+                                case 2 => c
+                              }
+                  };
+  match x {
+    case 1 => Bring(
+                [ 1
+                , 2]
+              );
+  }
+}
+");
+      IndentationFormatter.ReduceBlockiness = prev;
     }
 
     [Fact]

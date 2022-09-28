@@ -18,7 +18,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
    *               y
    *             );
    */
-  public static bool ApplySuffixBlocksStartsBeforeAssignment = true;
+  public static bool ReduceBlockiness = true;
 
 
   private static readonly int SpaceTab = 2;
@@ -113,8 +113,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentParensExpression(indent, expr.OwnedTokens);
       case ApplySuffix applySuffix: {
           int reindent;
-          if (ApplySuffixBlocksStartsBeforeAssignment && applySuffix.StartToken.Prev.val is ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
-            var offset = applySuffix.StartToken.Prev.line == applySuffix.StartToken.Prev.Prev.line ? -2 : 0;
+          if (ReduceBlockiness && applySuffix.StartToken.Prev.val is "=>" or ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
+            var offset = applySuffix.StartToken.Prev.line == applySuffix.StartToken.Prev.Prev.line ? -SpaceTab : 0;
             reindent = Math.Max(GetIndentBefore(applySuffix.StartToken.Prev) + offset, 0);
           } else {
             reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
@@ -897,7 +897,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var commaIndent = indent2;
     var rightIndent = indent2;
     var noExtraIndent =
-      ApplySuffixBlocksStartsBeforeAssignment && datatypeDecl.Ctors.Count == 1
+      ReduceBlockiness && datatypeDecl.Ctors.Count == 1
       && datatypeDecl.Ctors[0].Formals.Count > 0;
     if (noExtraIndent) {
       rightOfVerticalBarIndent = indent;
@@ -1219,7 +1219,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
     foreach (var rhs in rhss) {
       var localIndent = rightIndent;
-      if (rhs is TypeRhs && !ApplySuffixBlocksStartsBeforeAssignment && rhs.OwnedTokens.Count > 0) {
+      if (rhs is TypeRhs && !ReduceBlockiness && rhs.OwnedTokens.Count > 0) {
         localIndent = GetNewTokenVisualIndent(rhs.OwnedTokens[0], localIndent);
       }
       SetIndentParensExpression(localIndent, rhs.OwnedTokens);
@@ -1526,7 +1526,13 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         case "while":
         case "match": {
             decisionToken = token;
-            caseIndent = GetNewTokenVisualIndent(token, indent);
+            if (ReduceBlockiness && token.Prev.val is "=>" or ":=" or ":-" or ":|" && token.Prev.line == token.line) {
+              caseIndent = GetIndentBefore(token.Prev);
+              indent = caseIndent - SpaceTab;
+            } else {
+              caseIndent = GetNewTokenVisualIndent(token, indent);
+            }
+
             afterArrowIndent = caseIndent + SpaceTab;
             SetOpeningIndentedRegion(token, indent);
             break;
