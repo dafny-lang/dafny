@@ -2,7 +2,7 @@
 Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-[Program halted] C# arrays may not be larger than the max 32-bit integer: 9223372036854775808
+[Program halted] array size exceeds memory limit: 9223372036854775808
 
 Dafny program verifier did not attempt verification
 

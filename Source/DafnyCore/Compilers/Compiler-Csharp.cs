@@ -1951,37 +1951,30 @@ namespace Microsoft.Dafny.Compilers {
       arguments.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
     }
 
-    // if checkRange is false, msg is ignored
-    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
-    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
-    protected void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        bool checkRange = false, string msg = null) {
-      wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
-      TrExpr(expr, wr, inLetExprBody, wStmts);
-      if (checkRange) {
-        wr.Write(msg == null ? ", null" : $", \"{msg}\")");
-      }
-    }
-
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
+    protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var wrs = EmitNewArray(elementType, tok, dimensions.Count, mustInitialize, wr);
       for (var i = 0; i < wrs.Count; i++) {
-        TrExprAsInt(dimensions[i], wrs[i], inLetExprBody: false, wStmts, true, "C# arrays may not be larger than the max 32-bit integer");
+        TrExpr(dimensions[i], wrs[i], false, wStmts);
       }
     }
 
     private List<ConcreteSyntaxTree> EmitNewArray(Type elmtType, IToken tok, int dimCount, bool mustInitialize, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree EmitSizeCheckWrapper(ConcreteSyntaxTree w) {
+        w.Write($"{DafnyHelpersClass}.ToIntChecked(");
+        var wSize = w.Fork();
+        w.Write(", \"array size exceeds memory limit\")");
+        return wSize;
+      }
+
       var wrs = new List<ConcreteSyntaxTree>();
       if (!mustInitialize || HasSimpleZeroInitializer(elmtType)) {
         TypeName_SplitArrayName(elmtType, wr, tok, out string typeNameSansBrackets, out string brackets);
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write($"{prefix}{DafnyHelpersClass}.ToIntChecked(");
-          var w = wr.Fork();
-          wrs.Add(w);
-          wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
+          wr.Write(prefix);
+          wrs.Add(EmitSizeCheckWrapper(wr));
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
@@ -1991,8 +1984,7 @@ namespace Microsoft.Dafny.Compilers {
         inParens.Write(DefaultValue(elmtType, inParens, tok, true));
         for (var d = 0; d < dimCount; d++) {
           inParens.Write(", ");
-          var w = inParens.Fork();
-          wrs.Add(w);
+          wrs.Add(EmitSizeCheckWrapper(inParens));
         }
       }
       return wrs;
