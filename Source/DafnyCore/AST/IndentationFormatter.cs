@@ -896,6 +896,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
     var commaIndent = indent2;
     var rightIndent = indent2;
+    var noExtraIndent =
+      ApplySuffixBlocksStartsBeforeAssignment && datatypeDecl.Ctors.Count == 1
+      && datatypeDecl.Ctors[0].Formals.Count > 0;
+    if (noExtraIndent) {
+      rightOfVerticalBarIndent = indent;
+    }
     foreach (var token in datatypeDecl.OwnedTokens) {
       switch (token.val) {
         case "datatype": {
@@ -903,7 +909,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case "=": {
-            if (IsFollowedByNewline(token)) {
+            if (IsFollowedByNewline(token) || noExtraIndent) {
               SetIndentations(token, rightOfVerticalBarIndent, indent + SpaceTab, rightOfVerticalBarIndent);
             } else {
               SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);

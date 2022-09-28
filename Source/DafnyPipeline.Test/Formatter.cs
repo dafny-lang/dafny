@@ -1884,6 +1884,26 @@ method Test() {
     }
 
     [Fact]
+    public void FormatterWorksForSingleDatatypeConstructor() {
+      var prev = IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment;
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = true;
+      FormatterWorksFor(@"
+datatype C = C(
+  arg1: int,
+  arg2: int
+)
+");
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = false;
+      FormatterWorksFor(@"
+datatype C = C(
+               arg1: int,
+               arg2: int
+             )
+");
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = prev;
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
