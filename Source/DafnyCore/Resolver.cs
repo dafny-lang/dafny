@@ -16721,7 +16721,7 @@ namespace Microsoft.Dafny {
         reporter.Error(MessageSource.Resolver, tok,
           "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
           + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
-          + "`import open XYZ = ...` instead of `import open ...`.",
+          + "`import opened XYZ = ...` instead of `import opened ...`.",
           name, moduleDecl.Name);
       }
     }
