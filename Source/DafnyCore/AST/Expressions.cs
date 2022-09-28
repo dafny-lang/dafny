@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -16,7 +17,7 @@ public abstract class Expression : INode {
     Contract.Invariant(tok != null);
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
     return Type != null;
   }
@@ -467,6 +468,22 @@ public abstract class Expression : INode {
     }
   }
 
+  /// <summary>
+  /// Returns "expr", but with all outer layers of parentheses and casts removed.
+  /// This method can be called before resolution.
+  /// </summary>
+  public static Expression StripParensAndCasts(Expression expr) {
+    while (true) {
+      if (expr is ParensExpression parens) {
+        expr = parens.E;
+      } else if (expr is ConversionExpr cast) {
+        expr = cast.E;
+      } else {
+        return expr;
+      }
+    }
+  }
+
   public static ThisExpr AsThis(Expression expr) {
     Contract.Requires(expr != null);
     return StripParens(expr) as ThisExpr;
@@ -485,6 +502,26 @@ public abstract class Expression : INode {
       return true;
     } else {
       value = false;  // to please compiler
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// If "expr" denotes an integer literal "x", then return "true" and set "value" to "x".
+  /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
+  /// This method can be called before resolution.
+  /// </summary>
+  public static bool IsIntLiteral(Expression expr, out BigInteger value) {
+    Contract.Requires(expr != null);
+    var e = StripParens(expr) as LiteralExpr;
+    if (e != null && e.Value is int x) {
+      value = new BigInteger(x);
+      return true;
+    } else if (e != null && e.Value is BigInteger xx) {
+      value = xx;
+      return true;
+    } else {
+      value = BigInteger.Zero; // to please compiler
       return false;
     }
   }
@@ -909,7 +946,7 @@ public class LiteralExpr : Expression {
   /// </summary>
   public readonly object Value;
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);
     if (e is LiteralExpr) {
@@ -1178,7 +1215,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Module : ResolverType {
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
@@ -1188,7 +1225,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Type : ResolverType {
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
@@ -2578,13 +2615,32 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       BoundedPool best = null;
       foreach (var bound in bounds) {
         if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
-          if (best == null || bound.Preference() > best.Preference()) {
+          if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
+            best = new IntBoundedPool(
+              ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
+              ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
+          } else if (best == null || bound.Preference() > best.Preference()) {
             best = bound;
           }
         }
       }
       return best;
     }
+
+    [CanBeNull]
+    static Expression ChooseBestIntegerBound([CanBeNull] Expression a, [CanBeNull] Expression b, bool pickMax) {
+      if (a == null || b == null) {
+        return a ?? b;
+      }
+
+      if (Expression.IsIntLiteral(Expression.StripParensAndCasts(a), out var aa) &&
+          Expression.IsIntLiteral(Expression.StripParensAndCasts(b), out var bb)) {
+        var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
+        return new LiteralExpr(a.tok, x) { Type = a.Type };
+      }
+      return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
+    }
+
     public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
       Contract.Requires(vars != null);
       Contract.Requires(bounds == null || vars.Count == bounds.Count);
