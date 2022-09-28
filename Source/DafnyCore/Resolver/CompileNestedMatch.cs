@@ -150,7 +150,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches);
     if (rb is null) {
       // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
-      return new MatchExpr(e.tok, (new Cloner()).CloneExpr(e.Source), new List<MatchCaseExpr>(), e.UsesOptionalBraces);
+      return new MatchExpr(e.tok, e.Source, new List<MatchCaseExpr>(), e.UsesOptionalBraces);
     } else if (rb is CExpr) {
       // replace e with desugared expression
       var newME = ((CExpr)rb).Body;
@@ -201,7 +201,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches);
     if (rb is null) {
       // Happens only if the nested match has no cases, create a MatchStmt with no branches.
-      return new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces, s.Attributes);
+      return new MatchStmt(s.Tok, s.EndTok, s.Source, new List<MatchCaseStmt>(), s.UsesOptionalBraces, s.Attributes);
     } else if (rb is CStmt c) {
       // Resolve s as desugared match
       var result = c.Body;
@@ -227,9 +227,10 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   }
   
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
-    var cloner = new Cloner();
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-      yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body.Select(s => cloner.CloneStmt(s))), c.Attributes);
+      yield return new NestedMatchCaseStmt(c.Tok, pat,
+        c.Body,
+        c.Attributes);
     }
   }
 
@@ -263,7 +264,6 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   }
 
   private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
-    var cloner = new Cloner();
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
       yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
     }

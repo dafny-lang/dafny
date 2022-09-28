@@ -31,6 +31,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     foreach (var boundVar in boundVars) {
       var localVariable = new LocalVariable(boundVar.var.Tok, boundVar.var.Tok, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
+      localVariable.type = boundVar.var.Type;
       var casePattern = new CasePattern<LocalVariable>(localVariable.EndTok, localVariable);
       var varDecl = new VarDeclPattern(localVariable.Tok, localVariable.Tok, casePattern, boundVar.usage, false);
       Body.Insert(0, varDecl);
