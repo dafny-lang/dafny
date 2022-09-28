@@ -4116,24 +4116,146 @@ namespace Microsoft.Dafny.Compilers {
           ii++;
         }
 
-      } else {
-        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
-        TrTypeRhs(typeRhs, wRhs, wStmts);
+      } else if (DeterminesArrayTypeFromExampleElement) {
+        // For a 3-dimensional array allocation
+        //     m := new X[e0, e1, e2](InitFunction);
+        // generate:
+        //     var _len0 := e0;
+        //     var _len1 := e1;
+        //     var _len2 := e2;
+        //     var _nw;
+        //     if e0 == 0 || e1 == 0 || e2 == 0 {
+        //       _nw := NewArray(X, _len0, _len1, _len2);
+        //     } else {
+        //       var _init := InitFunction;
+        //       var _element0 := _init(0, 0, 0);
+        //       _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
+        //       ArrayUpdate(_nw, _element0, 0, 0, 0);
+        //       var _start := 1;
+        //       for (var _i0 := 0; _i0 < _len0; _i0++) {
+        //         for (var _i1 := 0; _i1 < _len1; _i1++) {
+        //           for (var _i2 := _start; _i2 < _len2; _i2++) {
+        //             ArrayUpdate(_nw, _init(_i0, _i1, _i2), _i0, _i1, _i2);
+        //           }
+        //           _start := 0; // omit, if there's only one dimension
+        //         }
+        //       }
+        //     }
+        string zero, one;
+        {
+          var wLiteral = new ConcreteSyntaxTree();
+          TrExpr(Expression.CreateIntLiteral(typeRhs.Tok, 0), wLiteral, false, wStmts);
+          zero = wLiteral.ToString();
+          wLiteral = new ConcreteSyntaxTree();
+          TrExpr(Expression.CreateIntLiteral(typeRhs.Tok, 1), wLiteral, false, wStmts);
+          one = wLiteral.ToString();
+        }
 
-        // Compute the array-initializing function once and for all (as required by the language definition)
-        string f = ProtectedFreshId("_arrayinit");
-        DeclareLocalVar(f, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wStmts);
+        // Put the array dimensions into local variables
+        var dimNames = new List<string>();
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var dim = typeRhs.ArrayDimensions[d];
+          var dimName = ProtectedFreshId($"_len{d}_");
+          dimNames.Add(dimName);
+          var wrDim = DeclareLocalVar(dimName, dim.Type, dim.tok, wStmts);
+          TrExpr(dim, wrDim, false, wStmts);
+        }
+
+        // Declare the _nw variable
+        DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, false, null, wStmts);
+
+        // Generate if statement
+        var wThen = EmitIf(out var guardWriter, true, wStmts);
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          if (d != 0) {
+            guardWriter.Write(" || ");
+          }
+          EmitIsZero(dimNames[d], guardWriter);
+        }
+        var wRhs = new ConcreteSyntaxTree();
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, dimNames, false, null, wRhs, wThen);
+        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wThen);
+
+        var wElse = EmitBlock(wStmts);
+
+        // Put the array-initializing function into a local variable
+        string init = ProtectedFreshId("_init");
+        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wElse);
+
+        // var _element0 := _init(0, 0, 0);
+        var element0 = ProtectedFreshId($"_element0_");
+        wRhs = DeclareLocalVar(element0, null, typeRhs.Tok, wElse);
+        wRhs.Write("{0}{2}({1})", init, typeRhs.ArrayDimensions.Comma(_ => zero), LambdaExecute);
+
+        // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
+        wRhs = new ConcreteSyntaxTree();
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, element0, wRhs, wElse);
+        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wElse);
+
+        // _nw[0, 0, 0] := _element0;
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => zero);
+        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, wElse);
+        wrRhs.Write(element0);
+        wArray.Write(nw);
+        EndStmt(wElse);
+
+        // var _start := 1;
+        string startName;
+        if (typeRhs.ArrayDimensions.Count == 1) {
+          startName = one;
+        } else {
+          startName = ProtectedFreshId($"_start");
+          DeclareLocalVar(startName, Type.Int, typeRhs.Tok, false, one, wElse);
+        }
+
         // Build a loop nest that will call the initializer for all indices
-        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId("_arrayinit_" + ii));
+        indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
+        var w = wElse;
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var innerMostLoop = d == typeRhs.ArrayDimensions.Count - 1;
+          var wLoopBody = CreateForLoop(indices[d], dimNames[d], w, innerMostLoop ? startName : null);
+          if (typeRhs.ArrayDimensions.Count != 1 && innerMostLoop) {
+            EmitAssignment(startName, Type.Int, zero, Type.Int, w);
+          }
+          w = wLoopBody;
+        }
+        (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
+        wArray.Write(nw);
+        EndStmt(w);
+
+      } else {
+        // For a 3-dimensional array allocation
+        //     m := new X[e0, e1, e2](InitFunction);
+        // generate:
+        //     var _init := InitFunction;
+        //     var _nw := NewArray(X, e0, e1, e2);
+        //     for (var _i0 := 0; _i0 < _nw.Length0; _i0++) {
+        //       for (var _i1 := 0; _i1 < _nw.Length1; _i1++) {
+        //         for (var _i2 := 0; _i2 < _nw.Length2; _i2++) {
+        //           ArrayUpdate(_nw, _init(_i0, _i1, _i2), _i0, _i1, _i2);
+        //         }
+        //       }
+        //     }
+
+        // Put the array-initializing function into a local variable
+        string init = ProtectedFreshId("_init");
+        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wStmts);
+
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, null, wRhs, wStmts);
+
+        // Build a loop nest that will call the initializer for all indices
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wStmts;
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
-          string len, pre, post;
-          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : (object)d, typeRhs.Type, out len, out pre, out post);
+          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : (object)d, typeRhs.Type,
+            out var len, out var pre, out var post);
           var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
-        wrRhs.Write("{0}{2}({1})", f, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
+        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
         wArray.Write(nw);
         EndStmt(w);
       }
@@ -4408,23 +4530,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(n == inTmps.Count);
       // finally, the jump back to the head of the method
       EmitJumpToTailCallStart(wr);
-    }
-
-    /// <summary>
-    /// Before calling TrAssignmentRhs(rhs), the caller must have spilled the let variables declared in "tp".
-    /// </summary>
-    void TrTypeRhs(TypeRhs tp, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Contract.Requires(tp != null);
-      Contract.Requires(wr != null);
-      Contract.Requires(tp.ArrayDimensions != null);
-
-      if (tp.ElementInit != null || tp.InitDisplay != null) {
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, null, wr, wStmts);
-      } else {
-        // If an initializer is not known, the only way the verifier would have allowed this allocation
-        // is if the requested size is 0.
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, null, wr, wStmts);
-      }
     }
 
     protected virtual void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
