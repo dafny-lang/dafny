@@ -11,23 +11,28 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
   private ResolutionContext resolutionContext;
   private readonly Resolver resolver;
 
+  private static HashSet<Program> ranOn = new();
   public CompileNestedMatch(Resolver resolver) {
     this.resolver = resolver;
   }
 
   public void Visit2(Program program) {
+    if (!ranOn.Add(program)) {
+      return;
+    }
+    
     ((INode) program).Visit(node => {
       if (node is ICallable callable) {
-        this.resolutionContext = new ResolutionContext(callable, false);
+        resolutionContext = new ResolutionContext(callable, false);
       }
-      ReflectiveTraverser.UpdateFieldsOfType<Statement>(node, stmt => {
+      ReflectiveUpdater.UpdateFieldsOfType<Statement>(node, stmt => {
         if (stmt is NestedMatchStmt nestedMatchStmt) {
           return CompileNestedMatchStmt(nestedMatchStmt);
         }
         return stmt;
       });
       
-      ReflectiveTraverser.UpdateFieldsOfType<Expression>(node, expr => {
+      ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
         if (expr is NestedMatchExpr nestedMatchExpr) {
           return CompileNestedMatchExpr(nestedMatchExpr);
         }

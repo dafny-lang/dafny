@@ -1253,6 +1253,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
+      new CompileNestedMatch(new Resolver()).Visit2(program);
+      
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Microsoft.Dafny;
 
-class ReflectiveTraverser {
+class ReflectiveUpdater {
 
   public static void UpdateFieldsOfType<T>(object obj, Func<T, T> update) {
     foreach (var field in obj.GetType().GetRuntimeFields()) {
@@ -31,8 +31,5 @@ class ReflectiveTraverser {
         }
       }
     }
-  }
-  public void UpdateStatements(Program program, Func<Statement, Statement> updateStatement) {
-      
   }
 }
