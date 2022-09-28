@@ -694,6 +694,12 @@ public class TypeRhs : AssignmentRhs, INode {
           }
         }
       }
+
+      if (Arguments != null) {
+        foreach (var e in Arguments) {
+          yield return e;
+        }
+      }
     }
   }
   public override IEnumerable<Statement> SubStatements {

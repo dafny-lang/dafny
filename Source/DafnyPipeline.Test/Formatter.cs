@@ -1815,21 +1815,64 @@ function Test(): int {
 
     [Fact]
     public void FormatterWorksForObjectCreation() {
+      var prev = IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment;
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = true;
       FormatterWorksFor(@"
 method Test() {
+  var g := new ClassName.ConstructorName(
+    argument1,
+    argument2,
+    argument3
+  );
+  var g := Datatype.ConstructorName(
+    argumenta,
+    argumentb,
+    argumentc
+  );
+
+  var g :=
+    Datatype.ConstructorName(
+      argumentd,
+      argumente,
+      argumentf
+    );
   var h :=
     new ClassName.ConstructorName2(
       argument4,
       argument5,
       argument6
     );
+}
+");
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = false;
+      FormatterWorksFor(@"
+method Test() {
   var g := new ClassName.ConstructorName(
              argument1,
              argument2,
              argument3
            );
+  var g := Datatype.ConstructorName(
+             argumenta,
+             argumentb,
+             argumentc
+           );
+
+  var g :=
+    Datatype.ConstructorName(
+      argumentd,
+      argumente,
+      argumentf
+    );
+  var h :=
+    new ClassName.ConstructorName2(
+      argument4,
+      argument5,
+      argument6
+    );
 }
 ");
+      IndentationFormatter.ApplySuffixBlocksStartsBeforeAssignment = prev;
     }
 
     [Fact]

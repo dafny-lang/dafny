@@ -6,6 +6,21 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny;
 
 public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentationFormatter {
+
+  /* If true, the indentation will be
+   * var name := method(
+   *   x,
+   *   y
+   * );
+   * If false, the indentation will be
+   * var name := method(
+   *               x,
+   *               y
+   *             );
+   */
+  public static bool ApplySuffixBlocksStartsBeforeAssignment = true;
+
+
   private static readonly int SpaceTab = 2;
 
   private readonly Dictionary<int, int> posToIndentBefore;
@@ -97,7 +112,13 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case SetDisplayExpr:
         return SetIndentParensExpression(indent, expr.OwnedTokens);
       case ApplySuffix applySuffix: {
-          var reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
+          int reindent;
+          if (ApplySuffixBlocksStartsBeforeAssignment && applySuffix.StartToken.Prev.val is ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
+            reindent = Math.Max(GetIndentBefore(applySuffix.StartToken.Prev) - 2, 0);
+          } else {
+            reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
+          }
+
           return SetIndentParensExpression(reindent, expr.OwnedTokens);
         }
       case StmtExpr stmtExpr: {
@@ -1180,9 +1201,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       // Here it means all the tokens are owned by the surrounding variable declaration.
       // We still need to recover the rightIndent in this case:
       if (!IsFollowedByNewline(stmt.Tok)) {
-        rightIndent = GetNewTokenVisualIndent(stmt.Tok, indent) + stmt.Tok.val.Length + 1;
+        rightIndent = Math.Max(0, indent - 2);
       } else {
-        rightIndent = GetIndentAfter(stmt.Tok);
+        rightIndent = indent;
       }
     }
 
@@ -1190,7 +1211,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       : stmt is AssignOrReturnStmt assignOrReturnStmt ? assignOrReturnStmt.Rhss : new List<AssignmentRhs>();
 
     foreach (var rhs in rhss) {
-      SetIndentParensExpression(rightIndent, rhs.OwnedTokens);
+      var localIndent = rightIndent;
+      if (rhs is TypeRhs && !ApplySuffixBlocksStartsBeforeAssignment && rhs.OwnedTokens.Count > 0) {
+        localIndent = GetNewTokenVisualIndent(rhs.OwnedTokens[0], localIndent);
+      }
+      SetIndentParensExpression(localIndent, rhs.OwnedTokens);
     }
 
     return true;
@@ -1405,14 +1430,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   private bool SetIndentParensExpression(int indent, List<IToken> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
-    IToken newToken = null;
 
     foreach (var token in ownedTokens) {
       switch (token.val) {
-        case "new": {
-            newToken = token;
-            break;
-          }
         case "[":
         case "{":
         case "(": {
