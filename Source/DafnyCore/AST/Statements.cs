@@ -515,6 +515,16 @@ public abstract class AssignmentRhs : INode {
     }
   }
   /// <summary>
+  /// Returns the non-null subexpressions before resolution of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+    }
+  }
+  /// <summary>
   /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
@@ -545,6 +555,15 @@ public class ExprRhs : AssignmentRhs {
     }
   }
 
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var expr in base.PreResolveSubExpressions) {
+        yield return expr;
+      }
+
+      yield return Expr;
+    }
+  }
   public override IEnumerable<INode> Children => new[] { Expr };
 }
 
@@ -786,9 +805,9 @@ public abstract class ConcreteUpdateStatement : Statement {
     Lhss = lhss;
   }
 
-  public override IEnumerable<Expression> PreResolveSubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in base.PreResolveSubExpressions) {
+      foreach (var e in base.NonSpecificationSubExpressions) {
         yield return e;
       }
 
@@ -885,7 +904,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
         yield return e;
       }
       foreach (var rhs in Rhss) {
-        foreach (var e in rhs.SubExpressions) {
+        foreach (var e in rhs.PreResolveSubExpressions) {
           yield return e;
         }
       }
@@ -930,11 +949,12 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {
-
-      foreach (var e in base.PreResolveSubExpressions) {
+      foreach (var e in base.SpecificationSubExpressions) {
         yield return e;
       }
-
+      foreach (var e in base.Lhss) {
+        yield return e;
+      }
       if (Rhs != null) {
         yield return Rhs;
       }

@@ -1176,6 +1176,16 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       }
     }
 
+    if (ownedTokens.Count == 0) {
+      // Here it means all the tokens are owned by the surrounding variable declaration.
+      // We still need to recover the rightIndent in this case:
+      if (!IsFollowedByNewline(stmt.Tok)) {
+        rightIndent = GetNewTokenVisualIndent(stmt.Tok, indent) + stmt.Tok.val.Length + 1;
+      } else {
+        rightIndent = GetIndentAfter(stmt.Tok);
+      }
+    }
+
     var rhss = stmt is UpdateStmt updateStmt ? updateStmt.Rhss
       : stmt is AssignOrReturnStmt assignOrReturnStmt ? assignOrReturnStmt.Rhss : new List<AssignmentRhs>();
 
@@ -1395,9 +1405,14 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   private bool SetIndentParensExpression(int indent, List<IToken> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
+    IToken newToken = null;
 
     foreach (var token in ownedTokens) {
       switch (token.val) {
+        case "new": {
+            newToken = token;
+            break;
+          }
         case "[":
         case "{":
         case "(": {
@@ -1406,6 +1421,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             } else {
               SetAlign(indent, token, out itemIndent, out commaIndent);
             }
+
             break;
           }
         case ",": {

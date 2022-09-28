@@ -1251,7 +1251,7 @@ lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
   var State(h) := State(s => (x, s));
   var State(g2) := f(x);
   var x := new A[2](i =>
-                      i + 1);
+                    i + 1);
   calc {}
 }
 
@@ -1811,6 +1811,25 @@ function Test(): int {
     C(a1, b1, c1)
     == D(a2, b2, c2)
 }");
+    }
+
+    [Fact]
+    public void FormatterWorksForObjectCreation() {
+      FormatterWorksFor(@"
+method Test() {
+  var h :=
+    new ClassName.ConstructorName2(
+      argument4,
+      argument5,
+      argument6
+    );
+  var g := new ClassName.ConstructorName(
+             argument1,
+             argument2,
+             argument3
+           );
+}
+");
     }
 
     [Fact]
