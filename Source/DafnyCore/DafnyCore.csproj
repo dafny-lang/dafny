@@ -20,9 +20,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <NoWarn>$(NoWarn);NU5104</NoWarn>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
-
+  
   <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />

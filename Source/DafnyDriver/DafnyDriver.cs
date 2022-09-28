@@ -118,7 +118,9 @@ namespace Microsoft.Dafny {
             DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
             _ => throw new ArgumentOutOfRangeException()
           };
-          exitValue = driver.ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter).Result;
+#pragma warning disable VSTHRD002
+          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), reporter).Result;
+#pragma warning restore VSTHRD002
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
           return (int)ExitValue.PREPROCESSING_ERROR;
@@ -265,7 +267,7 @@ namespace Microsoft.Dafny {
       return CommandLineArgumentsResult.OK;
     }
 
-    private async Task<ExitValue> ProcessFiles(IList<DafnyFile/*!*/>/*!*/ dafnyFiles,
+    private async Task<ExitValue> ProcessFilesAsync(IList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
       ErrorReporter reporter, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
@@ -289,7 +291,7 @@ namespace Microsoft.Dafny {
         foreach (var f in dafnyFiles) {
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = await ProcessFiles(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);
+          var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -304,7 +306,7 @@ namespace Microsoft.Dafny {
           foreach (var f in s) {
             snapshots.Add(new DafnyFile(f));
           }
-          var ev = await ProcessFiles(snapshots, new List<string>().AsReadOnly(), reporter, false, programId);
+          var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), reporter, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -323,7 +325,7 @@ namespace Microsoft.Dafny {
         var boogiePrograms = Translate(engine.Options, dafnyProgram).ToList();
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
+        var (verified, outcome, moduleStats) = await BoogieAsync(baseName, boogiePrograms, programId);
         bool compiled;
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
@@ -396,7 +398,7 @@ namespace Microsoft.Dafny {
     }
 
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
+      BoogieAsync(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(Console.Out);
@@ -405,7 +407,7 @@ namespace Microsoft.Dafny {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure
         var result = await Task.Run(() =>
-          BoogieOnceWithTimer(moduleWriter, baseName, programId, program.Item1, program.Item2));
+          BoogieOnceWithTimerAsync(moduleWriter, baseName, programId, program.Item1, program.Item2));
         concurrentModuleStats.TryAdd(program.Item1, result.Stats);
         return result;
       }).ToList();
@@ -420,7 +422,7 @@ namespace Microsoft.Dafny {
       return (isVerified, outcome, concurrentModuleStats);
     }
 
-    private async Task<(PipelineOutcome Outcome, PipelineStatistics Stats)> BoogieOnceWithTimer(
+    private async Task<(PipelineOutcome Outcome, PipelineStatistics Stats)> BoogieOnceWithTimerAsync(
       TextWriter output,
       string baseName, string programId,
       string moduleName,
