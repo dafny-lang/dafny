@@ -14,6 +14,10 @@
 - feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
 - fix: The DafnyServer package is now published to NuGet as well, which fixes the previously-broken version of the DafnyLanguageServer package. (https://github.com/dafny-lang/dafny/pull/2787)
 - deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
+- docs: The user documentation at https://dafny.org is now synchronized with 
+releases, showing a snapshot of the user documentation at the time of a 
+release, with links to older snapshots and to the current development version
+of user documentation.
 
 # 3.8.1
 
