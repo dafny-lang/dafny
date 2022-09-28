@@ -114,7 +114,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case ApplySuffix applySuffix: {
           int reindent;
           if (ApplySuffixBlocksStartsBeforeAssignment && applySuffix.StartToken.Prev.val is ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
-            reindent = Math.Max(GetIndentBefore(applySuffix.StartToken.Prev) - 2, 0);
+            var offset = applySuffix.StartToken.Prev.line == applySuffix.StartToken.Prev.Prev.line ? -2 : 0;
+            reindent = Math.Max(GetIndentBefore(applySuffix.StartToken.Prev) + offset, 0);
           } else {
             reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
           }

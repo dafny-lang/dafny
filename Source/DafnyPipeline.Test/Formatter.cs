@@ -1829,6 +1829,10 @@ method Test() {
     argumentb,
     argumentc
   );
+  :- Module.Need(
+    arg1,
+    arg2
+  );
 
   var g :=
     Datatype.ConstructorName(
@@ -1857,6 +1861,10 @@ method Test() {
              argumentb,
              argumentc
            );
+  :- Module.Need(
+       arg3,
+       arg4
+     );
 
   var g :=
     Datatype.ConstructorName(
