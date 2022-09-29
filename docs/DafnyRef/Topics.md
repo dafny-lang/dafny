@@ -1008,6 +1008,9 @@ initialized. This rule ensures that any method of the class (which does not
 know which constructor may have been already called) can rely on the fields
 having been initialized.
 
+[This document](../Compilation/AutoInitialization) has more detail on
+auto-initialization.
+
 The `-definiteAssignment` option allows choosing different levels of 
 checking the definite assignment rules.
 

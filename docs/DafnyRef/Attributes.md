@@ -625,24 +625,8 @@ same as the current heap, or that is derived from it by heap update operations.
 See [`{:induction}`](#sec-induction) for functions and methods.
 
 ### 23.5.3. `{:layerQuantifier}`
-The word 'layer' actually refers to the [`{:fuel}`](#sec-fuel).
-When Dafny is translating a quantified expression, if it has
-a `{:layerQuantifier}` attribute an additional quantifier
-variable is added to the quantifier bound variables.
-This variable has the predefined _LayerType_.
-A `{:layerQuantifier}` attribute may be placed on a quantifier expression.
-Translation of Dafny into Boogie defines a _LayerType_ which has defined zero and
-successor constructors.
 
-The Dafny source has the comment that "if a function is recursive,
-then make the reveal lemma quantifier a layerQuantifier."
-And in that case it adds the attribute to the quantifier.
-
-There is no explicit use of the `{:layerQuantifier}` attribute
-in the Dafny tests. So I believe this attribute is only used
-internally by Dafny and not externally.
-
-TODO: Need more complete explanation of this attribute.
+This attribute is only used internally.
 Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
 further effort for this attribute.
 
