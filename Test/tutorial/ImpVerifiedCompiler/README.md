@@ -50,6 +50,8 @@ Hopefully, by the time your are done reading, you will be able to develop verifi
 
 ## Dafny: a functional programming language
 
+### Prelude
+
 Dafny is a programming language. It contains a functional core with the following features:
 
 * Functions as first class citizens, always de-currified, with call-by-value semantics
@@ -97,6 +99,8 @@ module IntList {
 }
 ```
 
+### Onward!
+
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
 | [SyntaxCommon.dfy](SyntaxCommon.dfy) | types | |
@@ -105,6 +109,8 @@ module IntList {
 | [Compiler.dfy](Compiler.dfy) | functions, pattern-matching, conditional expressions, let-binding | |
 
 ## Dafny: a logic
+
+### Prelude
 
 Dafny's logic contains a core that is reminiscent of Church's simple type theory and LCF.  It is [impredicative](TutorialSupport/Impredicative.dfy). 
 
@@ -140,6 +146,8 @@ predicate even(n: Nat) {
 }
 ```
 
+### Onward!
+
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
 | [SemanticsCommon.dfy](SemanticsCommon.dfy) | maps | |
@@ -148,6 +156,8 @@ predicate even(n: Nat) {
 | [MachSemantics.dfy](MachSemantics.dfy) | | |
 
 ## Dafny: a proof assistant
+
+### Prelude
 
 Dafny is a proof assistant. You can interactively prove a lemma, and you do so by giving the lemma a body. 
 As a first approximation, you can think of a lemma as a sequent and its body as a proof script. 
@@ -180,6 +190,8 @@ A few final comments:
 * [Dafny is not linear](TutorialSupport/NotLinear.dfy)
 * [Dafny has choice](TutorialSupport/Choice.dfy)
 * [Proofs are not first-class](TutorialSupport/ProofIrrelevance.dfy)
+
+### Onward!
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
