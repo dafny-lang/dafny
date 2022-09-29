@@ -1,3 +1,5 @@
+GhostAllocations.dfy(91,2): Warning: the modify statement with a block statement is deprecated
+GhostAllocations.dfy(103,2): Warning: the modify statement with a block statement is deprecated
 GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
