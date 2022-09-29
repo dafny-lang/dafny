@@ -98,9 +98,41 @@ module IntList {
 | [Mach.dfy](Mach.dfy) | sequences, type operators, polymorphism | |
 | [Compiler.dfy](Compiler.dfy) | functions, pattern-matching, conditional expressions, let-binding | |
 
-## Dafny: a specification language
+## Dafny: a logic
 
-Dafny's logic contains Church's simple type theory with rank-1 polymorphism and datatypes. It is impredicative. Therefore, it includes Leibniz equality, propositional and first-order logic.
+Dafny's logic contains a core that is reminiscent of LCF.  It is impredicative. 
+
+The following example demonstrates the specification of some theory of arithmetic:
+
+* We can posit the existence of constants, functions, predicates (using datatypes or by ommitting definitions)
+* We can declare axiom (lemmas)
+* We can use connectives of propositional logic and quantifiers of predicate logic
+
+```
+datatype Nat =
+  | Z
+  | S(Nat)
+
+function plus(x: Nat, y: Nat): Nat
+
+function times(x: Nat, y: Nat): Nat
+
+lemma peano1()
+  ensures forall x, y: Nat :: S(x) == S(y) ==> x == y
+
+lemma peano2()
+  ensures forall x: Nat :: ! (Z == S(x))
+
+lemma peano3()
+  ensures forall P: Nat -> bool :: P(Z) && (forall x: Nat :: P(x) ==> P(S(x))) ==> forall y: Nat :: P(y)
+
+lemma peano4()
+  ensures forall x: Nat :: plus(Z,x) == x
+	
+predicate even(n: Nat) {
+  exists m: Nat :: n == times(m,S(S(Z)))
+}
+```
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
