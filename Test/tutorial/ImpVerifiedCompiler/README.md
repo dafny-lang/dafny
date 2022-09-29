@@ -37,6 +37,11 @@ dafny /compile:0 CompileProgramCorrect.dfy
 
 # Linear Project Description
 
+The following presentation is intended for people who are not familiar with Dafny but are familiar with functional programming, proof assistants, and basic compilers. 
+You can read the files in order and we introduce Dafny's prerequisites along the way. 
+
+Hopefully, by the time your are done reading, you will be able to develop verified code in Dafny as well as you might have using another proof assistant. However, note that we only present a subset of Dafny which is enough to be productive, but not representative of its richness.
+
 ## Dafny: a functional programming language
 
 The Dafny programming language contains a functional core with datatypes, pattern-matching, functions as values, and parametric polymorphism.
@@ -64,6 +69,9 @@ Dafny's logic contains Church's simple type theory with rank-1 polymorphism and 
 
 Dafny's proofs are written using a small set of statements that are higher-level than tactics.
 For example, you can simulate the rules of [Hilbert's systems](TutorialSupport/Hilbert.dfy), [natural deduction](TutorialSupport/NaturalDeduction.dfy), and [sequent calculus](TutorialSupport/SequentCalculus.dfy).
+
+* Lemmas are sequents
+* Lemmas' bodies are proof scripts
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
