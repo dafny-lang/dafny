@@ -9,14 +9,14 @@ datatype aexp =
 datatype bexp =
 	| BTrue
 	| BFalse
-  | BEq(aexp, aexp)
-  | BLe(aexp, aexp)
-  | BNot(bexp)
-  | BAnd(bexp, bexp)
+	| BEq(aexp, aexp)
+	| BLe(aexp, aexp)
+	| BNot(bexp)
+	| BAnd(bexp, bexp)
 
 datatype com =
 	| CSkip
-  | CAsgn(ident, aexp)
-  | CSeq(com, com)
-  | CIf(bexp, com, com)
-  | CWhile(bexp, com)
+	| CAsgn(ident, aexp)
+	| CSeq(com, com)
+	| CIf(bexp, com, com)
+	| CWhile(bexp, com)
