@@ -62,7 +62,7 @@ Dafny's logic contains Church's simple type theory with rank-1 polymorphism and 
 
 ## Dafny: a proof system
 
-Dafny's proof system encompasses natural deduction and sequent calculus and has the following axioms: excluded-middle, choice, proof-irrelevance.
+Dafny's proof system encompasses natural deduction and sequent calculus and has the following axioms: excluded-middle, choice, proof-irrelevance. It is not linear.
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
