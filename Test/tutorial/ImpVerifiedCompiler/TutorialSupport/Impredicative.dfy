@@ -1,4 +1,3 @@
-lemma impredicativity()
-	ensures forall P: () -> bool :: P() ==> P()
-{
+predicate P() {
+	forall Q: () -> bool :: Q() ==> Q()
 }
