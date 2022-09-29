@@ -7,10 +7,12 @@ dafny /compile:0 CompileProgramCorrect.dfy
 
 ## Abstract Semantics
 
-* [Common.dfy](Common.dfy): identifier and store
 * [Semantics.dfy](Semantics.dfy): inductive and coinductive closures of reductions
 
 ## Languages: syntax and semantics
+
+* [SyntaxCommon.dfy](SyntaxCommon.dfy): both languages share the concept of an identifier
+* [SemanticsCommon.dfy](SemanticsCommon.dfy): all semantics use the concept of a store associating identifiers to integer values
 
 | Language | Imp    | Mach   |
 | -------- | ------ | ------ |
