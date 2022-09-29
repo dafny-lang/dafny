@@ -1,5 +1,5 @@
 include "Imp.dfy"
-include "MC.dfy"
+include "Mach.dfy"
 
 function method compile_aexp(a: aexp): code {
 	match a {

@@ -1,4 +1,4 @@
-include "Identifier.dfy"
+include "Common.dfy"
 
 datatype aexp =
 	| AConst(int)

@@ -1,9 +1,11 @@
 include "Imp.dfy"
-include "ImpSem2.dfy"
-include "MC.dfy"
+include "ImpNaturalSem.dfy"
+include "Mach.dfy"
+include "MachSemantics.dfy"
 include "Compiler.dfy"
-include "Proof_aexp.dfy"
-include "Proof_bexp.dfy"
+include "SimulationRelation.dfy"
+include "CompileAexpCorrect.dfy"
+include "CompileBexpCorrect.dfy"
 
 least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code, pc: nat, stk: stack)		
 	requires cexec(s,c,s')

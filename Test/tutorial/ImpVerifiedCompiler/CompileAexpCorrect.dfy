@@ -1,7 +1,9 @@
 include "Imp.dfy"
-include "ImpSem2.dfy"
-include "MC.dfy"
+include "ImpNaturalSem.dfy"
+include "Mach.dfy"
+include "MachSemantics.dfy"
 include "Compiler.dfy"
+include "SimulationRelation.dfy"
 
 lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 	requires forall id: ident :: id_in_aexp(id,a) ==> id in s

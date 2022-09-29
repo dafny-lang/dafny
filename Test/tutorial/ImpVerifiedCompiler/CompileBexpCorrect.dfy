@@ -1,8 +1,10 @@
 include "Imp.dfy"
-include "ImpSem2.dfy"
-include "MC.dfy"
+include "ImpNaturalSem.dfy"
+include "Mach.dfy"
+include "MachSemantics.dfy"
 include "Compiler.dfy"
-include "Proof_aexp.dfy"
+include "SimulationRelation.dfy"
+include "CompileAexpCorrect.dfy"
 
 lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0: nat, stk: stack)
 	requires forall id: ident :: id_in_bexp(id,b) ==> id in s

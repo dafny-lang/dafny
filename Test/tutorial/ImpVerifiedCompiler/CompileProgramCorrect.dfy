@@ -1,8 +1,9 @@
 include "Imp.dfy"
-include "ImpSem2.dfy"
-include "MC.dfy"
+include "ImpNaturalSem.dfy"
+include "Mach.dfy"
+include "MachSemantics.dfy"
 include "Compiler.dfy"
-include "Proof_com.dfy"
+include "CompileComCorrect.dfy"
 
 
 lemma compile_program_correct_terminating(s: store, c: com, s': store)
