@@ -9,6 +9,9 @@ exe:
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
+tests:
+	(cd ${DIR}; dotnet test Source/IntegrationTests)
+
 ${DIR}/boogie/Binaries/Boogie.exe:
 	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 
