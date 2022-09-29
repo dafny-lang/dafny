@@ -1,5 +1,20 @@
 
 Dafny program verifier finished with 3 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+Dt.A(10, 12.0):  x=10 y=12.0
+Dt.B(_module.MyClass, 6):  h=_module.MyClass x=6
+Dt.C(3.14):  y=3.14
+Dt.C(3.14)
+Dt.A(71, 0.1)
+Klef.C3(44, 100, 66, 200)
+Datte.AA(10, 2) Datte.AA(10, 5)
+Datte.BB(false, 12) Datte.BB(false, 6)
+Datte.CC(3.2) Datte.CC(3.4)
+Datte.DD(100, {7}, 5, 9.0) Datte.DD(30, {7}, 5, 9.0)
+Datte.DD(100, {7}, 5, 9.0) Datte.DD(30, {7}, 5, 2.0)
+
+Dafny program verifier did not attempt verification
 Dt.A(10, 12.0):  x=10 y=12.0
 Dt.B(_module.MyClass, 6):  h=_module.MyClass x=6
 Dt.C(3.14):  y=3.14
