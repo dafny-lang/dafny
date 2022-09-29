@@ -5,12 +5,16 @@ To verify the whole proof:
 dafny /compile:0 CompileProgramCorrect.dfy
 ```
 
+# High-Level Project Description
+
 ## Abstract Semantics
 
-* [Common.dfy](Common.dfy): identifier and store
 * [Semantics.dfy](Semantics.dfy): inductive and coinductive closures of reductions
 
 ## Languages: syntax and semantics
+
+* [SyntaxCommon.dfy](SyntaxCommon.dfy): both languages share the concept of an identifier
+* [SemanticsCommon.dfy](SemanticsCommon.dfy): all semantics use the concept of a store associating identifiers to integer values
 
 | Language | Imp    | Mach   |
 | -------- | ------ | ------ |
@@ -30,3 +34,39 @@ dafny /compile:0 CompileProgramCorrect.dfy
 * [CompileComCorrect.dfy](CompileComCorrect.dfy): correctness of compilation of commands
 * [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy): correctness of compilation of whole program
 
+# Linear Project Description
+
+## Dafny: a functional programming language
+
+The Dafny programming language contains a functional core with datatypes, pattern-matching, functions as values, and parametric polymorphism.
+
+* Call-by-value semantics
+* Rank-1 polymorphism, but not with HM inference
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SyntaxCommon.dfy](SyntaxCommon.dfy) | types | |
+| [Imp.dfy](Imp.dfy) | datatypes | |
+| [Mach.dfy](Mach.dfy) | sequences, type operators, polymorphism | |
+| [Compiler.dfy](Compiler.dfy) | functions, pattern-matching, conditional expressions, let-binding | |
+
+## Dafny: a specification language
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SemanticsCommon.dfy](SemanticsCommon.dfy) | maps | |
+| [ImpNaturalSem.dfy](ImpNaturalSem.dfy) | predicates, least predicates, first-order logic | |
+| [Semantics.dfy](Semantics.dfy) | greatest predicate, lemmas, proofs | flow is broken, split? |
+| [MachSemantics.dfy](MachSemantics.dfy) | | |
+
+## Dafny: a proof system
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SimulationRelation.dfy](SimulationRelation.dfy) | lemmas | |
+| [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy) | induction | |
+| [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy) | | |
+| [CompileComCorrect.dfy](CompileComCorrect.dfy) | transfinite induction | |
+| [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy) | | |
+
+  
