@@ -407,10 +407,13 @@ Usage: Dafny [ option ... ] [ filename ... ]
       features like traits or co-inductive types.
   
   /Main:<name>
-      Specify the (fully-qualified) name of the method to use as the
-      executable entry point. Default is the method with the {:main}
-      attribute, or else the method named 'Main'.
-  
+      Specify the (fully-qualified) name of the method to use as the executable entry point.
+      Default is the method with the {:main} attribute, or else the method named 'Main'.
+      A Main method can have at most one (non-ghost) argument of type `seq<string>`
+  --args <arg1> <arg2> ...
+      When running a Dafny file through /compile:3 or /compile:4, '--args' provides
+      all arguments after it to the Main function, at index starting at 1.
+      Index 0 is used to store the executable's name if it exists.
   /runAllTests:<n> (experimental)
       0 (default) - Annotates compiled methods with the {:test}
           attribute such that they can be tested using a testing framework
@@ -475,6 +478,18 @@ Usage: Dafny [ option ... ] [ filename ... ]
       contents are skipped during code generation and verification. This
       option is useful in a diamond dependency situation, to prevent code
       from the bottom dependency from being generated more than once.
+  
+  /testContracts:<Externs|TestedExterns>
+      Enable run-time testing of the compilable portions of certain function
+      or method contracts, at their call sites. The current implementation
+      focuses on {:extern} code but may support other code in the future.
+  
+      Externs - Check contracts on every call to a function or method marked
+          with the {:extern} attribute, regardless of where it occurs.
+      TestedExterns - Check contracts on every call to a function or method
+          marked with the {:extern} attribute when it occurs in a method
+          with the {:test} attribute, and warn if no corresponding test
+          exists for a given external declaration.
   
   ----------------------------------------------------------------------------
   

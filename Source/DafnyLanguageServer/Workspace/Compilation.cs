@@ -138,18 +138,24 @@ public class Compilation {
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
       var status = StatusFromBoogieStatus(task.CacheStatus);
-      if (task.CacheStatus is Completed completed) {
-        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, GetDiagnosticsFromResult(loaded, completed.Result));
-        initialViews.Add(GetImplementationId(task.Implementation), view);
-      } else {
-        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
-        initialViews.Add(GetImplementationId(task.Implementation), view);
+      var implementationId = GetImplementationId(task.Implementation);
+      try {
+        if (task.CacheStatus is Completed completed) {
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status,
+            GetDiagnosticsFromResult(loaded, completed.Result));
+          initialViews.Add(implementationId, view);
+        } else {
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+          initialViews.Add(implementationId, view);
+        }
+      } catch (ArgumentException) {
+        logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
       }
     }
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ParseAndResolutionDiagnostics, loaded.NewSymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));

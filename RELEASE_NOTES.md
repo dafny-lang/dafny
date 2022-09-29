@@ -1,8 +1,19 @@
 # Upcoming
 
+- feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
+- feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
+- feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
+- feat: Generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 - fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
-- feat: generate warning when 'old' has no effect
+- fix: Use the right comparison operators for bitvectors in Javascript (https://github.com/dafny-lang/dafny/pull/2716)
+- fix: Retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
+- fix: Correctly substitute variables introduced by a binding guard (https://github.com/dafny-lang/dafny/pull/2745)
+- fix: The CLI no longer attempts to load each DLL file passed to it. (https://github.com/dafny-lang/dafny/pull/2568)
+- fix: Improved hints and error messages regarding variance/cardinality preservation (https://github.com/dafny-lang/dafny/pull/2774)
+- feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
+- fix: The DafnyServer package is now published to NuGet as well, which fixes the previously-broken version of the DafnyLanguageServer package. (https://github.com/dafny-lang/dafny/pull/2787)
+- deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
 
 # 3.8.1
 
@@ -15,6 +26,8 @@
 - fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
 - fix: Better messages on hovering failing postconditions in IDE (https://github.com/dafny-lang/dafny/pull/2654)
 - fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
+- feat: Introduced ghost constructors in datatypes. One use of these is when working with uninitialized storage, see https://github.com/dafny-lang/rfcs/pull/11. (https://github.com/dafny-lang/dafny/pull/2666)
+
 
 # 3.8.0
 
@@ -37,7 +50,6 @@
 - fix: Improve the performance of proofs involving bit vector shifts (https://github.com/dafny-lang/dafny/pull/2520)
 - fix: Perform well-definedness checks for ensures clauses of forall statements (https://github.com/dafny-lang/dafny/pull/2606)
 - fix: Resolution and verification of StmtExpr now pay attention to if the StmtExpr is inside an 'old' (https://github.com/dafny-lang/dafny/pull/2607)
-
 
 # 3.7.3
 
@@ -67,7 +79,7 @@
 # 3.7.0
 
 - feat: The Dafny CLI, Dafny as a library, and the C# runtime are now available on NuGet. You can install the CLI with `dotnet tool install --global Dafny`. The library is available as `DafnyPipeline` and the runtime is available as `DafnyRuntime`. (https://github.com/dafny-lang/dafny/pull/2051)
-- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
+- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified. (https://github.com/dafny-lang/dafny/pull/2142)
 - feat: Added "Resolving..." message for IDE extensions (https://github.com/dafny-lang/dafny/pull/2234)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
