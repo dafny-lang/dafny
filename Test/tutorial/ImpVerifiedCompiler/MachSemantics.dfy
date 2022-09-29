@@ -1,4 +1,5 @@
 include "Mach.dfy"
+include "SemanticsCommon.dfy"
 include "Semantics.dfy"
 	
 type stack = seq<int>

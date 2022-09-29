@@ -1,4 +1,4 @@
-include "Common.dfy"
+include "SyntaxCommon.dfy"
 
 datatype aexp =
 	| AConst(int)

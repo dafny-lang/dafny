@@ -1,4 +1,4 @@
-include "Common.dfy"
+include "SyntaxCommon.dfy"
 
 type offset = int
 

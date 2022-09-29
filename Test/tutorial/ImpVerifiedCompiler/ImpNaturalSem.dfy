@@ -1,4 +1,5 @@
 include "Imp.dfy"
+include "SemanticsCommon.dfy"
 
 predicate id_in_aexp(id: ident, a: aexp) {
 	match a

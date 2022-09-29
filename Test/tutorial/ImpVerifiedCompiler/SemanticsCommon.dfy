@@ -1,3 +1,3 @@
-type ident = string
+include "SyntaxCommon.dfy"
 
 type store = map<ident,int>
