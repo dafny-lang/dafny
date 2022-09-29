@@ -36,16 +36,32 @@ dafny /compile:0 CompileProgramCorrect.dfy
 
 # Linear Project Description
 
-*  [SyntaxCommon.dfy](SyntaxCommon.dfy)
-*  [Imp.dfy](Imp.dfy)
-*  [Mach.dfy](Mach.dfy)
-*  [Compiler.dfy](Compiler.dfy)
-*  [SemanticsCommon.dfy](SemanticsCommon.dfy)
-*  [ImpNaturalSem.dfy](ImpNaturalSem.dfy)
-*  [Semantics.dfy](Semantics.dfy)
-*  [MachSemantics.dfy](MachSemantics.dfy)
-*  [SimulationRelation.dfy](SimulationRelation.dfy)
-*  [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy)
-*  [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy)
-*  [CompileComCorrect.dfy](CompileComCorrect.dfy)
-*  [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy)
+## Dafny: a functional programming language
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SyntaxCommon.dfy](SyntaxCommon.dfy) | | |
+| [Imp.dfy](Imp.dfy) | | |
+| [Mach.dfy](Mach.dfy) | | |
+| [Compiler.dfy](Compiler.dfy) | | |
+
+## Dafny: a specification language
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SemanticsCommon.dfy](SemanticsCommon.dfy) | | |
+| [ImpNaturalSem.dfy](ImpNaturalSem.dfy) | | |
+| [Semantics.dfy](Semantics.dfy) | | |
+| [MachSemantics.dfy](MachSemantics.dfy) | | |
+
+## Dafny: a proof system
+
+| File   | New concepts | Notes    |
+| ------ | ------------ | -------- |
+| [SimulationRelation.dfy](SimulationRelation.dfy) | | |
+| [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy) | | |
+| [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy) | | |
+| [CompileComCorrect.dfy](CompileComCorrect.dfy) | | |
+| [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy) | | |
+
+  
