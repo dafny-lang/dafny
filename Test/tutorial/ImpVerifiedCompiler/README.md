@@ -170,10 +170,10 @@ The body of the lemma can be interpreted as a proof script. The semantics of the
 Perhaps the simplest way to interpret (and write) proof scripts for proofs that are not tightly connected to code is to think by natural deduction.
 
 A few final comments:
-* [Dafny is classical](Classic.dfy)
-* [Dafny is not linear](NotLinear.dfy)
-* [Dafny has choice](Choice.dfy)
-* [Proofs are not first-class](ProofIrrelevance.dfy)
+* [Dafny is classical](TutorialSupport/Classic.dfy)
+* [Dafny is not linear](TutorialSupport/NotLinear.dfy)
+* [Dafny has choice](TutorialSupport/Choice.dfy)
+* [Proofs are not first-class](TutorialSupport/ProofIrrelevance.dfy)
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
