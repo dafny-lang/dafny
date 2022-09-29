@@ -106,7 +106,7 @@ module IntList {
 
 ## Dafny: a logic
 
-Dafny's logic contains a core that is reminiscent of LCF.  It is impredicative. 
+Dafny's logic contains a core that is reminiscent of Church's simple type theory and LCF.  It is [impredicative](TutorialSupport/Impredicative.dfy). 
 
 The following example demonstrates the specification of some theory of arithmetic:
 
