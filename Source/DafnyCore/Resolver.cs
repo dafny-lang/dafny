@@ -9948,7 +9948,6 @@ namespace Microsoft.Dafny {
       var scc = dependencies.GetSCC(dt);
 
       foreach (var ctor in dt.Ctors) {
-
         if (ctor.IsGhost) {
           return true;
         }
