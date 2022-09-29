@@ -12,7 +12,7 @@ class BuildCommand : ICommandSpec {
     OutputOption.Instance,
     TargetOption.Instance,
     NoVerifyOption.Instance,
-    QuietOption.Instance,
+    CompileVerboseOption.Instance,
   }.Concat(CommandRegistry.CommonOptions);
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {

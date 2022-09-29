@@ -17,7 +17,7 @@ class TranslateCommand : ICommandSpec {
       OutputOption.Instance,
       TargetOption.Instance,
       NoVerifyOption.Instance,
-      QuietOption.Instance,
+      CompileVerboseOption.Instance,
       IncludeRuntimeOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 }

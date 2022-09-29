@@ -1,2 +1,23 @@
+SchorrWaite-stages.dfy(150,7): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(151,10): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(162,9): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(163,16): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(165,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(169,15): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(175,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(176,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(202,7): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(203,10): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(222,9): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(224,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(226,16): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(231,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(237,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(240,11): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(256,7): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(257,10): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(261,9): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(262,16): Warning: the ... refinement feature in statements is deprecated
+SchorrWaite-stages.dfy(264,11): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier finished with 7 verified, 0 errors
