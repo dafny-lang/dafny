@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.Text;
@@ -55,94 +56,34 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var outputBuilder = new StringBuilder();
 
-      var currentIndexInInput = 0;
-      var inputOutputOffset = 0;
-
       // A stack of span starts along with their associated annotation name.  [||] spans simply
       // have empty string for their annotation name.
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
-
-      while (true) {
-        var matches = new List<(int matchIndex, string name)>();
-        AddMatch(input, PositionString, currentIndexInInput, matches);
-        AddMatch(input, SpanStartString, currentIndexInInput, matches);
-        AddMatch(input, SpanEndString, currentIndexInInput, matches);
-        AddMatch(input, NamedSpanEndString, currentIndexInInput, matches);
-
-        var namedSpanStartMatch = s_namedSpanStartRegex.Match(input, currentIndexInInput);
-        if (namedSpanStartMatch.Success) {
-          matches.Add((namedSpanStartMatch.Index, namedSpanStartMatch.Value));
-        }
-
-        if (matches.Count == 0) {
-          // No more markup to process.
-          break;
-        }
-
-        var orderedMatches = matches.OrderBy(t => t.matchIndex).ToList();
-        if (orderedMatches.Count >= 2 &&
-            (spanStartStack.Count > 0 || namedSpanStartStack.Count > 0) &&
-            matches[0].matchIndex == matches[1].matchIndex - 1) {
-          // We have a slight ambiguity with cases like these:
-          //
-          // [|]    [|}
-          //
-          // Is it starting a new match, or ending an existing match.  As a workaround, we
-          // special case these and consider it ending a match if we have something on the
-          // stack already.
-          if ((matches[0].name == SpanStartString && matches[1].name == SpanEndString && spanStartStack.Any()) ||
-              (matches[0].name == SpanStartString && matches[1].name == NamedSpanEndString && namedSpanStartStack.Any())) {
-            orderedMatches.RemoveAt(0);
-          }
-        }
-
-        // Order the matches by their index
-        var firstMatch = orderedMatches.First();
-
-        var matchIndexInInput = firstMatch.matchIndex;
-        var matchString = firstMatch.name;
-
-        var matchIndexInOutput = matchIndexInInput - inputOutputOffset;
-        outputBuilder.Append(input.Substring(currentIndexInInput, matchIndexInInput - currentIndexInInput));
-
-        currentIndexInInput = matchIndexInInput + matchString.Length;
-        inputOutputOffset += matchString.Length;
-
-        switch (matchString.Substring(0, 2)) {
-          case PositionString:
-            positions.Add(matchIndexInOutput);
-            break;
-
-          case SpanStartString:
-            spanStartStack.Push((matchIndexInOutput, string.Empty));
-            break;
-
-          case SpanEndString:
-            if (spanStartStack.Count == 0) {
-              throw new ArgumentException(string.Format("Saw {0} without matching {1}", SpanEndString, SpanStartString));
-            }
-
-            PopSpan(spanStartStack, tempSpans, matchIndexInOutput);
-            break;
-
-          case NamedSpanStartString:
-            var name = namedSpanStartMatch.Groups[1].Value;
-            namedSpanStartStack.Push((matchIndexInOutput, name));
-            break;
-
-          case NamedSpanEndString:
-            if (namedSpanStartStack.Count == 0) {
-              throw new ArgumentException(string.Format("Saw {0} without matching {1}", NamedSpanEndString, NamedSpanStartString));
-            }
-
-            PopSpan(namedSpanStartStack, tempSpans, matchIndexInOutput);
-            break;
-
-          default:
-            throw new InvalidOperationException();
+      
+      var r = new Regex(@"(?<Position>\$\$)|(?<SpanStart>\[\|)|(?<SpanEnd>\|\])|(?<NameSpanStart>\{\|([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd>\|\})");
+      var outputIndex = 0;
+      var inputIndex = 0;
+      foreach(Match match in r.Matches(input)) {
+        var diff = inputIndex - outputIndex;
+        var matchIndexInOutput = match.Index - diff;
+        var outputPart = input.Substring(inputIndex, match.Index - inputIndex);
+        outputIndex += outputPart.Length;
+        outputBuilder.Append(outputPart);
+        inputIndex = match.Index + match.Length;
+        if(match.Groups["Position"].Success) {
+          positions.Add(matchIndexInOutput);
+        } else if(match.Groups["SpanStart"].Success) {
+          spanStartStack.Push((matchIndexInOutput, string.Empty));
+        } else if (match.Groups["NameSpanStart"].Success) {
+          namedSpanStartStack.Push((matchIndexInOutput, string.Empty));
+        } else if (match.Groups["SpanEnd"].Success) {
+          PopSpan(spanStartStack, tempSpans, matchIndexInOutput);
+        } else if (match.Groups["NameSpanEnd"].Success) {
+          PopSpan(namedSpanStartStack, tempSpans, matchIndexInOutput);
         }
       }
+      
 
       if (spanStartStack.Count > 0) {
         throw new ArgumentException(string.Format("Saw {0} without matching {1}", SpanStartString, SpanEndString));
@@ -153,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
 
       // Append the remainder of the string.
-      outputBuilder.Append(input.Substring(currentIndexInInput));
+      outputBuilder.Append(input.Substring(inputIndex));
       output = outputBuilder.ToString();
       spans = tempSpans.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
