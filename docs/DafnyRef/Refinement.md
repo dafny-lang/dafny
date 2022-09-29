@@ -343,8 +343,7 @@ module X refines P {
 
 ## 22.10. Type declarations
 
-An opaque type (a type declaration without a definition) in an abstract module can be refined in a refining module, by giving it a definition.
-The opaque type may be refined into a class, trait, or iterator as well as a type synonym, subset type, newtype or datatype.
+An opaque type (a type declaration without a definition) in an abstract module can be refined in a refining module, by giving it a definition as any other kind of type.
 Here are some examples:
 ```
 abstract module P {
