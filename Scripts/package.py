@@ -160,7 +160,8 @@ class Release:
         run(["make", "--quiet", "clean"])
         self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
-        self.run_publish("DafnyDriver")
+        self.run_publish("DafnyRuntime")
+        self.run_publish("Dafny")
 
     def pack(self):
         try:
@@ -252,32 +253,30 @@ def pack(args, releases):
         run(["make", "--quiet", "refman"])
 
 def check_version_cs(args):
-    # Checking version.cs
-    fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
-    lines = fp.readlines()
-    verline = lines[5]
-    qstart = verline.index('"')
-    qend = verline.index('"', qstart+1)
-    lastdot = verline.rindex('.',qstart)
-    v1 = verline[qstart+1:lastdot]
-    v2 = verline[lastdot+1:qend]
+    # Checking Directory.Build.props
+    with open(path.join(SOURCE_DIRECTORY, "Directory.Build.props")) as fp:
+        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)', fp.read())
+        if match:
+            (v1, v2) = match.groups()
+        else:
+            flush("The AssemblyVersion attribute in Directory.Build.props could not be found.")
+            return False
     now = time.localtime()
     year = now[0]
     month = now[1]
     day = now[2]
     v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
     if v2 != v3:
-        flush("The date in version.cs does not agree with today's date: " + v3 + " vs. " + v2)
+        flush("The date in Directory.Build.props does not agree with today's date: " + v3 + " vs. " + v2)
     if "-" in args.version:
         hy = args.version[:args.version.index('-')]
     else:
         hy = args.version
     if hy != v1:
-        flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
+        flush("The version number in Directory.Build.props does not agree with the given version: " + hy + " vs. " + v1)
     if (v2 != v3 or hy != v1):
         return False
-    fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + v1 + "." + v2)
     return True
 
 def parse_arguments():
@@ -285,7 +284,7 @@ def parse_arguments():
     parser.add_argument("version", help="Version number for this release")
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
-    parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--trial", help="ignore Directory.Build.props version discrepancies")
     parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
     parser.add_argument("--out", help="output zip file")
     return parser.parse_args()

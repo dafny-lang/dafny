@@ -1,0 +1,4 @@
+FAQNestedModule.dfy(5,20): Error: unresolved identifier: SIZE
+FAQNestedModule.dfy(5,10): Error: const field's type is not fully determined
+FAQNestedModule.dfy(4,9): Error: not resolving module 'A' because there were errors in resolving its nested module 'B'
+3 resolution/type errors detected in FAQNestedModule.dfy

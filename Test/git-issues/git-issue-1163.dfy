@@ -4,7 +4,7 @@
 function F(i: int): int
 
 method M() {
-  ghost var f := old(i => F(i));  // the translation of this once had crashed the verifier
+  ghost var f := old(i => F(i));  // the translation of this once had crashed the verifier (warning: old has no effect)
 }
 
 class MyClass {

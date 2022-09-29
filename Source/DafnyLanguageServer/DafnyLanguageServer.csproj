@@ -7,13 +7,18 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
     <OutputPath>..\..\Binaries\</OutputPath>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  
+  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
+  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
+    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,13 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\version.cs" />
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

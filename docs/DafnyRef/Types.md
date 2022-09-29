@@ -574,7 +574,7 @@ code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)`
+### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
@@ -666,7 +666,7 @@ Here are some examples:
 {% include_relative examples/Example-TP.dfy %}
 ```
 
-## 8.2. Type parameter variance
+## 8.2. Type parameter variance {#sec-type-parameter-variance}
 
 Type parameters have several different variance and cardinality properties.
 These properties of type parameters are designated in a generic type definition.
@@ -685,13 +685,14 @@ notation | variance | cardinality-preserving
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
-_Cardinality preserving_ means that the cardinal of the set of all values denoted by the type parameter is not strictly less than the set of all values being defined by the type using this type parameter.
-For example
-
-    type T<X> = X -> bool
-
-is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '!X')`
-The meaning of that is there are strictly more predicate on X than X itself, which [could cause soundness issues](http://leino.science/papers/krml280.html).
+_Cardinality preserving_ 
+means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters.
+For example `type T<X> = X -> bool`
+is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')`
+The type `X -> bool` has strictly more values than the type `X`. 
+This affects certain uses of the type, so Dafny requires the declaration of `T` to explicitly say so. 
+Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`. 
+If you use `-`, you’re also declaring `T` to be contravariant in its type argument, and if you use `!`, you’re declaring that `T` is non-variant in its type argument.
 
 To fix it, we use the variance `!`:
 
@@ -1360,6 +1361,8 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 21.10](#sec-as-expression).)
 
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+
 Dafny builds in three families of subset types, as described next.
 
 ### 11.3.1. Type `nat`
@@ -1502,6 +1505,79 @@ constraint may not be satisfied.
 
 For more information about arrow types, see [Section 17](#sec-arrow-types).
 
+### 11.3.4. Witness clauses {#sec-witness}
+
+The declaration of a subset type permits an optional `witness` clause.
+Types in Dafny are generally expected to be non-empty, in part because
+variables of any type are expected to have some value when they are used.
+In many cases, Dafny can determine that a newly declared type has 
+some value. For example, a numeric type that includes 0 is known by Dafny
+to be non-empty. However, Dafny cannot always make this determination.
+If it cannot, a `witness` clause is required. The value given in
+the `witness` clause must be a valid value for the type and assures Dafny
+that the type is non-empty.
+
+For example, 
+```dafny
+type OddInt = x: int | x % 2 == 1
+```
+will give an error message, but
+```dafny
+type OddInt = x: int | x % 2 == 1 witness 73
+```
+does not. Here is another example:
+```dafny
+type NonEmptySeq = x: seq<int> | |x| > 0 witness [0]
+```
+
+If the witness is only available in ghost code, you can declare the witness
+as a `ghost witness`. In this case, the Dafny verifier knows that the type
+is non-empty, but it will not be able to auto-initialize a variable of that
+type in compiled code.
+
+There is even room to do the following:
+```dafny
+type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
+
+function MySubsetWitness(): BaseType
+  ensures RHS(MySubsetWitness())
+```
+Here the type is given a ghost witness: the result of the expression
+`MySubsetWitness()`, which is a call of a (ghost) function.
+Now that function has a postcondition saying that the returned value 
+is indeed a candidate value for the declared type, so the verifier is
+satisfied regarding the non-emptiness of the type. However, the function
+has no body, so there is still no proof that there is indeed such a witness.
+You can either supply a, perhaps complicated, body to generate a viable
+candidate or you can be very sure, without proof, that there is indeed such a value.
+If you are wrong, you have introduced an unsoundness into your program.
+
+In addition though, types are allowed to be empty or possibly empty.
+This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
+A declaration like this produces an empty type:
+```dafny
+type ReallyEmpty = x: int | false witness *
+```
+The type can be used in code like
+```dafny
+method M(x: ReallyEmpty) returns (seven: int)
+  ensures seven == 7
+{
+  seven := 10;
+}
+```
+which does verify. But the method can never be called because there is no value that
+can be supplied as the argument. Even this code
+```dafny
+method P() returns (seven: int)
+  ensures seven == 7
+{
+  var x: ReallyEmpty;
+  seven := 10;
+}
+```
+does not complain about `x` unless `x` is actually used, in which case it must have a value.
+The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
@@ -1520,7 +1596,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   [ TypeMembers ]
 ````
 A newtype is like a type synonym or subset type except that it declares a wholly new type
-name that is distinct from its base type.
+name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
 A new type can be declared with the _newtype_
 declaration, for example:
@@ -1811,6 +1887,8 @@ that may contain members (class, trait, datatype, newtype).
 * If the declaration has an initializing expression that is a ghost
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
+* The initialization expression may refer to other constant fields that are in scope and declared either
+before or after this declaration, but circular references are not allowed.
 
 ## 13.3. Method Declarations {#sec-method-declarations}
 ````grammar
@@ -2078,6 +2156,22 @@ this happens, we can often give Dafny assistance by providing a lemma.
 This is done by declaring a method with the `lemma` keyword.
 Lemmas are implicitly ghost methods and the `ghost` keyword cannot
 be applied to them.
+
+Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
+a significantly different function. First of all, a lemma is forbidden to have 
+`modifies` clause: it may not change anything about even the ghost state; ghost methods
+may have `modifies` clauses and may change ghost (but not non-ghost) state. 
+Furthermore, a lemma is not allowed to allocate any new objects.
+And a lemma may be used in the program text in places where ghost methods may not,
+such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
+
+Lemmas may, but typically do not, have out-parameters.
+
+In summary, a lemma states a logical fact, summarizing an inference that the verifier
+cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
+to use that fact at that location with the actual arguments substituted for the 
+formal parameters. The lemma is proved separately for all cases of its formal parameters
+that satisfy the preconditions of the lemma. 
 
 For an example, see the `FibProperty` lemma in
 [Section 24.5.2](#sec-proofs-in-dafny).
@@ -3579,6 +3673,31 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
+The operator `<` is defined for two operands of the same datataype.
+It means _is properly contained in_. For example, in the code
+```dafny
+datatype X = T(t: X) | I(i: int)
+method comp() {
+  var x := T(I(0));
+  var y := I(0);
+  var z := I(1);
+  assert x.t < x;
+  assert y < x;
+  assert !(x < x);
+  assert z < x; // FAILS
+}
+```
+`x` is a datatype value that holds a `T` variant, which holds a `I` variant, which holds an integer `0`.
+The value `x.t` is a portion of the datatype structure denoted by `x`, so `x.t < x` is true.
+Datatype values are immutable mathematical values, so the value of `y` is identical to the value of
+`x.t`, so `y < x` is true also, even though `y` is constructed from the ground up, rather than as
+a portion of `x`. However, `z` is different than either `y` or `x.t` and consequently `z < x` is not provable.
+Furthermore, `<` does not include `==`, so `x < x` is false.
+
+Note that only `<` is defined; not `<=` or `>` or `>=`.
+
+Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
+`z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
 ## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 

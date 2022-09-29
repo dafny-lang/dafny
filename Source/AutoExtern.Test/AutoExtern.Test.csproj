@@ -25,9 +25,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoExtern\AutoExtern.csproj" />
-    <!-- DafnyDriver is not referenced directly by the code, but is needed by
+    <!-- The Dafny project is not referenced directly by the code, but is needed by
          `dotnet run Dafny.dll` in the tests -->
-    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+    <ProjectReference Include="..\Dafny\Dafny.csproj" />
     <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
   </ItemGroup>
 

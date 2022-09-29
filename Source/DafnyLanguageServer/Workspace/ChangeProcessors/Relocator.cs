@@ -11,12 +11,14 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class Relocator : IRelocator {
+    public const string OutdatedPrefix = "Outdated: ";
+
     private readonly ILogger logger;
-    private readonly ILogger<SymbolTable> loggerSymbolTable;
+    private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
     public Relocator(
       ILogger<Relocator> logger,
-      ILogger<SymbolTable> loggerSymbolTable
+      ILogger<SignatureAndCompletionTable> loggerSymbolTable
       ) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
@@ -30,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
     }
 
-    public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public SignatureAndCompletionTable RelocateSymbols(SignatureAndCompletionTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
 
@@ -58,15 +60,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     private class ChangeProcessor {
+
       private readonly ILogger logger;
       // Invariant: Item1.Range == null <==> Item2 == null 
       private readonly List<TextDocumentContentChangeEvent> contentChanges;
       private readonly CancellationToken cancellationToken;
-      private readonly ILogger<SymbolTable> loggerSymbolTable;
+      private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
       public ChangeProcessor(
         ILogger logger,
-        ILogger<SymbolTable> loggerSymbolTable,
+        ILogger<SignatureAndCompletionTable> loggerSymbolTable,
         Container<TextDocumentContentChangeEvent> contentChanges,
         CancellationToken cancellationToken
       ) {
@@ -133,8 +136,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
 
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
-          MigrateRelatedInformation(change, related!)).ToList();
-        yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
+          MigrateRelatedInformation(change, related)).ToList();
+        yield return diagnostic with {
+          Message = diagnostic.Message.StartsWith(OutdatedPrefix) ? diagnostic.Message : OutdatedPrefix + diagnostic.Message,
+          Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+          Range = newRange,
+          RelatedInformation = newRelatedInformation
+        };
       }
 
       private IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(TextDocumentContentChangeEvent change,
@@ -151,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         };
       }
 
-      public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
+      public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
@@ -165,7 +173,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-        return new SymbolTable(
+        return new SignatureAndCompletionTable(
           loggerSymbolTable,
           originalSymbolTable.CompilationUnit,
           originalSymbolTable.Declarations,
@@ -253,7 +261,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
-        SymbolTable originalSymbolTable,
+        SignatureAndCompletionTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
         Range? changeRange,
         Position? afterChangeEndOffset
