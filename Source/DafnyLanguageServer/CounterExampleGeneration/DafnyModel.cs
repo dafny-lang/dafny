@@ -1,6 +1,7 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -9,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
