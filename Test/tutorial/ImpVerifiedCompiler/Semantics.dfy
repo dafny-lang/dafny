@@ -43,6 +43,14 @@ lemma star_trans<T(!new)>()
 	}
 }
 
+lemma combine_reductions<T(!new)>()
+	ensures forall R: (T,T) -> bool :: forall conf1, conf2: T :: R(conf1,conf2) ==> star(R,conf1,conf2)
+	ensures forall R: (T,T) -> bool :: forall conf1, conf2, conf3: T :: (star(R,conf1,conf2) && star(R,conf2,conf3)) ==> star(R,conf1,conf3)
+{
+	star_one<T>();
+	star_trans<T>();
+}
+
 predicate all_seq_inf<T(!new)>(R: (T,T) -> bool,conf: T) {
 	forall conf2: T :: star(R,conf,conf2) ==> exists conf3: T :: R(conf2,conf3)
 }

@@ -15,8 +15,18 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 	var tr := (c1,c2) => transition(C,c1,c2);
 	match a {
 
-		case AConst(n) => star_one_sequent<configuration>(tr,conf1,conf2);
+		case AConst(n) => { 
 
+			assert aeval(s,a) == n;
+			assert compile_aexp(a) == [Iconst(n)];
+			assert |compile_aexp(a)| == 1;
+			assert C[pc] == Iconst(n);
+			assert transition(C,(pc,stk,s),(pc + 1, [n] + stk,s));
+			assert transition(C,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk,s));
+			star_one_sequent<configuration>(tr,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk,s));
+			
+		}
+		
 		case AId(id) => star_one_sequent<configuration>(tr,conf1,conf2);
 
 		case APlus(a1, a2) => {
@@ -25,7 +35,7 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk);
 			var confi1 := (pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk,s);
-			assert star<configuration>(tr,conf1,confi1);  // Here Dafny fails to infer the type 'configuration'
+			assert star<configuration>(tr,conf1,confi1);  
 			var confi2 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[aeval(s,a2)] + ([aeval(s,a1)] + stk),s);
 			assert star<configuration>(tr,confi1,confi2);
 			star_trans_sequent<configuration>(tr,conf1,confi1,confi2);
@@ -39,7 +49,7 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk);
 			var confi1 := (pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk,s);
-			assert star<configuration>(tr,conf1,confi1);  // Here Dafny fails to infer the type 'configuration'
+			assert star<configuration>(tr,conf1,confi1);  
 			var confi2 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[aeval(s,a2)] + ([aeval(s,a1)] + stk),s);
 			assert star<configuration>(tr,confi1,confi2);
 			star_trans_sequent<configuration>(tr,conf1,confi1,confi2);
@@ -47,6 +57,7 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 			star_one_sequent<configuration>(tr,confi2,confi3);
 			star_one_sequent<configuration>(tr,confi3,conf2);
 			star_trans_sequent<configuration>(tr,conf1,confi2,conf2);
+			
 		}
 	}
 }
