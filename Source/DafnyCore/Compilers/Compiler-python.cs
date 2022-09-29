@@ -1108,6 +1108,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
         wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
       } else if (dtv.Ctor.Destructors.Count(d => !d.IsGhost) == 1) {
+        // 1-tuples need this this for disambiguation
         arguments += ",";
       }
       wr.Write($"({arguments})");
