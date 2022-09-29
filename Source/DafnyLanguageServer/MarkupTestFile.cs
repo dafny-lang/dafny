@@ -55,20 +55,20 @@ namespace Microsoft.Dafny.LanguageServer {
       // have empty string for their annotation name.
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
-      
+
       var r = new Regex(@"(?<Position>\>\<)|(?<SpanStart>\[\>)|(?<SpanEnd>\<\])|(?<NameSpanStart>\{\>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd>\<\})");
       var outputIndex = 0;
       var inputIndex = 0;
-      foreach(Match match in r.Matches(input)) {
+      foreach (Match match in r.Matches(input)) {
         var diff = inputIndex - outputIndex;
         var matchIndexInOutput = match.Index - diff;
         var outputPart = input.Substring(inputIndex, match.Index - inputIndex);
         outputIndex += outputPart.Length;
         outputBuilder.Append(outputPart);
         inputIndex = match.Index + match.Length;
-        if(match.Groups["Position"].Success) {
+        if (match.Groups["Position"].Success) {
           positions.Add(matchIndexInOutput);
-        } else if(match.Groups["SpanStart"].Success) {
+        } else if (match.Groups["SpanStart"].Success) {
           spanStartStack.Push((matchIndexInOutput, string.Empty));
         } else if (match.Groups["NameSpanStart"].Success) {
           namedSpanStartStack.Push((matchIndexInOutput, string.Empty));
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer {
           PopSpan(namedSpanStartStack, tempSpans, matchIndexInOutput);
         }
       }
-      
+
 
       if (spanStartStack.Count > 0) {
         throw new ArgumentException($"Saw {SpanStartString} without matching {SpanEndString}");
