@@ -304,3 +304,7 @@ TODO
 
 TODO
 
+## 22.11. Statements
+
+The refinment syntax (`...`) in statements is deprecated.
+
