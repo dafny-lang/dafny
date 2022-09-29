@@ -44,8 +44,52 @@ Hopefully, by the time your are done reading, you will be able to develop verifi
 
 ## Dafny: a functional programming language
 
-The Dafny programming language contains a functional core with datatypes, pattern-matching, functions as values, and parametric polymorphism.
-It has Call-by-value semantics and Rank-1 polymorphism, but not with HM inference
+Dafny is a programming language. It contains a functional core with the following features:
+
+* Functions as first class citizens, always de-currified, with call-by-value semantics
+* Statically typed, with type inference
+* Rank-1 polymorphism, no Hindly-Milner inference
+* Datatypes and pattern matching
+* Modules (In the following, modules are used only for namespace management)
+
+The following example demonstrates the subset of Dafny we use in the compiler verification.
+
+* The body of a function is an expression and the variable introduction is a let-binding
+* const are declare top-level constants
+* predicate is just syntactic sugar for a Boolean-valued function
+
+```
+module GenList {
+
+  datatype List<T> =
+    | Nil
+    | Cons(T, List<T>)
+
+  function method filter<T>(p: T -> bool, l: List<T>): List<T> {
+    match l {
+      case Nil => Nil
+      case Cons(head,tail) =>
+        var rest := filter(p,tail);
+        if p(head) then Cons(head,rest) else rest 
+    }
+  }
+	
+}
+
+module IntList {
+
+  import opened GenList
+
+  const example: List<int> := Cons(-3,Cons(4,Nil))
+
+  predicate method is_non_negative(n: int) {
+    n >= 0
+  }
+
+  const filtered_example: List<int> := filter(is_non_negative,example) 
+		
+}
+```
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
