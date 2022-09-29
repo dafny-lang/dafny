@@ -141,13 +141,39 @@ predicate even(n: Nat) {
 | [Semantics.dfy](Semantics.dfy) | greatest predicate | |
 | [MachSemantics.dfy](MachSemantics.dfy) | | |
 
-## Dafny: a proof system
+## Dafny: a proof assistant
 
-Dafny's proofs are written using a small set of statements that are higher-level than tactics.
-For example, you can simulate the rules of [Hilbert's systems](TutorialSupport/Hilbert.dfy), [natural deduction](TutorialSupport/NaturalDeduction.dfy), and [sequent calculus](TutorialSupport/SequentCalculus.dfy).
+Dafny is a proof assistant. You can interactively prove a lemma, and you do so by giving the lemma a body. 
+As a first approximation, you can think of a lemma as a sequent and its body as a proof script. 
 
-* Lemmas are sequents
-* Lemmas' bodies are proof scripts
+Consider following example:
+```	
+lemma two_plus_two_equals_four(a: nat, b: nat)
+  requires exists a': nat :: a == 2 * a'
+  requires exists b': nat :: b == 2 * b'
+  ensures exists k: nat :: a + b == 2 * k
+{
+  var a' :| a == 2 * a';
+  var b' :| b == 2 * b';
+  assert a + b == 2 * a' + 2 * b';
+  assert a + b == 2 * (a' + b');
+}
+```
+
+This lemma can be interpreted as the sequent: $a: nat,  b: nat,  \exists a': nat, a = 2 * a',  \exists b': nat, b = 2 * b' \vdash \exists k: nat, a + b = 2 \times k$ where
+* Every parameter (type or value) is in the antecedants
+* Every require is in the antecedants
+* Every ensure is in the consequents
+
+The body of the lemma can be interpreted as a proof script. The semantics of the proof script is given by weakest-preconditions, but you do not have to think about the proof script as such. Indeed, you can simulate the rules of [Hilbert's systems](TutorialSupport/Hilbert.dfy), [natural deduction](TutorialSupport/NaturalDeduction.dfy), and [sequent calculus](TutorialSupport/SequentCalculus.dfy). 
+
+Perhaps the simplest way to interpret (and write) proof scripts for proofs that are not tightly connected to code is to think by natural deduction.
+
+A few final comments:
+* [Dafny is classical](Classic.dfy)
+* [Dafny is not linear](NotLinear.dfy)
+* [Dafny has choice](Choice.dfy)
+* [Proofs are not first-class](ProofIrrelevance.dfy)
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
