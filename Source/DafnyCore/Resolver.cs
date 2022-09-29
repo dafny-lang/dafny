@@ -17676,9 +17676,9 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Allows to lazily call ToString on the given (sequence) type's element type.
     /// 
-    /// When adding type constraints, a sequence type's element type may not be resolved,
-    /// so attempting to eagerly call ToString on it (for use in an error message) results in a null reference.
-    /// By wrapping the sequence type in this object, the error handling logic will only call ToString
+    /// When adding type constraints, a sequence type's element type (`AsSeqType.Arg`) may not be resolved,
+    /// so attempting to eagerly read it (for use in an error message) results in a null reference.
+    /// By wrapping the sequence type in this object, the error handling logic will only read `AsSeqType.Arg`
     /// on the element type after it is resolved.
     /// </summary>
     private record SeqTypeArgToBeResolved(Type seqType) {
