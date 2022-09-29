@@ -1,5 +1,10 @@
 A Dafny adaptation of some of [Xavier Leroy's compiler verification tutorial](https://xavierleroy.org/courses/EUTypes-2019/).
 
+To verify the whole proof:
+```
+dafny /compile:0 CompileProgramCorrect.dfy
+```
+
 ## Abstract Semantics
 
 * [Common.dfy](Common.dfy): identifier and store
