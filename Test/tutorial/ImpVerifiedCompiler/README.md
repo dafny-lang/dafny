@@ -5,6 +5,8 @@ To verify the whole proof:
 dafny /compile:0 CompileProgramCorrect.dfy
 ```
 
+# High-Level Project Description
+
 ## Abstract Semantics
 
 * [Semantics.dfy](Semantics.dfy): inductive and coinductive closures of reductions
@@ -32,3 +34,18 @@ dafny /compile:0 CompileProgramCorrect.dfy
 * [CompileComCorrect.dfy](CompileComCorrect.dfy): correctness of compilation of commands
 * [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy): correctness of compilation of whole program
 
+# Linear Project Description
+
+*  [SyntaxCommon.dfy](SyntaxCommon.dfy)
+*  [Imp.dfy](Imp.dfy)
+*  [Mach.dfy](Mach.dfy)
+*  [Compiler.dfy](Compiler.dfy)
+*  [SemanticsCommon.dfy](SemanticsCommon.dfy)
+*  [ImpNaturalSem.dfy](ImpNaturalSem.dfy)
+*  [Semantics.dfy](Semantics.dfy)
+*  [MachSemantics.dfy](MachSemantics.dfy)
+*  [SimulationRelation.dfy](SimulationRelation.dfy)
+*  [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy)
+*  [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy)
+*  [CompileComCorrect.dfy](CompileComCorrect.dfy)
+*  [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy)
