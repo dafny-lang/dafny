@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 1/7
+    /// Phase 1/8
     /// Override this method to obtain the initial program after parsing and built-in pre-resolvers.
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 2/7
+    /// Phase 2/8
     /// Override this method to obtain a module definition after parsing and built-in pre-resolvers.
     /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
     /// This is a good place to perform AST rewritings, if necessary
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 3/7
+    /// Phase 3/8
     /// Override this method to obtain a module definition after bare resolution, if no error were thrown.
     /// You can then report errors using reporter.Error (see above)
     /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
@@ -72,7 +72,19 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 4/7
+    /// Phase 4/8
+    /// Override this method to obtain a module definition after the module
+    /// has been cloned and re-resolved prior to compilation.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is cloned and re-resolved for compilation.</param>
+    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/8
     /// Override this method to obtain the module definition after resolution and
     /// SCC/Cyclicity/Recursivity analysis.
     /// You can then report errors using reporter.Error (see above)
@@ -84,7 +96,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 5/7
+    /// Phase 6/8
     /// Override this method to obtain the module definition after the phase decreasesResolve
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -95,7 +107,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 6/7
+    /// Phase 7/8
     /// Override this method to obtain a module definition after the entire resolution pipeline
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -106,7 +118,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 7/7
+    /// Phase 8/8
     /// Override this method to obtain the final program after the entire resolution pipeline
     /// after the individual PostResolve on every module
     /// You can then report errors using reporter.Error (see above)

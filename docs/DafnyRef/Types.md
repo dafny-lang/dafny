@@ -479,7 +479,7 @@ supported escape sequences are the following:
  `\n`               | line feed
  `\r`               | carriage return
  `\t`               | horizontal tab
- `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\u`_xxxx_         | [universal (unicode) character](https://en.wikipedia.org/wiki/Universal_Character_Set_characters) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
@@ -597,6 +597,7 @@ Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
 For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
 To restrict a type parameter to auto-init types, mark it with the
@@ -1887,6 +1888,8 @@ that may contain members (class, trait, datatype, newtype).
 * If the declaration has an initializing expression that is a ghost
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
+* The initialization expression may refer to other constant fields that are in scope and declared either
+before or after this declaration, but circular references are not allowed.
 
 ## 13.3. Method Declarations {#sec-method-declarations}
 ````grammar

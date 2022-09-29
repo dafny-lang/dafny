@@ -2774,7 +2774,9 @@ SkeletonStmt<out Statement s>
 = (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t); .)
+  (. s = new SkeletonStatement(dotdotdot, t); 
+     errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3085,7 +3087,9 @@ IfStmt<out Statement/*!*/ ifStmt>
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
-    | ellipsis                           (. guardEllipsis = t; .)
+    | ellipsis                           (. guardEllipsis = t;
+                                            errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -3182,13 +3186,17 @@ WhileStmt<out Statement stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | ellipsis                   (. guardEllipsis = t; .)
+    | ellipsis                   (. guardEllipsis = t; 
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                 .)
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false;
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                  .)
     | /* go body-less */
     )
     (.
@@ -3429,7 +3437,9 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     )
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
     ";"
   )
   (. if (dotdotdot != null) {
@@ -3449,7 +3459,9 @@ ExpectStmt<out Statement/*!*/ s>
   "expect"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   [ "," Expression<out m, false, true> ]
   ";"
@@ -3470,7 +3482,9 @@ AssumeStmt<out Statement/*!*/ s>
   "assume"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   ";"
   (. if (dotdotdot != null) {
@@ -3564,7 +3578,9 @@ ModifyStmt<out Statement s>
   ( FrameExpression<out fe, false, true>       (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
-  | ellipsis                            (. ellipsisToken = t; .)
+  | ellipsis                            (. ellipsisToken = t; 
+                                           errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
   | SYNC ";"         (. endTok = t; .)
