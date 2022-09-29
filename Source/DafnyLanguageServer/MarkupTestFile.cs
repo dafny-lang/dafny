@@ -40,14 +40,9 @@ namespace Microsoft.Dafny.LanguageServer {
   /// Additional encoded features can be added on a case by case basis.
   /// </summary>
   public static class MarkupTestFile {
-    private const string PositionString = "$$";
-    private const string SpanStartString = "[|";
-    private const string SpanEndString = "|]";
-    private const string NamedSpanStartString = "{|";
-    private const string NamedSpanEndString = "|}";
-
-    private static readonly Regex s_namedSpanStartRegex = new Regex(@"\{\| ([-_.A-Za-z0-9\+]+) \:",
-        RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
+    private const string SpanStartString = "[>";
+    private const string SpanEndString = "<]";
+    private const string NamedSpanEndString = "<}";
 
     private static void Parse(
         string input, out string output, out List<int> positions, out IDictionary<string, List<TextSpan>> spans) {
@@ -61,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
       
-      var r = new Regex(@"(?<Position>\$\$)|(?<SpanStart>\[\|)|(?<SpanEnd>\|\])|(?<NameSpanStart>\{\|([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd>\|\})");
+      var r = new Regex(@"(?<Position>\>\<)|(?<SpanStart>\[\>)|(?<SpanEnd>\<\])|(?<NameSpanStart>\{\>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd>\<\})");
       var outputIndex = 0;
       var inputIndex = 0;
       foreach(Match match in r.Matches(input)) {
@@ -86,11 +81,11 @@ namespace Microsoft.Dafny.LanguageServer {
       
 
       if (spanStartStack.Count > 0) {
-        throw new ArgumentException(string.Format("Saw {0} without matching {1}", SpanStartString, SpanEndString));
+        throw new ArgumentException($"Saw {SpanStartString} without matching {SpanEndString}");
       }
 
       if (namedSpanStartStack.Count > 0) {
-        throw new ArgumentException(string.Format("Saw {0} without matching {1}", NamedSpanEndString, NamedSpanEndString));
+        throw new ArgumentException($"Saw {NamedSpanEndString} without matching {NamedSpanEndString}");
       }
 
       // Append the remainder of the string.

@@ -29,9 +29,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var source = @"
 method HasLoop() {
   var x := 1;
-  [|while|](true) {
+  [>while<](true) {
     if (x > 2) {
-      br$$eak;
+      br><eak;
     }
     x := x + 1;
   }
@@ -44,11 +44,11 @@ method HasLoop() {
     [TestMethod]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
-datatype Option<+U> = {|0:None|} | Some(val: U) {
+datatype Option<+U> = {>0:None<} | Some(val: U) {
 
   function FMap<V>(f: U -> V): Option<V> {
     match this
-    case None => N$$one
+    case None => N><one
     case Some(x) => Some(f(x))
   }
 }
@@ -56,11 +56,11 @@ datatype Option<+U> = {|0:None|} | Some(val: U) {
 datatype A = A {
   static method create() returns (ret: A)
 }
-datatype Result<T, E> = Ok(value: T) | Err({|1:error|}: E) {
+datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
   function method PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
-    Err(this.er$$ror)
+    Err(this.er><ror)
   }
 }
 ".TrimStart();
@@ -85,14 +85,14 @@ datatype Result<T, E> = Ok(value: T) | Err({|1:error|}: E) {
     [TestMethod]
     public async Task StaticFunctionCall() {
       var source = @"
-module [|Zaz|] {
-  trait [|E|] {
-    static function method [|Foo|](): E
+module [>Zaz<] {
+  trait [>E<] {
+    static function method [>Foo<](): E
   }
 }
 
 function Bar(): Zaz.E {
-  Z$$az.$$E.F$$oo()
+  Z><az.><E.F><oo()
 }
 ".TrimStart();
 
@@ -102,13 +102,13 @@ function Bar(): Zaz.E {
     [TestMethod]
     public async Task FunctionCallAndGotoOnDeclaration() {
       var source = @"
-function [|Fibo$$nacciSpec|]($$n: nat): nat {
+function [>Fibo><nacciSpec<](><n: nat): nat {
   if (n == 0) then 0
   else if (n == 1) then 1
-  else Fi$$bonacciSpec(n - 1) + FibonacciSpec(n - 2)
+  else Fi><bonacciSpec(n - 1) + FibonacciSpec(n - 2)
 }
 
-type seq31<[|T|]> = x: seq<$$T> | 0 <= |x| <= 32 as int
+type seq31<[>T<]> = x: seq<><T> | 0 <= |x| <= 32 as int
 ".TrimStart();
 
       MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
@@ -132,21 +132,21 @@ type seq31<[|T|]> = x: seq<$$T> | 0 <= |x| <= 32 as int
     [TestMethod]
     public async Task DatatypesAndMatches() {
       var source = @"
-datatype Identity<T> = [|Identity|](value: T)
-datatype Colors = Red | [|Green|] | Blue
+datatype Identity<T> = [>Identity<](value: T)
+datatype Colors = Red | [>Green<] | Blue
 
-function Foo([|value|]: Identity<Colors>): bool {
-  match va$$lue {
-    case Ide$$ntity(Red()) => true
-    case Identity(Gr$$een) => false // Warning
+function Foo([>value<]: Identity<Colors>): bool {
+  match va><lue {
+    case Ide><ntity(Red()) => true
+    case Identity(Gr><een) => false // Warning
     case Identity(Blue()) => false
   }
 }
 
-method Bar([|value|]: Identity<Colors>) returns (x: bool) {
-  match v$$alue {
-    case Ide$$ntity(Red()) => return true;
-    case Identity(Gr$$een) => return false; // Warning
+method Bar([>value<]: Identity<Colors>) returns (x: bool) {
+  match v><alue {
+    case Ide><ntity(Red()) => return true;
+    case Identity(Gr><een) => return false; // Warning
     case Identity(Blue()) => return false;
   }
 }
@@ -182,17 +182,17 @@ method Bar([|value|]: Identity<Colors>) returns (x: bool) {
     [TestMethod]
     public async Task JumpToExternModule() {
       var source = @"
-module {:extern} [|Provider|] {
+module {:extern} [>Provider<] {
   newtype nat64 = x: int | 0 <= x <= 0xffff_ffff_ffff_ffff
-  type [|usize|] = nat64
+  type [>usize<] = nat64
 }
 
 module Consumer {
-  import opened P$$rovider
+  import opened P><rovider
 
   method DoIt() {
-    var [|le$$ngth|]: u$$size := 3;
-    le$$ngth := 4;
+    var [>le><ngth<]: u><size := 3;
+    le><ngth := 4;
   }
 }".TrimStart();
       MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
@@ -218,12 +218,12 @@ module Consumer {
       var source = @"
 module Provider {
   class A {
-    var [|x|]: int;
+    var [>x<]: int;
 
     constructor() {}
 
-    function method [|GetX|](): int
-      reads this`$$x
+    function method [>GetX<](): int
+      reads this`><x
     {
       this.x
     }
@@ -235,14 +235,14 @@ module Consumer {
 
   method DoIt() returns (x: int) {
     var a := new A();
-    return a.G$$etX();
+    return a.G><etX();
   }
 }
 
 module Consumer2 {
-  import [|Provider|]
+  import [>Provider<]
 
-  type A2 = Pro$$vider.A
+  type A2 = Pro><vider.A
 }".TrimStart();
 
       await AssertPositionsLineUpWithRanges(source);
