@@ -776,7 +776,7 @@ an entry-point candidate must satisfy the following conditions:
 * If the method is an instance (that is, non-static) method and the
   enclosing type is not a class,
   then the enclosing type must, when instantiated with auto-initializing
-  type parameters, be an auto-initialing type.
+  type parameters, be an auto-initializing type.
   In this case, the runtime system will
   invoke the entry-point method on a value of the enclosing type.
 

@@ -1773,7 +1773,7 @@ A `reveal` statement naming the label of the precondition then makes the assumpt
 Here is a toy example:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
@@ -1787,7 +1787,7 @@ and both postconditions can be proved.
 One could also use this style:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
@@ -1933,16 +1933,11 @@ ModifyStmt =
   { Attribute }
   FrameExpression(allowLemma: false, allowLambda: true)
   { "," FrameExpression(allowLemma: false, allowLambda: true) }
-  ( BlockStmt
-  | ";"
-  )
+  ";"
 ````
 
-The `modify` statement has two forms which have two different
-purposes.
-
-When the `modify` statement ends with a semi-colon rather than
-a block statement its effect is to say that some undetermined
+The effect of the `modify` statement
+is to say that some undetermined
 modifications have been made to any or all of the memory
 locations specified by the [frame expressions](#sec-frame-expression).
 In the following example, a value is assigned to field `x`
@@ -1963,72 +1958,10 @@ class MyClass {
 }
 ```
 
-When the `modify` statement is followed by a block statement,
-we are instead specifying what can be modified in that
-block statement. Namely, only memory locations specified
-by the frame expressions of the block `modify` statement
-may be modified. Consider the following example.
-
-```dafny
-class ModifyBody {
-  var x: int
-  var y: int
-  method M0()
-    modifies this
-  {
-    modify {} {
-      x := 3;  // error: violates the modifies clause
-               // on the line above
-    }
-  }
-
-  method M1()
-    modifies this
-  {
-    modify {} {
-      var o := new ModifyBody;
-      o.x := 3;  // fine
-    }
-  }
-
-  method M2()
-    modifies this
-  {
-    modify this {
-      x := 3;
-    }
-  }
-
-  method M3()
-    modifies this
-  {
-    var k: int;
-    modify {} { k := 4; } // fine. k is local
-  }
-}
-```
-
-The first `modify` statement in the example has an empty
-frame expression so the statement guarded by the
-modifies clause cannot modify any heap memory locations.
-So an error is reported when it tries to modify field `x`.
-
-The second `modify` statement also has an empty frame
-expression. But it allocates a new object and modifies it.
-Thus we see that the frame expressions on a block `modify`
-statement only limit what may be modified in already allocated
-memory. It does not limit what may be modified in
-new memory that is allocated within the block.
-
-The third `modify` statement has a frame expression that
-allows it to modify any of the fields of the current object,
-so the modification of field `x` is allowed.
-
-Finally, the fourth example shows that the restrictions imposed by
-the modify statement do not apply to local variables, only those
-that are heap-based.
-
 Using `...` as the argument of the statement is deprecated.
+
+The form of the `modify` statement which includes a block
+statement is also deprecated.
 
 ## 20.23. Calc Statement {#sec-calc-statement}
 ````grammar
