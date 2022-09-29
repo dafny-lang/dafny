@@ -503,7 +503,7 @@ namespace Microsoft.Dafny.Compilers {
       if (m.IsStatic || customReceiver) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {IdName(m)}(");
       var sep = "";
-      WriteFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), m.Ins, m.IsStatic, customReceiver, ref sep, wr);
+      WriteFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), m.Ins, m.IsStatic, customReceiver, ref sep, wr);
       var body = wr.NewBlockPy("):", close: BlockStyle.Newline);
       if (createBody) {
         if (m.Body.Body.All(s => s.IsGhost)) {
@@ -546,7 +546,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isStatic || customReceiver) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {name}(");
       var sep = "";
-      WriteFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), formals, isStatic, customReceiver, ref sep, wr);
+      WriteFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), formals, isStatic, customReceiver, ref sep, wr);
       return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
@@ -1186,7 +1186,7 @@ namespace Microsoft.Dafny.Compilers {
                 w.Write($".{(sf is ConstantField && internalAccess ? "_" : "")}{compiledName}");
               }
               var sep = "(";
-              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
               if (customReceiver) {
                 w.Write(sep);
                 obj(w);
@@ -1216,7 +1216,7 @@ namespace Microsoft.Dafny.Compilers {
               obj(w);
               w.Write($".{IdName(fn)}(");
               var sep = "";
-              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, w, ref sep);
+              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, w, ref sep);
               if (additionalCustomParameter != null) {
                 w.Write(sep + additionalCustomParameter);
                 sep = ", ";

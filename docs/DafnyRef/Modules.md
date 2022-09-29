@@ -281,7 +281,32 @@ They are best used when the names being imported have obvious
 and unambiguous meanings and when using qualified names would be
 verbose enough to impede understanding.
 
+There is a special case in which the behavior described above is altered.
+If a module `M` declares a type `M` and `M` is `import opened` without renaming inside 
+another module `X`, then the rules above would have, within `X`,
+`M` mean the module and `M.M` mean the type. This is verbose. So in this 
+somewhat common case, the type `M` is effectively made a local declaration of `X`
+so that it has precedence over the module name. Now `M` refers to the type.
+If one needs to refer to the module, it will have to be renamed as part of
+the `import opened` statement.	
 
+This special-case behavior does give rise to a source of ambiguity. Consider
+the example
+```dafny
+module Option {
+  static const a := 1
+  datatype Option = … { static const a := 2 }
+}
+
+module X {
+  import opened Option
+  method M() { print Option.a; }
+}
+```
+`Option.a` now means the `a` in the datatype instead of the `a` in the module.
+To avoid confusion in such cases, it is an ambiguity error to `import open`
+a module without renaming that contains a declaration with the same name as a declaration in 
+a type in the module when the type has the same name as the module.
 
 ## 4.5. Export Sets and Access Control {#sec-export-sets}
 ````grammar
