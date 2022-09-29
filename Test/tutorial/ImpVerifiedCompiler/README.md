@@ -10,6 +10,7 @@ dafny /compile:0 CompileProgramCorrect.dfy
 ## Abstract Semantics
 
 * [Semantics.dfy](Semantics.dfy): inductive and coinductive closures of reductions
+* [SemanticsProperties.dfy](SemanticsProperties.dfy)
 
 ## Languages: syntax and semantics
 
@@ -39,9 +40,7 @@ dafny /compile:0 CompileProgramCorrect.dfy
 ## Dafny: a functional programming language
 
 The Dafny programming language contains a functional core with datatypes, pattern-matching, functions as values, and parametric polymorphism.
-
-* Call-by-value semantics
-* Rank-1 polymorphism, but not with HM inference
+It has Call-by-value semantics and Rank-1 polymorphism, but not with HM inference
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
@@ -52,21 +51,26 @@ The Dafny programming language contains a functional core with datatypes, patter
 
 ## Dafny: a specification language
 
+Dafny's logic contains Church's simple type theory with rank-1 polymorphism and datatypes. It is impredicative. Therefore, it includes Leibniz equality, propositional and first-order logic.
+
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
 | [SemanticsCommon.dfy](SemanticsCommon.dfy) | maps | |
 | [ImpNaturalSem.dfy](ImpNaturalSem.dfy) | predicates, least predicates, first-order logic | |
-| [Semantics.dfy](Semantics.dfy) | greatest predicate, lemmas, proofs | flow is broken, split? |
+| [Semantics.dfy](Semantics.dfy) | greatest predicate | |
 | [MachSemantics.dfy](MachSemantics.dfy) | | |
 
 ## Dafny: a proof system
 
+Dafny's proof system encompasses natural deduction and sequent calculus and has the following axioms: excluded-middle, choice, proof-irrelevance.
+
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
-| [SimulationRelation.dfy](SimulationRelation.dfy) | lemmas | |
+| [SimulationRelation.dfy](SimulationRelation.dfy) | lemmas, proofs | |
+| [SemanticsProperties.dfy](SemanticsProperties.dfy) | transfinite induction | |
 | [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy) | induction | |
 | [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy) | | |
-| [CompileComCorrect.dfy](CompileComCorrect.dfy) | transfinite induction | |
+| [CompileComCorrect.dfy](CompileComCorrect.dfy) |  | |
 | [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy) | | |
 
   
