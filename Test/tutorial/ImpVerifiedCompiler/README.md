@@ -5,6 +5,12 @@ To verify the whole proof:
 dafny /compile:0 CompileProgramCorrect.dfy
 ```
 
+If you are familiar with Dafny, you should consider reading the high-level project description. Note that we are exploring proof readability, so some proofs might be a lot more verbose than you might like.
+
+If you are not familiar with Dafny, you should consider reading the linear project description. If you are already familiar with functional programming, proof assistants, and basic compilers, you will be introduced to just enough Dafny (with a slingshot) to allow you to learn Dafny by reading the compiler verification from line 1 till the end
+
+> Lewis Carroll - Alice's Adventures in Wonderland - “Begin at the beginning," the King said, very gravely,"and go on till you come to the end: then stop.”
+
 # High-Level Project Description
 
 ## Abstract Semantics
