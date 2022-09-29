@@ -429,6 +429,10 @@ namespace Microsoft.Dafny {
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
+      if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.None) {
+        rewriters.Add(new ExpectContracts(reporter));
+      }
+
       if (DafnyOptions.O.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
@@ -546,6 +550,11 @@ namespace Microsoft.Dafny {
             // Now we're ready to resolve the cloned module definition, using the compile signature
 
             ResolveModuleDefinition(nw, compileSig);
+
+            foreach (var rewriter in rewriters) {
+              rewriter.PostCompileCloneAndResolve(nw);
+            }
+
             prog.CompileModules.Add(nw);
             useCompileSignatures = false; // reset the flag
             Type.EnableScopes();
@@ -16712,7 +16721,7 @@ namespace Microsoft.Dafny {
         reporter.Error(MessageSource.Resolver, tok,
           "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
           + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
-          + "`import open XYZ = ...` instead of `import open ...`.",
+          + "`import opened XYZ = ...` instead of `import opened ...`.",
           name, moduleDecl.Name);
       }
     }

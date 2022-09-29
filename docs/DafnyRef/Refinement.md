@@ -379,3 +379,7 @@ Opaque types in the abstract class may be given members if they are refined as a
 
 Note that type refinements are not required to include the `...` indicator that they are refining a parent type.
 
+## 22.11. Statements
+
+The refinment syntax (`...`) in statements is deprecated.
+
