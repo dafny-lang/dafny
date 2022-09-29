@@ -705,7 +705,7 @@ namespace Microsoft.Dafny.Compilers {
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return boxed ? "Long" : "long";
+          return boxed ? "java.lang.Long" : "long";
         } else if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.NonGhostDims);
         }
@@ -1120,10 +1120,10 @@ namespace Microsoft.Dafny.Compilers {
 
     private string GetBoxedNativeTypeName(NativeType nt) {
       switch (AsJavaNativeType(nt)) {
-        case JavaNativeType.Byte: return "Byte";
-        case JavaNativeType.Short: return "Short";
-        case JavaNativeType.Int: return "Integer";
-        case JavaNativeType.Long: return "Long";
+        case JavaNativeType.Byte: return "java.lang.Byte";
+        case JavaNativeType.Short: return "java.lang.Short";
+        case JavaNativeType.Int: return "java.lang.Integer";
+        case JavaNativeType.Long: return "java.lang.Long";
         default:
           Contract.Assert(false);  // unexpected native type
           throw new cce.UnreachableException();  // to please the compiler
@@ -2072,22 +2072,22 @@ namespace Microsoft.Dafny.Compilers {
         var nativeName = GetNativeTypeName(AsNativeType(arg.Type));
         switch (AsNativeType(arg.Type).Sel) {
           case NativeType.Selection.Byte:
-            wr.Write("Integer.toUnsignedString(Byte.toUnsignedInt(");
+            wr.Write("java.lang.Integer.toUnsignedString(java.lang.Byte.toUnsignedInt(");
             TrExpr(arg, wr, false, wStmts);
             wr.Write("))");
             break;
           case NativeType.Selection.UShort:
-            wr.Write("Integer.toUnsignedString(Short.toUnsignedInt(");
+            wr.Write("java.lang.Integer.toUnsignedString(java.lang.Short.toUnsignedInt(");
             TrExpr(arg, wr, false, wStmts);
             wr.Write("))");
             break;
           case NativeType.Selection.UInt:
-            wr.Write("Integer.toUnsignedString(");
+            wr.Write("java.lang.Integer.toUnsignedString(");
             TrExpr(arg, wr, false, wStmts);
             wr.Write(")");
             break;
           case NativeType.Selection.ULong:
-            wr.Write("Long.toUnsignedString(");
+            wr.Write("java.lang.Long.toUnsignedString(");
             TrExpr(arg, wr, false, wStmts);
             wr.Write(")");
             break;
@@ -2110,7 +2110,7 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");
         } else {
-          wr.Write("String.valueOf(");
+          wr.Write("java.lang.String.valueOf(");
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");
         }
@@ -2643,7 +2643,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // Find the class with static methods like "divideUnsigned" for the type
     private string HelperClass(NativeType nt) {
-      return AsJavaNativeType(nt) == JavaNativeType.Long ? "Long" : "Integer";
+      return AsJavaNativeType(nt) == JavaNativeType.Long ? "java.lang.Long" : "java.lang.Integer";
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, IToken tok,
@@ -3453,10 +3453,7 @@ namespace Microsoft.Dafny.Compilers {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
         var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{nativeType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
         wEnum.WriteLine($"java.util.ArrayList<{nativeType}> arr = new java.util.ArrayList<>();");
-        var numberval = "intValue()";
-        if (nativeType == "Byte" || nativeType == "Short") {
-          numberval = $"{nativeType.ToLower()}Value()";
-        }
+        var numberval = $"{GetNativeTypeName(nt.NativeType)}Value()";
         wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add({nativeType}.valueOf(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }

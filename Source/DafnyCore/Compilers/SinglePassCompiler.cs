@@ -159,9 +159,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr);
     protected string GetNativeTypeName(NativeType nt) {
       Contract.Requires(nt != null);
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      GetNativeInfo(nt.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      GetNativeInfo(nt.Sel, out var nativeName, out _, out _);
       return nativeName;
     }
     protected abstract void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic);
