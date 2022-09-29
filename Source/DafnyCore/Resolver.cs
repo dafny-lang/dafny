@@ -15725,14 +15725,6 @@ namespace Microsoft.Dafny {
       var types = new Type[] { type0, type1 };
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
     }
-    private void AddXConstraint(IToken tok, string constraintName, Type[] types, string errMsgFormat) {
-      Contract.Requires(tok != null);
-      Contract.Requires(constraintName != null);
-      Contract.Requires(types != null);
-      Contract.Requires(cce.NonNullElements(types));
-      Contract.Requires(errMsgFormat != null);
-      AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
-    }
     private void AddXConstraint(IToken tok, string constraintName, Type type, Expression expr0, Expression expr1, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
