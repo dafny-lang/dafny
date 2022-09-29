@@ -1776,7 +1776,7 @@ A `reveal` statement naming the label of the precondition then makes the assumpt
 Here is a toy example:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
@@ -1790,7 +1790,7 @@ and both postconditions can be proved.
 One could also use this style:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
