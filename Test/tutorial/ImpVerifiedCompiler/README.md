@@ -38,30 +38,35 @@ dafny /compile:0 CompileProgramCorrect.dfy
 
 ## Dafny: a functional programming language
 
+The Dafny programming language contains a functional core with datatypes, pattern-matching, functions as values, and parametric polymorphism.
+
+* Call-by-value semantics
+* Rank-1 polymorphism, but not with HM inference
+
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
-| [SyntaxCommon.dfy](SyntaxCommon.dfy) | | |
-| [Imp.dfy](Imp.dfy) | | |
-| [Mach.dfy](Mach.dfy) | | |
-| [Compiler.dfy](Compiler.dfy) | | |
+| [SyntaxCommon.dfy](SyntaxCommon.dfy) | types | |
+| [Imp.dfy](Imp.dfy) | datatypes | |
+| [Mach.dfy](Mach.dfy) | sequences, type operators, polymorphism | |
+| [Compiler.dfy](Compiler.dfy) | functions, pattern-matching, conditional expressions, let-binding | |
 
 ## Dafny: a specification language
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
-| [SemanticsCommon.dfy](SemanticsCommon.dfy) | | |
-| [ImpNaturalSem.dfy](ImpNaturalSem.dfy) | | |
-| [Semantics.dfy](Semantics.dfy) | | |
+| [SemanticsCommon.dfy](SemanticsCommon.dfy) | maps | |
+| [ImpNaturalSem.dfy](ImpNaturalSem.dfy) | predicates, least predicates, first-order logic | |
+| [Semantics.dfy](Semantics.dfy) | greatest predicate, lemmas, proofs | flow is broken, split? |
 | [MachSemantics.dfy](MachSemantics.dfy) | | |
 
 ## Dafny: a proof system
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
-| [SimulationRelation.dfy](SimulationRelation.dfy) | | |
-| [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy) | | |
+| [SimulationRelation.dfy](SimulationRelation.dfy) | lemmas | |
+| [CompileAexpCorrect.dfy](CompileAexpCorrect.dfy) | induction | |
 | [CompileBexpCorrect.dfy](CompileBexpCorrect.dfy) | | |
-| [CompileComCorrect.dfy](CompileComCorrect.dfy) | | |
+| [CompileComCorrect.dfy](CompileComCorrect.dfy) | transfinite induction | |
 | [CompileProgramCorrect.dfy](CompileProgramCorrect.dfy) | | |
 
   
