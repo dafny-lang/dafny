@@ -22,7 +22,7 @@ title: Dafny Documentation
 #email: your-email@example.com
 description:
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://dafny-lang.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://dafny-lang.github.io/dafny" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 theme: minima
