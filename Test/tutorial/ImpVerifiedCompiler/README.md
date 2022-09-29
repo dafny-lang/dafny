@@ -63,7 +63,7 @@ Dafny's logic contains Church's simple type theory with rank-1 polymorphism and 
 ## Dafny: a proof system
 
 Dafny's proofs are written in the body of lemmas using a small set of statements that are higher-level than tactics.
-You can simulate the rules of [Hilbert's systems](Hilbert.dfy), [natural deduction](NaturalDeduction.dfy), and [sequent calculus](SequentCalculus.dfy).
+For example, you can simulate the rules of [Hilbert's systems](Hilbert.dfy), [natural deduction](NaturalDeduction.dfy), and [sequent calculus](SequentCalculus.dfy).
 
 | File   | New concepts | Notes    |
 | ------ | ------------ | -------- |
