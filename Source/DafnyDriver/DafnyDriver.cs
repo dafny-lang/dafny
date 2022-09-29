@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
           WriteModuleStats(Console.Out, moduleStats);
-          if ((DafnyOptions.O.EmitBinary && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceEmitBinary) {
+          if ((DafnyOptions.O.Compile && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
@@ -525,8 +525,8 @@ namespace Microsoft.Dafny {
           break;
         case PipelineOutcome.Done:
           WriteModuleStats(Console.Out, moduleStats);
-          if (DafnyOptions.O.ForceEmitBinary || 3 <= DafnyOptions.O.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceEmitBinary);
+          if (DafnyOptions.O.ForceCompile || 3 <= DafnyOptions.O.SpillTargetCode) {
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceCompile);
           }
           break;
         default:

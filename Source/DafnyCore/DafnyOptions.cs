@@ -120,7 +120,7 @@ namespace Microsoft.Dafny {
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
-    public bool EmitBinary = true;
+    public bool Compile = true;
     public List<string> MainArgs = new List<string>();
 
     public Compiler Compiler;
@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
     public string CoverageLegendFile = null;
     public string MainMethod = null;
     public bool RunAllTests = false;
-    public bool ForceEmitBinary = false;
+    public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
@@ -252,8 +252,8 @@ namespace Microsoft.Dafny {
             int compile = 0;
             if (ps.GetIntArgument(ref compile, 5)) {
               // convert option to two booleans
-              EmitBinary = compile != 0;
-              ForceEmitBinary = compile == 2 || compile == 4;
+              Compile = compile != 0;
+              ForceCompile = compile == 2 || compile == 4;
               RunAfterCompile = compile == 3 || compile == 4;
             }
 
@@ -552,7 +552,7 @@ namespace Microsoft.Dafny {
             }
 
             if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
-              EmitBinary = false;
+              Compile = false;
               DafnyVerify = false;
             }
           }

@@ -14,9 +14,9 @@ class RunCommand : ICommandSpec {
     }.Concat(CommandRegistry.CommonOptions);
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options) {
-    dafnyOptions.EmitBinary = true;
+    dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceEmitBinary = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
     dafnyOptions.CompileVerbose = false;
   }
 }

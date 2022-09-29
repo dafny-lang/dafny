@@ -20,21 +20,18 @@ class BoogieOption : StringOption {
     return null;
   }
 
-  private static IReadOnlyList<string> SplitArguments(string commandLine)
-  {
+  private static IReadOnlyList<string> SplitArguments(string commandLine) {
     var inSingleQuote = false;
     var inDoubleQuote = false;
     var result = new List<string>();
     var start = 0;
     for (var end = 0; end < commandLine.Length; end++) {
       var store = false;
-      if (commandLine[end] == '"' && !inSingleQuote)
-      {
+      if (commandLine[end] == '"' && !inSingleQuote) {
         store = inDoubleQuote;
         inDoubleQuote = !inDoubleQuote;
       }
-      if (commandLine[end] == '\'' && !inDoubleQuote)
-      {
+      if (commandLine[end] == '\'' && !inDoubleQuote) {
         store = inSingleQuote;
         inSingleQuote = !inSingleQuote;
       }
