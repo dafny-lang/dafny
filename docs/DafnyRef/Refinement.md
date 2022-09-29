@@ -314,7 +314,7 @@ A refining module can also introduce new `function` declarations or
 definitions that do not exist in the refinement parent.
 
 
-## 22.9. Class, trait and iterator declarations
+## 22.8. Class, trait and iterator declarations
 
 Class, trait, and iterator declarations are refined as follows: 
 - If a class (or trait or iterator, respectively) `C` in a refining parent contains a
@@ -341,7 +341,7 @@ module X refines P {
 }
 ```
 
-## 22.10. Type declarations
+## 22.9. Type declarations
 
 An opaque type (a type declaration without a definition) in an abstract module can be refined in a refining module, by giving it a definition as any other kind of type.
 Here are some examples:
@@ -378,7 +378,7 @@ Opaque types in the abstract class may be given members if they are refined as a
 
 Note that type refinements are not required to include the `...` indicator that they are refining a parent type.
 
-## 22.11. Statements
+## 22.10. Statements
 
 The refinment syntax (`...`) in statements is deprecated.
 
