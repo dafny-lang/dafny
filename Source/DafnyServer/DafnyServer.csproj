@@ -3,7 +3,7 @@
   <PropertyGroup>
       <OutputType>Exe</OutputType>
       <AssemblyName>DafnyServer</AssemblyName>
-      <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+      <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
