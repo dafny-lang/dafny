@@ -63,4 +63,4 @@ Preliminary notes about Dafny integration with code in other programming languag
    * [Go](Compilation/Go)
    * [C++](Compilation/Cpp)
    * [Reference values](Compilation/ReferenceTypes)
-   * [Automatic Initialization of Variables](Compilation/AutoInitialization.md)
+   * [Automatic Initialization of Variables](Compilation/AutoInitialization)
