@@ -9945,7 +9945,6 @@ namespace Microsoft.Dafny {
     }
 
     bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
-
       var scc = dependencies.GetSCC(dt);
 
       foreach (var ctor in dt.Ctors) {
