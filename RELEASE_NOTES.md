@@ -21,6 +21,7 @@ and is now synchronized with
 releases, showing a snapshot of the user documentation at the time of a 
 release, with links to older snapshots and to the current development version
 of user documentation.
+- feat: Improve performance of Go code by using native byte/char arrays (https://github.com/dafny-lang/dafny/pull/2818)
 
 # 3.8.1
 
