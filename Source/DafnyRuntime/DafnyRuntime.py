@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
 from collections import Counter
+from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from itertools import chain, combinations, count
@@ -107,22 +108,45 @@ class Seq(tuple):
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
 
-class Array(list):
-    @classmethod
-    def empty(cls, dims):
-        if dims <= 1:
-            return Array()
-        return Array([Array.empty(dims-1)])
+class Array:
+    class Box(list):
+        def __dafnystr__(self) -> str:
+            return '[' + ', '.join(map(string_of, self)) + ']'
+
+    def __init__(self, initValue, *dims):
+        self.arr = initValue
+        self.dims = list(dims)
+        for i in reversed(self.dims):
+            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
 
     def __dafnystr__(self) -> str:
-        return '[' + ', '.join(map(string_of, self)) + ']'
+        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+
+    def __str__(self):
+        return self.__dafnystr__()
+
+    def length(self, i):
+        return self.dims[i] if i < len(self.dims) else None
 
     def __len__(self):
-        l = super().__len__()
-        # Hack to enable "empty" matrices
-        if l == 1 and isinstance(self[0], Array) and len(self[0]) == 0:
-            return 0
-        return l
+        return self.length(0)
+
+    def __getitem__(self, key):
+        if not isinstance(key, Iterable):
+            return self.arr[key]
+        arr = self.arr
+        for i in key:
+            arr = arr[i]
+        return arr
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, Iterable):
+            self.arr[key] = value
+            return
+        arr = self.arr
+        for i in range(len(key)-1):
+            arr = arr[key[i]]
+        arr[key[-1]] = value
 
 class Set(frozenset):
     @property
@@ -342,15 +366,9 @@ def euclidian_modulus(a, b):
     c = (-a) % bp
     return c if c == 0 else bp - c
 
-def newArray(initValue, *dims):
-    b = initValue
-    for i in reversed(list(dims)):
-        b = [copy.deepcopy(b) for _ in range(i)]
-    return b
-
 @dataclass
 class HaltException(Exception):
-    message: Seq
+    message: str
 
 def quantifier(vals, frall, pred):
     for u in vals:
@@ -358,28 +376,31 @@ def quantifier(vals, frall, pred):
             return not frall
     return frall
 
+def AllBooleans():
+    return [False, True]
+
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
-def AllBooleans():
-    return [False, True]
+def AllIntegers():
+    return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
 
 def IntegerRange(lo, hi):
     if lo is None:
         return count(hi-1, -1)
-    elif hi is None:
+    if hi is None:
         return count(lo)
     return range(lo, hi)
 
 class Doubler:
     def __init__(self, start):
         self.start = start
+
     def __iter__(self):
-        return self
-    def __next__(self):
-        self.start *= 2
-        return self.start
-    __call__ = __next__
+        i = self.start
+        while True:
+            yield i
+            i *= 2
 
 class defaults:
     bool = staticmethod(lambda: False)

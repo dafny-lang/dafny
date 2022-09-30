@@ -32,14 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // Initialises DafnyOptions.O
       services.GetRequiredService<IDafnyParser>();
 
-      DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
-    }
-
-    private static List<string> GetProverOptions(DocumentOptions options) {
-      return options.ProverOptions.Split(
-        new[] { " ", "\n", "\t" },
-        StringSplitOptions.RemoveEmptyEntries
-      ).ToList();
+      DafnyOptions.O.ProverOptions = this.documentOptions.AugmentedProverOptions;
     }
 
     public void OpenDocument(DocumentTextBuffer document) {
@@ -80,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.LastDocumentAsync!;
+        return databaseEntry.GetLastDocumentAsync()!;
       }
       return Task.FromResult<DocumentAfterParsing?>(null);
     }
@@ -89,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<Compilation> Documents => documents.Values.Select(m => m.Compilation);
+    public IEnumerable<DocumentManager> Documents => documents.Values;
 
   }
 }

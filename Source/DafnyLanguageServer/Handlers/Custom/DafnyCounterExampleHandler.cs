@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
@@ -29,6 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           }
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();
+          logger.LogDebug("counter-examples retrieved IDE state");
           return new CounterExampleLoader(logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 

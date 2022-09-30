@@ -19,7 +19,7 @@ Since some Dafny features are not supported by all compile targets,
 the utility allows a compile target to report errors if and only if every error reports a known unsupported feature.
 See [the Feature enumeration here](../Dafny/Feature.cs) for more details.
 
-This utility is also used to generate the [compiler feature support matrix](https://dafny.org/dafny/DafnyRef/DafnyRef#2498-supported-features-by-target-language) in the reference manual. This may be moved in the future into
+This utility is also used to generate the [compiler feature support matrix](https://dafny.org/latest/DafnyRef/DafnyRef#sec-supported-features-by-target-language) in the reference manual. This may be moved in the future into
 a `dafny` CLI option.
 
 The following command will output the CLI help text:

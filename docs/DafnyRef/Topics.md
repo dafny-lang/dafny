@@ -532,50 +532,50 @@ terminate.  However, there are useful ways to establish that an extreme predicat
 and there are ways to make use of one once it has been established.
 
 For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
-functions, ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$
+functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
 <p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
-   { {}^{\flat}\!f}_k(x) = \left\{
+   { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
 
 <p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
-   { {}^{\sharp}\!f}_k(x) = \left\{
+   { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
 of $k$ as being a parameter).
-Alternatively, we can define ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$ without mentioning $x$:
+Alternatively, we can define ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$ without mentioning $x$:
 Let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
 Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
-${ {}^{\flat}\!f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\!f}_k = \mathcal{F}^k(\top)$.
+${ {}^{\flat}\kern-1mm f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\kern-1mm f}_k = \mathcal{F}^k(\top)$.
 
 For any solution $f$ to [the general equation](#eq-general), we have, for any $k$ and $\ell$
 such that $k \leq \ell$:
 
 
 <p style="text-align: center;" id="eq-prefix-postfix" title="the prefix postfix result">$$
- {\;{}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
+ {\;{}^{\flat}\kern-1mm f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\kern-1mm f}_k $$</p>
 
-In other words, every ${\;{}^{\flat}\!f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\!f}\_{k}$ is a _post-fixpoint_
+In other words, every ${\;{}^{\flat}\kern-1mm f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\kern-1mm f}\_{k}$ is a _post-fixpoint_
 of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
 <p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
- f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\!f}_k(x) $$</p>
+ f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x) $$</p>
 <p style="text-align: center;" id="eq-greatest-is-forall" title="the greatest forall definition">$$
-  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\!f}_k(x) $$</p>
+  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x) $$</p>
 
 By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
@@ -623,14 +623,14 @@ general form of our proof goal:
 
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
+|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
-${ {}^{\flat}\!g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
-If $k = 0$, then ${ {}^{\flat}\!g}\_k(x)$ is `false`, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\flat}\!g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\!g}\_{k-1}(x-2))$.  Our goal holds easily
+${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
+If $k = 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x)$ is `false`, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\kern-1mm g}\_{k-1}(x-2))$.  Our goal holds easily
 for the first disjunct ($x=0$).  For the other disjunct,
 we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
 obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
@@ -679,16 +679,16 @@ general form of our proof goal:
 |~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 -->
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 <!--
-$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\!g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\!g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\!g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\!g}_{k-1}(x-2))$.  We establish the second
+$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
+If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 -->
 
@@ -748,8 +748,8 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
+Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny
@@ -835,7 +835,7 @@ greatest predicate G(x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
-prefix predicates.  Instead of the names ${ {}^{\flat}\!g}_k$ and ${ {}^{\sharp}\!g}_k$ that I used above, Dafny
+prefix predicates.  Instead of the names ${ {}^{\flat}\kern-1mm g}_k$ and ${ {}^{\sharp}\kern-1mm g}_k$ that I used above, Dafny
 names the prefix predicates `g#[k]` and `G#[k]`, respectively, that is, the name of
 the extreme predicate appended with `#`, and the subscript is given as an argument in
 square brackets.  The definition of the prefix predicate derives from the body of

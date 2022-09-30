@@ -1,17 +1,17 @@
-# 20. Statements
+# 20. Statements {#sec-statements}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 NonLabeledStmt =
   ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
   | CalcStmt | ExpectStmt | ForallStmt | IfStmt
   | MatchStmt | ModifyStmt
-  | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
+  | PrintStmt | ReturnStmt | RevealStmt
   | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
   )
 ````
 <!--
-TODO: RevealStmt, SkeletonStmt
+TODO: RevealStmt,
 -->
 
 Many of Dafny's statements are similar to those in traditional
@@ -236,7 +236,7 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 20.3. Block Statement
+## 20.3. Block Statement {#sec-block-statement}
 ````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
@@ -808,7 +808,7 @@ function usesTuple() : int
 
 The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
 
-## 20.9. Guards
+## 20.9. Guards {#sec-guards}
 ````grammar
 Guard = ( "*"
         | "(" "*" ")"
@@ -824,7 +824,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 20.10. Binding Guards
+## 20.10. Binding Guards {#sec-binding-guards}
 ````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional }
@@ -880,7 +880,6 @@ IfStmt = "if"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
-    | ellipsis
     )
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
@@ -941,7 +940,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-TODO: Describe the ... refinement
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
 ## 20.12. While Statement {#sec-while-statement}
 ````grammar
@@ -949,10 +948,9 @@ WhileStmt =
   "while"
   ( LoopSpec
     AlternativeBlock(allowBindingGuards: false)
-  | ( Guard | ellipsis )
+  | Guard
     LoopSpec
     ( BlockStmt
-    | ellipsis
     | /* go body-less */
     )
   )
@@ -961,7 +959,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 20.14](#sec-loop-specification).
+These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -987,14 +985,12 @@ iteration of the loop. If false then terminate the loop.
 Keep the following commented out until we decide a better
 place to put it.
 
-* An ellipsis (`...`), which makes the while statement a _skeleton_
-`while` statement. TODO: What does that mean?
-
 The _body_ of the loop is usually a block statement, but it can also
-be a _skeleton_, denoted by ellipsis, or missing altogether.
+be missing altogether.
 TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
 a block statement with no statements inside?
 -->
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
 The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
@@ -1015,8 +1011,6 @@ until one is found that is true, in which case the corresponding statements
 are executed and the while statement is repeated.
 If none of the guards evaluates to true, then the
 loop execution is terminated.
-
-TODO: Describe ... refinement
 
 ## 20.13. For Loops {#sec-for-loops}
 ````grammar
@@ -1152,7 +1146,7 @@ The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
 
-## 20.14. Loop Specifications {#sec-loop-specification}
+## 20.14. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
@@ -1162,7 +1156,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 20.14.1. Loop invariants
+### 20.14.1. Loop invariants {sec-loop-invariants}
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1514,13 +1508,11 @@ infinite.
 AssertStmt =
     "assert"
     { Attribute }
-    ( [ LabelName ":" ]
-      Expression(allowLemma: false, allowLambda: true)
-      ( ";"
-      | "by" BlockStmt
-      )
-    | ellipsis
-      ";"
+    [ LabelName ":" ]
+    Expression(allowLemma: false, allowLambda: true)
+    ( ";"
+    | "by" BlockStmt
+    )
 ````
 
 `Assert` statements are used to express logical proposition that are
@@ -1535,7 +1527,7 @@ much as lemmas might be used in mathematical proofs.
 
 `Assert` statements are ignored by the compiler.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
 In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
 Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
@@ -1555,7 +1547,6 @@ AssumeStmt =
     "assume"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     ";"
 ````
@@ -1574,7 +1565,7 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
 ## 20.18. Expect Statement {#sec-expect-statement}
 
@@ -1583,7 +1574,6 @@ ExpectStmt =
     "expect"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     [ "," Expression(allowLemma: false, allowLambda: true) ]
     ";"
@@ -1685,13 +1675,7 @@ then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
-Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
-
-<!--
-Describe where refinement is described.
-
-If the proposition is `...` then (TODO: what does this mean?).
--->
+Using `...` as the argument of the statement is deprecated.
 
 ## 20.19. Print Statement {#sec-print-statement}
 ````grammar
@@ -1792,7 +1776,7 @@ A `reveal` statement naming the label of the precondition then makes the assumpt
 Here is a toy example:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
@@ -1806,7 +1790,7 @@ and both postconditions can be proved.
 One could also use this style:
 ```
 method m(x: int, y: int) returns (z: int)
-  requires L: 0 < y;
+  requires L: 0 < y
   ensures z == x+y
   ensures x < z
 {
@@ -1950,20 +1934,13 @@ co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
 ModifyStmt =
   "modify"
   { Attribute }
-  ( FrameExpression(allowLemma: false, allowLambda: true)
-    { "," FrameExpression(allowLemma: false, allowLambda: true) }
-  | ellipsis
-  )
-  ( BlockStmt
-  | ";"
-  )
+  FrameExpression(allowLemma: false, allowLambda: true)
+  { "," FrameExpression(allowLemma: false, allowLambda: true) }
+  ";"
 ````
 
-The `modify` statement has two forms which have two different
-purposes.
-
-When the `modify` statement ends with a semi-colon rather than
-a block statement its effect is to say that some undetermined
+The effect of the `modify` statement
+is to say that some undetermined
 modifications have been made to any or all of the memory
 locations specified by the [frame expressions](#sec-frame-expression).
 In the following example, a value is assigned to field `x`
@@ -1984,72 +1961,10 @@ class MyClass {
 }
 ```
 
-When the `modify` statement is followed by a block statement,
-we are instead specifying what can be modified in that
-block statement. Namely, only memory locations specified
-by the frame expressions of the block `modify` statement
-may be modified. Consider the following example.
+Using `...` as the argument of the statement is deprecated.
 
-```dafny
-class ModifyBody {
-  var x: int
-  var y: int
-  method M0()
-    modifies this
-  {
-    modify {} {
-      x := 3;  // error: violates the modifies clause
-               // on the line above
-    }
-  }
-
-  method M1()
-    modifies this
-  {
-    modify {} {
-      var o := new ModifyBody;
-      o.x := 3;  // fine
-    }
-  }
-
-  method M2()
-    modifies this
-  {
-    modify this {
-      x := 3;
-    }
-  }
-
-  method M3()
-    modifies this
-  {
-    var k: int;
-    modify {} { k := 4; } // fine. k is local
-  }
-}
-```
-
-The first `modify` statement in the example has an empty
-frame expression so the statement guarded by the
-modifies clause cannot modify any heap memory locations.
-So an error is reported when it tries to modify field `x`.
-
-The second `modify` statement also has an empty frame
-expression. But it allocates a new object and modifies it.
-Thus we see that the frame expressions on a block `modify`
-statement only limit what may be modified in already allocated
-memory. It does not limit what may be modified in
-new memory that is allocated within the block.
-
-The third `modify` statement has a frame expression that
-allows it to modify any of the fields of the current object,
-so the modification of field `x` is allowed.
-
-Finally, the fourth example shows that the restrictions imposed by
-the modify statement do not apply to local variables, only those
-that are heap-based.
-
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 22](#sec-module-refinement).
+The form of the `modify` statement which includes a block
+statement is also deprecated.
 
 ## 20.23. Calc Statement {#sec-calc-statement}
 ````grammar
@@ -2177,10 +2092,3 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 20.24. Skeleton Statement
-````grammar
-SkeletonStmt =
-  ellipsis
-  ";"
-````
-TODO: Move to discussion of refinement?
