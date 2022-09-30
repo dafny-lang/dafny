@@ -4204,10 +4204,10 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(initFunctionType != null && initFunctionType.Arity == typeRhs.ArrayDimensions.Count);
         var element0 = ProtectedFreshId($"_element0_");
         wRhs = DeclareLocalVar(element0, null, typeRhs.Tok, wElse);
-        wRhs.Write("{0}{2}({1})", init, initFunctionType.Args.Comma(argumentType => {
+        wRhs.Write("{0}{1}({2})", init, LambdaExecute, initFunctionType.Args.Comma(argumentType => {
           var zero = Expression.CreateIntLiteral(typeRhs.Tok, 0, argumentType);
           return Expr(zero, false, wElse).ToString();
-        }), LambdaExecute);
+        }));
 
         // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
         wRhs = new ConcreteSyntaxTree();
@@ -4252,7 +4252,7 @@ namespace Microsoft.Dafny.Compilers {
           w = wLoopBody;
         }
         (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
-        wrRhs.Write("{0}{2}({1})", init, Enumerable.Range(0, indices.Count).Comma(idx => ArrayIndexToInt(indices[idx])), LambdaExecute);
+        wrRhs.Write("{0}{1}({2})", init, LambdaExecute, Enumerable.Range(0, indices.Count).Comma(idx => ArrayIndexToInt(indices[idx])));
         wArray.Write(nw);
         EndStmt(w);
 
@@ -4288,7 +4288,7 @@ namespace Microsoft.Dafny.Compilers {
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
-        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx)), LambdaExecute);
+        wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
         wArray.Write(nw);
         EndStmt(w);
       }
