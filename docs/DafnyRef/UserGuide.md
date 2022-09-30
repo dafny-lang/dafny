@@ -101,36 +101,62 @@ on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki
 
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
+In general, the format of a command-line is determined by the shell program that is executing the command-line (.e.g. bash, the windows shell, COMMAND, etc.), but is expected to be a series of space-separated "words", each representing a command, option, or file. 
 
+As of v3.9.0, `dafny` uses a subcommand-style command-line (like `git` for example); prior to v3.9.0, the 
+command line consisted only of options and files.
+It is expected that additional commands will be added in the future.
+Each command may have its own subcommands and its own options, in addition to generally applicable options. 
+Thus the format of the command-line is
+a command name, followed by 0 or more subcommands, followed by options and files:
+`dafny <command> <subcommand>* <options> <files>`
 
-- The format of a command-line is determined by the shell program that is executing the command-line (.e.g. bash, the windows shell, COMMAND, etc.). The command-line typically consists of file names and options, in any order, separated by spaces.
+The command-line `dafny <command> --help` gives help information for that particular <command>.
+
+Also, the command-style command-line has modernized the syntax of options. Like many other tools, options
+now typically begin with a double hyphen, with some options having a single-hyphen short form, such as `--help` and `-h`.
+The value of an option is given after an `=` character, rather than a `:`, as in `--target=java`
+
+If no command is given, then the command-line is presumed to use old-style syntax, so any previously 
+written command-line will still be valid.
+
+The following  commands are recognized. In each case all files listed are parsed and typechecked.
+- `dafny verify` -- verifies the listed files. Although the Dafny program being considered
+consists of the listed files and any included files (recursively), by default only listed files are verified.
+This is similar to using the option `/compile:0` in the old-style command-line. 
+- `dafny run` -- verifies, compiles and runs the Dafny program. The option `--no-verify` suppresses verification checks. The `-t` or `--target` option states the target platform to compile to (default is C#). 
+This is similar to the old-style options `/compile:3` or `/compile:4`.
+- `dafny translate` -- verifies the program and translates it to a source artifact, perhaps with information for
+a target language build tool, for the target platform, similar to the previous `/compile:0 '/spillTargetCode:2`.
+`--no-verify` suppresses verification checks.
+
+The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
-working directory. A command-line argument not matching a known option is considered a filepath.
+working directory. A command-line argument not matching a known option is considered a filepathi, and likely one
+with an unsupported suffix, provoking an error message..
 - Files containing dafny code must have a `.dfy` suffix.
 - There must be at least one `.dfy` file.
 - The command-line may contain other kinds of files appropriate to
-the language that the dafny files are being compiled to.
-
-The command `Dafny.exe /?` gives the current set of options supported
-by the tool. The most commonly used options are described in [Section 25.9](#sec-command-line-options).
-
-- Options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
+the language that the Dafny files are being compiled to.
+- Old-style options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
-- If an option takes an argument, the option name is followed by a `:` and then by the argument value, with no
+- If an option takes an argument, the option name is followed by a `:` (old-style) or `=` (new-style) and then by the argument value, with no
 intervening white space; if the argument itself contains white space, the argument must be enclosed in quotes.
 - Escape characters are determined by the shell executing the command-line.
+
+The command `Dafny.exe -?` gives the current set of options supported
+by the tool. The most commonly used options are described in [Section 25.9](#sec-command-line-options).
 
 The `dafny` tool performs several tasks:
 
 - Checking the form of the text in a `.dfy` file. This step is always performed, unless the tool is simply asked for
 help information or version number.
 - Running the verification engine to check all implicit and explicit specifications. This step is performed by
-default, but can be skipped by using the `-noVerify` or `-dafnyVerify:0` option
+default, but can be skipped by using the `-noVerify` or `--no-verify` option
 - Compiling the dafny program to a target language. This step is performed by default if the verification is
-successful but can be skipped or always executed by using variations of the `-compile` option.
-- Whether the source code of the compiled target is written out is controlled by `-spillTargetCode`
-- The particular target language used is chosen by `-compileTarget`
-- Whether or not the `dafny` tool attempts to run the compiled code is controlled by `-compile`
+successful but can be skipped or always executed by using variations of the `-compile` option or different commands.
+- Whether the source code of the compiled target is written out is controlled by `-spillTargetCode` or the top-level command that is being executed.
+- The particular target language used is chosen by `-compileTarget` or `--target`
 
 The dafny tool terminates with these exit codes:
 
