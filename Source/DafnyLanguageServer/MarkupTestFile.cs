@@ -42,7 +42,6 @@ namespace Microsoft.Dafny.LanguageServer {
   public static class MarkupTestFile {
     private const string SpanStartString = "[>";
     private const string SpanEndString = "<]";
-    private const string NamedSpanEndString = "<}";
 
     private static void Parse(
         string input, out string output, out List<int> positions, out IDictionary<string, List<TextSpan>> spans) {
@@ -51,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var outputBuilder = new StringBuilder();
 
-      // A stack of span starts along with their associated annotation name.  [||] spans simply
+      // A stack of span starts along with their associated annotation name.  [><] spans simply
       // have empty string for their annotation name.
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
