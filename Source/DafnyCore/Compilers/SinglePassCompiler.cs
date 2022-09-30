@@ -664,6 +664,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool DeterminesArrayTypeFromExampleElement => false;
 
+    protected virtual string ArrayIndexLiteral(int x) => x.ToString();
+
     /// <summary>
     /// Allocates a new array with element type "elementType" and lengths "dimensions" in each dimension.
     /// Note that "elementType" may be a type parameter.
