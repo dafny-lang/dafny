@@ -70,13 +70,15 @@ static class CommandRegistry {
     var optionValues = new Dictionary<IOptionSpec, object>();
     var options = new Options(optionValues);
     dafnyOptions.Options = options;
-    var filesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
-    filesArgument.AddValidator(r => {
+    var fileArgument = new Argument<FileInfo>("file", "input file");
+    fileArgument.AddValidator(r => {
       var value = r.Tokens[0].Value;
       if (value.StartsWith("--")) {
         r.ErrorMessage = $"{value} is not a valid argument";
       }
     });
+    var userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
+    userProgramArguments.SetDefaultValue(new List<string>());
 
     var optionToSpec = Commands.Values.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
       var result = o.ToOption;
@@ -91,7 +93,8 @@ static class CommandRegistry {
       foreach (var option in c.Options) {
         result.AddOption(specToOption[option]);
       }
-      result.AddArgument(filesArgument);
+      result.AddArgument(fileArgument);
+      result.AddArgument(userProgramArguments);
       return result;
     }, c => c);
     foreach (var command in commandToSpec.Keys) {
@@ -121,9 +124,8 @@ static class CommandRegistry {
         }
       }
 
-      foreach (var file in context.ParseResult.GetValueForArgument(filesArgument)) {
-        dafnyOptions.AddFile(file.FullName);
-      }
+      dafnyOptions.AddFile(context.ParseResult.GetValueForArgument(fileArgument).FullName);
+      dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       commandSpec.PostProcess(dafnyOptions, options);
