@@ -9944,6 +9944,27 @@ namespace Microsoft.Dafny {
       return true;
     }
 
+    bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc) {
+
+      if (type.IsArrowType || type.IsCoDatatype) {
+        return true;
+      }
+
+      var asIDT = type.AsIndDatatype;
+      if (asIDT != null) {
+        if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
+          return true;
+        } else {
+          if (!scc.Contains(asIDT) && CheckIfEqualityIsDefinitelyNotSupported(asIDT, dependencies)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+
+    }
+
     bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       var scc = dependencies.GetSCC(dt);
 
@@ -9953,36 +9974,23 @@ namespace Microsoft.Dafny {
         }
 
         foreach (var arg in ctor.Formals) {
-          var anotherIndDt = arg.Type.AsIndDatatype;
-          if (arg.IsGhost ||
-              (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-              arg.Type.IsCoDatatype ||
-              arg.Type.IsArrowType ||
-              (arg.Type.IsOpaqueType && !arg.Type.SupportsEquality)) {
+          var type = arg.Type;
+          if (arg.IsGhost || (type.IsOpaqueType && !type.SupportsEquality)) {
             return true;
           }
 
-          if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
-            if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies)) {
-              return true;
-            }
+          if (BasicCheckIfEqualityIsDefinitelyNotSupported(type, dependencies, scc)) {
+            return true;
           }
 
-          foreach (var type in arg.Type.TypeArgs) {
-            var anotherIndDt_arg = type.AsIndDatatype;
-            if ((anotherIndDt_arg != null && anotherIndDt_arg.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                type.IsCoDatatype ||
-                type.IsArrowType ||
-                (type.IsOpaqueType && !arg.Type.SupportsEquality)) {
+          foreach (var typea in arg.Type.TypeArgs) {
+            if (typea.IsOpaqueType && !arg.Type.SupportsEquality) {
               return true;
             }
 
-            if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
-              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)) {
-                return true;
-              }
+            if (BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc)) {
+              return true;
             }
-
           }
         }
       }
