@@ -9946,7 +9946,7 @@ namespace Microsoft.Dafny {
 
     bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc) {
 
-      if (type.IsArrowType || type.IsCoDatatype) {
+      if (type.IsArrowType || type.IsCoDatatype || (type.IsOpaqueType && !type.SupportsEquality)) {
         return true;
       }
 
@@ -9958,6 +9958,13 @@ namespace Microsoft.Dafny {
           if (!scc.Contains(asIDT) && CheckIfEqualityIsDefinitelyNotSupported(asIDT, dependencies)) {
             return true;
           }
+        }
+      }
+
+      var asSubset = type.AsSubsetType;
+      if (asSubset != null) {
+        if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc)) {
+          return true;
         }
       }
 
