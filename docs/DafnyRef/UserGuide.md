@@ -129,6 +129,7 @@ This is similar to the old-style options `/compile:3` or `/compile:4`.
 - `dafny translate` -- verifies the program and translates it to a source artifact, perhaps with information for
 a target language build tool, for the target platform, similar to the previous `/compile:0 '/spillTargetCode:2`.
 `--no-verify` suppresses verification checks.
+- `dafny build` -- verifies (except if `--no-verify` is used) and compiles the Dafny program, producing an executable artifact for the target system. The command has options that enable being specific about the build platform and architecture.
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
