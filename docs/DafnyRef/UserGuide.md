@@ -764,7 +764,8 @@ Any abstract modules are not searched for candidate entry points,
 but otherwise the entry point may be in any module or type. In addition,
 an entry-point candidate must satisfy the following conditions:
 
-* The method takes no parameters or type parameters
+* The method has no type parameters and either has no parameters or one parameter of type `seq<string>`
+* If the method has a return type, it must be `int`
 * The method is not a ghost method
 * The method has no requires or modifies clauses, unless it is marked `{:main}`
 * If the method is an instance (that is, non-static) method and the
@@ -792,6 +793,14 @@ Note, however, that the following are allowed:
 If no legal candidate entry point is identified, `dafny` will still produce executable output files, but
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
+
+If the `Main` method takes an argument (type `seq<string>`) the value of that input argument is the sequence
+of command-line arguments, with the 0th entry of the sequence being a system-determined name for the 
+executable being run.
+
+If the `Main` method returns a value, it is expected to be interpreted by the system as an exit code,
+as specified by the Dafny program and interpreted by the host system;
+most systems interpret `0` as successful operation and non-zero as a failure.
 
 ### 25.8.2. `extern` declarations {#sec-extern-decls}
 
