@@ -2050,7 +2050,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       foreach (var dim in dimensions) {
-        wr.Write($"{sep}{dim}", sep, dim);
+        wr.Write($"{sep}{dim}");
         sep = ", ";
       }
 
