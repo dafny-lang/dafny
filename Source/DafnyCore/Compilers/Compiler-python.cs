@@ -1237,7 +1237,7 @@ namespace Microsoft.Dafny.Compilers {
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
       // This is also used for bit shift operators, or more generally any binary operation where CompileBinOp()
       // sets the convertE1_to_int out parameter to true. This compiler always sets that to false, however,

@@ -1047,7 +1047,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(fromType != null);
       return arrayIndex;
     }
-    protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -3369,13 +3369,13 @@ namespace Microsoft.Dafny.Compilers {
           var lhs = (SeqSelectExpr)s0.Lhs;
           TrExpr(lhs.Seq, wrTuple, false, wStmts);
           wrTuple.Write(", ");
-          EmitExprAsInt(lhs.E0, false, wrTuple, wStmts);
+          EmitExprAsNativeInt(lhs.E0, false, wrTuple, wStmts);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
           TrExpr(lhs.Array, wrTuple, false, wStmts);
           for (int i = 0; i < lhs.Indices.Count; i++) {
             wrTuple.Write(", ");
-            EmitExprAsInt(lhs.Indices[i], false, wrTuple, wStmts);
+            EmitExprAsNativeInt(lhs.Indices[i], false, wrTuple, wStmts);
           }
         }
 
@@ -4895,7 +4895,7 @@ namespace Microsoft.Dafny.Compilers {
             TrParenExpr(e0, inner, inLetExprBody, wStmts);
             inner.Write(" {0} ", opString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, inner, wStmts);
+              EmitExprAsNativeInt(e1, inLetExprBody, inner, wStmts);
             } else {
               TrParenExpr(e1, inner, inLetExprBody, wStmts);
             }
@@ -4905,7 +4905,7 @@ namespace Microsoft.Dafny.Compilers {
             TrParenExpr(e0, wr, inLetExprBody, wStmts);
             wr.Write(".{0}(", callString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, wr, wStmts);
+              EmitExprAsNativeInt(e1, inLetExprBody, wr, wStmts);
             } else {
               TrParenExpr(e1, wr, inLetExprBody, wStmts);
             }
