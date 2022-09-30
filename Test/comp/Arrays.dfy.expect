@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 80 verified, 0 errors
+Dafny program verifier finished with 88 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -90,6 +90,9 @@ DDDDDabcdeabcdeggggg
 [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
 DDDDDDDDDDagggggaggg
+0 69 50
+0 69 50
+D k n
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -180,6 +183,9 @@ DDDDDabcdeabcdeggggg
 [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
 DDDDDDDDDDagggggaggg
+0 69 50
+0 69 50
+D k n
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -270,6 +276,9 @@ DDDDDabcdeabcdeggggg
 [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
 [D, D, D, D, D, D, D, D, D, D, a, g, g, g, g, g, a, g, g, g]
+0 69 50
+0 69 50
+D k n
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -360,6 +369,9 @@ DDDDDabcdeabcdeggggg
 [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
 DDDDDDDDDDagggggaggg
+0 69 50
+0 69 50
+D k n
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -450,3 +462,6 @@ DDDDDabcdeabcdeggggg
 [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
 DDDDDDDDDDagggggaggg
+0 69 50
+0 69 50
+D k n

@@ -2629,35 +2629,70 @@ namespace Microsoft.Dafny.Compilers {
       return wr.ForkInParens();
     }
 
+    /// <summary>
+    /// Emit to "wr" a call
+    ///     _dafny.ArrayGet( <<wArray>>, <<wArguments>> )        // if isGet
+    /// or
+    ///     _dafny.ArraySet( <<wArray>>, <<wArguments>> )        // if !isGet
+    /// and return (wArray, wArguments). Optimize these calls based on "dimensionCount" and "elementType".
+    /// "elementType" is allowed to be "null", which says to not specialize based on the element type.
+    /// </summary>
+    private (ConcreteSyntaxTree wArray, ConcreteSyntaxTree wArguments) CallArrayGetOrSet(bool isGet,
+      int dimensionCount, [CanBeNull] Type elementType, ConcreteSyntaxTree wr) {
+
+      var typeSpecialization = "";
+      if (dimensionCount == 1 && elementType != null) {
+        if (elementType.IsCharType) {
+          typeSpecialization = "Char";
+        } else {
+          var nt = AsNativeType(elementType);
+          if (nt != null && nt.Sel == NativeType.Selection.Byte) {
+            typeSpecialization = "Byte";
+          }
+        }
+      }
+      if (isGet && typeSpecialization == "") {
+        wr = EmitCoercionIfNecessary(null, elementType, Token.NoToken, wr);
+      }
+
+      ConcreteSyntaxTree wArray;
+      if (dimensionCount != 1) {
+        // use a general call, which uses a varargs for the indices
+        wr.Write(isGet ? "_dafny.ArrayGet(": "_dafny.ArraySet(");
+        wArray = wr.Fork();
+        wr.Write(", ");
+      } else {
+        // specialize to a call with exactly one index argument
+        wArray = wr.ForkInParens();
+        wr.Write($"{(isGet ? ".ArrayGet1": ".ArraySet1")}{typeSpecialization}(");
+      }
+      var wArguments = wr.Fork();
+      wr.Write(")");
+      return (wArray, wArguments);
+    }
+
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       // Note, the indices are formulated in the native array-index type.
-      wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("_dafny.ArrayGet(");
-      var w = wr.Fork();
-      wr.Write($", {indices.Comma(s => s)}");
-      return w;
+      var (wArray, wArguments) = CallArrayGetOrSet(true, indices.Count, elmtType, wr);
+      wArguments.Write(indices.Comma(s => s));
+      return wArray;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
-      wr.Write("_dafny.ArrayGet(");
-      var w = wr.Fork();
-      foreach (var index in indices) {
+      var (wArray, wArguments) = CallArrayGetOrSet(true, indices.Count, elmtType, wr);
+      wArguments.Write(indices.Comma(index => {
         var idx = Expr(index, inLetExprBody, wStmts).ToString();
-        wr.Write($", {ArrayIndexToNativeInt(idx, index.Type)}");
-      }
-      wr.Write(")");
-      return w;
+        return ArrayIndexToNativeInt(idx, index.Type);
+      }));
+      return wArray;
     }
 
     protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
-      wr.Write("_dafny.ArraySet(");
-      var wArray = wr.Fork();
-      wr.Write(", ");
-      var wRhs = wr.Fork();
-      wr.Write(", {0})", indices.Comma(s => s));
+      var (wArray, wArguments) = CallArrayGetOrSet(false, indices.Count, elementType, wr);
+      var wRhs = wArguments.Fork();
+      wArguments.Write(", {0}", indices.Comma(s => s));
       return (wArray, wRhs);
     }
 
@@ -2712,12 +2747,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       if (sourceType.IsArrayType) {
         Contract.Assume(nativeIndex);
-        wSource = wr.Fork();
-        wr.Write(".ArraySet1(");
-        wValue = wr.Fork();
-        wr.Write(", ");
-        wIndex = wr.Fork();
-        wr.Write(")");
+        (wSource, var wArguments) = CallArrayGetOrSet(false, 1, null, wr);
+        wValue = wArguments.Fork();
+        wArguments.Write(", ");
+        wIndex = wArguments.Fork();
       } else {
         wSource = wr.ForkInParens();
         wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");

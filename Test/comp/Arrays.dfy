@@ -80,6 +80,7 @@ method Main() {
 
   ArrayAllocationInitialization.Test();
   VariationsOnIndexAndDimensionTypes.Test();
+  TypeSpecialization.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -823,5 +824,53 @@ module {:options "/functionSyntax:4"} VariationsOnIndexAndDimensionTypes {
       46
     else
       47
+  }
+}
+
+module TypeSpecialization {
+  newtype byte = x | 0 <= x < 256
+
+  method Test() {
+    var a := new int[100];
+    Int(a, a, 50);
+    print a[19], " ", a[20], " ", a[21], "\n";
+
+    var b := new byte[100];
+    Byte(b, b, 50);
+    print b[19], " ", b[20], " ", b[21], "\n";
+
+    var c := new char[100];
+    Char(c, c, 'n');
+    print c[19], " ", c[20], " ", c[21], "\n";
+  }
+
+  method Int<T>(a: array<T>, b: array<int>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 69;
+    b[21] := 69;
+    a[21] := t;
+  }
+
+  method Byte<T>(a: array<T>, b: array<byte>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 69;
+    b[21] := 69;
+    a[21] := t;
+  }
+
+  method Char<T>(a: array<T>, b: array<char>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 'k';
+    b[21] := 'k';
+    a[21] := t;
   }
 }

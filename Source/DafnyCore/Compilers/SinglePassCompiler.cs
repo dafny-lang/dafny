@@ -1041,7 +1041,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// The "indices" are expected to already be of the native array-index type.
     /// </summary>
-    protected virtual (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+    protected virtual (ConcreteSyntaxTree wArray, ConcreteSyntaxTree wRhs) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       var wArray = EmitArraySelect(indices, elementType, wr);
       wr.Write(" = ");
       var wRhs = wr.Fork();

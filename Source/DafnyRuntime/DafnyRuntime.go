@@ -625,6 +625,11 @@ type Array interface {
   ArrayGet1(index int) any
   ArraySet1(value any, index int)
   anySlice(lo, hi Int) []any
+  // specializations
+  ArrayGet1Byte(index int) byte
+  ArraySet1Byte(value byte, index int)
+  ArrayGet1Char(index int) Char
+  ArraySet1Char(value Char, index int)
 }
 
 /***** newArray *****/
@@ -786,6 +791,22 @@ func (_this ArrayStruct) ArraySet1(value any, index int) {
   _this.contents[index] = value
 }
 
+func (_this ArrayStruct) ArrayGet1Byte(index int) byte {
+  panic("cannot specialize general ArrayGet with byte")
+}
+
+func (_this ArrayStruct) ArraySet1Byte(value byte, index int) {
+  panic("cannot specialize general ArraySet with byte")
+}
+
+func (_this ArrayStruct) ArrayGet1Char(index int) Char {
+  panic("cannot specialize general ArrayGet with char")
+}
+
+func (_this ArrayStruct) ArraySet1Char(value Char, index int) {
+  panic("cannot specialize general ArraySet with char")
+}
+
 func (_this ArrayStruct) anySlice(lo, hi Int) []any {
   if lo.IsNilInt() && hi.IsNilInt() {
     return _this.contents
@@ -829,6 +850,22 @@ func (_this ArrayForByte) ArrayGet1(index int) any {
 
 func (_this ArrayForByte) ArraySet1(value any, index int) {
   _this.contents[index] = value.(byte)
+}
+
+func (_this ArrayForByte) ArrayGet1Byte(index int) byte {
+  return _this.contents[index]
+}
+
+func (_this ArrayForByte) ArraySet1Byte(value byte, index int) {
+  _this.contents[index] = value
+}
+
+func (_this ArrayForByte) ArrayGet1Char(index int) Char {
+  panic("cannot specialize general ArrayGet with char")
+}
+
+func (_this ArrayForByte) ArraySet1Char(value Char, index int) {
+  panic("cannot specialize general ArraySet with char")
 }
 
 func (_this ArrayForByte) anySlice(lo, hi Int) []any {
@@ -877,6 +914,22 @@ func (_this ArrayForChar) ArrayGet1(index int) any {
 
 func (_this ArrayForChar) ArraySet1(value any, index int) {
   _this.contents[index] = value.(Char)
+}
+
+func (_this ArrayForChar) ArrayGet1Byte(index int) byte {
+  panic("cannot specialize general ArrayGet with byte")
+}
+
+func (_this ArrayForChar) ArraySet1Byte(value byte, index int) {
+  panic("cannot specialize general ArraySet with byte")
+}
+
+func (_this ArrayForChar) ArrayGet1Char(index int) Char {
+  return _this.contents[index]
+}
+
+func (_this ArrayForChar) ArraySet1Char(value Char, index int) {
+  _this.contents[index] = value
 }
 
 func (_this ArrayForChar) anySlice(lo, hi Int) []any {
