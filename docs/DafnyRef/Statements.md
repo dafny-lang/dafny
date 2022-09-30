@@ -10,9 +10,6 @@ NonLabeledStmt =
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
   )
 ````
-<!--
-TODO: RevealStmt,
--->
 
 Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
