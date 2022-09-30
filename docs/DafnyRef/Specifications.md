@@ -352,15 +352,44 @@ If the `FrameField` is not preceded by an expression then
 the frame expression is referring to that field of the current
 object. This form is only used within a method of a class or trait.
 
-The use of ``FrameField`` is discouraged as in practice it has not
-been shown to either be more concise or to perform better.
-Also, there's (unfortunately) no form of it for array
-elements---one could imagine
+A ``FrameField`` can be useful in the following case:
+When a method modifies only one field, rather than writing
 
 ```dafny
-  modifies a`[j]
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies this
+    ensures unchanged(x0) && unchanged(x1) && unchanged(x2) && unchanged(x3) && unchanged(x4)
+  { i := i + 1; }
+}
 ```
-Also, ``FrameField`` is not taken into consideration for
+
+one can write the more concise:
+
+```dafny
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies `i
+  { i := i + 1; }
+}
+```
+
+There's (unfortunately) no form of it for array
+elements -- but to account for unchanged elements, you can always write
+`forall i | 0 <= i < |a| :: unchanged(a[i])`.
+A ``FrameField`` is not taken into consideration for
 lambda expressions.
 
 ### 5.1.5. Reads Clause {#sec-reads-clause}
