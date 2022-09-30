@@ -9963,7 +9963,9 @@ namespace Microsoft.Dafny {
           }
 
           if (anotherIndDt != null && !scc.Contains(anotherIndDt)) {
-            CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies);
+            if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt, dependencies)) {
+              return true;
+            }
           }
 
           foreach (var type in arg.Type.TypeArgs) {
@@ -9976,7 +9978,10 @@ namespace Microsoft.Dafny {
             }
 
             if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
-              CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies);
+              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)
+              {
+                return true;
+              }
             }
 
           }
