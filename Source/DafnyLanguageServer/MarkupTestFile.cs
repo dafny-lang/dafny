@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
 
-      var r = new Regex(@"(?<Position>\>\<)|(?<SpanStart>\[\>)|(?<SpanEnd>\<\])|(?<NameSpanStart>\{\>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd>\<\})");
+      var r = new Regex(@"(?<Position>><)|(?<SpanStart>\[>)|(?<SpanEnd><\])|(?<NameSpanStart>\{>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})");
       var outputIndex = 0;
       var inputIndex = 0;
       foreach (Match match in r.Matches(input)) {
