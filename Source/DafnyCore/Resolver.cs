@@ -9995,7 +9995,17 @@ namespace Microsoft.Dafny {
             //  return true;
             //}
 
-            if (BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc)) {
+            var red = type.AsRedirectingType;
+            var meaningfulArg = true;
+            if (red != null) {
+              foreach (var typep in red.TypeArgs) {
+                if (!typep.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                  meaningfulArg = false;
+                }
+              }
+            }
+
+            if (meaningfulArg && BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc)) {
               return true;
             }
           }
