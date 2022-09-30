@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer {
   /// [| ... |] - A span of text in the file.  There can be many of these and they can be nested
   /// and/or overlap the $ position.
   /// 
-  /// {|Name: ... |} A span of text in the file annotated with an identifier.  There can be many of
+  /// {>Name: ... <} A span of text in the file annotated with an identifier.  There can be many of
   /// these, including ones with the same name.
   /// 
   /// Additional encoded features can be added on a case by case basis.
