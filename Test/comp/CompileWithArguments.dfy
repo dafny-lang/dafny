@@ -5,7 +5,7 @@
 // RUN: %baredafny run --no-verify --target:js %args "%s" -- javascript 2 >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args python 1 >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "go go" 1 >> "%t"
-// RUN: %dafny /noVerify /compile:2 /compileTarget:cs "%s" /out:%s.dll
+// RUN: %baredafny build --no-verify --target:cs %args "%s" --output:%s.dll
 // RUN: dotnet %s.dll "ellel" 2 >> "%t"
 // RUN: dotnet %s.dll "on the go" 1 >> "%t"
 // RUN: dotnet %s.dll "dll" "Aloha from" >> "%t"
