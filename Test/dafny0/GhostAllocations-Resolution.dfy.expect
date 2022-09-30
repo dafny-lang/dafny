@@ -1,3 +1,8 @@
+GhostAllocations-Resolution.dfy(408,4): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(432,6): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(456,4): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(501,6): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(537,10): Warning: the modify statement with a block statement is deprecated
 GhostAllocations-Resolution.dfy(17,11): Error: a ghost variable is allowed only in specification contexts
 GhostAllocations-Resolution.dfy(39,11): Error: a ghost variable is allowed only in specification contexts
 GhostAllocations-Resolution.dfy(47,22): Error: a ghost variable is allowed only in specification contexts
