@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var major = int.Parse(versionMatch.Groups["major"].Value);
       var minor = int.Parse(versionMatch.Groups["minor"].Value);
       var patch = int.Parse(versionMatch.Groups["patch"].Value);
-      if (major <= 4 && (major != 4 || minor <= 8) && (minor != 8 || patch <= 6)) {
+      if (major <= 4 && (major < 4 || minor <= 8) && (minor < 8 || patch <= 6)) {
         return;
       }
 
