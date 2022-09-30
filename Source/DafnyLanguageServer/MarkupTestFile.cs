@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer {
   /// 
   /// $$ - The position in the file.  There can be at most one of these.
   /// 
-  /// [| ... |] - A span of text in the file.  There can be many of these and they can be nested
+  /// [> ... <] - A span of text in the file.  There can be many of these and they can be nested
   /// and/or overlap the $ position.
   /// 
   /// {>Name: ... <} A span of text in the file annotated with an identifier.  There can be many of
