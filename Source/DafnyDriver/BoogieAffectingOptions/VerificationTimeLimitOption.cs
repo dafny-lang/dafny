@@ -6,7 +6,6 @@ public class VerificationTimeLimitOption : NaturalNumberOption {
   public override string LongName => "verification-time-limit";
   public override string ShortName => null;
   public override string ArgumentName => "seconds";
-  public override string Category => "Verification options";
 
   public override string Description => @"
 Limit the number of seconds spent trying to verify

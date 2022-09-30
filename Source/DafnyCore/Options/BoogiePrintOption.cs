@@ -6,7 +6,6 @@ public class BoogiePrintOption : StringOption {
   public override bool Hidden => true;
   public override string LongName => "bprint";
   public override string ArgumentName => "file";
-  public override string Category => "Overall reporting and printing";
   public override string Description => @"
 print Boogie program translated from Dafny
 (use - as <file> to print to console)".TrimStart();

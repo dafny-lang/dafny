@@ -6,6 +6,7 @@ namespace XUnitExtensions.Lit {
 
   // TODO: Make safely immutable
   public class LitTestConfiguration {
+    // Values can be either a string or an IEnumerable<string>
     public readonly Dictionary<string, object> Substitutions;
 
     public readonly Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands;

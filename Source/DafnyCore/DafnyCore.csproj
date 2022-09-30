@@ -19,7 +19,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    
+    <NoWarn>$(NoWarn);NU5104</NoWarn> <!-- Required because System.CommandLine is in beta. -->
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   

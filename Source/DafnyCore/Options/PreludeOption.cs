@@ -1,16 +1,12 @@
 namespace Microsoft.Dafny;
 
-public class DPreludeOption : PreludeOption {
-  public new static readonly DPreludeOption Instance = new();
-  public override string LongName => "dprelude";
-}
-
-public class PreludeOption : StringOption {
+public class PreludeOption : StringOption, ILegacyOption {
   public static readonly PreludeOption Instance = new();
   public override object DefaultValue => null;
   public override string LongName => "prelude";
+  public string LegacyName => "dprelude";
   public override string ArgumentName => "file";
-  public override string Category => "Input configuration";
+  public string Category => "Input configuration";
   public override string Description => "Choose the Dafny prelude file.";
 
   public override string PostProcess(DafnyOptions options) {

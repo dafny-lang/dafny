@@ -6,12 +6,13 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class PluginOption : CommandLineOption<List<string>> {
+public class PluginOption : CommandLineOption<List<string>>, ILegacyOption {
   public static readonly PluginOption Instance = new();
   public override object DefaultValue => new List<string>();
   public override string LongName => "plugin";
   public override string ArgumentName => "path-to-one-assembly[,argument]*";
-  public override string Category => "Plugins";
+  public string Category => "Plugins";
+  public string LegacyName => LongName;
 
   public override string Description => @"
 (experimental) One path to an assembly that contains at least one

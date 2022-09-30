@@ -46,24 +46,22 @@ static class CommandRegistry {
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
 
-    if (arguments.Length == 0) {
-      return new ParseArgumentSuccess(DafnyOptions.Create(arguments));
-    }
+    bool allowHidden = true;
+    if (arguments.Length != 0) {
+      var first = arguments[0];
+      if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
+        var oldOptions = new DafnyOptions();
+        if (oldOptions.Parse(arguments)) {
+          return new ParseArgumentSuccess(oldOptions);
+        }
 
-    var first = arguments[0];
-    if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
-      var oldOptions = new DafnyOptions();
-      if (oldOptions.Parse(arguments)) {
-        return new ParseArgumentSuccess(oldOptions);
+        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
       }
 
-      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-    }
-
-    var allowHidden = true;
-    if (first == "--dev") {
-      allowHidden = false;
-      arguments = arguments.Skip(1).ToArray();
+      if (first == "--dev") {
+        allowHidden = false;
+        arguments = arguments.Skip(1).ToArray();
+      }
     }
 
     var wasInvoked = false;

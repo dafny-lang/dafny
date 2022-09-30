@@ -1,12 +1,14 @@
 namespace Microsoft.Dafny;
 
-public class ResolvedPrintOption : StringOption {
+public class ResolvedPrintOption : StringOption, ILegacyOption {
   public static readonly ResolvedPrintOption Instance = new();
   public override object DefaultValue => null;
   public override bool Hidden => true;
   public override string LongName => "rprint";
   public override string ArgumentName => "file";
-  public override string Category => "Overall reporting and printing";
+  public string Category => "Overall reporting and printing";
+  public string LegacyName => LongName;
+
   public override string Description => @"
 Print Dafny program after resolving it. (use - as <file> to print
 to console.)".TrimStart();

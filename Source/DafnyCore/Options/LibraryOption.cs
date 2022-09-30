@@ -4,14 +4,16 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class LibraryOption : CommandLineOption<List<string>> {
+public class LibraryOption : CommandLineOption<List<string>>, ILegacyOption {
   public static readonly LibraryOption Instance = new();
 
   public override object DefaultValue => new List<string>();
   public override string LongName => "library";
   public override string ShortName => null;
   public override string ArgumentName => null;
-  public override string Category => "Compilation options";
+  public string Category => "Compilation options";
+  public string LegacyName => LongName;
+
   public override string Description => @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.

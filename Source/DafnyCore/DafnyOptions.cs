@@ -15,23 +15,23 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
   public record Options(IDictionary<IOptionSpec, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
     public void AddFile(string file) => base.AddFile(file, null);
 
-    private static readonly ISet<IOptionSpec> AvailableNewStyleOptions = new HashSet<IOptionSpec>(
-      new IOptionSpec[] {
+    private static readonly ISet<ILegacyOption> AvailableNewStyleOptions = new HashSet<ILegacyOption>(
+      new ILegacyOption[] {
         ShowSnippetsOption.Instance,
-        CompileTargetOption.Instance,
-        DPrintOption.Instance,
+        TargetOption.Instance,
+        PrintOption.Instance,
         LibraryOption.Instance,
-        DPreludeOption.Instance,
+        PreludeOption.Instance,
         PrintModeOption.Instance,
         ResolvedPrintOption.Instance,
-        PrintModeOption.Instance,
         OldCompileVerboseOption.Instance,
-        OutOption.Instance,
+        OutputOption.Instance,
         PluginOption.Instance,
         UseRuntimeLibOption.Instance
       });
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in AvailableNewStyleOptions.Where(o => o.LongName == name)) {
+      foreach (var option in AvailableNewStyleOptions.Where(o => o.LegacyName == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -242,7 +242,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help =>
-      IOptionSpec.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
+      ILegacyOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym

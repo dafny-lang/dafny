@@ -6,7 +6,6 @@ public class CoresOption : IntegerOption {
   public override string LongName => "cores";
   public override string ShortName => null;
   public override string ArgumentName => "count";
-  public override string Category => "General options";
 
   public override string Description => @"Run the Dafny CLI using <n> cores. Defaults to 1.";
 

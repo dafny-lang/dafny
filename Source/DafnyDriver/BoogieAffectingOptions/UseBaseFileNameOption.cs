@@ -5,7 +5,6 @@ public class UseBaseFileNameOption : BooleanOption {
   public override bool Hidden => true;
   public override string LongName => "useBaseNameForFileName";
   public override string ShortName => null;
-  public override string Category => null;
 
   public override string Description => @"
 When parsing use basename of file for tokens instead

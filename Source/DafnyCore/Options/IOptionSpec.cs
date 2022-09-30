@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.CommandLine;
 using Microsoft.Boogie;
 
@@ -15,43 +11,10 @@ public interface IOptionSpec {
   string LongName { get; }
   string ShortName { get; }
   string ArgumentName { get; }
-  string Category { get; }
   string Description { get; }
   void Parse(CommandLineParseState ps, DafnyOptions options);
 
   string PostProcess(DafnyOptions options);
-
-  public static string GenerateHelp(string template, IEnumerable<IOptionSpec> options, bool oldStyle = false) {
-    var regex = new Regex(@"---- ([^-]+) -+\r?\n *\r?\n");
-    var categories = regex.Matches(template).ToArray();
-
-    var optionsByCategory = options.GroupBy(option => option.Category).
-      ToDictionary(g => g.Key, g => g as IEnumerable<IOptionSpec>);
-
-    var output = new StringBuilder();
-    var outputIndex = 0;
-    for (var index = 0; index < categories.ToArray().Length; index++) {
-      var category = categories.ToArray()[index];
-      var preCategory = template.Substring(outputIndex, category.Index - outputIndex);
-      output.Append(preCategory);
-      outputIndex = category.Index + category.Length;
-      var categoryName = category.Groups[1].Value;
-      output.Append(category.Value);
-      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<IOptionSpec>());
-
-      foreach (var option in optionsForCategory.OrderBy(o => o.LongName)) {
-        var prefix = oldStyle ? "/" : "--";
-        var suffix = oldStyle ? ":" : "=";
-        var optionHelpHeader = $"  {prefix}{option.LongName}{suffix}<{(option.ArgumentName ?? "value")}>";
-        var linePrefix = "\n      ";
-        var optionHelp = optionHelpHeader + linePrefix + string.Join(linePrefix, option.Description.Split("\n")) + "\n";
-        output.AppendLine(optionHelp);
-      }
-    }
-    output.Append(template.Substring(outputIndex));
-
-    return output.ToString();
-  }
 }
 
 public abstract class CommandLineOption<T> : IOptionSpec {
@@ -99,7 +62,6 @@ public abstract class CommandLineOption<T> : IOptionSpec {
   public abstract string LongName { get; }
   public virtual string ShortName => null;
   public abstract string ArgumentName { get; }
-  public abstract string Category { get; }
   public abstract string Description { get; }
   public abstract void Parse(CommandLineParseState ps, DafnyOptions options);
 

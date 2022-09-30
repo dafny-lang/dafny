@@ -2,7 +2,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class PrintModeOption : CommandLineOption<DafnyOptions.PrintModes> {
+class PrintModeOption : CommandLineOption<DafnyOptions.PrintModes>, ILegacyOption {
   public static readonly PrintModeOption Instance = new();
   public override bool Hidden => true;
 
@@ -10,8 +10,8 @@ class PrintModeOption : CommandLineOption<DafnyOptions.PrintModes> {
   public override string LongName => "printMode";
   public override string ShortName => null;
   public override string ArgumentName => "Everything|DllEmbed|NoIncludes|NoGhost";
-  public override string Category => "Overall reporting and printing";
-
+  public string Category => "Overall reporting and printing";
+  public string LegacyName => LongName;
   public override string Description => @"
 Everything (default) - Print everything listed below.
 DllEmbed - print the source that will be included in a compiled dll.

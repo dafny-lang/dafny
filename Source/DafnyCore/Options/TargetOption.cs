@@ -6,20 +6,14 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
-class CompileTargetOption : TargetOption {
-  public new static readonly CompileTargetOption Instance = new();
-  public override string LongName => "compileTarget";
-}
-
-public class TargetOption : StringOption {
+public class TargetOption : StringOption, ILegacyOption {
   public static readonly TargetOption Instance = new();
-
   public override object DefaultValue => "cs";
-
   public override string LongName => "target";
+  public string LegacyName => "compileTarget";
   public override string ShortName => "t";
   public override string ArgumentName => "language";
-  public override string Category => "Compilation options";
+  public string Category => "Compilation options";
 
   public override string Description => @"
 cs (default) - Compile to .NET via C#.

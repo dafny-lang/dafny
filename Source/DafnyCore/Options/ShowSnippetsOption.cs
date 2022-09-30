@@ -3,12 +3,13 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// This is an example of how to add an option that works for both the legacy and the new CLI UI.
 /// </summary>
-public class ShowSnippetsOption : BooleanOption {
+public class ShowSnippetsOption : BooleanOption, ILegacyOption {
   public static readonly ShowSnippetsOption Instance = new();
 
-  public override string LongName => "showSnippets";
+  public override string LongName => "show-snippets";
   public override string ShortName => null;
-  public override string Category => "Overall reporting and printing";
+  public string Category => "Overall reporting and printing";
+  public string LegacyName => "showSnippets";
 
   public override string Description => @"
 0 (default) - Don't show source code snippets for Dafny messages.
