@@ -17646,7 +17646,15 @@ namespace Microsoft.Dafny {
         AddXConstraint(e.E0.tok, "ContainerIndex", e.Seq.Type, e.E0.Type, "incorrect type for selection into {0} (got {1})");
         Contract.Assert(e.E1 == null);
         e.Type = new InferredTypeProxy() { KeepConstraints = true };
-        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, e.Type, "type does not agree with element type of {0} (got {1})");
+        AddXConstraint(e.tok, "ContainerResult",
+          e.Seq.Type, e.Type,
+          new TypeConstraint.ErrorMsgWithToken(
+            e.tok,
+            "selected element has type {0} which is incompatible with expected type {1} ({2} is incompatible with {3})",
+            new SeqTypeArgToBeResolved(e.Seq.Type),
+            new SeqTypeArgToBeResolved(e.Type),
+            e.Seq.Type,
+            e.Type));
       } else {
         AddXConstraint(e.tok, "MultiIndexable", e.Seq.Type, "multi-selection of elements requires a sequence or array (got {0})");
         if (e.E0 != null) {
@@ -17661,7 +17669,21 @@ namespace Microsoft.Dafny {
         }
         var resultType = new InferredTypeProxy() { KeepConstraints = true };
         e.Type = new SeqType(resultType);
-        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "type does not agree with element type of {0} (got {1})");
+        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "multi-selection has type {0} which is incompatible with expected type {1}");
+      }
+    }
+
+    /// <summary>
+    /// Allows to lazily call ToString on the given (sequence) type's element type.
+    /// 
+    /// When adding type constraints, a sequence type's element type (`AsSeqType.Arg`) may not be resolved,
+    /// so attempting to eagerly read it (for use in an error message) results in a null reference.
+    /// By wrapping the sequence type in this object, the error handling logic will only read `AsSeqType.Arg`
+    /// on the element type after it is resolved.
+    /// </summary>
+    private record SeqTypeArgToBeResolved(Type seqType) {
+      public override string ToString() {
+        return seqType.AsSeqType.Arg.ToString();
       }
     }
 
