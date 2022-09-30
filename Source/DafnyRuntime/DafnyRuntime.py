@@ -108,16 +108,22 @@ class Seq(tuple):
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
 
+def createArrayStructure(initValue, *dims):
+    howmany = dims[0]
+    if len(dims) == 1:
+        return [initValue for _ in range(howmany)]
+    else:
+        rest = dims[1:]
+        return [createArrayStructure(initValue, *rest) for _ in range(howmany)]
+
 class Array:
     class Box(list):
         def __dafnystr__(self) -> str:
             return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __init__(self, initValue, *dims):
-        self.arr = initValue
         self.dims = list(dims)
-        for i in reversed(self.dims):
-            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
+        self.arr = createArrayStructure(initValue, *dims)
 
     def __dafnystr__(self) -> str:
         return '[' + ', '.join(map(string_of, self.arr)) + ']'
