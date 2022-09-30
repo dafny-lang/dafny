@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DafnyOptions.O.ApplyDefaultOptions();
       DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
       // ShowSnippets == true enable boogie assertion's token to contain the range of expressions, not their single token
-      DafnyOptions.O.ShowSnippets = true;
+      ShowSnippetsOption.Instance.Set(DafnyOptions.O, true);
     }
 
     public List<string> AugmentedProverOptions =>
