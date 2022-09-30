@@ -4105,17 +4105,18 @@ namespace Microsoft.Dafny.Compilers {
         // This is either
         //   * an array with an auto-init element type, where no other initialization is given, or
         //   * a 0-length array (as evidenced by the given 0-length .InitDisplay or as confirmed by the verifier for a non-auto-init element type).
+        var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, typeRhs.EType.HasCompilableValue, null, wRhs, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, typeRhs.EType.HasCompilableValue, null, wRhs, pwStmts);
         return;
       }
 
       if (typeRhs.ElementInit == null) {
         Contract.Assert(typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0);
 
-        // We use the first element of the array as an "example" for the array to be allocated
         string nwElement0;
         if (DeterminesArrayTypeFromExampleElement) {
+          // We use the first element of the array as an "example" for the array to be allocated
           nwElement0 = ProtectedFreshId("_nwElement0_");
           var wrElement0 = DeclareLocalVar(nwElement0, typeRhs.EType, typeRhs.InitDisplay[0].tok, wStmts);
           TrExpr(typeRhs.InitDisplay[0], wrElement0, false, wStmts);
@@ -4123,16 +4124,18 @@ namespace Microsoft.Dafny.Compilers {
           nwElement0 = null;
         }
 
+        var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, nwElement0, wRhs, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
 
         var ii = 0;
         foreach (var v in typeRhs.InitDisplay) {
+          pwStmts = wStmts.Fork();
           var (wArray, wElement) = EmitArrayUpdate(new List<string> { ii.ToString() }, v.Type, wStmts);
           if (ii == 0 && nwElement0 != null) {
             wElement.Write(nwElement0);
           } else {
-            TrExpr(v, wElement, false, wStmts);
+            TrExpr(v, wElement, false, pwStmts);
           }
           wArray.Write(nw);
           EndStmt(wStmts);
