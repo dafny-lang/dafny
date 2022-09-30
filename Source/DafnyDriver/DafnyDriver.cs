@@ -15,18 +15,17 @@ using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Linq;
+using Microsoft.Boogie;
+using Bpl = Microsoft.Boogie;
+using System.Diagnostics;
 
 namespace Microsoft.Dafny {
-  using System;
-  using System.Collections.Generic;
-  using System.Collections.ObjectModel;
-  using System.Diagnostics.Contracts;
-  using System.IO;
-  using System.Linq;
-
-  using Microsoft.Boogie;
-  using Bpl = Microsoft.Boogie;
-  using System.Diagnostics;
 
   public class DafnyDriver {
     public DafnyOptions Options { get; }
@@ -78,12 +77,20 @@ namespace Microsoft.Dafny {
       // We do not want output such as "Compiled program written to Foo.cs"
       // from the compilers, since that changes with the target language
       "/compileVerbose:0",
-
-      // Hide Boogie execution traces since they are meaningless for Dafny programs
-      "/errorTrace:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
       "/timeLimit:300"
+    };
+
+    public static readonly string[] NewDefaultArgumentsForTesting = new[] {
+      // Try to verify 2 verification conditions at once
+      "--cores=2",
+
+      // We do not want absolute or relative paths in error messages, just the basename of the file
+      "--useBaseNameForFileName",
+
+      // Set a default time limit, to catch cases where verification time runs off the rails
+      "--verification-time-limit=300"
     };
 
     public static int Main(string[] args) {
@@ -99,30 +106,26 @@ namespace Microsoft.Dafny {
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var dafnyOptions = new DafnyOptions();
-      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
-      var driver = new DafnyDriver(dafnyOptions);
+      var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
-      ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
-        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
-        _ => throw new ArgumentOutOfRangeException()
-      };
-
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
+          var driver = new DafnyDriver(dafnyOptions);
+          ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
+            DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(),
+            DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(),
+            _ => throw new ArgumentOutOfRangeException()
+          };
 #pragma warning disable VSTHRD002
           exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), reporter).Result;
 #pragma warning restore VSTHRD002
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-          break;
+          return (int)ExitValue.PREPROCESSING_ERROR;
         case CommandLineArgumentsResult.OK_EXIT_EARLY:
-          exitValue = ExitValue.SUCCESS;
-          break;
+          return (int)ExitValue.SUCCESS;
         default:
           throw new ArgumentOutOfRangeException();
       }
@@ -157,17 +160,25 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(DafnyOptions options, string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
-      options.RunningBoogieFromCommandLine = true;
       try {
-        if (!options.Parse(args)) {
-          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        switch (CommandRegistry.Create(args)) {
+          case ParseArgumentSuccess success:
+            options = success.DafnyOptions;
+            break;
+          case ParseArgumentFailure failure:
+            options = null;
+            return failure.ExitResult;
+          default: throw new Exception("unreachable");
         }
+
+        options.RunningBoogieFromCommandLine = true;
       } catch (ProverException pe) {
-        options.Printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        new DafnyConsolePrinter().ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 

@@ -40,7 +40,7 @@ namespace IntegrationTests {
 
       var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-      var substitutions = new Dictionary<string, string> {
+      var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
@@ -99,6 +99,8 @@ namespace IntegrationTests {
       } else {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
+
+      substitutions["%args"] = DafnyDriver.NewDefaultArgumentsForTesting;
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
