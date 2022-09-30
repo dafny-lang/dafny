@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %baredafny run --no-verify --target:cs %args "%s" csharp 1 >> "%t"
 // RUN: %baredafny run --no-verify --target:cpp %args "%s" cpp Yipee >> "%t"
-// RUN: %baredafny run --no-verify --target:java %args "%s" -- java heya >> "%t"
+// RUN: %baredafny run --no-verify --target:java %args "%s" -- java --heya >> "%t"
 // RUN: %baredafny run --no-verify --target:js %args "%s" -- javascript 2 >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args python 1 >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "go go" 1 >> "%t"
