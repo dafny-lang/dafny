@@ -181,6 +181,8 @@ This lemma can be interpreted as the sequent: $a: nat,  b: nat,  \exists a': nat
 * Every require is in the antecedants
 * Every ensure is in the consequents
 
+Note, however, that a lemma with n ensures, where n is greater than 1, should not be interpreted as 1 but n sequents. 
+
 The body of the lemma can be interpreted as a proof script. The semantics of the proof script is given by weakest-preconditions, but you do not have to think about the proof script as such. Indeed, you can simulate the rules of [Hilbert's systems](TutorialSupport/Hilbert.dfy), [natural deduction](TutorialSupport/NaturalDeduction.dfy), and [sequent calculus](TutorialSupport/SequentCalculus.dfy). 
 
 Perhaps the simplest way to interpret (and write) proof scripts for proofs that are not tightly connected to code is to think by natural deduction.
