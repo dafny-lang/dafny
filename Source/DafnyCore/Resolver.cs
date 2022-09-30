@@ -9944,7 +9944,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc) {
+    bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc, ModuleDefinition M) {
 
       if (type.IsArrowType || type.IsCoDatatype || (type.IsOpaqueType && !type.SupportsEquality)) {
         return true;
@@ -9952,6 +9952,13 @@ namespace Microsoft.Dafny {
 
       var asIDT = type.AsIndDatatype;
       if (asIDT != null) {
+        if (asIDT.EnclosingModuleDefinition != M) {
+          if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
+            return true;
+          } else {
+            return false;
+          }
+        }
         if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
           return true;
         } else {
@@ -9963,7 +9970,7 @@ namespace Microsoft.Dafny {
 
       var asSubset = type.AsSubsetType;
       if (asSubset != null) {
-        if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc)) {
+        if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc, M)) {
           return true;
         }
       }
@@ -9986,14 +9993,11 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-          if (BasicCheckIfEqualityIsDefinitelyNotSupported(type, dependencies, scc)) {
+          if (BasicCheckIfEqualityIsDefinitelyNotSupported(type, dependencies, scc, dt.EnclosingModuleDefinition)) {
             return true;
           }
 
           foreach (var typea in arg.Type.TypeArgs) {
-            //if (typea.IsOpaqueType && !arg.Type.SupportsEquality) {
-            //  return true;
-            //}
 
             var red = type.AsRedirectingType;
             var meaningfulArg = true;
@@ -10005,7 +10009,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            if (meaningfulArg && BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc)) {
+            if (meaningfulArg && BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc, dt.EnclosingModuleDefinition)) {
               return true;
             }
           }
