@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
 
       if (namedSpanStartStack.Count > 0) {
-        throw new ArgumentException($"Saw {NamedSpanEndString} without matching {NamedSpanEndString}");
+        throw new ArgumentException(@"Saw '{<' without matching '>}'");
       }
 
       // Append the remainder of the string.
