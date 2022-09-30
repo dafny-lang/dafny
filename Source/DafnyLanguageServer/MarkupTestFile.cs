@@ -159,12 +159,6 @@ namespace Microsoft.Dafny.LanguageServer {
     public static void GetPosition(string input, out string output, out List<int> positions)
         => GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
 
-    // public static void GetPositionAndSpan(string input, out string output, out int? cursorPosition, out TextSpan? textSpan)
-    // {
-    //     GetPositionAndSpans(input, out output, out cursorPosition, out ImmutableArray<TextSpan> spans);
-    //     textSpan = spans.Length == 0 ? null : (TextSpan?)spans.Single();
-    // }
-
     public static void GetPositionAndSpan(string input, out string output, out List<int> positions, out TextSpan textSpan) {
       GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
       textSpan = spans.Single();
