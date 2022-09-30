@@ -962,7 +962,7 @@ namespace Microsoft.Dafny.Compilers {
             if (arrayClass.Dims == 1) {
               return "[]";
             } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "_dafny.ZERO"));
             }
           } else {
             // non-null (non-array) type
@@ -1299,11 +1299,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else {
         // the general case
-        wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
-        foreach (var dim in dimensions) {
-          wr.Write($", ({dim}).toNumber()");
-        }
-        wr.Write(")");
+        wr.Write("_dafny.newArray({0}, {1})", initValue ?? "undefined", dimensions.Comma(s => s));
       }
     }
 

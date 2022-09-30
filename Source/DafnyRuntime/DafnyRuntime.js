@@ -1011,7 +1011,7 @@ let _dafny = (function() {
     if (dims.length === 0) {
       return initValue;
     } else {
-      let a = Array(dims[0]);
+      let a = Array(dims[0].toNumber());
       let b = Array.from(a, (x) => buildArray(initValue, ...dims.slice(1)));
       return b;
     }

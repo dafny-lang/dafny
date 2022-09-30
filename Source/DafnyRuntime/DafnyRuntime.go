@@ -614,6 +614,11 @@ func (seq Seq) String() string {
 // underlying storage (a slice) of elements, together with a record of the length
 // of each dimension. Thus, this general interface supports 1- and multi-dimensional
 // Dafny arrays.
+//
+// All array indices are given as the Go type "int". This is what the Dafny implementation
+// refers to as "target-language array-index type". However, the dimension lengths
+// are given as "big.Int".
+
 type Array interface {
   dimensionCount() int
   dimensionLength(dim int) int
@@ -624,6 +629,23 @@ type Array interface {
 
 /***** newArray *****/
 
+// Multiply the numbers in "dims" and return the product as an "int".
+// If the produce doesn't fit in an "int", panic with the message that the
+// array-size limit has been exceeded.
+// It is expected that len(dims) is at least 1 and that each number in
+// dims is non-negative.
+func computeTotalArrayLength(dims ...Int) int {
+  product := dims[0]
+  for i := 1; i < len(dims); i++ {
+    product = product.Times(dims[i])
+  }
+  if IntOf(0x8000_0000).Cmp(product) <= 0 {
+    panic(fmt.Sprintf("array size exceeds memory limit: %v", String(product)))
+  }
+  totalLength := product.Int()
+  return totalLength
+}
+
 // NewArrayFromExample returns a new Array.
 // If "init" is non-nil, it is used to initialize all elements of the array.
 // "example" is used only to figure out the right kind of Array to return.
@@ -631,10 +653,11 @@ type Array interface {
 func NewArrayFromExample(example any, init any, dims ...Int) Array {
   numberOfDimensions := len(dims)
   intDims := make([]int, len(dims))
-  totalLength := 1
+  totalLength := computeTotalArrayLength(dims...)
+  // If the previous line does not panic, then the .Int() conversions in
+  // the following loop will succeed.
   for d := 0; d < numberOfDimensions; d++ {
-    intDims[d] = dims[d].Int() // TODO: panic (or, better, report "out of memory") if dims[d]
-    totalLength *= intDims[d] // TODO: panic (or, better, report "out of memory") if this overflows
+    intDims[d] = dims[d].Int()
   }
 
   if totalLength == 0 {
@@ -902,7 +925,7 @@ func ArrayLenInt(array Array, dim int) int {
   return array.dimensionLength(dim)
 }
 
-func computeArrayIndex(array Array, ixs ...Int) int {
+func computeArrayIndex(array Array, ixs ...int) int {
   dimensionCount := array.dimensionCount()
   if len(ixs) != dimensionCount {
     panic(fmt.Sprintf("Expected %d indices but got %d", dimensionCount, len(ixs)))
@@ -910,18 +933,18 @@ func computeArrayIndex(array Array, ixs ...Int) int {
   i := 0
   size := 1
   for d := dimensionCount - 1; d >= 0; d-- {
-    i += size * ixs[d].Int()
+    i += size * ixs[d]
     size *= array.dimensionLength(d)
   }
   return i
 }
 
-func ArrayGet(array Array, ixs ...Int) any {
+func ArrayGet(array Array, ixs ...int) any {
   index := computeArrayIndex(array, ixs...)
   return array.ArrayGet1(index)
 }
 
-func ArraySet(array Array, value any, ixs ...Int) {
+func ArraySet(array Array, value any, ixs ...int) {
   index := computeArrayIndex(array, ixs...)
   array.ArraySet1(value, index)
 }

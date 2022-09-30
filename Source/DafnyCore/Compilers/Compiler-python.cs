@@ -944,11 +944,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : "None";
-      wr.Write($"{DafnyArrayClass}({initValue}");
-      foreach (var dim in dimensions) {
-        wr.Write($", {dim}");
-      }
-      wr.Write(")");
+      wr.Write($"{DafnyArrayClass}({initValue}, {dimensions.Comma(s => s)})");
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {

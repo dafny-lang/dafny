@@ -1920,8 +1920,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
-      start = start ?? "_dafny.Zero";
-      return wr.NewNamedBlock("for {0} := {2}; {0}.Cmp({1}) < 0; {0} = {0}.Plus(_dafny.One)", indexVar, bound, start);
+      start = start ?? "0";
+      return wr.NewNamedBlock("for {0} := {2}; {0} < {1}; {0}++", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -2612,9 +2612,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    // TODO We might be able to be more consistent about whether indices are ints or Ints and avoid this
-    private static string IntOfAny(string i) {
-      return string.Format("_dafny.IntOfAny({0})", i);
+    protected override string ArrayIndexToNativeInt(string s, Type type) {
+      var nt = AsNativeType(type);
+      if (nt == null) {
+        return $"({s}).Int()";
+      } else {
+        return $"int({s})";
+      }
     }
 
     protected override ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
@@ -2626,10 +2630,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+      // Note, the indices are formulated in the native array-index type.
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
       wr.Write("_dafny.ArrayGet(");
       var w = wr.Fork();
-      wr.Write(", {0})", indices.Comma(IntOfAny));
+      wr.Write($", {indices.Comma(s => s)}");
       return w;
     }
 
@@ -2640,12 +2645,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("_dafny.ArrayGet(");
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write(", ");
-        if (!index.Type.IsIntegerType) {
-          wr.Write("_dafny.IntOfAny");
-        }
-        // No need for IntOfAny; things coming from user code are presumed Ints
-        TrParenExpr(index, wr, inLetExprBody, wStmts);
+        var idx = Expr(index, inLetExprBody, wStmts).ToString();
+        wr.Write($", {ArrayIndexToNativeInt(idx, index.Type)}");
       }
       wr.Write(")");
       return w;
@@ -2656,7 +2657,7 @@ namespace Microsoft.Dafny.Compilers {
       var wArray = wr.Fork();
       wr.Write(", ");
       var wRhs = wr.Fork();
-      wr.Write(", {0})", indices.Comma(IntOfAny));
+      wr.Write(", {0})", indices.Comma(s => s));
       return (wArray, wRhs);
     }
 

@@ -79,6 +79,7 @@ method Main() {
   ArrayToSeq.Test();
 
   ArrayAllocationInitialization.Test();
+  VariationsOnIndexAndDimensionTypes.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -788,5 +789,39 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
     s := s + MatrixToSequence(a);
 
     print s, "\n";
+  }
+}
+
+module {:options "/functionSyntax:4"} VariationsOnIndexAndDimensionTypes {
+  newtype byte = x | 0 <= x < 256
+  newtype onebyte = x | 0 < x < 256 witness 1
+  newtype Long = x | -0x8000_0000_0000_0000 < x < 0x8000_0000_0000_0000
+
+  method Test() {
+    TestArray();
+    TestMatrix();
+  }
+
+  method TestArray() {
+    var aa;
+    aa := new byte[3](i => if 0 <= i < 10 then (20 + i) as byte else 88);
+  }
+
+  method TestMatrix() {
+    var a, b, c := 3 as byte, 2, 5 as Long;
+    var m := new byte[a, b, c](F);
+    expect m[0 as byte, 1, 2 as Long]
+         + m[1 as Long, 1 as byte, 2]
+         + m[2, 1 as Long, 2 as byte]
+        == 138;
+  }
+
+  function F(a: nat, b: nat, c: nat): byte {
+    if a == 0 then
+      45
+    else if a == 1 then
+      46
+    else
+      47
   }
 }

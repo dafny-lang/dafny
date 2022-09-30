@@ -695,9 +695,9 @@ namespace Microsoft.Dafny.Compilers {
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       var dimStrings = dimensions.ConvertAll(expr => {
-        var w = new ConcreteSyntaxTree();
-        TrExpr(expr, w, false, wStmts);
-        return w.ToString();
+        var wrDim = new ConcreteSyntaxTree();
+        TrExpr(expr, ExprToInt(expr.Type, wrDim), false, wStmts);
+        return wrDim.ToString();
       });
       EmitNewArray(elementType, tok, dimStrings, mustInitialize, exampleElement, wr, wStmts);
     }
@@ -3448,7 +3448,7 @@ namespace Microsoft.Dafny.Compilers {
       var indices = new List<string>();
       for (int i = 0; i < lhs.Indices.Count; i++) {
         var wIndex = new ConcreteSyntaxTree();
-        EmitTupleSelect(tup, i + 1, wIndex);
+        EmitTupleSelect(tup, i + 1, EmitCoercionToNativeInt(wIndex));
         indices.Add(wIndex.ToString());
       }
       var (wrArray, wrRhs) = EmitArrayUpdate(indices, tupleTypeArgsList[L - 1], wr);
@@ -4154,33 +4154,27 @@ namespace Microsoft.Dafny.Compilers {
         //       var _element0 := _init(0, 0, 0);
         //       _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
         //       ArrayUpdate(_nw, _element0, 0, 0, 0);
+        //       var _nativeLen0 := IntToArrayIndex(_len0);
+        //       var _nativeLen1 := IntToArrayIndex(_len1);
+        //       var _nativeLen2 := IntToArrayIndex(_len2);
         //       var _start := 1;
-        //       for (var _i0 := 0; _i0 < _len0; _i0++) {
-        //         for (var _i1 := 0; _i1 < _len1; _i1++) {
-        //           for (var _i2 := _start; _i2 < _len2; _i2++) {
+        //       for (var _i0 := 0; _i0 < _nativeLen0; _i0++) {
+        //         for (var _i1 := 0; _i1 < _nativeLen1; _i1++) {
+        //           for (var _i2 := _start; _i2 < _nativeLen2; _i2++) {
         //             ArrayUpdate(_nw, _init(_i0, _i1, _i2), _i0, _i1, _i2);
         //           }
         //           _start := 0; // omit, if there's only one dimension
         //         }
         //       }
         //     }
-        string zero, one;
-        {
-          var wLiteral = new ConcreteSyntaxTree();
-          TrExpr(Expression.CreateIntLiteral(typeRhs.Tok, 0), wLiteral, false, wStmts);
-          zero = wLiteral.ToString();
-          wLiteral = new ConcreteSyntaxTree();
-          TrExpr(Expression.CreateIntLiteral(typeRhs.Tok, 1), wLiteral, false, wStmts);
-          one = wLiteral.ToString();
-        }
-
         // Put the array dimensions into local variables
         var dimNames = new List<string>();
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
           var dim = typeRhs.ArrayDimensions[d];
           var dimName = ProtectedFreshId($"_len{d}_");
           dimNames.Add(dimName);
-          var wrDim = DeclareLocalVar(dimName, dim.Type, dim.tok, wStmts);
+          var wrDim = DeclareLocalVar(dimName, Type.Int, dim.tok, wStmts);
+          wrDim = ExprToInt(dim.Type, wrDim);
           TrExpr(dim, wrDim, false, wStmts);
         }
 
@@ -4206,29 +4200,44 @@ namespace Microsoft.Dafny.Compilers {
         DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wElse);
 
         // var _element0 := _init(0, 0, 0);
+        var initFunctionType = typeRhs.ElementInit.Type.AsArrowType;
+        Contract.Assert(initFunctionType != null && initFunctionType.Arity == typeRhs.ArrayDimensions.Count);
         var element0 = ProtectedFreshId($"_element0_");
         wRhs = DeclareLocalVar(element0, null, typeRhs.Tok, wElse);
-        wRhs.Write("{0}{2}({1})", init, typeRhs.ArrayDimensions.Comma(_ => zero), LambdaExecute);
+        wRhs.Write("{0}{2}({1})", init, initFunctionType.Args.Comma(argumentType => {
+          var zero = Expression.CreateIntLiteral(typeRhs.Tok, 0, argumentType);
+          return Expr(zero, false, wElse).ToString();
+        }), LambdaExecute);
 
         // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
         wRhs = new ConcreteSyntaxTree();
-        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, element0, wRhs, wElse);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, dimNames, false, element0, wRhs, wElse);
         EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wElse);
 
         // _nw[0, 0, 0] := _element0;
-        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => zero);
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, wElse);
         wrRhs.Write(element0);
         wArray.Write(nw);
         EndStmt(wElse);
 
+        // Compute native array dimensions
+        var nativeDimNames = new List<string>();
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var dim = typeRhs.ArrayDimensions[d];
+          var nativeDimName = ProtectedFreshId($"_nativeLen{d}_");
+          nativeDimNames.Add(nativeDimName);
+          var wrDim = DeclareLocalVar(nativeDimName, null, dim.tok, wElse);
+          wrDim.Write(ArrayIndexToNativeInt(dimNames[d], Type.Int));
+        }
+
         // var _start := 1;
         string startName;
         if (typeRhs.ArrayDimensions.Count == 1) {
-          startName = one;
+          startName = ArrayIndexLiteral(1);
         } else {
           startName = ProtectedFreshId($"_start");
-          DeclareLocalVar(startName, Type.Int, typeRhs.Tok, false, one, wElse);
+          DeclareLocalVar(startName, null, typeRhs.Tok, false, ArrayIndexLiteral(1), wElse);
         }
 
         // Build a loop nest that will call the initializer for all indices
@@ -4236,9 +4245,9 @@ namespace Microsoft.Dafny.Compilers {
         var w = wElse;
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
           var innerMostLoop = d == typeRhs.ArrayDimensions.Count - 1;
-          var wLoopBody = CreateForLoop(indices[d], dimNames[d], w, innerMostLoop ? startName : null);
+          var wLoopBody = CreateForLoop(indices[d], nativeDimNames[d], w, innerMostLoop ? startName : null);
           if (typeRhs.ArrayDimensions.Count != 1 && innerMostLoop) {
-            EmitAssignment(startName, Type.Int, zero, Type.Int, w);
+            EmitAssignment(startName, Type.Int, ArrayIndexLiteral(0), Type.Int, w);
           }
           w = wLoopBody;
         }
