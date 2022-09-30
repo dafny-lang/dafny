@@ -997,7 +997,7 @@ implicitly even if the declaration of the variable does not have an
 explicit initializer. For example, a `bool` variable is initialized by default
 to `false` and a variable with an int-based type for which `0` is a valid value
 is auto-initialized to `0`; a non-nullable class type is not 
-not auto-initialized, but a nullable class type is auto-initalized to `null`.
+auto-initialized, but a nullable class type is auto-initalized to `null`.
 
 In declaring generic types, type parameters can be declared to be required to
 be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
