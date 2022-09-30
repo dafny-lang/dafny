@@ -942,6 +942,5 @@ To resolve expression `E.id`:
   0. Member of module M: a sub-module (including submodules of imports),
      class, datatype, etc.
 * If `E` denotes a type:
-  1. If `allowDanglingDotName`: Return the type of `E` and the given `E.id`,
-     letting the caller try to make sense of the final dot-name.
-     TODO: I don't under this sentence. What is `allowDanglingDotName`?
+  1. Then the validity and meaning of `id` depends on the type and
+     must be a user-declared or pre-defined member of the type,
