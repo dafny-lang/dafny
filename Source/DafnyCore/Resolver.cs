@@ -9982,7 +9982,7 @@ namespace Microsoft.Dafny {
 
         foreach (var arg in ctor.Formals) {
           var type = arg.Type;
-          if (arg.IsGhost || (type.IsOpaqueType && !type.SupportsEquality)) {
+          if (arg.IsGhost) {
             return true;
           }
 
@@ -9991,9 +9991,9 @@ namespace Microsoft.Dafny {
           }
 
           foreach (var typea in arg.Type.TypeArgs) {
-            if (typea.IsOpaqueType && !arg.Type.SupportsEquality) {
-              return true;
-            }
+            //if (typea.IsOpaqueType && !arg.Type.SupportsEquality) {
+            //  return true;
+            //}
 
             if (BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc)) {
               return true;
