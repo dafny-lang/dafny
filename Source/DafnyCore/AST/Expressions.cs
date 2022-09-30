@@ -384,7 +384,7 @@ public abstract class Expression : INode {
   /// <summary>
   /// Create a resolved expression of the form "e - n"
   /// </summary>
-  public static Expression CreateDecrement(Expression e, int n) {
+  public static Expression CreateDecrement(Expression e, int n, Type ty = null) {
     Contract.Requires(e != null);
     Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
     Contract.Requires(0 <= n);
@@ -392,22 +392,22 @@ public abstract class Expression : INode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.tok, n, ty);
     return CreateSubtract(e, nn);
   }
 
   /// <summary>
   /// Create a resolved expression of the form "n"
   /// </summary>
-  public static Expression CreateIntLiteral(IToken tok, int n) {
+  public static Expression CreateIntLiteral(IToken tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
       var nn = new LiteralExpr(tok, n);
-      nn.Type = Type.Int;
+      nn.Type = ty ?? Type.Int;
       return nn;
     } else {
-      return CreateDecrement(CreateIntLiteral(tok, 0), -n);
+      return CreateDecrement(CreateIntLiteral(tok, 0, ty), -n, ty);
     }
   }
 
