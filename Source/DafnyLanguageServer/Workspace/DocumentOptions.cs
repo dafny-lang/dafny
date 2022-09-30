@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public List<string> AugmentedProverOptions =>
       DafnyOptions.O.ProverOptions.Concat(new List<string>() {
-        "O:model_compress=false",
+        "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6
         "O:model.completion=true",
         "O:model_evaluator.completion=true"
       }).ToList();
