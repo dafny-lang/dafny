@@ -30,7 +30,7 @@ public interface ILegacyOption : IOptionSpec {
       foreach (var option in optionsForCategory.OrderBy(o => o.LegacyName)) {
         var prefix = oldStyle ? "/" : "--";
         var suffix = oldStyle ? ":" : "=";
-        var optionHelpHeader = $"  {prefix}{option.LegacyName}{suffix}<{(option.ArgumentName ?? "value")}>";
+        var optionHelpHeader = $"  {prefix}{option.LegacyName}{suffix}<{option.ArgumentName ?? "value"}>";
         var linePrefix = "\n      ";
         var optionHelp = optionHelpHeader + linePrefix + string.Join(linePrefix, option.Description.Split("\n")) + "\n";
         output.AppendLine(optionHelp);
