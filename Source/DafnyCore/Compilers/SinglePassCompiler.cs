@@ -5067,6 +5067,7 @@ namespace Microsoft.Dafny.Compilers {
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
+          wStmts = newWBody.Fork();
           newWBody = MaybeInjectSubtypeConstraint(
             tmpVarName, collectionElementType, bv.Type,
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
@@ -5179,6 +5180,7 @@ namespace Microsoft.Dafny.Compilers {
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
+        wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
@@ -5291,7 +5293,7 @@ namespace Microsoft.Dafny.Compilers {
         TrExpr(constraintInContext, guardWriter, inLetExprBody, wStmts);
         if (isReturning) {
           var elseBranch = wr;
-          elseBranch = elseBranch.NewBlock("", null, BlockStyle.Brace);
+          elseBranch = EmitBlock(elseBranch);
           elseBranch = EmitReturnExpr(elseBranch);
           wStmts = elseBranch.Fork();
           TrExpr(new LiteralExpr(tok, elseReturnValue), elseBranch, inLetExprBody, wStmts);

@@ -776,7 +776,7 @@ an entry-point candidate must satisfy the following conditions:
 * If the method is an instance (that is, non-static) method and the
   enclosing type is not a class,
   then the enclosing type must, when instantiated with auto-initializing
-  type parameters, be an auto-initialing type.
+  type parameters, be an auto-initializing type.
   In this case, the runtime system will
   invoke the entry-point method on a value of the enclosing type.
 
@@ -933,7 +933,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 25.8.8. Supported features by target language
+### 25.8.8. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
@@ -1668,3 +1668,27 @@ periods.
   compiled assembly rather than including `DafnyRuntime.cs` in the build
   process.
 
+
+* `-testContracts:<mode>` - test certain function and method contracts
+  at runtime. This works by generating a wrapper for each function or
+  method to be tested that includes a sequence of `expect` statements
+  for each requires clause, a call to the original, and sequence of
+  `expect` statements for each `ensures` clause. This is particularly
+  useful for code marked with the `{:extern}` attribute and implemented
+  in the target language instead of Dafny. Having runtime checks of the
+  contracts on such code makes it possible to gather evidence that the
+  target-language code satisfies the assumptions made of it during Dafny
+  verification through mechanisms ranging from manual tests through
+  fuzzing to full verification. For the latter two use cases, having
+  checks for `requires` clauses can be helpful, even if the Dafny
+  calling code will never violate them.
+
+  The `<mode>` parameter can currently be one of the following.
+
+  * `Externs` - insert dynamic checks when calling any function or
+    method marked with the `{:extern}` attribute, wherever the call
+    occurs.
+
+  * `TestedExterns` - insert dynamic checks when calling any function or
+    method marked with the `{:extern}` attribute directly from a
+    function or method marked with the `{:test}` attribute.

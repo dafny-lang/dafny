@@ -479,7 +479,7 @@ supported escape sequences are the following:
  `\n`               | line feed
  `\r`               | carriage return
  `\t`               | horizontal tab
- `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\u`_xxxx_         | [universal (unicode) character](https://en.wikipedia.org/wiki/Universal_Character_Set_characters) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
@@ -597,6 +597,7 @@ Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
 For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
 To restrict a type parameter to auto-init types, mark it with the
@@ -1319,8 +1320,26 @@ type Monad<T>
 can be used abstractly to represent an arbitrary parameterized monad.
 
 Even as an opaque type, the type
-may be given members such as constants, methods or functions. (TODO: Examples please)
+may be given members such as constants, methods or functions.
+For example,
+```
+abstract module P {
+  type T {
+    function ToString(): string
+  }
+}
 
+module X refines P {
+  newtype T = i | 0 <= i < 10 {
+    function ToString... {  "" }
+  }
+}
+```
+The abstract type `P.T` has a declared member `ToString`, which can be called wherever `P.T` may be used.
+In the refining module `X`, `T` is declared to be a `newtype`, in which `ToString` now has a body.
+
+It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
+type synonyms may not have members.
 
 ## 11.3. Subset types {#sec-subset-types}
 
