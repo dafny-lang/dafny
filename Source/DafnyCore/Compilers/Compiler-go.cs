@@ -2652,6 +2652,8 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wRhs);
     }
 
+    protected override string ArrayIndexToInt(string arrayIndex) => $"_dafny.IntOf({arrayIndex})";
+
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {
         wr.Write(lit.Value.ToString());

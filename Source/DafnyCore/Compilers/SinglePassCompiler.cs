@@ -1037,9 +1037,12 @@ namespace Microsoft.Dafny.Compilers {
       TrExpr(rhs, wRhs, false, wr);
       return wArray;
     }
-    protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
+    /// <summary>
+    /// Given a target-language expression "arrayIndex" that of the target array-index type, return an
+    /// expression that denotes "arrayIndex" as a Dafny "int" (that is, a BigInteger).
+    /// </summary>
+    protected virtual string ArrayIndexToInt(string arrayIndex) {
       Contract.Requires(arrayIndex != null);
-      Contract.Requires(fromType != null);
       return arrayIndex;
     }
     protected virtual string ArrayIndexToNativeInt(string arrayIndex, Type fromType) {
@@ -4218,7 +4221,7 @@ namespace Microsoft.Dafny.Compilers {
           w = wLoopBody;
         }
         (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
-        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
+        wrRhs.Write("{0}{2}({1})", init, Enumerable.Range(0, indices.Count).Comma(idx => ArrayIndexToInt(indices[idx])), LambdaExecute);
         wArray.Write(nw);
         EndStmt(w);
 
@@ -4253,7 +4256,7 @@ namespace Microsoft.Dafny.Compilers {
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
-        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
+        wrRhs.Write("{0}{2}({1})", init, indices.Comma(idx => ArrayIndexToInt(idx)), LambdaExecute);
         wArray.Write(nw);
         EndStmt(w);
       }

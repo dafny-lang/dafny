@@ -1825,10 +1825,6 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
-      return arrayIndex;
-    }
-
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
       if (AsNativeType(expr.Type) == null) {
