@@ -9978,8 +9978,7 @@ namespace Microsoft.Dafny {
             }
 
             if (anotherIndDt_arg != null && !scc.Contains(anotherIndDt_arg)) {
-              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)
-              {
+              if (CheckIfEqualityIsDefinitelyNotSupported(anotherIndDt_arg, dependencies)) {
                 return true;
               }
             }
