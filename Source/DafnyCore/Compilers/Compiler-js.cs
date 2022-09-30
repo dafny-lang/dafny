@@ -333,9 +333,9 @@ namespace Microsoft.Dafny.Compilers {
         w0.WriteLine("return this._d");
       }
 
-      // query properties
+      // create methods
       var i = 0;
-      foreach (var ctor in dt.Ctors) {
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // collect the names of non-ghost arguments
         var argNames = new List<string>();
         var k = 0;
@@ -378,7 +378,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // query properties
       i = 0;
-      foreach (var ctor in dt.Ctors) {
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // get is_Ctor0() { return _D is Dt_Ctor0; }
         wr.WriteLine("get is_{0}() {{ return this.$tag === {1}; }}", ctor.CompileName, i);
         i++;
@@ -394,15 +394,20 @@ namespace Microsoft.Dafny.Compilers {
           var w = wr.NewNamedBlock("static *AllSingletonConstructors_()");
           foreach (var ctor in dt.Ctors) {
             Contract.Assert(ctor.Formals.Count == 0);
-            w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
+            if (ctor.IsGhost) {
+              w.WriteLine("yield {0};", ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok));
+            } else {
+              w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
+            }
           }
         }
       }
 
       // destructors
       foreach (var ctor in dt.Ctors) {
-        foreach (var dtor in ctor.Destructors) {
-          if (dtor.EnclosingCtors[0] == ctor) {
+        foreach (var dtor in ctor.Destructors.Where(dtor => dtor.EnclosingCtors[0] == ctor)) {
+          var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
+          if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               // datatype:   get dtor_Dtor0() { return this.Dtor0; }
@@ -499,9 +504,13 @@ namespace Microsoft.Dafny.Compilers {
         var wDefault = wr.NewBlock(")");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
-        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-        var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
-        EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
+        if (groundingCtor.IsGhost) {
+          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+        } else {
+          var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
+          var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
+          EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
+        }
         wDefault.WriteLine(";");
       }
 
@@ -639,7 +648,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -669,7 +678,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var sep = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
@@ -884,11 +893,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      var xType = type.NormalizeExpandKeepConstraints();
-
       if (usePlaceboValue) {
         return "undefined";
       }
+
+      var xType = type.NormalizeExpandKeepConstraints();
 
       if (xType is BoolType) {
         return "false";
@@ -982,7 +991,8 @@ namespace Microsoft.Dafny.Compilers {
 
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
@@ -1643,7 +1653,7 @@ namespace Microsoft.Dafny.Compilers {
           suffixWr.Write(IdName(member));
           suffixWr.Write("(");
           var suffixSep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, suffixWr, ref suffixSep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, suffixWr, ref suffixSep);
           if (additionalCustomParameter != null) {
             suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";
@@ -1671,7 +1681,7 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -1690,7 +1700,7 @@ namespace Microsoft.Dafny.Compilers {
             obj(w);
             w.Write(".{0}", IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -1913,6 +1923,18 @@ namespace Microsoft.Dafny.Compilers {
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
     }
 
+    bool IsRepresentedAsBigNumber(Type t) {
+      if (AsNativeType(t) != null) {
+        return false;
+      } else if (t.AsBitVectorType is { } bvt) {
+        return bvt.NativeType == null;
+      } else {
+        return t.IsNumericBased(Type.NumericPersuasion.Int)
+          || t.IsBitVectorType
+          || t.IsBigOrdinalType;
+      }
+    }
+
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
       Expression e0, Expression e1, IToken tok, Type resultType,
       out string opString,
@@ -2007,38 +2029,46 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = "<";
+          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
           } else {
-            opString = "<";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = "<=";
+          } else if (IsRepresentedAsBigNumber(e0.Type)) {
             callString = "isLessThanOrEqualTo";
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
           } else {
-            opString = "<=";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = ">=";
+          } else if (IsRepresentedAsBigNumber(e0.Type)) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
             reverseArguments = true;
           } else {
-            opString = ">=";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
+          if (AsNativeType(e0.Type) != null) {
+            opString = ">";
+          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
             reverseArguments = true;
           } else {
-            opString = ">";
+            Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:

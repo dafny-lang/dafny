@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
-        var enclosingSymbol = state.SymbolTable.GetEnclosingSymbol(position, cancellationToken);
+        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
         ISymbol? currentDesignator = null;
         ISymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
-          if (currentDesignator == null || !state.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+          if (currentDesignator == null || !state.SignatureAndCompletionTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
             logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
               currentMemberAccess, memberAccessChain);
             return (currentDesignator, null);

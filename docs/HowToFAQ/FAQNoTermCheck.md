@@ -20,4 +20,4 @@ method inf(i: int)
 ```
 
 Eventually you should put an actual termination metric in place of the `*` and prove termination.
-The reference manual has more information about termination metrics [in the section on `decreases` clauses](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-decreases-clause).
+The reference manual has more information about termination metrics [in the section on `decreases` clauses](../DafnyRef/DafnyRef#sec-decreases-clause).

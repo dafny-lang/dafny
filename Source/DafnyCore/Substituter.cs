@@ -277,43 +277,8 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
-        // the enclosing scopes.
 
-        var q = e as QuantifierExpr;
-        if (q != null && q.SplitQuantifier != null) {
-          return Substitute(q.SplitQuantifierExpression);
-        }
-
-        var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
-        var newRange = e.Range == null ? null : Substitute(e.Range);
-        var newTerm = Substitute(e.Term);
-        var newAttrs = SubstAttributes(e.Attributes);
-        var newBounds = SubstituteBoundedPoolList(e.Bounds);
-        if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
-          if (e is SetComprehension) {
-            newExpr = new SetComprehension(e.BodyStartTok, e.BodyEndTok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
-          } else if (e is MapComprehension) {
-            var mc = (MapComprehension)e;
-            var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-            newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
-          } else if (expr is ForallExpr forallExpr) {
-            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
-          } else if (expr is ExistsExpr existsExpr) {
-            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
-          } else if (expr is LambdaExpr) {
-            var l = (LambdaExpr)expr;
-            newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
-          } else {
-            Contract.Assert(false);  // unexpected ComprehensionExpr
-          }
-          ((ComprehensionExpr)newExpr).Bounds = newBounds;
-        }
-        // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
-        foreach (var bv in e.BoundVars) {
-          substMap.Remove(bv);
-        }
+        newExpr = SubstituteComprehensionExpr((ComprehensionExpr)expr, true);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
@@ -713,7 +678,8 @@ namespace Microsoft.Dafny {
         r = SubstBlockStmt((BlockStmt)stmt);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+        var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, false) : Substitute(s.Guard);
+        r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
@@ -835,7 +801,8 @@ namespace Microsoft.Dafny {
 
     protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
       Contract.Requires(alt != null);
-      return new GuardedAlternative(alt.Tok, alt.IsBindingGuard, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
+      var guard = alt.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)alt.Guard, false) : Substitute(alt.Guard);
+      return new GuardedAlternative(alt.Tok, alt.IsBindingGuard, guard, alt.Body.ConvertAll(SubstStmt));
     }
 
     protected AttributedExpression SubstMayBeFreeExpr(AttributedExpression expr) {
@@ -932,5 +899,68 @@ namespace Microsoft.Dafny {
       }
       return attrs;
     }
+
+    /// <summary>
+    /// Substitution in a comprehension expression. 
+    /// Parameter 'forceSubstituteOfBoundVars' should be set to false if and only if
+    /// the expression is a binding guard, in which case a bound variable is introduced.
+    /// Such a variable must not be substituted. 
+    /// </summary>
+    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars) {
+
+      Expression newExpr = null;
+
+      var e = (ComprehensionExpr)expr;
+      // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
+      // the enclosing scopes.
+
+      var q = e as QuantifierExpr;
+      if (q != null && q.SplitQuantifier != null) {
+        if (forceSubstituteOfBoundVars) {
+          return Substitute(q.SplitQuantifierExpression);
+        } else {
+          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
+        }
+      }
+
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
+      var newRange = e.Range == null ? null : Substitute(e.Range);
+      var newTerm = Substitute(e.Term);
+      var newAttrs = SubstAttributes(e.Attributes);
+      var newBounds = SubstituteBoundedPoolList(e.Bounds);
+      if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes ||
+          newBounds != e.Bounds || !forceSubstituteOfBoundVars) {
+        if (e is SetComprehension) {
+          newExpr = new SetComprehension(e.BodyStartTok, e.BodyEndTok, ((SetComprehension)e).Finite, newBoundVars,
+            newRange, newTerm, newAttrs);
+        } else if (e is MapComprehension) {
+          var mc = (MapComprehension)e;
+          var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
+          newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
+        } else if (expr is ForallExpr forallExpr) {
+          newExpr = new ForallExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
+        } else if (expr is ExistsExpr existsExpr) {
+          newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
+        } else if (expr is LambdaExpr) {
+          var l = (LambdaExpr)expr;
+          newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange,
+            l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+        } else {
+          Contract.Assert(false); // unexpected ComprehensionExpr
+        }
+
+        ((ComprehensionExpr)newExpr).Bounds = newBounds;
+      }
+
+      // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
+      foreach (var bv in e.BoundVars) {
+        substMap.Remove(bv);
+      }
+
+      return newExpr;
+
+    }
+
   }
 }
+

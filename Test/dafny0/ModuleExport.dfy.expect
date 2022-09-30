@@ -5,12 +5,12 @@ ModuleExport.dfy(32,7): Error: expected method call, found expression
 ModuleExport.dfy(42,11): Error: unresolved identifier: k
 ModuleExport.dfy(52,9): Error: unresolved identifier: g
 ModuleExport.dfy(53,9): Error: unresolved identifier: k
-ModuleExport.dfy(66,2): Warning: this branch is redundant 
+ModuleExport.dfy(66,2): Warning: this branch is redundant
 ModuleExport.dfy(73,19): Error: Public2 must be an export of F to be extended
 ModuleExport.dfy(74,34): Error: 'g2' must be a member of 'F' to be exported
 ModuleExport.dfy(100,9): Error: no default export set declared in module: G
 ModuleExport.dfy(125,8): Error: when allocating an object of type 'C', one of its constructor methods must be called
-ModuleExport.dfy(126,19): Error: member 'Init' has not been imported in this scope and cannot be accessed here
+ModuleExport.dfy(126,17): Error: member 'Init' has not been imported in this scope and cannot be accessed here
 ModuleExport.dfy(126,8): Error: when allocating an object of type 'C', one of its constructor methods must be called
 ModuleExport.dfy(127,12): Error: when allocating an object of imported type 'D', one of its constructor methods must be called
 ModuleExport.dfy(224,11): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)

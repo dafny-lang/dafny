@@ -96,7 +96,7 @@ public class DocumentManager {
     var lastPublishedState = observer.LastPublishedState;
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
-      SymbolTable = relocator.RelocateSymbols(lastPublishedState.SymbolTable, documentChange, CancellationToken.None)
+      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None)
     };
 
     lock (ChangedRanges) {
