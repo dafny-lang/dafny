@@ -1706,6 +1706,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      if (AsNativeType(fromType) == null) {
+        return wr;
+      }
+      wr.Write("BigNumber");
+      return wr.ForkInParens();
+    }
+
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {

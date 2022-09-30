@@ -1060,6 +1060,10 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(arrayIndex != null);
       return arrayIndex;
     }
+
+    protected virtual ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      return wr;
+    }
     protected virtual string ArrayIndexToNativeInt(string arrayIndex, Type fromType) {
       Contract.Requires(arrayIndex != null);
       Contract.Requires(fromType != null);

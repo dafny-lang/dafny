@@ -2617,6 +2617,14 @@ namespace Microsoft.Dafny.Compilers {
       return string.Format("_dafny.IntOfAny({0})", i);
     }
 
+    protected override ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      if (AsNativeType(fromType) == null) {
+        return wr;
+      }
+      wr.Write("_dafny.IntOfAny");
+      return wr.ForkInParens();
+    }
+
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       wr = EmitCoercionIfNecessary(null, elmtType, Token.NoToken, wr);
       wr.Write("_dafny.ArrayGet(");
