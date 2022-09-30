@@ -4274,16 +4274,17 @@ namespace Microsoft.Dafny.Compilers {
         string init = ProtectedFreshId("_init");
         DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wStmts);
 
+        var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, null, wRhs, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, null, wRhs, pwStmts);
 
         // Build a loop nest that will call the initializer for all indices
         var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wStmts;
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
-          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : (object)d, typeRhs.Type,
+          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : d, typeRhs.Type,
             out var len, out var pre, out var post);
-          var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
+          var bound = $"{pre}{nw}{(len == "" ? "" : "." + len)}{post}";
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
