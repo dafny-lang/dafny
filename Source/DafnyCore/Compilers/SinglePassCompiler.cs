@@ -552,6 +552,10 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = wr.NewBlock(")");
       return wBody;
     }
+
+    /// <summary>
+    /// Create a for loop where the type of the index variable, along with "start" and "bound", is the native array-index type.
+    /// </summary>
     protected abstract ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null);
     protected abstract ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr);
     protected abstract void EmitIncrementVar(string varName, ConcreteSyntaxTree wr);  // increments a BigInteger by 1
@@ -668,7 +672,9 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Allocates a new array with element type "elementType" and lengths "dimensions" in each dimension.
-    /// Note that "elementType" may be a type parameter.
+    /// Note that "elementType" may denote a type parameter.
+    ///
+    /// Each string in "dimensions" is generated as a Dafny "int" (that is, a BigInteger).
     ///
     /// If "mustInitialize" is true, then fills each array element with a default value of type "elementType".
     /// In this case, "exampleElement" must be null.
@@ -1025,9 +1031,16 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
+    /// <summary>
+    /// The "indices" are expected to already be of the native array-index type.
+    /// </summary>
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    /// <summary>
+    /// The "indices" are expected to already be of the native array-index type.
+    /// </summary>
     protected virtual (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
       var wArray = EmitArraySelect(indices, elementType, wr);
       wr.Write(" = ");
@@ -3903,6 +3916,9 @@ namespace Microsoft.Dafny.Compilers {
       private readonly List<string> indices;
       private readonly Type lhsType;
 
+      /// <summary>
+      /// The "indices" are expected to already be of the native array-index type.
+      /// </summary>
       public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<string> indices, Type lhsType) {
         this.compiler = compiler;
         this.array = array;
