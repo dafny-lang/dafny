@@ -1000,7 +1000,7 @@ is auto-initialized to `0`; a non-nullable class type is not
 not auto-initialized, but a nullable class type is auto-initalized to `null`.
 
 In declaring generic types, type parameters can be declared to be required to
-be auto-initializable types (cf. [Section 0.0.0](#sec-auto-init)).
+be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
 
 If a class has fields that are not auto-initializable, then the class must
 have a constructor, and in each constructor those fields must be explicitly
