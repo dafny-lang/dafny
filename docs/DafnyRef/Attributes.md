@@ -624,13 +624,7 @@ same as the current heap, or that is derived from it by heap update operations.
 ### 23.5.2. `{:induction}` {#sec-induction-quantifier}
 See [`{:induction}`](#sec-induction) for functions and methods.
 
-### 23.5.3. `{:layerQuantifier}`
-
-This attribute is only used internally.
-Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
-further effort for this attribute.
-
-### 23.5.4. `{:trigger}` {#sec-trigger}
+### 23.5.3. `{:trigger}` {#sec-trigger}
 Trigger attributes are used on quantifiers and comprehensions.
 
 The verifier instantiates the body of a quantified expression only when it can find an expression that matches the provided trigger.  
