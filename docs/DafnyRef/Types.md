@@ -1320,8 +1320,26 @@ type Monad<T>
 can be used abstractly to represent an arbitrary parameterized monad.
 
 Even as an opaque type, the type
-may be given members such as constants, methods or functions. (TODO: Examples please)
+may be given members such as constants, methods or functions.
+For example,
+```
+abstract module P {
+  type T {
+    function ToString(): string
+  }
+}
 
+module X refines P {
+  newtype T = i | 0 <= i < 10 {
+    function ToString... {  "" }
+  }
+}
+```
+The abstract type `P.T` has a declared member `ToString`, which can be called wherever `P.T` may be used.
+In the refining module `X`, `T` is declared to be a `newtype`, in which `ToString` now has a body.
+
+It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
+type synonyms may not have members.
 
 ## 11.3. Subset types {#sec-subset-types}
 

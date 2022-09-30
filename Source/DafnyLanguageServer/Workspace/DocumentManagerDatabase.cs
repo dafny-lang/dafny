@@ -32,14 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // Initialises DafnyOptions.O
       services.GetRequiredService<IDafnyParser>();
 
-      DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
-    }
-
-    private static List<string> GetProverOptions(DocumentOptions options) {
-      return options.ProverOptions.Split(
-        new[] { " ", "\n", "\t" },
-        StringSplitOptions.RemoveEmptyEntries
-      ).ToList();
+      DafnyOptions.O.ProverOptions = this.documentOptions.AugmentedProverOptions;
     }
 
     public void OpenDocument(DocumentTextBuffer document) {
