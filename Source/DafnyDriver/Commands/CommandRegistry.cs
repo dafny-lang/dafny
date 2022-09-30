@@ -98,7 +98,7 @@ static class CommandRegistry {
       command.SetHandler(CommandHandler);
     }
 
-    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language.");
+    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
     foreach (var command in commandToSpec.Keys) {
       rootCommand.AddCommand(command);
     }

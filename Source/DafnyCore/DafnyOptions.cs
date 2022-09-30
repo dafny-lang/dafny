@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
       return base.ParseOption(name, ps);
     }
 
-    public override string Help =>
+    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
       ILegacyOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
@@ -1340,6 +1340,7 @@ Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
   }
+
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
