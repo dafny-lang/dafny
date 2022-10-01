@@ -729,6 +729,7 @@ If the value of an entire expression at a
 particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
+If the argument of `old` is a local variable or out-parameter. Dafny issues a warning.
 
 [^Old]: The semantics of `old` in Dafny differs from similar constructs in other specification languages like ACSL or JML.
 
