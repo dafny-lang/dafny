@@ -30,6 +30,7 @@ static class CommandRegistry {
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
+    InputsOption.Instance
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -110,6 +111,7 @@ static class CommandRegistry {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
+      dafnyOptions.AddFile(context.ParseResult.GetValueForArgument(fileArgument).FullName);
       foreach (var option in command.Options) {
         if (!context.ParseResult.HasOption(option)) {
           continue;
@@ -124,7 +126,6 @@ static class CommandRegistry {
         }
       }
 
-      dafnyOptions.AddFile(context.ParseResult.GetValueForArgument(fileArgument).FullName);
       dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
