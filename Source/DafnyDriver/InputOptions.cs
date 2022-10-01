@@ -10,7 +10,7 @@ public class InputsOption : CommandLineOption<IEnumerable<string>> {
   public override string LongName => "input";
   public override string ArgumentName => "file";
   public override string Description => "Specify additional input files.";
-  
+
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {
     throw new InvalidOperationException();
   }
