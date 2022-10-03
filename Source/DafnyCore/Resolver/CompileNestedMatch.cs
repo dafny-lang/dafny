@@ -8,7 +8,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
-public class CompileNestedMatch : TopDownVisitor<Unit> {
+public class CompileNestedMatch {
   private ResolutionContext resolutionContext;
   private readonly Resolver resolver;
 
@@ -47,93 +47,6 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     pr.PrintProgram(program, true);
     tw.Close();
   }
-  
-  public void Visit(Program program) {
-    foreach (var module in program.Modules()) {
-      Visit(module);
-    }
-  }
-  
-  public void Visit(ModuleDefinition module) {
-    foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      Visit(topLevelDecl);
-    }
-  }
-
-  public void Visit(TopLevelDeclWithMembers topLevelDecl) {
-    foreach (var member in topLevelDecl.Members) {
-      Visit(member);
-    }
-  }
-
-  private void Visit(MemberDecl topLevelDecl) {
-    if (topLevelDecl is Method callable) {
-      Visit(callable, Unit.Default);
-    }
-    if (topLevelDecl is Function function) {
-      Visit(function, Unit.Default);
-    }
-  }
-
-  public override void Visit(Method method, Unit st) {
-    this.resolutionContext = new ResolutionContext(method, false);
-    for (var index = 0; index < method.Body.Body.Count; index++) {
-      var stmt = method.Body.Body[index];
-      if (stmt is NestedMatchStmt nestedMatchStmt) {
-        method.Body.Body[index] = CompileNestedMatchStmt(nestedMatchStmt);
-      }
-    }
-
-    base.Visit(method, st);
-  }
-
-  public override void Visit(Function function, Unit st) {
-    this.resolutionContext = new ResolutionContext(function, false);
-    if (function.Body is NestedMatchExpr nestedMatchExpr) {
-      function.Body = CompileNestedMatchExpr(nestedMatchExpr);
-    }
-    base.Visit(function, st);
-  }
-
-  // protected override bool VisitOneExpr(Expression expr, ref Unit st) {
-  //   if (expr is NestedMatchExpr nestedMatchExpr) {
-  //     CompileNestedMatchExpr(nestedMatchExpr);
-  //   }
-  //   return base.VisitOneExpr(expr, ref st);
-  // }
-  //
-  // protected override bool VisitOneStmt(Statement stmt, ref Unit st) {
-  //   if (stmt is NestedMatchStmt nestedMatchStmt) {
-  //     CompileNestedMatchStmt(nestedMatchStmt);
-  //   }
-  //   return base.VisitOneStmt(stmt, ref st);
-  // }
-
-  // void CompileStmt(Program program) {
-    // if (reporter.Count(ErrorLevel.Error) != errorCount) {
-    //   return;
-    // }
-    //
-    // enclosingStatementLabels.PushMarker();
-    // ResolveStatement(s.ResolvedStatement, resolutionContext);
-    // enclosingStatementLabels.PopMarker();
-  // }
-  // void CompileExpr() {
-  //   
-  //   if (reporter.Count(ErrorLevel.Error) != errorCount) {
-  //     return;
-  //   }
-  //
-  //   if (debug) {
-  //     Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  3 - Resolving Expression", me.tok.line);
-  //   }
-  //   ResolveExpression(me.ResolvedExpression, resolutionContext);
-  //
-  //   if (debug) {
-  //     Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr   DONE");
-  //   }
-  // }
-  
   
   private MatchExpr CompileNestedMatchExpr(NestedMatchExpr e) {
     if (DafnyOptions.O.MatchCompilerDebug) {
@@ -924,8 +837,19 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
       cPat.AssembleExpr(null); // TODO null?
       var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
+      
+      var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
+        { var.BoundVar, new IdentifierExpr(Token.NoToken, cLVar)}
+      }, new Dictionary<TypeParameter, Type>());
+
+      foreach (var stmt in branchStmt.Body) {
+        ((INode) stmt).Visit(node => {
+          ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => substituter.Substitute(expr));
+          return true;
+        });
+      }
+      
       branchStmt.Body.Insert(0, cLet);
-      // Replace BoundVar in branchStmt.Body with cLVar 
     } else if (branch is RBranchExpr branchExpr) {
       var cBVar = var.BoundVar; //new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
@@ -935,9 +859,6 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
-      new Substituter(null, new Dictionary<IVariable, Expression>() {
-
-      }, new Dictionary<TypeParameter, Type>());
       var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
       cLet.Type = branchExpr.Body.Type;
       branchExpr.Body = cLet;
