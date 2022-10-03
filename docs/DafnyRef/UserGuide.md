@@ -794,7 +794,7 @@ they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
 If the `Main` method takes an argument (of type `seq<string>`), the value of that input argument is the sequence
-of command-line arguments, with the 0th entry of the sequence being a system-determined name for the 
+of command-line arguments, with the first entry of the sequence (at index 0) being a system-determined name for the 
 executable being run.
 
 ### 25.8.2. `extern` declarations {#sec-extern-decls}
