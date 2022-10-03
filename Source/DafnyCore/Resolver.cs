@@ -9944,12 +9944,38 @@ namespace Microsoft.Dafny {
       return true;
     }
 
+    /// <summary>
+    /// The following two functions `BasicCheckIfEqualityIsDefinitelyNotSupported` and `CheckIfEqualityIsDefinitelyNotSupported`
+    /// are mutually recursive and their purpose is to determine if a datatype cannot possibly support equality.
+    /// The entry point is always functoin `CheckIfEqualityIsDefinitelyNotSupported`
+    /// Function `CheckIfEqualityIsDefinitelyNotSupported` checks datatypes specifically
+    /// Function `BasicCheckIfEqualityIsDefinitelyNotSupported` cheks all other types
+    /// 
+    /// As a first approximation, a datatype definely cannot support equality if any of the following holds:
+    /// Any of its constructors is ghost
+    /// Any of the formal parameters of Any of its constructors is ghost
+    /// It is defined in terms of another type that definitely does not support equality, that is:
+    /// A datatype that does not support equality
+    /// An opaque type that has not been declared as supporting equality
+    /// A codatatype
+    /// An arrow type
+    ///
+    /// These checks need to be made recursively, for example through type synonyms (including subset types), but with the following remarks:
+    /// We need to pay attention to recursively defined datatypes (which form a strongly connected component in the datatype dependency graph)
+    /// We assume that datatypes coming from other modules have already been fully resolved
+    ///
+    /// </summary>
     bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc, ModuleDefinition M) {
 
+      // The simplest case: these types never support equality
       if (type.IsArrowType || type.IsCoDatatype || (type.IsOpaqueType && !type.SupportsEquality)) {
         return true;
       }
 
+      // If the type is a datatype:
+      // Either it has already been computed (either because it comes from another module or because it came before
+      // in topological order with respect to the dependency graph)
+      // Or, we need to recursively check, unless it is in the same SCC
       var asIDT = type.AsIndDatatype;
       if (asIDT != null) {
         if (asIDT.EnclosingModuleDefinition != M) {
@@ -9961,6 +9987,8 @@ namespace Microsoft.Dafny {
         }
         if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
           return true;
+        } else if (asIDT.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {
+          return false;
         } else {
           if (!scc.Contains(asIDT) && CheckIfEqualityIsDefinitelyNotSupported(asIDT, dependencies)) {
             return true;
@@ -9968,6 +9996,7 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // For subset types, we need to continue the check on the supporting type
       var asSubset = type.AsSubsetType;
       if (asSubset != null) {
         if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc, M)) {
@@ -9982,23 +10011,29 @@ namespace Microsoft.Dafny {
     bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       var scc = dependencies.GetSCC(dt);
 
+      // If a constructor is ghost, the datatype cannot support equality
       foreach (var ctor in dt.Ctors) {
         if (ctor.IsGhost) {
           return true;
         }
 
+        // If a constructor parameter is ghost, the datatype cannot support equality
         foreach (var arg in ctor.Formals) {
           var type = arg.Type;
           if (arg.IsGhost) {
             return true;
           }
 
+          // First, we check the type constructor
           if (BasicCheckIfEqualityIsDefinitelyNotSupported(type, dependencies, scc, dt.EnclosingModuleDefinition)) {
             return true;
           }
 
+          // Second, we check all the parameters of the type constructor
           foreach (var typea in arg.Type.TypeArgs) {
 
+            // There is one subtlety: sometimes, we do not need to check the arguments
+            // It is for example the case for parameters that are not used, or class and trait types
             var red = type.AsRedirectingType;
             var meaningfulArg = true;
             if (red != null) {
