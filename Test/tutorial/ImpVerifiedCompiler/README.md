@@ -1,3 +1,5 @@
+Warning: work in progress. Dafny's explanations are currently incomplete and could sometimes be misleading.
+
 A Dafny adaptation of some of [Xavier Leroy's compiler verification tutorial](https://xavierleroy.org/courses/EUTypes-2019/).
 
 To verify the whole proof:
