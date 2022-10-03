@@ -164,7 +164,7 @@ public class CompileNestedMatch {
     }
 
     var cases = e.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
-    MatchTempInfo mti = new MatchTempInfo(e.Type, e.tok, cases.Count, resolutionContext.CodeContext, DafnyOptions.O.MatchCompilerDebug);
+    MatchTempInfo mti = new MatchTempInfo(e.Type, e.tok, cases.Count, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
 
     // create Rbranches from MatchCaseExpr and set the branch tokens in mti
     List<RBranch> branches = new List<RBranch>();
@@ -216,7 +216,7 @@ public class CompileNestedMatch {
 
     var cases = s.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
     // initialize the MatchTempInfo to record position and duplication information about each branch
-    MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, cases.Count, resolutionContext.CodeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+    MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, cases.Count, resolutionContext.WithGhost(s.IsGhost), DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
     // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
     List<RBranch> branches = new List<RBranch>();
@@ -250,9 +250,9 @@ public class CompileNestedMatch {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
 
-    if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: Done CompileNestedMatchStmt at line {0}.", mti.Tok.line);
-    }
+    // if (DafnyOptions.O.MatchCompilerDebug) {
+    //   Console.WriteLine("DEBUG: Done CompileNestedMatchStmt at line {0}.", mti.Tok.line);
+    // }
   }
   
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
@@ -508,7 +508,7 @@ public class CompileNestedMatch {
       // create a bound variable for each formal to use in the MatchCase for this constructor
       // using the currMatchee.tok to get a location closer to the error if something goes wrong
       var freshPatBV = ctor.Value.Formals.ConvertAll(
-        x => CreatePatBV(currMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext));
+        x => CreatePatBV(currMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
 
       // rhs to bind to head-patterns that are bound variables
       var rhsExpr = currMatchee;
@@ -549,7 +549,7 @@ public class CompileNestedMatch {
             var currBranch = CloneRBranch(PB.Item2);
 
             List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
-              CreateFreshId(currPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext, x.IsGhost));
+              CreateFreshId(currPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             currBranch.Patterns.InsertRange(0, freshArgs);
             LetBindNonWildCard(currBranch, currPattern, rhsExpr);
@@ -595,6 +595,7 @@ public class CompileNestedMatch {
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
       var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
       return new CStmt(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
@@ -796,11 +797,11 @@ public class CompileNestedMatch {
     public int[] BranchIDCount; // Records the number of copies of each branch
     public bool isStmt; // true if we are desugaring a MatchStmt, false if a MatchExpr
     public bool Debug;
-    public readonly ICodeContext CodeContext;
+    public readonly ResolutionContext CodeContext;
     public List<ExtendedPattern> MissingCases;
     public Attributes Attributes;
 
-    public MatchTempInfo(Type type, IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false,
+    public MatchTempInfo(Type type, IToken tok, int branchidnum, ResolutionContext codeContext, bool debug = false,
       Attributes attrs = null) {
       Type = type;
       int[] init = new int[branchidnum];
@@ -817,7 +818,7 @@ public class CompileNestedMatch {
       this.MissingCases = new List<ExtendedPattern>();
       this.Attributes = attrs;
     }
-    public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
+    public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ResolutionContext codeContext, bool debug = false, Attributes attrs = null) {
       int[] init = new int[branchidnum];
       for (int i = 0; i < branchidnum; i++) {
         init[i] = 1;
@@ -942,24 +943,27 @@ public class CompileNestedMatch {
       }
     }
     if (branch is RBranchStmt branchStmt) {
-      var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-      cLVar.type = type;
-      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-      cPat.AssembleExpr(null); // TODO null?
-      var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-      
-      var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
-        { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
-      }, new Dictionary<TypeParameter, Type>());
+      if (branchStmt.Body.Count > 0) {
+        var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
+        cLVar.type = type;
+        var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+        cPat.AssembleExpr(null); // TODO null?
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
+        cLet.IsGhost = branchStmt.Body[0].IsGhost;
+        
+        var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
+          { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
+        }, new Dictionary<TypeParameter, Type>());
 
-      foreach (var stmt in branchStmt.Body) {
-        ((INode) stmt).Visit(node => {
-          ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => substituter.Substitute(expr));
-          return true;
-        });
-      } 
-      
-      branchStmt.Body.Insert(0, cLet);
+        foreach (var stmt in branchStmt.Body) {
+          ((INode) stmt).Visit(node => {
+            ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => substituter.Substitute(expr));
+            return true;
+          });
+        } 
+        
+        branchStmt.Body.Insert(0, cLet);
+      }
     } else if (branch is RBranchExpr branchExpr) {
       var cBVar = var.BoundVar; //new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
