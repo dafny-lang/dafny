@@ -9997,7 +9997,7 @@ namespace Microsoft.Dafny {
       }
 
       // For subset types, we need to continue the check on the supporting type
-      var asSubset = type.AsSubsetType;
+      var asSubset = type.AsTypeSynonym;
       if (asSubset != null) {
         if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc, M)) {
           return true;
