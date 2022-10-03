@@ -115,12 +115,12 @@ The command-line `dafny <command> --help` gives help information for that partic
 
 Also, the command-style command-line has modernized the syntax of options. Like many other tools, options
 now typically begin with a double hyphen, with some options having a single-hyphen short form, such as `--help` and `-h`.
-The value of an option is given after an `=` character, rather than a `:`, as in `--target=java`
+The value of an option is given after an `=` or ':' character or as the next item on the command-line (that is, after a space).
 
 If no command is given, then the command-line is presumed to use old-style syntax, so any previously 
 written command-line will still be valid.
 
-The following  commands are recognized. In each case all files listed are parsed and typechecked.
+The following commands are recognized. In each case all files listed are parsed and typechecked.
 - `dafny verify` -- verifies the listed files. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
 This is similar to using the option `/compile:0` in the old-style command-line. 
@@ -133,7 +133,7 @@ a target language build tool, for the target platform, similar to the previous `
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
-working directory. A command-line argument not matching a known option is considered a filepathi, and likely one
+working directory. A command-line argument not matching a known option is considered a filepath, and likely one
 with an unsupported suffix, provoking an error message..
 - Files containing dafny code must have a `.dfy` suffix.
 - There must be at least one `.dfy` file.
@@ -157,7 +157,7 @@ default, but can be skipped by using the `-noVerify` or `--no-verify` option
 - Compiling the dafny program to a target language. This step is performed by default if the verification is
 successful but can be skipped or always executed by using variations of the `-compile` option or different commands.
 - Whether the source code of the compiled target is written out is controlled by `-spillTargetCode` or the top-level command that is being executed.
-- The particular target language used is chosen by `-compileTarget` or `--target`
+- The particular target language used is chosen by `-compileTarget` (old-style) or `--target` (new-style).
 
 The dafny tool terminates with these exit codes:
 
