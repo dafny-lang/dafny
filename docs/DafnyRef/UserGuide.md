@@ -776,7 +776,7 @@ an entry-point candidate must satisfy the following conditions:
 * If the method is an instance (that is, non-static) method and the
   enclosing type is not a class,
   then the enclosing type must, when instantiated with auto-initializing
-  type parameters, be an auto-initialing type.
+  type parameters, be an auto-initializing type.
   In this case, the runtime system will
   invoke the entry-point method on a value of the enclosing type.
 
@@ -933,7 +933,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 25.8.8. Supported features by target language
+### 25.8.8. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
