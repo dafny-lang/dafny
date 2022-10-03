@@ -1254,11 +1254,6 @@ namespace Microsoft.Dafny {
 
             Boogie.Expr antecedent = Boogie.Expr.True;
 
-            if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
-              // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-              var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-              bodyEtran = bodyEtran.ReplaceLayer(ly);
-            }
             if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
               var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               bodyEtran = new ExpressionTranslator(bodyEtran, h);
