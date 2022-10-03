@@ -44,11 +44,12 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
+    static FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
     public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
-      return gen.FreshId(prefix);
+      var freshTempVarName = gen.FreshId(prefix);
+      return freshTempVarName;
     }
 
     interface IAmbiguousThing<Thing> {

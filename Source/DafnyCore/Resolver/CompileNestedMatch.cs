@@ -250,7 +250,7 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
           return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
-        return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit };
+        return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
         resolver.reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
         return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
@@ -878,28 +878,14 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     }
   }
 
-  private class ClonerKeepLocalVariablesIfTypeNotSet : Cloner {
-    public override LocalVariable CloneLocalVariable(LocalVariable local) {
-      if (local.type == null) {
-        return local;
-      }
-
-      return base.CloneLocalVariable(local);
-    }
-  }
 
   // deep clone Patterns and Body
   private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
     return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns, branch.Body, branch.Attributes);
   }
 
-  // TODO, why are we cloning?
   private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
-    var clonedBody = branch.Body;
-    // cloner.CloneExpr(branch.Body); 
-    // clonedBody.Type = branch.Body.Type;
-    return new RBranchExpr(branch.Tok, branch.BranchID, 
-      branch.Patterns, clonedBody, branch.Attributes);
+    return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns, branch.Body, branch.Attributes);
   }
 
   private static RBranch CloneRBranch(RBranch branch) {
@@ -934,23 +920,28 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     }
     if (branch is RBranchStmt branchStmt) {
       var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-      //cLVar.type = type;
+      cLVar.type = type;
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+      cPat.AssembleExpr(null); // TODO null?
       var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
       branchStmt.Body.Insert(0, cLet);
+      // Replace BoundVar in branchStmt.Body with cLVar 
     } else if (branch is RBranchExpr branchExpr) {
-      var cBVar = new BoundVar(var.Tok, name, type);
+      var cBVar = var.BoundVar; //new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
+      cPat.AssembleExpr(null); // TODO null?
       var cPats = new List<CasePattern<BoundVar>>();
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
+      new Substituter(null, new Dictionary<IVariable, Expression>() {
+
+      }, new Dictionary<TypeParameter, Type>());
       var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
-      //cLet.Type = branchExpr.Body.Type;
+      cLet.Type = branchExpr.Body.Type;
       branchExpr.Body = cLet;
     }
-    return;
   }
 
   // If cp is not a wildcard, replace branch.Body with let cp = expr in branch.Body

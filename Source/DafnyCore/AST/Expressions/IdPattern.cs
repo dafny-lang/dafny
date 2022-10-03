@@ -59,6 +59,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
+      Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
       //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
       BoundVar = new BoundVar(Tok, Id, substitutedSourceType);
 
