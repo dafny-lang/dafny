@@ -2,6 +2,7 @@ include "Imp.dfy"
 include "ImpNaturalSem.dfy"
 include "Mach.dfy"
 include "MachSemantics.dfy"
+include "SemanticsProperties.dfy"
 include "Compiler.dfy"
 include "SimulationRelation.dfy"
 
