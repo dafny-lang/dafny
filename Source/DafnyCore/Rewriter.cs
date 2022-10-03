@@ -1478,8 +1478,9 @@ namespace Microsoft.Dafny {
 
         var newCases = e.Cases.Select(cas =>
           new NestedMatchCaseExpr(cas.Tok, cas.Pat, Andify(cas.Body.tok, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
-        reqs.Add(new NestedMatchExpr(e.tok, e.Source, newCases,
-          e.UsesOptionalBraces));
+        var nestedMatchExpr = new NestedMatchExpr(e.tok, e.Source, newCases, e.UsesOptionalBraces);
+        nestedMatchExpr.Type = Type.Bool;
+        reqs.Add(nestedMatchExpr);
         
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;

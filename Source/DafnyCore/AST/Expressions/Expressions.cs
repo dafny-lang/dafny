@@ -3712,7 +3712,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : IAttributeBearingDeclaration {
+public class AttributedExpression : IAttributeBearingDeclaration, INode {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -3759,6 +3759,8 @@ public class AttributedExpression : IAttributeBearingDeclaration {
     IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
+
+  public IEnumerable<INode> Children => new[] {E};
 }
 
 public class FrameExpression : IHasUsages {
