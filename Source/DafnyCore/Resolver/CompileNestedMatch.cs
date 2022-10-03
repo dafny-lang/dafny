@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using Microsoft.Boogie;
@@ -40,6 +41,11 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       });
       return true;
     });
+    
+    var tw = new StreamWriter("./debug.dfy");
+    var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+    pr.PrintProgram(program, true);
+    tw.Close();
   }
   
   public void Visit(Program program) {
@@ -168,9 +174,9 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
 
-    if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: Done CompileNestedMatchExpr at line {0}", mti.Tok.line);
-    }
+    // if (DafnyOptions.O.MatchCompilerDebug) {
+    //   Console.WriteLine("DEBUG: Done CompileNestedMatchExpr at line {0}", mti.Tok.line);
+    // }
 
   }
 
@@ -644,8 +650,8 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
     }
 
     // Get the head of each patterns
-    var patternHeads = branches.ConvertAll(new Converter<RBranch, ExtendedPattern>(getPatternHead));
-    var newBranches = branches.ConvertAll(new Converter<RBranch, RBranch>(dropPatternHead));
+    var patternHeads = branches.ConvertAll(new Converter<RBranch, ExtendedPattern>(GetPatternHead));
+    var newBranches = branches.ConvertAll(new Converter<RBranch, RBranch>(DropPatternHead));
     var pairPB = patternHeads.Zip(newBranches, (x, y) => new Tuple<ExtendedPattern, RBranch>(x, y)).ToList();
 
     if (ctors != null && patternHeads.Exists(x => x is IdPattern && ((IdPattern)x).Arguments != null && ctors.ContainsKey(((IdPattern)x).Id))) {
@@ -903,11 +909,12 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       return CloneRBranchExpr((RBranchExpr)branch);
     }
   }
-  private static ExtendedPattern getPatternHead(RBranch branch) {
+  
+  private static ExtendedPattern GetPatternHead(RBranch branch) {
     return branch.Patterns.First();
   }
 
-  private static RBranch dropPatternHead(RBranch branch) {
+  private static RBranch DropPatternHead(RBranch branch) {
     branch.Patterns.RemoveAt(0);
     return branch;
   }
@@ -926,20 +933,22 @@ public class CompileNestedMatch : TopDownVisitor<Unit> {
       }
     }
     if (branch is RBranchStmt branchStmt) {
-      // var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-      // var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-      // var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-      // branchStmt.Body.Insert(0, cLet);
+      var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
+      //cLVar.type = type;
+      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+      var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
+      branchStmt.Body.Insert(0, cLet);
     } else if (branch is RBranchExpr branchExpr) {
-      // var cBVar = new BoundVar(var.Tok, name, type);
-      // cBVar.IsGhost = isGhost;
-      // var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
-      // var cPats = new List<CasePattern<BoundVar>>();
-      // cPats.Add(cPat);
-      // var exprs = new List<Expression>();
-      // exprs.Add(expr);
-      // var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
-      // branchExpr.Body = cLet;
+      var cBVar = new BoundVar(var.Tok, name, type);
+      cBVar.IsGhost = isGhost;
+      var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
+      var cPats = new List<CasePattern<BoundVar>>();
+      cPats.Add(cPat);
+      var exprs = new List<Expression>();
+      exprs.Add(expr);
+      var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
+      //cLet.Type = branchExpr.Body.Type;
+      branchExpr.Body = cLet;
     }
     return;
   }

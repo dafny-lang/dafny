@@ -60,7 +60,7 @@ public class NestedMatchExpr : Expression {
     var subst = new Dictionary<TypeParameter, Type>();
     if (dtd != null) {
       Contract.Assert(sourceType != null); // dtd and sourceType are set together above
-      var ctors = resolver.datatypeCtors[dtd];
+      var ctors = dtd.ConstructorsByName;
       Contract.Assert(ctors !=
                       null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
 

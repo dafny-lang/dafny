@@ -212,9 +212,6 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
       new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
 
-    public readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors =
-      new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-
     enum ValuetypeVariety {
       Bool = 0,
       Int,
@@ -337,7 +334,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(builtIns != null);
       Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
-      Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
     public ValuetypeDecl AsValuetypeDecl(Type t) {
@@ -2130,8 +2126,7 @@ namespace Microsoft.Dafny {
           var dt = (DatatypeDecl)d;
 
           // register the names of the constructors
-          var ctors = new Dictionary<string, DatatypeCtor>();
-          datatypeCtors.Add(dt, ctors);
+          dt.ConstructorsByName = new();
           // ... and of the other members
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(dt, members);
@@ -2140,10 +2135,10 @@ namespace Microsoft.Dafny {
             if (ctor.Name.EndsWith("?")) {
               reporter.Error(MessageSource.Resolver, ctor,
                 "a datatype constructor name is not allowed to end with '?'");
-            } else if (ctors.ContainsKey(ctor.Name)) {
+            } else if (dt.ConstructorsByName.ContainsKey(ctor.Name)) {
               reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
-              ctors.Add(ctor.Name, ctor);
+              dt.ConstructorsByName.Add(ctor.Name, ctor);
               ctor.InheritVisibility(dt);
 
               // create and add the query "method" (field, really)
@@ -11818,7 +11813,7 @@ namespace Microsoft.Dafny {
         reporter.Error(MessageSource.Resolver, s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
         ctors = null;
       } else {
-        ctors = datatypeCtors[dtd];
+        ctors = dtd.ConstructorsByName;
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
         subst = TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs); // build the type-parameter substitution map for this use of the datatype
       }
@@ -11980,7 +11975,7 @@ namespace Microsoft.Dafny {
         IdPattern idpat = (IdPattern)pat;
 
         var dtd = type.AsDatatype;
-        Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+        Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
         if (ctors == null) {
           Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
         }
@@ -15021,7 +15016,7 @@ namespace Microsoft.Dafny {
         ctors = null;
       } else {
         Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-        ctors = datatypeCtors[dtd];
+        ctors = dtd.ConstructorsByName;
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
         // build the type-parameter substitution map for this use of the datatype
@@ -15122,7 +15117,7 @@ namespace Microsoft.Dafny {
       DatatypeCtor ctor = null;
       if (dtd != null) {
         if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy)) {
-          if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+          if (dtd.ConstructorsByName.TryGetValue(pat.Id, out ctor)) {
             if (pat.Arguments == null) {
               if (ctor.Formals.Count != 0) {
                 // Leave this as a variable
@@ -15649,9 +15644,8 @@ namespace Microsoft.Dafny {
         if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
-          Dictionary<string, DatatypeCtor> members;
           DatatypeCtor ctor;
-          if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(name, out ctor)) {
+          if (dt.ConstructorsByName != null && dt.ConstructorsByName.TryGetValue(name, out ctor)) {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
@@ -16336,7 +16330,7 @@ namespace Microsoft.Dafny {
       dtv.Type = new UserDefinedType(dtv.tok, dt.Name, dt, gt);
 
       DatatypeCtor ctor;
-      if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
+      if (!dt.ConstructorsByName.TryGetValue(dtv.MemberName, out ctor)) {
         ok = false;
         if (complain) {
           reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
