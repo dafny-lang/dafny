@@ -1,0 +1,2 @@
+git-issue-2768-2.dfy(10,5): Error: type 'T_NeverEq'' declared as supporting equality, but the RHS type (NeverEq') might not
+1 resolution/type errors detected in git-issue-2768-2.dfy
