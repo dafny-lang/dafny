@@ -26,6 +26,12 @@ public class NestedMatchStmt : Statement {
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
+  public override IEnumerable<Statement> SubStatements {
+    get {
+      return Cases.SelectMany(c => c.Body);
+    }
+  }
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) {

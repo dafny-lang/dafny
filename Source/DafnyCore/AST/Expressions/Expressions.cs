@@ -2118,6 +2118,9 @@ public class BinaryExpr : Expression {
       _theResolvedOp = value;
     }
     get {
+      if (_theResolvedOp == ResolvedOpcode.YetUndetermined) {
+        Console.Write("");
+      }
       Debug.Assert(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
       return _theResolvedOp;
     }
