@@ -12,12 +12,12 @@ public class CompileNestedMatch {
   private ResolutionContext resolutionContext;
   private readonly Resolver resolver;
 
-  private static HashSet<Program> ranOn = new();
+  private static HashSet<ModuleDefinition> ranOn = new();
   public CompileNestedMatch(Resolver resolver) {
     this.resolver = resolver;
   }
 
-  public void Visit2(Program program) {
+  public void Visit2(ModuleDefinition program) {
     if (!ranOn.Add(program)) {
       return;
     }
@@ -46,10 +46,10 @@ public class CompileNestedMatch {
       return true;
     });
     
-    var tw = new StreamWriter("./debug.dfy");
-    var pr = new Printer(tw, DafnyOptions.O.PrintMode);
-    pr.PrintProgram(program, true);
-    tw.Close();
+    // var tw = new StreamWriter("./debug.dfy");
+    // var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+    // pr.PrintModuleDefinition(program, new VisibilityScope(),);
+    // tw.Close();
   }
   
     void ResolveMatchStmt(MatchStmt s) {
