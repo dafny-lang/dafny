@@ -66,7 +66,7 @@ The following example demonstrates the subset of Dafny we use in the compiler ve
 * const are declare top-level constants
 * predicate is just syntactic sugar for a Boolean-valued function
 
-```
+```dafny
 module GenList {
 
   datatype List<T> =
@@ -120,7 +120,7 @@ The following example demonstrates the specification of some theory of arithmeti
 * We can declare axiom (lemmas)
 * We can use connectives of propositional logic and quantifiers of predicate logic
 
-```
+```dafny
 datatype Nat =
   | Z
   | S(Nat)
@@ -163,7 +163,7 @@ Dafny is a proof assistant. You can interactively prove a lemma, and you do so b
 As a first approximation, you can think of a lemma as a sequent and its body as a proof script. 
 
 Consider following example:
-```	
+```dafny	
 lemma two_plus_two_equals_four(a: nat, b: nat)
   requires exists a': nat :: a == 2 * a'
   requires exists b': nat :: b == 2 * b'
@@ -180,6 +180,8 @@ This lemma can be interpreted as the sequent: $a: nat,  b: nat,  \exists a': nat
 * Every parameter (type or value) is in the antecedants
 * Every require is in the antecedants
 * Every ensure is in the consequents
+
+Note, however, that a lemma with n ensures, where n is greater than 1, should not be interpreted as 1 but n sequents. 
 
 The body of the lemma can be interpreted as a proof script. The semantics of the proof script is given by weakest-preconditions, but you do not have to think about the proof script as such. Indeed, you can simulate the rules of [Hilbert's systems](TutorialSupport/Hilbert.dfy), [natural deduction](TutorialSupport/NaturalDeduction.dfy), and [sequent calculus](TutorialSupport/SequentCalculus.dfy). 
 
