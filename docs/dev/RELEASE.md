@@ -107,11 +107,11 @@ with git commands and concepts is helpful.
 
    These instructions currently involve the following command:
 
-   ```
+```
   brew bump-formula-pr \
     --url <source .tar.gz for the release> \
     --sha256 <sha256 of the source .tar.gz for the release>
-   ```
+```
 
 3. Expect comments from the reviewers. If changes are needed, do 4-6
    again. Eventually the reviewers will accept and merge the PR.

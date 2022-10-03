@@ -3583,6 +3583,8 @@ ModifyStmt<out Statement s>
                                          .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
+                                        (. errors.Deprecated(t, "the modify statement with a block statement is deprecated");
+                                         .)
   | SYNC ";"         (. endTok = t; .)
   )
   (. s = new ModifyStmt(tok, endTok, mod, attrs, body);
