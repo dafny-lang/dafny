@@ -3,8 +3,7 @@
   <PropertyGroup>
     <!-- Target framework -->
     <TargetFramework>net6.0</TargetFramework>
-    
-    <VersionPrefix>3.9.0.40930<!--Version 3.9.0, year 2018+4, month 9, day 30--></VersionPrefix>
+    <VersionPrefix>3.9.0.41003<!--Version 3.9.0, year 2018+4, month 10, day 3.--></VersionPrefix>
   </PropertyGroup>
 
 </Project>
