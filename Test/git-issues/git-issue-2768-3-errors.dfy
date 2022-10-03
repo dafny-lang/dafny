@@ -3,7 +3,7 @@
 
 module M1 {
 
-	datatype D1 = C1(D2)
+  datatype D1 = C1(D2)
 
   datatype D2 = C2 | C3(D1)
 

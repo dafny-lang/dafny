@@ -5,7 +5,7 @@ type Opaque
 
 class A<T> {
 
-	constructor()
+  constructor()
 
 }
 

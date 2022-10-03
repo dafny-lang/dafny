@@ -9996,10 +9996,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // For subset types, we need to continue the check on the supporting type
-      var asSubset = type.AsTypeSynonym;
-      if (asSubset != null) {
-        if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSubset.Rhs, dependencies, scc, M)) {
+      // For synonym types, we need to continue the check on the supporting type
+      var asSyn = type.AsTypeSynonym;
+      if (asSyn != null) {
+        if (BasicCheckIfEqualityIsDefinitelyNotSupported(asSyn.Rhs, dependencies, scc, M)) {
           return true;
         }
       }
