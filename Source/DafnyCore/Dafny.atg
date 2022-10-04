@@ -96,7 +96,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      if (declCaption.contains("-by-method) {
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; declaring it 'ghost' is incorrect, confusing and not permitted");
+      } else {
+        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
       SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
