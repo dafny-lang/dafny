@@ -70,6 +70,7 @@ git push --set-upstream origin "$B"
 
 cp -R . "$T/$V" || ( echo copy FAILED; exit 1 )
 cp -R "$T/$V/" "$T/latest/"
+cp Snapshots.md "$T"
 
 ## Tweaks to snapshot files
 
