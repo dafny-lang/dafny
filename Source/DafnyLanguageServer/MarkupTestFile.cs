@@ -43,8 +43,9 @@ namespace Microsoft.Dafny.LanguageServer {
     private const string SpanStartString = "[>";
     private const string SpanEndString = "<]";
 
-    private static void Parse(
-        string input, out string output, out List<int> positions, out IDictionary<string, List<TextSpan>> spans) {
+    private static void Parse(string input, out string output, out List<int> positions,
+      out IDictionary<string, List<TextSpan>> spans)
+    {
       positions = new List<int>();
       var tempSpans = new Dictionary<string, List<TextSpan>>();
 
