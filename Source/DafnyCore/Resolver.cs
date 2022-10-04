@@ -17648,13 +17648,7 @@ namespace Microsoft.Dafny {
         e.Type = new InferredTypeProxy() { KeepConstraints = true };
         AddXConstraint(e.tok, "ContainerResult",
           e.Seq.Type, e.Type,
-          new TypeConstraint.ErrorMsgWithToken(
-            e.tok,
-            "selected element has type {0} which is incompatible with expected type {1} ({2} is incompatible with {3})",
-            new SeqTypeArgToBeResolved(e.Seq.Type),
-            new SeqTypeArgToBeResolved(e.Type),
-            e.Seq.Type,
-            e.Type));
+          new SeqSelectOneErrorMsg(e.tok, e.Seq.Type, e.Type));
       } else {
         AddXConstraint(e.tok, "MultiIndexable", e.Seq.Type, "multi-selection of elements requires a sequence or array (got {0})");
         if (e.E0 != null) {
@@ -17674,16 +17668,43 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Allows to lazily call ToString on the given (sequence) type's element type.
-    /// 
-    /// When adding type constraints, a sequence type's element type (`AsSeqType.Arg`) may not be resolved,
-    /// so attempting to eagerly read it (for use in an error message) results in a null reference.
-    /// By wrapping the sequence type in this object, the error handling logic will only read `AsSeqType.Arg`
-    /// on the element type after it is resolved.
+    /// An error message for the type constraint for between a sequence select expression's actual and expected types.
+    /// If resolution successfully determines the sequences' element types, then this derived class mentions those
+    /// element types as clarifying context to the user.
     /// </summary>
-    private record SeqTypeArgToBeResolved(Type seqType) {
-      public override string ToString() {
-        return seqType.AsSeqType.Arg.ToString();
+    private class SeqSelectOneErrorMsg : TypeConstraint.ErrorMsgWithToken {
+      private static readonly string BASE_MESSAGE_FORMAT = "sequence has type {0} which is incompatible with expected type {1}";
+      private static readonly string ELEMENT_DETAIL_MESSAGE_FORMAT = " (element type {0} is incompatible with {1})";
+
+      private readonly Type exprSeqType;
+      private readonly Type expectedSeqType;
+
+      public override string Msg {
+        get {
+          // Resolution might resolve exprSeqType/expectedSeqType to not be sequences at all.
+          // In that case, it isn't possible to get the corresponding element types.
+          var rawExprElementType = exprSeqType.AsSeqType?.Arg;
+          var rawExpectedElementType = expectedSeqType.AsSeqType?.Arg;
+          if (rawExprElementType == null || rawExpectedElementType == null) {
+            return base.Msg;
+          }
+
+          var elementTypes = RemoveAmbiguity(new object[] { rawExprElementType, rawExpectedElementType });
+          Contract.Assert(elementTypes.Length == 2);
+          var exprElementType = elementTypes[0].ToString();
+          var expectedElementType = elementTypes[1].ToString();
+
+          string detail = string.Format(ELEMENT_DETAIL_MESSAGE_FORMAT, exprElementType, expectedElementType);
+          return base.Msg + detail;
+        }
+      }
+
+      public SeqSelectOneErrorMsg(IToken tok, Type exprSeqType, Type expectedSeqType)
+        : base(tok, BASE_MESSAGE_FORMAT, exprSeqType, expectedSeqType) {
+        Contract.Requires(exprSeqType != null);
+        Contract.Requires(expectedSeqType != null);
+        this.exprSeqType = exprSeqType;
+        this.expectedSeqType = expectedSeqType;
       }
     }
 
