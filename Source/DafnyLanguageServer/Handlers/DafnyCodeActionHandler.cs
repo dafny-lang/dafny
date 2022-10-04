@@ -193,6 +193,9 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   }
 
   public string Extract(Range range) {
+    if (!CodeLineToPos.ContainsKey(range.Start.Line)) {
+      return ""; // Out of range
+    }
     var startTokenPos = CodeLineToPos[range.Start.Line] + range.Start.Character;
     var endTokenPos =
       CodeLineToPos.ContainsKey(range.End.Line) ? CodeLineToPos[range.End.Line] + range.End.Character :

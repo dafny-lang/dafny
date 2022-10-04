@@ -938,6 +938,9 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
     if (StartToken.line > 0) {
       return StartToken;
     }
+    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
+      return includes[0].OwnedTokens[0];
+    }
     IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
       if (decl.StartToken.line > 0) {
         return new List<IToken>() { decl.StartToken };
@@ -947,14 +950,11 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
           .Select(member => member.StartToken);
       } else if (decl is LiteralModuleDecl literalModuleDecl) {
         return literalModuleDecl.ModuleDef.PrefixNamedModules.Select(module =>
-          module.Item2.ModuleDef.GetFirstTopLevelToken()).Where(tok => tok.line > 0);
+          module.Item2.ModuleDef.GetFirstTopLevelToken()).Where((IToken t) => t is { line: > 0 });
       } else {
         return new List<IToken>() { };
       }
     });
-    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
-      return includes[0].OwnedTokens[0];
-    }
 
     return topTokens.MinBy(token => token.pos);
   }

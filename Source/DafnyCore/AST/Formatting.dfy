@@ -93,7 +93,6 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
 
       trait IIndentationFormatter {
         function Reindent(token: IToken, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
-        // Returns -1 if no indentation is set
         method GetIndentation(token: IToken, currentIndentation: CsString)
           returns (
             indentationBefore: CsString,
