@@ -1472,7 +1472,7 @@ namespace Microsoft.Dafny {
         reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.tok, GenerateAutoReqs(e.Thn)), Andify(e.Els.tok, GenerateAutoReqs(e.Els))));
       } else if (expr is NestedMatchExpr) {
         containsMatch = true;
-        
+
         var e = (NestedMatchExpr)expr;
         reqs.AddRange(GenerateAutoReqs(e.Source));
 
@@ -1481,7 +1481,7 @@ namespace Microsoft.Dafny {
         var nestedMatchExpr = new NestedMatchExpr(e.tok, e.Source, newCases, e.UsesOptionalBraces);
         nestedMatchExpr.Type = Type.Bool;
         reqs.Add(nestedMatchExpr);
-        
+
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         reqs.AddRange(GenerateAutoReqs(e.ResolvedExpression));

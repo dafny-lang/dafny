@@ -1257,7 +1257,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var module in program.CompileModules) {
         compileNestedMatch.Visit2(module);
       }
-      
+
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);

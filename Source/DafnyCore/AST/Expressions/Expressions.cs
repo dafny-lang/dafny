@@ -3763,7 +3763,7 @@ public class AttributedExpression : IAttributeBearingDeclaration, INode {
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
-  public IEnumerable<INode> Children => new[] {E};
+  public IEnumerable<INode> Children => new[] { E };
 }
 
 public class FrameExpression : IHasUsages {

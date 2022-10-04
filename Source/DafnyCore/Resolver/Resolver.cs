@@ -8860,7 +8860,7 @@ namespace Microsoft.Dafny {
             ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
           }
 
-        } else if (stmt is NestedMatchStmt) { 
+        } else if (stmt is NestedMatchStmt) {
           var s = (NestedMatchStmt)stmt;
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source);
           if (!mustBeErasable && s.IsGhost) {
@@ -12028,7 +12028,7 @@ namespace Microsoft.Dafny {
         }
         return;
       }
-    
+
       if (scope.FindInCurrentScope(pat.Id) != null) {
         reporter.Error(MessageSource.Resolver, pat.Tok, "Duplicate parameter name: {0}", pat.Id);
       } else if (pat.IsWildcardPattern) {
@@ -12067,7 +12067,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     private void CheckLinearNestedMatchCase(Type type, NestedMatchCase mc, ResolutionContext resolutionContext) {
       CheckLinearExtendedPattern(type, mc.Pat, resolutionContext);
     }

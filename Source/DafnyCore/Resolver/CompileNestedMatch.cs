@@ -21,8 +21,8 @@ public class CompileNestedMatch {
     if (!ranOn.Add(program)) {
       return;
     }
-    
-    ((INode) program).Visit(node => {
+
+    ((INode)program).Visit(node => {
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
@@ -34,7 +34,7 @@ public class CompileNestedMatch {
         }
         return stmt;
       });
-      
+
       ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
         if (expr is NestedMatchExpr nestedMatchExpr) {
           var compileNestedMatchExpr = CompileNestedMatchExpr(nestedMatchExpr);
@@ -45,119 +45,119 @@ public class CompileNestedMatch {
       });
       return true;
     });
-    
+
     // var tw = new StreamWriter("./debug.dfy");
     // var pr = new Printer(tw, DafnyOptions.O.PrintMode);
     // pr.PrintModuleDefinition(program, new VisibilityScope(),);
     // tw.Close();
   }
-  
-    void ResolveMatchStmt(MatchStmt s) {
-      Contract.Requires(s != null);
-      Contract.Requires(resolutionContext != null);
-      Contract.Requires(s.OrigUnresolved == null);
 
-      var dtd = s.Source.Type.AsDatatype;
-      Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
+  void ResolveMatchStmt(MatchStmt s) {
+    Contract.Requires(s != null);
+    Contract.Requires(resolutionContext != null);
+    Contract.Requires(s.OrigUnresolved == null);
 
-      ISet<string> memberNamesUsed = new HashSet<string>();
+    var dtd = s.Source.Type.AsDatatype;
+    Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
 
-      foreach (MatchCaseStmt mc in s.Cases) {
-        if (ctors != null) {
-          Contract.Assert(dtd != null);
-          var ctorId = mc.Ctor.Name;
-          if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-            var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-          }
-          if (!ctors.ContainsKey(ctorId)) {
-            // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-          } else {
-            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-              if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-                // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-              } else {
-                // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-              }
-            }
-            if (memberNamesUsed.Contains(ctorId)) {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+    ISet<string> memberNamesUsed = new HashSet<string>();
+
+    foreach (MatchCaseStmt mc in s.Cases) {
+      if (ctors != null) {
+        Contract.Assert(dtd != null);
+        var ctorId = mc.Ctor.Name;
+        if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+          var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
+          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+        }
+        if (!ctors.ContainsKey(ctorId)) {
+          // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
+        } else {
+          if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
+            if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+              // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
             } else {
-              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
+              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
             }
           }
-        }
-      }
-      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-        // We could complain about the syntactic omission of constructors:
-        //   reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
-        // but instead we let the verifier do a semantic check.
-        // So, for now, record the missing constructors:
-        foreach (var ctr in dtd.Ctors) {
-          if (!memberNamesUsed.Contains(ctr.Name)) {
-            s.MissingCases.Add(ctr);
+          if (memberNamesUsed.Contains(ctorId)) {
+            // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+          } else {
+            memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
           }
         }
-        Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
       }
     }
-    
-    void ResolveMatchExpr(MatchExpr me) {
-      Contract.Requires(me != null);
-      Contract.Requires(resolutionContext != null);
-      Contract.Requires(me.OrigUnresolved == null);
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} In ResolvedMatchExpr");
+    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+      // We could complain about the syntactic omission of constructors:
+      //   reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+      // but instead we let the verifier do a semantic check.
+      // So, for now, record the missing constructors:
+      foreach (var ctr in dtd.Ctors) {
+        if (!memberNamesUsed.Contains(ctr.Name)) {
+          s.MissingCases.Add(ctr);
+        }
       }
+      Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
+    }
+  }
 
-      var dtd = me.Source.Type.AsDatatype;
-      Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
+  void ResolveMatchExpr(MatchExpr me) {
+    Contract.Requires(me != null);
+    Contract.Requires(resolutionContext != null);
+    Contract.Requires(me.OrigUnresolved == null);
+    bool debug = DafnyOptions.O.MatchCompilerDebug;
+    if (debug) {
+      Console.WriteLine("DEBUG: {0} In ResolvedMatchExpr");
+    }
 
-      ISet<string> memberNamesUsed = new HashSet<string>();
-      me.Type = new InferredTypeProxy();
-      foreach (MatchCaseExpr mc in me.Cases) {
-        if (ctors != null) {
-          var ctorId = mc.Ctor.Name;
-          if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-            var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-          }
-          if (!ctors.ContainsKey(ctorId)) {
-            // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-          } else {
-            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-              if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-                // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-              } else {
-                // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-              }
-            }
-            if (memberNamesUsed.Contains(ctorId)) {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+    var dtd = me.Source.Type.AsDatatype;
+    Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
+
+    ISet<string> memberNamesUsed = new HashSet<string>();
+    me.Type = new InferredTypeProxy();
+    foreach (MatchCaseExpr mc in me.Cases) {
+      if (ctors != null) {
+        var ctorId = mc.Ctor.Name;
+        if (me.Source.Type.AsDatatype is TupleTypeDecl) {
+          var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
+          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+        }
+        if (!ctors.ContainsKey(ctorId)) {
+          // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
+        } else {
+          if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
+            if (me.Source.Type.AsDatatype is TupleTypeDecl) {
+              // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
             } else {
-              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
+              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
             }
           }
-        }
-      }
-      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-        // We could complain about the syntactic omission of constructors:
-        //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
-        // but instead we let the verifier do a semantic check.
-        // So, for now, record the missing constructors:
-        foreach (var ctr in dtd.Ctors) {
-          if (!memberNamesUsed.Contains(ctr.Name)) {
-            me.MissingCases.Add(ctr);
+          if (memberNamesUsed.Contains(ctorId)) {
+            // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+          } else {
+            memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
           }
         }
-        Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-      }
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - DONE", me.tok.line);
       }
     }
-  
+    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+      // We could complain about the syntactic omission of constructors:
+      //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
+      // but instead we let the verifier do a semantic check.
+      // So, for now, record the missing constructors:
+      foreach (var ctr in dtd.Ctors) {
+        if (!memberNamesUsed.Contains(ctr.Name)) {
+          me.MissingCases.Add(ctr);
+        }
+      }
+      Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
+    }
+    if (debug) {
+      Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - DONE", me.tok.line);
+    }
+  }
+
   private MatchExpr CompileNestedMatchExpr(NestedMatchExpr e) {
     if (DafnyOptions.O.MatchCompilerDebug) {
       Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
@@ -192,7 +192,7 @@ public class CompileNestedMatch {
           resolver.scope.PopMarker();
         }
       }
-      return (MatchExpr) newME;
+      return (MatchExpr)newME;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
@@ -254,7 +254,7 @@ public class CompileNestedMatch {
     //   Console.WriteLine("DEBUG: Done CompileNestedMatchStmt at line {0}.", mti.Tok.line);
     // }
   }
-  
+
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
       yield return new NestedMatchCaseStmt(c.Tok, pat,
@@ -297,7 +297,7 @@ public class CompileNestedMatch {
       yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
     }
   }
-  
+
   // Assumes that all SyntaxContainers in blocks and def are of the same subclass
   private SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, MatchingContext context, Expression matchee, List<Tuple<LiteralExpr, SyntaxContainer>> blocks, SyntaxContainer def) {
 
@@ -720,7 +720,7 @@ public class CompileNestedMatch {
       return CompileRBranch(mti, context.AbstractHole(), matchees, pairPB.ToList().ConvertAll(new Converter<Tuple<ExtendedPattern, RBranch>, RBranch>(x => x.Item2)));
     }
   }
-  
+
   /// <summary>
   /// A SyntaxContainer is a wrapper around either an Expression or a Statement
   /// It allows for generic functions over the two syntax spaces of Dafny
@@ -752,7 +752,7 @@ public class CompileNestedMatch {
       this.Attributes = attrs;
     }
   }
-  
+
 
   private SyntaxContainer PackBody(IToken tok, RBranch branch) {
     if (branch is RBranchStmt br) {
@@ -775,7 +775,7 @@ public class CompileNestedMatch {
       throw new NotImplementedException("Bug in CompileRBranch: expected a StmtContainer");
     }
   }
-  
+
   /// Unwraps a CStmt and returns its Body as a BlockStmt
   private BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con) {
     var stmt = con.Body;
@@ -787,7 +787,7 @@ public class CompileNestedMatch {
       return new BlockStmt(tok, endTok, stmts);
     }
   }
-  
+
   /* Temporary information about the Match being desugared  */
   private class MatchTempInfo {
     public Type Type { get; }
@@ -838,7 +838,7 @@ public class CompileNestedMatch {
       BranchIDCount[branchID] += update;
     }
   }
-  
+
   /// <summary>
   /// RBranch is an intermediate data-structure representing a branch during pattern-match compilation
   /// </summary>
@@ -919,7 +919,7 @@ public class CompileNestedMatch {
       return CloneRBranchExpr((RBranchExpr)branch);
     }
   }
-  
+
   private static ExtendedPattern GetPatternHead(RBranch branch) {
     return branch.Patterns.First();
   }
@@ -950,13 +950,13 @@ public class CompileNestedMatch {
         cPat.AssembleExpr(null); // TODO null?
         var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
         cLet.IsGhost = branchStmt.Body[0].IsGhost;
-        
+
         var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
           { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
         }, new Dictionary<TypeParameter, Type>());
 
         foreach (var stmt in branchStmt.Body) {
-          ((INode) stmt).Visit(node => {
+          ((INode)stmt).Visit(node => {
             ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
               if (expr == null) {
                 return null;
@@ -965,8 +965,8 @@ public class CompileNestedMatch {
             });
             return true;
           });
-        } 
-        
+        }
+
         branchStmt.Body.Insert(0, cLet);
       }
     } else if (branch is RBranchExpr branchExpr) {

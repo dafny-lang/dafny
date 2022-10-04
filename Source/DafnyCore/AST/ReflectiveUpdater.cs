@@ -16,7 +16,7 @@ class ReflectiveUpdater {
         }
       }
 
-      if (field.FieldType.IsGenericType && 
+      if (field.FieldType.IsGenericType &&
           field.FieldType == typeof(List<T>)) {
         var list = (IList<T>)field.GetValue(obj)!;
         if (list == null) {

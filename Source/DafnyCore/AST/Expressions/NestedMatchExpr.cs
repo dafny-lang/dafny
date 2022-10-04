@@ -20,7 +20,7 @@ public class NestedMatchExpr : Expression {
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<Expression> SubExpressions => 
+  public override IEnumerable<Expression> SubExpressions =>
     new[] { Source }.Concat(Cases.Select(c => c.Body));
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);

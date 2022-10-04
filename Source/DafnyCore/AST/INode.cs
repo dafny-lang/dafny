@@ -17,7 +17,7 @@ public interface INode {
   public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
-    
+
     var visited = new HashSet<INode>();
     var toVisit = new Stack<INode>();
     toVisit.Push(this);

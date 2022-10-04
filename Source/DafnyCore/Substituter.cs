@@ -273,7 +273,7 @@ namespace Microsoft.Dafny {
 
                 discoveredBvs.Add(idPattern.BoundVar);
                 var result = new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type, null, idPattern.IsGhost) {
-                  BoundVar = CreateBoundVarSubstitutions(new[] {idPattern.BoundVar}.ToList(), false)[0]
+                  BoundVar = CreateBoundVarSubstitutions(new[] { idPattern.BoundVar }.ToList(), false)[0]
                 };
                 if (idPattern.BoundVar != result.BoundVar) {
                   anythingChanged = true;
