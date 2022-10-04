@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -16,7 +15,26 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  public record Options(IDictionary<IOptionSpec, object> OptionArguments);
+
   public class DafnyOptions : Bpl.CommandLineOptions {
+    public void AddFile(string file) => base.AddFile(file, null);
+
+    private static readonly ISet<ILegacyOption> AvailableNewStyleOptions = new HashSet<ILegacyOption>(
+      new ILegacyOption[] {
+        ShowSnippetsOption.Instance,
+        TargetOption.Instance,
+        PrintOption.Instance,
+        LibraryOption.Instance,
+        PreludeOption.Instance,
+        PrintModeOption.Instance,
+        ResolvedPrintOption.Instance,
+        OldCompileVerboseOption.Instance,
+        OutputOption.Instance,
+        PluginOption.Instance,
+        UseRuntimeLibOption.Instance
+      });
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
@@ -54,6 +72,8 @@ namespace Microsoft.Dafny {
           .GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
+
+    public Options Options { get; set; } = new(new Dictionary<IOptionSpec, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -96,6 +116,12 @@ namespace Microsoft.Dafny {
       NoGhost
     }
 
+    public enum ContractTestingMode {
+      None,
+      Externs,
+      TestedExterns,
+    }
+
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
@@ -113,7 +139,7 @@ namespace Microsoft.Dafny {
     public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
-    public int SpillTargetCode = 0; // [0..4]
+    public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
@@ -133,7 +159,8 @@ namespace Microsoft.Dafny {
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
-    public HashSet<string> LibraryFiles { get; } = new();
+    public HashSet<string> LibraryFiles { get; set; } = new();
+    public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -169,7 +196,6 @@ namespace Microsoft.Dafny {
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
-    public bool ShowSnippets = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
@@ -200,51 +226,29 @@ namespace Microsoft.Dafny {
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
+      if (ParseDafnySpecificOption(name, ps)) {
+        return true;
+      }
+
+      foreach (var option in AvailableNewStyleOptions.Where(o => o.LegacyName == name)) {
+        option.Parse(ps, this);
+        return true;
+      }
+
+      return ParseBoogieOption(name, ps);
+    }
+
+    protected bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
+      return base.ParseOption(name, ps);
+    }
+
+    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
+      ILegacyOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
+
+    protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
-        case "library":
-          if (ps.ConfirmArgumentCount(1)) {
-            LibraryFiles.Add(args[ps.i]);
-          }
 
-          return true;
-        case "dprelude":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrelude = args[ps.i];
-          }
-
-          return true;
-
-        case "dprint":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrintFile = args[ps.i];
-          }
-
-          return true;
-
-        case "printMode":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("Everything")) {
-              PrintMode = PrintModes.Everything;
-            } else if (args[ps.i].Equals("NoIncludes")) {
-              PrintMode = PrintModes.NoIncludes;
-            } else if (args[ps.i].Equals("NoGhost")) {
-              PrintMode = PrintModes.NoGhost;
-            } else if (args[ps.i].Equals("DllEmbed")) {
-              PrintMode = PrintModes.DllEmbed;
-            } else {
-              InvalidArgumentError(name, ps);
-            }
-          }
-
-          return true;
-
-        case "rprint":
-          if (ps.ConfirmArgumentCount(1)) {
-            DafnyPrintResolvedFile = args[ps.i];
-          }
-
-          return true;
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
@@ -264,61 +268,12 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "compileTarget":
-          if (ps.ConfirmArgumentCount(1)) {
-            var compileTarget = args[ps.i];
-            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
-            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
-            if (Compiler == null) {
-              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
-              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
-            }
-          }
-
-          return true;
-
-        case "compileVerbose": {
-            int verbosity = 0;
-            if (ps.GetIntArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
-            }
-
-            return true;
-          }
-        case "check": {
-            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
-              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
-            }
-
-            return true;
-          }
-
-        case "Plugin":
-        case "plugin": {
-            if (ps.ConfirmArgumentCount(1)) {
-              var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0) {
-                var pluginArray = pluginAndArgument.Split(',');
-                var pluginPath = pluginArray[0];
-                var arguments = Array.Empty<string>();
-                if (pluginArray.Length >= 2) {
-                  // There are no commas in paths, but there can be in arguments
-                  var argumentsString = string.Join(',', pluginArray.Skip(1));
-                  // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  arguments = ParseInnerArguments(argumentsString);
-                }
-                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
-              }
-            }
-
-            return true;
-          }
-
         case "trackPrintEffects": {
             int printEffects = 0;
             if (ps.GetIntArgument(ref printEffects, 2)) {
               EnforcePrintEffects = printEffects == 1;
             }
+
             return true;
           }
 
@@ -326,6 +281,14 @@ namespace Microsoft.Dafny {
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
+            }
+
+            return true;
+          }
+
+        case "check": {
+            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
+              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
             }
 
             return true;
@@ -370,16 +333,9 @@ namespace Microsoft.Dafny {
           }
 
         case "spillTargetCode": {
-            int spill = 0;
-            if (ps.GetIntArgument(ref spill, 4)) {
+            uint spill = 0;
+            if (ps.GetUnsignedNumericArgument(ref spill, x => true)) {
               SpillTargetCode = spill;
-            }
-
-            return true;
-          }
-        case "out": {
-            if (ps.ConfirmArgumentCount(1)) {
-              DafnyPrintCompiledFile = args[ps.i];
             }
 
             return true;
@@ -450,6 +406,7 @@ namespace Microsoft.Dafny {
               ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
             }
           }
+
           return true;
 
         case "autoReqPrint":
@@ -514,6 +471,7 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
         case "quantifierSyntax":
@@ -526,6 +484,7 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
         case "countVerificationErrors": {
@@ -591,11 +550,6 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "useRuntimeLib": {
-            UseRuntimeLib = true;
-            return true;
-          }
-
         case "disableScopes": {
             DisableScopes = true;
             return true;
@@ -626,20 +580,6 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "showSnippets": {
-            if (ps.ConfirmArgumentCount(1)) {
-              if (args[ps.i].Equals("0")) {
-                ShowSnippets = false;
-              } else if (args[ps.i].Equals("1")) {
-                ShowSnippets = true;
-              } else {
-                InvalidArgumentError(name, ps);
-              }
-            }
-
-            return true;
-          }
-
         case "warningsAsErrors":
           WarningsAsErrors = true;
           return true;
@@ -658,6 +598,17 @@ namespace Microsoft.Dafny {
           }
           return true;
 
+        case "testContracts":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("Externs")) {
+              TestContracts = ContractTestingMode.Externs;
+            } else if (args[ps.i].Equals("TestedExterns")) {
+              TestContracts = ContractTestingMode.TestedExterns;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -681,13 +632,20 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
+      foreach (var option in AvailableNewStyleOptions) {
+        Options.OptionArguments.GetOrCreate(option, () => option.DefaultValue);
+        option.PostProcess(this);
+      }
+
+      ApplyDefaultOptionsWithoutSettingsDefault();
+    }
+
+    public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
       Compiler ??= new CsharpCompiler();
 
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
-      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();
@@ -991,7 +949,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string HelpBody =>
+    protected override string HelpBody => DafnyHelpBody + BoogieHelpBody;
+
+    protected string BoogieHelpBody => base.HelpBody;
+
+    protected string DafnyHelpBody =>
       $@"
 All the .dfy files supplied on the command line along with files recursively
 included by 'include' directives are considered a single Dafny program;
@@ -1002,45 +964,15 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 ---- Input configuration ---------------------------------------------------
 
-/dprelude:<file>
-    Choose the Dafny prelude file.
-
 /stdin
     Read standard input and treat it as an input .dfy file.
 
 ---- Plugins ---------------------------------------------------------------
 
-/plugin:<path to one assembly>[ <arguments>]
-    (experimental) One path to an assembly that contains at least one
-    instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
-    can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
-    receive arguments. More information about what plugins do and how
-    define them:
-
-    https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-
 ---- Overall reporting and printing ----------------------------------------
 
 /stats
     Print interesting statistics about the Dafny files supplied.
-
-/dprint:<file>
-    Print the Dafny program after parsing it. (Use - as <file> to print
-    to the console.)
-
-/rprint:<file>
-    Print the Dafny program after resolving it. (Use - as <file> to print
-    to the console.)
-
-/printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-    Everything (default) - Print everything listed below.
-    DllEmbed - print the source that will be included in a compiled dll.
-    NoIncludes - disable printing of {{:verify false}} methods
-        incorporated via the include mechanism, as well as datatypes and
-        fields included from other files.
-    NoGhost - disable printing of functions, ghost methods, and proof
-        statements in implementation methods. It also disables anything
-        NoIncludes disables.
 
 /printIncludes:<None|Immediate|Transitive>
     None (default) - Print nothing.
@@ -1054,11 +986,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     If print before the module is resolved (/dprint), then everything in
     the module is printed. If no view is specified, then everything in
     the module is printed.
-
-/showSnippets:<n>
-    0 (default) - Don't show source code snippets for Dafny messages.
-    1 - Show a source code snippet for each Dafny message.
-
 /funcCallGraph
     Print out the function call graph. Format is: func,mod=callee*
 
@@ -1346,20 +1273,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         does not write an output file) and runs it.
     4 - Like (3), but attempts to compile and run regardless of
         verification outcome.
-
-/compileTarget:<lang>
-    cs (default) - Compile to .NET via C#.
-    go - Compile to Go.
-    js - Compile to JavaScript.
-    java - Compile to Java.
-    py - Compile to Python.
-    cpp - Compile to C++.
-
-    Note that the C++ backend has various limitations (see
-    Docs/Compilation/Cpp.md). This includes lack of support for
-    BigIntegers (aka int), most higher order functions, and advanced
-    features like traits or co-inductive types.
-
 /Main:<name>
     Specify the (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
@@ -1377,12 +1290,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         be used if the program already contains a main method. Note that
         /compile:3 or 4 must be provided as well to actually execute
         this main method!
-
-/compileVerbose:<n>
-    0 - Don't print status of compilation to the console.
-    1 (default) - Print information such as files being written by the
-        compiler to the console.
-
 /spillTargetCode:<n>
     Explicitly writes the code in the target language to one or more files.
     This is not necessary to run a Dafny program, but may be of interest when
@@ -1397,15 +1304,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         setting.
     3 - Write the textual target program, regardless of verification
         outcome and /compile setting.
-
     Note, some compiler targets may (always or in some situations) write
     out the textual target program as part of compilation, in which case
     /spillTargetCode:0 behaves the same way as /spillTargetCode:1.
-
-/out:<file>
-    Specify the filename and location for the generated target language
-    files.
-
 /coverage:<file>
     The compiler emits branch-coverage calls and outputs into <file> a
     legend that gives a description of each source-location identifier
@@ -1421,11 +1322,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         target.
     2 (default) - As in 1, but only resolve method bodies in
         non-included Dafny sources.
-
-/useRuntimeLib
-    Refer to a pre-built DafnyRuntime.dll in the compiled assembly
-    rather than including DafnyRuntime.cs verbatim.
-
 /library:<file>
     The contents of this file and any files it includes can be
     referenced from other files as if they were included. However, these
@@ -1433,14 +1329,27 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     option is useful in a diamond dependency situation, to prevent code
     from the bottom dependency from being generated more than once.
 
+/testContracts:<Externs|TestedExterns>
+    Enable run-time testing of the compilable portions of certain function
+    or method contracts, at their call sites. The current implementation
+    focuses on {{:extern}} code but may support other code in the future.
+
+    Externs - Check contracts on every call to a function or method marked
+        with the {{:extern}} attribute, regardless of where it occurs.
+    TestedExterns - Check contracts on every call to a function or method
+        marked with the {{:extern}} attribute when it occurs in a method
+        with the {{:test}} attribute, and warn if no corresponding test
+        exists for a given external declaration.
+
 ----------------------------------------------------------------------------
 
 Dafny generally accepts Boogie options and passes these on to Boogie.
 However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
-".Replace("\n", "\n  ") + base.HelpBody;
+".Replace("\n", "\n  ");
   }
+
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {

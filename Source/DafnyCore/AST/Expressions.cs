@@ -1303,7 +1303,7 @@ public class SeqDisplayExpr : DisplayExpression {
 
 public class MemberSelectExpr : Expression, IHasUsages {
   public readonly Expression Obj;
-  public readonly string MemberName;
+  public string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -1671,7 +1671,7 @@ public class ApplyExpr : Expression {
 }
 
 public class FunctionCallExpr : Expression, IHasUsages {
-  public readonly string Name;
+  public string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
   public readonly IToken CloseParen;
@@ -4413,5 +4413,18 @@ public class ApplySuffix : SuffixExpr {
         }
       }
     }
+  }
+
+  /// <summary>
+  /// Create an ApplySuffix expression using the most basic pieces: a target name and a list of expressions.
+  /// </summary>
+  /// <param name="tok">The location to associate with the new ApplySuffix expression.</param>
+  /// <param name="name">The name of the target function or method.</param>
+  /// <param name="args">The arguments to apply the function or method to.</param>
+  /// <returns></returns>
+  public static Expression MakeRawApplySuffix(IToken tok, string name, List<Expression> args) {
+    var nameExpr = new NameSegment(tok, name, null);
+    var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
+    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
   }
 }

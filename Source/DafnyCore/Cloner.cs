@@ -673,6 +673,8 @@ namespace Microsoft.Dafny {
         var body = s.Body == null ? null : CloneBlockStmt(s.Body);
         r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
 
+      } else if (stmt is CallStmt s) {
+        r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs, s.MethodSelect, s.Args);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

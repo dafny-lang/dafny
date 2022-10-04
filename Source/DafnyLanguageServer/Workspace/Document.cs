@@ -4,7 +4,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Net.Mime;
+using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
@@ -136,18 +139,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 
-  public record DocumentTextBuffer(int NumberOfLines) : TextDocumentItem {
-    public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
-      return new DocumentTextBuffer(TextChangeProcessor.ComputeNumberOfLines(textDocumentItem.Text)) {
-        Text = textDocumentItem.Text,
-        Uri = textDocumentItem.Uri,
-        Version = textDocumentItem.Version,
-        LanguageId = textDocumentItem.LanguageId
-      };
-    }
-
-    // Impossible to cache this result, because this document is sometimes cloned with
-    // "with", and private variables would keep the same value even if `NumberOfLines` changed
-    public Range Range => new Range(0, 0, NumberOfLines, 0);
-  }
+  public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

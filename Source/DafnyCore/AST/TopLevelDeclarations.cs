@@ -24,7 +24,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public List<IToken> OwnedTokens = new();
-  public readonly string Name;
+  public string Name;
   public bool IsRefining;
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
   IToken IRegion.BodyEndTok { get { return BodyEndTok; } }

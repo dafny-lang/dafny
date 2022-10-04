@@ -1,4 +1,6 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../libraries/src/Wrappers.dfy"
@@ -17,7 +19,7 @@ method test(s: string) returns (r: Option<string>) {
 method Main() {
   var x := test("ok");
   if x.Some? {
-    print x.value;
+    print x.value, "\n";
   } else {
     print "None?!";
   }

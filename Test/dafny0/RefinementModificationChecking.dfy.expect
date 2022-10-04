@@ -1,3 +1,4 @@
+RefinementModificationChecking.dfy(20,9): Warning: the ... refinement feature in statements is deprecated
 RefinementModificationChecking.dfy(22,6): Error: refinement method cannot assign to variable defined in parent module ('t')
 RefinementModificationChecking.dfy(23,6): Error: refinement method cannot assign to variable defined in parent module ('r')
 RefinementModificationChecking.dfy(24,6): Error: refinement method cannot assign to a field defined in parent module ('f')
