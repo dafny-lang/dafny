@@ -79,7 +79,7 @@ rm -r $T/$V/dev $T/latest/dev
 rm $T/$V/DafnyRef/version.txt
 echo "$V release snapshot" > $T/$V/DafnyRef/version.txt
 rm $T/latest/DafnyRef/version.txt
-echo "Latest release snapshot" > $T/$V/DafnyRef/version.txt
+echo "Latest release snapshot" > $T/DafnyRef/version.txt
 
 grep -q "$M" $T/$V/index.html || (echo FAILED: No Version marker line in $T/$V/index.html ; exit 1 )
 
