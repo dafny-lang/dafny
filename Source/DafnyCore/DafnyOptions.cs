@@ -102,6 +102,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public bool FormatCheck = false;
 
     public Compiler Compiler;
     public bool CompileVerbose = true;
@@ -280,6 +281,13 @@ namespace Microsoft.Dafny {
             int verbosity = 0;
             if (ps.GetIntArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
+            }
+
+            return true;
+          }
+        case "check": {
+            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
+              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
             }
 
             return true;

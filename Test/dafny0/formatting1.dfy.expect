@@ -22,5 +22,5 @@ module A {
   }
 }
 formatting1-3.dfy(1,0): Warning: File contains no code
-Formatted 2 files. 1 files failed to parse or were empty:
+0 files formatted. 2 files were already formatted. 1 file failed to parse or were empty:
 formatting1-3.dfy

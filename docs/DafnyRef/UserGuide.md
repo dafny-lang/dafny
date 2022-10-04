@@ -150,11 +150,14 @@ Dafny supports a formatter, which for now only changes the indentation of every 
 to the idiomatic Dafny code formatting style.
 For the formatter to work, the file should be parsed correctly by Dafny.
 
-There are three ways to use the formatter:
+There are four ways to use the formatter:
 
 * `dafny format file1.dfy file2.dfy ...` formats each file provided in arguments.
 * `dafny format /print:- file1.dfy file2.dfy ...` format each file but instead of writing files, output their formatted content in stdout
 * `dafny format` Look up for all the Dafny files recursively in the current repository and format them.
+* `dafny format -check` with the same options as above. It will print a message
+  and a non-zero return code if at least one file is not the same as 
+  its formatted version through `dafny format`
 
 ## 25.7. Verification
 

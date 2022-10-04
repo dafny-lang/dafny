@@ -327,15 +327,20 @@ namespace Microsoft.Dafny {
             .Select(name => new DafnyFile(name)).ToList();
         }
 
-        var failedToParse = new List<string>();
-        var unchanged = 0;
+        var failed = new List<string>();
+        var onlyCheck = DafnyOptions.O.FormatCheck;
+        var needFormatting = 0;
         foreach (var dafnyFile in dafnyFiles) {
+          if (dafnyFile.UseStdin && !onlyCheck) {
+            continue;
+          }
           // Might not be totally optimized but let's do that for now
           err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out dafnyProgram);
+          string originalText = File.ReadAllText(dafnyFile.FilePath);
           if (err != null) {
             exitValue = ExitValue.DAFNY_ERROR;
             Console.Error.WriteLine(err);
-            failedToParse.Add(dafnyFile.BaseName);
+            failed.Add(dafnyFile.BaseName);
           } else {
             var firstToken = dafnyProgram.GetFirstTopLevelToken();
             if (firstToken != null) {
@@ -343,19 +348,35 @@ namespace Microsoft.Dafny {
                 IndentationFormatter.ForProgram(dafnyProgram));
               if (DafnyOptions.O.PrintFile == "-") {
                 Console.Out.Write(result);
+              } else if (onlyCheck) {
+                if (result != originalText) {
+                  Console.Out.WriteLine("The file " + dafnyFile.FilePath + " needs to be formatted");
+                  exitValue = ExitValue.DAFNY_ERROR;
+                  needFormatting += 1;
+                }
               } else {
                 WriteFile(dafnyFile.FilePath, result);
               }
             } else {
               Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
-              failedToParse.Add(dafnyFile.BaseName);
+              failed.Add(dafnyFile.BaseName);
             }
           }
         }
 
-        if (dafnyFiles.Count != 1) {
-          var errorMsg = failedToParse.Count > 0 ? $" {failedToParse.Count} files failed to parse or were empty:\n" + string.Join("\n", failedToParse) : "";
-          Console.Out.WriteLine("Formatted " + (dafnyFiles.Count - failedToParse.Count) + " files." + errorMsg);
+        var unchanged = dafnyFiles.Count - failed.Count - needFormatting;
+        var unchangedMessage = unchanged > 0 ? $" {Files(unchanged)} were already formatted." : "";
+        string Files(int num) {
+          return num + (num != 1 ? " files" : " file");
+        }
+        var errorMsg = failed.Count > 0 ? $" {Files(failed.Count)} failed to parse or were empty:\n" + string.Join("\n", failed) : "";
+        if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0)) {
+
+          Console.Out.WriteLine($"{Files(needFormatting)} formatted." + unchangedMessage + errorMsg);
+        }
+        if (onlyCheck) {
+          Console.Out.WriteLine(needFormatting > 0 ? $"Error: {Files(needFormatting)} need formatting." + unchangedMessage + errorMsg :
+            "All files correctly formatted");
         }
 
         return exitValue;
