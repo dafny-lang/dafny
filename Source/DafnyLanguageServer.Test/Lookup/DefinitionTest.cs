@@ -29,29 +29,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var source = @"
 method HasLoop() {
   var x := 1;
-  while(true) {
+  [>while<](true) {
     if (x > 2) {
-      break;
+      br><eak;
     }
     x := x + 1;
   }
 }
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var whileReference = (await RequestDefinition(documentItem, (4, 8)).AsTask()).Single();
-      Assert.AreEqual(new Range((2, 2), (2, 7)), whileReference.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
-datatype Option<+U> = None | Some(val: U) {
+datatype Option<+U> = {>0:None<} | Some(val: U) {
 
   function FMap<V>(f: U -> V): Option<V> {
     match this
-    case None => None
+    case None => N><one
     case Some(x) => Some(f(x))
   }
 }
@@ -59,157 +56,161 @@ datatype Option<+U> = None | Some(val: U) {
 datatype A = A {
   static method create() returns (ret: A)
 }
-datatype Result<T, E> = Ok(value: T) | Err(error: E) {
+datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
   function method PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
-    Err(this.error)
+    Err(this.er><ror)
   }
 }
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var noneCreation = (await RequestDefinition(documentItem, (4, 19)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 22), (0, 26)), noneCreation.Location.Range);
+      await AssertPositionsLineUpWithRanges(source);
+    }
 
-      var errorInThisDotError = (await RequestDefinition(documentItem, (16, 15)).AsTask()).Single();
-      Assert.AreEqual(new Range((12, 43), (12, 48)), errorInThisDotError.Location.Range);
+    private async Task AssertPositionsLineUpWithRanges(string source) {
+      MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+
+      var documentItem = CreateTestDocument(cleanSource);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      for (var index = 0; index < positions.Count; index++) {
+        var position = positions[index];
+        var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+        var result = (await RequestDefinition(documentItem, position).AsTask()).Single();
+        Assert.AreEqual(range, result.Location!.Range);
+      }
     }
 
     [TestMethod]
     public async Task StaticFunctionCall() {
       var source = @"
-module Zaz {
-  trait E {
-    static function method Foo(): E
+module [>Zaz<] {
+  trait [>E<] {
+    static function method [>Foo<](): E
   }
 }
 
 function Bar(): Zaz.E {
-  Zaz.E.Foo()
+  Z><az.><E.F><oo()
 }
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var zazReference = (await RequestDefinition(documentItem, (7, 2)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 7), (0, 10)), zazReference.Location!.Range);
-
-      var eReference = (await RequestDefinition(documentItem, (7, 6)).AsTask()).Single();
-      Assert.AreEqual(new Range((1, 8), (1, 9)), eReference.Location!.Range);
-
-      var fooReference = (await RequestDefinition(documentItem, (7, 8)).AsTask()).Single();
-      Assert.AreEqual(new Range((2, 27), (2, 30)), fooReference.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]
     public async Task FunctionCallAndGotoOnDeclaration() {
       var source = @"
-function FibonacciSpec(n: nat): nat {
+function [>Fibo><nacciSpec<](><n: nat): nat {
   if (n == 0) then 0
   else if (n == 1) then 1
-  else FibonacciSpec(n - 1) + FibonacciSpec(n - 2)
+  else Fi><bonacciSpec(n - 1) + FibonacciSpec(n - 2)
 }
 
-type seq31<T> = x: seq<T> | 0 <= |x| <= 32 as int
+type seq31<[>T<]> = x: seq<><T> | 0 <= |x| <= 32 as int
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+      var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var definition = (await RequestDefinition(documentItem, (3, 8)).AsTask()).Single();
-      var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((0, 9), (0, 22)), location.Range);
 
-      var fibonacciSpecOnItself = (await RequestDefinition(documentItem, (0, 12)).AsTask());
+      var fibonacciSpecOnItself = (await RequestDefinition(documentItem, positions[0]).AsTask());
       Assert.IsFalse(fibonacciSpecOnItself.Any());
 
-      var nOnItself = (await RequestDefinition(documentItem, (0, 23)).AsTask());
+      var nOnItself = (await RequestDefinition(documentItem, positions[1]).AsTask());
       Assert.IsFalse(nOnItself.Any());
 
-      var typeParameter = (await RequestDefinition(documentItem, (6, 23)).AsTask()).Single();
-      Assert.AreEqual(new Range((6, 11), (6, 12)), typeParameter.Location!.Range);
+      var fibonacciCall = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
+      Assert.AreEqual(ranges[0], fibonacciCall.Location!.Range);
+
+      var typeParameter = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
+      Assert.AreEqual(ranges[1], typeParameter.Location!.Range);
     }
 
     [TestMethod]
     public async Task DatatypesAndMatches() {
       var source = @"
-datatype Identity<T> = Identity(value: T)
-datatype Colors = Red | Green | Blue
+datatype Identity<T> = [>Identity<](value: T)
+datatype Colors = Red | [>Green<] | Blue
 
-function Foo(value: Identity<Colors>): bool {
-  match value {
-    case Identity(Red()) => true
-    case Identity(Green) => false // Warning
+function Foo([>value<]: Identity<Colors>): bool {
+  match va><lue {
+    case Ide><ntity(Red()) => true
+    case Identity(Gr><een) => false // Warning
     case Identity(Blue()) => false
   }
 }
 
-method Bar(value: Identity<Colors>) returns (x: bool) {
-  match value {
-    case Identity(Red()) => return true;
-    case Identity(Green) => return false; // Warning
+method Bar([>value<]: Identity<Colors>) returns (x: bool) {
+  match v><alue {
+    case Ide><ntity(Red()) => return true;
+    case Identity(Gr><een) => return false; // Warning
     case Identity(Blue()) => return false;
   }
 }
 ".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+      var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var matchSource = (await RequestDefinition(documentItem, (4, 10)).AsTask()).Single();
-      Assert.AreEqual(new Range((3, 13), (3, 18)), matchSource.Location!.Range);
+      var matchSource = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
+      Assert.AreEqual(ranges[2], matchSource.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
-      // var identity = (await RequestDefinition(documentItem, (5, 12)).AsTask()).Single();
-      // Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
+      // var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
+      // Assert.AreEqual(ranges[0], identity.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
-      // var green = (await RequestDefinition(documentItem, (6, 20)).AsTask()).Single();
-      // Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
+      // var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
+      // Assert.AreEqual(ranges[1], green.Location!.Range);
 
-      var matchSourceStmt = (await RequestDefinition(documentItem, (12, 10)).AsTask()).Single();
-      Assert.AreEqual(new Range((11, 11), (11, 16)), matchSourceStmt.Location!.Range);
-
-      // TODO doesn't work right now because we use post match compilation information.
-      // var identityStmt = (await RequestDefinition(documentItem, (13, 12)).AsTask()).Single();
-      // Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
+      var matchSourceStmt = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
+      Assert.AreEqual(ranges[3], matchSourceStmt.Location!.Range);
 
       // TODO doesn't work right now because we use post match compilation information.
-      // var greenStmt = (await RequestDefinition(documentItem, (14, 20)).AsTask()).Single();
-      // Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
+      // var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
+      // Assert.AreEqual(ranges[0], identity.Location!.Range);
+
+      // TODO doesn't work right now because we use post match compilation information.
+      // var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
+      // Assert.AreEqual(ranges[1], green.Location!.Range);
     }
 
     [TestMethod]
     public async Task JumpToExternModule() {
       var source = @"
-module {:extern} Provider {
+module {:extern} [>Provider<] {
   newtype nat64 = x: int | 0 <= x <= 0xffff_ffff_ffff_ffff
-  type usize = nat64
+  type [>usize<] = nat64
 }
 
 module Consumer {
-  import opened Provider
+  import opened P><rovider
 
   method DoIt() {
-    var length: usize := 3;
-    length := 4;
+    var [>le><ngth<]: u><size := 3;
+    le><ngth := 4;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+      var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var usizeReference = (await RequestDefinition(documentItem, (9, 19)).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, usizeReference.Location.Uri);
-      Assert.AreEqual(new Range((2, 7), (2, 12)), usizeReference.Location.Range);
+      var usizeReference = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
+      Assert.AreEqual(documentItem.Uri, usizeReference.Location!.Uri);
+      Assert.AreEqual(ranges[1], usizeReference.Location.Range);
 
-      var lengthDefinition = (await RequestDefinition(documentItem, (9, 10)).AsTask());
+      var lengthDefinition = (await RequestDefinition(documentItem, positions[1]).AsTask());
       Assert.IsFalse(lengthDefinition.Any());
 
-      var providerImport = (await RequestDefinition(documentItem, (6, 16)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 17), (0, 25)), providerImport.Location!.Range);
+      var providerImport = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
+      Assert.AreEqual(ranges[0], providerImport.Location!.Range);
 
-      var lengthAssignment = (await RequestDefinition(documentItem, (10, 7)).AsTask()).Single();
-      Assert.AreEqual(new Range((9, 8), (9, 14)), lengthAssignment.Location!.Range);
+      var lengthAssignment = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
+      Assert.AreEqual(ranges[2], lengthAssignment.Location!.Range);
     }
 
     [TestMethod]
@@ -217,12 +218,12 @@ module Consumer {
       var source = @"
 module Provider {
   class A {
-    var x: int;
+    var [>x<]: int;
 
     constructor() {}
 
-    function method GetX(): int
-      reads this`x
+    function method [>GetX<](): int
+      reads this`><x
     {
       this.x
     }
@@ -234,25 +235,17 @@ module Consumer {
 
   method DoIt() returns (x: int) {
     var a := new A();
-    return a.GetX();
+    return a.G><etX();
   }
 }
 
 module Consumer2 {
-  import Provider
+  import [>Provider<]
 
-  type A2 = Provider.A
+  type A2 = Pro><vider.A
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var getXCall = (await RequestDefinition(documentItem, (19, 13)).AsTask()).Single();
-      Assert.AreEqual(new Range((6, 20), (6, 24)), getXCall.Location!.Range);
 
-      var xInFrame = (await RequestDefinition(documentItem, (7, 17)).AsTask()).Single();
-      Assert.AreEqual(new Range((2, 8), (2, 9)), xInFrame.Location!.Range);
-
-      var providerQualifier = (await RequestDefinition(documentItem, (26, 14)).AsTask()).Single();
-      Assert.AreEqual(new Range((24, 9), (24, 17)), providerQualifier.Location!.Range);
+      await AssertPositionsLineUpWithRanges(source);
     }
 
     [TestMethod]

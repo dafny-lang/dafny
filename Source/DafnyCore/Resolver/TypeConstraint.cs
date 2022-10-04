@@ -45,25 +45,6 @@ namespace Microsoft.Dafny {
         Contract.Requires(reporter != null);
         Contract.Requires(suffix != null);
 
-        object[] RemoveAmbiguity(object[] msgArgs) {
-          var renderedInterpolated = new HashSet<string>();
-          var ambiguity = false;
-          foreach (var x in msgArgs) {
-            var str = x.ToString();
-            if (renderedInterpolated.Contains(str)) {
-              ambiguity = true;
-            }
-
-            renderedInterpolated.Add(str);
-          }
-          if (ambiguity) {
-            return msgArgs.Select(x =>
-              (object)(x is UserDefinedType udt ? udt.FullName : x.ToString())
-            ).ToArray();
-          } else {
-            return msgArgs;
-          }
-        }
         if (this is ErrorMsgWithToken) {
           var err = (ErrorMsgWithToken)this;
           Contract.Assert(err.Tok != null);
@@ -74,22 +55,39 @@ namespace Microsoft.Dafny {
         }
         reported = true;
       }
+      protected object[] RemoveAmbiguity(object[] msgArgs) {
+        var renderedInterpolated = new HashSet<string>();
+        var ambiguity = false;
+        foreach (var x in msgArgs) {
+          var str = x.ToString();
+          if (renderedInterpolated.Contains(str)) {
+            ambiguity = true;
+          }
+
+          renderedInterpolated.Add(str);
+        }
+        if (ambiguity) {
+          return msgArgs.Select(x =>
+            (object)(x is UserDefinedType udt ? udt.FullName : x.ToString())
+          ).ToArray();
+        }
+        return msgArgs;
+      }
 
       protected abstract string ApproximateErrorMessage();
     }
     public class ErrorMsgWithToken : ErrorMsg {
       readonly IToken tok;
-      public override IToken Tok {
-        get { return tok; }
-      }
-      public readonly string Msg;
+      public override IToken Tok => tok;
+      readonly string msg;
+      public virtual string Msg => msg;
       public readonly object[] MsgArgs;
       public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
         Contract.Requires(tok != null);
         Contract.Requires(msg != null);
         Contract.Requires(msgArgs != null);
         this.tok = tok;
-        this.Msg = msg;
+        this.msg = msg;
         this.MsgArgs = msgArgs;
       }
 
