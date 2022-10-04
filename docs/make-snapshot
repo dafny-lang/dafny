@@ -46,42 +46,42 @@ if [ -e $T/$V ]; then
   echo FAILURE: $T/$V already exists; exit 1;
 fi
 echo Executing from `pwd`
-echo Target is $T
-echo Version is $V
-echo Branch is $B
+echo Target is "$T"
+echo Version is "$V"
+echo Branch is "$B"
 
 ## Changes locally
 git checkout master
 git pull upstream
-git checkout -b $B
-echo "- [$V](https://davidcok.github.io/dafny-lang.github.io/$V)" >> Snapshots.md
+git checkout -b "$B"
+echo "- [$V](https://dafny.org/$V)" >> Snapshots.md
 git add Snapshots.md
 git commit -m "Link to snapshot for $V"
-git push --set-upstream origin $B
+git push --set-upstream origin "$B"
 
 ## Changes on dafny-lang.github.io
 ( cd $T && \
   git checkout main && \
   git pull && \
-  git checkout -b $B && \
-  git push -u origin $B ) || \
+  git checkout -b "$B" && \
+  git push -u origin "$B" ) || \
     (echo FAILED to create target branch; exit 1)
 
 
-cp -R . $T/$V || ( echo copy FAILED; exit 1 )
-cp -R $T/$V/ $T/latest/
+cp -R . "$T/$V" || ( echo copy FAILED; exit 1 )
+cp -R "$T/$V/" "$T/latest/"
 
 ## Tweaks to snapshot files
 
 ### Remove developer documentation
-rm -r $T/$V/dev $T/latest/dev
+rm -r "$T/$V/dev" "$T/latest/dev"
 ### Adjust version information
-rm $T/$V/DafnyRef/version.txt
-echo "$V release snapshot" > $T/$V/DafnyRef/version.txt
+rm "$T/$V/DafnyRef/version.txt"
+echo "$V release snapshot" > "$T/$V/DafnyRef/version.txt"
 rm $T/latest/DafnyRef/version.txt
-echo "Latest release snapshot" > $T/DafnyRef/version.txt
+echo "Latest release snapshot" > "$T/DafnyRef/version.txt"
 
-grep -q "$M" $T/$V/index.html || (echo FAILED: No Version marker line in $T/$V/index.html ; exit 1 )
+grep -q "$M" $T/$V/index.html || (echo FAILED: No Version marker line in "$T/$V/index.html" ; exit 1 )
 
 sed -i -e "s/$M.*/${M}$V documentation snapshot/" $T/$V/index.html || (echo Version replacement FAILED; exit 1; )
 sed -i -e "s/$M.*/${M}Latest release documentation snapshot/" $T/latest/index.html || (echo Version replacement FAILED; exit 1; )
@@ -89,7 +89,7 @@ sed -i -e "s/$M.*/${M}Latest release documentation snapshot/" $T/latest/index.ht
 
 (cd $T && \
   git add -u && \
-  git add $V && \
+  git add "$V" && \
   git commit -m "Documentation snapshot for $V" && \
-  git push origin $B ) ||\
+  git push origin "$B" ) ||\
 	( echo FAILED to commit or push the snapshot ; exit 1  )
