@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: Correct error highlighting on function called with default arguments (https://github.com/dafny-lang/dafny/pull/2826)
+
 # 3.9.0
 
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
