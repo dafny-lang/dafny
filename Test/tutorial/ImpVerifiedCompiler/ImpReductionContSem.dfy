@@ -23,7 +23,7 @@ datatype StepCases =
 	| StepSkipSeq(com,cont,store)
 	| StepSkipWhile(bexp,com,cont,store)
 
-predicate step(red: StepCases,conf1: configuration, conf2: configuration) {
+predicate stepNice(red: StepCases,conf1: configuration, conf2: configuration) {
 	match red {
 		case SAssign(i,a,k,s) =>
 			if (forall id: ident :: id_in_aexp(id,a) ==> id in s) then
@@ -51,4 +51,67 @@ predicate step(red: StepCases,conf1: configuration, conf2: configuration) {
 			&& conf1 == (CSkip, Kwhile(b, c, k), s)
 			&& conf2 == (CWhile(b, c), k, s)
 	}
+}
+
+predicate SameCont(conf1: configuration,conf2: configuration) {
+	conf1.1 == conf2.1
+}
+
+predicate SameStore(conf1: configuration,conf2: configuration) {
+	conf1.2 == conf2.2
+}
+
+predicate SameContAndStore(conf1: configuration,conf2: configuration) {
+	SameCont(conf1,conf2) && SameStore(conf1,conf2)
+}
+
+predicate step(conf1: configuration, conf2: configuration) {
+	match (conf1,conf2) {
+		case ((CAsgn(i, a), _, s1), (SKIP, _, s2)) =>
+			if (forall id: ident :: id_in_aexp(id,a) ==> id in s1) then
+			&& s2 == s1[i := aeval(s1,a)]
+			&& SameCont(conf1,conf2)
+			else false
+		case ((CSeq(c1, c2), k, _), (c', Kseq(c'', k'), _)) =>
+			&& c' == c1
+			&& c'' == c2
+			&& k' == k
+			&& SameStore(conf1,conf2)
+		case ((CIf(b, c1, c2), _, s), (c, _, _)) =>
+			if (forall id: ident :: id_in_bexp(id,b) ==> id in s) then
+			&& if beval(s, b) then c == c1 else c == c2
+			&& SameContAndStore(conf1,conf2)
+			else false
+		case ((CWhile(b, c), _, s), (CSkip, _, _)) =>
+			if (forall id: ident :: id_in_bexp(id,b) ==> id in s) then
+			&& !beval(s, b)
+			&& SameContAndStore(conf1,conf2)
+			else false
+		case ((CWhile(b, c), k, s), (c', Kwhile(b', c'', k'), _)) =>
+			if (forall id: ident :: id_in_bexp(id,b) ==> id in s) then
+			&& beval(s, b)
+			&& c'' == c' == c
+			&& b' == b
+			&& k' == k
+			&& SameStore(conf1,conf2)
+			else false
+		case ((CSkip, Kseq(c, k), _), (c', k', _)) =>
+			&& c' == c
+			&& k' == k
+			&& SameStore(conf1,conf2)
+		case ((CSkip, Kwhile(b, c, k), _), (CWhile(b', c'), k', _)) =>
+			&& b' == b
+			&& c' == c
+			&& k' == k
+			&& SameStore(conf1,conf2)
+		case _ => false
+	}
+}
+
+predicate fin_reds(conf1: configuration, conf2: configuration) {
+	star((c1,c2) => step(c1,c2),conf1,conf2)
+}
+	
+predicate inf_reds(conf: configuration) {
+	inf((c1,c2) => step(c1,c2),conf)
 }
