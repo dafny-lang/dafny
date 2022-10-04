@@ -51,6 +51,25 @@ method Multiply(x: int, y: int) returns (product: int)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
+
+    [TestMethod]
+    public async Task OpeningFunctionWithErrorDoesNotCrash() {
+      var source = @"
+datatype ParseResult<T> = Success(value: T) | Failure
+
+predicate FixMapInner() {
+  forall callback: (string, nat) --> ParseResult<T>, fun: string, u: nat |
+    && fun in underlying.Keys
+    && FixMapSpecInner(underlying.Keys, |input|, callback, u)
+    :: underlying[fun].requires(callback, u)
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
     [TestMethod]
     public async Task OpeningOpaqueFunctionWorks() {
       var source = @"
