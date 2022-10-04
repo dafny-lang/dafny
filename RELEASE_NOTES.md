@@ -1,5 +1,7 @@
 # Upcoming
 
+# 3.9.0
+
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
 - feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
@@ -18,10 +20,6 @@
 - deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
 - deprecate: The form of the modify statement with a block statement is deprecated
 - docs: The user documentation at https://dafny.org has a new landing page
-and is now synchronized with 
-releases, showing a snapshot of the user documentation at the time of a 
-release, with links to older snapshots and to the current development version
-of user documentation.
 
 # 3.8.1
 
