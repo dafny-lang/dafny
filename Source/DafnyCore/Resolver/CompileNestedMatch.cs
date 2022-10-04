@@ -957,7 +957,12 @@ public class CompileNestedMatch {
 
         foreach (var stmt in branchStmt.Body) {
           ((INode) stmt).Visit(node => {
-            ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => substituter.Substitute(expr));
+            ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
+              if (expr == null) {
+                return null;
+              }
+              return substituter.Substitute(expr);
+            });
             return true;
           });
         } 
