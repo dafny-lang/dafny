@@ -85,8 +85,8 @@ time lag) uses the file to render code snippets.
 very active.]
 
 The mapping from tokens to actual colors is specified separately from the
-syntax definition. The on-line rendering uses the Github default.
-(TODO: Can this be changed?)
+syntax definition. The on-line rendering uses the Github default
+(which, at last investigation, was not changeable).
 
 Although the RM sources also contain grammar blocks, there is at present no
 rouge definition for these blocks.

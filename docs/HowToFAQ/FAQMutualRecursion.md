@@ -77,4 +77,4 @@ function method g(ghost parent: T, x : T, y : T) : bool
 }
 ```
 
-More on the topic of termination metrics can be found [here](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-decreases-clause).
+More on the topic of termination metrics can be found [here](../DafnyRef/DafnyRef#sec-decreases-clause).

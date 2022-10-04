@@ -85,12 +85,9 @@ that are not present in the original grammar. We name these with a trailing
 underscore. If you inline these where they are referenced, the result should
 let you reconstruct the original grammar.
 
-<!-- TODO: grammar hyperlinks are not implemented -->
-
 ## 2.1. Dafny Input {#sec-unicode}
 
-Dafny source code files are readable text encoded as UTF-8 Unicode
-(because this is what the Coco/R-generated scanner and parser read).
+Dafny source code files are readable text encoded in UTF-8, where each decoded character has to be from the Basic Multilingual Plane and therefore encodable with a single UTF-16 code unit. This is what the Coco/R-generated scanner and parser read.
 All program text other than the contents of comments, character, string and verbatim string literals
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.

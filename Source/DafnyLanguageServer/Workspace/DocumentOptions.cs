@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -21,12 +23,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DafnyOptions.O.ApplyDefaultOptions();
       DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
       // ShowSnippets == true enable boogie assertion's token to contain the range of expressions, not their single token
-      DafnyOptions.O.ShowSnippets = true;
+      ShowSnippetsOption.Instance.Set(DafnyOptions.O, true);
     }
 
-    public string ProverOptions =>
-      string.Join(" ", DafnyOptions.O.ProverOptions) +
-      " O:model_compress=false" + " O:model.completion=true" +
-      " O:model_evaluator.completion=true";
+    public List<string> AugmentedProverOptions =>
+      DafnyOptions.O.ProverOptions.Concat(new List<string>() {
+        "O:model_compress=false",
+        "O:model.completion=true",
+        "O:model_evaluator.completion=true"
+      }).ToList();
   }
 }

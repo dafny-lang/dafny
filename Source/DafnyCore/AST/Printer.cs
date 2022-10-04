@@ -761,7 +761,7 @@ namespace Microsoft.Dafny {
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {
         wr.Write(sep);
-        PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
+        PrintClassMethodHelper(ctor.IsGhost ? " ghost" : "", ctor.Attributes, ctor.Name, new List<TypeParameter>());
         if (ctor.Formals.Count != 0) {
           PrintFormals(ctor.Formals, null);
         }

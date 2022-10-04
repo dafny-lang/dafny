@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags() {
-          ReportRanges = DafnyOptions.O.ShowSnippets
+          ReportRanges = ShowSnippetsOption.Instance.Get(DafnyOptions.O)
         };
       }
       this.flags = flags;
