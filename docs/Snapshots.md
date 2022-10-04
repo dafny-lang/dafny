@@ -10,3 +10,4 @@ layout: default
 - [v3.9.0](https://davidcok.github.io/dafny-lang.github.io/v3.9.0)
 - [v3.9.0](https://davidcok.github.io/dafny-lang.github.io/v3.9.0)
 - [v3.9.0](https://davidcok.github.io/dafny-lang.github.io/v3.9.0)
+- [v3.9.0](https://davidcok.github.io/dafny-lang.github.io/v3.9.0)
