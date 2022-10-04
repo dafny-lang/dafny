@@ -50,3 +50,24 @@ predicate fin_reds(conf1: configuration, conf2: configuration) {
 predicate inf_reds(conf: configuration) {
 	inf((c1,c2) => red(c1,c2),conf)
 }
+
+// datatype test =
+//  | RedAssign(ident,aexp,store)
+//  | RedSeqDone(com,store)
+//  | RedSeqStep(com,com,store,com,store)
+
+// datatype tests =
+//  | Single(test)
+//  | More(tests)
+
+// codatatype itests =
+// 	| Single(test,itests)
+ 
+// least predicate test_def(e: test, conf1: configuration, conf2: configuration) {
+// 	match e {
+// 		case RedAssign(id,a,s) => conf1 == (CAsgn(id,a),s) && conf2 == (CSkip,s) 
+// 		case RedSeqDone(c,s) => conf1 == (CSeq(CSkip,c),s) && conf2 == (c,s)
+// 		case RedSeqStep(c1,c,s1,c2,s2) => test_def(e,(c1,s1),(c2,s2)) && conf1 == (CSeq(c1,c),s1) && conf2 == (CSeq(c1,c),s2) 
+// 	}
+// }
+	
