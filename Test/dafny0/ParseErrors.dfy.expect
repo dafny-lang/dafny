@@ -79,5 +79,8 @@ ParseErrors.dfy(255,32): Error: formal cannot be declared 'older' in this contex
 ParseErrors.dfy(256,11): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(257,17): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(261,28): Error: formal cannot be declared 'older' in this context
-ParseErrors.dfy(264,10): Error: invalid NewtypeDecl
-77 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(267,12): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,18): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,35): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(278,10): Error: invalid NewtypeDecl
+80 parse errors detected in ParseErrors.dfy
