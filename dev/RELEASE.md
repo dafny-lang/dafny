@@ -70,12 +70,27 @@
 9. If something goes wrong, delete the tag and release in GitHub, fix the
    problem and try again.
 
-10. Update the Homebrew formula for Dafny (see below).
+10. Make a documentation snapshot
+   a. If you have not already, make a personal clone of the 
+      dafny-lang/dafny-lang.github.io repo
+   b. Be sure that repo has a clean status
+   c. In the dafny-lang/dafny repo, execute the script
+      `docs/make-snapshot X.Y.Z`, where X.Y.Z is the new release number
+   d. Go to the Pull Request sites for both dafny-lang/dafny and
+      dafny-lang/dafny-lang.github.io and create the two PRs.
+   e. You can check the copies by running
+      `diff -r . ../../dafny-lang.github.io/vX.Y.Z` and
+      `diff -r . ../../dafny-lang.github.io/latest`
+      There should only be differences in version strings.
+   e. Have the two PRs reviewed and approved and merged
+   f. Delete the local and remote branches named snapshot-vX_Y_Z
+
+11. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
     and other members of the community may update the formula
     in the meantime anyway.
 
-11. Announce the new release to the world.
+12. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
