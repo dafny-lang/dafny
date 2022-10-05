@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -152,6 +153,12 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   }
 
   public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
+
+  public override string ToString() {
+    var stringWriter = new StringWriter();
+    new Printer(stringWriter).PrintStatement(this, 0);
+    return stringWriter.ToString();
+  }
 }
 
 public class LList<T> {
