@@ -570,7 +570,7 @@ is a method whose type parameter is restricted to equality-supporting
 types when used in a non-ghost context.
 Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, arrow types, and inductive
+code.  Coinductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
@@ -3717,7 +3717,7 @@ Note that only `<` is defined; not `<=` or `>` or `>=`.
 Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
 `z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
-## 19.2. Co-inductive datatypes {#sec-coinductive-datatypes}
+## 19.2. Coinductive datatypes {#sec-coinductive-datatypes}
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
@@ -3745,7 +3745,7 @@ paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
-## 19.3. Co-induction {#sec-coinduction}
+## 19.3. Coinduction {#sec-coinduction}
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
@@ -3754,7 +3754,7 @@ semantics (e.g., it explains how to reason about finite iteration and
 recursion), and it is used in proofs (e.g., supporting lemmas about
 data structures use inductive proofs). Whereas induction deals with
 finite things (data, behavior, etc.), its dual, coinduction, deals with
-possibly infinite things. Co-induction, too, is important in programming
+possibly infinite things. Coinduction, too, is important in programming
 and program verification: it arises in data definitions (e.g., lazy
 data structures), semantics (e.g., concurrency), and proofs (e.g.,
 showing refinement in a coinductive big-step semantics). It is thus
@@ -3844,7 +3844,7 @@ user experience that compares favorably to even the best of today’s
 interactive proof assistants for coinduction. In addition, the
 coinductive features and verification support in Dafny have other
 potential benefits. The features are a stepping stone for verifying
-functional lazy programs with Dafny. Co-inductive features have also
+functional lazy programs with Dafny. Coinductive features have also
 shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
@@ -3888,7 +3888,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 19.3.2. Defining Co-inductive Datatypes
+### 19.3.2. Defining Coinductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a coinductive datatype, or co-datatype for short,
@@ -4047,7 +4047,7 @@ It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### 19.3.5. Co-inductive Proofs
+### 19.3.5. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
@@ -4061,7 +4061,7 @@ induction. More precisely, Dafny passes to the SMT solver an
 assumption `D(P)` for every greatest predicate `P`, where:
 
 ```dafny
-D(P) = $\forall$ x • P(x) <==> $\forall$ k • P#[k](x)
+D(P) = forall x • P(x) <==> forall k • P#[k](x)
 ```
 
 In other words, a greatest predicate is true iff its corresponding prefix
