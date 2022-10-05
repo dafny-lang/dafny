@@ -676,9 +676,9 @@ general form of our proof goal:
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 
-`$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$` for every $k$.
-If `$k=0$`, then `${ {}^{\sharp}\kern-1mm g}_k(x)$` is `$\mathit{true}$`, so our goal holds trivially.
-If `$k > 0$`, then `${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$`.  We establish the second
+$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
+If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 
 
