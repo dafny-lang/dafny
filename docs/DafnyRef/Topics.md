@@ -287,10 +287,10 @@ Because it takes a function as an argument,
 $\mathcal{F}$
 is referred to as a _functor_ (or _functional_, but not to be
 confused by the category-theory notion of a functor).
-Throughout, I will assume that
+Throughout, assume that
 $\mathcal{F}(f)$
 by itself is well defined,
-for example that it does not divide by zero.  I will also assume that
+for example that it does not divide by zero.  Also assume that
 $f$
 occurs
 only in fully applied calls in
@@ -428,13 +428,13 @@ and among these solutions, there is in the $\dot{\Rightarrow}$ ordering a least 
 a function that returns `false` more often than any other) and a greatest solution (that
 is, a function that returns `true` more often than any other).
 
-When discussing extreme solutions, I will now restrict my attention to boolean functions
+When discussing extreme solutions, let's now restrict our attention to boolean functions
 (that is, with $Y$ being the type of booleans).  Functor $\mathcal{F}$ is monotonic
 if the calls to $f$ in $\mathcal{F}'(f)$ are in _positive positions_ (that is, under an even number
-of negations).  Indeed, from now on, I will restrict my attention to such monotonic
+of negations).  Indeed, from now on, we will restrict our attention to such monotonic
 functors $\mathcal{F}$.
 
-Let me introduce a running example.  Consider the following equation,
+Here is a running example.  Consider the following equation,
 where $x$ ranges over the integers:
 
 <p style="text-align: center;" id="eq-EvenNat" title="the EvenNat equation">
@@ -521,7 +521,7 @@ the recursive calls in the definition [the EvenNat equation](#eq-EvenNat) to try
 terminate.  However, there are useful ways to establish that an extreme predicate holds
 and there are ways to make use of one once it has been established.
 
-For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
+For any $\mathcal{F}$ as in [the general equation](#eq-general), define two infinite series of well-founded
 functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
@@ -541,11 +541,11 @@ where $k$ ranges over the natural numbers:
     \end{array}
     \right\} $$.</p>
 
-These functions are called the _iterates_ of $f$, and I will also refer to them
+These functions are called the _iterates_ of $f$, and we will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
 of $k$ as being a parameter).
 Alternatively, we can define ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$ without mentioning $x$:
-Let $\bot$ denote the function that always returns `false`, let $\top$
+let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
 Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
@@ -559,7 +559,7 @@ such that $k \leq \ell$:
  {\;{}^{\flat}\kern-1mm f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\kern-1mm f}_k $$</p>
 
 In other words, every ${\;{}^{\flat}\kern-1mm f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\kern-1mm f}\_{k}$ is a _post-fixpoint_
-of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
+of $f$.  Next, define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
 <p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
@@ -571,7 +571,7 @@ By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downa
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
 $f^{\downarrow}$ and $f^{\uparrow}$ are the least and greatest fixpoints of $\mathcal{F}$.
 These equations let us do proofs by induction when dealing with extreme predicates.
-I will explain in [the extreme predicate section](#sec-friendliness) how to check for continuity.
+[The extreme predicate section](#sec-friendliness) explains how to check for continuity.
 
 Let's consider two examples, both involving function $g$ in
 [the EvenNat equation](#eq-EvenNat).  As it turns out, $g$'s defining functor is continuous,
@@ -628,7 +628,7 @@ follows.
 
 #### 24.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
 
-We can think of a given predicate $g^{\uparrow}(x)$ as being represented
+We can think of a predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
 since the proof may be infinite.
 Greatest solutions like $g^{\uparrow}$ have
@@ -665,14 +665,14 @@ For anyone who may have felt that the intuitive proof felt too easy, here is a f
 proof using [the greatest forall definition](#eq-greatest-is-forall), which relies only on induction.  We massage the
 general form of our proof goal:
 
-<!--
+
 |~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
 |   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
 |   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
--->
+
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 <!--
