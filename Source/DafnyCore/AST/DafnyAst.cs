@@ -22,14 +22,13 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface IHasUsages : IDeclarationOrUsage {
-    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
-  }
-
   public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
   }
 
+  public interface IHasUsages : IDeclarationOrUsage {
+    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
+  }
   public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {

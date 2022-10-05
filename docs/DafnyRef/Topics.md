@@ -748,8 +748,8 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
+Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny
@@ -981,7 +981,38 @@ Folks, it doesn't get any simpler than that!
 
 ## 24.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
-TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
+The Dafny language semantics require that when a constant or variable is used
+that it have a definite value. It need not be given a value when it is declared,
+but must have a value when it is first used. As the first use may be buried in
+much later code and may be in different locations depending on the control flow
+through `if`, `match`, loop statements and expressions, checking for
+definite assignment can require some program flow analysis.
+
+Dafny will issue an error message if it cannot assure itself that a variable 
+has been given a value. This may be a conservative warning: Dafny may issue an error message even if it is possible to prove, but Dafny does not, that a
+variable will always be initialized.
+
+If the type of a variable is _auto-initializable_, then a default value is used
+implicitly even if the declaration of the variable does not have an 
+explicit initializer. For example, a `bool` variable is initialized by default
+to `false` and a variable with an int-based type for which `0` is a valid value
+is auto-initialized to `0`; a non-nullable class type is not 
+auto-initialized, but a nullable class type is auto-initalized to `null`.
+
+In declaring generic types, type parameters can be declared to be required to
+be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
+
+If a class has fields that are not auto-initializable, then the class must
+have a constructor, and in each constructor those fields must be explicitly
+initialized. This rule ensures that any method of the class (which does not
+know which constructor may have been already called) can rely on the fields
+having been initialized.
+
+[This document](../Compilation/AutoInitialization) has more detail on
+auto-initialization.
+
+The `-definiteAssignment` option allows choosing different levels of 
+checking the definite assignment rules.
 
 ## 24.7. Well-founded Orders {#sec-well-founded-orders}
 
