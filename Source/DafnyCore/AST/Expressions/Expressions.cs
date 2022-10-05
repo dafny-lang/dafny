@@ -3471,9 +3471,9 @@ public class IdCtx : MatchingContext {
     this.Arguments = arguments;
   }
 
-  public IdCtx(KeyValuePair<string, DatatypeCtor> ctor) {
-    List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Value.Formals.Count).ToList();
-    this.Id = ctor.Key;
+  public IdCtx(DatatypeCtor ctor) {
+    List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Formals.Count).ToList();
+    this.Id = ctor.Name;
     this.Arguments = arguments;
   }
 

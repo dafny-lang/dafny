@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reactive;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
@@ -336,295 +337,6 @@ public class CompileNestedMatch {
     Console.WriteLine("\t-=======-");
   }
 
-  /*
-   * Implementation of case 3** (some of the head patterns are constants) of pattern-match compilation
-   */
-  private SyntaxContainer CompileHeadsContainingLiteralPattern(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, List<PatternPath> paths) {
-    // Decrease the count for each path (increases back for each occurence later on)
-    foreach (var path in paths) {
-      mti.UpdateCaseCopyCount(path.CaseId, -1);
-    }
-
-    // Create a list of alternatives
-    List<LiteralExpr> ifBlockLiterals = new List<LiteralExpr>();
-    foreach (var path in paths) {
-      var head = GetPatternHead(path);
-      var lit = GetLiteralExpressionFromPattern(head);
-
-      if (lit != null) {
-        lit.Type = matchees.Head.Type;
-      }
-
-      if (lit != null && !ifBlockLiterals.Exists(x => object.Equals(x.Value, lit.Value))) {
-        ifBlockLiterals.Add(lit);
-      }
-    }
-
-    var ifBlocks = new List<(LiteralExpr conditionValue, SyntaxContainer block)>();
-    // For each possible alternatives, filter potential cases and recur
-    foreach (var ifBlockLiteral in ifBlockLiterals) {
-      var pathsForLiteral = new List<PatternPath>();
-      foreach (var path in paths) {
-        var (head, tail) = SplitPath(path);
-        var lit = GetLiteralExpressionFromPattern(head);
-
-        if (lit != null) {
-          // if pattern matches the current alternative, add it to the path for this case, otherwise ignore it
-          if (Equals(lit.Value, ifBlockLiteral.Value)) {
-            mti.UpdateCaseCopyCount(tail.CaseId, 1);
-            pathsForLiteral.Add(tail);
-          }
-        } else if (head is IdPattern idPattern) {
-          // pattern is a bound variable, clone and let-bind the Lit
-          LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
-          mti.UpdateCaseCopyCount(tail.CaseId, 1);
-          pathsForLiteral.Add(tail);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
-        }
-      }
-      var blockContext = context.FillHole(new LitCtx(ifBlockLiteral));
-
-      var block = CompilePatternPaths(mti, blockContext, matchees.Tail, pathsForLiteral);
-      ifBlocks.Add((ifBlockLiteral, block));
-    }
-    // Create a default case
-    var defaultPaths = new List<PatternPath>();
-    foreach (var path in paths)
-    {
-      var (head, tail) = SplitPath(path);
-      if (head is IdPattern idPattern && idPattern.ResolvedLit == null && idPattern.Arguments == null) {
-        LetBindNonWildCard(tail, idPattern, matchees.Head);
-        mti.UpdateCaseCopyCount(tail.CaseId, 1);
-        defaultPaths.Add(tail);
-      }
-    }
-    // defaultPaths.Count check is to avoid adding "missing paths" when default is not present
-    SyntaxContainer defaultBlock = defaultPaths.Count == 0 ? null : CompilePatternPaths(mti, context.AbstractHole(), matchees.Tail, defaultPaths);
-
-    return CreateIfElseIfChain(mti, context, matchees.Head, ifBlocks, defaultBlock);
-  }
-
-  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head)
-  {
-    LiteralExpr lit = null;
-    if (head is LitPattern litPattern)
-    {
-      lit = litPattern.OptimisticallyDesugaredLit;
-    }
-    else if (head is IdPattern id && id.ResolvedLit != null)
-    {
-      lit = id.ResolvedLit;
-    }
-
-    return lit;
-  }
-
-
-  // Assumes that all SyntaxContainers in blocks and def are of the same subclass
-  private SyntaxContainer CreateIfElseIfChain(MatchCompilationState mti, MatchingContext context, Expression matchee, List<(LiteralExpr, SyntaxContainer)> blocks, SyntaxContainer defaultBlock) {
-
-    if (blocks.Count == 0) {
-      if (defaultBlock is CStmt sdef) {
-        // Ensures the statements are wrapped in braces
-        return new CStmt(null, BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
-      } else {
-        return defaultBlock;
-      }
-    }
-
-    var currBlock = blocks.First();
-    blocks = blocks.Skip(1).ToList();
-
-    IToken tok = matchee.tok;
-    IToken endtok = matchee.tok;
-    BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
-    guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
-    guard.Type = Type.Bool;
-
-    var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
-
-    if (currBlock.Item2 is CExpr) {
-      var item2 = (CExpr)currBlock.Item2;
-      if (elsC is null) {
-        // handle an empty default
-        // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match expression: {0} (not all possibilities for constant 'c' in context have been covered)", contextStr), true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        return new CExpr(null, new StmtExpr(tok, ag, item2.Body));
-      } else {
-        var els = (CExpr)elsC;
-        return new CExpr(null, new ITEExpr(tok, false, guard, item2.Body, els.Body));
-      }
-    } else {
-      var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
-      if (elsC is null) {
-        // handle an empty default
-        // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        var body = new List<Statement>();
-        body.Add(ag);
-        body.AddRange(item2.Body);
-        return new CStmt(null, new BlockStmt(tok, endtok, body));
-      } else {
-        var els = (CStmt)elsC;
-        return new CStmt(null, new IfStmt(tok, endtok, false, guard, item2, els.Body));
-      }
-    }
-  }
-
-  private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer bodyContainer, bool FromBoundVar) {
-    MatchCase newMatchCase;
-    if (bodyContainer is CStmt c) {
-      List<Statement> body = UnboxStmtContainer(bodyContainer);
-      newMatchCase = new MatchCaseStmt(tok, ctor.Value, FromBoundVar, freshPatBV, body, c.Attributes);
-    } else {
-      var body = ((CExpr)bodyContainer).Body;
-      var attrs = ((CExpr)bodyContainer).Attributes;
-      newMatchCase = new MatchCaseExpr(tok, ctor.Value, FromBoundVar, freshPatBV, body, attrs);
-    }
-    newMatchCase.Ctor = ctor.Value;
-    return newMatchCase;
-  }
-
-  private BoundVar CreatePatBV(IToken tok, Type type, ICodeContext codeContext) {
-    var name = resolver.FreshTempVarName("_mcc#", codeContext);
-    return new BoundVar(new AutoGeneratedToken(tok), name, type);
-  }
-
-  private IdPattern CreateFreshId(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
-    var name = resolver.FreshTempVarName("_mcc#", codeContext);
-    return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
-  }
-  
-  /*
-   * Implementation of case 3 (some of the head patterns are constructors) of pattern-match compilation
-   * Current matchee is a datatype (with type parameter substitution in subst) with constructors in ctors
-   * PairPB contains, for each paths, its head pattern and the rest of the path.
-   */
-  private SyntaxContainer CompileHeadsContainingConstructor(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, 
-    Dictionary<TypeParameter, Type> subst, Dictionary<string, DatatypeCtor> ctors, 
-    List<PatternPath> paths) {
-
-    var headMatchee = matchees.Head;
-    var remainingMatchees = matchees.Tail;
-    var newMatchCases = new List<MatchCase>();
-    // Update mti -> each path generates up to |ctors| copies of itself
-    foreach (var path in paths) {
-      mti.UpdateCaseCopyCount(path.CaseId, ctors.Count - 1);
-    }
-
-    var ctorToFromBoundVar = new HashSet<string>();
-
-    foreach (var ctor in ctors) {
-      if (mti.Debug) {
-        Console.WriteLine("DEBUG: ===[3]>>>> Ctor {0}", ctor.Key);
-      }
-
-      var constructorPaths = new List<PatternPath>();
-
-      // create a bound variable for each formal to use in the MatchCase for this constructor
-      // using the currMatchee.tok to get a location closer to the error if something goes wrong
-      var freshPatBV = ctor.Value.Formals.ConvertAll(
-        x => CreatePatBV(headMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
-
-      // rhs to bind to head-patterns that are bound variables
-      var rhsExpr = headMatchee;
-      var ctorCounter = 0;
-
-      // -- filter paths for each constructor
-      foreach (var path in paths)
-      {
-        var (head, tail) = SplitPath(path);
-        if (head is IdPattern idPattern) {
-          if (ctor.Key.Equals(idPattern.Id) && idPattern.Arguments != null) {
-            // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
-            // After making sure the constructor is applied to the right number of arguments
-
-            if (!(idPattern.Arguments.Count.Equals(ctor.Value.Formals.Count))) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, idPattern.Arguments.Count);
-            }
-            for (int j = 0; j < idPattern.Arguments.Count; j++) {
-              // mark patterns standing in for ghost field
-              idPattern.Arguments[j].IsGhost = idPattern.Arguments[j].IsGhost || ctor.Value.Formals[j].IsGhost;
-            }
-            tail.Patterns.InsertRange(0, idPattern.Arguments);
-            constructorPaths.Add(tail);
-            ctorCounter++;
-          } else if (ctors.ContainsKey(idPattern.Id) && idPattern.Arguments != null) {
-            // ==[3.2]== If the pattern is a different constructor, drop the path
-            mti.UpdateCaseCopyCount(tail.CaseId, -1);
-          } else if (idPattern.ResolvedLit != null) {
-            // TODO
-          } else {
-            // ==[3.3]== If the pattern is a bound variable, create new bound variables for each of the arguments of the constructor, and let-binds the matchee as original bound variable
-            // n.b. this may duplicate the matchee
-
-            // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
-            if (idPattern.Arguments != null && idPattern.Arguments.Count != 0) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
-            }
-
-            List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
-              CreateFreshId(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
-
-            tail.Patterns.InsertRange(0, freshArgs);
-            LetBindNonWildCard(tail, idPattern, rhsExpr);
-            constructorPaths.Add(tail);
-            ctorToFromBoundVar.Add(ctor.Key);
-          }
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
-        }
-      }
-      // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
-      List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
-      // Update the current context
-      MatchingContext newContext = context.FillHole(new IdCtx(ctor));
-      var insideContainer = CompilePatternPaths(mti, newContext, LinkedLists.Concat(freshMatchees, remainingMatchees), constructorPaths);
-      if (insideContainer is null) {
-        // If no path matches this constructor, drop the case
-        continue;
-      }
-
-      // Otherwise, add the case the new match created at [3]
-      var tok = insideContainer.Tok is null ? new AutoGeneratedToken(headMatchee.tok) : insideContainer.Tok;
-      var FromBoundVar = ctorToFromBoundVar.Contains(ctor.Key);
-      MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer, FromBoundVar);
-      // newMatchCase.Attributes = (new Cloner()).CloneAttributes(mti.Attributes);
-      newMatchCases.Add(newMatchCase);
-    }
-    // Generate and pack the right kind of Match
-    if (mti.IsStmt) {
-      var newMatchCaseStmts = newMatchCases.Select(x => (MatchCaseStmt)x).ToList();
-      foreach (var c in newMatchCaseStmts) {
-        if (Attributes.Contains(c.Attributes, "split")) {
-          continue;
-        }
-
-        var args = new List<Expression>();
-        var literalExpr = new LiteralExpr(mti.Tok, false);
-        literalExpr.Type = Type.Bool;
-        args.Add(literalExpr);
-        c.Attributes = new Attributes("split", args, c.Attributes);
-      }
-      var newMatchStmt = new MatchStmt(mti.Tok, ((MatchStmt)mti.Match).EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
-      newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
-      return new CStmt(null, newMatchStmt);
-    } else {
-      var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
-      newMatchExpr.Type = ((MatchExpr)mti.Match).Type;
-      return new CExpr(null, newMatchExpr);
-    }
-  }
-
   /// <summary>
   /// Create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
   /// Start with a list of n matchees and list of m paths, each with n patterns and a body
@@ -752,7 +464,295 @@ public class CompileNestedMatch {
       return PackBody(mti.CaseTok[paths.First().CaseId], paths.First());
     }
   }
+  
+  /*
+   * Implementation of case 3 (some of the head patterns are constructors) of pattern-match compilation
+   * Current matchee is a datatype (with type parameter substitution in subst) with constructors in ctors
+   * PairPB contains, for each paths, its head pattern and the rest of the path.
+   */
+  private SyntaxContainer CompileHeadsContainingConstructor(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, 
+    Dictionary<TypeParameter, Type> subst, Dictionary<string, DatatypeCtor> constructorByName, 
+    List<PatternPath> paths) {
 
+    var headMatchee = matchees.Head;
+    var remainingMatchees = matchees.Tail;
+    var newMatchCases = new List<MatchCase>();
+    // Update mti -> each path generates up to |ctors| copies of itself
+    foreach (var path in paths) {
+      mti.UpdateCaseCopyCount(path.CaseId, constructorByName.Count - 1);
+    }
+
+    var ctorToFromBoundVar = new HashSet<string>();
+
+    foreach (var ctor in constructorByName.Values) {
+      if (mti.Debug) {
+        Console.WriteLine("DEBUG: ===[3]>>>> Ctor {0}", ctor.Name);
+      }
+
+      var constructorPaths = new List<PatternPath>();
+
+      // create a bound variable for each formal to use in the MatchCase for this constructor
+      // using the currMatchee.tok to get a location closer to the error if something goes wrong
+      var freshPatBV = ctor.Formals.ConvertAll(
+        x => CreatePatBV(headMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
+
+      // rhs to bind to head-patterns that are bound variables
+      var rhsExpr = headMatchee;
+      var ctorCounter = 0;
+
+      // -- filter paths for each constructor
+      foreach (var path in paths)
+      {
+        var (head, tail) = SplitPath(path);
+        if (head is IdPattern idPattern) {
+          if (ctor.Name.Equals(idPattern.Id) && idPattern.Arguments != null) {
+            // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
+            // After making sure the constructor is applied to the right number of arguments
+
+            if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
+              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
+            }
+            for (int j = 0; j < idPattern.Arguments.Count; j++) {
+              // mark patterns standing in for ghost field
+              idPattern.Arguments[j].IsGhost = idPattern.Arguments[j].IsGhost || ctor.Formals[j].IsGhost;
+            }
+            tail.Patterns.InsertRange(0, idPattern.Arguments);
+            constructorPaths.Add(tail);
+            ctorCounter++;
+          } else if (constructorByName.ContainsKey(idPattern.Id) && idPattern.Arguments != null) {
+            // ==[3.2]== If the pattern is a different constructor, drop the path
+            mti.UpdateCaseCopyCount(tail.CaseId, -1);
+          } else if (idPattern.ResolvedLit != null) {
+            // TODO
+          } else {
+            // ==[3.3]== If the pattern is a bound variable, create new bound variables for each of the arguments of the constructor, and let-binds the matchee as original bound variable
+            // n.b. this may duplicate the matchee
+
+            // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
+            if (idPattern.Arguments != null && idPattern.Arguments.Count != 0) {
+              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
+            }
+
+            List<IdPattern> freshArgs = ctor.Formals.ConvertAll(x =>
+              CreateFreshId(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
+
+            tail.Patterns.InsertRange(0, freshArgs);
+            LetBindNonWildCard(tail, idPattern, rhsExpr);
+            constructorPaths.Add(tail);
+            ctorToFromBoundVar.Add(ctor.Name);
+          }
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
+      }
+      // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
+      List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
+      // Update the current context
+      MatchingContext newContext = context.FillHole(new IdCtx(ctor));
+      var insideContainer = CompilePatternPaths(mti, newContext, LinkedLists.Concat(freshMatchees, remainingMatchees), constructorPaths);
+      if (insideContainer is null) {
+        // If no path matches this constructor, drop the case
+        continue;
+      }
+
+      // Otherwise, add the case the new match created at [3]
+      var tok = insideContainer.Tok is null ? new AutoGeneratedToken(headMatchee.tok) : insideContainer.Tok;
+      var FromBoundVar = ctorToFromBoundVar.Contains(ctor.Name);
+      MatchCase newMatchCase = CreateMatchCase(tok, ctor, freshPatBV, insideContainer, FromBoundVar);
+      newMatchCases.Add(newMatchCase);
+    }
+    
+    // Generate and pack the right kind of Match
+    if (mti.Match is NestedMatchStmt nestedMatchStmt) {
+      var newMatchCaseStmts = newMatchCases.Select(x => (MatchCaseStmt)x).ToList();
+      foreach (var c in newMatchCaseStmts) {
+        if (Attributes.Contains(c.Attributes, "split")) {
+          continue;
+        }
+
+        var args = new List<Expression>();
+        var literalExpr = new LiteralExpr(mti.Tok, false);
+        literalExpr.Type = Type.Bool;
+        args.Add(literalExpr);
+        c.Attributes = new Attributes("split", args, c.Attributes);
+      }
+      var newMatchStmt = new MatchStmt(mti.Tok, nestedMatchStmt.EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
+      return new CStmt(null, newMatchStmt);
+    } else {
+      var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
+      newMatchExpr.Type = ((MatchExpr)mti.Match).Type;
+      return new CExpr(null, newMatchExpr);
+    }
+  }
+  
+  private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, SyntaxContainer bodyContainer, bool FromBoundVar) {
+    MatchCase newMatchCase;
+    if (bodyContainer is CStmt c) {
+      List<Statement> body = UnboxStmtContainer(bodyContainer);
+      newMatchCase = new MatchCaseStmt(tok, ctor, FromBoundVar, freshPatBV, body, c.Attributes);
+    } else {
+      var body = ((CExpr)bodyContainer).Body;
+      var attrs = ((CExpr)bodyContainer).Attributes;
+      newMatchCase = new MatchCaseExpr(tok, ctor, FromBoundVar, freshPatBV, body, attrs);
+    }
+    newMatchCase.Ctor = ctor;
+    return newMatchCase;
+  }
+
+  private BoundVar CreatePatBV(IToken tok, Type type, ICodeContext codeContext) {
+    var name = resolver.FreshTempVarName("_mcc#", codeContext);
+    return new BoundVar(new AutoGeneratedToken(tok), name, type);
+  }
+
+  private IdPattern CreateFreshId(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
+    var name = resolver.FreshTempVarName("_mcc#", codeContext);
+    return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
+  }
+  
+  /*
+   * Implementation of case 3** (some of the head patterns are constants) of pattern-match compilation
+   */
+  private SyntaxContainer CompileHeadsContainingLiteralPattern(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, List<PatternPath> paths) {
+    // Decrease the count for each path (increases back for each occurence later on)
+    foreach (var path in paths) {
+      mti.UpdateCaseCopyCount(path.CaseId, -1);
+    }
+
+    // Create a list of alternatives
+    List<LiteralExpr> ifBlockLiterals = new List<LiteralExpr>();
+    foreach (var path in paths) {
+      var head = GetPatternHead(path);
+      var lit = GetLiteralExpressionFromPattern(head);
+
+      if (lit != null) {
+        lit.Type = matchees.Head.Type;
+      }
+
+      if (lit != null && !ifBlockLiterals.Exists(x => object.Equals(x.Value, lit.Value))) {
+        ifBlockLiterals.Add(lit);
+      }
+    }
+
+    var ifBlocks = new List<(LiteralExpr conditionValue, SyntaxContainer block)>();
+    // For each possible alternatives, filter potential cases and recur
+    foreach (var ifBlockLiteral in ifBlockLiterals) {
+      var pathsForLiteral = new List<PatternPath>();
+      foreach (var path in paths) {
+        var (head, tail) = SplitPath(path);
+        var lit = GetLiteralExpressionFromPattern(head);
+
+        if (lit != null) {
+          // if pattern matches the current alternative, add it to the path for this case, otherwise ignore it
+          if (Equals(lit.Value, ifBlockLiteral.Value)) {
+            mti.UpdateCaseCopyCount(tail.CaseId, 1);
+            pathsForLiteral.Add(tail);
+          }
+        } else if (head is IdPattern idPattern) {
+          // pattern is a bound variable, clone and let-bind the Lit
+          LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
+          mti.UpdateCaseCopyCount(tail.CaseId, 1);
+          pathsForLiteral.Add(tail);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
+      }
+      var blockContext = context.FillHole(new LitCtx(ifBlockLiteral));
+
+      var block = CompilePatternPaths(mti, blockContext, matchees.Tail, pathsForLiteral);
+      ifBlocks.Add((ifBlockLiteral, block));
+    }
+    // Create a default case
+    var defaultPaths = new List<PatternPath>();
+    foreach (var path in paths)
+    {
+      var (head, tail) = SplitPath(path);
+      if (head is IdPattern idPattern && idPattern.ResolvedLit == null && idPattern.Arguments == null) {
+        LetBindNonWildCard(tail, idPattern, matchees.Head);
+        mti.UpdateCaseCopyCount(tail.CaseId, 1);
+        defaultPaths.Add(tail);
+      }
+    }
+    // defaultPaths.Count check is to avoid adding "missing paths" when default is not present
+    SyntaxContainer defaultBlock = defaultPaths.Count == 0 ? null : CompilePatternPaths(mti, context.AbstractHole(), matchees.Tail, defaultPaths);
+
+    return CreateIfElseIfChain(mti, context, matchees.Head, ifBlocks, defaultBlock);
+  }
+
+  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head)
+  {
+    LiteralExpr lit = null;
+    if (head is LitPattern litPattern)
+    {
+      lit = litPattern.OptimisticallyDesugaredLit;
+    }
+    else if (head is IdPattern id && id.ResolvedLit != null)
+    {
+      lit = id.ResolvedLit;
+    }
+
+    return lit;
+  }
+
+  // Assumes that all SyntaxContainers in blocks and def are of the same subclass
+  private SyntaxContainer CreateIfElseIfChain(MatchCompilationState mti, MatchingContext context, Expression matchee, List<(LiteralExpr, SyntaxContainer)> blocks, SyntaxContainer defaultBlock) {
+
+    if (blocks.Count == 0) {
+      if (defaultBlock is CStmt sdef) {
+        // Ensures the statements are wrapped in braces
+        return new CStmt(null, BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
+      } else {
+        return defaultBlock;
+      }
+    }
+
+    var currBlock = blocks.First();
+    blocks = blocks.Skip(1).ToList();
+
+    IToken tok = matchee.tok;
+    IToken endtok = matchee.tok;
+    BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
+    guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+    guard.Type = Type.Bool;
+
+    var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
+
+    if (currBlock.Item2 is CExpr) {
+      var item2 = (CExpr)currBlock.Item2;
+      if (elsC is null) {
+        // handle an empty default
+        // assert guard; item2.Body
+        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match expression: {0} (not all possibilities for constant 'c' in context have been covered)", contextStr), true);
+        errorMessage.Type = new SeqType(Type.Char);
+        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
+        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
+        return new CExpr(null, new StmtExpr(tok, ag, item2.Body));
+      } else {
+        var els = (CExpr)elsC;
+        return new CExpr(null, new ITEExpr(tok, false, guard, item2.Body, els.Body));
+      }
+    } else {
+      var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
+      if (elsC is null) {
+        // handle an empty default
+        // assert guard; item2.Body
+        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
+        errorMessage.Type = new SeqType(Type.Char);
+        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
+        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
+        var body = new List<Statement>();
+        body.Add(ag);
+        body.AddRange(item2.Body);
+        return new CStmt(null, new BlockStmt(tok, endtok, body));
+      } else {
+        var els = (CStmt)elsC;
+        return new CStmt(null, new IfStmt(tok, endtok, false, guard, item2, els.Body));
+      }
+    }
+  }
+  
   // TODO consider replacing this with INode.
   /// <summary>
   /// A SyntaxContainer is a wrapper around either an Expression or a Statement
@@ -828,8 +828,8 @@ public class CompileNestedMatch {
     public bool IsStmt => Match is MatchStmt;
 
     public IToken Tok => Match switch {
-      MatchExpr matchExpr => matchExpr.tok,
-      MatchStmt matchStmt => matchStmt.Tok,
+      NestedMatchExpr matchExpr => matchExpr.tok,
+      NestedMatchStmt matchStmt => matchStmt.Tok,
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
     

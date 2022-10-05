@@ -773,8 +773,7 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
         }
-        String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
-          .ToString();
+        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
         var desc = new PODesc.MatchIsComplete("statement", missingStr);
         b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
 
