@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
+
 # 3.9.0
 
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
