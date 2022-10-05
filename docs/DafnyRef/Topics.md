@@ -666,7 +666,7 @@ proof using [the greatest forall definition](#eq-greatest-is-forall), which reli
 general form of our proof goal:
 
 
-|~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+|---|----------------------------------------------------------------------------------|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
 |   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
@@ -909,9 +909,9 @@ lemma AlwaysAux(k: nat, x: int)
 
 While each of these proofs involves only basic proof rules, the setup feels a bit clumsy,
 even with the empty body of the auxiliary lemmas.  Moreover,
-the proofs do not reflect the intuitive proofs I described in
+the proofs do not reflect the intuitive proofs described in
 [the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).
-These shortcoming are addressed in the next subsection.
+These shortcomings are addressed in the next subsection.
 
 ### 24.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
@@ -930,9 +930,9 @@ Somewhat analogous to the creation of prefix predicates from extreme predicates,
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
 and postconditions of a prefix lemma are copied from those of the extreme lemma,
 except for the following replacements:
-For a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
-positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`.
-For a greatest lemma,
+for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
+positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`;
+for a greatest lemma,
 Dafny looks in the postcondition to find calls (in positive, continuous positions)
 to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
 greatest predicate) and replaces these with `P#[_k](x)`.
