@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ThisExpr) {
         return receiverReplacement == null ? expr : receiverReplacement;
       } else if (expr is IdentifierExpr) {
-        IdentifierExpr e = (IdentifierExpr) expr;
+        IdentifierExpr e = (IdentifierExpr)expr;
         Expression substExpr;
         if (substMap.TryGetValue(e.Var, out substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;

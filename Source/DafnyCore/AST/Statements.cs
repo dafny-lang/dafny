@@ -2,10 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
-using System.Threading.Channels;
 
 namespace Microsoft.Dafny;
 
@@ -37,7 +34,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     this.EndTok = cloner.Tok(original.EndTok);
     this.attributes = cloner.CloneAttributes(original.Attributes);
   }
-  
+
   public Statement(IToken tok, IToken endTok, Attributes attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -61,7 +58,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
       foreach (var e in SubExpressions) {
         yield return e;
       }
-      
+
       foreach (var s in SubStatements) {
         foreach (var e in s.SubExpressionsIncludingTransitiveSubStatements) {
           yield return e;
@@ -432,7 +429,7 @@ public abstract class ProduceStmt : Statement {
       }
     }
   }
-  
+
   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
@@ -442,7 +439,7 @@ public abstract class ProduceStmt : Statement {
   }
 
   public override IEnumerable<INode> Children =>
-    HiddenUpdate == null ? base.Children : new INode[] {HiddenUpdate}.Concat(base.Children);
+    HiddenUpdate == null ? base.Children : new INode[] { HiddenUpdate }.Concat(base.Children);
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
@@ -474,7 +471,7 @@ public class ReturnStmt : ProduceStmt {
 
   public ReturnStmt(Cloner cloner, ReturnStmt original) : base(cloner, original) {
   }
-  
+
   public ReturnStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok, rhss) {
     Contract.Requires(tok != null);
@@ -485,7 +482,7 @@ public class ReturnStmt : ProduceStmt {
 public class YieldStmt : ProduceStmt {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
-  
+
   public YieldStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok, rhss) {
     Contract.Requires(tok != null);
@@ -849,7 +846,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
     Contract.Invariant(cce.NonNullElements(Rhss));
   }
 
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner.Tok(original.Tok), cloner.Tok(original.EndTok), 
+  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner.Tok(original.Tok), cloner.Tok(original.EndTok),
     original.Lhss.Select(cloner.CloneExpr).ToList()) {
 
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
@@ -858,7 +855,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
       ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
     }
   }
-  
+
   public UpdateStmt(IToken tok, IToken endTok, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(tok, endTok, lhss) {
     Contract.Requires(tok != null);
@@ -924,7 +921,7 @@ public class AssignStmt : Statement {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IEnumerable<INode> Children => new INode[] {Lhs, Rhs};
+  public override IEnumerable<INode> Children => new INode[] { Lhs, Rhs };
 
   public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
     : base(tok, endTok) {
@@ -1081,7 +1078,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
 
   public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
   Type IVariable.OptionalType { get { return this.OptionalType; } }
-  
+
   [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
   public Type Type {

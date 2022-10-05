@@ -276,318 +276,199 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    private Expression CloneExprInner(Expression expr)
-    {
-      if (expr == null)
-      {
+    private Expression CloneExprInner(Expression expr) {
+      if (expr == null) {
         return null;
-      }
-      else if (expr is LiteralExpr)
-      {
-        var e = (LiteralExpr) expr;
-        if (e is StaticReceiverExpr)
-        {
-          var ee = (StaticReceiverExpr) e;
+      } else if (expr is LiteralExpr) {
+        var e = (LiteralExpr)expr;
+        if (e is StaticReceiverExpr) {
+          var ee = (StaticReceiverExpr)e;
           return new StaticReceiverExpr(Tok(e.tok), CloneType(ee.UnresolvedType), ee.IsImplicit);
-        }
-        else if (e.Value == null)
-        {
+        } else if (e.Value == null) {
           return new LiteralExpr(Tok(e.tok));
+        } else if (e.Value is bool) {
+          return new LiteralExpr(Tok(e.tok), (bool)e.Value);
+        } else if (e is CharLiteralExpr) {
+          return new CharLiteralExpr(Tok(e.tok), (string)e.Value);
+        } else if (e is StringLiteralExpr) {
+          var str = (StringLiteralExpr)e;
+          return new StringLiteralExpr(Tok(e.tok), (string)e.Value, str.IsVerbatim);
+        } else if (e.Value is BaseTypes.BigDec) {
+          return new LiteralExpr(Tok(e.tok), (BaseTypes.BigDec)e.Value);
+        } else {
+          return new LiteralExpr(Tok(e.tok), (BigInteger)e.Value);
         }
-        else if (e.Value is bool)
-        {
-          return new LiteralExpr(Tok(e.tok), (bool) e.Value);
-        }
-        else if (e is CharLiteralExpr)
-        {
-          return new CharLiteralExpr(Tok(e.tok), (string) e.Value);
-        }
-        else if (e is StringLiteralExpr)
-        {
-          var str = (StringLiteralExpr) e;
-          return new StringLiteralExpr(Tok(e.tok), (string) e.Value, str.IsVerbatim);
-        }
-        else if (e.Value is BaseTypes.BigDec)
-        {
-          return new LiteralExpr(Tok(e.tok), (BaseTypes.BigDec) e.Value);
-        }
-        else
-        {
-          return new LiteralExpr(Tok(e.tok), (BigInteger) e.Value);
-        }
-      }
-      else if (expr is ThisExpr)
-      {
-        if (expr is ImplicitThisExpr_ConstructorCall)
-        {
+      } else if (expr is ThisExpr) {
+        if (expr is ImplicitThisExpr_ConstructorCall) {
           return new ImplicitThisExpr_ConstructorCall(Tok(expr.tok));
-        }
-        else if (expr is ImplicitThisExpr)
-        {
+        } else if (expr is ImplicitThisExpr) {
           return new ImplicitThisExpr(Tok(expr.tok));
-        }
-        else
-        {
+        } else {
           return new ThisExpr(Tok(expr.tok));
         }
-      }
-      else if (expr is AutoGhostIdentifierExpr)
-      {
-        var e = (AutoGhostIdentifierExpr) expr;
+      } else if (expr is AutoGhostIdentifierExpr) {
+        var e = (AutoGhostIdentifierExpr)expr;
         return new AutoGhostIdentifierExpr(Tok(e.tok), e.Name);
-      }
-      else if (expr is IdentifierExpr)
-      {
-        var e = (IdentifierExpr) expr;
+      } else if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
         var result = new IdentifierExpr(Tok(e.tok), e.Name);
-        if (CloneResolvedFields)
-        {
+        if (CloneResolvedFields) {
           result.Var = e.Var;
         }
 
         return result;
-      }
-      else if (expr is DatatypeValue)
-      {
-        var e = (DatatypeValue) expr;
+      } else if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
         return new DatatypeValue(this, e);
-      }
-      else if (expr is DisplayExpression)
-      {
-        DisplayExpression e = (DisplayExpression) expr;
-        if (expr is SetDisplayExpr)
-        {
-          return new SetDisplayExpr(Tok(e.tok), ((SetDisplayExpr) expr).Finite, e.Elements.ConvertAll(CloneExpr));
-        }
-        else if (expr is MultiSetDisplayExpr)
-        {
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        if (expr is SetDisplayExpr) {
+          return new SetDisplayExpr(Tok(e.tok), ((SetDisplayExpr)expr).Finite, e.Elements.ConvertAll(CloneExpr));
+        } else if (expr is MultiSetDisplayExpr) {
           return new MultiSetDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
-        }
-        else
-        {
+        } else {
           Contract.Assert(expr is SeqDisplayExpr);
           return new SeqDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
         }
-      }
-      else if (expr is MapDisplayExpr)
-      {
-        MapDisplayExpr e = (MapDisplayExpr) expr;
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
         List<ExpressionPair> pp = new List<ExpressionPair>();
-        foreach (ExpressionPair p in e.Elements)
-        {
+        foreach (ExpressionPair p in e.Elements) {
           pp.Add(new ExpressionPair(CloneExpr(p.A), CloneExpr(p.B)));
         }
 
         return new MapDisplayExpr(Tok(expr.tok), e.Finite, pp);
-      }
-      else if (expr is NameSegment)
-      {
+      } else if (expr is NameSegment) {
         return CloneNameSegment(expr);
-      }
-      else if (expr is ExprDotName)
-      {
-        var e = (ExprDotName) expr;
+      } else if (expr is ExprDotName) {
+        var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName,
           e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
-      }
-      else if (expr is ApplySuffix)
-      {
-        var e = (ApplySuffix) expr;
+      } else if (expr is ApplySuffix) {
+        var e = (ApplySuffix)expr;
         return CloneApplySuffix(e);
-      }
-      else if (expr is MemberSelectExpr)
-      {
-        var e = (MemberSelectExpr) expr;
+      } else if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
-      }
-      else if (expr is SeqSelectExpr)
-      {
-        var e = (SeqSelectExpr) expr;
+      } else if (expr is SeqSelectExpr) {
+        var e = (SeqSelectExpr)expr;
         return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1),
           Tok(e.CloseParen));
-      }
-      else if (expr is MultiSelectExpr)
-      {
-        var e = (MultiSelectExpr) expr;
+      } else if (expr is MultiSelectExpr) {
+        var e = (MultiSelectExpr)expr;
         return new MultiSelectExpr(Tok(e.tok), CloneExpr(e.Array), e.Indices.ConvertAll(CloneExpr));
-      }
-      else if (expr is SeqUpdateExpr)
-      {
-        var e = (SeqUpdateExpr) expr;
+      } else if (expr is SeqUpdateExpr) {
+        var e = (SeqUpdateExpr)expr;
         return new SeqUpdateExpr(Tok(e.tok), CloneExpr(e.Seq), CloneExpr(e.Index), CloneExpr(e.Value));
-      }
-      else if (expr is DatatypeUpdateExpr)
-      {
-        var e = (DatatypeUpdateExpr) expr;
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
         return new DatatypeUpdateExpr(Tok(e.tok), CloneExpr(e.Root),
           e.Updates.ConvertAll(t => Tuple.Create(Tok(t.Item1), t.Item2, CloneExpr(t.Item3))));
-      }
-      else if (expr is FunctionCallExpr)
-      {
-        var e = (FunctionCallExpr) expr;
+      } else if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
         return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver),
           e.OpenParen == null ? null : Tok(e.OpenParen), e.CloseParen == null ? null : Tok(e.CloseParen),
           e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), e.AtLabel);
-      }
-      else if (expr is ApplyExpr)
-      {
-        var e = (ApplyExpr) expr;
+      } else if (expr is ApplyExpr) {
+        var e = (ApplyExpr)expr;
         return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr), Tok(e.CloseParen));
-      }
-      else if (expr is SeqConstructionExpr)
-      {
-        var e = (SeqConstructionExpr) expr;
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
         var elemType = e.ExplicitElementType == null ? null : CloneType(e.ExplicitElementType);
         return new SeqConstructionExpr(Tok(e.tok), elemType, CloneExpr(e.N), CloneExpr(e.Initializer));
-      }
-      else if (expr is MultiSetFormingExpr)
-      {
-        var e = (MultiSetFormingExpr) expr;
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr)expr;
         return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
-      }
-      else if (expr is OldExpr)
-      {
-        var e = (OldExpr) expr;
+      } else if (expr is OldExpr) {
+        var e = (OldExpr)expr;
         return new OldExpr(Tok(e.tok), CloneExpr(e.E), e.At);
-      }
-      else if (expr is UnchangedExpr)
-      {
-        var e = (UnchangedExpr) expr;
+      } else if (expr is UnchangedExpr) {
+        var e = (UnchangedExpr)expr;
         return new UnchangedExpr(Tok(e.tok), e.Frame.ConvertAll(CloneFrameExpr), e.At);
-      }
-      else if (expr is FreshExpr)
-      {
-        var e = (FreshExpr) expr;
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
         return new FreshExpr(Tok(e.tok), CloneExpr(e.E), e.At);
-      }
-      else if (expr is UnaryOpExpr)
-      {
-        var e = (UnaryOpExpr) expr;
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
         return new UnaryOpExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
-      }
-      else if (expr is ConversionExpr)
-      {
-        var e = (ConversionExpr) expr;
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
         return new ConversionExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
-      }
-      else if (expr is TypeTestExpr)
-      {
-        var e = (TypeTestExpr) expr;
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
         return new TypeTestExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
-      }
-      else if (expr is BinaryExpr)
-      {
-        var e = (BinaryExpr) expr;
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
         return new BinaryExpr(this, e);
-      }
-      else if (expr is TernaryExpr)
-      {
-        var e = (TernaryExpr) expr;
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
-      }
-      else if (expr is ChainingExpression)
-      {
-        var e = (ChainingExpression) expr;
+      } else if (expr is ChainingExpression) {
+        var e = (ChainingExpression)expr;
         return new ChainingExpression(Tok(e.tok), e.Operands.ConvertAll(CloneExpr), e.Operators,
           e.OperatorLocs.ConvertAll(Tok), e.PrefixLimits.ConvertAll(CloneExpr));
-      }
-      else if (expr is LetExpr)
-      {
-        var e = (LetExpr) expr;
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
         return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr),
           CloneExpr(e.Body), e.Exact, e.Attributes);
-      }
-      else if (expr is LetOrFailExpr)
-      {
-        var e = (LetOrFailExpr) expr;
+      } else if (expr is LetOrFailExpr) {
+        var e = (LetOrFailExpr)expr;
         return new LetOrFailExpr(Tok(e.tok), e.Lhs == null ? null : CloneCasePattern(e.Lhs), CloneExpr(e.Rhs),
           CloneExpr(e.Body));
-      }
-      else if (expr is ComprehensionExpr)
-      {
-        var e = (ComprehensionExpr) expr;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);
         var tkEnd = Tok(e.BodyEndTok);
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is QuantifierExpr q)
-        {
-          if (e is ForallExpr)
-          {
+        if (e is QuantifierExpr q) {
+          if (e is ForallExpr) {
             return new ForallExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
-          }
-          else if (e is ExistsExpr)
-          {
+          } else if (e is ExistsExpr) {
             return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
-          }
-          else
-          {
+          } else {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // unexpected quantifier expression
           }
-        }
-        else if (e is MapComprehension mc)
-        {
+        } else if (e is MapComprehension mc) {
           return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range,
             mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
-        }
-        else if (e is LambdaExpr l)
-        {
+        } else if (e is LambdaExpr l) {
           return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
-        }
-        else
-        {
+        } else {
           Contract.Assert(e is SetComprehension);
-          var tt = (SetComprehension) e;
+          var tt = (SetComprehension)e;
           return new SetComprehension(tk, tkEnd, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term,
             CloneAttributes(e.Attributes));
         }
-      }
-      else if (expr is WildcardExpr)
-      {
+      } else if (expr is WildcardExpr) {
         return new WildcardExpr(Tok(expr.tok));
-      }
-      else if (expr is StmtExpr)
-      {
-        var e = (StmtExpr) expr;
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
         return new StmtExpr(Tok(e.tok), CloneStmt(e.S), CloneExpr(e.E));
-      }
-      else if (expr is ITEExpr)
-      {
-        var e = (ITEExpr) expr;
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
         return new ITEExpr(Tok(e.tok), e.IsBindingGuard, CloneExpr(e.Test), CloneExpr(e.Thn), CloneExpr(e.Els));
-      }
-      else if (expr is AutoGeneratedExpression)
-      {
-        var e = (AutoGeneratedExpression) expr;
+      } else if (expr is AutoGeneratedExpression) {
+        var e = (AutoGeneratedExpression)expr;
         var a = CloneExpr(e.E);
         return new AutoGeneratedExpression(Tok(e.tok), a);
-      }
-      else if (expr is ParensExpression)
-      {
-        var e = (ParensExpression) expr;
+      } else if (expr is ParensExpression) {
+        var e = (ParensExpression)expr;
         return CloneExpr(e.E); // skip the parentheses in the clone
-      }
-      else if (expr is NestedMatchExpr)
-      {
-        var e = (NestedMatchExpr) expr;
+      } else if (expr is NestedMatchExpr) {
+        var e = (NestedMatchExpr)expr;
         return new NestedMatchExpr(Tok(e.tok), CloneExpr(e.Source), e.Cases.ConvertAll(CloneNestedMatchCaseExpr),
           e.UsesOptionalBraces);
-      }
-      else if (expr is MatchExpr)
-      {
-        var e = (MatchExpr) expr;
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source), e.Cases.ConvertAll(CloneMatchCaseExpr),
           e.UsesOptionalBraces);
-      }
-      else if (expr is NegationExpression)
-      {
-        var e = (NegationExpression) expr;
+      } else if (expr is NegationExpression) {
+        var e = (NegationExpression)expr;
         return new NegationExpression(Tok(e.tok), CloneExpr(e.E));
-      }
-      else
-      {
+      } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected expression
       }

@@ -1252,6 +1252,16 @@ namespace Microsoft.Dafny.Compilers {
       modules = program.CompileModules;
     }
 
+    public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
+      if (filename == null) {
+        return;
+      }
+
+      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      pr.PrintProgram(program, afterResolver);
+    }
+
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
       var resolver = new Resolver();
       resolver.reporter = new ErrorReporterSink(); // TODO this'll swallow errors if there's no translation.
@@ -3308,8 +3318,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (stmt is TryRecoverStatement h) {
         EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
-      } else
-      {
+      } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
