@@ -748,9 +748,11 @@ public abstract class ConcreteUpdateStatement : Statement {
   }
 }
 
+public record AttributedToken(IToken Token, Attributes Attrs) { }
+
 public class AssignSuchThatStmt : ConcreteUpdateStatement {
   public readonly Expression Expr;
-  public readonly IToken AssumeToken;
+  public readonly AttributedToken AssumeToken;
 
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
@@ -767,7 +769,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, IToken assumeToken, Attributes attrs)
+  public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
     : base(tok, endTok, lhss, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -833,7 +835,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
 public class AssignOrReturnStmt : ConcreteUpdateStatement {
   public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
-  public readonly IToken KeywordToken;
+  public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
@@ -851,7 +853,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
     Contract.Invariant(Rhs != null);
   }
 
-  public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken keywordToken, List<AssignmentRhs> rhss = null)
+  public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
     : base(tok, endTok, lhss) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);

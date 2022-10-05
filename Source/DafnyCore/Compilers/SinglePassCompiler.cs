@@ -2841,14 +2841,16 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
+      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
+        if (!Attributes.Contains(attributes, "axiom")) {
+          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+        }
+      }
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is AssumeStmt) {
-          compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-        } else if (stmt is AssignSuchThatStmt) {
-          var s = (AssignSuchThatStmt)stmt;
-          if (s.AssumeToken != null) {
-            compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-          }
+          RejectAssume(stmt.Tok, stmt.Attributes, wr);
+        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
+          RejectAssume(stmt.Tok, attrs, wr);
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
@@ -2971,22 +2973,16 @@ namespace Microsoft.Dafny.Compilers {
         if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "assign-such-that statement forbidden by /definiteAssignment:3 option", wr);
         }
-        if (s.AssumeToken != null) {
-          // Note, a non-ghost AssignSuchThatStmt may contain an assume
-          Error(s.AssumeToken, "an assume statement cannot be compiled", wr);
-        } else {
-          var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-          var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
-          if (missingBounds.Count != 0) {
-            foreach (var bv in missingBounds) {
-              Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
-            }
-          } else {
-            Contract.Assert(s.Bounds != null);
-            TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+        var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
+        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        if (missingBounds.Count != 0) {
+          foreach (var bv in missingBounds) {
+            Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
           }
+        } else {
+          Contract.Assert(s.Bounds != null);
+          TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
         }
-
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
         // TODO there's potential here to use target-language specific features such as exceptions
