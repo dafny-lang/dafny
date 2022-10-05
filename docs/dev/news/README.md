@@ -9,7 +9,7 @@ Files in this directory are named `<PR number>.<kind>` and each contains release
 `1234.fix`
 
 ```
-Improved toaster settings prevents Dafny from ever burning toast.
+Improved toaster settings prevent Dafny from ever burning toast.
 ```
 
 At release time, this becomes a bullet point in the "Bug fixes" section of `RELEASE_NOTES.md` with a link to <https://github.com/dafny-lang/dafny/pull/1234>.

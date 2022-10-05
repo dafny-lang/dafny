@@ -18,12 +18,13 @@
    check for a run of this workflow on the exact commit to release.  (TODO:
    Run this automatically as part of the prepare-release script.)
 
-3. Run `Scripts/release.py $VER release` from the root of the repository.  The
-   script will tag the current commit and push it. (TODO: Merge with the two
-   steps above.)  A GitHub action will automatically run in reaction to the tag
-   being pushed, which will build the artifacts and reference manual and then
-   create a draft GitHub release. You can find and watch the progress of this
-   workflow at <https://github.com/dafny-lang/dafny/actions>.
+3. Once the the tests complete, run `Scripts/release.py $VER release` from the
+   root of the repository.  The script will tag the current commit and push
+   it. (TODO: Merge with the two steps above.)  A GitHub action will
+   automatically run in reaction to the tag being pushed, which will build the
+   artifacts and reference manual and then create a draft GitHub release. You
+   can find and watch the progress of this workflow at
+   <https://github.com/dafny-lang/dafny/actions>.
 
 4. Once the action completes, you should find the draft release at
    <https://github.com/dafny-lang/dafny/releases>. Edit the release body to add in
@@ -38,8 +39,8 @@
 6. Create a pull request to merge the newly created branch into `master` (the
    script will give you a link to do so).  Get it approved and merged.
 
-7. Make a PR in the <https://github.com/dafny-lang/ide-vscode> repository to
-   update the list of version supported by the plugin.
+7. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
+   to create a new release of the VSCode plugin.
 
 8. Update the Homebrew formula for Dafny (see below).
    Note that it is fine to leave this for the next day,

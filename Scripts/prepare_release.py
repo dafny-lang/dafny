@@ -5,15 +5,14 @@ import re
 import subprocess
 import sys
 
-from datetime import date
+import datetime
 from pathlib import Path
-from string import Template
 from textwrap import indent
 from urllib.request import Request, urlopen
 from shlex import quote
 from xml.etree import ElementTree
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, NamedTuple
+from typing import Any, Callable, Dict, List, Optional, TypeVar, NamedTuple
 
 SKIP_ALL_CHECKS = False
 
@@ -100,24 +99,24 @@ class NewsFragments:
                 pth.unlink()
 
 class Version(NamedTuple):
-    VERNUM_RE = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<suffix>-.+)?$")
+    VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<suffix>-.+)?$")
 
     prefix: str # Main version number (1.2.3)
-    rdate: date # Release date
+    date: datetime.date # Release date
     suffix: str # Optional marker ("alpha")
 
     @classmethod
-    def from_string(cls, vernum: str, rdate: Optional[date]=None) -> Optional["Version"]:
+    def from_string(cls, vernum: str, date: Optional[datetime.date]=None) -> Optional["Version"]:
         """Parse a short version string into a `Version` object."""
-        if m := cls.VERNUM_RE.match(vernum):
+        if m := cls.VERSION_NUMBER_PATTERN.match(vernum):
             prefix, suffix = m.group("prefix", "suffix")
-            rdate = rdate or date.today()
-            return Version(prefix, rdate, suffix or "")
+            date = date or datetime.date.today()
+            return Version(prefix, date, suffix or "")
         return None
 
     @property
     def year_delta(self):
-        return self.rdate.year - 2018
+        return self.date.year - 2018
 
     @property
     def short(self):
@@ -125,7 +124,7 @@ class Version(NamedTuple):
 
     @property
     def timestamp(self):
-        return str((self.year_delta * 100 + self.rdate.month) * 100 + self.rdate.day)
+        return str((self.year_delta * 100 + self.date.month) * 100 + self.date.day)
 
     @property
     def full(self):
@@ -134,7 +133,7 @@ class Version(NamedTuple):
     @property
     def comment(self):
         return (f"Version {self.short}, year 2018+{self.year_delta}, " +
-                f"month {self.rdate.month}, day {self.rdate.day}.")
+                f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
     def __init__(self, version: str) -> None:
