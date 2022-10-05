@@ -2088,7 +2088,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   OldSemi
   .
 
-/*-----------------------------------------------------pp-------------------*/
+/*------------------------------------------------------------------------*/
 InvariantClause<. List<AttributedExpression> invariants, List<IToken> ownedTokens.> =
   "invariant"                                   (. Attributes attrs = null;
                                                    Expression e;
@@ -5196,11 +5196,12 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      Expression body = null;
      Attributes attrs = null;
      bool finite = true;
+     var ownedTokens = new List<IToken>(){};
   .)
-  ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; .)
+  ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; ownedTokens.Add(t); .)
   QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
-    QSep
+    QSep                                       (. ownedTokens.Add(t); .)
     Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (body == null && bvars.Count != 1) {
@@ -5215,6 +5216,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        }
        q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
+     q.OwnedTokens = ownedTokens;
   .)
   .
 

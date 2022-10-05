@@ -1506,9 +1506,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   private bool SetIndentComprehensionExpr(int indent, List<IToken> ownedTokens) {
-    var afterAssignIndent = indent + SpaceTab;
     var alreadyAligned = false;
     var assignIndent = indent;
+    var afterAssignIndent = assignIndent + SpaceTab;
 
     foreach (var token in ownedTokens) {
       switch (token.val) {
@@ -1518,6 +1518,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         case "set":
         case "imap":
         case "iset": {
+            indent = GetNewTokenVisualIndent(token, indent);
+            assignIndent = indent;
+            afterAssignIndent = assignIndent + SpaceTab;
             SetOpeningIndentedRegion(token, indent);
             break;
           }

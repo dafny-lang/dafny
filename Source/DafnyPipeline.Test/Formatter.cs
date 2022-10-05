@@ -1990,6 +1990,17 @@ class W extends
     }
 
     [Fact]
+    public void FormatterWorksForSetComprehension() {
+      FormatterWorksFor(@"
+function test(): int {
+  | set i: nat
+      | i < 10
+    :: i |
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
