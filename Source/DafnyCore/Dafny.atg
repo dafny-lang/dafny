@@ -3231,7 +3231,7 @@ IfStmt<out Statement/*!*/ ifStmt>
   |
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
-    | Guard<out guard>
+    | Guard<out guard, ownedTokens>
     | ellipsis                           (. guardEllipsis = t; ownedTokens.Add(t);
                                             errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
                                          .)
@@ -3336,10 +3336,10 @@ WhileStmt<out Statement stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
        stmt.OwnedTokens = ownedTokens; .)
   |
-    ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | ellipsis                   (. guardEllipsis = t; ownedTokens.Add(t);
-                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
-                                 .)
+    ( Guard<out guard, ownedTokens> (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    | ellipsis                      (. guardEllipsis = t; ownedTokens.Add(t);
+                                       errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                    .)
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs, ownedTokens>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */

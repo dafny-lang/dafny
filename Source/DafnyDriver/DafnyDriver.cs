@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
 
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
-      } else if (options.Files.Count == 0 && action != DriverAction.Format) {
+      } else if (options.Files.Count == 0 && options.Format == false) {
         options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0 && action != DriverAction.Format) {
+      if (dafnyFiles.Count == 0 && options.Format == false) {
         options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -318,7 +318,7 @@ namespace Microsoft.Dafny {
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       Program dafnyProgram;
       string err;
-      if (Action == DriverAction.Format) {
+      if (Options.Format) {
         if (dafnyFiles.Count == 0) {
           // Let's list all the dafny files recursively in the working directory
           dafnyFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dfy", SearchOption.AllDirectories)
@@ -327,6 +327,8 @@ namespace Microsoft.Dafny {
 
         var failed = new List<string>();
         var onlyCheck = DafnyOptions.O.FormatCheck;
+        var onlyPrint = DafnyOptions.O.DafnyPrintFile == "-";
+        DafnyOptions.O.DafnyPrintFile = null;
         var needFormatting = 0;
         foreach (var dafnyFile in dafnyFiles) {
           if (dafnyFile.UseStdin && !onlyCheck) {
@@ -344,7 +346,7 @@ namespace Microsoft.Dafny {
             if (firstToken != null) {
               var result = Formatting.__default.printSourceReindent(firstToken,
                 IndentationFormatter.ForProgram(dafnyProgram));
-              if (DafnyOptions.O.PrintFile == "-") {
+              if (onlyPrint) {
                 Console.Out.Write(result);
               } else if (onlyCheck) {
                 if (result != originalText) {

@@ -128,6 +128,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public bool Format = false;
     public bool FormatCheck = false;
 
     public Compiler Compiler;

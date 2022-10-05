@@ -17,6 +17,10 @@ public class DocumentTextBuffer {
     Buffer = buffer;
   }
 
+  // Impossible to cache this result, because this document is sometimes cloned with
+  // "with", and private variables would keep the same value even if `NumberOfLines` changed
+  public Range Range => new Range(0, 0, NumberOfLines, 0);
+
   public Position FromIndex(int index) {
     return Buffer.FromIndex(index);
   }

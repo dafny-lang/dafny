@@ -38,9 +38,10 @@ static class CommandRegistry {
 
   static CommandRegistry() {
     AddCommand(new VerifyCommand());
-    AddCommand(new RunCommand());
-    AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new BuildCommand());
+    AddCommand(new RunCommand());
+    AddCommand(new FormatCommand());
   }
 
   [CanBeNull]
