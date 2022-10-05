@@ -2374,10 +2374,9 @@ function Fib(n: nat): nat {
 }
 ```
 
-The `by method` clause is allowed only for the `function` or `predicate`
-declarations (without `method`, `twostate`, `least`, and `greatest`, but
-possibly with `static`). The method
-inherits the in-parameters, attributes, and `requires` and `decreases`
+The `by method` clause is allowed only for non-ghost `function` or `predicate`
+declarations (without `twostate`, `least`, and `greatest`, but
+possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
 clauses of the function. The method also gets one out-parameter, corresponding
 to the function's result value (and the name of it, if present). Finally,
 the method gets an empty `modifies` clause and a postcondition
