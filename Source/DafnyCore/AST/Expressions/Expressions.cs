@@ -3223,13 +3223,9 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
     this.Context = context is null ? new HoleCtx() : context;
   }
 
-  public Expression Source {
-    get { return source; }
-  }
+  public Expression Source => source;
 
-  public List<MatchCaseExpr> Cases {
-    get { return cases; }
-  }
+  public List<MatchCaseExpr> Cases => cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {

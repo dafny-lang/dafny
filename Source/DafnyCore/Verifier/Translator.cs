@@ -847,7 +847,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
 
-      new CompileNestedMatch(new Resolver()).Visit(p.DefaultModuleDef);
+      var resolver = new Resolver();
+      resolver.reporter = p.Reporter;
+      new CompileNestedMatch(resolver).Visit(p.DefaultModuleDef);
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {

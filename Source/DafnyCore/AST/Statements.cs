@@ -1968,9 +1968,9 @@ public class MatchStmt : Statement {
     get { return source; }
   }
 
-  public List<MatchCaseStmt> Cases {
-    get { return cases; }
-  }
+  public List<MatchCaseStmt> Cases => cases;
+
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -2026,7 +2026,7 @@ public class MatchCaseStmt : MatchCase {
 
   public override IEnumerable<INode> Children => body;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
@@ -2034,7 +2034,7 @@ public class MatchCaseStmt : MatchCase {
     Contract.Requires(cce.NonNullElements(body));
     this.body = body;
     this.Attributes = attrs;
-    this.FromBoundVar = FromBoundVar;
+    this.FromBoundVar = fromBoundVar;
   }
 
   public List<Statement> Body {

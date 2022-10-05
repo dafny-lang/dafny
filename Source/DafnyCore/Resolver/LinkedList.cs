@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,15 +6,15 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class LinkedListEnumerator<T> : IEnumerator<T> {
-  private Cons<T> cons;
+  private Cons<T> list;
 
-  public LinkedListEnumerator(Cons<T> cons) {
-    this.cons = cons;
+  public LinkedListEnumerator(Cons<T> list) {
+    this.list = new Cons<T>(default, list);
   }
 
   public bool MoveNext() {
-    if (cons.Tail is Cons<T> tailCons) {
-      cons = tailCons;
+    if (list.Tail is Cons<T> tailCons) {
+      list = tailCons;
       return true;
     }
 
@@ -24,13 +25,14 @@ class LinkedListEnumerator<T> : IEnumerator<T> {
     throw new System.NotSupportedException();
   }
 
-  public T Current => cons.Head;
+  public T Current => list.Head;
 
   object IEnumerator.Current => Current;
 
   public void Dispose() {
   }
 }
+
 public abstract record LinkedList<T> : IEnumerable<T> {
   public abstract IEnumerator<T> GetEnumerator();
   IEnumerator IEnumerable.GetEnumerator() {
