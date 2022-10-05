@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
+using System.Security.AccessControl;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -79,7 +80,11 @@ public abstract class Expression : INode {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(this);
+    try {
+      return Printer.ExprToString(this);
+    } catch (Exception e) {
+      return $"couldn't print expr because: {e.Message}";
+    }
   }
 
   /// <summary>
@@ -1015,6 +1020,18 @@ public class DatatypeValue : Expression, IHasUsages {
     Contract.Invariant(cce.NonNullElements(Arguments));
     Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
     Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+  }
+
+  public DatatypeValue(Cloner cloner, DatatypeValue original) : base(cloner.Tok(original.tok)) {
+    DatatypeName = original.DatatypeName;
+    MemberName = original.MemberName;
+    Bindings = new ActualBindings(cloner, original.Bindings);
+
+    if (cloner.CloneResolvedFields) {
+      Ctor = original.Ctor;
+      IsCoCall = original.IsCoCall;
+      InferredTypeArgs = original.InferredTypeArgs;
+    }
   }
 
   public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
@@ -2314,6 +2331,16 @@ public class BinaryExpr : Expression {
     Contract.Invariant(E1 != null);
   }
 
+  public BinaryExpr(Cloner cloner, BinaryExpr original) : base(cloner.Tok(original.tok)) {
+    this.Op = original.Op;
+    this.E0 = cloner.CloneExpr(original.E0);
+    this.E1 = cloner.CloneExpr(original.E1);
+
+    if (cloner.CloneResolvedFields) {
+      ResolvedOp = original.ResolvedOp;
+    }
+  }
+
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3224,6 +3251,22 @@ public class CasePattern<VT> where VT : IVariable {
     this.Arguments = new List<CasePattern<VT>>();
   }
 
+  public CasePattern(Cloner cloner, CasePattern<VT> original) {
+    tok = cloner.Tok(original.tok);
+    Id = original.Id;
+    if (original.Var != null) {
+      Var = cloner.CloneIVariable(original.Var);
+    }
+
+    if (cloner.CloneResolvedFields) {
+      Expr = cloner.CloneExpr(original.Expr);
+    }
+
+    if (original.Arguments != null) {
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
+    }
+  }
+
   public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
@@ -3902,6 +3945,13 @@ public class ApplySuffix : SuffixExpr {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Args != null);
+  }
+
+  public ApplySuffix(Cloner cloner, ApplySuffix original) : base(cloner.Tok(original.tok), cloner.CloneExpr(original.Lhs)) {
+    AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
+    CloseParen = cloner.Tok(original.CloseParen);
+    FormatTokens = original.FormatTokens;
+    Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
   public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)

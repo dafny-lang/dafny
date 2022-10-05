@@ -953,7 +953,9 @@ public class CompileNestedMatch {
         { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
       }, new Dictionary<TypeParameter, Type>());
 
-      foreach (var stmt in stmtPath.Body) {
+      var cloner = new Cloner(true);
+      var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s)).ToList();
+      foreach (var stmt in clonedBody) {
         ((INode)stmt).Visit(node => {
           ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
             if (expr == null) {
@@ -965,7 +967,7 @@ public class CompileNestedMatch {
         });
       }
 
-      return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new [] { cLet}.Concat(stmtPath.Body).ToList(), stmtPath.Attributes);
+      return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new [] { cLet}.Concat(clonedBody).ToList(), stmtPath.Attributes);
     }
 
     if (path is ExprPatternPath exprPath) {

@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading.Channels;
 
 namespace Microsoft.Dafny;
 
@@ -158,8 +159,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     try {
       return Printer.StatementToString(this);
     } catch (Exception e) {
-      Console.Write("wups");
-      return "";
+      return $"couldn't print stmt because: {e.Message}";
     }
   }
 }
@@ -805,7 +805,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>(); // TODO initialise with null
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
@@ -818,6 +818,17 @@ public class UpdateStmt : ConcreteUpdateStatement {
     Contract.Invariant(cce.NonNullElements(Lhss));
     Contract.Invariant(cce.NonNullElements(Rhss));
   }
+
+  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner.Tok(original.Tok), cloner.Tok(original.EndTok), 
+    original.Lhss.Select(cloner.CloneExpr).ToList()) {
+
+    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    CanMutateKnownState = original.CanMutateKnownState;
+    if (cloner.CloneResolvedFields) {
+      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+    }
+  }
+  
   public UpdateStmt(IToken tok, IToken endTok, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(tok, endTok, lhss) {
     Contract.Requires(tok != null);
@@ -977,6 +988,17 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
     Contract.Invariant(OptionalType != null);
   }
 
+  public LocalVariable(Cloner clone, LocalVariable original) {
+    Tok = clone.Tok(original.Tok);
+    EndTok = clone.Tok(original.EndTok);
+    name = original.Name;
+    OptionalType = clone.CloneType(original.OptionalType);
+    IsGhost = original.IsGhost;
+
+    if (clone.CloneResolvedFields) {
+      type = original.type;
+    }
+  }
   public LocalVariable(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -1027,6 +1049,8 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
 
   public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
   Type IVariable.OptionalType { get { return this.OptionalType; } }
+  
+  [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
   public Type Type {
     get {

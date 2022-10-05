@@ -1253,7 +1253,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
-      var compileNestedMatch = new CompileNestedMatch(new Resolver());
+      var resolver = new Resolver();
+      resolver.reporter = program.Reporter;
+      var compileNestedMatch = new CompileNestedMatch(resolver);
       foreach (var module in program.CompileModules) {
         compileNestedMatch.Visit(module);
       }

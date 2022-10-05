@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security.AccessControl;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
@@ -22,6 +23,18 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();
+  }
+
+  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.Tok), original.IsGhost) {
+    Id = original.Id;
+    Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
+    HasParenthesis = original.HasParenthesis;
+    if (cloner.CloneResolvedFields) {
+      BoundVar = original.BoundVar;
+      Type = original.Type;
+    } else {
+      Type = new InferredTypeProxy(); // TODO seems wrong. Should always copy type no?
+    }
   }
 
   public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
