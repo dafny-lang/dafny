@@ -3720,10 +3720,6 @@ Also, `<` is underspecified. With the above code, one can prove neither `z < x` 
 
 ## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 
-TODO: This section and particularly the subsections need rewriting using
-the least and greatest terminology, and to make the text fit better into
-the overall reference manual.
-
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
 _co-inductive datatypes_, whose constructors are evaluated lazily, and
@@ -3743,7 +3739,7 @@ finite or infinite), infinite streams (that is, lists that are always
 infinite), and infinite binary trees (that is, trees where every
 branch goes on forever), respectively.
 
-The paper [Co-induction Simply], by Leino and
+The paper [Co-induction Simply](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/coinduction.pdf), by Leino and
 Moskal[@LEINO:Dafny:Coinduction], explains Dafny's implementation and
 verification of co-inductive types. We capture the key features from that
 paper in this section but the reader is referred to that paper for more
@@ -3767,14 +3763,14 @@ desirable to have good support for both induction and co-induction in a
 system for constructing and reasoning about programs.
 
 Co-datatypes and co-recursive functions make it possible to use lazily
-evaluated data structures (like in Haskell or Agda). Co-predicates,
+evaluated data structures (like in Haskell or Agda). _Greatest predicates_,
 defined by greatest fix-points, let programs state properties of such
 data structures (as can also be done in, for example, Coq). For the
 purpose of writing co-inductive proofs in the language, we introduce
-co-lemmas. Ostensibly, a co-lemma invokes the co-induction hypothesis
+greatest and least lemmas. A greatest lemma invokes the co-induction hypothesis
 much like an inductive proof invokes the induction hypothesis. Underneath
 the hood, our co-inductive proofs are actually approached via induction:
-co-lemmas provide a syntactic veneer around this approach.
+greatest and least lemmas provide a syntactic veneer around this approach.
 
 The following example gives a taste of how the co-inductive features in
 Dafny come together to give straightforward definitions of infinite
@@ -3813,10 +3809,10 @@ greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
 The example defines a type `IStream` of infinite streams, with constructor `ICons` and
 destructors `head` and `tail`. Function `Mult` performs pointwise
 multiplication on infinite streams of integers, defined using a
-co-recursive call (which is evaluated lazily). Co-predicate `Below` is
+co-recursive call (which is evaluated lazily). Greatest predicate `Below` is
 defined as a greatest fix-point, which intuitively means that the
 co-predicate will take on the value true if the recursion goes on forever
-without determining a different value. The co-lemma states the theorem
+without determining a different value. The greatest lemma states the theorem
 `Below(a, Mult(a, a))`. Its body gives the proof, where the recursive
 invocation of the co-lemma corresponds to an invocation of the
 co-induction hypothesis.
@@ -3833,7 +3829,7 @@ playing field between induction (which is familiar) and co-induction
 (which, despite being the dual of induction, is often perceived as eerily
 mysterious). Moreover, the automation provided by our SMT-based verifier
 reduces the tedium in writing co-inductive proofs. For example, it
-verifies `Theorem_BelowSquare` from the program text given above— no
+verifies `Theorem_BelowSquare` from the program text given above---no
 additional lemmas or tactics are needed. In fact, as a consequence of the
 automatic-induction heuristic in Dafny, the verifier will
 automatically verify `Theorem_BelowSquare` even given an empty body.
@@ -3841,7 +3837,7 @@ automatically verify `Theorem_BelowSquare` even given an empty body.
 Just like there are restrictions on when an _inductive hypothesis_ can be
 invoked, there are restrictions on how a _co-inductive_ hypothesis can be
 _used_. These are, of course, taken into consideration by Dafny's verifier.
-For example, as illustrated by the second co-lemma above, invoking the
+For example, as illustrated by the second greatest lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
 futile. (We explain how this works in [the section about greatest lemmas](#sec-colemmas)) Our initial experience
 with co-induction in Dafny shows it to provide an intuitive, low-overhead
@@ -3928,7 +3924,7 @@ not in a productive position and is therefore subject to termination
 checking; in particular, each recursive call must decrease the rank
 defined by the `decreases` clause.
 
-Analogous to the common finite list datatype, Stream declares two
+Analogous to the common finite list datatype, `Stream` declares two
 constructors, `SNil` and `SCons`. Values can be destructed using match
 expressions and statements. In addition, like for inductive datatypes,
 each constructor `C` automatically gives rise to a discriminator `C?` and
@@ -4000,19 +3996,19 @@ predicate Pos#[_k: nat](s: Stream<int>)
 ```
 
 Some restrictions apply. To guarantee that the greatest fix-point always
-exists, the (implicit functor defining the) co-predicate must be
+exists, the (implicit functor defining the) greatest predicate must be
 monotonic. This is enforced by a syntactic restriction on the form of the
-body of co-predicates: after conversion to negation normal form (i.e.,
+body of greatest predicates: after conversion to negation normal form (i.e.,
 pushing negations down to the atoms), intra-cluster calls of
-co-predicates must appear only in _positive_ positions—that is, they must
+greatest predicates must appear only in _positive_ positions—that is, they must
 appear as atoms and must not be negated. Additionally, to guarantee
 soundness later on, we require that they appear in _co-friendly_
 positions—that is, in negation normal form, when they appear under
 existential quantification, the quantification needs to be limited to a
-finite range[^fn-copredicate-restriction]. Since the evaluation of a co-predicate might not
-terminate, co-predicates are always ghost. There is also a restriction on
-the call graph that a cluster containing a co-predicate must contain only
-co-predicates, no other kinds of functions.
+finite range[^fn-copredicate-restriction]. Since the evaluation of a greatest predicate might not
+terminate, greatest predicates are always ghost. There is also a restriction on
+the call graph that a cluster containing a greatest predicate must contain only
+greatest predicates, no other kinds of functions.
 
 [^fn-copredicate-restriction]: Higher-order function support in Dafny is
     rather modest and typical reasoning patterns do not involve them, so this
@@ -4026,15 +4022,15 @@ from the co-predicate by
 * adding a parameter `_k` of type `nat` to denote the prefix length,
 
 * adding the clause `decreases _k;` to the prefix predicate (the
-  co-predicate itself is not allowed to have a decreases clause),
+  greatest predicate itself is not allowed to have a decreases clause),
 
-* replacing in the body of the co-predicate every intra-cluster
+* replacing in the body of the greatest predicate every intra-cluster
   call `Q(args)` to a greatest predicate by a call `Q#[_k - 1](args)`
   to the corresponding prefix predicate, and then
 
 * prepending the body with `if _k = 0 then true else`.
 
-For example, for co-predicate `Pos`, the definition of the prefix
+For example, for greatest predicate `Pos`, the definition of the prefix
 predicate `Pos#` is as suggested above. Syntactically, the prefix-length
 argument passed to a prefix predicate to indicate how many times to
 unroll the definition is written in square brackets, as in `Pos#[k](s)`.
@@ -4060,19 +4056,19 @@ first place.
 Among other possible strategies for establishing co-inductive properties
 we take the time-honored approach of reducing co-induction to
 induction. More precisely, Dafny passes to the SMT solver an
-assumption `D(P)` for every co-predicate `P`, where:
+assumption `D(P)` for every greatest predicate `P`, where:
 
 ```dafny
 D(P) = ? x • P(x) <==> ? k • P#[k](x)
 ```
 
-In other words, a co-predicate is true iff its corresponding prefix
+In other words, a greatest predicate is true iff its corresponding prefix
 predicate is true for all finite unrollings.
 
 In Sec. 4 of the paper [Co-induction Simply] a soundness theorem of such
-assumptions is given, provided the co-predicates meet the co-friendly
+assumptions is given, provided the greatest predicates meet the co-friendly
 restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
-here shown:
+shown here:
 
 ```dafny
 lemma UpPosLemma(n: int)
@@ -4097,7 +4093,7 @@ lemma UpPosLemmaK(k: nat, n: int)
 The lemma `UpPosLemma` proves `Pos(Up(n))` for every `n > 0`. We first
 show `Pos#[k](Up(n ))`, for `n > 0` and an arbitrary `k`, and then use
 the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
-`D(Pos)` is used (automatically) to establish the co-predicate.
+`D(Pos)` is used (automatically) to establish the greatest predicate.
 
 
 #### 19.3.5.2. Greatest lemmas {#sec-colemmas}
@@ -4107,7 +4103,7 @@ predicate holds for all prefix lengths `k`. In this section, we introduce
 _greatest lemma_ declarations, which bring about two benefits. The first benefit
 is that greatest lemmas are syntactic sugar and reduce the tedium of having to
 write explicit quantifications over `k`. The second benefit is that, in
-simple cases, the bodies of co-lemmas can be understood as co-inductive
+simple cases, the bodies of greatest lemmas can be understood as co-inductive
 proofs directly. As an example consider the following greatest lemma.
 
 ```dafny
@@ -4118,7 +4114,7 @@ greatest lemma UpPosLemma(n: int)
   UpPosLemma(n+1);
 }
 ```
-This co-lemma can be understood as follows: `UpPosLemma` invokes itself
+This greatest lemma can be understood as follows: `UpPosLemma` invokes itself
 co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
@@ -4132,44 +4128,44 @@ _prefix lemma_. In the call graph, the cluster containing a greatest lemma must
 contain only greatest lemmas and prefix lemmas, no other methods or function.
 By decree, a greatest lemma and its corresponding prefix lemma are always
 placed in the same cluster. Both greatest lemmas and prefix lemmas are always
-ghosts.
+ghost code.
 
-The prefix lemma is constructed from the co-lemma by
+The prefix lemma is constructed from the greatest lemma by
 
 * adding a parameter `_k` of type `nat` to denote the prefix length,
 
-* replacing in the co-lemma’s postcondition the positive co-friendly
-  occurrences of co-predicates by corresponding prefix predicates,
+* replacing in the greatest lemma’s postcondition the positive co-friendly
+  occurrences of greatest predicates by corresponding prefix predicates,
   passing in `_k` as the prefix-length argument,
 
-* prepending `_k` to the (typically implicit) **decreases** clause of the co-lemma,
+* prepending `_k` to the (typically implicit) **decreases** clause of the greatest lemma,
 
-* replacing in the body of the co-lemma every intra-cluster call
+* replacing in the body of the greatest lemma every intra-cluster call
   `M(args)` to a greatest lemma by a call `M#[_k - 1](args)` to the
   corresponding prefix lemma, and then
 
 * making the body’s execution conditional on `_k != 0`.
 
-Note that this rewriting removes all co-recursive calls of co-lemmas,
+Note that this rewriting removes all co-recursive calls of greatest lemmas,
 replacing them with recursive calls to prefix lemmas. These recursive
-call are, as usual, checked to be terminating. We allow the pre-declared
+calls are, as usual, checked to be terminating. We allow the pre-declared
 identifier `_k` to appear in the original body of the
-co-lemma.[^fn-co-predicate-co-lemma-diffs]
+greatest lemma.[^fn-co-predicate-co-lemma-diffs]
 
 [^fn-co-predicate-co-lemma-diffs]: Note, two places where co-predicates
     and co-lemmas are not analogous are (a) co-predicates must not make
     recursive calls to their prefix predicates and (b) co-predicates cannot
     mention `_k`.
 
-We can now think of the body of the co-lemma as being replaced by a
+We can now think of the body of the greatest lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
 this new body will establish the greatest lemma’s declared postcondition (on
 account of the `D` axiom, and remembering that only the positive
-co-friendly occurrences of co-predicates in the co-lemma’s postcondition
+co-friendly occurrences of greatest predicates in the greatest lemma’s postcondition
 are rewritten), so there is no reason for the program verifier to check
 it.
 
-The actual desugaring of our co-lemma `UpPosLemma` is in fact the
+The actual desugaring of our greatest lemma `UpPosLemma` is in fact the
 previous code for the `UpPosLemma` lemma except that `UpPosLemmaK` is
 named `UpPosLemma#` and modulo a minor syntactic difference in how the
 `k` argument is passed.
@@ -4180,12 +4176,12 @@ Conveniently, this follows from the fact that the body has been wrapped
 in an `if _k != 0` statement. This also means that the postcondition must
 hold trivially when `_k = 0`, or else a postcondition violation will be
 reported. This is an appropriate design for our desugaring, because
-co-lemmas are expected to be used to establish co-predicates, whose
+greatest lemmas are expected to be used to establish greatest predicates, whose
 corresponding prefix predicates hold trivially when `_k = 0`. (To prove
-other predicates, use an ordinary lemma, not a co-lemma.)
+other predicates, use an ordinary lemma, not a greatest lemma.)
 
 It is interesting to compare the intuitive understanding of the
-co-inductive proof in using a co-lemma with the inductive proof in using
-the lemma. Whereas the inductive proof is performing proofs for deeper
-and deeper equalities, the co-lemma can be understood as producing the
+co-inductive proof in using a greatest lemma with the inductive proof in using
+a lemma. Whereas the inductive proof is performing proofs for deeper
+and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
