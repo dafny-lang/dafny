@@ -402,11 +402,9 @@ Let's explore this, after a smidgen of lattice theory.
 For any complete lattice $(Y,\leq)$ and any set $X$, we can by _pointwise extension_ define
 a complete lattice $(X \to Y, \dot{\Rightarrow})$, where for any $f,g \colon X \to Y$,
 
-
-Equation
 <p style="text-align: center;">
 $$
-f \dot{\Rightarrow} q  \;\;\equiv\;\; \forall x \bullet\; f(x) \leq g(x)
+f \dot{\Rightarrow} g  \;\;\equiv\;\; \forall x \bullet\; f(x) \leq g(x)
 $$
 </p>
 
@@ -424,7 +422,7 @@ solutions to [the general equation](#eq-general) are the same as the least and g
 In casual speak, it happens that we say "fixpoint of [the general equation](#eq-general)", or more
 grotesquely, "fixpoint of $f$" when we really mean "fixpoint of $\mathcal{F}$".
 
-In conclusion of our little excursion into lattice theory, we have that, under the
+To conclude our little excursion into lattice theory, we have that, under the
 proviso of $\mathcal{F}$ being monotonic, the set of solutions in $f$ to [the general equation](#eq-general) is nonempty,
 and among these solutions, there is in the $\dot{\Rightarrow}$ ordering a least solution (that is,
 a function that returns `false` more often than any other) and a greatest solution (that
