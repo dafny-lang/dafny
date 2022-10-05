@@ -701,12 +701,10 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
-
+        r = new ReturnStmt(this, s);
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
-        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
-
+        r = new YieldStmt(this, s);
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
@@ -796,6 +794,9 @@ namespace Microsoft.Dafny {
       AddStmtLabels(r, stmt.Labels);
       r.Attributes = CloneAttributes(stmt.Attributes);
 
+      if (CloneResolvedFields) {
+        r.IsGhost = stmt.IsGhost;
+      }
       return r;
     }
 

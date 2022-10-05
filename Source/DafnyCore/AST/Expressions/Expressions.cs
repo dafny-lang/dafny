@@ -3255,7 +3255,7 @@ public class CasePattern<VT> where VT : IVariable {
     tok = cloner.Tok(original.tok);
     Id = original.Id;
     if (original.Var != null) {
-      Var = cloner.CloneIVariable(original.Var);
+      Var = cloner.CloneResolvedFields ? original.Var : cloner.CloneIVariable(original.Var);
     }
 
     if (cloner.CloneResolvedFields) {

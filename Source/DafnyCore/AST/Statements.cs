@@ -32,6 +32,12 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
 
   [FilledInDuringResolution] public bool IsGhost;
 
+  protected Statement(Cloner cloner, Statement original) {
+    this.Tok = cloner.Tok(original.Tok);
+    this.EndTok = cloner.Tok(original.EndTok);
+    this.attributes = cloner.CloneAttributes(original.Attributes);
+  }
+  
   public Statement(IToken tok, IToken endTok, Attributes attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -55,7 +61,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
       foreach (var e in SubExpressions) {
         yield return e;
       }
-
+      
       foreach (var s in SubStatements) {
         foreach (var e in s.SubExpressionsIncludingTransitiveSubStatements) {
           yield return e;
@@ -412,20 +418,37 @@ public class BreakStmt : Statement, IHasUsages {
 }
 
 public abstract class ProduceStmt : Statement {
-  public List<AssignmentRhs> rhss;
-  public UpdateStmt hiddenUpdate;
+  public List<AssignmentRhs> Rhss;
+  [FilledInDuringResolution]
+  public UpdateStmt HiddenUpdate;
+
+  protected ProduceStmt(Cloner cloner, ProduceStmt original) : base(cloner, original) {
+    if (original.Rhss != null) {
+      Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    }
+    if (cloner.CloneResolvedFields) {
+      if (original.HiddenUpdate != null) {
+        HiddenUpdate = new UpdateStmt(cloner, original.HiddenUpdate);
+      }
+    }
+  }
+  
   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
-    this.rhss = rhss;
-    hiddenUpdate = null;
+    this.Rhss = rhss;
+    HiddenUpdate = null;
   }
+
+  public override IEnumerable<INode> Children =>
+    HiddenUpdate == null ? base.Children : new INode[] {HiddenUpdate}.Concat(base.Children);
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var ee in rhs.SubExpressions) {
             yield return ee;
           }
@@ -435,8 +458,8 @@ public abstract class ProduceStmt : Statement {
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var s in rhs.SubStatements) {
             yield return s;
           }
@@ -448,6 +471,10 @@ public abstract class ProduceStmt : Statement {
 
 public class ReturnStmt : ProduceStmt {
   public bool ReverifyPost;  // set during pre-resolution refinement transformation
+
+  public ReturnStmt(Cloner cloner, ReturnStmt original) : base(cloner, original) {
+  }
+  
   public ReturnStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok, rhss) {
     Contract.Requires(tok != null);
@@ -456,6 +483,9 @@ public class ReturnStmt : ProduceStmt {
 }
 
 public class YieldStmt : ProduceStmt {
+  public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
+  }
+  
   public YieldStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok, rhss) {
     Contract.Requires(tok != null);
@@ -893,6 +923,8 @@ public class AssignStmt : Statement {
     Contract.Invariant(Lhs != null);
     Contract.Invariant(Rhs != null);
   }
+
+  public override IEnumerable<INode> Children => new INode[] {Lhs, Rhs};
 
   public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
     : base(tok, endTok) {

@@ -1254,7 +1254,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
       var resolver = new Resolver();
-      resolver.reporter = program.Reporter;
+      resolver.reporter = new ErrorReporterSink(); // TODO this'll swallow errors if there's no translation.
       var compileNestedMatch = new CompileNestedMatch(resolver);
       foreach (var module in program.CompileModules) {
         compileNestedMatch.Visit(module);
@@ -2881,9 +2881,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, wr);
-          var ss = s.hiddenUpdate.ResolvedStatements;
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, wr);
+          var ss = s.HiddenUpdate.ResolvedStatements;
           if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
             isTailRecursiveResult = true;
           }
@@ -3308,7 +3308,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (stmt is TryRecoverStatement h) {
         EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
-      } else {
+      } else
+      {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
