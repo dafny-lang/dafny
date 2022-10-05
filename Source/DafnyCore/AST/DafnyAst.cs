@@ -759,6 +759,7 @@ namespace Microsoft.Dafny {
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
+    [FilledInDuringResolution]
     private List<Expression> arguments; // set by ResolveActualParameters during resolution
 
     public bool WasResolved => arguments != null;

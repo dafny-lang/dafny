@@ -8,7 +8,6 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-[DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
   public readonly IToken tok;
   [ContractInvariantMethod]
@@ -77,6 +76,10 @@ public abstract class Expression : INode {
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
     this.tok = tok;
+  }
+
+  public override string ToString() {
+    return Printer.ExprToString(this);
   }
 
   /// <summary>

@@ -155,9 +155,12 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 
   public override string ToString() {
-    var stringWriter = new StringWriter();
-    new Printer(stringWriter).PrintStatement(this, 0);
-    return stringWriter.ToString();
+    try {
+      return Printer.StatementToString(this);
+    } catch (Exception e) {
+      Console.Write("wups");
+      return "";
+    }
   }
 }
 
