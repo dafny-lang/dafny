@@ -49,11 +49,7 @@ public class CompileNestedMatch {
     this.resolver = resolver;
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <param name="program"></param>
-  public void Visit2(ModuleDefinition program) {
+  public void Visit(ModuleDefinition program) {
     if (!ranOn.Add(program)) {
       return;
     }
@@ -200,13 +196,13 @@ public class CompileNestedMatch {
     }
 
     var cases = e.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
-    MatchTempInfo mti = new MatchTempInfo(e.Type, e.tok, cases.Count, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
+    MatchCompilationState mti = new MatchCompilationState(e, cases.Count, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
 
     List<PatternPath> paths = new List<PatternPath>();
     for (int id = 0; id < cases.Count; id++) {
       var path = cases.ElementAt(id);
       paths.Add(new PatternPathExpr(id, path, path.Attributes));
-      mti.PathTok[id] = path.Tok;
+      mti.CaseTok[id] = path.Tok;
     }
 
     SyntaxContainer rb = CompilePatternPaths(mti, new HoleCtx(), LinkedLists.Create(e.Source), paths);
@@ -218,7 +214,7 @@ public class CompileNestedMatch {
       var newME = ((CExpr)rb).Body;
       for (int id = 0; id < mti.CaseCopyCount.Length; id++) {
         if (mti.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, mti.PathTok[id], "this branch is redundant");
+          resolver.reporter.Warning(MessageSource.Resolver, mti.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
           resolver.scope.PushMarker();
           //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
           //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
@@ -244,14 +240,14 @@ public class CompileNestedMatch {
 
     var cases = s.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
     // initialize the MatchTempInfo to record position and duplication information about each path
-    MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, cases.Count, resolutionContext.WithGhost(s.IsGhost), DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+    MatchCompilationState mti = new MatchCompilationState(s, cases.Count, resolutionContext.WithGhost(s.IsGhost), DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
     // create pattern paths from NestedMatchCaseStmt and set the path tokens in mti
     var paths = new List<PatternPath>();
     for (int id = 0; id < cases.Count; id++) {
       var path = cases[id];
       paths.Add(new PatternPathStmt(id, path, path.Attributes));
-      mti.PathTok[id] = path.Tok;
+      mti.CaseTok[id] = path.Tok;
     }
     SyntaxContainer rb = CompilePatternPaths(mti, new HoleCtx(), LinkedLists.Create(s.Source), paths);
     if (rb is null) {
@@ -263,7 +259,7 @@ public class CompileNestedMatch {
       result.Attributes = s.Attributes;
       for (int id = 0; id < mti.CaseCopyCount.Length; id++) {
         if (mti.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, mti.PathTok[id], "this branch is redundant");
+          resolver.reporter.Warning(MessageSource.Resolver, mti.CaseTok[id], "this branch is redundant");
           resolver.scope.PushMarker();
           // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
           // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
@@ -324,8 +320,109 @@ public class CompileNestedMatch {
     }
   }
 
+  private void PrintPatternPaths(MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
+    Console.WriteLine("\t=-------=");
+    Console.WriteLine("\tCurrent context:");
+    Console.WriteLine("\t> {0}", context.ToString());
+    Console.WriteLine("\tCurrent matchees:");
+
+    foreach (Expression matchee in matchees) {
+      Console.WriteLine("\t> {0}", Printer.ExprToString(matchee));
+    }
+    Console.WriteLine("\tCurrent paths:");
+    foreach (PatternPath path in paths) {
+      Console.WriteLine(path.ToString());
+    }
+    Console.WriteLine("\t-=======-");
+  }
+
+  /*
+   * Implementation of case 3** (some of the head patterns are constants) of pattern-match compilation
+   */
+  private SyntaxContainer CompileHeadsContainingLiteralPattern(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, List<PatternPath> paths) {
+    // Decrease the count for each path (increases back for each occurence later on)
+    foreach (var path in paths) {
+      mti.UpdateCaseCopyCount(path.CaseId, -1);
+    }
+
+    // Create a list of alternatives
+    List<LiteralExpr> ifBlockLiterals = new List<LiteralExpr>();
+    foreach (var path in paths) {
+      var head = GetPatternHead(path);
+      var lit = GetLiteralExpressionFromPattern(head);
+
+      if (lit != null) {
+        lit.Type = matchees.Head.Type;
+      }
+
+      if (lit != null && !ifBlockLiterals.Exists(x => object.Equals(x.Value, lit.Value))) {
+        ifBlockLiterals.Add(lit);
+      }
+    }
+
+    var ifBlocks = new List<(LiteralExpr conditionValue, SyntaxContainer block)>();
+    // For each possible alternatives, filter potential cases and recur
+    foreach (var ifBlockLiteral in ifBlockLiterals) {
+      var pathsForLiteral = new List<PatternPath>();
+      foreach (var path in paths) {
+        var (head, tail) = SplitPath(path);
+        var lit = GetLiteralExpressionFromPattern(head);
+
+        if (lit != null) {
+          // if pattern matches the current alternative, add it to the path for this case, otherwise ignore it
+          if (Equals(lit.Value, ifBlockLiteral.Value)) {
+            mti.UpdateCaseCopyCount(tail.CaseId, 1);
+            pathsForLiteral.Add(tail);
+          }
+        } else if (head is IdPattern idPattern) {
+          // pattern is a bound variable, clone and let-bind the Lit
+          LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
+          mti.UpdateCaseCopyCount(tail.CaseId, 1);
+          pathsForLiteral.Add(tail);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
+      }
+      var blockContext = context.FillHole(new LitCtx(ifBlockLiteral));
+
+      var block = CompilePatternPaths(mti, blockContext, matchees.Tail, pathsForLiteral);
+      ifBlocks.Add((ifBlockLiteral, block));
+    }
+    // Create a default case
+    var defaultPaths = new List<PatternPath>();
+    foreach (var path in paths)
+    {
+      var (head, tail) = SplitPath(path);
+      if (head is IdPattern idPattern && idPattern.ResolvedLit == null && idPattern.Arguments == null) {
+        LetBindNonWildCard(tail, idPattern, matchees.Head);
+        mti.UpdateCaseCopyCount(tail.CaseId, 1);
+        defaultPaths.Add(tail);
+      }
+    }
+    // defaultPaths.Count check is to avoid adding "missing paths" when default is not present
+    SyntaxContainer defaultBlock = defaultPaths.Count == 0 ? null : CompilePatternPaths(mti, context.AbstractHole(), matchees.Tail, defaultPaths);
+
+    return CreateIfElseIfChain(mti, context, matchees.Head, ifBlocks, defaultBlock);
+  }
+
+  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head)
+  {
+    LiteralExpr lit = null;
+    if (head is LitPattern litPattern)
+    {
+      lit = litPattern.OptimisticallyDesugaredLit;
+    }
+    else if (head is IdPattern id && id.ResolvedLit != null)
+    {
+      lit = id.ResolvedLit;
+    }
+
+    return lit;
+  }
+
+
   // Assumes that all SyntaxContainers in blocks and def are of the same subclass
-  private SyntaxContainer CreateIfElseIfChain(MatchTempInfo mti, MatchingContext context, Expression matchee, List<(LiteralExpr, SyntaxContainer)> blocks, SyntaxContainer defaultBlock) {
+  private SyntaxContainer CreateIfElseIfChain(MatchCompilationState mti, MatchingContext context, Expression matchee, List<(LiteralExpr, SyntaxContainer)> blocks, SyntaxContainer defaultBlock) {
 
     if (blocks.Count == 0) {
       if (defaultBlock is CStmt sdef) {
@@ -383,7 +480,6 @@ public class CompileNestedMatch {
     }
   }
 
-
   private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer bodyContainer, bool FromBoundVar) {
     MatchCase newMatchCase;
     if (bodyContainer is CStmt c) {
@@ -407,118 +503,13 @@ public class CompileNestedMatch {
     var name = resolver.FreshTempVarName("_mcc#", codeContext);
     return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
   }
-
-  private void PrintPatternPaths(MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
-    Console.WriteLine("\t=-------=");
-    Console.WriteLine("\tCurrent context:");
-    Console.WriteLine("\t> {0}", context.ToString());
-    Console.WriteLine("\tCurrent matchees:");
-
-    foreach (Expression matchee in matchees) {
-      Console.WriteLine("\t> {0}", Printer.ExprToString(matchee));
-    }
-    Console.WriteLine("\tCurrent paths:");
-    foreach (PatternPath path in paths) {
-      Console.WriteLine(path.ToString());
-    }
-    Console.WriteLine("\t-=======-");
-  }
-
-  /*
-   * Implementation of case 3** (some of the head patterns are constants) of pattern-match compilation
-   */
-  private SyntaxContainer CompileHeadsContainingLiteralPattern(MatchTempInfo mti, MatchingContext context, Cons<Expression> matchees, List<PatternPath> paths) {
-    // Decrease the count for each path (increases back for each occurence later on)
-    foreach (var path in paths) {
-      mti.UpdateCaseCopyCount(path.CaseId, -1);
-    }
-
-    var headMatchee = matchees.Head;
-    var tailMatchees = matchees.Tail;
-
-    // Create a list of alternatives
-    List<LiteralExpr> ifBlockLiterals = new List<LiteralExpr>();
-    foreach (var path in paths) {
-      var head = GetPatternHead(path);
-      var lit = GetLiteralExpressionFromPattern(head);
-
-      if (lit != null) {
-        lit.Type = headMatchee.Type;
-      }
-
-      if (lit != null && !ifBlockLiterals.Exists(x => object.Equals(x.Value, lit.Value))) {
-        ifBlockLiterals.Add(lit);
-      }
-    }
-
-    var ifBlocks = new List<(LiteralExpr conditionValue, SyntaxContainer block)>();
-    // For each possible alternatives, filter potential cases and recur
-    foreach (var ifBlockLiteral in ifBlockLiterals) {
-      var pathsForLiteral = new List<PatternPath>();
-      foreach (var path in paths) {
-        var (head, tail) = SplitPath(path);
-        var lit = GetLiteralExpressionFromPattern(head);
-
-        if (lit != null) {
-          // if pattern matches the current alternative, add it to the path for this case, otherwise ignore it
-          if (Equals(lit.Value, ifBlockLiteral.Value)) {
-            mti.UpdateCaseCopyCount(tail.CaseId, 1);
-            pathsForLiteral.Add(tail);
-          }
-        } else if (head is IdPattern idPattern) {
-          // pattern is a bound variable, clone and let-bind the Lit
-          LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
-          mti.UpdateCaseCopyCount(tail.CaseId, 1);
-          pathsForLiteral.Add(tail);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
-        }
-      }
-      var blockContext = context.FillHole(new LitCtx(ifBlockLiteral));
-
-      // Recur on the current alternative
-      var block = CompilePatternPaths(mti, blockContext, tailMatchees, pathsForLiteral);
-      ifBlocks.Add((ifBlockLiteral, block));
-    }
-    // Create a default case
-    var defaultPaths = new List<PatternPath>();
-    foreach (var path in paths)
-    {
-      var (head, tail) = SplitPath(path);
-      if (head is IdPattern idPattern && idPattern.ResolvedLit == null && idPattern.Arguments == null) {
-        // Pattern is a bound variable, clone and let-bind the Lit
-        LetBindNonWildCard(tail, idPattern, headMatchee);
-        mti.UpdateCaseCopyCount(tail.CaseId, 1);
-        defaultPaths.Add(tail);
-      }
-    }
-    // defaultPaths.Count check is to avoid adding "missing paths" when default is not present
-    SyntaxContainer defaultBlock = defaultPaths.Count == 0 ? null : CompilePatternPaths(mti, context.AbstractHole(), tailMatchees, defaultPaths);
-
-    return CreateIfElseIfChain(mti, context, headMatchee, ifBlocks, defaultBlock);
-  }
-
-  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head)
-  {
-    LiteralExpr lit = null;
-    if (head is LitPattern litPattern)
-    {
-      lit = litPattern.OptimisticallyDesugaredLit;
-    }
-    else if (head is IdPattern id && id.ResolvedLit != null)
-    {
-      lit = id.ResolvedLit;
-    }
-
-    return lit;
-  }
-
+  
   /*
    * Implementation of case 3 (some of the head patterns are constructors) of pattern-match compilation
    * Current matchee is a datatype (with type parameter substitution in subst) with constructors in ctors
    * PairPB contains, for each paths, its head pattern and the rest of the path.
    */
-  private SyntaxContainer CompileHeadsContainingConstructor(MatchTempInfo mti, MatchingContext context, Cons<Expression> matchees, 
+  private SyntaxContainer CompileHeadsContainingConstructor(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, 
     Dictionary<TypeParameter, Type> subst, Dictionary<string, DatatypeCtor> ctors, 
     List<PatternPath> paths) {
 
@@ -558,7 +549,7 @@ public class CompileNestedMatch {
             // After making sure the constructor is applied to the right number of arguments
 
             if (!(idPattern.Arguments.Count.Equals(ctor.Value.Formals.Count))) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.PathTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, idPattern.Arguments.Count);
+              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
               // mark patterns standing in for ghost field
@@ -578,7 +569,7 @@ public class CompileNestedMatch {
 
             // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
             if (idPattern.Arguments != null && idPattern.Arguments.Count != 0) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.PathTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
+              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
             }
 
             List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
@@ -611,7 +602,7 @@ public class CompileNestedMatch {
       newMatchCases.Add(newMatchCase);
     }
     // Generate and pack the right kind of Match
-    if (mti.isStmt) {
+    if (mti.IsStmt) {
       var newMatchCaseStmts = newMatchCases.Select(x => (MatchCaseStmt)x).ToList();
       foreach (var c in newMatchCaseStmts) {
         if (Attributes.Contains(c.Attributes, "split")) {
@@ -624,12 +615,12 @@ public class CompileNestedMatch {
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
-      var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      var newMatchStmt = new MatchStmt(mti.Tok, ((MatchStmt)mti.Match).EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
       return new CStmt(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
-      newMatchExpr.Type = mti.Type;
+      newMatchExpr.Type = ((MatchExpr)mti.Match).Type;
       return new CExpr(null, newMatchExpr);
     }
   }
@@ -645,7 +636,7 @@ public class CompileNestedMatch {
   /// 4 - Otherwise, all head-patterns are variables, let-bind the head-matchee as the head-pattern in each of the bodypatterns,
   ///     continue processing the matchees
   /// </summary>
-  private SyntaxContainer CompilePatternPaths(MatchTempInfo mti, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
+  private SyntaxContainer CompilePatternPaths(MatchCompilationState mti, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
     if (mti.Debug) {
       Console.WriteLine("DEBUG: In CompilePatternPaths:");
       PrintPatternPaths(context, matchees, paths);
@@ -758,7 +749,7 @@ public class CompileNestedMatch {
         mti.UpdateCaseCopyCount(paths[i].CaseId, -1);
       }
 
-      return PackBody(mti.PathTok[paths.First().CaseId], paths.First());
+      return PackBody(mti.CaseTok[paths.First().CaseId], paths.First());
     }
   }
 
@@ -830,43 +821,29 @@ public class CompileNestedMatch {
     }
   }
 
-  /* Temporary information about the Match being desugared  */
-  private class MatchTempInfo {
-    public Type Type { get; }
-    public IToken Tok;
-    public IToken EndTok;
-    public IToken[] PathTok;
+  private class MatchCompilationState {
+    public INode Match { get; }
+    public IToken[] CaseTok;
     public int[] CaseCopyCount;
-    public bool isStmt; // true if we are desugaring a MatchStmt, false if a MatchExpr
+    public bool IsStmt => Match is MatchStmt;
+
+    public IToken Tok => Match switch {
+      MatchExpr matchExpr => matchExpr.tok,
+      MatchStmt matchStmt => matchStmt.Tok,
+      _ => throw new ArgumentOutOfRangeException(nameof(Match))
+    };
+    
     public bool Debug;
     public readonly ResolutionContext CodeContext;
     public List<ExtendedPattern> MissingCases;
     public Attributes Attributes;
 
-    public MatchTempInfo(Type type, IToken tok, int caseCount, ResolutionContext codeContext, bool debug = false,
+    public MatchCompilationState(INode match, int caseCount, ResolutionContext codeContext, bool debug = false,
       Attributes attrs = null) {
-      Type = type;
-      this.Tok = tok;
-      this.EndTok = tok;
-      this.PathTok = new IToken[caseCount];
+      this.Match = match;
+      this.CaseTok = new IToken[caseCount];
       this.CaseCopyCount = new int[caseCount];
       Array.Fill(CaseCopyCount, 1);
-      this.isStmt = false;
-      this.Debug = debug;
-      this.CodeContext = codeContext;
-      this.MissingCases = new List<ExtendedPattern>();
-      this.Attributes = attrs;
-    }
-    public MatchTempInfo(IToken tok, IToken endTok, int caseCount, ResolutionContext codeContext, bool debug = false, Attributes attrs = null) {
-      int[] init = new int[caseCount];
-      for (int i = 0; i < caseCount; i++) {
-        init[i] = 1;
-      }
-      this.Tok = tok;
-      this.EndTok = endTok;
-      this.PathTok = new IToken[caseCount];
-      this.CaseCopyCount = init;
-      this.isStmt = true;
       this.Debug = debug;
       this.CodeContext = codeContext;
       this.MissingCases = new List<ExtendedPattern>();
