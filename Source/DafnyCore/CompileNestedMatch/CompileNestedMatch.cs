@@ -191,7 +191,7 @@ public class CompileNestedMatch {
     var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
     var state = new MatchCompilationState(nestedMatchExpr, cases, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
 
-    var paths = cases.Select((@case, index) => (PatternPath)new PatternPathExpr(index, @case, @case.Attributes)).ToList();
+    var paths = cases.Select((@case, index) => (PatternPath)new ExprPatternPath(index, @case, @case.Attributes)).ToList();
 
     SyntaxContainer compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
@@ -231,7 +231,7 @@ public class CompileNestedMatch {
     var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), DafnyOptions.O.MatchCompilerDebug, nestedMatchStmt.Attributes);
 
-    var paths = cases.Select((@case, index) => (PatternPath)new PatternPathStmt(index, @case, @case.Attributes)).ToList();
+    var paths = cases.Select((@case, index) => (PatternPath)new StmtPatternPath(index, @case, @case.Attributes)).ToList();
       
     SyntaxContainer compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
@@ -406,7 +406,7 @@ public class CompileNestedMatch {
           Console.WriteLine("DEBUG: ===[4]=== Variable Case");
         }
 
-        foreach (PatternPath path in paths) {
+        var tailPaths = paths.Select(path => {
           var (head, tail) = SplitPath(path);
           if (!(head is IdPattern)) {
             Contract.Assert(false);
@@ -426,14 +426,14 @@ public class CompileNestedMatch {
           }
 
           // Optimization: Don't let-bind if name is a wildcard, either in source or generated
-          LetBindNonWildCard(tail, currPattern, currMatchee);
-        }
+          return LetBindNonWildCard(tail, currPattern, currMatchee);
+        }).ToList();
 
         if (mti.Debug) {
           Console.WriteLine("DEBUG: return");
         }
 
-        return CompilePatternPaths(mti, context.AbstractHole(), consMatchees.Tail, paths.Select(DropPatternHead).ToList());
+        return CompilePatternPaths(mti, context.AbstractHole(), consMatchees.Tail, tailPaths);
       }
     } else {
       // ==[2]== No more matchee to process, return the first path and decrement the count of dropped paths
@@ -522,8 +522,8 @@ public class CompileNestedMatch {
               CreateFreshBindingPattern(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             tail.Patterns.InsertRange(0, freshArgs);
-            LetBindNonWildCard(tail, idPattern, rhsExpr);
-            constructorPaths.Add(tail);
+            var newPath = LetBindNonWildCard(tail, idPattern, rhsExpr);
+            constructorPaths.Add(newPath);
             ctorToFromBoundVar.Add(ctor.Name);
           }
         } else {
@@ -637,9 +637,9 @@ public class CompileNestedMatch {
           }
         } else if (head is IdPattern idPattern) {
           // pattern is a bound variable, clone and let-bind the Lit
-          LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
+          var newPath = LetBindNonWildCard(tail, idPattern, ifBlockLiteral);
           mti.UpdateCaseCopyCount(tail.CaseId, 1);
-          pathsForLiteral.Add(tail);
+          pathsForLiteral.Add(newPath);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
         }
@@ -655,9 +655,9 @@ public class CompileNestedMatch {
     {
       var (head, tail) = SplitPath(path);
       if (head is IdPattern idPattern && idPattern.ResolvedLit == null && idPattern.Arguments == null) {
-        LetBindNonWildCard(tail, idPattern, matchees.Head);
+        var newPath = LetBindNonWildCard(tail, idPattern, matchees.Head);
         mti.UpdateCaseCopyCount(tail.CaseId, 1);
-        defaultPaths.Add(tail);
+        defaultPaths.Add(newPath);
       }
     }
     // defaultPaths.Count check is to avoid adding "missing paths" when default is not present
@@ -775,13 +775,15 @@ public class CompileNestedMatch {
 
 
   private SyntaxContainer PackBody(IToken tok, PatternPath path) {
-    if (path is PatternPathStmt br) {
-      return new CStmt(tok, new BlockStmt(tok, tok, br.Body), br.Attributes);
-    } else if (path is PatternPathExpr) {
-      return new CExpr(tok, ((PatternPathExpr)path).Body, ((PatternPathExpr)path).Attributes);
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException();
+    if (path is StmtPatternPath br) {
+      return new CStmt(tok, new BlockStmt(tok, tok, br.Body.ToList()), br.Attributes);
     }
+
+    if (path is ExprPatternPath) {
+      return new CExpr(tok, ((ExprPatternPath)path).Body, ((ExprPatternPath)path).Attributes);
+    }
+
+    Contract.Assert(false); throw new cce.UnreachableException();
   }
 
   private List<Statement> UnboxStmtContainer(SyntaxContainer con) {
@@ -856,16 +858,16 @@ public class CompileNestedMatch {
   }
 
 
-  private class PatternPathStmt : PatternPath {
-    public List<Statement> Body;
+  private class StmtPatternPath : PatternPath {
+    public IReadOnlyList<Statement> Body;
     public Attributes Attributes;
 
-    public PatternPathStmt(IToken tok, int caseId, List<ExtendedPattern> patterns, List<Statement> body, Attributes attrs = null) : base(tok, caseId, patterns) {
+    public StmtPatternPath(IToken tok, int caseId, List<ExtendedPattern> patterns, IReadOnlyList<Statement> body, Attributes attrs = null) : base(tok, caseId, patterns) {
       this.Body = body;
       this.Attributes = attrs;
     }
 
-    public PatternPathStmt(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
+    public StmtPatternPath(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
       Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
       this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements.
       this.Attributes = attrs;
@@ -881,17 +883,18 @@ public class CompileNestedMatch {
     }
   }
 
-  private class PatternPathExpr : PatternPath {
+  // TODO use a record.
+  private class ExprPatternPath : PatternPath {
 
     public Expression Body;
     public Attributes Attributes;
 
-    public PatternPathExpr(IToken tok, int caseId, List<ExtendedPattern> patterns, Expression body, Attributes attrs = null) : base(tok, caseId, patterns) {
+    public ExprPatternPath(IToken tok, int caseId, List<ExtendedPattern> patterns, Expression body, Attributes attrs = null) : base(tok, caseId, patterns) {
       this.Body = body;
       this.Attributes = attrs;
     }
 
-    public PatternPathExpr(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
+    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
       this.Body = x.Body;
       this.Patterns.Add(x.Pat);
       this.Attributes = attrs;
@@ -913,16 +916,16 @@ public class CompileNestedMatch {
 
   private static PatternPath DropPatternHead(PatternPath path) {
     return path switch {
-      PatternPathExpr expr => new PatternPathExpr(expr.Tok, expr.CaseId, expr.Patterns.Skip(1).ToList(), expr.Body,
+      ExprPatternPath expr => new ExprPatternPath(expr.Tok, expr.CaseId, expr.Patterns.Skip(1).ToList(), expr.Body,
         expr.Attributes),
-      PatternPathStmt stmt => new PatternPathStmt(stmt.Tok, stmt.CaseId, stmt.Patterns.Skip(1).ToList(), stmt.Body,
+      StmtPatternPath stmt => new StmtPatternPath(stmt.Tok, stmt.CaseId, stmt.Patterns.Skip(1).ToList(), stmt.Body,
         stmt.Attributes),
       _ => throw new ArgumentOutOfRangeException(nameof(path))
     };
   }
 
   // let-bind a variable of name "name" and type "type" as "expr" on the body of "path"
-  private void LetBind(PatternPath path, IdPattern var, Expression genExpr) {
+  private PatternPath LetBind(PatternPath path, IdPattern var, Expression genExpr) {
     var name = var.Id;
     var type = var.Type ?? new InferredTypeProxy();
     var isGhost = var.IsGhost;
@@ -934,34 +937,38 @@ public class CompileNestedMatch {
         expr = new IdentifierExpr(var.Tok, idExpr.Var);
       }
     }
-    if (path is PatternPathStmt stmtPath) {
-      if (stmtPath.Body.Count > 0) {
-        var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-        cLVar.type = type;
-        var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        cPat.AssembleExpr(null); // TODO null?
-        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-        cLet.IsGhost = stmtPath.Body[0].IsGhost;
-
-        var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
-          { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
-        }, new Dictionary<TypeParameter, Type>());
-
-        foreach (var stmt in stmtPath.Body) {
-          ((INode)stmt).Visit(node => {
-            ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
-              if (expr == null) {
-                return null;
-              }
-              return substituter.Substitute(expr);
-            });
-            return true;
-          });
-        }
-
-        stmtPath.Body.Insert(0, cLet);
+    if (path is StmtPatternPath stmtPath) {
+      if (stmtPath.Body.Count <= 0) {
+        return stmtPath;
       }
-    } else if (path is PatternPathExpr exprPath) {
+
+      var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
+      cLVar.type = type;
+      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+      cPat.AssembleExpr(null); // TODO null?
+      var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
+      cLet.IsGhost = stmtPath.Body[0].IsGhost;
+
+      var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
+        { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
+      }, new Dictionary<TypeParameter, Type>());
+
+      foreach (var stmt in stmtPath.Body) {
+        ((INode)stmt).Visit(node => {
+          ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
+            if (expr == null) {
+              return null;
+            }
+            return substituter.Substitute(expr);
+          });
+          return true;
+        });
+      }
+
+      return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new [] { cLet}.Concat(stmtPath.Body).ToList(), stmtPath.Attributes);
+    }
+
+    if (path is ExprPatternPath exprPath) {
       var cBVar = var.BoundVar; //new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
@@ -970,17 +977,21 @@ public class CompileNestedMatch {
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
-      var cLet = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
-      cLet.Type = exprPath.Body.Type;
-      exprPath.Body = cLet;
+      var letExpr = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
+      letExpr.Type = exprPath.Body.Type;
+      return new ExprPatternPath(exprPath.Tok, exprPath.CaseId, exprPath.Patterns, letExpr, exprPath.Attributes);
+    } else {
+      throw new InvalidOperationException();
     }
   }
 
   // If cp is not a wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
-  private void LetBindNonWildCard(PatternPath path, IdPattern var, Expression expr) {
+  private PatternPath LetBindNonWildCard(PatternPath path, IdPattern var, Expression expr) {
     if (!var.IsWildcardPattern) {
-      LetBind(path, var, expr);
+      return LetBind(path, var, expr);
     }
+
+    return path;
   }
 }
