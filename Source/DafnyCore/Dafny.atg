@@ -1,4 +1,5 @@
-/*-----------------------------------------------------------------------------
+/* (
+-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 // Copyright by the contributors to the Dafny Project
@@ -97,7 +98,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; declaring it 'ghost' is incorrect, confusing and not permitted");
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
         SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
