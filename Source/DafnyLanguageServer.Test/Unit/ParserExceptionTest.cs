@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
         numberOfErrors++;
         if (numberOfErrors == 1) {
-          throw new Exception("Simulated parser internal error");
+          throw new InvalidOperationException("Simulated parser internal error");
         }
 
         LastMessage = ErrorToString(level, tok, msg);
