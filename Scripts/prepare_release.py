@@ -56,24 +56,52 @@ def unwrap(opt: Optional[A]) -> A:
     assert opt
     return opt
 
+class NewsFragment(NamedTuple):
+    pr: str
+    contents: str
+    path: Optional[Path]
+
+    @classmethod
+    def from_file(cls, pth: Path) -> "NewsFragment":
+        return NewsFragment(pth.stem, pth.read_text(encoding="utf-8"), pth)
+
 class NewsFragments:
+    r"""A collection of release note entries.
+
+    >>> import tempfile
+    >>> with tempfile.TemporaryDirectory() as tmpdir:
+    ...   fpath = Path(tmpdir) / "1234.fix"
+    ...   _ = fpath.write_text("Improved toaster settings.\nDafny will not burn toast again.", encoding="utf-8")
+    ...   print(NewsFragments.from_directory(tmpdir).render())
+    ## Bug fixes
+    <BLANKLINE>
+    - Improved toaster settings.
+      Dafny will not burn toast again.
+      (https://github.com/dafny-lang/dafny/pull/1234)
+    """
+
     IGNORED = {".gitignore", "README.md"}
     KNOWN_EXTENSIONS = {".feat": "New features",
                         ".fix": "Bug fixes"}
 
-    def __init__(self, path: str) -> None:
-        self.path = Path(path)
-        self.fragments: Dict[str, List[Path]] = {}
+    def __init__(self) -> None:
+        self.fragments: Dict[str, List[NewsFragment]] = {}
         self.unrecognized: List[Path] = []
-        self.collect()
 
-    def collect(self) -> None:
-        if self.path.exists():
-            for f in self.path.iterdir():
-                if f.suffix in self.KNOWN_EXTENSIONS:
-                    self.fragments.setdefault(f.suffix, []).append(f)
-                elif f.name not in self.IGNORED:
-                    self.unrecognized.append(f)
+    @staticmethod
+    def from_directory(dirpath: str) -> "NewsFragments":
+        ns = NewsFragments()
+        ns._read_directory(Path(dirpath))
+        return ns
+
+    def _read_directory(self, dirpath: Path) -> None:
+        if dirpath.exists():
+            for fpath in dirpath.iterdir():
+                if fpath.suffix in self.KNOWN_EXTENSIONS:
+                    fragment = NewsFragment.from_file(fpath)
+                    self.fragments.setdefault(fpath.suffix, []).append(fragment)
+                elif fpath.name not in self.IGNORED:
+                    self.unrecognized.append(fpath)
 
     def check(self):
         if self.unrecognized:
@@ -86,17 +114,17 @@ class NewsFragments:
             if ext not in self.fragments:
                 continue
             rendered.append(f"## {title}")
-            for pth in self.fragments[ext]:
-                text = pth.read_text(encoding="utf-8")
-                link = f"(https://github.com/dafny-lang/dafny/pull/{pth.name})"
-                entry = indent(f"- {text}\n{link}", "  ").lstrip()
+            for fr in self.fragments[ext]:
+                link = f"(https://github.com/dafny-lang/dafny/pull/{fr.pr})"
+                entry = indent(f"- {fr.contents}\n{link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
 
     def delete(self):
-        for _, paths in self.fragments.items():
-            for pth in paths:
-                pth.unlink()
+        for _, fragment in self.fragments.items():
+            for fr in fragment:
+                if fr.path is not None:
+                    fr.path.unlink()
 
 class Version(NamedTuple):
     VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<suffix>-.+)?$")
@@ -136,6 +164,8 @@ class Version(NamedTuple):
                 f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
+    NEWSFRAGMENTS_PATH = "docs/dev/news"
+
     def __init__(self, version: str) -> None:
         self.version = version
         self.remote = "origin"
@@ -145,7 +175,7 @@ class Release:
         self.tag = f"v{version}"
         self.build_props_path = Path("Source/Directory.Build.props")
         self.release_notes_md_path = Path("RELEASE_NOTES.md")
-        self.newsfragments = NewsFragments("docs/dev/news")
+        self.newsfragments = NewsFragments.from_directory(self.NEWSFRAGMENTS_PATH)
 
     @staticmethod
     def in_git_root() -> bool:
@@ -282,7 +312,7 @@ class Release:
                    self.release_notes_have_header)
         assert_one(f"Can we create a section for `{self.version}` in `{self.release_notes_md_path}`?",
                    self.version_number_is_fresh)
-        assert_one(f"Do we have news in {self.newsfragments.path}?",
+        assert_one(f"Do we have news in {self.NEWSFRAGMENTS_PATH}?",
                    self.has_news)
         assert_one(f"Is the current branch `master` or `{self.branch_name}`?",
                    self.is_release_branch)
@@ -303,7 +333,7 @@ class Release:
             progress("Note: Release branch already checked out, so not creating it.")
         run_one(f"Updating `{self.build_props_path}`...",
                 self.update_build_props_file)
-        run_one(f"Updating `{self.release_notes_md_path}` from `{self.newsfragments.path}`...",
+        run_one(f"Updating `{self.release_notes_md_path}` from `{self.NEWSFRAGMENTS_PATH}`...",
                 self.consolidate_news_fragments)
         run_one("Creating commit...",
                 self.commit_changes)

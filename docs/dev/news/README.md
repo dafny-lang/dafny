@@ -10,6 +10,15 @@ Files in this directory are named `<PR number>.<kind>` and each contains release
 
 ```
 Improved toaster settings prevent Dafny from ever burning toast.
+Instead, toast will always come out crispy and nice.
 ```
 
-At release time, this becomes a bullet point in the "Bug fixes" section of `RELEASE_NOTES.md` with a link to <https://github.com/dafny-lang/dafny/pull/1234>.
+At release time, this becomes a bullet point in the "Bug fixes" section of `RELEASE_NOTES.md` with a link to <https://github.com/dafny-lang/dafny/pull/1234>, like this:
+
+```
+## Bug fixes
+
+- Improved toaster settings prevent Dafny from ever burning toast.
+  Instead, toast will always come out crispy and nice.
+  (https://github.com/dafny-lang/dafny/pull/1234)
+```
