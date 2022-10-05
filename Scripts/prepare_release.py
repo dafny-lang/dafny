@@ -129,9 +129,9 @@ class NewsFragments:
 class Version(NamedTuple):
     VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<suffix>-.+)?$")
 
-    prefix: str # Main version number (1.2.3)
+    main: str # Main version number (1.2.3)
     date: datetime.date # Release date
-    suffix: str # Optional marker ("alpha")
+    identifier: str # Optional marker ("alpha")
 
     @classmethod
     def from_string(cls, vernum: str, date: Optional[datetime.date]=None) -> Optional["Version"]:
@@ -148,7 +148,7 @@ class Version(NamedTuple):
 
     @property
     def short(self):
-        return f"{self.prefix}{self.suffix}"
+        return f"{self.main}{self.identifier}"
 
     @property
     def timestamp(self):
@@ -156,7 +156,7 @@ class Version(NamedTuple):
 
     @property
     def full(self):
-        return f"{self.prefix}.{self.timestamp}{self.suffix}"
+        return f"{self.main}.{self.timestamp}{self.identifier}"
 
     @property
     def comment(self):
