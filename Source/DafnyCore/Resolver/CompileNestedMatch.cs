@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Linq;
-using System.Reactive;
-using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
@@ -191,31 +187,26 @@ public class CompileNestedMatch {
     }
   }
 
-  private MatchExpr CompileNestedMatchExpr(NestedMatchExpr e) {
+  private MatchExpr CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
     if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
+      Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", nestedMatchExpr.tok.line);
     }
 
-    var cases = e.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
-    MatchCompilationState mti = new MatchCompilationState(e, cases.Count, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
+    var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
+    var state = new MatchCompilationState(nestedMatchExpr, cases, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
 
-    List<PatternPath> paths = new List<PatternPath>();
-    for (int id = 0; id < cases.Count; id++) {
-      var path = cases.ElementAt(id);
-      paths.Add(new PatternPathExpr(id, path, path.Attributes));
-      mti.CaseTok[id] = path.Tok;
-    }
+    var paths = cases.Select((@case, index) => (PatternPath)new PatternPathExpr(index, @case, @case.Attributes)).ToList();
 
-    SyntaxContainer rb = CompilePatternPaths(mti, new HoleCtx(), LinkedLists.Create(e.Source), paths);
-    if (rb is null) {
+    SyntaxContainer compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
+    if (compiledMatch is null) {
       // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
-      return new MatchExpr(e.tok, e.Source, new List<MatchCaseExpr>(), e.UsesOptionalBraces);
-    } else if (rb is CExpr) {
+      return new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
+    } else if (compiledMatch is CExpr) {
       // replace e with desugared expression
-      var newME = ((CExpr)rb).Body;
-      for (int id = 0; id < mti.CaseCopyCount.Length; id++) {
-        if (mti.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, mti.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
+      var newME = ((CExpr)compiledMatch).Body;
+      for (int id = 0; id < state.CaseCopyCount.Length; id++) {
+        if (state.CaseCopyCount[id] <= 0) {
+          resolver.reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
           resolver.scope.PushMarker();
           //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
           //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
@@ -233,34 +224,28 @@ public class CompileNestedMatch {
 
   }
 
-  private MatchStmt CompileNestedMatchStmt(NestedMatchStmt s) {
+  private MatchStmt CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
 
     if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
+      Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", nestedMatchStmt.Tok.line);
     }
 
-    var cases = s.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
-    // initialize the MatchTempInfo to record position and duplication information about each path
-    MatchCompilationState mti = new MatchCompilationState(s, cases.Count, resolutionContext.WithGhost(s.IsGhost), DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
+    var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), DafnyOptions.O.MatchCompilerDebug, nestedMatchStmt.Attributes);
 
-    // create pattern paths from NestedMatchCaseStmt and set the path tokens in mti
-    var paths = new List<PatternPath>();
-    for (int id = 0; id < cases.Count; id++) {
-      var path = cases[id];
-      paths.Add(new PatternPathStmt(id, path, path.Attributes));
-      mti.CaseTok[id] = path.Tok;
-    }
-    SyntaxContainer rb = CompilePatternPaths(mti, new HoleCtx(), LinkedLists.Create(s.Source), paths);
-    if (rb is null) {
+    var paths = cases.Select((@case, index) => (PatternPath)new PatternPathStmt(index, @case, @case.Attributes)).ToList();
+      
+    SyntaxContainer compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
+    if (compiledMatch is null) {
       // Happens only if the nested match has no cases, create a MatchStmt with no paths.
-      return new MatchStmt(s.Tok, s.EndTok, s.Source, new List<MatchCaseStmt>(), s.UsesOptionalBraces, s.Attributes);
-    } else if (rb is CStmt c) {
+      return new MatchStmt(nestedMatchStmt.Tok, nestedMatchStmt.EndTok, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
+    } else if (compiledMatch is CStmt c) {
       // Resolve s as desugared match
       var result = c.Body;
-      result.Attributes = s.Attributes;
-      for (int id = 0; id < mti.CaseCopyCount.Length; id++) {
-        if (mti.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, mti.CaseTok[id], "this branch is redundant");
+      result.Attributes = nestedMatchStmt.Attributes;
+      for (int id = 0; id < state.CaseCopyCount.Length; id++) {
+        if (state.CaseCopyCount[id] <= 0) {
+          resolver.reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
           resolver.scope.PushMarker();
           // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
           // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
@@ -494,7 +479,7 @@ public class CompileNestedMatch {
       // create a bound variable for each formal to use in the MatchCase for this constructor
       // using the currMatchee.tok to get a location closer to the error if something goes wrong
       var freshPatBV = ctor.Formals.ConvertAll(
-        x => CreatePatBV(headMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
+        x => CreateBoundVariable(headMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
 
       // rhs to bind to head-patterns that are bound variables
       var rhsExpr = headMatchee;
@@ -534,7 +519,7 @@ public class CompileNestedMatch {
             }
 
             List<IdPattern> freshArgs = ctor.Formals.ConvertAll(x =>
-              CreateFreshId(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
+              CreateFreshBindingPattern(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             tail.Patterns.InsertRange(0, freshArgs);
             LetBindNonWildCard(tail, idPattern, rhsExpr);
@@ -600,12 +585,12 @@ public class CompileNestedMatch {
     return newMatchCase;
   }
 
-  private BoundVar CreatePatBV(IToken tok, Type type, ICodeContext codeContext) {
+  private BoundVar CreateBoundVariable(IToken tok, Type type, ICodeContext codeContext) {
     var name = resolver.FreshTempVarName("_mcc#", codeContext);
     return new BoundVar(new AutoGeneratedToken(tok), name, type);
   }
 
-  private IdPattern CreateFreshId(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
+  private IdPattern CreateFreshBindingPattern(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
     var name = resolver.FreshTempVarName("_mcc#", codeContext);
     return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
   }
@@ -838,11 +823,11 @@ public class CompileNestedMatch {
     public List<ExtendedPattern> MissingCases;
     public Attributes Attributes;
 
-    public MatchCompilationState(INode match, int caseCount, ResolutionContext codeContext, bool debug = false,
+    public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext, bool debug = false,
       Attributes attrs = null) {
       this.Match = match;
-      this.CaseTok = new IToken[caseCount];
-      this.CaseCopyCount = new int[caseCount];
+      this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();
+      this.CaseCopyCount = new int[flattenedCases.Count];
       Array.Fill(CaseCopyCount, 1);
       this.Debug = debug;
       this.CodeContext = codeContext;
