@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ThisExpr) {
         return receiverReplacement == null ? expr : receiverReplacement;
       } else if (expr is IdentifierExpr) {
-        IdentifierExpr e = (IdentifierExpr)expr;
+        IdentifierExpr e = (IdentifierExpr) expr;
         Expression substExpr;
         if (substMap.TryGetValue(e.Var, out substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;
@@ -71,6 +71,8 @@ namespace Microsoft.Dafny {
 
           return cce.NonNull(substExprFinal);
         }
+      } else if (expr is Resolver_IdentifierExpr) {
+        return expr; // TODO understand Resolver_IdentifierExpr
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         List<Expression> newElements = SubstituteExprList(e.Elements);
