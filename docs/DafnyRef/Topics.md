@@ -675,16 +675,16 @@ general form of our proof goal:
 
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
-<!--
-$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
+
+`$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$` for every $k$.
+If `$k=0$`, then `${ {}^{\sharp}\kern-1mm g}_k(x)$` is `$\mathit{true}$`, so our goal holds trivially.
+If `$k > 0$`, then `${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$`.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
--->
+
 
 ### 24.4.3. Other Techniques
 
-Although in this paper I consider only well-founded functions and extreme
+Although this section has considered only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
 the set of solutions to [the general equation](#eq-general) is nonempty.  For example, if all calls to $f$ in
 $\mathcal{F}'(f)$ are _tail-recursive calls_, then (under the assumption that $Y$ is nonempty) the set of
@@ -692,7 +692,7 @@ solutions is nonempty.  To see this, consider an attempted evaluation of $f(x)$ 
 to determine a definite result value because of an infinite chain of calls that applies $f$
 to each value of some subset $X'$ of $X$.  Then, apparently, the value of $f$ for any one
 of the values in $X'$ is not determined by the equation, but picking any particular result
-values for these makes for a consistent definition.
+value for these makes for a consistent definition.
 This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
 Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
 and HOL [@Krauss:PhD].
@@ -701,9 +701,9 @@ and HOL [@Krauss:PhD].
 
 This section explains with examples the support in
 Dafny for well-founded functions, extreme predicates,
-and proofs regarding these.
+and proofs regarding these, building on the concepts 
+explained in the previous section.
 
-TODO: This topic appears to replicate the previous section
 
 ### 24.5.1. Well-founded Functions in Dafny
 
@@ -740,7 +740,7 @@ keyword `function` to `predicate`.
 
 Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
-Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
+Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
 ```dafny
 lemma FibProperty(n: nat)
