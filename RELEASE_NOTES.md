@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
+
 # 3.9.0
 
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
