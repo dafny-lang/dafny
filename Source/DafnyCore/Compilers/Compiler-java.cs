@@ -569,7 +569,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
-      //var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
       WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");

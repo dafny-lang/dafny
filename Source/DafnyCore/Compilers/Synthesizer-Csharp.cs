@@ -26,19 +26,11 @@ namespace Microsoft.Dafny.Compilers;
 ///           | BOUNDVARS, BOUNDVARS
 /// 
 /// </summary>
-public class CsharpSynthesizer {
-
-  private readonly CsharpCompiler compiler;
-  private readonly ConcreteSyntaxTree ErrorWriter;
-  // maps identifiers to the names of the corresponding mock:
-  private Dictionary<IVariable, string> objectToMockName = new();
-  // associates a bound variable with the lambda passed to argument matcher
-  private Dictionary<IVariable, string> bounds = new();
-  private Method lastSynthesizedMethod = null;
+public class CsharpSynthesizer : Synthesizer {
 
   public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
-    ErrorWriter = errorWriter;
+    this.errorWriter = errorWriter;
   }
 
   /// <summary>
@@ -67,20 +59,24 @@ public class CsharpSynthesizer {
   ///     e2Return = e2;
   /// }
   /// </summary>
-  public ConcreteSyntaxTree SynthesizeMethod(Method method,
+  public override ConcreteSyntaxTree SynthesizeMethod(Method method,
     List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
     lastSynthesizedMethod = method;
+    if (compiler is not CsharpCompiler csharpCompiler) {
+      throw new Exception($"'{compiler}' is not of the type CsharpCompiler"); 
+    }
+    
     // The following few lines are identical to those in Compiler.CreateMethod:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
                          compiler.NeedsCustomReceiver(method);
-    var keywords = compiler.Keywords(true, true);
-    var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
-    var typeParameters = compiler.TypeParameters(SinglePassCompiler.TypeArgumentInstantiation.
+    var keywords = csharpCompiler.Keywords(true, true);
+    var returnType = csharpCompiler.GetTargetReturnTypeReplacement(method, wr);
+    var typeParameters = csharpCompiler.TypeParameters(SinglePassCompiler.TypeArgumentInstantiation.
       ToFormals(compiler.ForTypeParameters(typeArgs, method, lookasideBody)));
-    var parameters = compiler
+    var parameters = csharpCompiler
       .GetMethodParameters(method, typeArgs, lookasideBody, customReceiver, returnType);
 
     // Out parameters cannot be used inside lambda expressions in Csharp
@@ -125,46 +121,8 @@ public class CsharpSynthesizer {
     wr.WriteLine("}");
     return wr;
   }
-
-  /// <summary>
-  /// If the expression is a bound variable identifier, return the
-  /// variable and the string representation of the bounding condition
-  /// </summary>
-  private Tuple<IVariable, string> GetBound(Expression exp) {
-    if (exp is not NameSegment) {
-      return null;
-    }
-    var variable = ((IdentifierExpr)exp.Resolved).Var;
-    if (!bounds.ContainsKey(variable)) {
-      return null;
-    }
-    return new Tuple<IVariable, string>(variable, bounds[variable]);
-  }
-
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
-    switch (expr) {
-      case LiteralExpr literalExpr:
-        compiler.TrExpr(literalExpr, wr, false, wStmts);
-        break;
-      case ApplySuffix applySuffix:
-        SynthesizeExpression(wr, applySuffix, wStmts);
-        break;
-      case BinaryExpr binaryExpr:
-        SynthesizeExpression(wr, binaryExpr, wStmts);
-        break;
-      case ForallExpr forallExpr:
-        SynthesizeExpression(wr, forallExpr, wStmts);
-        break;
-      case FreshExpr:
-        break;
-      default:
-        // TODO: Have the resolver reject all these unimplemented cases,
-        // or convert them to UnsupportedFeatureExceptions
-        throw new NotImplementedException();
-    }
-  }
-
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, ConcreteSyntaxTree wStmts) {
+  
+  protected override void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, ConcreteSyntaxTree wStmts) {
 
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
@@ -174,7 +132,7 @@ public class CsharpSynthesizer {
     if (((Function)method).Ens.Count != 0) {
       compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
                                  "be unsatisfied when synthesizing code " +
-                                 "for method {1}", ErrorWriter,
+                                 "for method {1}", errorWriter,
         methodName, lastSynthesizedMethod.Name);
     }
 
@@ -198,7 +156,7 @@ public class CsharpSynthesizer {
     wr.Write("))");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, ConcreteSyntaxTree wStmts) {
+  protected override void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, ConcreteSyntaxTree wStmts) {
     if (binaryExpr.Op == BinaryExpr.Opcode.And) {
       Dictionary<IVariable, string> oldBounds = bounds
         .ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -216,7 +174,7 @@ public class CsharpSynthesizer {
       var fieldName = field.CompileName;
       compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
                                 "(field {0} of object {1} inside method {2})",
-        ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
+        errorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
       compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
       wr.WriteLine(");");
@@ -248,7 +206,7 @@ public class CsharpSynthesizer {
     wr.WriteLine(");");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr, ConcreteSyntaxTree wStmts) {
+  protected override void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr, ConcreteSyntaxTree wStmts) {
     if (forallExpr.Term is not BinaryExpr binaryExpr) {
       throw new NotImplementedException();
     }
