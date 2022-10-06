@@ -2374,10 +2374,9 @@ function Fib(n: nat): nat {
 }
 ```
 
-The `by method` clause is allowed only for the `function` or `predicate`
-declarations (without `method`, `twostate`, `least`, and `greatest`, but
-possibly with `static`). The method
-inherits the in-parameters, attributes, and `requires` and `decreases`
+The `by method` clause is allowed only for non-ghost `function` or `predicate`
+declarations (without `twostate`, `least`, and `greatest`, but
+possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
 clauses of the function. The method also gets one out-parameter, corresponding
 to the function's result value (and the name of it, if present). Finally,
 the method gets an empty `modifies` clause and a postcondition
@@ -2463,9 +2462,12 @@ function Factorial(n: int): (f: int)
 }
 ```
 
-By default, a function is `ghost`, and cannot be called from non-ghost
+Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
-keywords "`function method`". [TODO: This use of keywords is proposed to change.]
+keywords "`function method`". From v4.0 on, a function is non-ghost by
+default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
+(See the [/functionSyntax option](#sec-function-syntax) for a description 
+of the migration path for this change in behavior.}
 
 Like methods, functions can be either _instance_ (which they are by default) or
 _static_ (when the function declaration contains the keyword `static`).
