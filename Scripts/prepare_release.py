@@ -71,13 +71,12 @@ class NewsFragments:
     >>> import tempfile
     >>> with tempfile.TemporaryDirectory() as tmpdir:
     ...   fpath = Path(tmpdir) / "1234.fix"
-    ...   _ = fpath.write_text("Improved toaster settings.\nDafny will not burn toast again.", encoding="utf-8")
+    ...   _ = fpath.write_text("Improved toaster settings.\nDafny will not burn toast again", encoding="utf-8")
     ...   print(NewsFragments.from_directory(tmpdir).render())
     ## Bug fixes
     <BLANKLINE>
     - Improved toaster settings.
-      Dafny will not burn toast again.
-      (https://github.com/dafny-lang/dafny/pull/1234)
+      Dafny will not burn toast again. (https://github.com/dafny-lang/dafny/pull/1234)
     """
 
     IGNORED = {".gitignore", "README.md"}
@@ -116,7 +115,8 @@ class NewsFragments:
             rendered.append(f"## {title}")
             for fr in self.fragments[ext]:
                 link = f"(https://github.com/dafny-lang/dafny/pull/{fr.pr})"
-                entry = indent(f"- {fr.contents}\n{link}", "  ").lstrip()
+                contents = fr.contents.strip() + ("" if fr.contents.endswith(".") else ".")
+                entry = indent(f"- {contents} {link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
 
