@@ -12,7 +12,7 @@ executable form.
 The Dafny programming language is designed to support the static
 verification of programs. It is imperative, sequential, supports generic
 classes, inheritance and abstraction, methods and functions, dynamic allocation, inductive and
-co-inductive datatypes, and specification constructs. The
+coinductive datatypes, and specification constructs. The
 specifications include pre- and postconditions, frame specifications
 (read and write sets), and termination metrics. To further support
 specifications, the language also offers updatable ghost variables,
