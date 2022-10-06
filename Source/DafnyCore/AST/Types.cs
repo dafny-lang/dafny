@@ -2018,7 +2018,11 @@ public class ArrowType : UserDefinedType {
     s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
     if (domainNeedsParens) { s += ")"; }
     s += " " + arrow + " ";
-    s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+    if (result != null || typeArgs.Count >= 1) {
+      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+    } else {
+      s += "<unable to infer result type>";
+    }
     return s;
   }
 

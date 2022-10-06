@@ -873,7 +873,10 @@ namespace DafnyServer.CounterexampleGeneration {
       return result;
     }
 
-    private const string PleaseEnableModelCompressFalse = "Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.";
+    private const string PleaseEnableModelCompressFalse =
+      "Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7)" +
+      " or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7)," +
+      " otherwise you'll get unexpected values.";
 
     /// <summary>
     /// Return the name of the field represented by the given element.
