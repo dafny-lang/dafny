@@ -53,3 +53,7 @@ predicate transitions(C: code, conf1: configuration, conf2: configuration) {
 predicate machine_terminates(C: code, s_init: store, s_final: store) {
 	exists pc: nat :: transitions(C,(0,[],s_init),(pc,[],s_final)) && pc < |C| && C[pc] == Ihalt
 }
+
+predicate machine_diverges(C: code, s_init: store) {
+	inf((c1,c2) => transition(C,c1,c2),(0,[],s_init))
+}

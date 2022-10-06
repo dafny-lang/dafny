@@ -7,10 +7,10 @@ predicate Star<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
   star(R, conf1, conf2)
 }
 
-lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
+lemma {:axiom} simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
 	requires step(impconf1,impconf2)
 	requires match_config(C, impconf1, machconf1)
-	ensures exists machconf2: configuration :: star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2) 
+	ensures exists machconf2: configuration :: star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2)
 
 least lemma simulation_steps(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
 	requires star(step,impconf1,impconf2)
@@ -46,4 +46,20 @@ lemma match_initial_configs(c: com, s: store)
 	assert compile_cont(C, Kstop, |compile_com(c)|);
 }
 
+lemma {:axiom} compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
+	requires star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
+	ensures machine_terminates(compile_program(c),s1,s2)
+
+lemma {:axiom} simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures exists impconf2: conf :: exists machconf2: configuration ::
+	  inf(step,impconf2)
+		&& star((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2)
+
+
+lemma {:axiom} compile_program_correct_diverging(c: com, s: store)
+	requires inf(step,(c,Kstop,s))
+	ensures machine_diverges(compile_program(c),s)
 

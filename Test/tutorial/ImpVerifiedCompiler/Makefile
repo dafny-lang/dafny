@@ -109,6 +109,8 @@ SimulationRelationCont.dll: \
 Proof.dll: \
 	SimulationRelationCont.dll \
 	ImpReductionContSem.dll \
+	MachSemantics.dll \
+	SemanticsProperties.dll \
 	Proof.dfy
 
 %.dll: %.dfy
