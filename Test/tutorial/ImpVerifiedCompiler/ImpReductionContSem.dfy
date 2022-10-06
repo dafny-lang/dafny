@@ -12,7 +12,7 @@ datatype cont =
 	| Kseq(com,cont)
 	| Kwhile(bexp,com,cont)
 
-type configuration = (com,cont,store)
+type conf = (com,cont,store)
 
 datatype StepCases =
 	| SAssign(ident,aexp,cont,store)
@@ -23,7 +23,7 @@ datatype StepCases =
 	| StepSkipSeq(com,cont,store)
 	| StepSkipWhile(bexp,com,cont,store)
 
-predicate stepNice(red: StepCases,conf1: configuration, conf2: configuration) {
+predicate stepNice(red: StepCases,conf1: conf, conf2: conf) {
 	match red {
 		case SAssign(i,a,k,s) =>
 			&& (forall id: ident :: id_in_aexp(id,a) ==> id in s)
@@ -52,19 +52,19 @@ predicate stepNice(red: StepCases,conf1: configuration, conf2: configuration) {
 	}
 }
 
-predicate SameCont(conf1: configuration,conf2: configuration) {
+predicate SameCont(conf1: conf,conf2: conf) {
 	conf1.1 == conf2.1
 }
 
-predicate SameStore(conf1: configuration,conf2: configuration) {
+predicate SameStore(conf1: conf,conf2: conf) {
 	conf1.2 == conf2.2
 }
 
-predicate SameContAndStore(conf1: configuration,conf2: configuration) {
+predicate SameContAndStore(conf1: conf,conf2: conf) {
 	SameCont(conf1,conf2) && SameStore(conf1,conf2)
 }
 
-predicate step(conf1: configuration, conf2: configuration) {
+predicate step(conf1: conf, conf2: conf) {
 	var (c1,k1,s1) := conf1;
 	var (c2,k2,s2) := conf2;
 	match (c1,k1) {
@@ -106,10 +106,10 @@ predicate step(conf1: configuration, conf2: configuration) {
 	}
 }
 
-predicate fin_reds(conf1: configuration, conf2: configuration) {
+predicate fin_reds(conf1: conf, conf2: conf) {
 	star((c1,c2) => step(c1,c2),conf1,conf2)
 }
 	
-predicate inf_reds(conf: configuration) {
+predicate inf_reds(conf: conf) {
 	inf((c1,c2) => step(c1,c2),conf)
 }

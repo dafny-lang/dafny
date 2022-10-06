@@ -18,7 +18,8 @@ DEPS = \
 	CompileProgramCorrect.dfy \
 	ImpReductionSem.dfy \
 	ImpReductionContSem.dfy \
-	SimulationRelationCont.dfy
+	SimulationRelationCont.dfy \
+	Proof.dfy
 
 OBJS = $(DEPS:.dfy=.dll)
 
@@ -105,6 +106,10 @@ SimulationRelationCont.dll: \
 	SimulationRelation.dll \
 	ImpReductionContSem.dll \
 	SimulationRelationCont.dfy
+Proof.dll: \
+	SimulationRelationCont.dll \
+	ImpReductionContSem.dll \
+	Proof.dfy
 
 %.dll: %.dfy
 	$(VERIFY) $<
