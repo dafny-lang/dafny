@@ -2465,7 +2465,7 @@ function Factorial(n: int): (f: int)
 Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
 keywords "`function method`". From v4.0 on, a function is non-ghost by
-default and needs the `ghost` keyword to make it ghost.
+default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
 (See the [/functionSyntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
