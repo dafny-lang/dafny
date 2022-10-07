@@ -106,6 +106,7 @@ ImpReductionContSem.dll: \
 SimulationRelationCont.dll: \
 	SimulationRelation.dll \
 	ImpReductionContSem.dll \
+	SemanticsProperties.dll \
 	SimulationRelationCont.dfy
 Proof.dll: \
 	SimulationRelationCont.dll \

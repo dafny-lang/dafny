@@ -92,7 +92,7 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 // {
 // 	var impconf_inter: conf :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
 // 	simulation_step(C,impconf1,impconf_inter,machconf1);
-// 	var machconf_inter: configuration :| Star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+// 	var machconf_inter: configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
 // 	// !!!
 // 	Simulation_infseq_inv(C,impconf_inter,machconf_inter);
 // 	var impconf_inter_2: conf, machconf_inter_2: configuration :| inf(step,impconf_inter_2)
@@ -101,27 +101,110 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 // 	star_plus_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter,machconf_inter_2);
 // }
 
+greatest lemma simulation_infseq_inv_3(C: code, impconf1: conf, machconf1: configuration)
+	requires match_config(C,impconf1,machconf1)
+	ensures inf(step,impconf1) ==> exists impconf2: conf :: exists machconf2: configuration ::
+	  inf(step,impconf2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2)
+// {
+// 	if inf(step,impconf1) {
+// 		var impconf_inter: conf :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
+// 		simulation_step(C,impconf1,impconf_inter,machconf1);
+// 		var machconf_inter: configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+// 		simulation_infseq_inv_3(C,impconf_inter,machconf_inter);
+// 		var impconf_inter_2: conf, machconf_inter_2: configuration :| inf(step,impconf_inter_2)
+//  		&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
+//  		&& match_config(C,impconf_inter_2,machconf_inter_2);
+// 		star_plus_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter,machconf_inter_2);
+// 	}
+// }
+
+lemma {:induction false} simulation_infseq_inv_2(k: ORDINAL, C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures exists impconf2: conf :: exists machconf2: configuration ::
+	  inf#[k](step,impconf2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2)
+// {
+// 	if k.Offset == 0 {
+// 		var impconf2 := impconf1;
+// 		var machconf2 := machconf1;
+// 		assert inf#[0](step,impconf2);
+// 		assert 
+//  	} else {
+// 		var impconf_inter: conf :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
+// 		simulation_step(C,impconf1,impconf_inter,machconf1);
+// 		var machconf_inter: configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+// 		simulation_infseq_inv_2(k-1,C,impconf_inter,machconf_inter);
+// 		var impconf_inter_2: conf, machconf_inter_2: configuration :| inf#[k-1](step,impconf_inter_2)
+// 			&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
+// 			&& match_config(C,impconf_inter_2,machconf_inter_2);
+// 			star_plus_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter,machconf_inter_2);
+// 	}
+// }
+
+
 lemma Compile_program_correct_diverging_pre(C: code, impconf1: conf, machconf1: configuration)
 	requires inf(step,impconf1)
 	requires match_config(C,impconf1,machconf1)
 	ensures inf((c1,c2) => transition(C,c1,c2),machconf1)
 
+function tr(C: code): (configuration,configuration) -> bool {
+	(c1,c2) => transition(C,c1,c2)
+}
+			
 lemma compile_program_correct_diverging_pre(C: code, impconf1: conf, machconf1: configuration)
 	requires inf(step,impconf1)
 	requires match_config(C,impconf1,machconf1)
-	ensures inf((c1,c2) => transition(C,c1,c2),machconf1)
+	ensures inf(tr(C),machconf1)
+// {
+// 	simulation_infseq_inv(C, impconf1, machconf1);
+// 	var impconf2: conf, machconf2: configuration :| Inf(step,impconf2)
+// 		&& plus(tr(C),machconf1,machconf2)
+// 		&& match_config(C,impconf2,machconf2);
+// 	compile_program_correct_diverging_pre(C,impconf2,machconf2);
+// 	//assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+// 	plus_star<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+// 	assert Inf(tr(C),machconf2);
+// 	star_inf_trans<configuration>(tr(C),machconf1,machconf2);
+// }
+
+lemma compile_program_correct_diverging_pre_2(k: ORDINAL, C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures inf#[k](tr(C),machconf1)
 {
-	simulation_infseq_inv(C, impconf1, machconf1);
-	var impconf2: conf, machconf2: configuration :| inf(step,impconf2)
-		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
-		&& match_config(C,impconf2,machconf2);
-	Compile_program_correct_diverging_pre(C,impconf2,machconf2);
-	//assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
-	plus_star<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
-	//assert inf((c1,c2) => transition(C,c1,c2),machconf2);
-	star_inf_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+	if k.Offset == 0 {
+	} else {
+		simulation_infseq_inv(C, impconf1, machconf1);
+		var impconf2: conf, machconf2: configuration :| inf(step,impconf2)
+			&& plus(tr(C),machconf1,machconf2)
+			&& match_config(C,impconf2,machconf2);
+		compile_program_correct_diverging_pre_2(k-1,C,impconf2,machconf2);
+		//assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+		plus_star<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+		assert inf#[k-1](tr(C),machconf2);
+		star_inf_trans<configuration>(tr(C),machconf1,machconf2);
+	}
 }
-	
+
+greatest lemma compile_program_correct_diverging_pre_3(C: code, impconf1: conf, machconf1: configuration)
+	requires match_config(C,impconf1,machconf1)
+	ensures inf(step,impconf1) ==> inf(tr(C),machconf1)
+// {
+// 	if inf(step,impconf1) {
+// 		simulation_infseq_inv_3(C, impconf1, machconf1);
+// 		var impconf2: conf, machconf2: configuration :| inf(step,impconf2)
+// 			&& plus(tr(C),machconf1,machconf2)
+// 			&& match_config(C,impconf2,machconf2);
+// 		compile_program_correct_diverging_pre_3(C,impconf2,machconf2);
+// 		plus_star<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+// 		star_inf_trans<configuration>(tr(C),machconf1,machconf2);
+// 	}
+// }
+
 lemma compile_program_correct_diverging(c: com, s: store)
 	requires inf(step,(c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
@@ -132,5 +215,4 @@ lemma compile_program_correct_diverging(c: com, s: store)
 	match_initial_configs(c,s);
 	compile_program_correct_diverging_pre(C,impconf1,machconf1);
 }
-
 
