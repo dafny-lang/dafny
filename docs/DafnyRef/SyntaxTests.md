@@ -1,5 +1,6 @@
 
 <!--PDF NEWPAGE-->
+# Testing syntax rendering
 
 Sample math B: $a \to b$ or
 <p style="text-align: center;">$$ a \to \pi $$</p>
@@ -57,7 +58,7 @@ literal:  true false null
 op:      - ! ~ x  -!~x
 op:      a + b - c * d / e % f a+b-c*d/e%f
 op:      <= >= < > == != b&&c || ==> <==> <==
-# 28. !=# !! in !in
+# 29. !=# !! in !in
 op:      !in∆  !iné
 not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }
