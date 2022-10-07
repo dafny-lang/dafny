@@ -8,15 +8,27 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
+
+    [TestMethod]
+    public async Task EmptyFileNoCodeWarning() {
+      var source = "";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(new Range(0, 0, 0, 0), diagnostics[0].Range);
+    }
 
     [TestMethod]
     public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
@@ -200,7 +212,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
+      Assert.AreEqual("This postcondition might not hold: product >= 0", relatedInformation.Message);
       Assert.AreEqual(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -531,9 +543,9 @@ class Test {
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.AreEqual(2, relatedInformation.Length);
-      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
-      Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
-      Assert.AreEqual("Related location", relatedInformation[1].Message);
+      Assert.AreEqual("This postcondition might not hold: Valid()", relatedInformation[0].Message);
+      Assert.AreEqual(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
+      Assert.AreEqual("Could not prove: b < c", relatedInformation[1].Message);
       Assert.AreEqual(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -560,14 +572,67 @@ method t10() { assert false; }".TrimStart();
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
       for (int i = 0; i < 10; i++) {
+        diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual(5, diagnostics.Length, $"Iteration is {i}, Old to new history was: {diagnosticsReceiver.History.Stringify()}");
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
       }
+    }
+
+
+
+    [TestMethod]
+    public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
+      var source = @"
+module {:options ""/functionSyntax:4""} Library {
+  // Library
+  datatype Option<T> = Some(value: T) | None
+  datatype Result<T> = Success(value: T) | Failure(s: string, pos: int) {
+    predicate IsFailure() {
+      Failure?
+    }
+    function PropagateFailure<U>(): Result<U>
+      requires IsFailure()
+    {
+      Failure(s, pos)
+    }
+    function Extract(): T
+      requires !IsFailure()
+    {
+      value
+    }
+  }
+}
+module Parser {
+  import opened Library
+
+  datatype Parser = Parser(expected: string) | Log(p: Parser, message: string)
+  {
+    method {:termination false} Parse(s: string, i: nat)
+      returns (result: Result<(string, nat)>)
+    {
+      if Log? {
+        var v1 :- p.Parse(s, i); // Removing this line makes the language server not crash anymore.
+      }
+      
+      result := Failure(""bam"", i);
+    }
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      diagnosticsReceiver.ClearHistory();
+      var documentItem = CreateTestDocument(source, $"test1.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken.None);
+      Assert.AreEqual(0, diagnostics.Count(diagnostic =>
+        diagnostic.Severity != DiagnosticSeverity.Information &&
+        diagnostic.Severity != DiagnosticSeverity.Hint), $"Expected no issue");
     }
 
     [TestMethod]
@@ -620,7 +685,7 @@ method test(i: int, j: int) {
       var source = @"
 method test() {
   other(2, 1);
-//     ^^^^^^^
+//^^^^^^^^^^^^
 }
 
 method other(i: int, j: int)
@@ -633,7 +698,7 @@ method other(i: int, j: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 7), (1, 14)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 2), (1, 14)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -642,7 +707,7 @@ method other(i: int, j: int)
       var source = @"
 method test() {
   var x := 1 + other(2, 1);
-//             ^^^^^^^^^^
+//             ^^^^^^^^^^^
 }
 
 function method other(i: int, j: int): int
@@ -656,7 +721,7 @@ function method other(i: int, j: int): int
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((1, 15), (1, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -830,14 +895,12 @@ method test2() {
 
       var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
-      Diagnostic[] resolutionDiagnostics3) {
-      Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
-      foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message);
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
+      Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
+      foreach (var t in expected.Zip(actual)) {
+        Assert.AreEqual(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
@@ -870,7 +933,8 @@ method Foo() {
       var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     [TestMethod]
@@ -888,7 +952,8 @@ module Foo {
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     /**

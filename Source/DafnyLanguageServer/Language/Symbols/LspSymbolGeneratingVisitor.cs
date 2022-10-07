@@ -9,18 +9,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Visitor responsible to generate the LSP symbol representation.
   /// </summary>
   public class LspSymbolGeneratingVisitor : ISymbolVisitor<IEnumerable<DocumentSymbol>> {
-    private readonly SymbolTable symbolTable;
+    private readonly SignatureAndCompletionTable signatureAndCompletionTable;
     private readonly CancellationToken cancellationToken;
 
-    public LspSymbolGeneratingVisitor(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      this.symbolTable = symbolTable;
+    public LspSymbolGeneratingVisitor(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      this.signatureAndCompletionTable = signatureAndCompletionTable;
       this.cancellationToken = cancellationToken;
     }
 
     private bool IsPartOfEntryDocument(Boogie.IToken token) {
       // Tokens with line=0 usually represent a default/implicit class/module/etc. We do not want
       // to show these in the symbol listing.
-      return token.line != 0 && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
+      return token.line != 0 && signatureAndCompletionTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ISymbol symbol) {
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       if (!IsPartOfEntryDocument(token)) {
         return children;
       }
-      if (!symbolTable.TryGetLocationOf(symbol, out var location)) {
+      if (!signatureAndCompletionTable.TryGetLocationOf(symbol, out var location)) {
         return Enumerable.Empty<DocumentSymbol>();
       }
       var documentSymbol = new DocumentSymbol {

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -19,7 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-
     private readonly VerificationResultCache cache = new();
     private readonly ExecutionEngine engine;
 
@@ -27,8 +27,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ILogger<DafnyProgramVerifier> logger,
       IOptions<VerifierOptions> options
       ) {
-
       var engineOptions = DafnyOptions.O;
+      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
       engineOptions.TimeLimit = options.Value.TimeLimit;
       engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -51,7 +51,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+      CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -64,12 +65,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var result = translated.SelectMany(t => {
+      return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-      return result;
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;

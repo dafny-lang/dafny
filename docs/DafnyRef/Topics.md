@@ -1,12 +1,40 @@
-# 23. Advanced Topics {#sec-advanced-topics}
+# 24. Advanced Topics {#sec-advanced-topics}
 
-## 23.1. Type Parameter Completion {#sec-type-parameter-completion}
+## 24.1. Type Parameter Completion {#sec-type-parameter-completion}
 
-[http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html)
+Generic types, like `A<T,U>`, consist of a _type constructor_, here `A`, and type parameters, here `T` and `U`.
+Type constructors are not first-class entities in Dafny, they are always used syntactically to construct
+type names; to do so, they must have the requisite number of type parameters, which must be either concrete types, type parameters, or 
+a generic type instance.
 
-TO BE WRITTEN
+However, those type parameters do not always have to be explicit; Dafny can often infer what they ought to be.
+For example, here is a fully parameterized function signature:
+```dafny
+function Elements<T>(list: List<T>): set<T>
+```
+However, Dafny also accepts
+```dafny
+function Elements(list: List): set
+```
+In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
+so it fills in `<T>` (using some unique type parameter name) and then determines the the function itself needs
+a type parameter `<T>` also.
 
-## 23.2. Type Inference {#sec-type-inference}
+Dafny also accepts
+```dafny
+function Elements<T>(list: List): set
+```
+In this case, the function already has a type parameter list. `List` and `set` are each known to need type parameters,
+so Dafny takes the first `n` parameters from the function signature and applies them to `List` and `set`, where `n` (here `1`) is the
+number needed by those type constructors.
+ 
+It never hurts to simply write in all the type parameters, but that can reduce readability.
+Omitting them in cases where Dafny can intuit them makes a more compact definition.
+
+This process is described in more detail with more examples in this paper:
+[http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html).
+
+## 24.2. Type Inference {#sec-type-inference}
 
 Signatures of methods, functions, fields (except `const` fields with a
 RHS), and datatype constructors have to declare the types of their
@@ -81,7 +109,7 @@ some notes about type inference:
   In the first quantifier, type inference fails to infer the type of
   `pair` before it tries to look up the members `.0` and `.1`, which
   results in a "type of the receiver not fully determined" error. The
-  rememdy is to provide the type of `pair` explicitly, as is done in the
+  remedy is to provide the type of `pair` explicitly, as is done in the
   second quantifier.
 
   (In the future, Dafny may do more type inference before giving up on the member lookup.)
@@ -150,7 +178,7 @@ some notes about type inference:
 
 * Many of the types inferred can be inspected in the IDE.
 
-## 23.3. Ghost Inference {#sec-ghost-inference}
+## 24.3. Ghost Inference {#sec-ghost-inference}
 
 After[^why-after-type-inference] [type inference](#sec-type-inference), Dafny revisits the program
 and makes a final decision about which statements are to be compiled,
@@ -168,7 +196,7 @@ These statements are determined to be ghost:
 - [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
 - [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
 - [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
-- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to an non-ghost array in its body.
+- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to a non-ghost array in its body.
 
 These statements always non-ghost:
 
@@ -195,7 +223,7 @@ Dafny will infer that the entire `if` is ghost because the condition uses a ghos
 and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
 
 
-## 23.4. Well-founded Functions and Extreme Predicates
+## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
 TODO: This section needs rewriting
 
@@ -250,7 +278,7 @@ way.
 The encoding for greatest predicates in Dafny was described previously
 [@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
 
-### 23.4.1. Function Definitions
+### 24.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
 write an equation like
@@ -307,7 +335,7 @@ logical inconsistency.  In general, there
 could be many solutions to an equation like [the general equation](#eq-general) or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
 
-#### 23.4.1.1. Well-founded Functions
+#### 24.4.1.1. Well-founded Functions
 
 A standard way to ensure that [the general equation](#eq-general) has a unique solution in $f$ is
 to make sure the recursion is well-founded, which roughly means that the
@@ -357,7 +385,7 @@ $\mathit{P}\_\downarrow(n)$ for every natural number $n$.  However, what we are 
 about here is to avoid mathematical inconsistencies, and that is
 indeed a consequence of the decrement condition.
 
-#### 23.4.1.2. Example with Well-founded Functions {#sec-fib-example}
+#### 24.4.1.2. Example with Well-founded Functions {#sec-fib-example}
 
 So that we can later see how inductive proofs are done in Dafny, let's prove that
 for any $n$, $\mathit{fib}(n)$ is even iff $n$ is a multiple of $3$.
@@ -373,7 +401,7 @@ even number and an odd number, which is odd.  In this proof, we invoked the indu
 hypothesis on $n-2$ and on $n-1$.  This is allowed, because both are smaller than
 $n$, and hence the invocations go down in the well-founded ordering on natural numbers.
 
-#### 23.4.1.3. Extreme Solutions
+#### 24.4.1.3. Extreme Solutions
 
 We don't need to exclude the possibility of [the general equation](#eq-general) having multiple
 solutions---instead, we can just be clear about which one of them we want.
@@ -495,7 +523,7 @@ solution for $g$, there are two proof trees that establish $g(0)$:  one is the f
 proof tree that uses the left-hand rule of [these coinductive rules](#g-coind-rule) once, the other is the infinite
 proof tree that keeps on using the right-hand rule of [these coinductive rules](#g-coind-rule).
 
-### 23.4.2. Working with Extreme Predicates
+### 24.4.2. Working with Extreme Predicates {#sec-extreme-predicates}
 
 In general, one cannot evaluate whether or not an extreme predicate holds for some
 input, because doing so may take an infinite number of steps.  For example, following
@@ -504,50 +532,50 @@ terminate.  However, there are useful ways to establish that an extreme predicat
 and there are ways to make use of one once it has been established.
 
 For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
-functions, ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$
+functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
 <p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
-   { {}^{\flat}\!f}_k(x) = \left\{
+   { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
 
 <p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
-   { {}^{\sharp}\!f}_k(x) = \left\{
+   { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
 of $k$ as being a parameter).
-Alternatively, we can define ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$ without mentioning $x$:
+Alternatively, we can define ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$ without mentioning $x$:
 Let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
 Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
-${ {}^{\flat}\!f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\!f}_k = \mathcal{F}^k(\top)$.
+${ {}^{\flat}\kern-1mm f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\kern-1mm f}_k = \mathcal{F}^k(\top)$.
 
 For any solution $f$ to [the general equation](#eq-general), we have, for any $k$ and $\ell$
 such that $k \leq \ell$:
 
 
 <p style="text-align: center;" id="eq-prefix-postfix" title="the prefix postfix result">$$
- {\;{}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
+ {\;{}^{\flat}\kern-1mm f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\kern-1mm f}_k $$</p>
 
-In other words, every ${\;{}^{\flat}\!f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\!f}\_{k}$ is a _post-fixpoint_
+In other words, every ${\;{}^{\flat}\kern-1mm f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\kern-1mm f}\_{k}$ is a _post-fixpoint_
 of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
 <p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
- f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\!f}_k(x) $$</p>
+ f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x) $$</p>
 <p style="text-align: center;" id="eq-greatest-is-forall" title="the greatest forall definition">$$
-  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\!f}_k(x) $$</p>
+  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x) $$</p>
 
 By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
@@ -560,7 +588,7 @@ Let's consider two examples, both involving function $g$ in
 and therefore I will write $g^{\downarrow}$ and $g^{\uparrow}$ to denote the
 least and greatest solutions for $g$ in [the EvenNat equation](#eq-EvenNat).
 
-#### 23.4.2.1. Example with Least Solution {#sec-example-least-solution}
+#### 24.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
 $x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
@@ -595,20 +623,20 @@ general form of our proof goal:
 
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
+|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
-${ {}^{\flat}\!g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
-If $k = 0$, then ${ {}^{\flat}\!g}\_k(x)$ is `false`, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\flat}\!g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\!g}\_{k-1}(x-2))$.  Our goal holds easily
+${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
+If $k = 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x)$ is `false`, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\kern-1mm g}\_{k-1}(x-2))$.  Our goal holds easily
 for the first disjunct ($x=0$).  For the other disjunct,
 we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
 obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
 follows.
 
-#### 23.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
+#### 24.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
 
 We can think of a given predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
@@ -651,20 +679,20 @@ general form of our proof goal:
 |~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 -->
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 <!--
-$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\!g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\!g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\!g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\!g}_{k-1}(x-2))$.  We establish the second
+$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
+If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 -->
 
-### 23.4.3. Other Techniques
+### 24.4.3. Other Techniques
 
 Although in this paper I consider only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
@@ -679,13 +707,15 @@ This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
 Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
 and HOL [@Krauss:PhD].
 
-## 23.5. Functions in Dafny
+## 24.5. Functions in Dafny
 
-In this section, I explain with examples the support in
+This section explains with examples the support in
 Dafny for well-founded functions, extreme predicates,
 and proofs regarding these.
 
-### 23.5.1. Well-founded Functions in Dafny
+TODO: This topic appears to replicate the previous section
+
+### 24.5.1. Well-founded Functions in Dafny
 
 Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
 function is declared as follows:
@@ -716,10 +746,10 @@ Dafny IDE) is very often correct, so users are rarely bothered to provide explic
 If a function returns `bool`, one can drop the result type `: bool` and change the
 keyword `function` to `predicate`.
 
-### 23.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
+### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
+Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny
@@ -792,12 +822,12 @@ $\\exists k \bullet\; 100 \leq \mathit{fib}(k) < 200$ is known, then the stateme
 `k :| 100 <= fib(k) < 200;` will assign to `k` some value (chosen arbitrarily)
 for which `fib(k)` falls in the given range.
 
-### 23.5.3. Extreme Predicates in Dafny {#sec-friendliness}
+### 24.5.3. Extreme Predicates in Dafny {#sec-friendliness}
 
-In this previous subsection, I explained that a `predicate` declaration introduces a
+The previous subsection explained that a `predicate` declaration introduces a
 well-founded predicate.  The declarations for introducing extreme predicates are
 `least predicate` and `greatest predicate`.  Here is the definition of the least and
-greatest solutions of $g$ from above, let's call them `g` and `G`:
+greatest solutions of $g$ from above; let's call them `g` and `G`:
 
 ```dafny
 least predicate g(x: int) { x == 0 || g(x-2) }
@@ -805,7 +835,7 @@ greatest predicate G(x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
-prefix predicates.  Instead of the names ${ {}^{\flat}\!g}_k$ and ${ {}^{\sharp}\!g}_k$ that I used above, Dafny
+prefix predicates.  Instead of the names ${ {}^{\flat}\kern-1mm g}_k$ and ${ {}^{\sharp}\kern-1mm g}_k$ that I used above, Dafny
 names the prefix predicates `g#[k]` and `G#[k]`, respectively, that is, the name of
 the extreme predicate appended with `#`, and the subscript is given as an argument in
 square brackets.  The definition of the prefix predicate derives from the body of
@@ -831,9 +861,9 @@ that recursive calls to least predicates are
 not inside unbounded universal quantifiers and that recursive calls to greatest predicates
 are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
 
-### 23.5.4. Proofs about Extreme Predicates
+### 24.5.4. Proofs about Extreme Predicates
 
-From what I have presented so far, we can do the formal proofs from Sections
+From what has been presented so far, we can do the formal proofs for
 [the example about the least solution](#sec-example-least-solution) and [the example about the greatest solution](#sec-example-greatest-solution).  Here is the
 former:
 
@@ -893,7 +923,7 @@ the proofs do not reflect the intuitive proofs I described in
 [the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).
 These shortcoming are addressed in the next subsection.
 
-### 23.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
+### 24.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
 The proofs we just saw follow standard forms:
 use Skolemization to convert the least predicate into a prefix predicate for some `k`
@@ -949,11 +979,11 @@ each lemma, the bodies of the given extreme lemmas `EvenNat` and
 `Always` can be empty and Dafny still completes the proofs.
 Folks, it doesn't get any simpler than that!
 
-## 23.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
+## 24.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
 TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
 
-## 23.7. Well-founded Orders {#sec-well-founded-orders}
+## 24.7. Well-founded Orders {#sec-well-founded-orders}
 
 The well-founded order relations for a variety of built-in types in Dafny
 are given in the following table:
@@ -973,7 +1003,7 @@ are given in the following table:
 | type parameter | `false` |
 | arrow types | `false` |
 
-Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `x`. Here's an illustration of that order, in a program that verifies:
+Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `X`. Here's an illustration of that order, in a program that verifies:
 
 ``` dafny
 datatype D = D(s: set<D>)
@@ -988,7 +1018,3 @@ method TestD(dd: D) {
   }
 }
 ```
-
-
-TODO: Write this section; revise the above
-
