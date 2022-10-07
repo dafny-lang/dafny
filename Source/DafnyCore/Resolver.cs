@@ -2846,7 +2846,7 @@ namespace Microsoft.Dafny {
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
-      // This pass:
+      // This pass or phase:
       // * checks that type inference was able to determine all types
       // * check that shared destructors in datatypes are in agreement
       // * fills in the .ResolvedOp field of binary expressions
@@ -13768,8 +13768,65 @@ namespace Microsoft.Dafny {
         var div = (DividedBlockStmt)blockStmt;
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
         Contract.Assert(!resolutionContext.InFirstPhaseConstructor);  // divided bodies are never nested
+        // In the first phase of the constructor, we keep track of constants which are fully determined.
+        // We prevent the reading of constants which have dependencies that are yet unassigned constants
+        var constantsAlreadyAssigned = new HashSet<ConstantField>();
+        var constantsWithErrors = new HashSet<ConstantField>();
+
+        // Returns an error if the expression cannot be fully determined
+        (string, ConstantField)? GetErrorIfNotFullyDetermined(Expression expr, List<ConstantField> visited) {
+          if (expr is MemberSelectExpr { Member: ConstantField field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
+            if (visited.IndexOf(field) is var index && index >= 0) {
+              var msg = "Please break this constant initialization cycle: " + visited[index].Name;
+              for (var i = index + 1; i < visited.Count; i++) {
+                msg += " -> " + visited[i].Name;
+              }
+              msg += " -> " + field.Name;
+              return (msg, field);
+            }
+            if (field.Rhs == null && !constantsAlreadyAssigned.Contains(field)) {
+              var msg = "Missing initialization of field ";
+              for (var i = 0; i < visited.Count; i++) {
+                msg += (i == 0 ? "through the dependency " : "") + visited[i].Name + " -> ";
+              }
+              msg += field.Name + ", which needs to be assigned at this point.";
+              return (msg, field);
+            }
+            if (field.Rhs != null) {
+              foreach (var subExpr in field.Rhs.SubExpressions) {
+                if (GetErrorIfNotFullyDetermined(subExpr, visited.Append(field).ToList()) is var msgField && msgField != null) {
+                  return msgField;
+                }
+              }
+            }
+          }
+          foreach (var subExpr in expr.SubExpressions) {
+            if (GetErrorIfNotFullyDetermined(subExpr, visited) is var msgField && msgField != null) {
+              return msgField;
+            }
+          }
+
+          return null;
+        }
         foreach (Statement ss in div.BodyInit) {
           ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
+          var subExpressions = (ss is UpdateStmt updateStmt
+            ? updateStmt.Rhss.SelectMany(rhs => rhs.SubExpressions).ToList()
+            : Microsoft.Dafny.Triggers.ExprExtensions.AllSubExpressions(ss, false, false));
+          foreach (var rhs in subExpressions) {
+            if (GetErrorIfNotFullyDetermined(rhs, new List<ConstantField>()) is var msgField && msgField != null &&
+                !constantsWithErrors.Contains(msgField.Value.Item2)) {
+              reporter.Error(MessageSource.Resolver, rhs, "Constant not initialized yet. " + msgField.Value.Item1);
+              constantsWithErrors.Add(msgField.Value.Item2);
+            }
+          }
+          if (ss is UpdateStmt updateStmt2) {
+            foreach (var lhs in updateStmt2.Lhss) {
+              if (lhs is MemberSelectExpr { Member: ConstantField { IsMutable: false } field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
+                constantsAlreadyAssigned.Add(field);
+              }
+            }
+          }
         }
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
