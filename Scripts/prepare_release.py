@@ -71,12 +71,21 @@ class NewsFragments:
     >>> import tempfile
     >>> with tempfile.TemporaryDirectory() as tmpdir:
     ...   fpath = Path(tmpdir) / "1234.fix"
-    ...   _ = fpath.write_text("Improved toaster settings.\nDafny will not burn toast again", encoding="utf-8")
+    ...   _ = fpath.write_text("Dafny will now detect and report burning toast.", encoding="utf-8")
+    ...   fpath = Path(tmpdir) / "5678.feat"
+    ...   _ = fpath.write_text("Two new toast patterns:\n- Dafny waterfall logo\n- Dafny haircut logo\n(They are the same.)", encoding="utf-8")
     ...   print(NewsFragments.from_directory(tmpdir).render())
+    ## New features
+    <BLANKLINE>
+    - Two new toast patterns:
+      - Dafny waterfall logo
+      - Dafny haircut logo
+      (They are the same.)
+      (https://github.com/dafny-lang/dafny/pull/5678)
+    <BLANKLINE>
     ## Bug fixes
     <BLANKLINE>
-    - Improved toaster settings.
-      Dafny will not burn toast again. (https://github.com/dafny-lang/dafny/pull/1234)
+    - Dafny will now detect and report burning toast. (https://github.com/dafny-lang/dafny/pull/1234)
     """
 
     IGNORED = {".gitignore", "README.md"}
@@ -113,10 +122,11 @@ class NewsFragments:
             if ext not in self.fragments:
                 continue
             rendered.append(f"## {title}")
-            for fr in self.fragments[ext]:
+            for fr in sorted(self.fragments[ext], key=lambda f: f.pr):
                 link = f"(https://github.com/dafny-lang/dafny/pull/{fr.pr})"
-                contents = fr.contents.strip() + ("" if fr.contents.endswith(".") else ".")
-                entry = indent(f"- {contents} {link}", "  ").lstrip()
+                contents = fr.contents.strip()
+                sep = "\n" if "\n" in fr.contents else " "
+                entry = indent(f"- {contents}{sep}{link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
 

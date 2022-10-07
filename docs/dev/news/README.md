@@ -6,18 +6,35 @@ Files in this directory are named `<PR number>.<kind>` and each contains release
 
 ## Examples
 
-`1234.fix`
+- `1234.fix`
+
+   ```
+   Dafny will now detect and report burning toast.
+   ```
+
+- `5678.feat`
+
+  ```
+  Two new toast patterns:
+  - Dafny waterfall logo
+  - Dafny haircut logo
+  (They are the same.)
+  ```
+
+At release time, these two files become a bullet points a new section of `RELEASE_NOTES.md` with links to the corresponding PRs, like this:
 
 ```
-Improved toaster settings prevent Dafny from ever burning toast.
-Instead, toast will always come out crispy and nice
-```
+## New features
 
-At release time, this becomes a bullet point in the "Bug fixes" section of `RELEASE_NOTES.md` with a link to <https://github.com/dafny-lang/dafny/pull/1234> and an additional period if needed, like this:
+- Two new toast patterns:
+  - Dafny waterfall logo
+  - Dafny haircut logo
+  (They are the same.)
+  (https://github.com/dafny-lang/dafny/pull/5678)
 
-```
 ## Bug fixes
 
-- Improved toaster settings prevent Dafny from ever burning toast.
-  Instead, toast will always come out crispy and nice. (https://github.com/dafny-lang/dafny/pull/1234)
+- Dafny will now detect and report burning toast. (https://github.com/dafny-lang/dafny/pull/1234)
 ```
+
+Note that a newline is added before the link only if the original is more than one line long.
