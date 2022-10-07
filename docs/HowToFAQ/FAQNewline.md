@@ -19,7 +19,7 @@ method Main() {
   print "Hi";
 }
 ```
-produces (on my MacOS machine with a bash shell)
+produces (with a bash shell)
 ```
 mydafny $ dafny run --target=cs Newline.dfy 
 
