@@ -21,7 +21,7 @@ Files in this directory are named `<PR number>.<kind>` and each contains release
   (They are the same.)
   ```
 
-At release time, these two files become a bullet points a new section of `RELEASE_NOTES.md` with links to the corresponding PRs, like this:
+At release time, these two files become bullet points in a new section of `RELEASE_NOTES.md` with links to the corresponding PRs, like this:
 
 ```
 ## New features
