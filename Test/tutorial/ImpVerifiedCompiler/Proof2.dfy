@@ -1,0 +1,114 @@
+include "Proof.dfy"
+
+predicate Star<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
+  star(R, conf1, conf2)
+}
+
+least predicate Plus<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
+	plus(R,conf1, conf2)
+}
+
+greatest predicate Inf<T(!new)>(R: (T,T) -> bool,conf: T) {
+	inf(R,conf)
+}
+
+least lemma simulation_steps(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
+	requires star(step,impconf1,impconf2)
+	requires match_config(C, impconf1, machconf1)
+	ensures exists machconf2: configuration :: star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2)
+{
+	var tr := (c1,c2) => transition(C,c1,c2);
+	if impconf1 == impconf2 {
+	} else {
+		var impconf_inter :| step(impconf1, impconf_inter) && star(step,impconf_inter, impconf2);
+		simulation_step(C,impconf1,impconf_inter,machconf1);
+		var machconf_inter :| Star(tr,machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+		simulation_steps(C, impconf_inter, impconf2, machconf_inter);
+		// I do not know why the skolemization needs this assert
+		// It might have to do with the lambda
+		assert exists machconf2: configuration :: Star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
+		var machconf2 :| Star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
+		
+		star_trans_sequent<configuration>(tr,machconf1,machconf_inter,machconf2);
+	}
+}
+	
+lemma match_initial_configs(c: com, s: store)
+	ensures match_config((compile_program(c)), (c, Kstop, s), (0, [], s))
+{
+	var C := compile_program(c);
+	assert code_at(C, 0, compile_com(c)) by {
+		var C1: code := [];
+		var C3 := [Ihalt];
+		assert C == C1 + compile_com(c) + C3;
+	}
+	assert C[|compile_com(c)|] == Ihalt;
+	assert compile_cont(C, Kstop, |compile_com(c)|);
+}
+
+lemma {:axiom} compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
+	requires star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
+	ensures machine_terminates(compile_program(c),s1,s2)
+// {
+// 	var C := compile_program(c);
+// 	var impconf1 := (c,Kstop,s1);
+// 	var impconf2 := (CSkip,Kstop,s2);
+// 	var machconf1 := (0,[],s1);
+// 	match_initial_configs(c,s1);
+// 	simulation_steps(C,impconf1,impconf2,machconf1);
+// 	// Not explicitely typing leads to annoying errors due to subset types
+// 	var machconf2: configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+// 		&& match_config(C, impconf2, machconf2);
+// 	assert star((c1,c2) => transition(C,c1,c2),machconf1,machconf2); // transitions(C,machconf1,machconf2);
+// 	assert compile_cont(C, Kstop, |compile_com(c)|);
+// 	assert C[|compile_com(c)|] == Ihalt;
+// 	assume C[machconf2.0] == Ihalt;
+	
+// 	assert transitions(C,machconf1,machconf2);
+// }
+
+lemma foo(C: code, a: configuration, b: configuration, c: configuration)
+	requires star((c1,c2) => transition(C,c1,c2),a,b)
+	requires plus((c1,c2) => transition(C,c1,c2),b,c)
+	ensures plus((c1,c2) => transition(C,c1,c2),a,c)
+
+lemma bar1(C:code, impconf_inter: conf, machconf_inter: configuration)
+	requires inf(step,impconf_inter)
+	requires match_config(C,impconf_inter,machconf_inter)
+	ensures exists impconf_inter_2: conf :: exists machconf_inter_2: configuration :: Inf(step,impconf_inter_2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
+		&& match_config(C,impconf_inter_2,machconf_inter_2);
+
+lemma bar2(C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures exists impconf2: conf :: exists machconf2: configuration ::
+	  inf(step,impconf2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2)
+		
+greatest lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures exists impconf2: conf :: exists machconf2: configuration ::
+	  inf(step,impconf2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2)
+// {
+// 	var impconf_inter :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
+// 	simulation_step(C,impconf1,impconf_inter,machconf1);
+// 	var machconf_inter :| Star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+// 	simulation_infseq_inv(C,impconf_inter,machconf_inter);
+// 	bar2(C,impconf_inter,machconf_inter);
+// 	var impconf_inter_2, machconf_inter_2 :| inf(step,impconf_inter_2)
+// 		&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
+// 		&& match_config(C,impconf_inter_2,machconf_inter_2);
+// 	foo(C,machconf1,machconf_inter,machconf_inter_2);
+// }
+
+
+
+
+lemma {:axiom} compile_program_correct_diverging(c: com, s: store)
+	requires inf(step,(c,Kstop,s))
+	ensures machine_diverges(compile_program(c),s)

@@ -31,7 +31,24 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 predicate match_config(C: code, hl: conf, ll:configuration) {
 	var (c,k,s) := hl;
 	var (pc,stk,str) := ll;
-	&& code_at(C, pc, (compile_com(c)))
-	&&  compile_cont(C, k, (pc + |compile_com(c)|))
-	&& stk == [] 
+	&& code_at(C, pc, compile_com(c))
+	&& compile_cont(C, k, pc + |compile_com(c)|)
+	&& stk == []
+	&& str == s
 }
+
+lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
+	requires compile_cont(C, k, pc)
+	ensures match_config(C, (CSkip, k, s), (pc, [], s))
+{
+
+	assert pc < |C|;
+	var Cleft := C[..pc];
+	assert |Cleft| == pc;
+	var Cright := C[pc..];
+	assert C == Cleft + Cright;
+	var Cmid := [];
+	assert C == Cleft + Cmid + Cright;
+
+}
+

@@ -1,65 +1,136 @@
 include "SimulationRelationCont.dfy"
 include "ImpReductionContSem.dfy"
 include "MachSemantics.dfy"	
-include "SemanticsProperties.dfy"	
+include "SemanticsProperties.dfy"
+include "CompileAexpCorrect.dfy"
+include "CompileBexpCorrect.dfy"
 
-predicate Star<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
-  star(R, conf1, conf2)
-}
-
-lemma {:axiom} simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
+lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
 	requires step(impconf1,impconf2)
 	requires match_config(C, impconf1, machconf1)
 	ensures exists machconf2: configuration :: star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2)
-
-least lemma simulation_steps(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
-	requires star(step,impconf1,impconf2)
-	requires match_config(C, impconf1, machconf1)
-	ensures exists machconf2: configuration :: star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2)
 {
-	var tr := (c1,c2) => transition(C,c1,c2);
-	if impconf1 == impconf2 {
-	} else {
-		var impconf_inter :| step(impconf1, impconf_inter) && star(step,impconf_inter, impconf2);
-		simulation_step(C,impconf1,impconf_inter,machconf1);
-		var machconf_inter :| Star(tr,machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
-		simulation_steps(C, impconf_inter, impconf2, machconf_inter);
-		// I do not know why the skolemization needs this assert
-		// It might have to do with the lambda
-		assert exists machconf2: configuration :: Star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
-		var machconf2 :| Star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
+	match (impconf1.0,impconf1.1) {
 		
-		star_trans_sequent<configuration>(tr,machconf1,machconf_inter,machconf2);
+		case (CAsgn(i, a), _) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			assert (c2,k2,s2) == (CSkip,k1,s1[i := aeval(s1,a)]);
+
+			var chunk := compile_aexp(a) + [Isetvar(i)];
+			assert code_at(C, pc1, chunk);
+			assert compile_cont(C, k1, pc1 + |chunk|);
+			assert (pc1,stk1,str1) == (pc1,[],s1);
+
+			var machconf2: configuration := (pc1 + |chunk|,[],s2);
+			var (pc2,stk2,str2) := machconf2;
+
+			assert star(tr,machconf1,machconf2) by {
+				
+				var machconf1': configuration := (pc1 + |compile_aexp(a)|, [aeval(s1,a)] + stk1, str1);
+				assert code_at(C, pc1, compile_aexp(a)) by { resolve_code_at(); }
+				assert transitions(C,machconf1,machconf1') by { compile_aexp_correct_gen(); }
+				assert star(tr,machconf1,machconf1');
+
+				assert transition(C,machconf1',machconf2);
+				star_one_sequent<configuration>(tr,machconf1',machconf2);
+				
+				star_trans_sequent<configuration>(tr,machconf1,machconf1',machconf2);
+
+			}
+
+			assert match_config(C, impconf2, machconf2) by {
+				
+				match_config_skip(C,k2,s2,pc2);
+
+			}
+			
+		}
+		
+		case (CSeq(c1', c1''), k) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
+		case (CIf(b, cifso, cifnotso), _) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
+		case (CWhile(b, c), _) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
+		case (CWhile(b, c), k) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
+		case (CSkip, Kseq(c, k)) => {
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
+		case (CSkip, Kwhile(b, c, k)) =>	{
+			assert {:split_here} true;
+			var tr := (c1,c2) => transition(C,c1,c2);
+			
+			var (c1,k1,s1) := impconf1;
+			var (c2,k2,s2) := impconf2;
+			var (pc1,stk1,str1) := machconf1;
+
+			
+			
+			assume false;
+		}
+		
 	}
 }
 	
-lemma match_initial_configs(c: com, s: store)
-	ensures match_config((compile_program(c)), (c, Kstop, s), (0, [], s))
-{
-	var C := compile_program(c);
-	assert code_at(C, 0, compile_com(c)) by {
-		var C1: code := [];
-		var C3 := [Ihalt];
-		assert C == C1 + compile_com(c) + C3;
-	}
-	assert C[|compile_com(c)|] == Ihalt;
-	assert compile_cont(C, Kstop, |compile_com(c)|);
-}
-
-lemma {:axiom} compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
-	requires star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
-	ensures machine_terminates(compile_program(c),s1,s2)
-
-lemma {:axiom} simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
-	requires inf(step,impconf1)
-	requires match_config(C,impconf1,machconf1)
-	ensures exists impconf2: conf :: exists machconf2: configuration ::
-	  inf(step,impconf2)
-		&& star((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
-		&& match_config(C,impconf2,machconf2)
-
-
-lemma {:axiom} compile_program_correct_diverging(c: com, s: store)
-	requires inf(step,(c,Kstop,s))
-	ensures machine_diverges(compile_program(c),s)
 

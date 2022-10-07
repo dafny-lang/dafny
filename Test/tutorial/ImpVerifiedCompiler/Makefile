@@ -19,7 +19,8 @@ DEPS = \
 	ImpReductionSem.dfy \
 	ImpReductionContSem.dfy \
 	SimulationRelationCont.dfy \
-	Proof.dfy
+	Proof.dfy \
+	Proof2.dfy
 
 OBJS = $(DEPS:.dfy=.dll)
 
@@ -111,7 +112,12 @@ Proof.dll: \
 	ImpReductionContSem.dll \
 	MachSemantics.dll \
 	SemanticsProperties.dll \
+	CompileAexpCorrect.dll \
+	CompileBexpCorrect.dll \
 	Proof.dfy
+Proof2.dll: \
+	Proof.dll \
+	Proof2.dfy
 
 %.dll: %.dfy
 	$(VERIFY) $<
