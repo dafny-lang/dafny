@@ -1,11 +1,11 @@
 ---
-title: Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?
+title: How can I improve automation and performance for programs with non-linear arithmetic?
 ---
 
 ## Question
 
-Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?
+How can I improve automation and performance for programs with non-linear arithmetic?
 
 ## Answer
 
-No. There are some switches (/arith and the somewhat deprecated /noNLarith) that reduce the automation you get with nonlinear arithmetic. There are now also many lemmas about nonlinear arithmetic in the Dafny standard library.
+There are some switches (/arith and the somewhat deprecated /noNLarith) that reduce the automation you get with nonlinear arithmetic; they improve the overall proof success by using manually introduced lemmas instead. There are now also many lemmas about nonlinear arithmetic in the Dafny standard library.

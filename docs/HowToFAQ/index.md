@@ -76,7 +76,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I run boogie manually on the Dafny output?](FAQBoogie)
 - ["Does Dafny verify methods in parallel?"](FAQParallel)
 - ["Is there a doc generator for Dafny?"](FAQDocGenerator)
-- ["Are there any useful tricks (e.g. z3 switches) to get better automation for nonlinear arithmetic (perhaps trading off other performance aspects)?"](FAQNonlinearArith)
+- ["How can I improve automation and performance for programs with non-linear arithmetic?"](FAQNonlinearArith)
 - ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
 - ["Is there a standard library for Dafny?"](FAQStandardLibrary)
 - ["Why do I need to use an old Z3?"](FAQZ3)

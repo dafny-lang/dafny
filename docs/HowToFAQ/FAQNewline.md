@@ -8,6 +8,21 @@ It looks like, when compiling to C#, my print statements don't show up if I don'
 
 ## Answer
 
-This is likely to be platform-dependent problem; the problem is whether the I/O system for the target platform does a flush of the output streams prior to terminating a program. The workaround is for the user program to do a `print "\n";` at the end of the program.
+The desired output is present in all current Dafny backends. But note that
+if the print statement does not include the \n, then the output may not either.
+In that case the output may be (depending on the shell you are using)
+concatenated with the prompt for the next user input.
 
-Dafny Issue #2559 notes this problem.
+For example,
+```dafny
+method Main() {
+  print "Hi";
+}
+```
+produces (on my MacOS machine with a bash shell)
+```
+mydafny $ dafny run --target=cs Newline.dfy 
+
+Dafny program verifier finished with 0 verified, 0 errors
+Himydafny $
+```
