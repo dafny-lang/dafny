@@ -1,6 +1,7 @@
 # Upcoming
 
 - fix: Correct error highlighting on function called with default arguments (https://github.com/dafny-lang/dafny/pull/2826)
+- fix: Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
 - fix: Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
 
 # 3.9.0
