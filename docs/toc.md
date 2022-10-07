@@ -15,6 +15,10 @@ layout: default
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
+<p style="text-align: center;">
+{% include_relative DafnyRef/version.txt %}
+</p>
+
 This page contains links to Dafny documentation.
 
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
