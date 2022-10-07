@@ -86,7 +86,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
-      wr.WriteLine("#nullable disable");
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
@@ -1251,7 +1250,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), parameters, ref sep,
         tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
@@ -2449,7 +2448,7 @@ namespace Microsoft.Dafny.Compilers {
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
           var callArguments = wr.ForkInParens();
           var sep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, callArguments, ref sep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, callArguments, ref sep);
           if (additionalCustomParameter != null) {
             callArguments.Write($"{sep}{additionalCustomParameter}");
             sep = ", ";
@@ -2477,7 +2476,7 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -2497,7 +2496,7 @@ namespace Microsoft.Dafny.Compilers {
             obj(w);
             w.Write(".{0}", IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }

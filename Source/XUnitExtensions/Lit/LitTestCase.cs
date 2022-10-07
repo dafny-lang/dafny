@@ -42,7 +42,7 @@ namespace XUnitExtensions.Lit {
       }
 
       string fullDirectoryPath = Path.GetFullPath(directory).Replace(@"\", "/");
-      config = config.WithSubstitutions(new Dictionary<string, string> {
+      config = config.WithSubstitutions(new Dictionary<string, object> {
         {"%s", filePath.Replace(@"\", "/")},
         // For class path separators
         {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
