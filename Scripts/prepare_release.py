@@ -174,82 +174,82 @@ class Version(NamedTuple):
                 f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
+    REMOTE = "origin"
+    MASTER_BRANCH = "refs/heads/master"
     NEWSFRAGMENTS_PATH = "docs/dev/news"
 
     def __init__(self, version: str) -> None:
         self.version = version
-        self.remote = "origin"
         self.branch_name = f"release-{version}"
         self.branch_path = f"refs/heads/{self.branch_name}"
-        self.master_branch = "refs/heads/master"
         self.tag = f"v{version}"
         self.build_props_path = Path("Source/Directory.Build.props")
         self.release_notes_md_path = Path("RELEASE_NOTES.md")
         self.newsfragments = NewsFragments.from_directory(self.NEWSFRAGMENTS_PATH)
 
     @staticmethod
-    def in_git_root() -> bool:
+    def _in_git_root() -> bool:
         return Path(".git").exists()
 
-    def has_origin(self) -> bool:
-        return git("remote", "url", self.remote).returncode == 0
+    def _has_origin(self) -> bool:
+        return git("remote", "url", self.REMOTE).returncode == 0
 
     @staticmethod
-    def has_git() -> bool:
+    def _has_git() -> bool:
         return git("rev-parse", "--verify", "HEAD").returncode == 0
 
-    def has_news(self) -> bool:
+    def _has_news(self) -> bool:
         self.newsfragments.check()
         return bool(self.newsfragments.fragments)
 
-    def build_props_file_exists(self) -> bool:
+    def _build_props_file_exists(self) -> bool:
         return self.build_props_path.is_file()
 
-    def parse_build_props_file(self) -> ElementTree.ElementTree:
+    def _parse_build_props_file(self) -> ElementTree.ElementTree:
         parser = ElementTree.XMLParser(target=ElementTree.TreeBuilder(insert_comments=True))
         return ElementTree.parse(self.build_props_path, parser=parser)
 
-    def build_props_file_parses(self) -> bool:
+    def _build_props_file_parses(self) -> bool:
         try:
-            self.parse_build_props_file()
+            self._parse_build_props_file()
             return True
         except ElementTree.ParseError as e:
             print(e)
             return False
 
-    def release_notes_file_exists(self) -> bool:
+    def _release_notes_file_exists(self) -> bool:
         return self.release_notes_md_path.is_file()
 
     RELEASE_NOTES_MARKER = "See [docs/dev/news/](docs/dev/news/)."
-    def release_notes_have_header(self) -> bool:
+    def _release_notes_have_header(self) -> bool:
         contents = self.release_notes_md_path.read_text(encoding="utf-8")
         return self.RELEASE_NOTES_MARKER in contents
 
-    def version_number_is_fresh(self) -> bool:
+    def _version_number_is_fresh(self) -> bool:
         contents = self.release_notes_md_path.read_bytes()
         return b"# " + self.version.encode("utf-8") not in contents
 
     @staticmethod
-    def get_branch(check: bool) -> str:
+    def _get_branch(check: bool) -> str:
         return git("symbolic-ref", "--quiet", "HEAD", check=check).stdout.strip()
 
-    def parse_vernum(self) -> Optional[Version]:
+    def _parse_vernum(self) -> Optional[Version]:
         return Version.from_string(self.version)
 
-    def is_release_branch(self) -> bool:
-        return self.get_branch(check=False) in (self.master_branch, self.branch_path)
+    def _is_release_branch(self) -> bool:
+        return self._get_branch(check=False) in (self.MASTER_BRANCH, self.branch_path)
 
     @staticmethod
-    def is_repo_clean() -> bool:
+    def _is_repo_clean() -> bool:
         return git("status", "--short", "--untracked-files=no").stdout.strip() == ""
 
     @classmethod
-    def head_up_to_date(cls) -> bool:
+    def _head_up_to_date(cls) -> bool:
         git("fetch")
         return "behind" not in git("status", "--short", "--branch").stdout
 
     @staticmethod
-    def no_release_blocking_issues() -> bool:
+    def _no_release_blocking_issues() -> bool:
         progress("Checking... ", end="")
         HEADERS = {"Accept": "application/vnd.github.v3+json"}
         ENDPOINT = 'https://api.github.com/repos/dafny-lang/dafny/issues?labels=severity%3A+release-blocker'
@@ -257,16 +257,16 @@ class Release:
             response = fs.read().decode("utf-8")
         return json.loads(response) == []
 
-    def no_release_branch(self) -> bool:
+    def _no_release_branch(self) -> bool:
         return git("rev-parse", "--quiet", "--verify", self.branch_path).returncode == 1
 
-    def no_release_tag(self) -> bool:
+    def _no_release_tag(self) -> bool:
         return git("tag", "--verify", self.tag).returncode == 1
 
-    def update_build_props_file(self) -> None:
+    def _update_build_props_file(self) -> None:
         vernum = Version.from_string(self.version)
         assert vernum
-        xml = self.parse_build_props_file()
+        xml = self._parse_build_props_file()
         for version_element in xml.iter("VersionPrefix"):
             tail = version_element.tail
             version_element.clear()
@@ -276,10 +276,10 @@ class Release:
             version_element.append(comment)
         xml.write(self.build_props_path, encoding="utf-8")
 
-    def create_release_branch(self):
+    def _create_release_branch(self):
         git("checkout", "-b", self.branch_name, check=True)
 
-    def consolidate_news_fragments(self):
+    def _consolidate_news_fragments(self):
         news = self.newsfragments.render()
         new_section = f"\n\n# {self.version}\n\n{news.rstrip()}"
         contents = self.release_notes_md_path.read_text(encoding="utf-8")
@@ -288,18 +288,18 @@ class Release:
         contents = contents.replace(self.RELEASE_NOTES_MARKER, replacement)
         self.release_notes_md_path.write_text(contents, encoding="utf-8")
 
-    def delete_news_fragments(self):
+    def _delete_news_fragments(self):
         self.newsfragments.delete()
 
-    def commit_changes(self):
+    def _commit_changes(self):
         git("commit", "--quiet", "--all",
             "--no-verify", "--no-post-rewrite",
             f"--message=Release Dafny {self.version}",
             check=True)
 
-    def push_release_branch(self):
+    def _push_release_branch(self):
         git("push", "--force-with-lease", "--set-upstream",
-            self.remote, f"{self.branch_path}:{self.branch_path}",
+            self.REMOTE, f"{self.branch_path}:{self.branch_path}",
             check=True)
 
     # Still TODO:
@@ -307,50 +307,50 @@ class Release:
 
     def prepare(self):
         assert_one("Can we run `git`?",
-                   self.has_git)
+                   self._has_git)
         assert_one(f"Is {self.version} a valid version number?",
-                   self.parse_vernum)
+                   self._parse_vernum)
         assert_one("Are we running from the root of a git repo?",
-                   self.in_git_root)
+                   self._in_git_root)
         assert_one(f"Can we find `{self.build_props_path}`?",
-                   self.build_props_file_exists)
+                   self._build_props_file_exists)
         assert_one(f"Can we parse `{self.build_props_path}`?",
-                   self.build_props_file_parses)
+                   self._build_props_file_parses)
         assert_one(f"Can we find `{self.release_notes_md_path}`?",
-                   self.release_notes_file_exists)
+                   self._release_notes_file_exists)
         assert_one(f"Does `{self.release_notes_md_path}` have a header?",
-                   self.release_notes_have_header)
+                   self._release_notes_have_header)
         assert_one(f"Can we create a section for `{self.version}` in `{self.release_notes_md_path}`?",
-                   self.version_number_is_fresh)
+                   self._version_number_is_fresh)
         assert_one(f"Do we have news in {self.NEWSFRAGMENTS_PATH}?",
-                   self.has_news)
+                   self._has_news)
         assert_one(f"Is the current branch `master` or `{self.branch_name}`?",
-                   self.is_release_branch)
+                   self._is_release_branch)
         assert_one("Is repo clean (all changes committed)?",
-                   self.is_repo_clean)
+                   self._is_repo_clean)
         assert_one("Is HEAD is up to date?",
-                   self.head_up_to_date)
+                   self._head_up_to_date)
         assert_one("Are all release-blocking issues closed?",
-                   self.no_release_blocking_issues)
+                   self._no_release_blocking_issues)
         assert_one(f"Can we create release tag `{self.tag}`?",
-                   self.no_release_tag)
-        if self.get_branch(check=False) != self.branch_path:
+                   self._no_release_tag)
+        if self._get_branch(check=False) != self.branch_path:
             assert_one(f"Can we create release branch `{self.branch_name}`?",
-                       self.no_release_branch)
+                       self._no_release_branch)
             run_one(f"Creating release branch {self.branch_path}...",
-                    self.create_release_branch)
+                    self._create_release_branch)
         else:
             progress("Note: Release branch already checked out, so not creating it.")
         run_one(f"Updating `{self.build_props_path}`...",
-                self.update_build_props_file)
+                self._update_build_props_file)
         run_one(f"Updating `{self.release_notes_md_path}` from `{self.NEWSFRAGMENTS_PATH}`...",
-                self.consolidate_news_fragments)
+                self._consolidate_news_fragments)
         run_one("Creating commit...",
-                self.commit_changes)
+                self._commit_changes)
         run_one("Pushing release branch...",
-                self.push_release_branch)
+                self._push_release_branch)
         run_one("Deleting news fragments...",
-                self.delete_news_fragments)
+                self._delete_news_fragments)
 
         progress("Done!")
         progress()
@@ -361,19 +361,19 @@ class Release:
                  "Once it completes, re-run this script with argument `release`.")
         progress()
 
-    def tag_release(self):
+    def _tag_release(self):
         git("tag", "--annotate", f"--message=Dafny {self.tag}",
             self.tag, self.branch_path, capture_output=False).check_returncode()
 
-    def push_release_tag(self):
-        git("push", self.remote, f"{self.tag}",
+    def _push_release_tag(self):
+        git("push", self.REMOTE, f"{self.tag}",
             capture_output=False).check_returncode()
 
     def release(self):
         run_one("Tagging release...",
-                self.tag_release)
+                self._tag_release)
         run_one("Pushing tag...",
-                self.push_release_tag)
+                self._push_release_tag)
 
         progress("Done!")
         progress()
