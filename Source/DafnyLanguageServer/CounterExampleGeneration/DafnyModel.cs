@@ -1,6 +1,7 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -9,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
@@ -871,7 +873,10 @@ namespace DafnyServer.CounterexampleGeneration {
       return result;
     }
 
-    private const string PleaseEnableModelCompressFalse = "Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.";
+    private const string PleaseEnableModelCompressFalse =
+      "Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7)" +
+      " or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7)," +
+      " otherwise you'll get unexpected values.";
 
     /// <summary>
     /// Return the name of the field represented by the given element.

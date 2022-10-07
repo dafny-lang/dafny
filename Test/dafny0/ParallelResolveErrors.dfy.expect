@@ -1,3 +1,18 @@
+ParallelResolveErrors.dfy(217,6): Warning: the modify statement with a block statement is deprecated
+ParallelResolveErrors.dfy(247,7): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(248,10): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(249,13): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(255,6): Warning: the modify statement with a block statement is deprecated
+ParallelResolveErrors.dfy(256,9): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(263,7): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(264,10): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(271,6): Warning: the modify statement with a block statement is deprecated
+ParallelResolveErrors.dfy(272,9): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(279,7): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(280,10): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(281,13): Warning: the ... refinement feature in statements is deprecated
+ParallelResolveErrors.dfy(287,6): Warning: the modify statement with a block statement is deprecated
+ParallelResolveErrors.dfy(288,9): Warning: the ... refinement feature in statements is deprecated
 ParallelResolveErrors.dfy(26,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ParallelResolveErrors.dfy(8,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(25,6): Error: a forall statement is not allowed to update a variable it doesn't declare
