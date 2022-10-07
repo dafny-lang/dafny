@@ -74,19 +74,7 @@ lemma compile_program_correct_terminating_2(c: com, s1: store, s2: store)
 	star_trans_sequent<configuration>((c1,c2) => transition(C,c1,c2), machconf1, machconf1',(pc', [], s2));
 }
 
-lemma foo(C: code, a: configuration, b: configuration, c: configuration)
-	requires star((c1,c2) => transition(C,c1,c2),a,b)
-	requires plus((c1,c2) => transition(C,c1,c2),b,c)
-	ensures plus((c1,c2) => transition(C,c1,c2),a,c)
-
-lemma bar1(C:code, impconf_inter: conf, machconf_inter: configuration)
-	requires inf(step,impconf_inter)
-	requires match_config(C,impconf_inter,machconf_inter)
-	ensures exists impconf_inter_2: conf :: exists machconf_inter_2: configuration :: Inf(step,impconf_inter_2)
-		&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
-		&& match_config(C,impconf_inter_2,machconf_inter_2);
-
-lemma bar2(C: code, impconf1: conf, machconf1: configuration)
+lemma Simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 	requires inf(step,impconf1)
 	requires match_config(C,impconf1,machconf1)
 	ensures exists impconf2: conf :: exists machconf2: configuration ::
@@ -94,7 +82,7 @@ lemma bar2(C: code, impconf1: conf, machconf1: configuration)
 		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
 		&& match_config(C,impconf2,machconf2)
 		
-greatest lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
+lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 	requires inf(step,impconf1)
 	requires match_config(C,impconf1,machconf1)
 	ensures exists impconf2: conf :: exists machconf2: configuration ::
@@ -102,20 +90,47 @@ greatest lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configu
 		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
 		&& match_config(C,impconf2,machconf2)
 // {
-// 	var impconf_inter :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
+// 	var impconf_inter: conf :| step(impconf1,impconf_inter) && inf(step,impconf_inter);
 // 	simulation_step(C,impconf1,impconf_inter,machconf1);
-// 	var machconf_inter :| Star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
-// 	simulation_infseq_inv(C,impconf_inter,machconf_inter);
-// 	bar2(C,impconf_inter,machconf_inter);
-// 	var impconf_inter_2, machconf_inter_2 :| inf(step,impconf_inter_2)
+// 	var machconf_inter: configuration :| Star((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
+// 	// !!!
+// 	Simulation_infseq_inv(C,impconf_inter,machconf_inter);
+// 	var impconf_inter_2: conf, machconf_inter_2: configuration :| inf(step,impconf_inter_2)
 // 		&& plus((c1,c2) => transition(C,c1,c2),machconf_inter,machconf_inter_2)
 // 		&& match_config(C,impconf_inter_2,machconf_inter_2);
-// 	foo(C,machconf1,machconf_inter,machconf_inter_2);
+// 	star_plus_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf_inter,machconf_inter_2);
 // }
 
+lemma Compile_program_correct_diverging_pre(C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures inf((c1,c2) => transition(C,c1,c2),machconf1)
 
-
-
-lemma {:axiom} compile_program_correct_diverging(c: com, s: store)
+lemma compile_program_correct_diverging_pre(C: code, impconf1: conf, machconf1: configuration)
+	requires inf(step,impconf1)
+	requires match_config(C,impconf1,machconf1)
+	ensures inf((c1,c2) => transition(C,c1,c2),machconf1)
+{
+	simulation_infseq_inv(C, impconf1, machconf1);
+	var impconf2: conf, machconf2: configuration :| inf(step,impconf2)
+		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
+		&& match_config(C,impconf2,machconf2);
+	Compile_program_correct_diverging_pre(C,impconf2,machconf2);
+	//assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+	plus_star<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+	//assert inf((c1,c2) => transition(C,c1,c2),machconf2);
+	star_inf_trans<configuration>((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+}
+	
+lemma compile_program_correct_diverging(c: com, s: store)
 	requires inf(step,(c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
+{
+	var C := compile_program(c);
+	var impconf1: conf := (c,Kstop,s);
+	var machconf1: configuration := (0,[], s);
+	match_initial_configs(c,s);
+	compile_program_correct_diverging_pre(C,impconf1,machconf1);
+}
+
+

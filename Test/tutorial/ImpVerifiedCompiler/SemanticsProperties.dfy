@@ -49,6 +49,42 @@ lemma combine_reductions<T(!new)>()
 	star_trans<T>();
 }
 
+lemma plus_star<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T)
+	requires plus(R,conf1,conf2)
+	ensures star(R,conf1,conf2)
+{
+	var conf1' :| R(conf1, conf1') && star(R,conf1', conf2);
+	star_one_sequent(R,conf1,conf1');
+	star_trans_sequent(R,conf1,conf1',conf2);
+}
+
+lemma star_plus_trans<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T, conf3: T)
+	requires star(R,conf1,conf2)
+	requires plus(R,conf2,conf3)
+	ensures plus(R,conf1,conf3)
+{
+	if conf1 == conf2 {
+	} else {
+		var conf1' :| R(conf1, conf1') && star(R,conf1', conf2);
+		var conf2' :| R(conf2, conf2') && star(R,conf2', conf3);
+		star_one_sequent(R,conf2,conf2');
+		star_trans_sequent(R,conf1',conf2,conf2');
+		star_trans_sequent(R,conf1',conf2',conf3);
+	}
+}
+
+least lemma star_inf_trans<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T)
+	requires star(R,conf1,conf2)
+	requires inf(R,conf2)
+	ensures inf(R,conf1)
+{
+	if conf1 == conf2 {}
+	else {
+		var conf1' :| R(conf1, conf1') && star(R,conf1', conf2);
+		star_inf_trans(R,conf1',conf2);
+	}
+}
+	
 greatest lemma infseq_if_all_seq_inf_pre<T(!new)>(R: (T,T) -> bool, conf: T)
 	requires forall conf2: T :: star(R,conf,conf2) ==> exists conf3: T :: R(conf2,conf3)
 	ensures inf(R,conf)
