@@ -12,7 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected enum TelemetryEventKind {
       UpdateComplete,
       UnhandledException,
-      SolverPath
+      SolverPath,
+      Z3Version
     }
 
     /// <summary>
@@ -36,6 +37,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
+    }
+
+    public void PublishZ3Version(string z3Version) {
+      PublishTelemetry(TelemetryEventKind.Z3Version, z3Version);
     }
   }
 }
