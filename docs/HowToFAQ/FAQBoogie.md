@@ -4,7 +4,7 @@ title: How do I run boogie manually?
 
 ## Question
 
-How do I run boogie manually? What Dafny output and command-line flags do I need?
+How do I run Boogie manually? What Dafny output and command-line flags do I need?
 
 ## Answer
 
