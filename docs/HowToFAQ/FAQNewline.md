@@ -9,7 +9,7 @@ It looks like, when compiling to C#, my print statements don't show up if I don'
 ## Answer
 
 The desired output is present in all current Dafny backends. But note that
-if the print statement does not include the \n, then the output may not either.
+if the print statement does not include the `\n`, then the output may not either.
 In that case the output may be (depending on the shell you are using)
 concatenated with the prompt for the next user input.
 
