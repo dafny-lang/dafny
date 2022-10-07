@@ -63,9 +63,6 @@ If something goes wrong with the `release` step:
 
 ## Updating Dafny on Homebrew
 
-The following steps are typically performed by a community member, but feel free
-to perform them if you're on macOS.
-
 Homebrew (`brew`) is a package manager for macOS. The Dafny project
 maintains a brew "formula" that allows easy installation of Dafny and
 its dependencies on macOS.
