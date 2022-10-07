@@ -137,7 +137,18 @@ class NewsFragments:
                     fr.path.unlink()
 
 class Version(NamedTuple):
-    VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<suffix>-.+)?$")
+    """Support functions for version numbers.
+
+    >>> v = Version.from_string("3.8.2-xyz", datetime.date(2022, 8, 1))
+    >>> v.short
+    '3.8.2-xyz'
+    >>> v.full
+    '3.8.2.40801-xyz'
+    >>> v.comment
+    'Version 3.8.2, year 2018+4, month 8, day 1.'
+    """
+
+    VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<identifier>-.+)?$")
 
     main: str # Main version number (1.2.3)
     date: datetime.date # Release date
@@ -147,9 +158,9 @@ class Version(NamedTuple):
     def from_string(cls, vernum: str, date: Optional[datetime.date]=None) -> Optional["Version"]:
         """Parse a short version string into a `Version` object."""
         if m := cls.VERSION_NUMBER_PATTERN.match(vernum):
-            prefix, suffix = m.group("prefix", "suffix")
+            prefix, identifier = m.group("prefix", "identifier")
             date = date or datetime.date.today()
-            return Version(prefix, date, suffix or "")
+            return Version(prefix, date, identifier or "")
         return None
 
     @property
@@ -170,7 +181,7 @@ class Version(NamedTuple):
 
     @property
     def comment(self):
-        return (f"Version {self.short}, year 2018+{self.year_delta}, " +
+        return (f"Version {self.main}, year 2018+{self.year_delta}, " +
                 f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
