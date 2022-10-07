@@ -79,6 +79,21 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
 
+## Dafny tools
+
+- ["Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?](FAQStyle)
+- ["Is Dafny available as a library, to be called from other software?](FAQDafnyAsLibrary)
+- ["How do I run boogie manually on the Dafny output?](FAQBoogie)
+- ["Does Dafny verify methods in parallel?"](FAQParallel)
+- ["Is there a doc generator for Dafny?"](FAQDocGenerator)
+- ["How can I improve automation and performance for programs with non-linear arithmetic?"](FAQNonlinearArith)
+- ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
+- ["Is there a standard library for Dafny?"](FAQStandardLibrary)
+- ["Why do I need to use an old Z3?"](FAQZ3)
+- ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
+- ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
+- ["What compiler target languages are in development?"](FAQCompileTargets)
+
 # Errors
 
 - ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
