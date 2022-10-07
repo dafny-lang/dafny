@@ -356,12 +356,12 @@ class Release:
                 self._update_build_props_file)
         run_one(f"Updating `{self.release_notes_md_path}` from `{self.NEWSFRAGMENTS_PATH}`...",
                 self._consolidate_news_fragments)
+        run_one("Deleting news fragments...",
+                self._delete_news_fragments)
         run_one("Creating commit...",
                 self._commit_changes)
         run_one("Pushing release branch...",
                 self._push_release_branch)
-        run_one("Deleting news fragments...",
-                self._delete_news_fragments)
 
         progress("Done!")
         progress()
