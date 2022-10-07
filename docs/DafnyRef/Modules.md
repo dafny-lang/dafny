@@ -17,8 +17,6 @@ interface.
 ModuleDefinition = "module" { Attribute } ModuleQualifiedName
         [ "refines" ModuleQualifiedName ]
         "{" { TopDecl } "}"
-
-ModuleQualifiedName = ModuleName { "." ModuleName }
 ````
 A `ModuleQualifiedName` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
