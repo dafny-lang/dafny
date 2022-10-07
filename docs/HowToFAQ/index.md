@@ -23,7 +23,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
 
-- ["How do I make a singleton instance of a class for repeated later use?](FAQSingleton)
 - ["Is there a way to use methods within expressions?"](FAQMethodSequence)
 - ["If I have an assertion about a class and a loop that doesn't mention (read, modify)  the class, why does dafny fail to establish the assertion after the loop?"](FAQLoopModifies)
 - ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
