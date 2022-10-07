@@ -1,6 +1,13 @@
 // RUN: %dafny_0 -compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+class NoError {
+  const a: int
+  const b: int
+
+  constructor() { a := 3; b := a; }
+}
+
 class C {
   const a := b + b
   const b: int

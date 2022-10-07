@@ -13822,7 +13822,10 @@ namespace Microsoft.Dafny {
           }
           if (ss is UpdateStmt updateStmt2) {
             foreach (var lhs in updateStmt2.Lhss) {
-              if (lhs is MemberSelectExpr { Member: ConstantField { IsMutable: false } field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
+              var finalLhs = lhs is ConcreteSyntaxExpression concreteSyntaxExpression
+                ? concreteSyntaxExpression.Resolved ?? lhs
+                : lhs;
+              if (finalLhs is MemberSelectExpr { Member: ConstantField { IsMutable: false } field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
                 constantsAlreadyAssigned.Add(field);
               }
             }
