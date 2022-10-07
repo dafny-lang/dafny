@@ -9,7 +9,7 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 	match (k,C[pc]) {
 		case (Kstop,Ihalt) => true
 		case (Kseq(c,k),_) =>
-			var pc' := pc + |compile_com(c)|;
+			var pc': nat := pc + |compile_com(c)|;
 			&& code_at(C, pc, (compile_com(c)))
 			&& compile_cont(C, k, pc')
 		case (Kwhile(b,c,k),Ibranch(ofs)) =>
@@ -52,7 +52,21 @@ lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
 
 }
 
-lemma {:axiom} compile_cont_Kstop_inv(C: code, pc: nat, s: store)
+least lemma compile_cont_Kstop_inv(C: code, pc: nat, s: store)
 	requires compile_cont(C,Kstop,pc)
 	ensures exists pc': nat :: star((c1,c2) => transition(C,c1,c2), (pc, [], s), (pc', [], s)) && pc' < |C| && C[pc'] == Ihalt
+{
+
+	match C[pc] {
+		case Ihalt =>
+		case Ibranch(ofs) => {
+			var pc' := pc + 1 + ofs;
+			assert pc' > 0;
+			assert compile_cont(C,Kstop,pc');
+			compile_cont_Kstop_inv(C,pc',s);
+		}
+		case _ => 
+	}
+		
+}
 
