@@ -30,6 +30,7 @@ static class CommandRegistry {
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
+    UnicodeCharactersOption.Instance, 
   });
 
   static void AddCommand(ICommandSpec command) {

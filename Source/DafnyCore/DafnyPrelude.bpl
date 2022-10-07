@@ -116,23 +116,30 @@ function {:identity} LitReal(x: real): real { x } uses {
 // -- Characters -------------------------------------------------
 // ---------------------------------------------------------------
 
-function char#IsUnicodeScalarValue(n: int): bool {
+#if UNICODE_CHAR
+function char#IsChar(n: int): bool {
   (0                  <= n && n <= 55295   /* 0xD7FF */) || 
   (57344 /* 0xE000 */ <= n && n <= 1114111 /* 0x10FFFF */ )
 }
+#endif
+#if !UNICODE_CHAR
+function char#IsChar(n: int): bool {
+  0 <= n && n < 65536
+}
+#endif
 
 type char;
 function char#FromInt(int): char uses {
   axiom (forall n: int ::
     { char#FromInt(n) }
-    char#IsUnicodeScalarValue(n) ==> char#ToInt(char#FromInt(n)) == n);
+    char#IsChar(n) ==> char#ToInt(char#FromInt(n)) == n);
 }
 
 function char#ToInt(char): int uses {
   axiom (forall ch: char ::
     { char#ToInt(ch) }
     char#FromInt(char#ToInt(ch)) == ch &&
-    char#IsUnicodeScalarValue(char#ToInt(ch)));
+    char#IsChar(char#ToInt(ch)));
 }  
 
 function char#Plus(char, char): char uses {
