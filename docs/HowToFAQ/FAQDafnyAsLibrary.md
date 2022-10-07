@@ -8,4 +8,5 @@ Is Dafny available as a library, to be called from other software?
 
 ## Answer
 
-No. Not yet, anyway.
+Yes, it is. The DafnyPipeline library on NuGet is the most likely candidate for inclusion in a third-party program. The Dafny Playground uses it already (though it doesn’t yet use the NuGet version, since it predates that).
+
