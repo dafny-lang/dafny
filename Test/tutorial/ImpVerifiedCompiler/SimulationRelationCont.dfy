@@ -52,3 +52,7 @@ lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
 
 }
 
+lemma {:axiom} compile_cont_Kstop_inv(C: code, pc: nat, s: store)
+	requires compile_cont(C,Kstop,pc)
+	ensures exists pc': nat :: star((c1,c2) => transition(C,c1,c2), (pc, [], s), (pc', [], s)) && pc' < |C| && C[pc'] == Ihalt
+

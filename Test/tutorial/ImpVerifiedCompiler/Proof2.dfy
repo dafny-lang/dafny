@@ -46,26 +46,33 @@ lemma match_initial_configs(c: com, s: store)
 	assert compile_cont(C, Kstop, |compile_com(c)|);
 }
 
-lemma {:axiom} compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
+lemma compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
 	requires star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
 	ensures machine_terminates(compile_program(c),s1,s2)
-// {
-// 	var C := compile_program(c);
-// 	var impconf1 := (c,Kstop,s1);
-// 	var impconf2 := (CSkip,Kstop,s2);
-// 	var machconf1 := (0,[],s1);
-// 	match_initial_configs(c,s1);
-// 	simulation_steps(C,impconf1,impconf2,machconf1);
-// 	// Not explicitely typing leads to annoying errors due to subset types
-// 	var machconf2: configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
-// 		&& match_config(C, impconf2, machconf2);
-// 	assert star((c1,c2) => transition(C,c1,c2),machconf1,machconf2); // transitions(C,machconf1,machconf2);
-// 	assert compile_cont(C, Kstop, |compile_com(c)|);
-// 	assert C[|compile_com(c)|] == Ihalt;
-// 	assume C[machconf2.0] == Ihalt;
+{
+	var C := compile_program(c);
+	var impconf1 := (c,Kstop,s1);
+	var impconf2 := (CSkip,Kstop,s2);
+	var machconf1 := (0,[],s1);
+	match_initial_configs(c,s1);
+	simulation_steps(C,impconf1,impconf2,machconf1);
+	// Not explicitely typing leads to annoying errors due to subset types
+	var machconf1': configuration :| star((c1,c2) => transition(C,c1,c2),machconf1,machconf1')
+		&& match_config(C, impconf2, machconf1');
+
+	var pc: nat := machconf1'.0;
+	assert compile_cont(C, Kstop, pc);
+	compile_cont_Kstop_inv(C, pc, s2);
 	
-// 	assert transitions(C,machconf1,machconf2);
-// }
+	var pc': nat :| star((c1,c2) => transition(C,c1,c2), machconf1', (pc', [], s2))
+	 && pc' < |C|
+	 && C[pc'] == Ihalt;
+
+	var machconf2: configuration := (pc',[],s2);
+	assert star((c1,c2) => transition(C,c1,c2), machconf1', (pc', [], s2));
+	
+	star_trans_sequent<configuration>((c1,c2) => transition(C,c1,c2), machconf1, machconf1',(pc', [], s2));
+}
 
 lemma foo(C: code, a: configuration, b: configuration, c: configuration)
 	requires star((c1,c2) => transition(C,c1,c2),a,b)
