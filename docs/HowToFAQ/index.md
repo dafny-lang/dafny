@@ -22,6 +22,16 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
+
+- ["Is there a way to use methods within expressions?"](FAQMethodSequence)
+- ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
+- ["How can I combine sequences of different types?"](FAQSeqTrait)
+- ["How do I disambiguate module names?](FAQModuleNames)
+- ["A function seems to work just once. How do I get it to apply a bunch of times?"](FAQFunctionUnroll)
+- ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
+- ["Is there a way to test that two types are the same?"](FAQTypeCompare)
+- ["When a lemma has multiple ensures clauses, I’m finding that they interact, when I expected them to be independent.  For example, commenting out one of them can make another one not verify.  How should I think about this?"](FAQMultClauses)
+
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
 - ["When proving an iff (<==>), is there a nice way to prove this by proving each side of the implication separately without making 2 different lemmas?"](FAQIff)
