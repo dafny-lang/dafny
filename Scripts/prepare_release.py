@@ -71,7 +71,7 @@ class NewsFragments:
     >>> import tempfile
     >>> with tempfile.TemporaryDirectory() as tmpdir:
     ...   fpath = Path(tmpdir) / "1234.fix"
-    ...   _ = fpath.write_text("Dafny will now detect and report burning toast.", encoding="utf-8")
+    ...   _ = fpath.write_text("Dafny will now detect and report burning toast.\n\n", encoding="utf-8")
     ...   fpath = Path(tmpdir) / "5678.feat"
     ...   _ = fpath.write_text("Two new toast patterns:\n- Dafny waterfall logo\n- Dafny haircut logo\n(They are the same.)", encoding="utf-8")
     ...   print(NewsFragments.from_directory(tmpdir).render())
@@ -125,7 +125,7 @@ class NewsFragments:
             for fr in sorted(self.fragments[ext], key=lambda f: f.pr):
                 link = f"(https://github.com/dafny-lang/dafny/pull/{fr.pr})"
                 contents = fr.contents.strip()
-                sep = "\n" if "\n" in fr.contents else " "
+                sep = "\n" if "\n" in contents else " "
                 entry = indent(f"- {contents}{sep}{link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
