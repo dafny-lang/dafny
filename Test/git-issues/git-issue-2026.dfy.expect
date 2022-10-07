@@ -9,12 +9,12 @@ git-issue-2026.dfy(5,0): initial state:
 	n : int = 5854
 	ret : ? = ()
 git-issue-2026.dfy(6,24):
-Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
 	n : int = 5854
 	ret : ? = ([null] := @0)
 	@0 : ? = ()
 git-issue-2026.dfy(8,14):
-Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
 	n : int = 5854
 	ret : ? = ([null] := @0)
 	i : int = 0
@@ -24,13 +24,13 @@ git-issue-2026.dfy(9,4): after some loop iterations:
 	ret : ? = ()
 	i : int = 0
 git-issue-2026.dfy(15,27):
-Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
 	n : int = 5854
 	ret : ? = ([null] := @0)
 	i : int = 0
 	@0 : ? = ()
 git-issue-2026.dfy(19,18):
-Please enable /proverOpt:O:model_compress=false, otherwise you'll get unexpected values.
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
 	n : int = 5854
 	ret : ? = ([null] := @0)
 	i : int = 1

@@ -270,7 +270,7 @@ encoding makes it possible to reason about fixpoints in an automated
 way.
 
 The encoding for greatest predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
+[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-coinductive-datatypes).
 
 ### 24.4.1. Function Definitions
 
@@ -1019,7 +1019,7 @@ are given in the following table:
 | `map<K, V>`               | `x.Keys` is a proper subset of `X.Keys`                |
 | inductive datatypes    | `x` is structurally included in `X`                            |
 | reference types | `x == null && X != null` |
-| co-inductive datatypes | `false` |
+| coinductive datatypes | `false` |
 | type parameter | `false` |
 | arrow types | `false` |
 

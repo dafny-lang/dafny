@@ -22,6 +22,16 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
+
+- ["Is there a way to use methods within expressions?"](FAQMethodSequence)
+- ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
+- ["How can I combine sequences of different types?"](FAQSeqTrait)
+- ["How do I disambiguate module names?](FAQModuleNames)
+- ["A function seems to work just once. How do I get it to apply a bunch of times?"](FAQFunctionUnroll)
+- ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
+- ["Is there a way to test that two types are the same?"](FAQTypeCompare)
+- ["When a lemma has multiple ensures clauses, I’m finding that they interact, when I expected them to be independent.  For example, commenting out one of them can make another one not verify.  How should I think about this?"](FAQMultClauses)
+
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
 - ["When proving an iff (<==>), is there a nice way to prove this by proving each side of the implication separately without making 2 different lemmas?"](FAQIff)
@@ -68,6 +78,21 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
+
+## Dafny tools
+
+- ["Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?](FAQStyle)
+- ["Is Dafny available as a library, to be called from other software?](FAQDafnyAsLibrary)
+- ["How do I run boogie manually on the Dafny output?](FAQBoogie)
+- ["Does Dafny verify methods in parallel?"](FAQParallel)
+- ["Is there a doc generator for Dafny?"](FAQDocGenerator)
+- ["How can I improve automation and performance for programs with non-linear arithmetic?"](FAQNonlinearArith)
+- ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
+- ["Is there a standard library for Dafny?"](FAQStandardLibrary)
+- ["Why do I need to use an old Z3?"](FAQZ3)
+- ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
+- ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
+- ["What compiler target languages are in development?"](FAQCompileTargets)
 
 # Errors
 
