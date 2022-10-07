@@ -34,5 +34,5 @@ and give it a literal value that tells it how much to unroll.
 ```
 With this solution, the number of unrollings can be set at the call site, rather than in the function definition.
 
-[This paper](https://www.microsoft.com/en-us/research/publication/computing-smt-solver/) gives some technical insight into how recursive functions are handled in situations liek these examples.
+[This paper](https://www.microsoft.com/en-us/research/publication/computing-smt-solver/) gives some technical insight into how recursive functions are handled in situations like these examples.
 
