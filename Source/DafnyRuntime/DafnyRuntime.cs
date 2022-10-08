@@ -914,8 +914,12 @@ namespace Dafny {
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static ISequence<System.Text.Rune> RunesFromString(string s) {
-      return new ArraySequence<System.Text.Rune>(s.EnumerateRunes().ToImmutableArray());
+    public static ISequence<Int32> RunesFromString(string s) {
+      var runes = new List<Int32>();
+      foreach(var rune in s.EnumerateRunes()) {
+        runes.Add(rune.Value);
+      }
+      return new ArraySequence<Int32>(runes.ToArray());
     }
 
     public static ISequence<ISequence<char>> FromMainArguments(string[] args) {
@@ -927,14 +931,14 @@ namespace Dafny {
 
       return Sequence<ISequence<char>>.FromArray(dafnyArgs);
     }
-    public static ISequence<ISequence<System.Text.Rune>> RunesFromMainArguments(string[] args) {
-      Dafny.ISequence<System.Text.Rune>[] dafnyArgs = new Dafny.ISequence<System.Text.Rune>[args.Length + 1];
-      dafnyArgs[0] = Dafny.Sequence<System.Text.Rune>.RunesFromString("dotnet");
+    public static ISequence<ISequence<Int32>> RunesFromMainArguments(string[] args) {
+      Dafny.ISequence<Int32>[] dafnyArgs = new Dafny.ISequence<Int32>[args.Length + 1];
+      dafnyArgs[0] = Dafny.Sequence<Int32>.RunesFromString("dotnet");
       for (var i = 0; i < args.Length; i++) {
-        dafnyArgs[i + 1] = Dafny.Sequence<System.Text.Rune>.RunesFromString(args[i]);
+        dafnyArgs[i + 1] = Dafny.Sequence<Int32>.RunesFromString(args[i]);
       }
 
-      return Sequence<ISequence<System.Text.Rune>>.FromArray(dafnyArgs);
+      return Sequence<ISequence<Int32>>.FromArray(dafnyArgs);
     }
 
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
@@ -1074,6 +1078,12 @@ namespace Dafny {
     public override string ToString() {
       if (typeof(T) == typeof(char)) {
         return string.Concat(this);
+      } else if (typeof(T) == typeof(Int32)) {
+        var builder = new System.Text.StringBuilder();
+        foreach(var rune in this) {
+          builder.Append(char.ConvertFromUtf32((int)(object)rune));
+        }
+        return builder.ToString();
       } else {
         return "[" + string.Join(", ", ImmutableElements.Select(Dafny.Helpers.ToString)) + "]";
       }

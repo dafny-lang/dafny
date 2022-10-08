@@ -1442,7 +1442,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string CharTypeName() {
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "System.Text.Rune" : "char";
+      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Int32" : "char";
     }
     
     private string CharMethodPrefix() {
