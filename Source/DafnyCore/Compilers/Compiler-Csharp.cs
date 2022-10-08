@@ -1442,7 +1442,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string CharTypeName() {
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Int32" : "char";
+      // TODO: Figure out if there is any runtime code for using Rune instead of Int32
+      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "System.Text.Rune" : "char";
+    }
+    
+    // This must be followed by the value to convert in parentheses
+    private string ConvertToChar() {
+      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "new System.Text.Rune" : "(char)";
     }
     
     private string CharMethodPrefix() {
@@ -2866,14 +2872,14 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Add:
           opString = "+"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = $"({CharTypeName()})(";
+            preOpString = $"{ConvertToChar()}(";
             postOpString = ")";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
           opString = "-"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = $"({CharTypeName()})(";
+            preOpString = $"{ConvertToChar()}(";
             postOpString = ")";
           }
           break;
@@ -2964,7 +2970,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Format($"({CharTypeName()})({Expr(e.E, inLetExprBody, wStmts)})");
+          wr.Format($"{ConvertToChar()}({Expr(e.E, inLetExprBody, wStmts)})");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -3026,7 +3032,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
-            wr.Write($"({CharTypeName()})");
+            wr.Write(ConvertToChar());
           } else if (AsNativeType(e.ToType) != null) {
             wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
