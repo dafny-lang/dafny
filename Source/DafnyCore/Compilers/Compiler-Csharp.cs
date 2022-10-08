@@ -1450,6 +1450,27 @@ namespace Microsoft.Dafny.Compilers {
     private string ConvertToChar() {
       return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "new System.Text.Rune" : "(char)";
     }
+
+    private void ConvertToChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        wr.Write(ConvertToChar());
+        wr.Write("((uint)");
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
+        wr.Write(")");
+      } else {
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
+      }
+    }
+    
+    private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      if (e.Type.IsCharType && UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        wr.Write("(");
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
+        wr.Write(".Value)");
+      } else {
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
+      }
+    }
     
     private string CharMethodPrefix() {
       return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Runes" : "";
@@ -2967,10 +2988,10 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
           }
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Format($"{ConvertToChar()}({Expr(e.E, inLetExprBody, wStmts)})");
+          ConvertToChar(e.E, wr, inLetExprBody, wStmts);
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2979,7 +3000,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.E.Type.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigInteger");
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
               TrExpr(e.E, wr, inLetExprBody, wStmts);
@@ -3019,7 +3040,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               // no optimization applies; use the standard translation
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             }
           }
         }
@@ -3043,8 +3064,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBigOrdinalType) {
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write("$({CharTypeName()})");
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          ConvertToChar(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
