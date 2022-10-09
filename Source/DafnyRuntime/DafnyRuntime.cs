@@ -1509,6 +1509,14 @@ namespace Dafny {
         Console.WriteLine("[Program halted] " + e.Message);
       }
     }
+
+    public static System.Text.Rune AddRunes(System.Text.Rune left, System.Text.Rune right) {
+      return (System.Text.Rune)(left.Value + right.Value);
+    }
+
+    public static System.Text.Rune SubtractRunes(System.Text.Rune left, System.Text.Rune right) {
+      return (System.Text.Rune)(left.Value - right.Value);
+    }
   }
 
   public class BigOrdinal {

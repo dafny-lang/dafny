@@ -1441,18 +1441,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+
     private string CharTypeName() {
       // TODO: Figure out if there is any runtime code for using Rune instead of Int32
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "System.Text.Rune" : "char";
+      return UnicodeChars ? "System.Text.Rune" : "char";
     }
     
     // This must be followed by the value to convert in parentheses
     private string ConvertToChar() {
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "new System.Text.Rune" : "(char)";
+      return UnicodeChars ? "new System.Text.Rune" : "(char)";
     }
 
     private void ConvertToChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (UnicodeChars) {
         wr.Write(ConvertToChar());
         wr.Write("((uint)");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
@@ -2079,7 +2081,11 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
-        wr.Write("'{0}'", (string)e.Value);
+        if (UnicodeChars) {
+          wr.Write($"{ConvertToChar()}('{(string)e.Value}')");
+        } else {
+          wr.Write($"'{(string)e.Value}'");
+        }
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName()}>.{CharMethodPrefix()}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
@@ -2891,17 +2897,29 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           opString = ">>"; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = $"{ConvertToChar()}(";
-            postOpString = ")";
+            if (UnicodeChars) {
+              staticCallString = $"{DafnyHelpersClass}.AddRunes";
+            } else {
+              opString = "+"; truncateResult = true;
+              preOpString = $"(char)(";
+              postOpString = ")";
+            }
+          } else {
+            opString = "+"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          opString = "-"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = $"{ConvertToChar()}(";
-            postOpString = ")";
+            if (UnicodeChars) {
+              staticCallString = $"{DafnyHelpersClass}.SubtractRunes";
+            } else {
+              opString = "-"; truncateResult = true;
+              preOpString = $"(char)(";
+              postOpString = ")";
+            }
+          } else {
+            opString = "-"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
