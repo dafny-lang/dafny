@@ -1038,6 +1038,9 @@ the form of the AST. The best guides to writing a new plugin are
 
 Did I already say this capability is experimental and in development?
 
+The value of the option `-plugin` is a path to a dotnet dll that contains
+the compiled plugin.
+
 ### 25.9.4. Controlling output {#sec-controlling-output}
 
 These options instruct Dafny to print various information about your
