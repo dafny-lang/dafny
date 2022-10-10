@@ -16,8 +16,11 @@ function method toLower(ch: char): char {
 }
 
 method Main(args: seq<string>) {
-  var trickyString := "Dafny is just so " + [0x1F60E as char];
+  var trickyString := "Dafny is just so \U{1F60E}";
   print trickyString, "\n";
+
+  var trickyString2 := "Dafny is just so " + [0x1F60E as char];
+  print trickyString2, "\n";
 
   // Testing that runtimes don't confuse a seq<uint32> for a string
   // (which would be a problem if we used Int32 in C# instead of Rune, for example)

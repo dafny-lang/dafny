@@ -185,6 +185,18 @@ namespace Microsoft.Dafny {
         return s.Substring(1, len - 2);
       }
     }
+
+    public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        if (s.Contains("\\u")) {
+          errors.SemErr(t, "\\u escape sequences not supported when Unicode chars are enabled");
+        }
+      } else {
+        if (s.Contains("\\U")) {
+          errors.SemErr(t, "\\U escape sequences not supported when Unicode chars are disabled");
+        }
+      }
+    }
     /// <summary>
     /// Replaced any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
@@ -199,7 +211,7 @@ namespace Microsoft.Dafny {
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
     /// </summary>
-    public static IEnumerable<char> UnescapedCharacters(string p, bool isVerbatimString) {
+    public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
       Contract.Requires(p != null);
       if (isVerbatimString) {
         var skipNext = false;
@@ -231,8 +243,18 @@ namespace Microsoft.Dafny {
                 ch = 16 * ch + HexValue(p[i + 3]);
                 ch = 16 * ch + HexValue(p[i + 4]);
                 ch = 16 * ch + HexValue(p[i + 5]);
-                yield return (char)ch;
+                yield return ch;
                 i += 6;
+                continue;
+              case 'U':
+                int uch = HexValue(p[i + 3]);
+                i += 4;
+                while (p[i] != '}') {
+                  uch = 16 * uch + HexValue(p[i]);
+                  i++;
+                }
+                yield return uch;
+                i++;
                 continue;
               default:
                 break;
@@ -248,6 +270,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public static IEnumerable<uint> EnumerateDafnyChars(string s) {
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        return s.EnumerateRunes().Select(r => (uint)r.Value);
+      } else {
+        return s.Select(c => (uint)c);
+      }
+    } 
 
     /// <summary>
     /// Converts a hexadecimal digit to an integer.

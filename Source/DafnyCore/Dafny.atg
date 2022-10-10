@@ -858,6 +858,7 @@ TOKENS
       ( charChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" { hexdigit } "}"
       )
       "'".
   stringToken =
@@ -865,6 +866,7 @@ TOKENS
       { stringChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" { hexdigit } "}"
       }
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
@@ -962,6 +964,7 @@ Dafny
                                              string parsedFile = scanner.FullFilename;
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                             Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
                                              if (!Path.IsPathRooted(includedFile)) {
                                                string basePath = Path.GetDirectoryName(parsedFile);
@@ -4154,9 +4157,12 @@ LiteralExpression<out Expression e>
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
-  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
+  | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
+                                                  Util.ValidateEscaping(t, s, false, errors);
+                                                  e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                                  Util.ValidateEscaping(t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   )
