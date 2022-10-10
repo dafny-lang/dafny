@@ -204,7 +204,11 @@ namespace Microsoft.Dafny {
     public static string RemoveEscaping(string s, bool isVerbatimString) {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
-      UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(ch));
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
+      } else {
+        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append((char)ch));
+      }
       return sb.ToString();
     }
     /// <summary>
@@ -270,14 +274,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    public static IEnumerable<uint> EnumerateDafnyChars(string s) {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        return s.EnumerateRunes().Select(r => (uint)r.Value);
-      } else {
-        return s.Select(c => (uint)c);
-      }
-    } 
 
     /// <summary>
     /// Converts a hexadecimal digit to an integer.
