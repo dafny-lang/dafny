@@ -102,14 +102,14 @@ Options provided through the command line have higher priority than the options 
 The plugin API directly exposes the Dafny AST, which is constantly evolving.
 Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin.*
 
-Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
+Plugins are libraries linked to a `Dafny.dll` of the same version as the language server.
 A plugin typically defines:
 
-* Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration` which receives plugins arguments in their method `ParseArguments`, and
-  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when their method `GetRewriters()` is called by Dafny,
-  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when their method `GetCompilers()` is called by Dafny,
+* Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration` which receives plugins arguments in its method `ParseArguments`, and
+  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when its method `GetRewriters()` is called by Dafny,
+  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when its method `GetCompilers()` is called by Dafny,
   3) If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`,
-     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`s when their method `GetDafnyCodeActionProviders()` is called by the Dafny Language Server.
+     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`s when its method `GetDafnyCodeActionProviders()` is called by the Dafny Language Server.
 
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
