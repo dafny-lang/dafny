@@ -1,4 +1,4 @@
-# 1. Introduction
+# 1. Introduction {#sec-introduction}
 
 Dafny [@Leino:Dafny:LPAR16] is a programming language with built-in specification constructs,
 so that verifying a program's correctness with respect to those specifications
@@ -12,7 +12,7 @@ executable form.
 The Dafny programming language is designed to support the static
 verification of programs. It is imperative, sequential, supports generic
 classes, inheritance and abstraction, methods and functions, dynamic allocation, inductive and
-co-inductive datatypes, and specification constructs. The
+coinductive datatypes, and specification constructs. The
 specifications include pre- and postconditions, frame specifications
 (read and write sets), and termination metrics. To further support
 specifications, the language also offers updatable ghost variables,
@@ -60,7 +60,7 @@ initial section that deals with the lowest level constructs.
 
 The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 25](#sec-user-guide)).
 
-## 1.1. Dafny Example
+## 1.1. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
 
 ```dafny

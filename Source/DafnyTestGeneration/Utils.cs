@@ -1,8 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
-using DafnyServer.CounterexampleGeneration;
+using System.Text;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
@@ -30,12 +30,5 @@ namespace DafnyTestGeneration {
       return program;
     }
 
-    public static string Stringify(this object value) {
-      if (value is IEnumerable<object> enumerable) {
-        return string.Join(", ", enumerable.Select(Stringify));
-      }
-
-      return value.ToString()!;
-    }
   }
 }

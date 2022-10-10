@@ -1,0 +1,37 @@
+git-issue-2026.dfy(11,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(11,18): Related message: loop invariant violation
+git-issue-2026.dfy(12,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(12,18): Related message: loop invariant violation
+
+Dafny program verifier finished with 0 verified, 2 errors
+Counterexample for first failing assertion: 
+git-issue-2026.dfy(5,0): initial state:
+	n : int = 5854
+	ret : ? = ()
+git-issue-2026.dfy(6,24):
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
+	n : int = 5854
+	ret : ? = ([null] := @0)
+	@0 : ? = ()
+git-issue-2026.dfy(8,14):
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
+	n : int = 5854
+	ret : ? = ([null] := @0)
+	i : int = 0
+	@0 : ? = ()
+git-issue-2026.dfy(9,4): after some loop iterations:
+	n : int = 5854
+	ret : ? = ()
+	i : int = 0
+git-issue-2026.dfy(15,27):
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
+	n : int = 5854
+	ret : ? = ([null] := @0)
+	i : int = 0
+	@0 : ? = ()
+git-issue-2026.dfy(19,18):
+Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), otherwise you'll get unexpected values.
+	n : int = 5854
+	ret : ? = ([null] := @0)
+	i : int = 1
+	@0 : ? = ()

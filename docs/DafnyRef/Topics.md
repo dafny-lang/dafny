@@ -225,12 +225,6 @@ and will then raise the error that it's not possible to update the non-ghost var
 
 ## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
-TODO: This section needs rewriting
-
-This section is a tutorial on well-founded functions and extreme predicates.
-We place it here in preparation for [the section about class types](#sec-class-types)
-where function and predicate definitions are described.
-
 Recursive functions are a core part of computer science and mathematics.
 Roughly speaking, when the definition of such a function spells out a
 terminating computation from given arguments, we may refer to
@@ -268,7 +262,7 @@ available in the proof assistants Isabelle [@Paulson:CADE1994] and HOL
 [@Harrison:InductiveDefs].
 
 Dafny supports both well-founded functions and extreme predicates.
-This section is a tutorial that describes the difference in general
+This section describes the difference in general
 terms, and then describes novel syntactic support in Dafny for
 defining and proving lemmas with extreme predicates.  Although Dafny's
 verifier has at its core a first-order SMT solver, Dafny's logical
@@ -276,12 +270,12 @@ encoding makes it possible to reason about fixpoints in an automated
 way.
 
 The encoding for greatest predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
+[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-coinductive-datatypes).
 
 ### 24.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
-write an equation like
+write a general equation like
 
 <p style="text-align: center;" id="eq-general">
 $$f = \mathcal{F}(f)$$
@@ -307,8 +301,8 @@ $f$
 is a `boolean` function, that is, if
 $Y$
 is
-the type of booleans, then I call
-$f$
+the type of booleans, then 
+$f$ is called
 a _predicate_.
 
 For example, the common Fibonacci function over the
@@ -373,9 +367,7 @@ be some predicate defined on the ordinals and let $\mathit{P}_\downarrow$ be a p
 ordinals defined by the following equation:
 
 <p style="text-align: center;">
-$$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p)
-$$
+$\mathit{P}_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}_\downarrow(p)$
 </p>
 
 
@@ -532,50 +524,50 @@ terminate.  However, there are useful ways to establish that an extreme predicat
 and there are ways to make use of one once it has been established.
 
 For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
-functions, ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$
+functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
 <p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
-   { {}^{\flat}\!f}_k(x) = \left\{
+   { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
 
 <p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
-   { {}^{\sharp}\!f}_k(x) = \left\{
+   { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
+      \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
 of $k$ as being a parameter).
-Alternatively, we can define ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$ without mentioning $x$:
+Alternatively, we can define ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$ without mentioning $x$:
 Let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
 Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
-${ {}^{\flat}\!f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\!f}_k = \mathcal{F}^k(\top)$.
+${ {}^{\flat}\kern-1mm f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\kern-1mm f}_k = \mathcal{F}^k(\top)$.
 
 For any solution $f$ to [the general equation](#eq-general), we have, for any $k$ and $\ell$
 such that $k \leq \ell$:
 
 
 <p style="text-align: center;" id="eq-prefix-postfix" title="the prefix postfix result">$$
- {\;{}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
+ {\;{}^{\flat}\kern-1mm f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\kern-1mm f}_k $$</p>
 
-In other words, every ${\;{}^{\flat}\!f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\!f}\_{k}$ is a _post-fixpoint_
+In other words, every ${\;{}^{\flat}\kern-1mm f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\kern-1mm f}\_{k}$ is a _post-fixpoint_
 of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
 <p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
- f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\!f}_k(x) $$</p>
+ f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x) $$</p>
 <p style="text-align: center;" id="eq-greatest-is-forall" title="the greatest forall definition">$$
-  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\!f}_k(x) $$</p>
+  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x) $$</p>
 
 By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
@@ -623,14 +615,14 @@ general form of our proof goal:
 
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
+|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
-${ {}^{\flat}\!g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
-If $k = 0$, then ${ {}^{\flat}\!g}\_k(x)$ is `false`, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\flat}\!g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\!g}\_{k-1}(x-2))$.  Our goal holds easily
+${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
+If $k = 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x)$ is `false`, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\flat}\kern-1mm g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\kern-1mm g}\_{k-1}(x-2))$.  Our goal holds easily
 for the first disjunct ($x=0$).  For the other disjunct,
 we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
 obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
@@ -679,16 +671,16 @@ general form of our proof goal:
 |~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 |   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 | = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\!f}_k(x)$                                  |
+|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
 -->
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 <!--
-$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\!g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\!g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\!g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\!g}_{k-1}(x-2))$.  We establish the second
+$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
+If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 -->
 
@@ -748,8 +740,8 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
+Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
 
 ```dafny
@@ -835,7 +827,7 @@ greatest predicate G(x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
-prefix predicates.  Instead of the names ${ {}^{\flat}\!g}_k$ and ${ {}^{\sharp}\!g}_k$ that I used above, Dafny
+prefix predicates.  Instead of the names ${ {}^{\flat}\kern-1mm g}_k$ and ${ {}^{\sharp}\kern-1mm g}_k$ that I used above, Dafny
 names the prefix predicates `g#[k]` and `G#[k]`, respectively, that is, the name of
 the extreme predicate appended with `#`, and the subscript is given as an argument in
 square brackets.  The definition of the prefix predicate derives from the body of
@@ -981,7 +973,38 @@ Folks, it doesn't get any simpler than that!
 
 ## 24.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
-TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
+The Dafny language semantics require that when a constant or variable is used
+that it have a definite value. It need not be given a value when it is declared,
+but must have a value when it is first used. As the first use may be buried in
+much later code and may be in different locations depending on the control flow
+through `if`, `match`, loop statements and expressions, checking for
+definite assignment can require some program flow analysis.
+
+Dafny will issue an error message if it cannot assure itself that a variable 
+has been given a value. This may be a conservative warning: Dafny may issue an error message even if it is possible to prove, but Dafny does not, that a
+variable will always be initialized.
+
+If the type of a variable is _auto-initializable_, then a default value is used
+implicitly even if the declaration of the variable does not have an 
+explicit initializer. For example, a `bool` variable is initialized by default
+to `false` and a variable with an int-based type for which `0` is a valid value
+is auto-initialized to `0`; a non-nullable class type is not 
+auto-initialized, but a nullable class type is auto-initalized to `null`.
+
+In declaring generic types, type parameters can be declared to be required to
+be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
+
+If a class has fields that are not auto-initializable, then the class must
+have a constructor, and in each constructor those fields must be explicitly
+initialized. This rule ensures that any method of the class (which does not
+know which constructor may have been already called) can rely on the fields
+having been initialized.
+
+[This document](../Compilation/AutoInitialization) has more detail on
+auto-initialization.
+
+The `-definiteAssignment` option allows choosing different levels of 
+checking the definite assignment rules.
 
 ## 24.7. Well-founded Orders {#sec-well-founded-orders}
 
@@ -999,7 +1022,7 @@ are given in the following table:
 | `map<K, V>`               | `x.Keys` is a proper subset of `X.Keys`                |
 | inductive datatypes    | `x` is structurally included in `X`                            |
 | reference types | `x == null && X != null` |
-| co-inductive datatypes | `false` |
+| coinductive datatypes | `false` |
 | type parameter | `false` |
 | arrow types | `false` |
 

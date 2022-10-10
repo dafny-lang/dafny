@@ -19,16 +19,8 @@
    use judgement. The last section is in "ymmdd" format, where "y" is
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
-   x.y.z.40112). Edit the internal version number in the following
-   places:
-
-   * `Source/version.cs`
-
-   * `Source/DafnyDriver/DafnyDriver.csproj`
-
-   * `Source/Dafny/DafnyPipeline.csproj`
-
-   * `Source/DafnyLanguageServer/DafnyLanguageServer.csproj`
+   x.y.z.40112). Edit the internal version number in 
+  `Source/Directory.Build.Props`.
 
    Put the public version number in place of the "Upcoming" header in
    `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
@@ -54,8 +46,9 @@
    ```
 
 5. A GitHub action will automatically run in reaction to the tag being pushed,
-   which will build the artifacts and reference manual and then create a draft
-   GitHub release. You can find and watch the progress of this workflow at
+   which will build the artifacts, upload them to NuGet, build the reference manual,
+   and then create a draft GitHub release.
+   You can find and watch the progress of this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
 6. Once the action completes, you should find the draft release at
@@ -65,35 +58,24 @@
    the release, if this is not a pre-release.
 
 7. Push the "Publish" button. This will trigger yet another workflow
-   that will download the published artifacts and run a smoke test
-   on multiple platforms. Again you can watch for this workflow at
+   that will download the published artifacts (from both GitHub and NuGet)
+   and run a smoke test on multiple platforms. 
+   Again you can watch for this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-8. Manually upload packages to NuGet, from the fresh checkout of the
-   repository used for tagging.
+8. If preparing a pre-release, stop here, as
+   the following steps declare the release as the latest version, which
+   is not the intention.
 
-   ```
-   dotnet build Source/Dafny.sln
-   dotnet pack --no-build dafny/Source/Dafny.sln
-   dotnet nuget push --skip-duplicate "Binaries/Dafny*.nupkg" -k $A_VALID_API_KEY -s https://api.nuget.org/v3/index.json
-   ```
+9. If something goes wrong, delete the tag and release in GitHub, fix the
+   problem and try again.
 
-9. Manually trigger the "Test NuGet Tool Installation" workflow on the
-   `master` branch (following the same process as for step 3).
-
-10. If preparing a pre-release, stop here, as
-    the following steps declare the release as the latest version, which
-    is not the intention.
-
-11. If something goes wrong, delete the tag and release in GitHub, fix the
-    problem and try again.
-
-12. Update the Homebrew formula for Dafny (see below).
+10. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
     and other members of the community may update the formula
     in the meantime anyway.
 
-13. Announce the new release to the world.
+11. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
@@ -125,11 +107,11 @@ with git commands and concepts is helpful.
 
    These instructions currently involve the following command:
 
-   ```
+```
   brew bump-formula-pr \
     --url <source .tar.gz for the release> \
     --sha256 <sha256 of the source .tar.gz for the release>
-   ```
+```
 
 3. Expect comments from the reviewers. If changes are needed, do 4-6
    again. Eventually the reviewers will accept and merge the PR.
