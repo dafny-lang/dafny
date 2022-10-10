@@ -122,7 +122,7 @@ class Array:
         self.arr = createArrayStructure(initValue, *dims)
 
     def __dafnystr__(self) -> str:
-        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+        return f'array{self.dims}'
 
     def __str__(self):
         return self.__dafnystr__()
