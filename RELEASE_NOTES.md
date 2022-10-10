@@ -2,6 +2,7 @@
 
 - fix: Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
 - fix: Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
+- fix: Exclude ghost variables from compilation of lambda-expression closures (https://github.com/dafny-lang/dafny/pull/2873)
 
 # 3.9.0
 
