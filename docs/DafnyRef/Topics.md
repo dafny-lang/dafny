@@ -225,12 +225,6 @@ and will then raise the error that it's not possible to update the non-ghost var
 
 ## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
-TODO: This section needs rewriting
-
-This section is a tutorial on well-founded functions and extreme predicates.
-We place it here in preparation for [the section about class types](#sec-class-types)
-where function and predicate definitions are described.
-
 Recursive functions are a core part of computer science and mathematics.
 Roughly speaking, when the definition of such a function spells out a
 terminating computation from given arguments, we may refer to
@@ -268,7 +262,7 @@ available in the proof assistants Isabelle [@Paulson:CADE1994] and HOL
 [@Harrison:InductiveDefs].
 
 Dafny supports both well-founded functions and extreme predicates.
-This section is a tutorial that describes the difference in general
+This section describes the difference in general
 terms, and then describes novel syntactic support in Dafny for
 defining and proving lemmas with extreme predicates.  Although Dafny's
 verifier has at its core a first-order SMT solver, Dafny's logical
@@ -281,7 +275,7 @@ The encoding for greatest predicates in Dafny was described previously
 ### 24.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
-write an equation like
+write a general equation like
 
 <p style="text-align: center;" id="eq-general">
 $$f = \mathcal{F}(f)$$
@@ -307,8 +301,8 @@ $f$
 is a `boolean` function, that is, if
 $Y$
 is
-the type of booleans, then I call
-$f$
+the type of booleans, then 
+$f$ is called
 a _predicate_.
 
 For example, the common Fibonacci function over the
@@ -373,9 +367,7 @@ be some predicate defined on the ordinals and let $\mathit{P}_\downarrow$ be a p
 ordinals defined by the following equation:
 
 <p style="text-align: center;">
-$$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p)
-$$
+$\mathit{P}_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}_\downarrow(p)$
 </p>
 
 
