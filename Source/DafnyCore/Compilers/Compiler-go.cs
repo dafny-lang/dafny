@@ -2658,13 +2658,13 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wArray;
       if (dimensionCount != 1) {
         // use a general call, which uses a varargs for the indices
-        wr.Write(isGet ? "_dafny.ArrayGet(": "_dafny.ArraySet(");
+        wr.Write(isGet ? "_dafny.ArrayGet(" : "_dafny.ArraySet(");
         wArray = wr.Fork();
         wr.Write(", ");
       } else {
         // specialize to a call with exactly one index argument
         wArray = wr.ForkInParens();
-        wr.Write($"{(isGet ? ".ArrayGet1": ".ArraySet1")}{typeSpecialization}(");
+        wr.Write($"{(isGet ? ".ArrayGet1" : ".ArraySet1")}{typeSpecialization}(");
       }
       var wArguments = wr.Fork();
       wr.Write(")");
