@@ -1026,7 +1026,7 @@ These options control how Dafny processes its input.
 ### 25.9.3. Controlling plugins {#sec-controlling-plugins}
 
 Dafny has a plugin capability. 
-For example, `dafny auditor` and `dafny doc` 
+For example, `dafny audit` and `dafny doc` 
 are under development. A plugin has access to an AST of the dafny input files
 after all parsing and resolution are performed (but not verification)
 and also to the command-line options.
