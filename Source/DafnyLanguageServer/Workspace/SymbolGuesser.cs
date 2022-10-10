@@ -117,14 +117,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // TODO This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
           .WithCancellation(cancellationToken)
-          .Where(child => child.Name == name)
-          .FirstOrDefault();
+          .FirstOrDefault(child => child.Name == name);
       }
 
       private string[] GetMemberAccessChainEndingAt(Position position) {
-        var text = state.TextDocumentItem.Text;
-        var absolutePosition = position.ToAbsolutePosition(text, cancellationToken);
-        return new MemberAccessChainResolver(text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
+        var absolutePosition = state.TextDocumentItem.ToIndex(position);
+        return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
     }
 

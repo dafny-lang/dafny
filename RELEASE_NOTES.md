@@ -1,9 +1,16 @@
 # Upcoming
 
+- fix: Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
+- fix: Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
+- feat: Improve performance of Go code by using native byte/char arrays (https://github.com/dafny-lang/dafny/pull/2818)
+
+# 3.9.0
+
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
 - feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
 - feat: Generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
+- feat: Support arbitrary version of z3 for the language server. Dafny is still distributed with z3 4.8.5 and uses that version by default. (https://github.com/dafny-lang/dafny/pull/2820)
 - fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
 - fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
 - fix: Use the right comparison operators for bitvectors in Javascript (https://github.com/dafny-lang/dafny/pull/2716)
@@ -17,11 +24,6 @@
 - deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
 - deprecate: The form of the modify statement with a block statement is deprecated
 - docs: The user documentation at https://dafny.org has a new landing page
-and is now synchronized with 
-releases, showing a snapshot of the user documentation at the time of a 
-release, with links to older snapshots and to the current development version
-of user documentation.
-- feat: Improve performance of Go code by using native byte/char arrays (https://github.com/dafny-lang/dafny/pull/2818)
 
 # 3.8.1
 
