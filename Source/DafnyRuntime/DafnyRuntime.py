@@ -8,7 +8,6 @@ from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from itertools import chain, combinations, count
-import copy
 
 class classproperty(property):
     def __get__(self, instance, owner):
@@ -107,14 +106,6 @@ class Seq(tuple):
 
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
-
-def createArrayStructure(initValue, *dims):
-    howmany = dims[0]
-    if len(dims) == 1:
-        return [initValue for _ in range(howmany)]
-    else:
-        rest = dims[1:]
-        return [createArrayStructure(initValue, *rest) for _ in range(howmany)]
 
 class Array:
     def __init__(self, initValue, *dims):
