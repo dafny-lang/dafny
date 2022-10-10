@@ -79,6 +79,7 @@ namespace Microsoft.Dafny {
           // For
           //   a)  LHS ==> RHS
           //   b)  LHS ==>
+          //         RHS-somewhere-on-this-line
           // use LHS.StartToken as the left margin.
           bin.E0.StartToken.line == expr.tok.line ? bin.E0.StartToken.col :
           // For
@@ -89,9 +90,11 @@ namespace Microsoft.Dafny {
           // For
           //   d)  LHS0 &&
           //       LHS1 ==>
+          //         RHS-somewhere-on-this-line
           //   e)  LHS0 &&
           //       LHS1
           //       ==>
+          //         RHS-somewhere-on-this-line
           // use LHS.StartToken as the left margin.
           bin.E0.StartToken.col,
           "left-hand operand of " + BinaryExpr.OpcodeString(bin.Op));
