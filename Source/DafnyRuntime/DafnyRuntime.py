@@ -118,6 +118,8 @@ def createArrayStructure(initValue, *dims):
 
 class Array:
     def __init__(self, initValue, *dims):
+        def create_structure(initValue, *dims):
+            return [initValue if len(dims) <= 1 else create_structure(initValue, *dims[1:]) for _ in range(dims[0])]
         self.dims = list(dims)
         self.arr = createArrayStructure(initValue, *dims)
 
