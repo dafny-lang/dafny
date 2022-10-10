@@ -117,10 +117,6 @@ def createArrayStructure(initValue, *dims):
         return [createArrayStructure(initValue, *rest) for _ in range(howmany)]
 
 class Array:
-    class Box(list):
-        def __dafnystr__(self) -> str:
-            return '[' + ', '.join(map(string_of, self)) + ']'
-
     def __init__(self, initValue, *dims):
         self.dims = list(dims)
         self.arr = createArrayStructure(initValue, *dims)
