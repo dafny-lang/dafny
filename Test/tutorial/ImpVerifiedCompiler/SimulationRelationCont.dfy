@@ -79,7 +79,7 @@ lemma compile_cont_Kseq_inv(C: code, c: com, k: cont, pc: nat, s: store)
 
 lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, s: store)
 	requires compile_cont(C,(Kwhile(b,c,k)),pc)
-	ensures exists pc': nat :: plus((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|)
+	ensures exists pc': nat :: plus((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|)
 {
 
 	match C[pc] {
@@ -95,8 +95,6 @@ lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, s: sto
 
 			assert transition(C,(pc, [], s),(pc', [], s));
 			plus_one<configuration>((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s));
-			
-			assume false;
 			
 		}
 

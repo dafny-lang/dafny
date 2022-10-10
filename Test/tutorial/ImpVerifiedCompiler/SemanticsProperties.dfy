@@ -108,53 +108,62 @@ lemma infseq_if_all_seq_inf<T(!new)>(R: (T,T) -> bool, conf: T)
 	infseq_if_all_seq_inf_pre(R,conf);
 }
 
-lemma infseq_coinduction_principle<T(!new)>(k: ORDINAL, R: (T,T) -> bool, X: T -> bool, a : T)
+lemma infseq_coinduction_principle_ord<T(!new)>(k: ORDINAL, R: (T,T) -> bool, X: T -> bool, a : T)
 	requires (forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b))
 	requires X(a)
 	ensures inf#[k](R,a)
 {
 	if k.Offset == 0 {} else {
 		var b :| R(a,b) && X(b);
-		infseq_coinduction_principle(k-1,R,X,b);
+		infseq_coinduction_principle_ord(k-1,R,X,b);
 	}
 }
 
-greatest lemma infseq_coinduction_principle_p<T(!new)>(R: (T,T) -> bool, X: T -> bool, a: T)
+greatest lemma infseq_coinduction_principle_pre<T(!new)>(R: (T,T) -> bool, X: T -> bool, a: T)
 	requires (forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b))
 	ensures  X(a) ==> inf(R,a)
 {
 	forall a: T ensures X(a) ==> inf(R,a) {
 		if X(a) {
 			var b :| R(a,b) && X(b);
-			infseq_coinduction_principle_p(R,X,a);
+			infseq_coinduction_principle_pre(R,X,a);
 		}
 	}
 }
 
-lemma infseq_coinduction_principle_p0<T(!new)>(R: (T,T) -> bool, X: T -> bool, a : T)
+lemma infseq_coinduction_principle<T(!new)>(R: (T,T) -> bool, X: T -> bool, a : T)
 	requires (forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b))
 	requires X(a)
 	ensures inf(R,a)
 {
 
 	if X(a) {
-		infseq_coinduction_principle_p(R,X,a);
+		infseq_coinduction_principle_pre(R,X,a);
 	}
 	
 }
 
-// lemma infseq_coinduction_principle_p2<T(!new)>(R: (T,T) -> bool, X: T -> bool)
-//	ensures (forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b)) ==> forall a: T :: X(a) ==> inf(R,a)
-// {
-// 	if (forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b)) {
-// 		infseq_coinduction_principle_p(R,X);
-// 	}
-// }
+predicate Y<T(!new)>(R: (T,T) -> bool, X: T -> bool, a: T) {
+	exists b: T :: star(R,a,b) && X(b)
+}
 
-lemma infseq_coinduction_principle_pre<T(!new)>(R: (T,T) -> bool, X: T -> bool,a: T)
+lemma infseq_coinduction_principle_2_pre<T(!new)>(R: (T,T) -> bool, X: T -> bool,a: T)
 	requires (forall a: T :: X(a) ==> exists b: T :: plus(R,a, b) && X(b))
 	requires exists b: T :: star(R,a,b) && X(b)
 	ensures exists b: T :: R(a,b) && (exists c: T :: star(R,b,c) && X(c))
+{
+	var b: T :| star(R,a,b) && X(b);
+	if a == b {
+		var c :| plus(R,b, c) && X(c);
+	} else { 
+		var b0 :| R(a,b0) && star(R,b0,b);
+	}
+}
+
+lemma infseq_coinduction_principle_2_pre_lift<T(!new)>(R: (T,T) -> bool, X: T -> bool,a: T)
+	requires (forall a: T :: X(a) ==> exists b: T :: plus(R,a, b) && X(b))
+	requires Y(R,X,a);
+	ensures exists b: T :: R(a,b) && Y(R,X,b)
 {
 	var b: T :| star(R,a,b) && X(b);
 	if a == b {
@@ -169,14 +178,25 @@ lemma {:axiom} infseq_coinduction_principle_2<T(!new)>(R: (T,T) -> bool, X: T ->
 	requires X(a)
 	ensures inf(R,a)
 // {
-// 	assert exists b: T :: star(R,a,b) && X(b);
-// 	infseq_coinduction_principle_pre(R,X,a);
+// 	var Z: T -> bool := (a: T) => exists b: T :: star(R,a,b) && X(b);
+// 	assert Z(a);
+// 	assert Y(R,X,a);
+// 	infseq_coinduction_principle_2_pre_lift(R,X,a);
+// 	assume (forall a: T :: Z(a) ==> exists b: T :: R(a,b) && Z(b));
+// 	infseq_coinduction_principle(R,Z,a);
+// }
+
+// Working
+// {
+// 	var Y: T -> bool := (a: T) => exists b: T :: star(R,a,b) && X(b);
+// 	//assert exists b: T :: star(R,a,b) && X(b);
+// 	assert Y(a);
+// 	assume (forall a: T :: Y(a) ==> exists b: T :: R(a,b) && Y(b));
 	
-// 	//assume false;
-// 	// 	assume exists b: T :: star(R,a,b) && X(b);
-// // 	assume forall a: T :: (exists b: T :: star(R,a,b) && X(b)) ==> exists b: T :: R(a,b) && exists c: T :: star(R,b,c) && X(c);
-//  	//infseq_coinduction_principle_p0(R,(a: T) => exists b: T :: star(R,a,b) && X(b),a);
-//  	assume false;
+// 	infseq_coinduction_principle(R,Y,a);
+	
 // }
 
 
+// Note: the following throws the verifier in an infinite loop
+// infseq_coinduction_principle(R,(a: T) => Y(R,X,a),a);
