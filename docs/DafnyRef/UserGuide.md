@@ -1025,7 +1025,18 @@ These options control how Dafny processes its input.
 
 ### 25.9.3. Controlling plugins {#sec-controlling-plugins}
 
-TO BE WRITTEN
+Dafny has a plugin capability. The plugin is typically activated by a
+new command on the command-line. For example, `dafny auditor` and `dafny doc` 
+are under development. A plugin has access to an AST of the dafny input files
+after all parsing and resolution are performed (but not verification)
+and also to the command-line options.
+
+This facility is still _experimental_ and very much in flux, particularly 
+the form of the AST. The best guides to writing a new plugin are
+(a) the documentation at https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins and (b) example plugins in the
+`src/Tools` folder of the `dafny-lang/compiler-bootstrap` repo.
+
+Did I already say this capability is experimental and in development?
 
 ### 25.9.4. Controlling output {#sec-controlling-output}
 
