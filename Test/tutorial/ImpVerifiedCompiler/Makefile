@@ -20,7 +20,8 @@ DEPS = \
 	ImpReductionContSem.dfy \
 	SimulationRelationCont.dfy \
 	Proof.dfy \
-	Proof2.dfy
+	Proof2.dfy \
+	Proof3.dfy
 
 OBJS = $(DEPS:.dfy=.dll)
 
@@ -119,11 +120,18 @@ Proof.dll: \
 Proof2.dll: \
 	Proof.dll \
 	Proof2.dfy
+Proof3.dll: \
+	Proof.dll \
+	Proof3.dfy
 
 %.dll: %.dfy
 	$(VERIFY) $<
 
 all: $(OBJS)
+
+report:
+	wc -l $(DEPS)
+	grep 'axiom' *.dfy
 
 clean:
 	rm -f *.dll 
