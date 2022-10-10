@@ -46,3 +46,8 @@ class Bar {
 ```
 which produces `Error: insufficient reads clause to read field`. In this case the function `getFoo` does indeed have an insufficient reads clause, as
 it does not have one, yet it reads a field of `this`. You can insert either `reads this` or ``reads this`foo`` before the left brace.
+
+The code in the original question is fixed like this:
+```
+{% include_relative ERROR_InsufficientReads1.dfy %}
+```

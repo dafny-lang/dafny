@@ -6,8 +6,9 @@ This warning occurred with the following code:
 ```dafny
 predicate ExistsSingleInstance(s : string32, delim : string32)
   {
-    exists i : nat :: i <= |s| - |delim| && forall x : nat :: x < |delim| ==> s[i + x] == delim[x] &&
-      (forall j : nat :: j <= |s| - |delim| && forall y : nat :: y < |delim| ==> s[i + y] == delim[y] ==> i == j)
+    exists pos : nat ::
+      (pos <= |s| - |delim| && forall x : nat :: x < |delim| ==> s[pos + x] == delim[x]) &&
+      forall pos' : nat :: (pos' <= |s| - |delim| && forall y : nat :: y < |delim| ==> s[pos' + y] == delim[y]) ==> pos == pos'
   }
 ```
 
@@ -15,39 +16,21 @@ The verifier uses quantifications by finding good ways to instantiate them.
 More precisely, it uses `forall` quantifiers by instantiating them and it proves `exists` quantifiers by finding witnesses for them.
 The warning you’re getting says that nothing stands out to the verifier as a good way to figure out good instantiations.
 
-In the case of `i`, this stems from the fact that a good instantiation would be some `i` for which the verifier already knows either `i <= …` or `forall x :: …`, the former of which is not specific enough and the latter is too complicated for it to consider.
+In the case of `pos`, this stems from the fact that a good instantiation would be some `pos` for which the verifier already knows either `pos <= …` or `forall x :: …`, the former of which is not specific enough and the latter is too complicated for it to consider.
 
-I’ll suggest a way to fix it, but first… I suspect you have not parenthesized the expression as you intended. What you have written parses as
+The “no trigger” warning is fixed by this refactoring:
 ```dafny
-exists i : nat ::
-  i <= |s| - |delim| &&
-  forall x : nat :: x < |delim| ==>
-    s[i + x] == delim[x] &&
-    (forall j : nat :: j <= |s| - |delim| && forall y : nat :: y < |delim| ==> s[i + y] == delim[y] ==> i == j)
-```
-(where I’m using indentation to show how the connectives bind). I’m guessing you may have wanted to say
-```dafny
-exists i : nat ::
-  (i <= |s| - |delim| && forall x : nat :: x < |delim| ==> s[i + x] == delim[x]) &&
-  forall j : nat :: (j <= |s| - |delim| && forall y : nat :: y < |delim| ==> s[i + y] == delim[y]) ==> i == j
-```
-That is, I’m guessing you wanted to say there exists a unique `i` such that
-`exists i : nat :: i <= |s| - |delim| && forall x : nat :: x < |delim| ==> s[i + x] == delim[x]`.
-
-
-If so, then here is a way to both fix the meaning of the formula and fix the “no trigger” warning:
-```dafny
-predicate SingleInstance(s: string, delim: string, i: nat)
+predicate SingleInstance(s: string, delim: string, pos: nat)
 {
-  i <= |s| - |delim| &&
-  forall x : nat :: x < |delim| ==> s[i + x] == delim[x]
+  pos <= |s| - |delim| &&
+  forall x : nat :: x < |delim| ==> s[pos + x] == delim[x]
 }
 
 predicate ExistsSingleInstance'(s: string, delim: string)
 {
-  exists i : nat ::
-    SingleInstance(s, delim, i) &&
-    forall j : nat :: SingleInstance(s, delim, j) ==> i == j
+  exists pos : nat ::
+    SingleInstance(s, delim, pos) &&
+    forall pos' : nat :: SingleInstance(s, delim, pos') ==> pos == pos'
 }
 ```
 

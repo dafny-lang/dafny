@@ -12,7 +12,7 @@ class B {
     var things: set<A>
 
     predicate Valid()
-        reads things
+        reads this, things
     {
         forall thing | thing in things :: thing.Valid()
     }
