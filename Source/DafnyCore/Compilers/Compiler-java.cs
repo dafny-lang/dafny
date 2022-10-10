@@ -2318,11 +2318,13 @@ namespace Microsoft.Dafny.Compilers {
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
+      // Reading line by line loses information about whether line-terminations
+      // were present (and translates them in any case).
       while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+        outputWriter.Write((Char)proc.StandardOutput.Read());
       }
       while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
+        outputWriter.Write((Char)proc.StandardError.Read());
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
