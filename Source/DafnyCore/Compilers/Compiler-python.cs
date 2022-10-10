@@ -901,11 +901,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
-      if (start == null) {
-        return wr.NewBlockPy($"for {indexVar} in range({bound}):");
-      } else {
-        return wr.NewBlockPy($"for {indexVar} in range({start}, {bound}):");
-      }
+      var lowerBound = start == null ? "" : start + ", ";
+      return wr.NewBlockPy($"for {indexVar} in range({lowerBound}{bound}):");
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
