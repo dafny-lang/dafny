@@ -38,7 +38,7 @@ Plugins are typically used to report additional diagnostics such as unsupported 
 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
 
-## Code actions plugin tutorial
+## 27.1. Code actions plugin tutorial
 
 In this section, we will create a plugin to provide more code actions to Dafny.
 The code actions will be simple: Add a dummy comment in front of the first method name,
