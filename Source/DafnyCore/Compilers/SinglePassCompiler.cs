@@ -66,6 +66,20 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
+    public virtual int RunProcess(ProcessStartInfo psi, Process  process, String platform, TextWriter outputWriter) {
+      if (process == null) process = Process.Start(psi);
+      try {
+        if (process == null) {
+          return -1;
+        }
+        process.WaitForExit();
+        return process.ExitCode;
+      } catch (System.ComponentModel.Win32Exception e) {
+        outputWriter.WriteLine("Error: Unable to start {0} ({1}): {2}", 
+            platform, psi.FileName, e.Message);
+        return -1;
+      }
+    }
     public void PassOnOutput(Process proc, TextWriter output, TextWriter error) {
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       var errorProcessing = Task.Run(() => {

@@ -3649,6 +3649,8 @@ namespace Microsoft.Dafny.Compilers {
         psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
       }
 
+      return RunProcess(psi, null, "go", outputWriter) == 0;
+/*
       try {
         using var process = Process.Start(psi);
         if (process == null) {
@@ -3660,6 +3662,7 @@ namespace Microsoft.Dafny.Compilers {
         outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
+*/
     }
 
     static string GoPath(string filename) {

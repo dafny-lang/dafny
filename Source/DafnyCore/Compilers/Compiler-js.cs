@@ -2481,8 +2481,8 @@ namespace Microsoft.Dafny.Compilers {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
+        RedirectStandardOutput = false,
+        RedirectStandardError = false,
       };
 
       try {
@@ -2498,8 +2498,9 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        PassOnOutput(nodeProcess, Console.Out, Console.Error);
-        return nodeProcess.ExitCode == 0;
+        //PassOnOutput(nodeProcess, Console.Out, Console.Error);
+        //return nodeProcess.ExitCode == 0;
+        return 0 == RunProcess(psi, nodeProcess, "javascript", outputWriter);
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
