@@ -2318,15 +2318,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
-      // Reading line by line loses information about whether line-terminations
-      // were present (and translates them in any case).
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.Write((Char)proc.StandardOutput.Read());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.Write((Char)proc.StandardError.Read());
-      }
-      proc.WaitForExit();
+      PassOnOutput(proc);
       if (proc.ExitCode != 0) {
         outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
         return false;
