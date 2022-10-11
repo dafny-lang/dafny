@@ -10,8 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.IO;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
@@ -64,6 +66,24 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
+    public void PassOnOutput(Process proc) {
+      // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+      var errorProcessing = Task.Run(() => {
+        PassthroughBuffer(proc.StandardError, Console.Error);
+      });
+      PassthroughBuffer(proc.StandardOutput, Console.Out);
+      proc.WaitForExit();
+      errorProcessing.Wait();
+    }
+
+    // We read character by character because we did not find a way to ensure
+    // final newlines are kept when reading line by line
+    void PassthroughBuffer(StreamReader input, TextWriter output) {
+      int current;
+      while ((current = input.Read()) != -1) {
+        output.Write((char)current);
+      }
+    }
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
