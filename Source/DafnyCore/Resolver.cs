@@ -9114,7 +9114,9 @@ namespace Microsoft.Dafny {
 
             if (mse.Member is ConstantField constantField2) {
               if (constantsAlreadyAssigned.Peek().Contains(constantField2)) {
-                resolver.reporter.Error(MessageSource.Resolver, mse.tok, "The constant " + constantField2.Name + " was already assigned");
+                // Breaking change: Do we want to report on constants assigned multiple times?
+                /*resolver.reporter.Error(MessageSource.Resolver, mse.tok,
+                  $"The constant {constantField2.Name} was already assigned");*/
               } else {
                 constantsAlreadyAssigned.Peek().Add(constantField2);
               }
@@ -9195,8 +9197,6 @@ namespace Microsoft.Dafny {
               resolver.reporter.Error(MessageSource.Resolver, expr.tok, errorField.Value.message);
               return false;
             }
-
-            return false; // don't continue the recursion
           }
         } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
           resolver.reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
