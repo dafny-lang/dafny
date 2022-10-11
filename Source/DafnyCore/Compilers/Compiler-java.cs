@@ -2318,11 +2318,7 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      var exitCode = RunProcess(psi, null, "java", outputWriter);
-      if (exitCode != 0) {
-        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {exitCode}");
-      }
-      return exitCode == 0;
+      return 0 == RunProcess(psi, null, "java", outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {
