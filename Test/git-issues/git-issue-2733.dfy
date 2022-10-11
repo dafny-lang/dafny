@@ -6,5 +6,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-  print "XYZ"; // Checks that ne extra newline is added to the output
+  print "XYZ"; // Checks that no extra newline is added to the output
 }
