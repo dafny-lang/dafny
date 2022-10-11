@@ -13,7 +13,6 @@ using System.IO;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 

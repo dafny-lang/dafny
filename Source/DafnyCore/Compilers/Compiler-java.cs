@@ -15,7 +15,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Reflection;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 

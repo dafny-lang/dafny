@@ -13,7 +13,6 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
