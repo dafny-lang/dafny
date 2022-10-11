@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual int RunProcess(ProcessStartInfo psi, Process process, String platform, TextWriter outputWriter) {
       try {
-        if (process == null) { 
+        if (process == null) {
           process = Process.Start(psi);
           if (process == null) {
             return -1;
