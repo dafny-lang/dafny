@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.Compilers {
         process.WaitForExit();
         return process.ExitCode;
       } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start {0} ({1}): {2}", 
+        outputWriter.WriteLine("Error: Unable to start {0} ({1}): {2}",
           platform, psi.FileName, e.Message);
         return -1;
       }
