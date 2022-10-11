@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Reflection;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -2318,7 +2319,14 @@ namespace Microsoft.Dafny.Compilers {
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
-      PassOnOutput(proc);
+      //PassOnOutput(proc);
+      var errorProcessing = Task.Run(() => {
+        PassthroughBuffer(proc.StandardError, outputWriter);
+      });
+      PassthroughBuffer(proc.StandardOutput, outputWriter);
+      proc.WaitForExit();
+      errorProcessing.Wait();
+
       if (proc.ExitCode != 0) {
         outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
         return false;

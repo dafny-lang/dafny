@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // We read character by character because we did not find a way to ensure
     // final newlines are kept when reading line by line
-    void PassthroughBuffer(StreamReader input, TextWriter output) {
+    public void PassthroughBuffer(StreamReader input, TextWriter output) {
       int current;
       while ((current = input.Read()) != -1) {
         output.Write((char)current);
