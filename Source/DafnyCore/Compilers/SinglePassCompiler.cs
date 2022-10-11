@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Compilers {
     public CoverageInstrumenter Coverage;
 
     public virtual int RunProcess(ProcessStartInfo psi, Process  process, String platform, TextWriter outputWriter) {
-      if (process == null) process = Process.Start(psi);
+      if (process == null) { process = Process.Start(psi); }
       try {
         if (process == null) {
           return -1;
