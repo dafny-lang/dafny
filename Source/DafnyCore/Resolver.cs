@@ -9095,10 +9095,10 @@ namespace Microsoft.Dafny {
           if (mse != null && Expression.AsThis(mse.Obj) != null) {
             if (mse.Member is ConstantField constantField && ContextIfCannotAssignConstant.Count > 0) {
               var why = ContextIfCannotAssignConstant.Peek() switch {
-                LoopStmt => " in a loop statement",
-                AlternativeStmt => " in an alternative if-case statement",
-                ForallStmt => " in a forall statement",
-                _ => " here "
+                LoopStmt => " in a loop statement.",
+                AlternativeStmt => " in an alternative if-case statement.",
+                ForallStmt => " in a forall statement.",
+                _ => " here."
               };
               resolver.reporter.Error(MessageSource.Resolver,
                 mse.tok, "Cannot assign constant field " + why);
@@ -9146,23 +9146,20 @@ namespace Microsoft.Dafny {
         foreach (var subStmt in stmt.SubStatements) {
           CheckInit(subStmt); // (**)
           if (alternative) {
-            var locallyNewlyAssigned = new HashSet<ConstantField>();
-            foreach (var constantField in constantsAlreadyAssigned.Pop()) {
-              if (!previouslyAssigned.Contains(constantField)) {
-                locallyNewlyAssigned.Add(constantField);
-                newlyAssignedAtLeastOnce.Add(constantField);
-              }
-            }
+            var locallyNewlyAssigned = constantsAlreadyAssigned.Pop();
+            locallyNewlyAssigned.RemoveWhere(constantField => previouslyAssigned.Contains(constantField));
+            newlyAssignedAtLeastOnce.UnionWith(locallyNewlyAssigned);
             locallyNewlyAssigneds.Add(locallyNewlyAssigned);
             constantsAlreadyAssigned.Push(new HashSet<ConstantField>(previouslyAssigned));
           }
         }
 
-        if (alternative && stmt is IfStmt ifStmt && ifStmt.Els == null) {
-          locallyNewlyAssigneds.Add(new HashSet<ConstantField>());
-        }
-
         if (alternative) {
+          constantsAlreadyAssigned.Pop();
+          if (stmt is IfStmt ifStmt && ifStmt.Els == null) {
+            locallyNewlyAssigneds.Add(new HashSet<ConstantField>());
+          }
+
           foreach (var locallyNewlyAssigned in locallyNewlyAssigneds) {
             foreach (var constantField in newlyAssignedAtLeastOnce) {
               if (!locallyNewlyAssigned.Contains(constantField)) {
@@ -9171,11 +9168,8 @@ namespace Microsoft.Dafny {
             }
           }
 
-          foreach (var constantField in newlyAssignedAtLeastOnce) {
-            if (!constantsPartiallyAssigned.Contains(constantField)) {
-              constantsAlreadyAssigned.Peek().Add(constantField);
-            }
-          }
+          newlyAssignedAtLeastOnce.RemoveWhere(constantField => constantsPartiallyAssigned.Contains(constantField));
+          constantsAlreadyAssigned.Peek().UnionWith(newlyAssignedAtLeastOnce);
         }
 
         int dummy = 0;

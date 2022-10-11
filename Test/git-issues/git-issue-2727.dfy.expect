@@ -1,8 +1,8 @@
 git-issue-2727.dfy(50,9): Error: Not all paths might have initialized the constant field a, which needs to be initialized at this point.
 git-issue-2727.dfy(56,10): Error: Not all paths might have initialized the constant field a2, which needs to be initialized at this point.
-git-issue-2727.dfy(68,6): Error: Cannot assign constant field  in a loop statement
-git-issue-2727.dfy(72,8): Error: Cannot assign constant field  in a loop statement
-git-issue-2727.dfy(76,8): Error: Cannot assign constant field  in an alternative if-case statement
+git-issue-2727.dfy(68,6): Error: Cannot assign constant field  in a loop statement.
+git-issue-2727.dfy(72,8): Error: Cannot assign constant field  in a loop statement.
+git-issue-2727.dfy(76,8): Error: Cannot assign constant field  in an alternative if-case statement.
 git-issue-2727.dfy(89,13): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
 git-issue-2727.dfy(90,10): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
 git-issue-2727.dfy(105,9): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
