@@ -66,12 +66,12 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
-    public void PassOnOutput(Process proc) {
+    public void PassOnOutput(Process proc, TextWriter output, TextWriter error) {
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       var errorProcessing = Task.Run(() => {
-        PassthroughBuffer(proc.StandardError, Console.Error);
+        PassthroughBuffer(proc.StandardError, error);
       });
-      PassthroughBuffer(proc.StandardOutput, Console.Out);
+      PassthroughBuffer(proc.StandardOutput, output);
       proc.WaitForExit();
       errorProcessing.Wait();
     }

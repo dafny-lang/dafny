@@ -2498,7 +2498,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        PassOnOutput(nodeProcess);
+        PassOnOutput(nodeProcess, Console.Output, Console.Error);
         return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
