@@ -2308,7 +2308,7 @@ namespace Microsoft.Dafny.Compilers {
       var psi = new ProcessStartInfo("java") {
         CreateNoWindow = true,
         UseShellExecute = false,
-        RedirectStandardInput = false,
+        RedirectStandardInput = true,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
@@ -2322,6 +2322,7 @@ namespace Microsoft.Dafny.Compilers {
       if (proc == null) {
         return false;
       }
+      proc.StandardInput.Close();
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
         outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
