@@ -9049,8 +9049,27 @@ namespace Microsoft.Dafny {
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
+
+      // Constants that were surely assigned at the point of being read
+      // Forms a non-empty stack so that we can figure out if constants are fully assigned
+      // Every pushed element of the stack constains all the elements on the stack.
+      // So there is no need to look further in the stack for already assigned constants
+      public Stack<HashSet<ConstantField>> constantsAlreadyAssigned = new Stack<HashSet<ConstantField>>();
+      // Constants for which there was a code path in which there were assigned
+      // but it cannot be guaranteed (gives a better error message)
+      public HashSet<ConstantField> constantsPartiallyAssigned = new HashSet<ConstantField>();
+      // Constants for which an error was already reported, to avoid duplicates
+      public HashSet<ConstantField> constantsWithErrors = new HashSet<ConstantField>();
+
+      [CanBeNull] public Stack<Statement> ContextIfCannotAssignConstant = new();
+
       public void CheckInit(List<Statement> initStmts) {
         Contract.Requires(initStmts != null);
+        constantsAlreadyAssigned.Clear();
+        constantsAlreadyAssigned.Push(new HashSet<ConstantField>());
+        constantsPartiallyAssigned = new();
+        constantsWithErrors = new();
+        ContextIfCannotAssignConstant.Clear();
         initStmts.Iter(CheckInit);
       }
       /// <summary>
@@ -9074,13 +9093,31 @@ namespace Microsoft.Dafny {
           Attributes.SubExpressions(s.Attributes).Iter(VisitExpr);  // (+)
           var mse = s.Lhs as MemberSelectExpr;
           if (mse != null && Expression.AsThis(mse.Obj) != null) {
-            if (s.Rhs is ExprRhs) {
+            if (mse.Member is ConstantField constantField && ContextIfCannotAssignConstant.Count > 0) {
+              var why = ContextIfCannotAssignConstant.Peek() switch {
+                LoopStmt => " in a loop statement",
+                AlternativeStmt => " in an alternative if-case statement",
+                ForallStmt => " in a forall statement",
+                _ => " here "
+              };
+              resolver.reporter.Error(MessageSource.Resolver,
+                mse.tok, "Cannot assign constant field " + why);
+            }
+            if (s.Rhs is ExprRhs or TypeRhs) {
               // This is a special case we allow.  Omit s.Lhs in the recursive visits.  That is, we omit (++).
               // Furthermore, because the assignment goes to a field of "this" and won't be available until after
               // the "new;", we can allow certain specific (and useful) uses of "this" in the RHS.
               s.Rhs.SubExpressions.Iter(LiberalRHSVisit);  // (+++)
             } else {
               s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
+            }
+
+            if (mse.Member is ConstantField constantField2) {
+              if (constantsAlreadyAssigned.Peek().Contains(constantField2)) {
+                resolver.reporter.Error(MessageSource.Resolver, mse.tok, "The constant " + constantField2.Name + " was already assigned");
+              } else {
+                constantsAlreadyAssigned.Peek().Add(constantField2);
+              }
             }
           } else {
             VisitExpr(s.Lhs);  // (++)
@@ -9089,9 +9126,64 @@ namespace Microsoft.Dafny {
         } else {
           stmt.SubExpressions.Iter(VisitExpr);  // (*)
         }
-        stmt.SubStatements.Iter(CheckInit);  // (**)
+
+        // If true, only constants assigned in every branch can be considered 'assigned'.
+        // This is because match and if then-else are guaranteed to be exhaustive.
+        var alternative = stmt is IfStmt or MatchStmt;
+        var cannotAssignConstant = stmt is LoopStmt or AlternativeStmt or ForallStmt;
+
+        if (cannotAssignConstant) {
+          ContextIfCannotAssignConstant.Push(stmt);
+        }
+
+        var previouslyAssigned = constantsAlreadyAssigned.Peek();
+        var locallyNewlyAssigneds = new List<HashSet<ConstantField>>(); // used if alternative
+        var newlyAssignedAtLeastOnce = new HashSet<ConstantField>();
+        if (alternative) {
+          constantsAlreadyAssigned.Push(new HashSet<ConstantField>(previouslyAssigned));
+        }
+
+        foreach (var subStmt in stmt.SubStatements) {
+          CheckInit(subStmt); // (**)
+          if (alternative) {
+            var locallyNewlyAssigned = new HashSet<ConstantField>();
+            foreach (var constantField in constantsAlreadyAssigned.Pop()) {
+              if (!previouslyAssigned.Contains(constantField)) {
+                locallyNewlyAssigned.Add(constantField);
+                newlyAssignedAtLeastOnce.Add(constantField);
+              }
+            }
+            locallyNewlyAssigneds.Add(locallyNewlyAssigned);
+            constantsAlreadyAssigned.Push(new HashSet<ConstantField>(previouslyAssigned));
+          }
+        }
+
+        if (alternative && stmt is IfStmt ifStmt && ifStmt.Els == null) {
+          locallyNewlyAssigneds.Add(new HashSet<ConstantField>());
+        }
+
+        if (alternative) {
+          foreach (var locallyNewlyAssigned in locallyNewlyAssigneds) {
+            foreach (var constantField in newlyAssignedAtLeastOnce) {
+              if (!locallyNewlyAssigned.Contains(constantField)) {
+                constantsPartiallyAssigned.Add(constantField);
+              }
+            }
+          }
+
+          foreach (var constantField in newlyAssignedAtLeastOnce) {
+            if (!constantsPartiallyAssigned.Contains(constantField)) {
+              constantsAlreadyAssigned.Peek().Add(constantField);
+            }
+          }
+        }
+
         int dummy = 0;
         VisitOneStmt(stmt, ref dummy);  // (***)
+
+        if (cannotAssignConstant) {
+          ContextIfCannotAssignConstant.Pop();
+        }
       }
       void VisitExpr(Expression expr) {
         Contract.Requires(expr != null);
@@ -9100,8 +9192,17 @@ namespace Microsoft.Dafny {
       protected override bool VisitOneExpr(Expression expr, ref int unused) {
         if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
-          if (e.Member.IsInstanceIndependentConstant && Expression.AsThis(e.Obj) != null) {
-            return false;  // don't continue the recursion
+          if (Expression.AsThis(e.Obj) != null) {
+            if (e.Member is ConstantField) {
+              var errorField = GetErrorIfConstantFieldNotInitialized(expr, new List<ConstantField>());
+              if (errorField == null) {
+                return false;
+              }
+              resolver.reporter.Error(MessageSource.Resolver, expr.tok, errorField.Value.message);
+              return false;
+            }
+
+            return false; // don't continue the recursion
           }
         } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
           resolver.reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
@@ -9121,26 +9222,82 @@ namespace Microsoft.Dafny {
         // a field of "this", we must apply the same rules to uses of the values of fields of "this".
         if (expr is ConcreteSyntaxExpression) {
         } else if (expr is ThisExpr) {
-        } else if (expr is MemberSelectExpr && IsThisDotField((MemberSelectExpr)expr)) {
-        } else if (expr is SetDisplayExpr) {
-        } else if (expr is MultiSetDisplayExpr) {
-        } else if (expr is SeqDisplayExpr) {
-        } else if (expr is MapDisplayExpr) {
-        } else if (expr is BinaryExpr && IsCollectionOperator(((BinaryExpr)expr).ResolvedOp)) {
-        } else if (expr is DatatypeValue) {
-        } else if (expr is ITEExpr) {
-          var e = (ITEExpr)expr;
-          VisitExpr(e.Test);
-          LiberalRHSVisit(e.Thn);
-          LiberalRHSVisit(e.Els);
-          return;
         } else {
-          // defer to the usual Visit
-          VisitExpr(expr);
-          return;
+          // We ensure that we access only constants that were surely previously assigned
+          if (expr is MemberSelectExpr memberSelectExpr
+              && memberSelectExpr.Member is Field f
+              && (Expression.AsThis(memberSelectExpr.Obj) != null)) {
+            if (f is ConstantField constantField) {
+              var errorField = GetErrorIfConstantFieldNotInitialized(expr, new List<ConstantField>());
+              if (errorField != null) {
+                if (!constantsWithErrors.Contains(errorField.Value.constantField)) {
+                  resolver.reporter.Error(MessageSource.Resolver, expr.tok, errorField.Value.message);
+                  constantsWithErrors.Add(errorField.Value.constantField);
+                }
+              }
+
+              return;
+            }
+          } else if (expr is SetDisplayExpr) {
+          } else if (expr is MultiSetDisplayExpr) {
+          } else if (expr is SeqDisplayExpr) {
+          } else if (expr is MapDisplayExpr) {
+          } else if (expr is BinaryExpr && IsCollectionOperator(((BinaryExpr)expr).ResolvedOp)) {
+          } else if (expr is DatatypeValue) {
+          } else if (expr is ITEExpr) {
+            var e = (ITEExpr)expr;
+            VisitExpr(e.Test);
+            LiberalRHSVisit(e.Thn);
+            LiberalRHSVisit(e.Els);
+            return;
+          } else {
+            // defer to the usual Visit
+            VisitExpr(expr);
+            return;
+          }
         }
+
         expr.SubExpressions.Iter(LiberalRHSVisit);
       }
+
+      // Returns an error if the expression cannot be fully determined
+      (string message, ConstantField constantField)? GetErrorIfConstantFieldNotInitialized(Expression expr, List<ConstantField> visited) {
+        if (expr is MemberSelectExpr { Member: ConstantField field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
+          if (visited.IndexOf(field) is var index && index >= 0) {
+            var msg = "Please break this constant initialization cycle: " + visited[index].Name;
+            for (var i = index + 1; i < visited.Count; i++) {
+              msg += " -> " + visited[i].Name;
+            }
+            msg += " -> " + field.Name;
+            return (msg, field);
+          }
+          if (field.Rhs == null && !constantsAlreadyAssigned.Peek().Contains(field)) {
+            var msg = constantsPartiallyAssigned.Contains(field) ?
+              "Not all paths might have initialized the constant field " :
+              "Missing initialization of constant field ";
+            for (var i = 0; i < visited.Count; i++) {
+              msg += (i == 0 ? "through the dependency " : "") + visited[i].Name + " -> ";
+            }
+            msg += field.Name + ", which needs to be initialized at this point.";
+            return (msg, field);
+          }
+          if (field.Rhs != null) {
+            foreach (var subExpr in field.Rhs.SubExpressions) {
+              if (GetErrorIfConstantFieldNotInitialized(subExpr, visited.Append(field).ToList()) is var msgField && msgField != null) {
+                return msgField;
+              }
+            }
+          }
+        }
+        foreach (var subExpr in expr.SubExpressions) {
+          if (GetErrorIfConstantFieldNotInitialized(subExpr, visited) is var msgField && msgField != null) {
+            return msgField;
+          }
+        }
+
+        return null;
+      }
+
       static bool IsThisDotField(MemberSelectExpr expr) {
         Contract.Requires(expr != null);
         return Expression.AsThis(expr.Obj) != null && expr.Member is Field;
@@ -13768,68 +13925,9 @@ namespace Microsoft.Dafny {
         var div = (DividedBlockStmt)blockStmt;
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
         Contract.Assert(!resolutionContext.InFirstPhaseConstructor);  // divided bodies are never nested
-        // In the first phase of the constructor, we keep track of constants which are fully determined.
-        // We prevent the reading of constants which have dependencies that are yet unassigned constants
-        var constantsAlreadyAssigned = new HashSet<ConstantField>();
-        var constantsWithErrors = new HashSet<ConstantField>();
 
-        // Returns an error if the expression cannot be fully determined
-        (string, ConstantField)? GetErrorIfNotFullyDetermined(Expression expr, List<ConstantField> visited) {
-          if (expr is MemberSelectExpr { Member: ConstantField field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
-            if (visited.IndexOf(field) is var index && index >= 0) {
-              var msg = "Please break this constant initialization cycle: " + visited[index].Name;
-              for (var i = index + 1; i < visited.Count; i++) {
-                msg += " -> " + visited[i].Name;
-              }
-              msg += " -> " + field.Name;
-              return (msg, field);
-            }
-            if (field.Rhs == null && !constantsAlreadyAssigned.Contains(field)) {
-              var msg = "Missing initialization of field ";
-              for (var i = 0; i < visited.Count; i++) {
-                msg += (i == 0 ? "through the dependency " : "") + visited[i].Name + " -> ";
-              }
-              msg += field.Name + ", which needs to be assigned at this point.";
-              return (msg, field);
-            }
-            if (field.Rhs != null) {
-              foreach (var subExpr in field.Rhs.SubExpressions) {
-                if (GetErrorIfNotFullyDetermined(subExpr, visited.Append(field).ToList()) is var msgField && msgField != null) {
-                  return msgField;
-                }
-              }
-            }
-          }
-          foreach (var subExpr in expr.SubExpressions) {
-            if (GetErrorIfNotFullyDetermined(subExpr, visited) is var msgField && msgField != null) {
-              return msgField;
-            }
-          }
-
-          return null;
-        }
         foreach (Statement ss in div.BodyInit) {
           ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
-          var subExpressions = (ss is UpdateStmt updateStmt
-            ? updateStmt.Rhss.SelectMany(rhs => rhs.SubExpressions).ToList()
-            : Microsoft.Dafny.Triggers.ExprExtensions.AllSubExpressions(ss, false, false));
-          foreach (var rhs in subExpressions) {
-            if (GetErrorIfNotFullyDetermined(rhs, new List<ConstantField>()) is var msgField && msgField != null &&
-                !constantsWithErrors.Contains(msgField.Value.Item2)) {
-              reporter.Error(MessageSource.Resolver, rhs, "Constant not initialized yet. " + msgField.Value.Item1);
-              constantsWithErrors.Add(msgField.Value.Item2);
-            }
-          }
-          if (ss is UpdateStmt updateStmt2) {
-            foreach (var lhs in updateStmt2.Lhss) {
-              var finalLhs = lhs is ConcreteSyntaxExpression concreteSyntaxExpression
-                ? concreteSyntaxExpression.Resolved ?? lhs
-                : lhs;
-              if (finalLhs is MemberSelectExpr { Member: ConstantField { IsMutable: false } field } memberSelectExpr && Expression.AsThis(memberSelectExpr.Obj) != null) {
-                constantsAlreadyAssigned.Add(field);
-              }
-            }
-          }
         }
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
