@@ -6,7 +6,12 @@ BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
   $module.areEqual = function(a, b) {
-    if (typeof a !== 'object' || a === null || b === null) {
+    if (typeof a === 'string' && b instanceof _dafny.Seq) {
+      // Seq.equals(string) works as expected,
+      // and the catch-all else block handles that direction.
+      // But the opposite direction doesn't work; handle it here.
+      return b.equals(a);
+    } else if (typeof a !== 'object' || a === null || b === null) {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
