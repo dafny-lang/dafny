@@ -39,7 +39,21 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 		
 }
 
-lemma compile_program_correct_diverging(c: com, s: store)
+lemma test(C: code, mc: configuration)
+	requires exists ic: conf :: inf(step,ic) && match_config(C,ic,mc)
+	ensures exists mc': configuration :: plus((c1,c2) => transition(C,c1,c2),mc, mc') && exists ic': conf :: inf(step,ic') && match_config(C,ic',mc')
+{
+	var ic: conf :| inf(step,ic) && match_config(C,ic,mc);
+	simulation_infseq_inv(C,ic,mc);
+}
+
+lemma test2(C: code)
+	ensures forall mc: configuration :: exists ic: conf :: inf(step,ic) && match_config(C,ic,mc) ==>
+	&& exists mc': configuration :: plus((c1,c2) => transition(C,c1,c2),mc, mc')
+	&& exists ic': conf :: inf(step,ic') && match_config(C,ic',mc')
+
+
+lemma {:timeLimitMultiplier 2} compile_program_correct_diverging(c: com, s: store)
 	requires inf(step,(c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
 // {
@@ -48,8 +62,21 @@ lemma compile_program_correct_diverging(c: com, s: store)
 // 	var machconf1: configuration := (0,[], s);
 // 	match_initial_configs(c,s);
 // 	var X: configuration -> bool := (mc: configuration) => exists ic: conf :: inf(step,ic) && match_config(C,ic,mc);
+// 	assert forall x: configuration :: X(x) <==> exists ic: conf :: inf(step,ic) && match_config(C,ic,x);
 // 	assert X(machconf1);
-// 	simulation_infseq_inv(C,impconf1,machconf1);
-// 	assume (forall a: configuration :: X(a) ==> exists b: configuration :: plus((c1,c2) => transition(C,c1,c2),a, b) && X(b));
+// 	//simulation_infseq_inv(C,impconf1,machconf1);
+// 	assert (forall a: configuration :: X(a) ==> exists b: configuration :: plus((c1,c2) => transition(C,c1,c2),a, b) && X(b)) by {
+// 		forall a: configuration ensures X(a) ==> exists b: configuration :: plus((c1,c2) => transition(C,c1,c2),a, b) && X(b) {
+// 			if X(a) {
+// 				var ic: conf :| inf(step,ic) && match_config(C,ic,a);
+// 				simulation_infseq_inv(C,ic,a);
+// 			}
+// 		}
+// 	}
 // 	infseq_coinduction_principle_2((c1,c2) => transition(C,c1,c2),X,machconf1);
 // }
+
+
+
+
+
