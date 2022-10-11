@@ -12,8 +12,8 @@ import java.util.regex.*;
 
 public class Numbers {
 
-  public static Pattern inc = Pattern.compile("\\{%\\h+include(_relative)?\\h+([\\w.\\d/_-]+)");
-  public static Pattern sec = Pattern.compile("\\h*([#]+)\\h+(\\D|((\\d+\\.)+))");
+  public static Pattern inc = Pattern.compile("\\{%\\s+include(_relative)?\\s+([\\w.\\d/_-]+)");
+  public static Pattern sec = Pattern.compile("^[ \\t0-9\\.]*([#]+)\\h+(\\D|((\\d+\\.)+))");
   public static Pattern ref = Pattern.compile("\\{#([\\w-]+)\\}");
   public static Pattern cite = Pattern.compile("\\(#([\\w-]+)\\)");
   public static Pattern seccite = Pattern.compile("(\\[Section [\\d\\.]+\\])\\(#([\\w-]+)\\)");
