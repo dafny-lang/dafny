@@ -342,14 +342,13 @@ namespace Microsoft.Dafny {
         return CloneNameSegment(expr);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        return new ExprDotName(Tok(e.tok), CloneExpr(e.Lhs), e.SuffixName,
-          e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+        return new ExprDotName(this, e);
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         return CloneApplySuffix(e);
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
-        return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
+        return new MemberSelectExpr(this, e);
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
         return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1),
@@ -468,6 +467,8 @@ namespace Microsoft.Dafny {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         return new NegationExpression(Tok(e.tok), CloneExpr(e.E));
+      } if (expr is Resolver_IdentifierExpr resolverIdentifierExpr) {
+        return new Resolver_IdentifierExpr(Tok(resolverIdentifierExpr.tok), resolverIdentifierExpr.Decl, resolverIdentifierExpr.TypeArgs);
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected expression
@@ -1142,11 +1143,11 @@ namespace Microsoft.Dafny {
       var ns = e.Lhs as NameSegment;
       if (ns != null) {
         name = ns.Name;
-        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments == null ? null : ns.OptTypeArguments.ConvertAll(CloneType));
+        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
       } else {
         var edn = (ExprDotName)e.Lhs;
         name = edn.SuffixName;
-        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
+        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
       }
       var args = new List<ActualBinding>();
       args.Add(new ActualBinding(null, k));

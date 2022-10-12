@@ -1443,6 +1443,19 @@ public class MemberSelectExpr : Expression, IHasUsages {
     Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
   }
 
+  public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner.Tok(original.tok)) {
+    Obj = cloner.CloneExpr(original.Obj);
+    MemberName = original.MemberName;
+
+    if (cloner.CloneResolvedFields) {
+      Member = original.Member;
+      AtLabel = original.AtLabel;
+      InCompiledContext = original.InCompiledContext;
+      TypeApplication_AtEnclosingClass = original.TypeApplication_AtEnclosingClass;
+      TypeApplication_JustMember = original.TypeApplication_JustMember;
+    }
+  }
+
   public MemberSelectExpr(IToken tok, Expression obj, string memberName)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3593,6 +3606,12 @@ public class FrameExpression : IHasUsages {
 /// </summary>
 public abstract class ConcreteSyntaxExpression : Expression {
   [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+
+  protected ConcreteSyntaxExpression(Cloner cloner, ConcreteSyntaxExpression original) : base(cloner.Tok(original.tok)) {
+    if (cloner.CloneResolvedFields && original.ResolvedExpression != null) {
+      ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
+    }
+  }
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
@@ -3888,6 +3907,11 @@ public class ChainingExpression : ConcreteSyntaxExpression {
 /// </summary>
 public abstract class SuffixExpr : ConcreteSyntaxExpression {
   public readonly Expression Lhs;
+
+  protected SuffixExpr(Cloner cloner, SuffixExpr original) : base(cloner, original) {
+    Lhs = cloner.CloneExpr(original.Lhs);
+  }
+  
   public SuffixExpr(IToken tok, Expression lhs)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3929,6 +3953,11 @@ public class ExprDotName : SuffixExpr {
     Contract.Invariant(SuffixName != null);
   }
 
+  public ExprDotName(Cloner cloner, ExprDotName original) : base(cloner, original) {
+    SuffixName = original.SuffixName;
+    OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
+  }
+  
   public ExprDotName(IToken tok, Expression obj, string suffixName, List<Type> optTypeArguments)
     : base(tok, obj) {
     Contract.Requires(tok != null);

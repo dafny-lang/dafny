@@ -41,15 +41,11 @@ public class CompileNestedMatch {
   private ResolutionContext resolutionContext;
   private readonly Resolver resolver;
 
-  private static HashSet<ModuleDefinition> ranOn = new();
   public CompileNestedMatch(Resolver resolver) {
     this.resolver = resolver;
   }
 
   public void Visit(ModuleDefinition program) {
-    if (!ranOn.Add(program)) {
-      return;
-    }
 
     ((INode)program).Visit(node => {
       if (node is ICallable callable) {
@@ -566,7 +562,7 @@ public class CompileNestedMatch {
       return new CStmt(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
-      newMatchExpr.Type = ((MatchExpr)mti.Match).Type;
+      newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
       ResolveMatchExpr(newMatchExpr);
       return new CExpr(null, newMatchExpr);
     }
