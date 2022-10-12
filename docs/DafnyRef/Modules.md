@@ -17,8 +17,6 @@ interface.
 ModuleDefinition = "module" { Attribute } ModuleQualifiedName
         [ "refines" ModuleQualifiedName ]
         "{" { TopDecl } "}"
-
-ModuleQualifiedName = ModuleName { "." ModuleName }
 ````
 A `ModuleQualifiedName` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
@@ -827,30 +825,30 @@ A qualified name may be used to refer to a module in an import statement or a re
 Such a qualified name is resolved as follows, with respect to its syntactic
 location within a module `Z`:
 
-0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
+1. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
 is one with a matching name. The target of a `refines` clause does not
 consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
 are not considered in finding `A`.
 
-1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
+2. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
    iterating outward to each successive enclosing module until a match is
 found or the default toplevel module is reached without a match.
 No consideration of export sets, default or otherwise, is used in this step.
 However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
-2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
+3a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
    is resolved as a local or imported  module name within `M`.
    The resolution is restricted to the default export set of `M`.
 
-2b. If the resolved module name is a module alias (from an `import` statement)
+3b. If the resolved module name is a module alias (from an `import` statement)
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
 modules so far). Since `Z` depends on `M`, any such alias target will
 already have been resolved, because modules are resolved in order of
 dependency.
 
-3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
+4. Step 3 is iterated for each ``NameSegment`` in the qualified module id,
    resulting in a module that is the final resolution of the complete
    qualified id.
 
@@ -899,7 +897,6 @@ rule that succeeds.
 
 4. Module-level (static) functions and methods
 
-TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
 If an ambiguous name is found or a name of the wrong kind (e.g. a module

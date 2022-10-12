@@ -1469,7 +1469,7 @@ CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 
 [ `ExtendedPattern` is defined in [Section 21.33](#sec-case-pattern).]
 
-The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
+The `match` statement is used to do case analysis on a value of an inductive or coinductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the `CaseBinding_`s is
@@ -1924,7 +1924,7 @@ forall x :: P(x) ==> Q(x).
 ```
 
 The `forall` statement is also used extensively in the de-sugared forms of
-co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
+co-predicates and co-lemmas. See [datatypes](#sec-coinductive-datatypes).
 
 ## 20.22. Modify Statement {#sec-modify-statement}
 ````grammar
