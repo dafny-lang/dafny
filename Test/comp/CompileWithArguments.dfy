@@ -17,6 +17,19 @@
 // RUN: %s.exe "cpp" 2 >> "%t"
 // RUN: %s.exe "cpp" 1 >> "%t"
 // RUN: %s.exe "cpp" "aloha" >> "%t"
+// RUN: %dafny /noVerify /compile:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java %S/CompileWithArguments-java/CompileWithArguments.java %S/CompileWithArguments-java/*/*.java
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 2 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 1 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java aloha >> "%t"
+// RUN: %dafny /noVerify /compile:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 2 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 1 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python aloha >> "%t"
+// RUN: %dafny /noVerify /compile:0 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 2 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 1 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go aloha >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main(args: seq<string>) {
