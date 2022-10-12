@@ -124,7 +124,7 @@ predicate {:opaque} always_step<T(!new)>(R: (T,T) -> bool, X: T -> bool) {
 }
 
 greatest lemma infseq_coinduction_principle_pre<T(!new)>(R: (T,T) -> bool, X: T -> bool, a: T)
-	requires always_step(R,X)//(forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b))
+	requires always_step(R,X)
 	ensures  X(a) ==> inf(R,a)
 {
 	reveal always_step();
@@ -137,7 +137,7 @@ greatest lemma infseq_coinduction_principle_pre<T(!new)>(R: (T,T) -> bool, X: T 
 }
 
 lemma infseq_coinduction_principle<T(!new)>(R: (T,T) -> bool, X: T -> bool, a : T)
-	requires always_step(R,X)//(forall a: T :: X(a) ==> exists b: T :: R(a,b) && X(b))
+	requires always_step(R,X)
 	requires X(a)
 	ensures inf(R,a)
 {

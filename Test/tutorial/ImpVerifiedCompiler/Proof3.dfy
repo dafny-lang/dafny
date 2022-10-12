@@ -53,30 +53,40 @@ lemma test2(C: code)
 	&& exists ic': conf :: inf(step,ic') && match_config(C,ic',mc')
 
 
-lemma {:timeLimitMultiplier 2} compile_program_correct_diverging(c: com, s: store)
-	requires inf(step,(c,Kstop,s))
+predicate {:opaque} X(C: code, mc: configuration) {
+	exists ic: conf :: inf(step,ic) && match_config(C,ic,mc)
+}
+	
+lemma compile_program_correct_diverging(c: com, s: store)
+	requires H: inf(step,(c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
-// {
-// 	var C: code := compile_program(c);
-// 	var impconf1: conf := (c,Kstop,s);
-// 	var machconf1: configuration := (0,[], s);
-// 	match_initial_configs(c,s);
-// 	var X: configuration -> bool := (mc: configuration) => exists ic: conf :: inf(step,ic) && match_config(C,ic,mc);
-// 	assert forall x: configuration :: X(x) <==> exists ic: conf :: inf(step,ic) && match_config(C,ic,x);
-// 	assert X(machconf1);
-// 	//simulation_infseq_inv(C,impconf1,machconf1);
-// 	assert (forall a: configuration :: X(a) ==> exists b: configuration :: plus((c1,c2) => transition(C,c1,c2),a, b) && X(b)) by {
-// 		forall a: configuration ensures X(a) ==> exists b: configuration :: plus((c1,c2) => transition(C,c1,c2),a, b) && X(b) {
-// 			if X(a) {
-// 				var ic: conf :| inf(step,ic) && match_config(C,ic,a);
-// 				simulation_infseq_inv(C,ic,a);
-// 			}
-// 		}
-// 	}
-// 	infseq_coinduction_principle_2((c1,c2) => transition(C,c1,c2),X,machconf1);
-// }
+{
+	var C: code := compile_program(c);
+	var impconf1: conf := (c,Kstop,s);
+	var machconf1: configuration := (0,[], s);
+	
+	assert X(C,machconf1) by {
+		reveal X();
+		reveal H;
+		match_initial_configs(c,s);
+		assert match_config(C,impconf1,machconf1);
+	}
 
+	assert always_steps((c1, c2) => transition(C,c1,c2),(mc) => X(C,mc)) by {
+		reveal always_steps();
+		//forall a: T :: X(a) ==> exists b: T :: plus(R,a, b) && X(b)
+		forall a: configuration ensures ((mc) => X(C,mc))(a) ==> exists b: configuration :: plus((c1, c2) => transition(C,c1,c2),a, b) && ((mc) => X(C,mc))(b) {
+			if ((mc) => X(C,mc))(a) {
+				assert exists ic: conf :: inf(step,ic) && match_config(C,ic,a) by {
+					reveal X();
+				}
+				var ic :| inf(step,ic) && match_config(C,ic,a);
+				simulation_infseq_inv(C,ic,a);
+			}
+		}
+	}
+	
 
-
-
-
+	infseq_coinduction_principle_2((c1, c2) => transition(C,c1,c2),(mc) => X(C,mc),machconf1);
+	
+}
