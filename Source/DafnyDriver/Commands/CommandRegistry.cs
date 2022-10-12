@@ -16,7 +16,7 @@ record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
 record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
 
 static class CommandRegistry {
-  private static readonly Dictionary<string, ICommandSpec> Commands = new();
+  private static readonly HashSet<ICommandSpec> Commands = new();
 
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
@@ -34,7 +34,7 @@ static class CommandRegistry {
   });
 
   static void AddCommand(ICommandSpec command) {
-    Commands.Add(command.Name, command);
+    Commands.Add(command);
   }
 
   static CommandRegistry() {
@@ -42,7 +42,27 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    
+    FileArgument = new Argument<FileInfo>("file", "input file");
+    FileArgument.AddValidator(ValidateFileArgument());
+    
+    FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
+    FilesArgument.AddValidator(ValidateFileArgument());
   }
+
+  public static Argument<FileInfo> FileArgument { get; }
+
+  private static ValidateSymbolResult<ArgumentResult> ValidateFileArgument()
+  {
+    return r => {
+      var value = r.Tokens[0].Value;
+      if (value.StartsWith("--")) {
+        r.ErrorMessage = $"{value} is not a valid argument";
+      }
+    };
+  }
+
+  public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
@@ -50,15 +70,6 @@ static class CommandRegistry {
     bool allowHidden = true;
     if (arguments.Length != 0) {
       var first = arguments[0];
-      if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !Commands.ContainsKey(first)) {
-        var oldOptions = new DafnyOptions();
-        if (oldOptions.Parse(arguments)) {
-          return new ParseArgumentSuccess(oldOptions);
-        }
-
-        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-      }
-
       if (first == "--dev") {
         allowHidden = false;
         arguments = arguments.Skip(1).ToArray();
@@ -71,17 +82,8 @@ static class CommandRegistry {
     var optionValues = new Dictionary<IOptionSpec, object>();
     var options = new Options(optionValues);
     dafnyOptions.Options = options;
-    var fileArgument = new Argument<FileInfo>("file", "input file");
-    fileArgument.AddValidator(r => {
-      var value = r.Tokens[0].Value;
-      if (value.StartsWith("--")) {
-        r.ErrorMessage = $"{value} is not a valid argument";
-      }
-    });
-    var userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
-    userProgramArguments.SetDefaultValue(new List<string>());
 
-    var optionToSpec = Commands.Values.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
+    var optionToSpec = Commands.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
       var result = o.ToOption;
       if (!allowHidden) {
         result.IsHidden = false;
@@ -89,17 +91,28 @@ static class CommandRegistry {
       return result;
     }, o => o);
     var specToOption = optionToSpec.ToDictionary(o => o.Value, o => o.Key);
-    var commandToSpec = Commands.Values.ToDictionary(c => {
-      var result = new Command(c.Name, c.Description);
+    var commandToSpec = Commands.ToDictionary(c => {
+      var result = c.Create();
       foreach (var option in c.Options) {
         result.AddOption(specToOption[option]);
       }
-      result.AddArgument(fileArgument);
-      result.AddArgument(userProgramArguments);
       return result;
     }, c => c);
     foreach (var command in commandToSpec.Keys) {
       command.SetHandler(CommandHandler);
+    }
+
+    var commandNames = commandToSpec.Keys.Select(c => c.Name).ToHashSet();
+    if (arguments.Length != 0) {
+      var first = arguments[0];
+      if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !commandNames.Contains(first)) {
+        var oldOptions = new DafnyOptions();
+        if (oldOptions.Parse(arguments)) {
+          return new ParseArgumentSuccess(oldOptions);
+        }
+
+        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+      }
     }
 
     var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
@@ -111,7 +124,6 @@ static class CommandRegistry {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
-      dafnyOptions.AddFile(context.ParseResult.GetValueForArgument(fileArgument).FullName);
       foreach (var option in command.Options) {
         if (!context.ParseResult.HasOption(option)) {
           continue;
@@ -126,11 +138,8 @@ static class CommandRegistry {
         }
       }
 
-      dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
-
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
-      commandSpec.PostProcess(dafnyOptions, options);
-
+      commandSpec.PostProcess(dafnyOptions, options, context);
     }
 
     var exitCode = rootCommand.InvokeAsync(arguments).Result;

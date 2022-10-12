@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -15,7 +17,18 @@ class BuildCommand : ICommandSpec {
     CompileVerboseOption.Instance,
   }.Concat(CommandRegistry.CommonOptions);
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options) {
+  public Command Create() {
+    var result = new Command(Name, Description);
+    result.AddArgument(CommandRegistry.FilesArgument);
+    return result;
+  }
+
+  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+
+    foreach (var file in context.ParseResult.GetValueForArgument(CommandRegistry.FilesArgument)) {
+      dafnyOptions.AddFile(file.FullName);
+    }
+    
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
