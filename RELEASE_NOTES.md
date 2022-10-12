@@ -3,6 +3,7 @@
 - fix: Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
 - fix: Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
 - fix: Handle sequence-to-string equality correctly in the JavaScript runtime (https://github.com/dafny-lang/dafny/pull/2877)
+- fix: Same argument order for stand-alone javascript files than for other languages (https://github.com/dafny-lang/dafny/pull/2876)
 
 # 3.9.0
 
