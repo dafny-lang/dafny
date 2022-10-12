@@ -499,7 +499,7 @@ public static class Program {
     foreach (var tok in result.Tokens) {
       var split = tok.Value.Split(":");
       if (split.Length != 2) {
-        result.ErrorMessage = "--rewrite takes a pair of string separated by `:`";
+        result.ErrorMessage = "--rewrite takes a pair of strings separated by `:`";
       }
       parsed.Add((split[0], split[1]));
     }
@@ -512,10 +512,13 @@ public static class Program {
     string modelPath, string outputPath, List<string> sourceFiles
   ) {
     nameRewrites.Add((rootModule + ".", ""));
+
     var rewriter = new SimpleNameRewriter(nameRewrites);
     var dafnyCode = GenerateDafnyCode(projectPath, sourceFiles, rootModule, rewriter);
     var template = ReadTemplate(templatePath);
-    File.WriteAllText(outputPath, template.Replace(Placeholder, dafnyCode), Encoding.UTF8);
+
+    // Add \n to allow the line that contains the placeholder to be commented out
+    File.WriteAllText(outputPath, template.Replace(Placeholder, "\n" + dafnyCode), Encoding.UTF8);
 
     CopyCSharpModel(modelPath);
   }
