@@ -926,7 +926,7 @@ TO BE WRITTEN
 
 ### 25.8.4. Java
 
-{% include_relative ex/integration-java/IntegrationJava.md %}
+{% include_relative integration-java/IntegrationJava.md %}
 
 ### 25.8.5. Javascript
 
