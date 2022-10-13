@@ -10023,23 +10023,36 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-          // Second, we check all the parameters of the type constructor
-          foreach (var typea in arg.Type.TypeArgs) {
+          // If the type constructor has arguments, we need to check them
+          var arguments = type.TypeArgs;
+          if (arguments.Count > 0) {
 
-            // There is one subtlety: sometimes, we do not need to check the arguments
-            // It is for example the case for parameters that are not used, or class and trait types
-            var red = typea.AsRedirectingType;
-            var meaningfulArg = true;
-            if (red != null) {
-              foreach (var typep in red.TypeArgs) {
-                if (!typep.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                  meaningfulArg = false;
-                }
+            // We also need to obtain information on the parameters of the constructor, which we 
+            // obtain thanks to the AsRedirectingType
+            var red = type.AsRedirectingType;
+            var parameters = red.TypeArgs;
+
+            var parametersAndArguments = parameters.Zip(arguments, (p, a) => new { Parameter = p, Argument = a });
+
+            // Second, we check all the parameters of the type constructor
+            foreach (var typepa in parametersAndArguments) {
+
+              // There is one subtlety: sometimes, we do not need to check the arguments
+              // It is for example the case for parameters that are not used, or class and trait types
+              //var red = type.AsRedirectingType;
+              //var meaningfulArg = true;
+              //if (red != null) {
+              //  foreach (var typep in red.TypeArgs) {
+              //    if (!typep.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+              //      meaningfulArg = false;
+              //    }
+              //  }
+              //}
+
+              if (typepa.Parameter.NecessaryForEqualitySupportOfSurroundingInductiveDatatype &&
+                  BasicCheckIfEqualityIsDefinitelyNotSupported(typepa.Argument, dependencies, scc, dt.EnclosingModuleDefinition)) {
+                return true;
               }
-            }
-
-            if (meaningfulArg && BasicCheckIfEqualityIsDefinitelyNotSupported(typea, dependencies, scc, dt.EnclosingModuleDefinition)) {
-              return true;
             }
           }
         }
