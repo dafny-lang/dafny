@@ -10002,7 +10002,7 @@ namespace Microsoft.Dafny {
 
     }
 
-    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    bool CheckIfEqualityIsDefinitelyNotSupported(IndDatatypeDecl dt, Graph<IndDatatypeDecl> dependencies) {
       var scc = dependencies.GetSCC(dt);
 
       // If a constructor is ghost, the datatype cannot support equality
@@ -10028,7 +10028,7 @@ namespace Microsoft.Dafny {
 
             // There is one subtlety: sometimes, we do not need to check the arguments
             // It is for example the case for parameters that are not used, or class and trait types
-            var red = type.AsRedirectingType;
+            var red = typea.AsRedirectingType;
             var meaningfulArg = true;
             if (red != null) {
               foreach (var typep in red.TypeArgs) {
