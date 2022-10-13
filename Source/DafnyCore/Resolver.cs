@@ -9953,7 +9953,7 @@ namespace Microsoft.Dafny {
     /// 
     /// As a first approximation, a datatype definely cannot support equality if any of the following holds:
     /// Any of its constructors is ghost
-    /// Any of the formal parameters of Any of its constructors is ghost
+    /// Any of the formal parameters of any of its constructors is ghost
     /// It is defined in terms of another type that definitely does not support equality, that is:
     /// A datatype that does not support equality
     /// An opaque type that has not been declared as supporting equality
