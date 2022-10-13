@@ -24,7 +24,7 @@ predicate step(conf1: conf, conf2: conf) {
 			&& k2 == k1
 			&& s2 == s1[i := aeval(s1,a)]
 		case (CSeq(c1', c1''), k) =>
-			&& c2 == c1''
+			&& c2 == c1'
 			&& k2 == Kseq(c1'',k)
 			&& s2 == s1
 		case (CIf(b, cifso, cifnotso), _) =>

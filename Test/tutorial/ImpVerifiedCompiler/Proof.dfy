@@ -93,9 +93,35 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
+			assert (c2,k2,s2) == (c1',Kseq(c1'',k),s2);
 			
+			assert (pc1,stk1,str1) == (pc1,[],s1);
+
+			var machconf2: configuration := machconf1; 
+			var (pc2,stk2,str2) := machconf2;
+
+			assert measure(impconf2) < measure(impconf1);
 			
-			bypass();
+			assert star(tr,machconf1,machconf2);
+
+			assert match_config(C, impconf2, machconf2) by {
+
+				assert s2 == str2;
+				assert stk2 == [];
+				assert code_at(C, pc2, compile_com(c2)) by {
+					assert pc2 == pc1;
+					assert compile_com(c2) == compile_com(c1');
+					assert code_at(C,pc1,compile_com(c1')) by { resolve_code_at(); }
+				}
+				assert compile_cont(C, k2, pc2 + |compile_com(c2)|) by {
+					assert k2 == Kseq(c1'',k1);
+					assert pc2 == pc1;
+					assert compile_com(c2) == compile_com(c1');
+					assert code_at(C, pc1 + |compile_com(c1')|, compile_com(c1'')) by { resolve_code_at(); }
+					assert compile_cont(C,k1,pc1 + |compile_com(c1')| + |compile_com(c1'')|);
+					assert compile_cont(C, Kseq(c1'',k1), pc1 + |compile_com(c1')|);
+				}	
+			}
 		}
 		
 		case (CIf(b, cifso, cifnotso), _) => {
@@ -106,18 +132,52 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
-			bypass();
-		}
-		
-		case (CWhile(b, c), _) => {
-			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
+			var d1 := 0;
+			var code_ifso := compile_com(cifso);
+			var d0 := |code_ifso| + 1;
+			var code_ifnot := compile_com(cifnotso);
+			var code_prologue := compile_bexp(b,d1,d0);
 			
-			var (c1,k1,s1) := impconf1;
-			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			if beval(s1,b) {
 
-			bypass();
+				assert (c2,k2,s2) == (cifso,k1,s1);
+
+				assert code_at(C,pc1,compile_bexp(b,0,|code_ifso| + 1)) by { resolve_code_at(); }
+				var machconf1' := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
+				assert transitions(C,machconf1,machconf1') by { compile_bexp_correct_true(C,str1,b,pc1,d1,d0,stk1); }
+				assert star<configuration>(tr,machconf1,machconf1');
+
+				assume code_at(C,machconf1'.0,[Ibranch(|compile_com(cifnotso)|)]); // by { resolve_code_at(); }
+				var machconf2: configuration := (machconf1'.0 + 1 + |code_ifnot|,[],s1);
+				assert transition(C,machconf1',machconf2);
+				star_one_sequent<configuration>(tr,machconf1',machconf2);
+
+				star_trans_sequent<configuration>(tr, machconf1, machconf1', machconf2);
+
+				assume false;
+				
+			} else {
+
+				assert (c2,k2,s2) == (cifnotso,k1,s1);
+
+				assert code_at(C,pc1,compile_bexp(b,0,|code_ifso| + 1)) by { resolve_code_at(); }
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, stk1, s1);
+				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,str1,b,pc1,d1,d0,stk1); }
+				assert star<configuration>(tr,machconf1,machconf2);
+
+				assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); } 
+
+				assert compile_cont(C,k1,pc1 + |compile_com(c1)|);
+				assert k1 == k2;
+
+				assert impconf2.2 == machconf2.2;
+				assert machconf2.1 == [];
+				
+				assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
+				assert match_config(C, impconf2, machconf2);
+				
+			}
+			
 		}
 		
 		case (CWhile(b, c), k) => {
@@ -139,7 +199,20 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
-			bypass();
+			compile_cont_Kseq_inv(C,c,k,pc1,str1);
+			var pc': nat :| star((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(c)|);
+
+			var machconf2: configuration := (pc',[],str1);
+			assert star((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+
+			assert match_config(C, impconf2, machconf2) by {
+				assert impconf2.2 == machconf2.2;
+				assert machconf2.1 == [];
+				assert code_at(C, machconf2.0, compile_com(c2)) by { resolve_code_at(); } 
+				assert compile_cont(C, k2, machconf2.0 + |compile_com(c2)|); 
+				
+			}
+			
 		}
 		
 		case (CSkip, Kwhile(b, c, k)) =>	{
@@ -150,7 +223,21 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
-			bypass();
+			compile_cont_Kwhile_inv(C,b,c,k,pc1,str1);
+
+			var pc': nat :| plus((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|);
+
+			var machconf2: configuration := (pc', [], str1);
+			assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+
+			assert match_config(C, impconf2, machconf2) by {
+				assert impconf2.2 == machconf2.2;
+				assert machconf2.1 == [];
+				assert code_at(C, machconf2.0, compile_com(c2)) by { resolve_code_at(); } 
+				assert compile_cont(C, k2, machconf2.0 + |compile_com(c2)|); 
+				
+			}			
+						
 		}
 		
 	}

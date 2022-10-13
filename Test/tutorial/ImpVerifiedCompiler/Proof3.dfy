@@ -39,20 +39,6 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 		
 }
 
-lemma test(C: code, mc: configuration)
-	requires exists ic: conf :: inf(step,ic) && match_config(C,ic,mc)
-	ensures exists mc': configuration :: plus((c1,c2) => transition(C,c1,c2),mc, mc') && exists ic': conf :: inf(step,ic') && match_config(C,ic',mc')
-{
-	var ic: conf :| inf(step,ic) && match_config(C,ic,mc);
-	simulation_infseq_inv(C,ic,mc);
-}
-
-lemma test2(C: code)
-	ensures forall mc: configuration :: exists ic: conf :: inf(step,ic) && match_config(C,ic,mc) ==>
-	&& exists mc': configuration :: plus((c1,c2) => transition(C,c1,c2),mc, mc')
-	&& exists ic': conf :: inf(step,ic') && match_config(C,ic',mc')
-
-
 predicate {:opaque} X(C: code, mc: configuration) {
 	exists ic: conf :: inf(step,ic) && match_config(C,ic,mc)
 }
