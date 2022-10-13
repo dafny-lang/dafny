@@ -1,2 +1,2 @@
-// RUN: %diff "%s" "%s"
+// RUN: echo 'lit should ignore this file' 
 

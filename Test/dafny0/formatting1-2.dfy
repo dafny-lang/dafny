@@ -1,4 +1,4 @@
-// RUN: %diff "%s" "%s"
+// RUN: echo 'lit should ignore this file' 
 
 module A {
   class B {
