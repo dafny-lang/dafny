@@ -36,6 +36,7 @@ module M {
     p();
   }
 }
+```
 Note that the declaration of `p()` has no body; it is just a declaration because the actual implementation is in Java.
 Its `extern` attribute has two arguments: the fully-qualified class name and the method name.
 
