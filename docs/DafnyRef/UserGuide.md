@@ -926,15 +926,7 @@ TO BE WRITTEN
 
 ### 25.8.4. Java
 
-The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. The file _A_`.dfy` is translated to _A_`.java`,
-which is placed in the output directory along with helper files.
-If more than one `.dfy` file is listed on the command-line, then the output
-directory name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files.
-
-TO BE WRITTEN
+{% include_relative ../examples/integration-java/IntegrationJava.md %}
 
 ### 25.8.5. Javascript
 
