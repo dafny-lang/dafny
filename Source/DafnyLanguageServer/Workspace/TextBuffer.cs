@@ -87,7 +87,7 @@ public class TextBuffer {
         line.LineNumber + lineDelta,
         line.StartIndex + indexDelta,
         line.EndIndex + indexDelta));
-    var newTotalLinesWrong = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(migratedLinesAfterChange).ToList();*/
+    var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(migratedLinesAfterChange).ToList();*/
     var newTotalLines = ComputeLines(newText, 0, 0, newText.Length);
     return new TextBuffer(newText, newTotalLines);
   }
