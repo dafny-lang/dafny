@@ -791,7 +791,7 @@ Any abstract modules are not searched for candidate entry points,
 but otherwise the entry point may be in any module or type. In addition,
 an entry-point candidate must satisfy the following conditions:
 
-* The method takes no parameters or type parameters
+* The method has no type parameters and either has no parameters or one parameter of type `seq<string>`
 * The method is not a ghost method
 * The method has no requires or modifies clauses, unless it is marked `{:main}`
 * If the method is an instance (that is, non-static) method and the
@@ -819,6 +819,10 @@ Note, however, that the following are allowed:
 If no legal candidate entry point is identified, `dafny` will still produce executable output files, but
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
+
+If the `Main` method takes an argument (of type `seq<string>`), the value of that input argument is the sequence
+of command-line arguments, with the first entry of the sequence (at index 0) being a system-determined name for the 
+executable being run.
 
 ### 25.8.2. `extern` declarations {#sec-extern-decls}
 
@@ -950,7 +954,7 @@ implementation.
   `arr.Length`, or sequence length, etc. in executable code.  You can however,
   use `arr.Length as uint64` if you can prove your array is an appropriate
   size.  The compiler will report inappropriate integer use.
-- We do not support more advanced Dafny features like traits or co-inductive
+- We do not support more advanced Dafny features like traits or coinductive
   types.
 - Very limited support for higher order functions even for array init.  Use
   extern definitions like newArrayFill (see 
@@ -1021,7 +1025,20 @@ These options control how Dafny processes its input.
 
 ### 25.9.3. Controlling plugins {#sec-controlling-plugins}
 
-TO BE WRITTEN
+Dafny has a plugin capability. 
+For example, `dafny audit` and `dafny doc` 
+are under development. A plugin has access to an AST of the dafny input files
+after all parsing and resolution are performed (but not verification)
+and also to the command-line options.
+
+This facility is still _experimental_ and very much in flux, particularly 
+the form of the AST. The best guides to writing a new plugin are
+(a) the documentation in [the section of this manual on plugins](#sec-plugins) 
+and (b) example plugins in the
+`src/Tools` folder of the `dafny-lang/compiler-bootstrap` repo.
+
+The value of the option `-plugin` is a path to a dotnet dll that contains
+the compiled plugin.
 
 ### 25.9.4. Controlling output {#sec-controlling-output}
 
@@ -1131,6 +1148,7 @@ code (which can be helpful for debugging).
     ```
 
 ### 25.9.5. Controlling language features {#sec-controlling-language}
+{#sec-function-syntax}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with

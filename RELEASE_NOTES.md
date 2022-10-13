@@ -1,5 +1,7 @@
 # Upcoming
 
+See [docs/dev/news/](docs/dev/news/).
+
 # 3.9.0
 
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)

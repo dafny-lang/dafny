@@ -7214,28 +7214,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // TODO: update to include structured description
     Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      if (errorMessage != null) {
-        ens.ErrorData = errorMessage;
-      }
+      ens.Description = new PODesc.AssertStatement(errorMessage ?? "This is the postcondition that might not hold.");
       return ens;
     }
 
-    // TODO: update to include structured description
     Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
       Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      if (errorMessage != null) {
-        req.ErrorData = errorMessage;
-      }
+      req.Description = new PODesc.AssertStatement(errorMessage ?? "This is the precondition that might not hold.");
       return req;
     }
 

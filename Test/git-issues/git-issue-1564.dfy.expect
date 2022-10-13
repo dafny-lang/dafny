@@ -5,9 +5,9 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(42,0): Error: a predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(43,0): Error: a predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(46,19): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
@@ -15,9 +15,9 @@ git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost'
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 20 parse errors detected in git-issue-1564.dfy
 git-issue-1564.dfy(9,0): Error: a function must be declared as either 'ghost function' or 'function method'
 git-issue-1564.dfy(12,28): Error: there is no such thing as a 'ghost function method'
@@ -26,9 +26,9 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(40,0): Error: a predicate must be declared as either 'ghost predicate' or 'predicate method'
 git-issue-1564.dfy(43,26): Error: there is no such thing as a 'ghost predicate method'
 git-issue-1564.dfy(46,19): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
@@ -36,9 +36,9 @@ git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost'
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 20 parse errors detected in git-issue-1564.dfy
 git-issue-1564.dfy(10,22): Error: the phrase 'function method' is not allowed; to declare a compiled function, use just 'function'
 git-issue-1564.dfy(12,28): Error: the phrase 'function method' is not allowed; to declare a compiled function, use just 'function'
@@ -47,9 +47,9 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(41,20): Error: the phrase 'predicate method' is not allowed; to declare a compiled predicate, use just 'predicate'
 git-issue-1564.dfy(43,26): Error: the phrase 'predicate method' is not allowed; to declare a compiled predicate, use just 'predicate'
 git-issue-1564.dfy(46,19): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
@@ -57,9 +57,9 @@ git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost'
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 20 parse errors detected in git-issue-1564.dfy
 git-issue-1564.dfy(12,28): Error: there is no such thing as a 'ghost function method'
 git-issue-1564.dfy(15,18): Error: a twostate function is supported only as ghost, not as a compiled function
@@ -67,18 +67,18 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(43,26): Error: there is no such thing as a 'ghost predicate method'
 git-issue-1564.dfy(46,19): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 18 parse errors detected in git-issue-1564.dfy
 git-issue-1564.dfy(12,28): Error: there is no such thing as a 'ghost function method'
 git-issue-1564.dfy(15,18): Error: a twostate function is supported only as ghost, not as a compiled function
@@ -86,18 +86,18 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(43,26): Error: there is no such thing as a 'ghost predicate method'
 git-issue-1564.dfy(46,19): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 18 parse errors detected in git-issue-1564.dfy
 git-issue-1564.dfy(10,22): Error: the phrase 'function method' is not allowed; to declare a compiled function, use just 'function'
 git-issue-1564.dfy(12,28): Error: the phrase 'function method' is not allowed; to declare a compiled function, use just 'function'
@@ -106,9 +106,9 @@ git-issue-1564.dfy(16,0): Error: a twostate function cannot be declared 'ghost' 
 git-issue-1564.dfy(17,24): Error: a twostate function is supported only as ghost, not as a compiled function
 git-issue-1564.dfy(17,0): Error: a twostate function cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(24,9): Error: to use a 'by method' implementation with a function, declare 'H1' using 'function', not 'function method'
-git-issue-1564.dfy(29,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(29,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(34,15): Error: to use a 'by method' implementation with a function, declare 'H3' using 'function', not 'function method'
-git-issue-1564.dfy(34,0): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(34,0): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(41,20): Error: a predicate is always ghost and is declared with 'predicate'
 git-issue-1564.dfy(42,0): Error: a predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(43,26): Error: a predicate is always ghost and is declared with 'predicate'
@@ -117,7 +117,7 @@ git-issue-1564.dfy(47,0): Error: a twostate predicate cannot be declared 'ghost'
 git-issue-1564.dfy(48,25): Error: a twostate predicate is supported only as ghost, not as a compiled predicate
 git-issue-1564.dfy(48,0): Error: a twostate predicate cannot be declared 'ghost' (it is 'ghost' by default)
 git-issue-1564.dfy(55,10): Error: to use a 'by method' implementation with a predicate, declare 'R1' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(60,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(60,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 git-issue-1564.dfy(65,16): Error: to use a 'by method' implementation with a predicate, declare 'R3' using 'predicate', not 'predicate method'
-git-issue-1564.dfy(65,0): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+git-issue-1564.dfy(65,0): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 21 parse errors detected in git-issue-1564.dfy
