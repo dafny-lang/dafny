@@ -16,22 +16,22 @@ to the Java code. There are two aspects to this:
 - ensuring that the names of entities in the translated Dafny code are usable from Java
 - ensuring that the types are the same on both sides
 
-#### Calling Java from Dafny
+#### **Calling Java from Dafny**
 
 Calling a Java method from Dafny requires declaring a shim in Dafny that gives a name and types
 that can be referenced by Dafny code, while still having the same name as in the Java code.
 
-For example, suppose we want to call a Java method `demo.Demo.p()`. In `Demo.java` we have
+For example, suppose we want to call a Java method `demo.Demo1.p()`. In `Demo1.java` we have
 ```java
 package demo;
-public class Demo {
+public class Demo1 {
   public static void p() { System.out.println("Hi!\n"); }
 }
 ```
 In `Demo1.dfy` we write,
 ```dafny
 module M {
-  method {:extern "demo.Demo", "p"} p() 
+  method {:extern "demo.Demo1", "p"} p() 
   method Main() {
     p();
   }
@@ -50,7 +50,7 @@ Or, in one build-and-run step,
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
 corresponding types in the Dafny declaration:
-```
+
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Java type                 |
 |-------------------------------|-----------------------------|
