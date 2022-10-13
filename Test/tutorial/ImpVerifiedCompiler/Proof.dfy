@@ -143,18 +143,23 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 				assert (c2,k2,s2) == (cifso,k1,s1);
 
 				assert code_at(C,pc1,compile_bexp(b,0,|code_ifso| + 1)) by { resolve_code_at(); }
-				var machconf1' := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
-				assert transitions(C,machconf1,machconf1') by { compile_bexp_correct_true(C,str1,b,pc1,d1,d0,stk1); }
-				assert star<configuration>(tr,machconf1,machconf1');
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
+				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_true(C,str1,b,pc1,d1,d0,stk1); }
+				assert star<configuration>(tr,machconf1,machconf2);
 
-				assume code_at(C,machconf1'.0,[Ibranch(|compile_com(cifnotso)|)]); // by { resolve_code_at(); }
-				var machconf2: configuration := (machconf1'.0 + 1 + |code_ifnot|,[],s1);
-				assert transition(C,machconf1',machconf2);
-				star_one_sequent<configuration>(tr,machconf1',machconf2);
+				// Interesting example: if you hoist these two asserts, then the match_config cannot be concluded
+				assert match_config(C, impconf2, machconf2) by {
 
-				star_trans_sequent<configuration>(tr, machconf1, machconf1', machconf2);
+					assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); }
+					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(cifnotso)|);
+					//assume C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|);
+					// Interesting problem, the predicate is matching early on a case that's false, not
+					// seeing that there is a case that is true
+					//assume compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
 
-				assume false;
+					bypass();
+					
+				}
 				
 			} else {
 
