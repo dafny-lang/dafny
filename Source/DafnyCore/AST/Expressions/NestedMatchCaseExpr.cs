@@ -27,13 +27,13 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
     // TODO see if I can replace this replacement with some resolution logic that only triggers when IdPattern.Type is not InferredTypeProxy.
-    // var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
-    // if (boundVars.Any()) {
-    //   var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
-    //   var rhss = boundVars.Select(b => b.usage).ToList();
-    //
-    //   Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
-    // }
+    var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
+    if (boundVars.Any()) {
+      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
+      var rhss = boundVars.Select(b => b.usage).ToList();
+    
+      Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
+    }
 
     Pat.Resolve(resolver, resolutionContext, subst, sourceType, false); // TODO: is this false correct?
     resolver.ResolveAttributes(this, resolutionContext);
