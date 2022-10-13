@@ -45,7 +45,7 @@ static class CommandRegistry {
   }
 
   [CanBeNull]
-  public static async Task<ParseArgumentResult> Create(string[] arguments) {
+  public static ParseArgumentResult Create(string[] arguments) {
 
     bool allowHidden = true;
     if (arguments.Length != 0) {
@@ -131,7 +131,9 @@ static class CommandRegistry {
 
     }
 
-    var exitCode = await rootCommand.InvokeAsync(arguments);
+#pragma warning disable VSTHRD002
+    var exitCode = rootCommand.InvokeAsync(arguments).Result;
+#pragma warning restore VSTHRD002
     if (optionFailure != null) {
       Console.WriteLine(optionFailure);
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);

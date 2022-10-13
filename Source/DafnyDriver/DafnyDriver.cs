@@ -165,9 +165,7 @@ namespace Microsoft.Dafny {
       otherFiles = new List<string>();
 
       try {
-#pragma warning disable VSTHRD002
-        switch (CommandRegistry.Create(args).Result) {
-#pragma warning restore VSTHRD002
+        switch (CommandRegistry.Create(args)) {
           case ParseArgumentSuccess success:
             options = success.DafnyOptions;
             break;
