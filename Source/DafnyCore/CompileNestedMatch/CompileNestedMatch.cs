@@ -179,7 +179,7 @@ public class CompileNestedMatch {
     }
   }
 
-  private MatchExpr CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
+  private Expression CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
     if (DafnyOptions.O.MatchCompilerDebug) {
       Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", nestedMatchExpr.tok.line);
     }
@@ -207,7 +207,7 @@ public class CompileNestedMatch {
           resolver.scope.PopMarker();
         }
       }
-      return (MatchExpr)newME;
+      return newME;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
