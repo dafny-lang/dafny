@@ -90,22 +90,21 @@ method {:vcs_split_on_every_assert} f(x: int) {
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (1, 12),
         @"[**Error:**](???) assertion might not hold  
-This is the only assertion in [batch](???) #2 of 3 in method f  
-[Batch](???) #2 resource usage: ??? RU"
+This is the only assertion in [batch](???) #??? of ??? in method f  
+[Batch](???) #??? resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (2, 12),
         @"<span style='color:green'>**Success:**</span> assertion always holds  
-This is the only assertion in [batch](???) #3 of 3 in method f  
-[Batch](???) #3 resource usage: ??? RU"
+This is the only assertion in [batch](???) #??? of ??? in method f  
+[Batch](???) #??? resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
         @"**Verification performance metrics for method f**:
 
 - Total resource usage: ??? RU  
 - Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
-  - #3/3 with 1 assertion  at line 3, ??? RU  
-  - #2/3 with 1 assertion  at line 2, ??? RU  
-  - #1/3 with 0 assertions at line 1, ??? RU"
+  - #???/??? with 1 assertion  at line ???, ??? RU  
+  - #???/??? with 1 assertion  at line ???, ??? RU  "
       );
     }
 
