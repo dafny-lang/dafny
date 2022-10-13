@@ -152,12 +152,13 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 
 					assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); }
 					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(cifnotso)|);
-					//assume C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|);
+					assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|) by
+						{
+							bypass();
+						}
 					// Interesting problem, the predicate is matching early on a case that's false, not
 					// seeing that there is a case that is true
-					//assume compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
-
-					bypass();
+					assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
 					
 				}
 				

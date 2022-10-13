@@ -14,6 +14,16 @@ greatest predicate inf<T(!new)>(R: (T,T) -> bool,conf: T) {
 	exists confi: T :: R(conf,confi) && inf(R,confi)
 }
 
+predicate Star<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
+  star(R, conf1, conf2)
+}
 
+least predicate Plus<T(!new)>(R: (T,T) -> bool, conf1: T, conf2: T) {
+	plus(R,conf1, conf2)
+}
+
+greatest predicate Inf<T(!new)>(R: (T,T) -> bool,conf: T) {
+	inf(R,conf)
+}
 
 
