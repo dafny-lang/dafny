@@ -88,7 +88,7 @@ public abstract class Expression : INode {
     get { yield break; }
   }
 
-  private RangeToken rangeToken;
+  private RangeToken rangeToken = null;
 
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
@@ -96,7 +96,7 @@ public abstract class Expression : INode {
 
   /// Creates a token on the entire range of the expression.
   /// Used only for error reporting.
-  public RangeToken RangeToken {
+  public virtual RangeToken RangeToken {
     get {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
@@ -4087,6 +4087,8 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     TypeMap = typeMap;
     Type = Resolver.SubstType(formal.Type, typeMap);
   }
+
+  public override RangeToken RangeToken => new RangeToken(tok, tok);
 }
 
 /// <summary>
