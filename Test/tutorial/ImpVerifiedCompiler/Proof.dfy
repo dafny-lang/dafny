@@ -31,8 +31,6 @@ function measure(impconf: conf): nat {
 	com_size(impconf.0) + cont_size(impconf.1)
 }
 
-lemma {:axiom} bypass() ensures false
-
 lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
 	requires step(impconf1,impconf2)
 	requires match_config(C, impconf1, machconf1)
@@ -154,10 +152,9 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(cifnotso)|);
 					assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|) by
 						{
-							bypass();
+							assert code_at(C,pc1 + |compile_bexp(b,d1,d0)| + d1,compile_com(cifso)) by { resolve_code_at(); }
 						}
-					// Interesting problem, the predicate is matching early on a case that's false, not
-					// seeing that there is a case that is true
+				
 					assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
 					
 				}
@@ -186,7 +183,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 		}
 		
-		case (CWhile(b, c), k) => {
+		case (CWhile(b, body), k) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -194,7 +191,45 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
-			bypass();
+			var d1 := 0;
+			var d0 := |compile_com(body)| + 1;
+
+			if beval(s1,b) {
+
+				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
+				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_true(C,s1,b,pc1,d1,d0,stk1); }
+				assert star<configuration>(tr,machconf1,machconf2);
+
+				assert match_config(C, impconf2, machconf2) by {
+
+					assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); }
+					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(body)|);
+					assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(body)|) by
+						{
+							assert code_at(C,pc1 + |compile_bexp(b,d1,d0)| + d1,compile_com(body)) by { resolve_code_at(); }
+							
+						}
+					assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
+					
+				}
+				
+				
+			} else {
+
+				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, stk1, s1);
+				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,s1,b,pc1,d1,d0,stk1); }
+				assert star<configuration>(tr,machconf1,machconf2);
+
+				assert match_config(C, impconf2, machconf2) by {
+
+					assume false;
+					
+				}
+				
+			}
+			
 		}
 		
 		case (CSkip, Kseq(c, k)) => {

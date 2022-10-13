@@ -32,17 +32,11 @@ predicate step(conf1: conf, conf2: conf) {
 			&& c2 == (if beval(s1, b) then cifso else cifnotso)
 			&& k2 == k1
 			&& s2 == s1
-		case (CWhile(b, c), _) =>
+		case (CWhile(b, c), k) =>
 			&& (forall id: ident :: id_in_bexp(id,b) ==> id in s1)
 			&& !beval(s1, b)
-			&& c2 == CSkip
-			&& k2 == k1
-			&& s2 == s1
-		case (CWhile(b, c), k) =>
-			(forall id: ident :: id_in_bexp(id,b) ==> id in s1)
-			&& beval(s1, b)
-			&& c2 == c
-			&& k2 == Kwhile(b,c,k)
+			&& c2 == (if beval(s1,b) then c else CSkip)
+			&& k2 == (if beval(s1,b) then Kwhile(b,c,k) else k1)
 			&& s2 == s1
 		case (CSkip, Kseq(c, k)) =>
 			&& c2 == c
