@@ -669,8 +669,8 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => new INode[] { Body }.OfType<INode>().Concat(Ins).Concat(Outs).Concat(TypeArgs).
-    Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions);
+  public override IEnumerable<INode> Children => new INode[] { Body, Decreases }.Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
+    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }

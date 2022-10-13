@@ -2537,6 +2537,12 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Rhs = rhs;
     Body = body;
   }
+
+  public LetOrFailExpr(Cloner cloner, LetOrFailExpr original) : base(cloner, original) {
+    Lhs = original.Lhs == null ? null : cloner.CloneCasePattern(original.Lhs);
+    Rhs = cloner.CloneExpr(original.Rhs);
+    Body = cloner.CloneExpr(original.Body);
+  }
 }
 
 /// <summary>
@@ -3689,6 +3695,19 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages {
   [FilledInDuringResolution] public bool InCompiledContext;
   [FilledInDuringResolution] public Expression ResolvedCompiledExpression; // see comment for Resolver.ResolveDatatypeUpdate
 
+  public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
+    Root = cloner.CloneExpr(original.Root);
+    Updates = original.Updates.Select(t => Tuple.Create(cloner.Tok(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
+      .ToList();
+
+    if (cloner.CloneResolvedFields) {
+      Members = original.Members;
+      LegalSourceConstructors = original.LegalSourceConstructors;
+      InCompiledContext = original.InCompiledContext;
+      ResolvedCompiledExpression = cloner.CloneExpr(original.ResolvedCompiledExpression);
+    }
+  }
+  
   public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3797,6 +3816,11 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
 /// </summary>
 public class NegationExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
+
+  public NegationExpression(Cloner cloner, NegationExpression original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+  }
+  
   public NegationExpression(IToken tok, Expression e)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3823,6 +3847,14 @@ public class ChainingExpression : ConcreteSyntaxExpression {
   public readonly List<IToken> OperatorLocs;
   public readonly List<Expression/*?*/> PrefixLimits;
   public readonly Expression E;
+
+  public ChainingExpression(Cloner cloner, ChainingExpression original) : base(cloner, original) {
+    Operands = original.Operands.Select(cloner.CloneExpr).ToList();
+    Operators = original.Operators;
+    OperatorLocs = original.OperatorLocs.Select(cloner.Tok).ToList();
+    PrefixLimits = original.PrefixLimits.Select(cloner.CloneExpr).ToList();
+  }
+  
   public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3934,6 +3966,14 @@ public class NameSegment : ConcreteSyntaxExpression {
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
     Name = name;
     OptTypeArguments = optTypeArguments;
+  }
+
+  public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
+    Name = original.Name;
+    OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
+    if (cloner.CloneResolvedFields) {
+      ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
+    }
   }
 }
 

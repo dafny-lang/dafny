@@ -802,7 +802,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : IAttributeBearingDeclaration where T : class {
+  public class Specification<T> : IAttributeBearingDeclaration, INode 
+    where T : class, INode
+  {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
@@ -829,6 +831,8 @@ namespace Microsoft.Dafny {
     public bool HasAttributes() {
       return Attributes != null;
     }
+
+    public IEnumerable<INode> Children => Expressions;
   }
 
   public class BottomUpVisitor {

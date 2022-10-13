@@ -361,8 +361,7 @@ namespace Microsoft.Dafny {
         return new SeqUpdateExpr(Tok(e.tok), CloneExpr(e.Seq), CloneExpr(e.Index), CloneExpr(e.Value));
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
-        return new DatatypeUpdateExpr(Tok(e.tok), CloneExpr(e.Root),
-          e.Updates.ConvertAll(t => Tuple.Create(Tok(t.Item1), t.Item2, CloneExpr(t.Item3))));
+        return new DatatypeUpdateExpr(this, e);
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver),
@@ -404,16 +403,14 @@ namespace Microsoft.Dafny {
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
-        return new ChainingExpression(Tok(e.tok), e.Operands.ConvertAll(CloneExpr), e.Operators,
-          e.OperatorLocs.ConvertAll(Tok), e.PrefixLimits.ConvertAll(CloneExpr));
+        return new ChainingExpression(this, e);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr),
           CloneExpr(e.Body), e.Exact, e.Attributes);
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
-        return new LetOrFailExpr(Tok(e.tok), e.Lhs == null ? null : CloneCasePattern(e.Lhs), CloneExpr(e.Rhs),
-          CloneExpr(e.Body));
+        return new LetOrFailExpr(this, e);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);
@@ -466,7 +463,7 @@ namespace Microsoft.Dafny {
           e.UsesOptionalBraces);
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
-        return new NegationExpression(Tok(e.tok), CloneExpr(e.E));
+        return new NegationExpression(this, e);
       }
       if (expr is Resolver_IdentifierExpr resolverIdentifierExpr) {
         return new Resolver_IdentifierExpr(Tok(resolverIdentifierExpr.tok), resolverIdentifierExpr.Decl, resolverIdentifierExpr.TypeArgs);
@@ -497,12 +494,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual NameSegment CloneNameSegment(Expression expr) {
-      var e = (NameSegment)expr;
-      var result = new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments?.ConvertAll(CloneType));
-      if (CloneResolvedFields) {
-        result.ResolvedExpression = CloneExpr(e.ResolvedExpression);
-      }
-      return result;
+      return new NameSegment(this, (NameSegment)expr);
     }
 
     public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs) {
