@@ -5,6 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
@@ -44,7 +45,7 @@ static class CommandRegistry {
   }
 
   [CanBeNull]
-  public static ParseArgumentResult Create(string[] arguments) {
+  public static async Task<ParseArgumentResult> Create(string[] arguments) {
 
     bool allowHidden = true;
     if (arguments.Length != 0) {
@@ -130,7 +131,7 @@ static class CommandRegistry {
 
     }
 
-    var exitCode = rootCommand.InvokeAsync(arguments).Result;
+    var exitCode = await rootCommand.InvokeAsync(arguments);
     if (optionFailure != null) {
       Console.WriteLine(optionFailure);
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
