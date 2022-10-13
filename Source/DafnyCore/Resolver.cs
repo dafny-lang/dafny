@@ -9989,10 +9989,9 @@ namespace Microsoft.Dafny {
           return true;
         } else if (asIDT.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {
           return false;
-        } else {
-          if (!scc.Contains(asIDT) && CheckIfEqualityIsDefinitelyNotSupported(asIDT, dependencies)) {
+        } else if (!scc.Contains(asIDT) && CheckIfEqualityIsDefinitelyNotSupported(asIDT, dependencies)) {
             return true;
-          }
+        }
         }
       }
 
