@@ -9979,11 +9979,7 @@ namespace Microsoft.Dafny {
       var asIDT = type.AsIndDatatype;
       if (asIDT != null) {
         if (asIDT.EnclosingModuleDefinition != M) {
-          if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
-            return true;
-          } else {
-            return false;
-          }
+          return asIDT.EqualitySupport == IndDatatypeDecl.ES.Never
         }
         if (asIDT.EqualitySupport == IndDatatypeDecl.ES.Never) {
           return true;
