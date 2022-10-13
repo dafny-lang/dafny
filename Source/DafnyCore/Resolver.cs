@@ -9961,8 +9961,8 @@ namespace Microsoft.Dafny {
     /// An arrow type
     ///
     /// These checks need to be made recursively, for example through type synonyms (including subset types), but with the following remarks:
-    /// We need to pay attention to recursively defined datatypes (which form a strongly connected component in the datatype dependency graph)
-    /// We assume that datatypes coming from other modules have already been fully resolved
+    /// - We need to pay attention to recursively defined datatypes (which form a strongly connected component in the datatype dependency graph).
+    /// - We assume that datatypes coming from other modules have already been fully resolved.
     ///
     /// </summary>
     bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc, ModuleDefinition M) {
