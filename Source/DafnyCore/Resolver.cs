@@ -9965,7 +9965,7 @@ namespace Microsoft.Dafny {
     /// - We assume that datatypes coming from other modules have already been fully resolved.
     ///
     /// </summary>
-    bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, List<IndDatatypeDecl> scc, ModuleDefinition M) {
+    bool BasicCheckIfEqualityIsDefinitelyNotSupported(Type type, Graph<IndDatatypeDecl> dependencies, List<IndDatatypeDecl> scc, ModuleDefinition M) {
 
       // The simplest case: these types never support equality
       if (type.IsArrowType || type.IsCoDatatype || (type.IsOpaqueType && !type.SupportsEquality)) {
