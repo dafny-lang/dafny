@@ -497,7 +497,7 @@ namespace Microsoft.Dafny {
 
     public virtual NameSegment CloneNameSegment(Expression expr) {
       var e = (NameSegment)expr;
-      var result = new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      var result = new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments?.ConvertAll(CloneType));
       if (CloneResolvedFields) {
         result.ResolvedExpression = CloneExpr(e.ResolvedExpression);
       }
