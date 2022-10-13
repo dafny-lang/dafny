@@ -467,7 +467,8 @@ namespace Microsoft.Dafny {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         return new NegationExpression(Tok(e.tok), CloneExpr(e.E));
-      } if (expr is Resolver_IdentifierExpr resolverIdentifierExpr) {
+      }
+      if (expr is Resolver_IdentifierExpr resolverIdentifierExpr) {
         return new Resolver_IdentifierExpr(Tok(resolverIdentifierExpr.tok), resolverIdentifierExpr.Decl, resolverIdentifierExpr.TypeArgs);
       } else {
         Contract.Assert(false);

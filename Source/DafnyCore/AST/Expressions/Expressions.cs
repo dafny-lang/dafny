@@ -3913,7 +3913,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   protected SuffixExpr(Cloner cloner, SuffixExpr original) : base(cloner, original) {
     Lhs = cloner.CloneExpr(original.Lhs);
   }
-  
+
   public SuffixExpr(IToken tok, Expression lhs)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3959,7 +3959,7 @@ public class ExprDotName : SuffixExpr {
     SuffixName = original.SuffixName;
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
-  
+
   public ExprDotName(IToken tok, Expression obj, string suffixName, List<Type> optTypeArguments)
     : base(tok, obj) {
     Contract.Requires(tok != null);
