@@ -31,7 +31,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     if (boundVars.Any()) {
       var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
       var rhss = boundVars.Select(b => b.usage).ToList();
-    
+
       Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
 
