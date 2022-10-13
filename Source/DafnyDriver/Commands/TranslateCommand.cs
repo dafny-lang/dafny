@@ -6,10 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class TranslateCommand : ICommandSpec {
-  public string Name => "translate";
-  public string Description => "Generate source and build files in a specified target language.";
   public Command Create() {
-    var result = new Command(Name, Description);
+    var result = new Command("translate", "Generate source and build files in a specified target language.");
     result.AddArgument(CommandRegistry.FilesArgument);
     return result;
   }

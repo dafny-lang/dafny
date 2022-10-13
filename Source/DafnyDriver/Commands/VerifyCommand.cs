@@ -5,12 +5,10 @@ using System.CommandLine.Invocation;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public string Name => "verify";
-  public string Description => "Verify the program.";
   public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
   
   public Command Create() {
-    var result = new Command(Name, Description);
+    var result = new Command("verify", "Verify the program.");
     result.AddArgument(CommandRegistry.FilesArgument);
     return result;
   }

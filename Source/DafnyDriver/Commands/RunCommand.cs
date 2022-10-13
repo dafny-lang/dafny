@@ -7,8 +7,6 @@ namespace Microsoft.Dafny;
 
 class RunCommand : ICommandSpec {
   private readonly Argument<IEnumerable<string>> userProgramArguments;
-  public string Name => "run";
-  public string Description => "Run the program.";
 
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
@@ -23,7 +21,7 @@ class RunCommand : ICommandSpec {
   }
 
   public Command Create() {
-    var result = new Command(Name, Description);
+    var result = new Command("run", "Run the program.");
     result.AddArgument(CommandRegistry.FileArgument);
     result.AddArgument(userProgramArguments);
     return result;

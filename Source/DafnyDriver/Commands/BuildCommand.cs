@@ -6,10 +6,6 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class BuildCommand : ICommandSpec {
-  public string Name => "build";
-
-  public string Description => "Produce an executable binary.";
-
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
     OutputOption.Instance,
     TargetOption.Instance,
@@ -18,7 +14,7 @@ class BuildCommand : ICommandSpec {
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
-    var result = new Command(Name, Description);
+    var result = new Command("build", "Produce an executable binary.");
     result.AddArgument(CommandRegistry.FilesArgument);
     return result;
   }
