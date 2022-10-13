@@ -9949,7 +9949,7 @@ namespace Microsoft.Dafny {
     /// are mutually recursive and their purpose is to determine if a datatype cannot possibly support equality.
     /// The entry point is always function `CheckIfEqualityIsDefinitelyNotSupported`
     /// Function `CheckIfEqualityIsDefinitelyNotSupported` checks datatypes specifically
-    /// Function `BasicCheckIfEqualityIsDefinitelyNotSupported` cheks all other types
+    /// Function `BasicCheckIfEqualityIsDefinitelyNotSupported` checks all other types
     /// 
     /// As a first approximation, a datatype definely cannot support equality if any of the following holds:
     /// Any of its constructors is ghost
