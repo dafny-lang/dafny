@@ -24,7 +24,7 @@ class BuildCommand : ICommandSpec {
     foreach (var file in context.ParseResult.GetValueForArgument(CommandRegistry.FilesArgument)) {
       dafnyOptions.AddFile(file.FullName);
     }
-    
+
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);

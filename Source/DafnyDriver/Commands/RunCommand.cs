@@ -14,8 +14,7 @@ class RunCommand : ICommandSpec {
       NoVerifyOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 
-  public RunCommand()
-  {
+  public RunCommand() {
     userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
     userProgramArguments.SetDefaultValue(new List<string>());
   }

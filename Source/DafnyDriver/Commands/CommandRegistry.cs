@@ -42,18 +42,17 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
-    
+
     FileArgument = new Argument<FileInfo>("file", "input file");
     FileArgument.AddValidator(ValidateFileArgument());
-    
+
     FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
     FilesArgument.AddValidator(ValidateFileArgument());
   }
 
   public static Argument<FileInfo> FileArgument { get; }
 
-  private static ValidateSymbolResult<ArgumentResult> ValidateFileArgument()
-  {
+  private static ValidateSymbolResult<ArgumentResult> ValidateFileArgument() {
     return r => {
       var value = r.Tokens[0].Value;
       if (value.StartsWith("--")) {
