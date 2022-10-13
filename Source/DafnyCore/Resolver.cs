@@ -10029,8 +10029,14 @@ namespace Microsoft.Dafny {
 
             // We also need to obtain information on the parameters of the constructor, which we 
             // obtain thanks to the AsRedirectingType
-            var red = type.AsRedirectingType;
-            var parameters = red.TypeArgs;
+            List<TypeParameter> parameters = new List<TypeParameter>();
+            if (type.AsDatatype != null) {
+              parameters = type.AsDatatype.TypeArgs;
+            } else if (type.AsTypeSynonym != null) {
+              parameters = type.AsTypeSynonym.TypeArgs;
+            } else {
+              Contract.Assert(false);
+            }
 
             var parametersAndArguments = parameters.Zip(arguments, (p, a) => new { Parameter = p, Argument = a });
 
