@@ -5,7 +5,7 @@ Dafny = { IncludeDirective_ } { TopDecl } EOF
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
 constants, methods, functions, lemmas, types (classes, traits, inductive and
-co-inductive datatypes, newtypes, type synonyms, opaque types, and
+coinductive datatypes, newtypes, type synonyms, opaque types, and
 iterators) and modules, where the order of introduction is irrelevant. A
 class also contains a set of declarations, introducing fields, methods,
 and functions.
