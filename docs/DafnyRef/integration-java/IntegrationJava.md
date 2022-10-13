@@ -49,9 +49,9 @@ Or, in one build-and-run step,
 `dafny run Demo1.dfy Demo.java`
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
-corresponding types in Dafny:
+corresponding types in the Dafny declaration:
 ```
-|+-----------------------------+|+---------------------------+|
+|-------------------------------|-----------------------------|
 |  Dafny type                   |   Java type                 |
 |-------------------------------|-----------------------------|
 | bool                          | boolean                     |
@@ -84,33 +84,8 @@ corresponding types in Dafny:
 
 The only type for which there is a bit of disconnect is `string`.
 
-TODO
 
-
-#### Calling Dafny from Java
-
-To call a Dafny method from Java we again need to give the Dafny method a name
-that is known by Java using `{:extern}` attributes. This time it is the Dafny metehod that has a body.
-
-So a Dafny method meant to be called from Java would be written like this example:
-```
-module M {
-  class C {
-    static {:extern "demo.Demo", "m"} method m() {
-      print "Hi!\n";
-    }
-  }
-}
-```
-Where the new name given in the `{:extern}` attribute is the same as the Dafny name, the name can be omitted in the attribute.
-Also note that all top-level Dafny declarations, which are not in an
-explicit module, are translated to be in the `_System` Java package, 
-and all declarations in a module that are not members of a type (such as a class) are translated to be in the `__default` Java class.
-
-Given the above Dafny code, the method `m` can be called from Java as
-`demo.mymodule.C.m();`.
-
-
-
-
-#### Calling Java from Dafny
+Aspects not yet implemented fully:
+- Calling non-static functions and methods
+- Calling Dafny from Java
+- Conversion between Dafny and Java strings
