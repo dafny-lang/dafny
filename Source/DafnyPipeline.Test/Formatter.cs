@@ -2577,6 +2577,8 @@ method Test() {
         if (firstToken == null && !expectNoToken) {
           Assert.False(true, "Did not find a first token");
         }
+
+        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         var reprinted = firstToken != null && firstToken.line > 0 ?
           Formatting.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram))
@@ -2598,6 +2600,77 @@ method Test() {
         var reprinted2 = firstToken != null && firstToken.line > 0 ? Formatting.__default.printSourceReindent(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram)) : reprinted;
         Assert.Equal(reprinted, reprinted2);
+      }
+    }
+
+    private void EnsureEveryTokenIsOwned(string programNotIndented, Program dafnyProgram) {
+      var firstToken = dafnyProgram.GetFirstTopLevelToken();
+      if (firstToken == null) {
+        return;
+      }
+      // Step 1: Collect all the tokens of the program
+      var allTokens = new HashSet<int>();
+      var t = firstToken;
+      while (t != null) {
+        if (t.val != "") {
+          allTokens.Add(t.pos);
+        }
+
+        t = t.Next;
+      }
+
+      void ProcessOwnedTokens(IEnumerable<IToken> ownedTokens) {
+        foreach (var token in ownedTokens) {
+          allTokens.Remove(token.pos);
+        }
+      }
+
+      void ProcessMember(MemberDecl memberDecl) {
+        ProcessOwnedTokens(memberDecl.OwnedTokens);
+      }
+
+      void ProcessModule(ModuleDefinition moduleDef) {
+        ProcessOwnedTokens(moduleDef.OwnedTokens);
+        foreach (var include in moduleDef.Includes) {
+          ProcessOwnedTokens(include.OwnedTokens);
+        }
+
+        foreach (var topLevelDecl in moduleDef.TopLevelDecls) {
+          ProcessOwnedTokens(topLevelDecl.OwnedTokens);
+          if (topLevelDecl is ModuleDecl moduleDecl && moduleDecl.EnclosingModuleDefinition != moduleDef) {
+            ProcessModule(moduleDecl.EnclosingModuleDefinition);
+          }
+          if (topLevelDecl is TopLevelDeclWithMembers memberContainer) {
+            foreach (var member in memberContainer.Members) {
+              ProcessMember(member);
+            }
+          }
+        }
+      }
+      // Step 2: Traverse all the program, and remove all the owned tokens from this set
+      ProcessModule(dafnyProgram.DefaultModuleDef);
+
+      // Step 3: Report any token that was not removed
+      if (allTokens.Count > 0) {
+        IToken? notOwnedToken = firstToken;
+        while (notOwnedToken != null && !allTokens.Contains(notOwnedToken.pos)) {
+          notOwnedToken = notOwnedToken.Next;
+        }
+
+        if (notOwnedToken == null) {
+          return;
+        }
+        var before = programNotIndented.Substring(0, notOwnedToken.pos);
+        var after = programNotIndented.Substring(notOwnedToken.pos + notOwnedToken.val.Length);
+        var beforeContextLength = Math.Max(before.Length - 50, 0);
+        var wrappedToken = "[[[" + notOwnedToken.val + "]]]";
+        var errorString = before.Substring(before.Length - beforeContextLength) + wrappedToken + after;
+        errorString = errorString.Substring(0,
+          Math.Min(errorString.Length, beforeContextLength + wrappedToken.Length + 50));
+
+        Assert.False(true, $"The token '{notOwnedToken.val}' (L" + notOwnedToken.line + ", C" + (notOwnedToken.col + 1) + ") or (P" + notOwnedToken.pos + ") is not owned:\n" +
+                           errorString
+                           );
       }
     }
 
