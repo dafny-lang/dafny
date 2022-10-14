@@ -1010,6 +1010,9 @@ public class DatatypeValue : Expression, IHasUsages {
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
+
+  public override IEnumerable<INode> Children => new INode[] { Bindings };
+
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
   [FilledInDuringResolution] public bool IsCoCall;
@@ -3706,7 +3709,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages {
       ResolvedCompiledExpression = cloner.CloneExpr(original.ResolvedCompiledExpression);
     }
   }
-  
+
   public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3819,7 +3822,7 @@ public class NegationExpression : ConcreteSyntaxExpression {
   public NegationExpression(Cloner cloner, NegationExpression original) : base(cloner, original) {
     E = cloner.CloneExpr(original.E);
   }
-  
+
   public NegationExpression(IToken tok, Expression e)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -3854,7 +3857,7 @@ public class ChainingExpression : ConcreteSyntaxExpression {
     OperatorLocs = original.OperatorLocs.Select(cloner.Tok).ToList();
     PrefixLimits = original.PrefixLimits.Select(cloner.CloneExpr).ToList();
   }
-  
+
   public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
     : base(tok) {
     Contract.Requires(tok != null);
@@ -4026,9 +4029,8 @@ public class ApplySuffix : SuffixExpr {
     Contract.Invariant(Args != null);
   }
 
-  public ApplySuffix(Cloner cloner, ApplySuffix original) : 
-    base(cloner, original) 
-  {
+  public ApplySuffix(Cloner cloner, ApplySuffix original) :
+    base(cloner, original) {
     AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
     CloseParen = cloner.Tok(original.CloseParen);
     FormatTokens = original.FormatTokens;

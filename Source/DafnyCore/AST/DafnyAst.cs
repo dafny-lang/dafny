@@ -728,7 +728,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding {
+  public class ActualBinding : INode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
@@ -739,9 +739,11 @@ namespace Microsoft.Dafny {
       Actual = actual;
       IsGhost = isGhost;
     }
+
+    public IEnumerable<INode> Children => new[] { Actual };
   }
 
-  public class ActualBindings {
+  public class ActualBindings : INode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -780,6 +782,8 @@ namespace Microsoft.Dafny {
       Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
+
+    public IEnumerable<INode> Children => ArgumentBindings;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -798,9 +802,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : IAttributeBearingDeclaration, INode 
-    where T : class, INode
-  {
+  public class Specification<T> : IAttributeBearingDeclaration, INode
+    where T : class, INode {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
