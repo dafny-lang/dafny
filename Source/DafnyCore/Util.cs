@@ -858,6 +858,10 @@ namespace Microsoft.Dafny {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
           return false;
+        } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+          var what = selectExpr.Member.WhatKindMentionGhost;
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
+          return false;
         } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
           var what = selectExpr.Member.WhatKind;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
@@ -1167,6 +1171,8 @@ namespace Microsoft.Dafny {
         if (UsesSpecFeatures(e.Obj)) {
           return true;
         } else if (e.Member != null && e.Member.IsGhost) {
+          return true;
+        } else if (e.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
           return true;
         } else if (e.Member is DatatypeDestructor dtor) {
           return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
