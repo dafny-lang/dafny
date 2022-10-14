@@ -47,7 +47,7 @@ method qqq() {
   var c: Cell;
   match c {
     case Cell(XX) =>     // XX is a variable
-    case Cell(_) =>     // WARNING so then this case is not redundant
+    case Cell(_) =>     // redundant case warning not show because it's created post resolution
   }
 }
 
