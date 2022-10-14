@@ -838,7 +838,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
   }
 
   // Both resolved and unresolved are required. Duplicate usages will be filtered out.
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
+  public override IEnumerable<INode> Children => ResolvedStatements; //Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

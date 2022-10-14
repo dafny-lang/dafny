@@ -1131,24 +1131,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
-      Expression lhs;
-      string name;
-      var ns = e.Lhs as NameSegment;
-      if (ns != null) {
-        name = ns.Name;
-        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
-      } else {
-        var edn = (ExprDotName)e.Lhs;
-        name = edn.SuffixName;
-        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
-      }
-      var args = new List<ActualBinding>();
-      args.Add(new ActualBinding(null, k));
-      foreach (var arg in e.Bindings.ArgumentBindings) {
-        args.Add(CloneActualBinding(arg));
-      }
-      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
-      reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
+      // Expression lhs;
+      // string name;
+      // if (e.Lhs is NameSegment ns) {
+      //   name = ns.Name;
+      //   lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      // } else {
+      //   var edn = (ExprDotName)e.Lhs;
+      //   name = edn.SuffixName;
+      //   lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      // }
+      // var args = new List<ActualBinding>();
+      // args.Add(new ActualBinding(null, k));
+      // foreach (var arg in e.Bindings.ArgumentBindings) {
+      //   args.Add(CloneActualBinding(arg));
+      // }
+
+      var apply = new ApplySuffix(this, e); //Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
+      // reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
       return apply;
     }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
@@ -1337,18 +1337,18 @@ namespace Microsoft.Dafny {
           // we're looking at a recursive call to an extreme lemma
           Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
           // clone "apply.Lhs", changing the least/greatest lemma to the prefix lemma; then clone "apply", adding in the extra argument
-          Expression lhsClone;
-          if (apply.Lhs is NameSegment) {
-            var lhs = (NameSegment)apply.Lhs;
-            lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
-          } else {
-            var lhs = (ExprDotName)apply.Lhs;
-            lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
-          }
-          var args = new List<ActualBinding>();
-          args.Add(new ActualBinding(null, k));
-          apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-          var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args, Tok(apply.CloseParen));
+          // Expression lhsClone;
+          // if (apply.Lhs is NameSegment) {
+          //   var lhs = (NameSegment)apply.Lhs;
+          //   lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          // } else {
+          //   var lhs = (ExprDotName)apply.Lhs;
+          //   lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          // }
+          // var args = new List<ActualBinding>();
+          // args.Add(new ActualBinding(null, k));
+          // apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
+          var applyClone = new ApplySuffix(this, apply);
           var c = new ExprRhs(applyClone);
           reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
           return c;

@@ -749,12 +749,12 @@ namespace Microsoft.Dafny {
       ArgumentBindings = argumentBindings;
     }
 
-    public ActualBindings(Cloner cloner, ActualBindings actualBindings) {
-      ArgumentBindings = actualBindings.ArgumentBindings.Select(actualBinding => new ActualBinding(
+    public ActualBindings(Cloner cloner, ActualBindings original) {
+      ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
         actualBinding.FormalParameterName == null ? null : cloner.Tok(actualBinding.FormalParameterName),
         cloner.CloneExpr(actualBinding.Actual))).ToList();
       if (cloner.CloneResolvedFields) {
-        arguments = actualBindings.Arguments.Select(cloner.CloneExpr).ToList();
+        arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();
       }
     }
 

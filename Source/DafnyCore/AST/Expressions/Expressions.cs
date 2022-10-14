@@ -4026,7 +4026,9 @@ public class ApplySuffix : SuffixExpr {
     Contract.Invariant(Args != null);
   }
 
-  public ApplySuffix(Cloner cloner, ApplySuffix original) : base(cloner.Tok(original.tok), cloner.CloneExpr(original.Lhs)) {
+  public ApplySuffix(Cloner cloner, ApplySuffix original) : 
+    base(cloner, original) 
+  {
     AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
     CloseParen = cloner.Tok(original.CloseParen);
     FormatTokens = original.FormatTokens;
