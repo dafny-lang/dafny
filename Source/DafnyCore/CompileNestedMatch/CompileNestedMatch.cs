@@ -948,7 +948,7 @@ public class CompileNestedMatch {
       cLet.IsGhost = stmtPath.Body[0].IsGhost;
 
       var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
-        { var.BoundVar, new IdentifierExpr(var.BoundVar.tok, cLVar)}
+        { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, cLVar)}
       }, new Dictionary<TypeParameter, Type>());
 
       var cloner = new Cloner(true);
@@ -969,7 +969,7 @@ public class CompileNestedMatch {
     }
 
     if (bodyPath is ExprPatternPath exprPath) {
-      var cBVar = var.BoundVar; //new BoundVar(var.Tok, name, type);
+      var cBVar = (BoundVar)var.BoundVar; //new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
       cPat.AssembleExpr(null); // TODO null?

@@ -12,7 +12,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-  public BoundVar BoundVar { get; set; }
+  public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
   [FilledInDuringResolution]
@@ -66,7 +66,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost) {
+    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
 
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
@@ -74,10 +74,16 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
       Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
       //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
-      BoundVar = new BoundVar(Tok, Id, substitutedSourceType);
+      if (mutable) {
+        var localVariable = new LocalVariable(Tok, Tok, Id, null, isGhost);
+        localVariable.type = substitutedSourceType;
+        BoundVar = localVariable;
+      } else {
+        BoundVar = new BoundVar(Tok, Id, substitutedSourceType);
+      }
 
       resolver.scope.Push(Id, BoundVar);
-      resolver.ResolveType(BoundVar.tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+      resolver.ResolveType(Tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
     } else {
       if (Ctor != null) {
@@ -85,7 +91,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, Resolver.SubstType(formal.Type, subst), formal.IsGhost);
+          argument.Resolve(resolver, resolutionContext, subst, Resolver.SubstType(formal.Type, subst), formal.IsGhost, mutable);
         }
       }
     }
