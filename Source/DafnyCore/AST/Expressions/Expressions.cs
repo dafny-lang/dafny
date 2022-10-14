@@ -2365,9 +2365,6 @@ public class BinaryExpr : Expression {
     this.Op = op;
     this.E0 = e0;
     this.E1 = e1;
-    if (this.ToString() == "y % == 12") {
-      Console.Write("");
-    }
   }
 
   /// <summary>
@@ -3594,7 +3591,8 @@ public class FrameExpression : IHasUsages {
   public FrameExpression(IToken tok, Expression e, string fieldName) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
-    Contract.Requires(!(e is WildcardExpr) || fieldName == null);
+    Debug.Assert(!(e is WildcardExpr) || fieldName == null);
+    //Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
     this.tok = tok;
     E = e;
     FieldName = fieldName;
