@@ -48,8 +48,8 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 				case (Kwhile(b,c,k),Ibranch(ofs)) =>
 					var pc' := pc + 1 + ofs;
 					var pc'' := pc' + |compile_com(CWhile(b, c))|;
-					&& pc' > 0
-						&& pc'' > 0	
+					&& (pc' >= 0)
+						&& (pc'' >= 0)	
 						&& code_at(C, pc', (compile_com(CWhile(b, c)))) 
 						&& compile_cont(C, k, pc'')
 				case _ => false
@@ -58,7 +58,7 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 				(match (k,C[pc]) {
 					case (_,Ibranch(ofs)) =>
 						var pc' := pc + 1 + ofs;
-						&& pc' > 0
+						&& pc' >= 0
 							&& compile_cont(C, k, pc')
 					case _ => false
 				})))
@@ -97,7 +97,7 @@ least lemma compile_cont_Kstop_inv(C: code, pc: nat, s: store)
 		case Ihalt =>
 		case Ibranch(ofs) => {
 			var pc' := pc + 1 + ofs;
-			assert pc' > 0;
+			assert pc' >= 0;
 			assert compile_cont(C,Kstop,pc');
 			compile_cont_Kstop_inv(C,pc',s);
 		}
@@ -116,9 +116,9 @@ lemma compile_cont_Kwhile_simp(C: code, b: bexp, c: com, k: cont, pc: nat, s: st
 	requires compile_cont(C,Kwhile(b,c,k),pc)
 	requires C[pc] == Ibranch(ofs)
 	ensures 
-	|| (pc + 1 + ofs > 0 && compile_cont(C, Kwhile(b,c,k), pc + 1 + ofs))
-	|| (&& pc + 1 + ofs > 0
-	   && (pc + 1 + ofs) + |compile_com(CWhile(b, c))| > 0
+	|| (pc + 1 + ofs >= 0 && compile_cont(C, Kwhile(b,c,k), pc + 1 + ofs))
+	|| (&& pc + 1 + ofs >= 0
+	   && (pc + 1 + ofs) + |compile_com(CWhile(b, c))| >= 0
  		 && code_at(C, pc + 1 + ofs, (compile_com(CWhile(b, c))))
  		 && compile_cont(C, k, (pc + 1 + ofs) + |compile_com(CWhile(b, c))|))
 {

@@ -31,6 +31,11 @@ function measure(impconf: conf): nat {
 	com_size(impconf.0) + cont_size(impconf.1)
 }
 
+lemma nat_is_pos(n: nat)
+	ensures n >= 0
+{
+}
+
 lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
 	requires step(impconf1,impconf2)
 	requires match_config(C, impconf1, machconf1)
@@ -189,7 +194,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (pc1: nat,stk1,str1) := machconf1;
 
 			var d1 := 0;
 			var d0 := |compile_com(body)| + 1;
@@ -197,36 +202,55 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			if beval(s1,b) {
 
 				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, [], s1);
 				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_true(C,s1,b,pc1,d1,d0,stk1); }
 				assert star<configuration>(tr,machconf1,machconf2);
 
-				assert match_config(C, impconf2, machconf2) by {
+				assert impconf2 == (body,Kwhile(b,body,k),s1);
+				assert code_at(C,machconf2.0,compile_com(body)) by { resolve_code_at(); }
 
-					assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); }
-					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(body)|);
-					assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(body)|) by
-						{
-							assert code_at(C,pc1 + |compile_bexp(b,d1,d0)| + d1,compile_com(body)) by { resolve_code_at(); }
-							
-						}
-					assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
+				// Another example of failure for subset types. In the commented asserts, unlike in the constructor
+				// that follows, I do not introduce pc' and pc'' and make their nat type explicit, and in the end
+				// it doesn't work
+				
+				//assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1));
+
+				//assert code_at(C,(machconf2.0 + |compile_com(impconf2.0)|) + 1 + (-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1)),compile_com(CWhile(b,body)));
+
+				//assert compile_cont(C,k,((machconf2.0 + |compile_com(impconf2.0)|) + 1 + (-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1))) + |compile_com(CWhile(b,body))|);
+
+				
+				assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|) by {
+
+					var pc: nat := machconf2.0 + |compile_com(impconf2.0)|;
+					var ofs: int := -( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1);
+					assert C[pc] == Ibranch(ofs);
+					var pc' := pc + 1 + ofs;
+					var pc'' := pc' + |compile_com(CWhile(b, body))|;
+					assert code_at(C,pc',compile_com(CWhile(b,body)));
+					assert compile_cont(C, k, pc'');
+					assert pc < |C|;
+					assert pc' == pc1;
+					assert pc'' == pc + 1;
 					
+					assert compile_cont(C, Kwhile(b,body,k), pc);
+
 				}
+
+				assert match_config(C,impconf2,machconf2);
 				
 				
 			} else {
 
 				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, stk1, s1);
+				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, [], s1);
 				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,s1,b,pc1,d1,d0,stk1); }
 				assert star<configuration>(tr,machconf1,machconf2);
 
-				assert match_config(C, impconf2, machconf2) by {
+				assert impconf2 == (CSkip,k,s1);
 
-					assume false;
-					
-				}
+				assert compile_cont(C, k, machconf2.0);
+				match_config_skip(C,k,s1,machconf2.0);
 				
 			}
 			
