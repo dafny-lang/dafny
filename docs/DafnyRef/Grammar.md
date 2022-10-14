@@ -98,7 +98,7 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## 2.2. Tokens and whitespace {#sec-tokens}
+## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
 
 * White space characters
