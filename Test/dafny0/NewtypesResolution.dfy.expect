@@ -31,8 +31,8 @@ NewtypesResolution.dfy(219,26): Error: new must use an integer-based expression 
 NewtypesResolution.dfy(238,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(240,13): Error: arguments to <= must have a common supertype (got Even and int)
 NewtypesResolution.dfy(249,17): Error: multiset update requires integer-based numeric value (got real)
-NewtypesResolution.dfy(256,28): Error: a ghost variable is allowed only in specification contexts
-NewtypesResolution.dfy(259,24): Error: a ghost variable is allowed only in specification contexts
+NewtypesResolution.dfy(256,28): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+NewtypesResolution.dfy(259,24): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 NewtypesResolution.dfy(262,6): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> BB -> CC -> DD -> EE -> AA
