@@ -3850,6 +3850,7 @@ public class ChainingExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
 
   public ChainingExpression(Cloner cloner, ChainingExpression original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
     Operands = original.Operands.Select(cloner.CloneExpr).ToList();
     Operators = original.Operators;
     OperatorLocs = original.OperatorLocs.Select(cloner.Tok).ToList();
