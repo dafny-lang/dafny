@@ -92,11 +92,7 @@ void dafny_print<bool>(bool x) {
 
 template<typename T>
 void dafny_print(T* x) {
-  if (x == nullptr) {
-    std::cout << "NULL";
-  } else {
-    std::cout << x;
-  }
+  std::cout << (x ? "true" : "false");
 }
 
 template<typename T>
