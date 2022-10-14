@@ -13,9 +13,6 @@ class TranslateCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    foreach (var file in context.ParseResult.GetValueForArgument(CommandRegistry.FilesArgument)) {
-      dafnyOptions.AddFile(file.FullName);
-    }
     dafnyOptions.Compile = false;
     var noVerify = NoVerifyOption.Instance.Get(options);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;

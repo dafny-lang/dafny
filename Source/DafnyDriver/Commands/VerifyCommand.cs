@@ -15,8 +15,5 @@ class VerifyCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = false;
-    foreach (var file in context.ParseResult.GetValueForArgument(CommandRegistry.FilesArgument)) {
-      dafnyOptions.AddFile(file.FullName);
-    }
   }
 }

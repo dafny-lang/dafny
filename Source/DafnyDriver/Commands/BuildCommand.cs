@@ -20,14 +20,8 @@ class BuildCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-
-    foreach (var file in context.ParseResult.GetValueForArgument(CommandRegistry.FilesArgument)) {
-      dafnyOptions.AddFile(file.FullName);
-    }
-
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
-    dafnyOptions.CompileVerbose = false;
   }
 }

@@ -128,6 +128,17 @@ static class CommandRegistry {
           continue;
         }
 
+        var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
+        if (singleFile != null) {
+          dafnyOptions.AddFile(singleFile.FullName);
+        }
+        var files = context.ParseResult.GetValueForArgument(FilesArgument);
+        if (files != null) {
+          foreach (var file in files) {
+            dafnyOptions.AddFile(file.FullName);
+          }
+        }
+
         var optionSpec = optionToSpec[option];
         var value = context.ParseResult.GetValueForOption(option);
         options.OptionArguments[optionSpec] = value;
