@@ -104,9 +104,19 @@ class RecursiveError {
   constructor () {
     b := a + 1; // Error here
     new;
-    assert false;
   }
 }
+
+class MultipleAssignmentError {
+  const b: int
+
+  constructor () {
+    b := 1;
+    b := 2; // Error here
+    new;
+  }
+}
+
 
 method Main() {
   var c := new SecondInitializationError(5);

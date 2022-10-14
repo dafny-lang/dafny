@@ -9101,7 +9101,7 @@ namespace Microsoft.Dafny {
                 _ => " here."
               };
               resolver.reporter.Error(MessageSource.Resolver,
-                mse.tok, "Cannot assign constant field " + why);
+                mse.tok, "Cannot assign constant field" + why);
             }
             if (s.Rhs is ExprRhs or TypeRhs) {
               // This is a special case we allow.  Omit s.Lhs in the recursive visits.  That is, we omit (++).
@@ -9114,9 +9114,8 @@ namespace Microsoft.Dafny {
 
             if (mse.Member is ConstantField constantField2) {
               if (constantsAlreadyAssigned.Peek().Contains(constantField2)) {
-                // Breaking change: Do we want to report on constants assigned multiple times?
-                /*resolver.reporter.Error(MessageSource.Resolver, mse.tok,
-                  $"The constant {constantField2.Name} was already assigned");*/
+                resolver.reporter.Error(MessageSource.Resolver, mse.tok,
+                  $"The constant {constantField2.Name} cannot be assigned twice.");
               } else {
                 constantsAlreadyAssigned.Peek().Add(constantField2);
               }
