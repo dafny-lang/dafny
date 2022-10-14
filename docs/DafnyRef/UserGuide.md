@@ -922,7 +922,7 @@ compilers treat it differently.
 
 ### 25.8.3. C\#
 
-TO BE WRITTEN
+{% include_relative integration-cs/IntegrationCS.md %}
 
 ### 25.8.4. Java
 
