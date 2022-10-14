@@ -80,6 +80,16 @@ void dafny_print(T x) {
   std::cout << x;
 }
 
+// Special-case bool so that the C++ output matches that of other backends
+template<>
+void dafny_print<bool>(bool x) {
+  if (x) {
+    std::cout << "true";
+  } else {
+    std::cout << "false";
+  }
+}
+
 template<typename T>
 void dafny_print(T* x) {
   if (x == nullptr) {
