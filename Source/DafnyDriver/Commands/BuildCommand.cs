@@ -14,7 +14,7 @@ class BuildCommand : ICommandSpec {
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
-    var result = new Command("build", "Produce an executable binary.");
+    var result = new Command("build", "Produce an executable binary or a library.");
     result.AddArgument(CommandRegistry.FilesArgument);
     return result;
   }
