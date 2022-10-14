@@ -212,7 +212,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
         Position Compute() {
           var changeStart = change.Range!.Start;
-          var changeEof = change.Text.GetEofPosition();
+          var changeEof = GetEofPosition(change.Text);
           var characterOffset = changeEof.Character;
           if (changeEof.Line == 0) {
             characterOffset = changeStart.Character + changeEof.Character;
@@ -220,6 +220,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
           return new Position(changeStart.Line + changeEof.Line, characterOffset);
         }
+      }
+
+      /// <summary>
+      /// Gets the LSP position at the end of the given text.
+      /// </summary>
+      /// <param name="text">The text to get the LSP end of.</param>
+      /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
+      /// <returns>The LSP position at the end of the text.</returns>
+      /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
+      /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+      /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+      private static Position GetEofPosition(string text, CancellationToken cancellationToken = default) {
+        int line = 0;
+        int character = 0;
+        int absolutePosition = 0;
+        do {
+          cancellationToken.ThrowIfCancellationRequested();
+          if (IsEndOfLine(text, absolutePosition)) {
+            line++;
+            character = 0;
+          } else {
+            character++;
+          }
+          absolutePosition++;
+        } while (absolutePosition <= text.Length);
+        return new Position(line, character);
+      }
+
+      private static bool IsEndOfLine(string text, int absolutePosition) {
+        if (absolutePosition >= text.Length) {
+          return false;
+        }
+        return text[absolutePosition] switch {
+          '\n' => true,
+          '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
+          _ => false
+        };
       }
 
       public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {

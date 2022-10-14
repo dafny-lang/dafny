@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers; 
 
@@ -151,60 +153,12 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
     }
   }
 
-  private Dictionary<int, int>? codeLineToPos = null;
-
-  public Dictionary<int, int> CodeLineToPos {
-    get {
-      if (codeLineToPos == null) {
-        codeLineToPos = new Dictionary<int, int>();
-        var pos = 0;
-        var seenCr = false;
-        var seenLf = false;
-        var isNewline = false;
-        codeLineToPos[0] = 0;
-        var line = 1;
-        while (pos < Code.Length) {
-          if (Code[pos] == '\r') {
-            if (seenCr) {
-              isNewline = true;
-            }
-            seenCr = true;
-          } else if (Code[pos] == '\n') {
-            if (seenLf) {
-              isNewline = true;
-            }
-            seenLf = true;
-          } else if (seenLf || seenCr) {
-            isNewline = true;
-          }
-
-          if (isNewline) {
-            seenLf = false;
-            seenCr = false;
-            isNewline = false;
-            codeLineToPos[line] = pos;
-            line++;
-          }
-          pos++;
-        }
-      }
-      return codeLineToPos;
-    }
-  }
-
   public string Extract(Range range) {
-    if (!CodeLineToPos.ContainsKey(range.Start.Line)) {
-      return ""; // Out of range
+    var buffer = Document.TextDocumentItem;
+    try {
+      return buffer.Extract(range);
+    } catch (ArgumentException) {
+      return "";
     }
-    var startTokenPos = CodeLineToPos[range.Start.Line] + range.Start.Character;
-    var endTokenPos =
-      CodeLineToPos.ContainsKey(range.End.Line) ? CodeLineToPos[range.End.Line] + range.End.Character :
-        Code.Length;
-    var length = endTokenPos - startTokenPos;
-    if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= Code.Length) {
-      return ""; // Safeguard
-    }
-
-    return Code.Substring(startTokenPos, length);
   }
 }
