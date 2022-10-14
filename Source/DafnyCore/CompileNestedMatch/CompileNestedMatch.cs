@@ -193,6 +193,7 @@ public class CompileNestedMatch {
     if (compiledMatch is null) {
       // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
       var result = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
+      result.Type = nestedMatchExpr.Type;
       ResolveMatchExpr(result);
       return result;
     } else if (compiledMatch is CExpr) {

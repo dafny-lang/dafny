@@ -2565,8 +2565,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public virtual string WhatKind => "comprehension";
   public readonly List<BoundVar> BoundVars;
   public readonly Expression Range;
-  private Expression term;
-  public Expression Term { get { return term; } }
+  public Expression Term;
+
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public IToken BodyStartTok = Token.NoToken;
@@ -2575,7 +2575,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
   public void UpdateTerm(Expression newTerm) {
-    term = newTerm;
+    Term = newTerm;
   }
 
   [ContractInvariantMethod]
@@ -3136,11 +3136,7 @@ public class LambdaExpr : ComprehensionExpr {
   }
 
   // Synonym
-  public Expression Body {
-    get {
-      return Term;
-    }
-  }
+  public Expression Body => Term;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
