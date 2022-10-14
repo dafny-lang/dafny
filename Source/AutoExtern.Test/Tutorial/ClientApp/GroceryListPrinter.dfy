@@ -10,7 +10,7 @@ include "LibraryModel.dfy"
 /// Then we define the entry point that C# uses, which is marked `{:extern}`
 /// because we don't want name mangling for it:
 
-module {:extern "DafnyPrinter"} DafnyPrinter {
+module {:extern "App.DafnyPrinter"} App.DafnyPrinter {
   import opened Library
 
   class {:extern "Printer"} Printer {
@@ -33,7 +33,7 @@ module {:extern "DafnyPrinter"} DafnyPrinter {
         decreases *
       {
         var cons := items as Cons<Entry<Fruit>>;
-        print "## ", cons.hd.item, ": ", cons.hd.count, "\n";
+        print "## ", cons.hd.item, ": ", cons.hd.count, " @ ", cons.hd.price.ToStr(), "\n";
 
 /// Here we have a concrete type implementing `Length`, so we can refer to it
 /// directly:
