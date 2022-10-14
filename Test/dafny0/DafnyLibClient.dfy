@@ -1,4 +1,4 @@
-// This test isn't possible with the new UI, because it wants to compile a Dafny library to a .dll
+// This test isn't possible with the new CLI commands, because it wants to compile a Dafny library to a .dll
 // and use that as part of another Dafny project. It expects the Dafny source of the library to be included in the .dll
 // as a Source attribute. However, 'dafny build' and `dafny run` always include the Dafny runtime,
 // so the new UI will include the runtime twice for this test causing it to fail. 
