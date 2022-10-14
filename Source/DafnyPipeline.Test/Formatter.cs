@@ -2625,30 +2625,17 @@ method Test() {
         }
       }
 
-      void ProcessMember(MemberDecl memberDecl) {
-        ProcessOwnedTokens(memberDecl.OwnedTokens);
-      }
 
-      void ProcessModule(ModuleDefinition moduleDef) {
-        ProcessOwnedTokens(moduleDef.OwnedTokens);
-        foreach (var include in moduleDef.Includes) {
-          ProcessOwnedTokens(include.OwnedTokens);
+      void ProcessNode(INode node) {
+        if (node == null) {
+          return;
         }
-
-        foreach (var topLevelDecl in moduleDef.TopLevelDecls) {
-          ProcessOwnedTokens(topLevelDecl.OwnedTokens);
-          if (topLevelDecl is ModuleDecl moduleDecl && moduleDecl.EnclosingModuleDefinition != moduleDef) {
-            ProcessModule(moduleDecl.EnclosingModuleDefinition);
-          }
-          if (topLevelDecl is TopLevelDeclWithMembers memberContainer) {
-            foreach (var member in memberContainer.Members) {
-              ProcessMember(member);
-            }
-          }
+        ProcessOwnedTokens(node.OwnedTokens);
+        foreach (var child in node.Children) {
+          ProcessNode(child);
         }
       }
-      // Step 2: Traverse all the program, and remove all the owned tokens from this set
-      ProcessModule(dafnyProgram.DefaultModuleDef);
+      ProcessNode(dafnyProgram);
 
       // Step 3: Report any token that was not removed
       if (allTokens.Count > 0) {
@@ -2662,7 +2649,7 @@ method Test() {
         }
         var before = programNotIndented.Substring(0, notOwnedToken.pos);
         var after = programNotIndented.Substring(notOwnedToken.pos + notOwnedToken.val.Length);
-        var beforeContextLength = Math.Max(before.Length - 50, 0);
+        var beforeContextLength = Math.Min(before.Length, 50);
         var wrappedToken = "[[[" + notOwnedToken.val + "]]]";
         var errorString = before.Substring(before.Length - beforeContextLength) + wrappedToken + after;
         errorString = errorString.Substring(0,

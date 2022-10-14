@@ -6,12 +6,13 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type {
+public abstract class Type : INode {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
-  public List<IToken> OwnedTokens = new List<IToken>();
+  public List<IToken> OwnedTokens { get; set; } = new List<IToken>();
+  public virtual IEnumerable<INode> Children => TypeArgs;
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -1781,6 +1782,7 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
+  public override IEnumerable<INode> Children => new List<INode>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
@@ -2028,9 +2030,12 @@ public class ArrowType : UserDefinedType {
       return false;
     }
   }
+
+  public override IEnumerable<INode> Children => base.Children.Concat(Args.Concat(new List<INode>() { Result }));
 }
 
 public abstract class CollectionType : NonProxyType {
+
   public abstract string CollectionTypeName { get; }
   public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
 
@@ -2195,7 +2200,8 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType, INode {
+public class UserDefinedType : NonProxyType {
+  public List<IToken> OwnedTokens { get; set; } = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2603,10 +2609,11 @@ public class UserDefinedType : NonProxyType, INode {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] { NamePath };
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });
 }
 
 public abstract class TypeProxy : Type {
+  public override IEnumerable<INode> Children => new List<INode>();
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
@@ -2801,6 +2808,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
+  public override IEnumerable<INode> Children => new List<INode>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {

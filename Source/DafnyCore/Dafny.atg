@@ -1476,11 +1476,11 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>                        (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
+  FIdentType<out id, out ty, ownedTokens>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
                                                        ownedTokens.Add(id); ownedTokens.Add(id.Next);
                                                        f.OwnedTokens = ownedTokens; ownedTokens = new List<IToken>(); .)
   { ","                                             (. ownedTokens.Add(t); .)
-    FIdentType<out id, out ty>                      (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
+    FIdentType<out id, out ty, ownedTokens>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
                                                        ownedTokens.Add(id); ownedTokens.Add(id.Next);
                                                        f.OwnedTokens = ownedTokens; ownedTokens = new List<IToken>();
                                                     .)
@@ -1504,7 +1504,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); ownedTokens.Add(t); .)
   { Attribute<ref attrs> }
-  CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+  CIdentType<out id, out ty, ownedTokens>    (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis                                 (. ownedTokens.Add(t); .)
   ]
   [ ":="                                     (. ownedTokens.Add(t); .)
@@ -1654,8 +1654,10 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder>
+GIdentType<.bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder,
+           List<IToken> ownedTokens
+           .>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
@@ -1666,35 +1668,35 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
     | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
     | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
     | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(t, "formal cannot be declared 'older' in this context"); } .)
-    )
+    )                            (. ownedTokens.Add(t); .)
   }
-  IdentType<out id, out ty, false>
+  IdentType<out id, out ty, false, ownedTokens>
   .
 
-FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
+FIdentType<.out IToken/*!*/ id, out Type/*!*/ ty, List<IToken> ownedTokens.>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
     id = Token.NoToken;
   .)
   NoUSIdentOrDigits<out id> (. id = t; .)
-  ":"
+  ":"                       (. ownedTokens.Add(t); .)
   Type<out ty>
   .
 
-CIdentType<out IToken/*!*/ id, out Type ty>
+CIdentType<.out IToken/*!*/ id, out Type ty, List<IToken> ownedTokens .>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null);
     id = Token.NoToken;
     ty = null;
   .)
   NoUSIdentOrDigits<out id> (. id = t; .)
-  [ ":"
+  [ ":"                     (. ownedTokens.Add(t); .)
     Type<out ty>
   ]
   .
 
-IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
+IdentType<.out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId, List<IToken> ownedTokens.>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
   WildIdent<out id, allowWildcardId>
-  ":"
+  ":"                        (. ownedTokens.Add(t); .)
   Type<out ty>
   .
 
@@ -1717,7 +1719,7 @@ IdentTypeOptional<out BoundVar var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
+TypeIdentOptional<.out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly, List<IToken> ownedTokens.>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
@@ -1725,11 +1727,11 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      IToken nameonlyToken = null;
      defaultValue = null;
   .)
-  { "ghost"                            (. isGhost = true; .)
-  | "nameonly"                         (. nameonlyToken = t; .)
+  { "ghost"                            (. isGhost = true; ownedTokens.Add(t); .)
+  | "nameonly"                         (. nameonlyToken = t; ownedTokens.Add(t); .)
   }
   ( TypeAndToken<out id, out ty, false>
-    [ ":"
+    [ ":"                              (. ownedTokens.Add(t); .)
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
          if (udt != null && udt.TypeArgs.Count == 0) {
@@ -1739,12 +1741,12 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          }
       .)
       Type<out ty>
-      ParameterDefaultValue<true, out defaultValue>
+      ParameterDefaultValue<true, out defaultValue, ownedTokens>
     ]
-  | digits         (. id = t; name = id.val;.)
-    ":"
+  | digits         (. id = t; name = id.val; .)
+    ":"            (. ownedTokens.Add(t); .)
     Type<out ty>
-    ParameterDefaultValue<true, out defaultValue>
+    ParameterDefaultValue<true, out defaultValue, ownedTokens>
   )
   (. if (name != null) {
        identName = name;
@@ -2148,22 +2150,22 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
   .)
   "("            (. ownedTokens.Add(t); .)
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
-    ParameterDefaultValue<incoming, out defaultValue>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, ownedTokens>
+    ParameterDefaultValue<incoming, out defaultValue, ownedTokens>
                  (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
     { ","        (. ownedTokens.Add(t); .) 
-      GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
-    ParameterDefaultValue<incoming, out defaultValue>
+      GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, ownedTokens>
+    ParameterDefaultValue<incoming, out defaultValue, ownedTokens>
                  (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
     }
   ]
   ")"            (. ownedTokens.Add(t); .)
   .
 
-ParameterDefaultValue<bool incoming, out Expression defaultValue>
+ParameterDefaultValue<.bool incoming, out Expression defaultValue, List<IToken> ownedTokens.>
 = (. defaultValue = null; IToken tok;
   .)
-  [ ":="        (. tok = t; .)
+  [ ":="        (. tok = t; ownedTokens.Add(t); .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
          SemErr(tok, "out-parameters cannot have default-value expressions");
@@ -2181,10 +2183,10 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals, List<IToken> ownedTokens.>
   .)
   "("       (. ownedTokens.Add(t); .)
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly, ownedTokens>
             (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     { ","   (. ownedTokens.Add(t); .)
-      TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+      TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly, ownedTokens>
             (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
@@ -2450,10 +2452,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false, ownedTokens> ]
       Formals<true, true, isTwoState, true, formals, ownedTokens>
-      ":"        (. ownedTokens.Add(t); ownedTokens.Add(t); .)
+      ":"        (. ownedTokens.Add(t); .)
       (  IF(IsParenIdentsColon())
-         "("     (. ownedTokens.Add(t); ownedTokens.Add(t); .)
-           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+         "("     (. ownedTokens.Add(t); .)
+           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, ownedTokens>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
@@ -2725,7 +2727,7 @@ PredicateResult<.string name, out Formal result, List<IToken> ownedTokens.>
   ":" (. ownedTokens.Add(t); .)
   (  IF(IsParenIdentsColon())
      "(" (. ownedTokens.Add(t); .)
-       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, ownedTokens>
        (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
           if(ty is not BoolType) {
             SemErr(t, $"{name} return type should be bool, got {ty}");

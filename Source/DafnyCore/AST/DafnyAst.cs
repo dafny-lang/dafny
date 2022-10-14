@@ -33,6 +33,8 @@ namespace Microsoft.Dafny {
     /// losing source location information, so those transformed nodes should not be returned by this property.
     /// </summary>
     IEnumerable<INode> Children { get; }
+
+    List<IToken> OwnedTokens { get; }
   }
 
   public interface IDeclarationOrUsage : INode {
@@ -49,6 +51,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
+    public List<IToken> OwnedTokens { get; set; } = new();
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -425,6 +428,7 @@ namespace Microsoft.Dafny {
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : IVariable {
+    public List<IToken> OwnedTokens { get; set; } = new();
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -503,6 +507,7 @@ namespace Microsoft.Dafny {
   public abstract class NonglobalVariable : IVariable {
     public readonly IToken tok;
     readonly string name;
+    public List<IToken> OwnedTokens => new List<IToken>() { tok };
 
     [ContractInvariantMethod]
     void ObjectInvariant() {

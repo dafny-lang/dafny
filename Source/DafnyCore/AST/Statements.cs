@@ -12,7 +12,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
-  public List<IToken> OwnedTokens = new List<IToken>();
+  public List<IToken> OwnedTokens { get; set; } = new();
 
 
   private Attributes attributes;
@@ -483,7 +483,7 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
-  public List<IToken> OwnedTokens = new();
+  public List<IToken> OwnedTokens { get; set; } = new();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -1076,6 +1076,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
+  public List<IToken> OwnedTokens { get; set; } = new();
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]
@@ -1166,7 +1167,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => type.Nodes;
+  public IEnumerable<INode> Children => type != null ? type.Nodes : new List<INode>();
 }
 
 /// <summary>

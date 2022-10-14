@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
   public readonly IToken tok;
-  public List<IToken> OwnedTokens = new();
+  public List<IToken> OwnedTokens { get; set; } = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -1197,6 +1197,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Module : ResolverType {
+    public override IEnumerable<INode> Children => new List<INode>();
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
@@ -3375,6 +3376,8 @@ public abstract class MatchCase : IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
+  public List<IToken> OwnedTokens { get; set; } = new();
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -3577,6 +3580,7 @@ ExtendedPattern is either:
 public abstract class ExtendedPattern : INode {
   public readonly IToken Tok;
   public bool IsGhost;
+  public List<IToken> OwnedTokens { get; set; } = new();
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
     Contract.Requires(tok != null);
@@ -3710,6 +3714,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 public abstract class NestedMatchCase : INode {
   public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
+  public List<IToken> OwnedTokens { get; set; } = new();
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
     Contract.Requires(tok != null);
@@ -3930,6 +3935,7 @@ public class AttributedExpression : IAttributeBearingDeclaration {
 public class FrameExpression : IHasUsages {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
+  public List<IToken> OwnedTokens { get; set; } = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

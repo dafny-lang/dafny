@@ -23,7 +23,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public IToken StartToken = Token.NoToken;
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public List<IToken> OwnedTokens = new();
+  public List<IToken> OwnedTokens { get; set; } = new();
   public string Name;
   public bool IsRefining;
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -245,7 +245,7 @@ public class TypeParameter : TopLevelDecl {
   public struct TypeParameterCharacteristics {
     public IToken StartToken = null;
     public IToken EndToken = null;
-    public List<IToken> OwnedTokens = new();
+    public List<IToken> OwnedTokens { get; set; } = new();
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -431,6 +431,7 @@ public class ModuleExportDecl : ModuleDecl {
   [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
+  public override IEnumerable<INode> Children => Exports;
 
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(IToken tok, ModuleDefinition parent,
@@ -477,7 +478,7 @@ public class ModuleExportDecl : ModuleDecl {
 public class ExportSignature : IHasUsages {
   public readonly IToken Tok;
   public readonly IToken ClassIdTok;
-  public List<IToken> OwnedTokens = new();
+  public List<IToken> OwnedTokens { get; set; } = new();
   public readonly bool Opaque;
   public readonly string ClassId;
   public readonly string Id;
@@ -501,6 +502,7 @@ public class ExportSignature : IHasUsages {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
+    OwnedTokens = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
@@ -509,6 +511,7 @@ public class ExportSignature : IHasUsages {
     Tok = idTok;
     Id = id;
     Opaque = opaque;
+    OwnedTokens = new List<IToken>() { Tok };
   }
 
   public override string ToString() {
@@ -630,7 +633,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public IToken StartToken = Token.NoToken;
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public List<IToken> OwnedTokens = new();
+  public List<IToken> OwnedTokens { get; set; } = new();
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
   public string FullDafnyName {
