@@ -73,7 +73,9 @@ public class TextBuffer {
     int startIndex = ToIndex(change.Range.Start);
     int endIndex = ToIndex(change.Range.End);
     var newText = Text[..startIndex] + change.Text + Text[endIndex..];
-    var changeStartLine = IndexToLine(startIndex);
+    // TODO: To reinstate this optimization, we need to prove its equivalence.
+    // Otherwise, bugs have been found (e.g. https://github.com/dafny-lang/dafny/issues/2890)
+    /*var changeStartLine = IndexToLine(startIndex);
     var changeEndLine = IndexToLine(endIndex);
 
     var indexDelta = newText.Length - Text.Length;
@@ -85,7 +87,8 @@ public class TextBuffer {
         line.LineNumber + lineDelta,
         line.StartIndex + indexDelta,
         line.EndIndex + indexDelta));
-    var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(migratedLinesAfterChange).ToList();
+    var newTotalLines = Lines.Take(changeStartLine.LineNumber).Concat(freshLines).Concat(migratedLinesAfterChange).ToList();*/
+    var newTotalLines = ComputeLines(newText, 0, 0, newText.Length);
     return new TextBuffer(newText, newTotalLines);
   }
 

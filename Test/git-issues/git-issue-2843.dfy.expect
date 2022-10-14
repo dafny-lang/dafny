@@ -1,0 +1,10 @@
+git-issue-2843.dfy(14,7): Error: a function with ghost parameters can be used as a value only in specification contexts
+git-issue-2843.dfy(20,7): Error: a ghost function is allowed only in specification contexts
+git-issue-2843.dfy(33,8): Error: a ghost variable is allowed only in specification contexts
+git-issue-2843.dfy(33,22): Error: a ghost variable is allowed only in specification contexts
+git-issue-2843.dfy(46,13): Error: a function with ghost parameters can be used as a value only in specification contexts
+git-issue-2843.dfy(46,20): Error: a ghost function is allowed only in specification contexts
+git-issue-2843.dfy(47,13): Error: a ghost variable is allowed only in specification contexts
+git-issue-2843.dfy(47,20): Error: a ghost variable is allowed only in specification contexts
+git-issue-2843.dfy(53,8): Error: a ghost variable is allowed only in specification contexts
+9 resolution/type errors detected in git-issue-2843.dfy
