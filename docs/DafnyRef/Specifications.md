@@ -1,4 +1,4 @@
-# 5. Specifications
+# 5. Specifications {#sec-specifications}
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -24,7 +24,7 @@ that use them.
 Specification clauses typically appear in a sequence. They all begin with a 
 keyword and do not end with semicolons.
 
-## 5.1. Specification Clauses
+## 5.1. Specification Clauses {#sec-specification-clauses}
 
 
 Within expressions in specification clauses, you can use
@@ -352,15 +352,44 @@ If the `FrameField` is not preceded by an expression then
 the frame expression is referring to that field of the current
 object. This form is only used within a method of a class or trait.
 
-The use of ``FrameField`` is discouraged as in practice it has not
-been shown to either be more concise or to perform better.
-Also, there's (unfortunately) no form of it for array
-elements---one could imagine
+A ``FrameField`` can be useful in the following case:
+When a method modifies only one field, rather than writing
 
 ```dafny
-  modifies a`[j]
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies this
+    ensures unchanged(x0) && unchanged(x1) && unchanged(x2) && unchanged(x3) && unchanged(x4)
+  { i := i + 1; }
+}
 ```
-Also, ``FrameField`` is not taken into consideration for
+
+one can write the more concise:
+
+```dafny
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies `i
+  { i := i + 1; }
+}
+```
+
+There's (unfortunately) no form of it for array
+elements -- but to account for unchanged elements, you can always write
+`forall i | 0 <= i < |a| :: unchanged(a[i])`.
+A ``FrameField`` is not taken into consideration for
 lambda expressions.
 
 ### 5.1.5. Reads Clause {#sec-reads-clause}
@@ -623,7 +652,7 @@ Examples of iterators, including iterator specifications, are given in
 - a yield requires clause is a precondition for calling `MoveNext`
 - a yield ensures clause is a postcondition for calling `MoveNext`
 
-## 5.6. Loop Specification
+## 5.6. Loop Specification {#sec-loop-specification}
 ````grammar
 LoopSpec =
   { InvariantClause_
@@ -640,4 +669,75 @@ The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 
-TO BE WRITTEN - {:autocontracts}
+AutoContracts is an experimental feature that inserts much of the dynamic-frames boilerplate
+into a class. The user simply
+- marks the class with `{:autocontracts}` and
+- declares a function (or predicate) called Valid().
+
+AutoContracts then
+
+- Declares, unless there already exist members with these names:
+```dafny
+  ghost var Repr: set(object)
+  predicate Valid()
+```
+
+- For function/predicate `Valid()`, inserts
+```dafny
+  reads this, Repr
+  ensures Valid() ==> this in Repr
+```
+- Into body of `Valid()`, inserts (at the beginning of the body)
+```dafny
+  this in Repr && null !in Repr
+```
+  and also inserts, for every array-valued field `A` declared in the class:
+```dafny
+  (A != null ==> A in Repr) &&
+```
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts
+```dafny
+  (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
+```
+  except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
+be added.
+- For every constructor, inserts
+```
+  ensures Valid() && fresh(Repr)
+```
+- At the end of the body of the constructor, adds
+```
+   Repr := {this};
+   if (A != null) { Repr := Repr + {A}; }
+   if (F != null) { Repr := Repr + {F} + F.Repr; }
+```
+
+In all the following cases, no `modifies` clause or `reads` clause is added if the user
+has given one.
+
+- For every non-static non-ghost method that is not a "simple query method",
+inserts
+```
+   requires Valid()
+   modifies Repr
+   ensures Valid() && fresh(Repr - old(Repr))
+```
+- At the end of the body of the method, inserts
+```
+   if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
+   if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
+```
+- For every non-static non-twostate method that is either ghost or is a "simple query method",
+add:
+```
+   requires Valid()
+```
+- For every non-static twostate method, inserts
+```
+   requires old(Valid())
+```
+- For every non-"Valid" non-static function, inserts
+```
+   requires Valid()
+   reads Repr
+```

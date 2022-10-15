@@ -1,32 +1,47 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 3 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 match
 1
 Kablammo!!
 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 Dafny program verifier did not attempt verification
 match
 1
 Kablammo!!
 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 Dafny program verifier did not attempt verification
 match
 1
 Kablammo!!
 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 Dafny program verifier did not attempt verification
 match
 1
 Kablammo!!
 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 Dafny program verifier did not attempt verification
 match
 1
 Kablammo!!
 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

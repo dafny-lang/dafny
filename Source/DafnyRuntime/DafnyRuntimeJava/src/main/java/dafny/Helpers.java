@@ -18,6 +18,15 @@ import java.util.stream.Stream;
 
 public class Helpers {
 
+    public static DafnySequence<? extends DafnySequence<? extends Character>> FromMainArguments(String[] args) {
+       @SuppressWarnings("unchecked")
+       TypeDescriptor<DafnySequence<? extends Character>> type = DafnySequence.<Character>_typeDescriptor(TypeDescriptor.CHAR);
+       dafny.Array<DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
+       dafnyArgs.set(0, DafnySequence.asString("java"));
+       for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asString(args[i]));
+       return DafnySequence.fromArray(type, dafnyArgs);
+    }
+    
     public static <T> boolean Quantifier(Iterable<T> vals, boolean frall, Predicate<T> pred) {
         for (T t : vals) {
             if (pred.test(t) != frall) {

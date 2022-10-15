@@ -1,8 +1,8 @@
 diff --git a/Source/Dafny.sln b/Source/Dafny.sln
-index 88200dcc4..3a75b0cc5 100644
+index ddfd6d91f..06e9bb1a2 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -35,6 +35,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
+@@ -41,6 +41,33 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
  EndProject
  Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
  EndProject
@@ -33,11 +33,10 @@ index 88200dcc4..3a75b0cc5 100644
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCExpr", "..\boogie\Source\VCExpr\VCExpr.csproj", "{E760E37E-0257-4C96-89C4-722F85BABDBB}"
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCGeneration", "..\boogie\Source\VCGeneration\VCGeneration.csproj", "{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}"
-+EndProject
+ EndProject
  Global
  	GlobalSection(SolutionConfigurationPlatforms) = preSolution
- 		Debug|Any CPU = Debug|Any CPU
-@@ -94,6 +122,72 @@ Global
+@@ -116,6 +143,72 @@ Global
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
@@ -110,7 +109,7 @@ index 88200dcc4..3a75b0cc5 100644
  	EndGlobalSection
  	GlobalSection(SolutionProperties) = preSolution
  		HideSolutionNode = FALSE
-@@ -100,5 +194,18 @@ Global
+@@ -124,5 +217,18 @@ Global
  		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
  	EndGlobalSection
  	GlobalSection(NestedProjects) = preSolution
@@ -129,12 +128,13 @@ index 88200dcc4..3a75b0cc5 100644
 +		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8} = {60332269-9C5D-465E-8582-01F9B738BD90}
  	EndGlobalSection
  EndGlobal
-diff --git a/Source/Dafny/DafnyPipeline.csproj b/Source/Dafny/DafnyPipeline.csproj
-index 6ea0de067..ca1e0e527 100644
---- a/Source/Dafny/DafnyPipeline.csproj
-+++ b/Source/Dafny/DafnyPipeline.csproj
-@@ -25,7 +25,7 @@
+diff --git a/Source/DafnyCore/DafnyCore.csproj b/Source/DafnyCore/DafnyCore.csproj
+index a9e188817..f4f593de9 100644
+--- a/Source/DafnyCore/DafnyCore.csproj
++++ b/Source/DafnyCore/DafnyCore.csproj
+@@ -27,7 +27,7 @@
        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
 -      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.7" />

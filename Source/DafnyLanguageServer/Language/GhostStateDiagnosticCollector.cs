@@ -28,17 +28,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.options = options.Value;
     }
 
-    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SymbolTable symbolTable, CancellationToken cancellationToken) {
+    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
       if (!options.MarkStatements) {
         return Enumerable.Empty<Diagnostic>();
       }
 
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(symbolTable.CompilationUnit.Program, cancellationToken);
-        visitor.Visit(symbolTable.CompilationUnit.Program);
+        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
         return visitor.GhostDiagnostics;
       } catch (Exception e) {
-        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", symbolTable.CompilationUnit.Name);
+        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
         return new Diagnostic[] { };
       }
     }

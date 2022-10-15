@@ -42,11 +42,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     }
 
     private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer(0) {
+      return new DocumentTextBuffer(new TextDocumentItem() {
         LanguageId = "dafny",
         Version = 1,
         Text = ""
-      };
+      });
     }
 
     [TestMethod]
