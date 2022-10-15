@@ -8,6 +8,7 @@ using System.Text;
 using System.Diagnostics.Contracts;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -211,6 +212,16 @@ namespace Microsoft.Dafny {
       }
       return sb.ToString();
     }
+
+    private static Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
+    
+    public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
+      return UnicodeEscape.Replace(s, match => {
+        var padChars = 8 - match.Groups[1].Length;
+        return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + match.Groups[1];
+      });
+    }
+    
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.

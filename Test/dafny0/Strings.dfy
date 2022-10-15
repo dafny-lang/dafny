@@ -31,10 +31,11 @@ method Main()
   var s, t := M(ch, ch);
   print "ch = ", ch, "\n";
   print "The string is: " + s + "\n";
-  var x, y, z := Escapes();
+  var x, y, z, zz := Escapes();
   print "Escape X: ", x, "\n";
   print "Escape Y: ", y, "\n";
   print "Escape Z: ", z, "\n";
+  print "Escape ZZ: ", zz, "\n";
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
 }
@@ -50,12 +51,13 @@ method GimmieAChar(s: string) returns (ch: char)
   }
 }
 
-method Escapes() returns (x: string, y: string, z: string)
+method Escapes() returns (x: string, y: string, z: string, zz: string)
 {
   x := "I say \"hello\" \\ you say \'good bye'";
   y := @"I say ""hello"" \ you say 'good bye'";
   assert x == y;
   z := "There needs to be \u0052\u0026\u0044\n\tYes, sir";
+  zz := @"\ud83d\ude0e is the UTF-16 for the emoji 😎";
 }
 
 method CharEscapes() returns (c: char, d: char)
