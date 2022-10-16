@@ -1755,7 +1755,7 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
 
-      return 0 == RunProcess(psi, null, "python", outputWriter);
+      return 0 == RunProcess(Process.Start(psi), "python", outputWriter);
     }
   }
 }

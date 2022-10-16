@@ -2512,7 +2512,7 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
 
-      return 0 == RunProcess(psi, null, "c++", outputWriter);
+      return 0 == RunProcess(Process.Start(psi), "c++", outputWriter);
     }
   }
 }

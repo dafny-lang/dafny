@@ -2317,7 +2317,7 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      return 0 == RunProcess(psi, null, "java", outputWriter);
+      return 0 == RunProcess(Process.Start(psi), "java", outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {

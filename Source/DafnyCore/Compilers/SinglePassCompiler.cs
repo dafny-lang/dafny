@@ -65,9 +65,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
-    public virtual int RunProcess(ProcessStartInfo psi, Process process, String platform, TextWriter outputWriter) {
+    public virtual int RunProcess(Process process, String platform, TextWriter outputWriter) {
       try {
-        process ??= Process.Start(psi);
         if (process == null) {
           return -1;
         }
@@ -75,7 +74,7 @@ namespace Microsoft.Dafny.Compilers {
         return process.ExitCode;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start {0} ({1}): {2}",
-          platform, psi.FileName, e.Message);
+          platform, process.StartInfo.FileName, e.Message);
         return -1;
       }
     }
