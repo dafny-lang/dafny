@@ -3648,7 +3648,18 @@ namespace Microsoft.Dafny.Compilers {
         psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
         psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
       }
-      return 0 == RunProcess(Process.Start(psi), "go", outputWriter);
+
+      try {
+        using var process = Process.Start(psi);
+        if (process == null) {
+          return false;
+        }
+        process.WaitForExit();
+        return process.ExitCode == 0;
+      } catch (System.ComponentModel.Win32Exception e) {
+        outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
+        return false;
+      }
     }
 
     static string GoPath(string filename) {

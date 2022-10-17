@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -2480,8 +2481,8 @@ namespace Microsoft.Dafny.Compilers {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
       };
 
       try {
@@ -2497,12 +2498,27 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        return 0 == RunProcess(nodeProcess, "javascript", outputWriter);
+        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        var errorProcessing = Task.Run(() => {
+          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        });
+        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
+        nodeProcess.WaitForExit();
+        errorProcessing.Wait();
+        return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
     }
 
+    // We read character by character because we did not find a way to ensure
+    // final newlines are kept when reading line by line
+    void PassthroughBuffer(StreamReader input, TextWriter output) {
+      int current;
+      while ((current = input.Read()) != -1) {
+        output.Write((char)current);
+      }
+    }
   }
 }

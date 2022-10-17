@@ -2308,8 +2308,8 @@ namespace Microsoft.Dafny.Compilers {
       var psi = new ProcessStartInfo("java") {
         CreateNoWindow = true,
         UseShellExecute = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
       psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
@@ -2317,7 +2317,19 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      return 0 == RunProcess(Process.Start(psi), "java", outputWriter);
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
+      }
+      return true;
     }
 
     protected string GetClassPath(string targetFilename) {
