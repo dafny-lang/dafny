@@ -37,5 +37,5 @@ method Main() {
   BasicOps(72, 15);
   Casts(42);
   var b := bit(10);
-  print b;
+  print b, "\n";
 }
