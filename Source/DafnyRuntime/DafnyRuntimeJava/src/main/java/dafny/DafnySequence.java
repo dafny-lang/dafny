@@ -107,8 +107,25 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new StringDafnySequence(s);
     }
 
-    public static DafnySequence<Integer> asUnicodeString(String s){
-        return new UnicodeStringDafnySequence(s);
+    public static DafnySequence<Integer> asUnicodeString(String s) {
+        int[] codePoints = new int[s.codePointCount(0, s.length())];
+        int charIndex = 0;
+        for (int codePointIndex = 0; codePointIndex < codePoints.length; codePointIndex++) {
+            char c1 = s.charAt(charIndex++);
+            if (Character.isHighSurrogate(c1)) {
+                if (charIndex >= s.length()) {
+                    throw new IllegalArgumentException();
+                }
+                char c2 = s.charAt(charIndex++);
+                if (!Character.isLowSurrogate(c2)) {
+                    throw new IllegalArgumentException();
+                }
+                codePoints[codePointIndex] = Character.toCodePoint(c1, c2);
+            } else {
+                codePoints[codePointIndex] = c1;
+            }
+        }
+        return new ArrayDafnySequence<>(Array.wrap(codePoints));
     }
 
     public static DafnySequence<Byte> fromBytes(byte[] bytes) {
@@ -760,25 +777,6 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     @Override
     public int hashCode() {
         return force().hashCode();
-    }
-}
-
-final class UnicodeStringDafnySequence extends NonLazyDafnySequence<Integer> {
-    private final String asString;
-    private final DafnySequence<Integer> wrapped;
-    UnicodeStringDafnySequence(String s) {
-        asString = s;
-        int[] codePoints = s.codePoints().toArray();
-        wrapped = new ArrayDafnySequence<Integer>(Array.wrap(codePoints));
-    }
-
-    public int hashCode() {
-        return asList().hashCode();
-    }
-
-    @java.lang.Override
-    public String verbatimString() {
-        return asString;
     }
 }
 

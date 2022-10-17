@@ -670,7 +670,11 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return boxed ? "Boolean" : "boolean";
       } else if (xType is CharType) {
-        return boxed ? "Character" : "char";
+        if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+          return boxed ? "Integer" : "int";
+        } else {
+          return boxed ? "Character" : "char";
+        }
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "java.math.BigInteger";
       } else if (xType is RealType) {
@@ -1046,7 +1050,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{str}\"");
+        wr.Write($"\"{Util.UnicodeEscapesToUTF16Escapes(str)}\"");
       } else {
         //TODO: This is taken from Go and JS since Java doesn't have raw string literals, modify and make better if possible.
         var n = str.Length;
@@ -2419,7 +2423,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Returns whether or not there is a run-time type descriptor corresponding to "tp".
     ///
-    /// Note, one might thing that this method should return "tp.Characteristics.HasCompiledValue".
+    /// Note, one might think that this method should return "tp.Characteristics.HasCompiledValue".
     /// However, currently, all built-in collection types in Java use type descriptors for their arguments.
     /// To get this threaded through everywhere, all type arguments must always be passed with a
     /// corresponding type descriptor. :(  Thus, this method returns "true".
