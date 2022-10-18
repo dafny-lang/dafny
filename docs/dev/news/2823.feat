@@ -1,0 +1,1 @@
+Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases.
