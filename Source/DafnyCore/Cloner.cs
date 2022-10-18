@@ -1126,31 +1126,36 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
-      // Expression lhs;
-      // string name;
-      // if (e.Lhs is NameSegment ns) {
-      //   name = ns.Name;
-      //   lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
-      // } else {
-      //   var edn = (ExprDotName)e.Lhs;
-      //   name = edn.SuffixName;
-      //   lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
-      // }
-      // var args = new List<ActualBinding>();
-      // args.Add(new ActualBinding(null, k));
-      // foreach (var arg in e.Bindings.ArgumentBindings) {
-      //   args.Add(CloneActualBinding(arg));
-      // }
+      if (this.CloneResolvedFields) {
+        throw new NotImplementedException();
+      }
+      
+      Expression lhs;
+      string name;
+      if (e.Lhs is NameSegment ns) {
+        name = ns.Name;
+        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      } else {
+        var edn = (ExprDotName)e.Lhs;
+        name = edn.SuffixName;
+        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      }
+      var args = new List<ActualBinding>();
+      args.Add(new ActualBinding(null, k));
+      foreach (var arg in e.Bindings.ArgumentBindings) {
+        args.Add(CloneActualBinding(arg));
+      }
 
-      var apply = new ApplySuffix(this, e); //Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
-      // reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
+      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
+      reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
       return apply;
     }
+    
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
       Contract.Requires(e.Function is ExtremePredicate);
       if (CloneResolvedFields) {
-        return new FunctionCallExpr(this, e);
+        throw new NotImplementedException();
       }
 
       var receiver = CloneExpr(e.Receiver);
