@@ -997,7 +997,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{str}\"");
+        wr.Write($"\"{Util.ExpandUnicodeEscapes(str, false)}\"");
       } else {
         var n = str.Length;
         wr.Write("\"");
