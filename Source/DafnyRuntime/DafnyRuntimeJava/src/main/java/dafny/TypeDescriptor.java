@@ -116,6 +116,10 @@ public abstract class TypeDescriptor<T> {
         return new CharType(d);
     }
 
+    public static TypeDescriptor<Integer> unicodeCharWithDefault(char d) {
+        return new UnicodeCharType(d);
+    }
+
     @FunctionalInterface
     public interface Initializer<T> {
         T defaultValue();
@@ -127,6 +131,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
     public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
+    public static final TypeDescriptor<Integer> UNICODE_CHAR = new UnicodeCharType((int)'D');
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -141,6 +146,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<long[]> LONG_ARRAY = reference(long[].class);
     public static final TypeDescriptor<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
     public static final TypeDescriptor<char[]> CHAR_ARRAY = reference(char[].class);
+    public static final TypeDescriptor<int[]> UNICODE_CHAR_ARRAY = reference(int[].class);
 
     public static <A, R> TypeDescriptor<Function<A, R>> function(TypeDescriptor<A> argType, TypeDescriptor<R> returnType) {
         @SuppressWarnings("unchecked")
@@ -546,6 +552,56 @@ public abstract class TypeDescriptor<T> {
         @Override
         public boolean arrayDeepEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
+            return Arrays.equals(castArray1, castArray2);
+        }
+    }
+
+    private static final class UnicodeCharType extends TypeDescriptor<Integer> {
+        private final Integer DEFAULT;
+
+        public UnicodeCharType(int d) {
+            super(Integer.TYPE);
+            DEFAULT = d;
+        }
+
+        @Override
+        public Integer defaultValue() {
+            return DEFAULT;
+        }
+
+        @Override
+        public boolean isInstance(Object object) {
+            return object instanceof Integer;
+        }
+
+        @Override
+        public TypeDescriptor<?> arrayType() {
+            return UNICODE_CHAR_ARRAY;
+        }
+
+        @Override
+        public Integer getArrayElement(Object array, int index) {
+            return ((int[]) array)[index];
+        }
+
+        @Override
+        public void setArrayElement(Object array, int index, Integer value) {
+            ((int[]) array)[index] = value;
+        }
+
+        @Override
+        public Object cloneArray(Object array) {
+            return ((int[]) array).clone();
+        }
+
+        @Override
+        public void fillArray(Object array, Integer value) {
+            Arrays.fill((int[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
     }

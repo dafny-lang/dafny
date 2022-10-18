@@ -222,6 +222,23 @@ namespace Microsoft.Dafny {
       });
     }
     
+    public static string UnicodeEscapesToUTF16Escapes(string s) {
+      char[] utf16CodeUnits = new char[2];
+      return UnicodeEscape.Replace(s, match => {
+        var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
+        var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
+        if (codeUnits == 2) {
+          return UTF16Escape(utf16CodeUnits[0]) + UTF16Escape(utf16CodeUnits[1]);;
+        } else {
+          return UTF16Escape(utf16CodeUnits[0]);
+        }
+      });
+    }
+
+    private static string UTF16Escape(char c) {
+      return $"\\u{((int)c).ToString("x4")}";
+    }
+    
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.

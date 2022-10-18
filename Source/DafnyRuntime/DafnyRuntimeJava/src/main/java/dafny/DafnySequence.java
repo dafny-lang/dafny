@@ -7,6 +7,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
+import dafny.TypeDescriptor;
+
 public abstract class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
@@ -125,7 +127,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
                 codePoints[codePointIndex] = c1;
             }
         }
-        return new ArrayDafnySequence<>(Array.wrap(codePoints));
+        return new ArrayDafnySequence<>(Array.wrap(TypeDescriptor.UNICODE_CHAR, codePoints));
     }
 
     public static DafnySequence<Byte> fromBytes(byte[] bytes) {
@@ -420,15 +422,27 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public String verbatimString(){
-        // This is slow, but the override in StringDafnySequence will almost
-        // always be used instead
-        StringBuilder builder = new StringBuilder(length());
-        for(Character ch: (List<Character>) asList())
-        {
-            builder.append(ch);
+    public String verbatimString() {
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            // This is slow, but the override in ArrayDafnySequence will almost
+            // always be used instead
+            int[] codePoints = new int[length()];
+            int i = 0;
+            for(Integer ch: (List<Integer>) asList())
+            {
+                codePoints[i++] = ch;
+            }
+            return new String(codePoints, 0, codePoints.length);
+        } else {
+            // This is slow, but the override in StringDafnySequence will almost
+            // always be used instead
+            StringBuilder builder = new StringBuilder(length());
+            for(Character ch: (List<Character>) asList())
+            {
+                builder.append(ch);
+            }
+            return builder.toString();
         }
-        return builder.toString();
     }
 
     public Iterable<T> Elements() {
@@ -594,7 +608,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
 
     @Override
     public String verbatimString() {
-        return new String((char[]) seq.unwrap());
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            return new String((int[]) seq.unwrap(), 0, seq.length());
+        } else {
+            return new String((char[]) seq.unwrap());
+        }
     }
 }
 

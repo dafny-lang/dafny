@@ -27,6 +27,15 @@ public class Helpers {
        return DafnySequence.fromArray(type, dafnyArgs);
     }
     
+    public static DafnySequence<? extends DafnySequence<? extends Integer>> UnicodeFromMainArguments(String[] args) {
+       @SuppressWarnings("unchecked")
+       TypeDescriptor<DafnySequence<? extends Integer>> type = DafnySequence.<Integer>_typeDescriptor(TypeDescriptor.INT);
+       dafny.Array<DafnySequence<? extends Integer>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
+       dafnyArgs.set(0, DafnySequence.asUnicodeString("java"));
+       for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asUnicodeString(args[i]));
+       return DafnySequence.fromArray(type, dafnyArgs);
+    }
+    
     public static <T> boolean Quantifier(Iterable<T> vals, boolean frall, Predicate<T> pred) {
         for (T t : vals) {
             if (pred.test(t) != frall) {
