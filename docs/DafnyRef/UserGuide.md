@@ -138,9 +138,11 @@ built and run. For example,
   - `dafny run A.dfy --no-verify` -- builds the Main program in `A.dfy` using the `--no-verify` option, and then runs the program with no command-line arguments
   - `dafny run A.dfy 1 2 3 B.dfy` -- builds the Main program in `A.dfy` and
 then runs it with the four command-line arguments `1 2 3 B.dfy`
+  - `dafny run A.dfy 1 2 3 --input B.dfy` -- builds the Main program in `A.dfy` and `B.dfy`, and
+then runs it with the three command-line arguments `1 2 3`
   - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
 If building a `.dfy` file containing the `Main` method requires additional
-`.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use `dafny build` to build the executable.
+`.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use `dafny build` to build the executable or use the `--input` option for each extra file.
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
@@ -150,6 +152,7 @@ with an unsupported suffix, provoking an error message..
 - There must be at least one `.dfy` file.
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to.
+- The option `--` means that all subsequent command-line arguments are not options to the dafny tool; they are either files or arguments to the `dafny run` command.
 - Old-style options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
 - If an option takes an argument, the option name is followed by a `:` (old-style) or `=` (new-style) and then by the argument value, with no
