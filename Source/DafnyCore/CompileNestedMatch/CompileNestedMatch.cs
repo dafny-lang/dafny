@@ -136,7 +136,6 @@ public class CompileNestedMatch {
     Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
 
     ISet<string> memberNamesUsed = new HashSet<string>();
-    me.Type = new InferredTypeProxy();
     foreach (MatchCaseExpr mc in me.Cases) {
       if (ctors != null) {
         var ctorId = mc.Ctor.Name;

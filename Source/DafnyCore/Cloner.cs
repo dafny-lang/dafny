@@ -190,7 +190,9 @@ namespace Microsoft.Dafny {
           return CloneType(syn.Rhs);
         }
 #endif
-        return new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
+        return CloneResolvedFields // TODO why do we need this if instead of always using the clone constructor ?
+          ? new UserDefinedType(this, tt) 
+          : new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else if (t is ParamTypeProxy) {
@@ -364,9 +366,7 @@ namespace Microsoft.Dafny {
         return new DatatypeUpdateExpr(this, e);
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver),
-          e.OpenParen == null ? null : Tok(e.OpenParen), e.CloseParen == null ? null : Tok(e.CloseParen),
-          e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), e.AtLabel);
+        return new FunctionCallExpr(this, e);
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr), Tok(e.CloseParen));
@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
     public virtual Method CloneMethod(Method m) {
       Contract.Requires(m != null);
 
-      var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
+      var tps = CloneResolvedFields ? m.TypeArgs : m.TypeArgs.ConvertAll(CloneTypeParam);
       var ins = m.Ins.ConvertAll(CloneFormal);
       var req = m.Req.ConvertAll(CloneAttributedExpr);
       var mod = CloneSpecFrameExpr(m.Mod);
@@ -1155,12 +1155,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(e.Function is ExtremePredicate);
       var receiver = CloneExpr(e.Receiver);
-      var args = new List<ActualBinding>();
-      args.Add(new ActualBinding(null, k));
-      foreach (var binding in e.Bindings.ArgumentBindings) {
-        args.Add(CloneActualBinding(binding));
-      }
-      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+      // var args = new List<ActualBinding>();
+      // args.Add(new ActualBinding(null, k));
+      // foreach (var binding in e.Bindings.ArgumentBindings) {
+      //   args.Add(CloneActualBinding(binding));
+      // }
+      var fexp = new FunctionCallExpr(this, e); //new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+      fexp.Name = fexp.Name + "#";
       reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
       return fexp;
     }
@@ -1358,7 +1359,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-
+  // TODO merge this with new cloner resolved feature.
   class ResolvedCloner : Cloner {
 
     public override Type CloneType(Type t) {

@@ -1796,6 +1796,22 @@ public class FunctionCallExpr : Expression, IHasUsages {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
+  public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner.Tok(original.tok)) {
+    Name = original.Name;
+    Receiver = cloner.CloneExpr(original.Receiver);
+    OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
+    CloseParen = original.CloseParen == null ? null : cloner.Tok(original.CloseParen);
+    Bindings = new ActualBindings(cloner, original.Bindings);
+    AtLabel = original.AtLabel;
+
+    if (cloner.CloneResolvedFields) {
+      TypeApplication_AtEnclosingClass = original.TypeApplication_AtEnclosingClass;
+      TypeApplication_JustFunction = original.TypeApplication_JustFunction;
+      IsByMethodCall = original.IsByMethodCall;
+      Function = original.Function;
+    }
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       yield return Receiver;
@@ -2155,9 +2171,6 @@ public class BinaryExpr : Expression {
       _theResolvedOp = value;
     }
     get {
-      if (_theResolvedOp == ResolvedOpcode.YetUndetermined) {
-        Console.Write("");
-      }
       Debug.Assert(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
       return _theResolvedOp;
     }

@@ -772,7 +772,7 @@ namespace Microsoft.Dafny {
 
     public List<Expression> Arguments {
       get {
-        Contract.Requires(WasResolved);
+        // Contract.Requires(WasResolved);
         return arguments;
       }
     }

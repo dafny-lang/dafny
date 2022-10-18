@@ -2373,6 +2373,17 @@ public class UserDefinedType : NonProxyType, INode {
     this.NamePath = ns;
   }
 
+  public UserDefinedType(Cloner cloner, UserDefinedType original) {
+    tok = cloner.Tok(original.tok);
+    Name = original.Name;
+    NamePath = cloner.CloneExpr(original.NamePath);
+    TypeArgs = original.TypeArgs;
+
+    if (cloner.CloneResolvedFields) {
+      ResolvedClass = original.ResolvedClass;
+    }
+  }
+
   public override bool Equals(Type that, bool keepConstraints = false) {
     var i = NormalizeExpand(keepConstraints);
     if (i is UserDefinedType) {
