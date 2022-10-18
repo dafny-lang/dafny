@@ -310,15 +310,10 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is AutoGhostIdentifierExpr) {
         var e = (AutoGhostIdentifierExpr)expr;
-        return new AutoGhostIdentifierExpr(Tok(e.tok), e.Name);
+        return new AutoGhostIdentifierExpr(this, e);
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        var result = new IdentifierExpr(Tok(e.tok), e.Name);
-        if (CloneResolvedFields) {
-          result.Var = e.Var;
-        }
-
-        return result;
+        return new IdentifierExpr(this, e);
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
         return new DatatypeValue(this, e);
