@@ -5,6 +5,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
+
   var a := new int[10];
   var index := 6;
   a[8] := 1;
