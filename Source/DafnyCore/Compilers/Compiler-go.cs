@@ -1367,6 +1367,14 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
+    private static string CharMethodPrefix() {
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        return "Unicode";
+      } else {
+        return "";
+      }
+    }
+    
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -2061,10 +2069,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("_dafny.Char('{0}')", TranslateEscapes(v, isChar: true));
+        wr.Write("_dafny.Char('{0}')", TranslateEscapes(e.tok, v, isChar: true, reporter: Reporter));
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("_dafny.SeqOfString(");
+        wr.Write($"_dafny.{CharMethodPrefix()}SeqOfString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
@@ -2097,10 +2105,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", TranslateEscapes(str, isChar: false));
+        wr.Write("\"{0}\"", TranslateEscapes(tok, str, isChar: false, Reporter));
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -2121,7 +2129,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private static string TranslateEscapes(string s, bool isChar) {
+    private static string TranslateEscapes(IToken tok, string s, bool isChar, ErrorReporter reporter) {
       if (isChar) {
         s = s.Replace("\\\"", "\"");
       } else {
@@ -2141,6 +2149,10 @@ namespace Microsoft.Dafny.Compilers {
       // Similarly with hex escapes with only one digit
       s = ShortHexEscape.Replace(s, match => "\\x0" + match.Groups[1]);
 
+      s = Util.Utf16EscapesToUnicodeEscapes(tok, s, reporter);
+      
+      s = Util.ExpandUnicodeEscapes(s, false);
+      
       return s;
     }
 

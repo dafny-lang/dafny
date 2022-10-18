@@ -213,7 +213,16 @@ namespace Microsoft.Dafny {
       return sb.ToString();
     }
 
-    private static Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
+    private static readonly Regex Utf16Escape = new Regex(@"(?<!\\)\\u([0-9a-fA-F]{4})");
+    private static readonly Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
+    
+    private static string ToUTF16Escape(char c) {
+      return $"\\u{c:x4}";
+    }
+    
+    private static string ToUnicodeEscape(int c) {
+      return $"\\U{c:x8}";
+    }
     
     public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
       return UnicodeEscape.Replace(s, match => {
@@ -222,22 +231,75 @@ namespace Microsoft.Dafny {
       });
     }
     
-    public static string UnicodeEscapesToUTF16Escapes(string s) {
+    public static string UnicodeEscapesToUtf16Escapes(string s) {
       char[] utf16CodeUnits = new char[2];
       return UnicodeEscape.Replace(s, match => {
         var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
         if (codeUnits == 2) {
-          return UTF16Escape(utf16CodeUnits[0]) + UTF16Escape(utf16CodeUnits[1]);;
+          return ToUTF16Escape(utf16CodeUnits[0]) + ToUTF16Escape(utf16CodeUnits[1]);;
         } else {
-          return UTF16Escape(utf16CodeUnits[0]);
+          return ToUTF16Escape(utf16CodeUnits[0]);
         }
       });
     }
 
-    private static string UTF16Escape(char c) {
-      return $"\\u{((int)c).ToString("x4")}";
+    // Some target languages that do not use UTF-16, such as Go,
+    // can't directly encode invalid sequences of surrogate values directly in a string literal.
+    // That means when using --unicode-char:false,
+    // there are valid Dafny string values using invalid sequences of surrogate code points
+    // that cannot be expressed as a target language string literal.
+    // It's technically possible to work around this by encoding Dafny string literals
+    // as something other than something like `DafnySeqFromString("...")`, but it doesn't seem worth it
+    // given it's so unlikely a program actually INTENDS to support invalid UTF-16 sequences.
+    // Instead we may reject a valid Dafny string literal here when --unicode-char is false.
+    public static string Utf16EscapesToUnicodeEscapes(IToken t, string s, ErrorReporter reporter) {
+      var builder = new StringBuilder(s.Length);
+      var valid = true;
+      var nextStart = 0;
+      while (nextStart < s.Length) {
+        var match = Utf16Escape.Match(s, nextStart);
+        if (!match.Success) {
+          builder.Append(s[nextStart..]);
+          break;
+        }
+        builder.Append(s[nextStart..match.Index]);
+        nextStart = match.Index + match.Length;
+        
+        var c1 = (char)Convert.ToInt32(match.Groups[1].Value, 16);
+        if (char.IsHighSurrogate(c1)) {
+          match = Utf16Escape.Match(s, nextStart);
+          if (!match.Success || match.Index != nextStart) {
+            valid = false;
+            break;
+          }
+          nextStart = match.Index + match.Length;
+
+          var c2 = (char)Convert.ToInt32(match.Groups[1].Value, 16);
+          if (!char.IsLowSurrogate(c2)) {
+            valid = false;
+            break;
+          }
+
+          var c = char.ConvertToUtf32(c1, c2);
+          builder.Append(ToUnicodeEscape(c));
+        } else if (char.IsLowSurrogate(c1)) {
+          valid = false;
+          break;
+        } else {
+          builder.Append(match.Value);
+        }
+      }
+
+      if (!valid) {
+        reporter.Error(MessageSource.Compiler, t, "Invalid UTF-16 sequences in string");
+        return s;
+      }
+
+      return builder.ToString();
     }
+    
+
     
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any

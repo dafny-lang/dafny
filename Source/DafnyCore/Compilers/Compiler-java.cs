@@ -1064,9 +1064,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{Util.UnicodeEscapesToUTF16Escapes(str)}\"");
+        wr.Write($"\"{Util.UnicodeEscapesToUtf16Escapes(str)}\"");
       } else {
         //TODO: This is taken from Go and JS since Java doesn't have raw string literals, modify and make better if possible.
         var n = str.Length;

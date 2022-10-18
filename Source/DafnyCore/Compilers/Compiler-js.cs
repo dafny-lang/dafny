@@ -1360,7 +1360,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write("\"{0}\"", str);
@@ -2469,7 +2469,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public string ToStringLiteral(string s) {
       var wr = new ConcreteSyntaxTree();
-      EmitStringLiteral(s, false, wr);
+      EmitStringLiteral(Token.NoToken, s, false, wr);
       return wr.ToString();
     }
 

@@ -8,6 +8,7 @@ import (
   big "math/big"
   refl "reflect"
   "runtime"
+  "unicode/utf8"
 )
 
 func FromMainArguments(args []string) Seq {
@@ -461,6 +462,7 @@ func SeqOfChars(values ...Char) Seq {
 // SeqOfString converts the given string into a sequence of characters.
 func SeqOfString(str string) Seq {
   // Need to make sure the elements of the array are Chars
+  // TODO-RS: This is not correct for UTF-16 in general, how much should I fix this?
   arr := make([]interface{}, len(str))
   for i, v := range str {
     arr[i] = Char(v)
@@ -468,8 +470,19 @@ func SeqOfString(str string) Seq {
   return Seq{arr, true}
 }
 
+func UnicodeSeqOfString(str string) Seq {
+  // Need to make sure the elements of the array are Chars
+  arr := make([]interface{}, utf8.RuneCountInString(str))
+  i := 0
+  for _, v := range str {
+    arr[i] = Char(v)
+    i++
+  }
+  return Seq{arr, true}
+}
+
 func (seq Seq) SetString() Seq {
-        return Seq{seq.contents, true}
+  return Seq{seq.contents, true}
 }
 
 // Index finds the sequence element at the given index.
