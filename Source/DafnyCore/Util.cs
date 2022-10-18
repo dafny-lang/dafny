@@ -231,6 +231,10 @@ namespace Microsoft.Dafny {
       });
     }
     
+    public static string UnicodeEscapesToLowercase(string s) {
+      return UnicodeEscape.Replace(s, match => $"\\u{{{match.Groups[1]}}}");
+    }
+    
     public static string UnicodeEscapesToUtf16Escapes(string s) {
       char[] utf16CodeUnits = new char[2];
       return UnicodeEscape.Replace(s, match => {

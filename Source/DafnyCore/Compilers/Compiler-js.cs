@@ -836,6 +836,14 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
+    private static string StringFromCharMethodName() {
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        return "fromCodePoint";
+      } else {
+        return "fromCharCode";
+      }
+    }    
+    
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1363,7 +1371,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write($"\"{Util.UnicodeEscapesToLowercase(str)}\"");
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -2230,7 +2238,7 @@ namespace Microsoft.Dafny.Compilers {
 
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode(");
+          wr.Write($"String.{StringFromCharMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (AsNativeType(e.E.Type) == null) {
             wr.Write(".toNumber()");
@@ -2293,7 +2301,7 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode(");
+          wr.Write($"String.{StringFromCharMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".toBigNumber().toNumber())");
         } else {
@@ -2306,7 +2314,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode((");
+          wr.Write($"String.{StringFromCharMethodName()}((");
         }
 
         TrExpr(e.E, wr, inLetExprBody, wStmts);
