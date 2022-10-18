@@ -1154,14 +1154,17 @@ namespace Microsoft.Dafny {
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
       Contract.Requires(e.Function is ExtremePredicate);
+      if (CloneResolvedFields) {
+        return new FunctionCallExpr(this, e);
+      }
+      
       var receiver = CloneExpr(e.Receiver);
-      // var args = new List<ActualBinding>();
-      // args.Add(new ActualBinding(null, k));
-      // foreach (var binding in e.Bindings.ArgumentBindings) {
-      //   args.Add(CloneActualBinding(binding));
-      // }
-      var fexp = new FunctionCallExpr(this, e); //new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
-      fexp.Name = fexp.Name + "#";
+      var args = new List<ActualBinding>();
+      args.Add(new ActualBinding(null, k));
+      foreach (var binding in e.Bindings.ArgumentBindings) {
+        args.Add(CloneActualBinding(binding));
+      }
+      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
       reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
       return fexp;
     }
