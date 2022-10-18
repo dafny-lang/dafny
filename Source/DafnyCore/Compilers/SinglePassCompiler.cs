@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.IO;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using JetBrains.Annotations;
@@ -64,20 +63,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public CoverageInstrumenter Coverage;
-
-    public virtual int RunProcess(Process process, String platform, TextWriter outputWriter) {
-      try {
-        if (process == null) {
-          return -1;
-        }
-        process.WaitForExit();
-        return process.ExitCode;
-      } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start {0} ({1}): {2}",
-          platform, process.StartInfo.FileName, e.Message);
-        return -1;
-      }
-    }
 
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
