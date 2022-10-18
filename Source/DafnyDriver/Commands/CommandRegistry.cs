@@ -123,21 +123,23 @@ static class CommandRegistry {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
+
+      var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
+      if (singleFile != null) {
+        dafnyOptions.AddFile(singleFile.FullName);
+      }
+      var files = context.ParseResult.GetValueForArgument(FilesArgument);
+      if (files != null) {
+        foreach (var file in files) {
+          dafnyOptions.AddFile(file.FullName);
+        }
+      }
+
       foreach (var option in command.Options) {
         if (!context.ParseResult.HasOption(option)) {
           continue;
         }
 
-        var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
-        if (singleFile != null) {
-          dafnyOptions.AddFile(singleFile.FullName);
-        }
-        var files = context.ParseResult.GetValueForArgument(FilesArgument);
-        if (files != null) {
-          foreach (var file in files) {
-            dafnyOptions.AddFile(file.FullName);
-          }
-        }
 
         var optionSpec = optionToSpec[option];
         var value = context.ParseResult.GetValueForOption(option);
