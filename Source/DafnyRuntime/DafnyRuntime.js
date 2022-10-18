@@ -1009,6 +1009,11 @@ let _dafny = (function() {
       }
     }
   }
+  $module.FromMainArguments = function(args) {
+    var a = [...args];
+    a.splice(0, 2, args[0] + " " + args[1]);
+    return a;
+  }
   return $module;
 
   // What follows are routines private to the Dafny runtime
