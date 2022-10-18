@@ -5,6 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
@@ -154,7 +155,9 @@ static class CommandRegistry {
       commandSpec.PostProcess(dafnyOptions, options, context);
     }
 
+#pragma warning disable VSTHRD002
     var exitCode = rootCommand.InvokeAsync(arguments).Result;
+#pragma warning restore VSTHRD002
     if (optionFailure != null) {
       Console.WriteLine(optionFailure);
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
