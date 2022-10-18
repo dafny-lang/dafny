@@ -28,6 +28,7 @@ method Main(args: seq<string>) {
   var notAString := seq(|s|, i requires 0 <= i < |s| => s[i] as int32);
   print notAString, "\n";
 
+  // Ensuring character arithmetic can be compiled
   var sarcastic := "Oh UNicOdE, tHaT's a REaL usEFuL FEaTuRe!";
   var sincere := seq(|sarcastic|, i requires 0 <= i < |sarcastic| => toLower(sarcastic[i]));
   print sincere, "\n";
