@@ -1163,7 +1163,7 @@ public class IdentifierExpr : Expression, IHasUsages {
 
   public IdentifierExpr(Cloner cloner, IdentifierExpr original) : base(cloner.Tok(original.tok)) {
     Name = original.Name;
-    
+
     if (cloner.CloneResolvedFields) {
       Var = original.Var;
     }

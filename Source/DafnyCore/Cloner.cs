@@ -191,7 +191,7 @@ namespace Microsoft.Dafny {
         }
 #endif
         return CloneResolvedFields // TODO why do we need this if instead of always using the clone constructor ?
-          ? new UserDefinedType(this, tt) 
+          ? new UserDefinedType(this, tt)
           : new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny {
       if (CloneResolvedFields) {
         return new FunctionCallExpr(this, e);
       }
-      
+
       var receiver = CloneExpr(e.Receiver);
       var args = new List<ActualBinding>();
       args.Add(new ActualBinding(null, k));
