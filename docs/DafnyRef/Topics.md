@@ -595,7 +595,7 @@ we're using a least solution for $g$ never plays a role (as long as we
 limit ourselves to finite derivations).
 
 The technique for going in the other direction, proving something _from_ an established
-$g^{\downarrow}$ property, that is, showing something of the form $g^{\downarrow}(x) \;\Longrightarrow\; R$, typically
+$g^{\downarrow}$ property, that is, showing something of the form $g^{\downarrow}(x) \Longrightarrow R$, typically
 uses induction on the structure of the proof tree.  When the antecedent of our proof
 obligation includes a predicate term $g^{\downarrow}(x)$, it is sound to
 imagine that we have been given a proof tree for $g^{\downarrow}(x)$.  Such a proof tree
@@ -604,7 +604,7 @@ _inductive datatype_.
 Least solutions like $g^{\downarrow}$ have been given the
 name _least predicate_.
 
-Let's prove $g^{\downarrow}(x) \;\Longrightarrow\; 0 \leq x \;\wedge\; x \textrm{ even}$.
+Let's prove $g^{\downarrow}(x) \Longrightarrow 0 \leq x \wedge x \text{even}$.
 We split our task into two cases, corresponding to which of the two
 proof rules in [the inductive rules](#g-ind-rule) was the
 last one applied to establish $g^{\downarrow}(x)$.  If it was the left-hand rule, then $x=0$,
