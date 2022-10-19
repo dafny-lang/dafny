@@ -1755,7 +1755,15 @@ namespace Microsoft.Dafny.Compilers {
         psi.ArgumentList.Add(arg);
       }
 
-      return 0 == RunProcess(Process.Start(psi), "python", outputWriter);
+      try {
+        using var pythonProcess = Process.Start(psi);
+        pythonProcess.StandardInput.Close();
+        pythonProcess.WaitForExit();
+        return pythonProcess.ExitCode == 0;
+      } catch (Exception e) {
+        outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
+        return false;
+      }
     }
   }
 }
