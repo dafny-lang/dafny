@@ -621,7 +621,7 @@ general form of our proof goal:
 $$
 \begin{array}{ll}
     & $f^{\uparrow}(x) \;\Longrightarrow\; R$   \\
-  = & &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }    \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](\#eq-least-is-exists) }    \\
     & $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$         \\
   = & &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } \\
     & $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$               \\
@@ -682,7 +682,7 @@ general form of our proof goal:
 $$
 \begin{array}{ll}
     & $Q \;\Longrightarrow\; f^{\uparrow}(x)$                        \\
-  = & &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }   \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](\#eq-greatest-is-forall) }   \\
     & $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$    \\
   = & &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } \\
     & $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                  \\
