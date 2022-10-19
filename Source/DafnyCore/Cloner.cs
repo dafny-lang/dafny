@@ -771,7 +771,7 @@ namespace Microsoft.Dafny {
       } else if (f is LeastPredicate) {
         return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
-      } else if (f is GreatestPredicate) {
+      } else if (f is GreatestPredicate greatestPredicate) {
         return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {

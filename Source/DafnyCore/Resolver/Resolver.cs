@@ -7863,6 +7863,7 @@ namespace Microsoft.Dafny {
           Visit(e.Source, CallingPosition.Neither);
           var theCp = cp;
           e.Cases.Iter(kase => Visit(kase.Body, theCp));
+          return false;
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           Visit(e.Source, CallingPosition.Neither);

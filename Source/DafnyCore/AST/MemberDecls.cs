@@ -576,6 +576,8 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] {PrefixPredicate});
+
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
@@ -964,6 +966,8 @@ public abstract class ExtremeLemma : Method {
     }
   }
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
+
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] {PrefixLemma});
 
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
