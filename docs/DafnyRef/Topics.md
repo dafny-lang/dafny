@@ -270,7 +270,7 @@ encoding makes it possible to reason about fixpoints in an automated
 way.
 
 The encoding for greatest predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
+[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-coinductive-datatypes).
 
 ### 24.4.1. Function Definitions
 
@@ -525,21 +525,27 @@ For any $\mathcal{F}$ as in [the general equation](#eq-general), define two infi
 functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
-<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
+<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">
+$$
    { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-     \right\} $$.</p>
+     \right\} 
+$$
+</p>
 
-<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
+<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">
+$$
    { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-    \right\} $$.</p>
+    \right\} 
+$$
+</p>
 
 These functions are called the _iterates_ of $f$, and we will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
@@ -611,11 +617,13 @@ it is easy to establish the conclusion of our proof goal.
 Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
 general form of our proof goal:
 
+|---|-----------------|
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                            |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
+|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                        |
+|---|-----------------|
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 ${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
@@ -929,12 +937,12 @@ Somewhat analogous to the creation of prefix predicates from extreme predicates,
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
 and postconditions of a prefix lemma are copied from those of the extreme lemma,
 except for the following replacements:
-for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
+* for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
 positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`;
-for a greatest lemma,
-Dafny looks in the postcondition to find calls (in positive, continuous positions)
-to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
-greatest predicate) and replaces these with `P#[_k](x)`.
+* for a greatest lemma,
+  Dafny looks in the postcondition to find calls (in positive, continuous positions)
+  to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
+  greatest predicate) and replaces these with `P#[_k](x)`.
 In each case, these predicates `P` are the lemma's _focal predicates_.
 
 The body of the extreme lemma is moved to the prefix lemma, but with
@@ -1019,7 +1027,7 @@ are given in the following table:
 | `map<K, V>`               | `x.Keys` is a proper subset of `X.Keys`                |
 | inductive datatypes    | `x` is structurally included in `X`                            |
 | reference types | `x == null && X != null` |
-| co-inductive datatypes | `false` |
+| coinductive datatypes | `false` |
 | type parameter | `false` |
 | arrow types | `false` |
 

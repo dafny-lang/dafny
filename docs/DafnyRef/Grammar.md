@@ -98,7 +98,7 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## 2.2. Tokens and whitespace {#sec-tokens}
+## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
 
 * White space characters
@@ -474,7 +474,7 @@ TypeNameOrCtorSuffix = NoUSIdentOrDigits
 
 ### 2.6.3. Qualified Names
 ```grammar
-QualifiedModuleName = ModuleName { "." ModuleName }
+ModuleQualifiedName = ModuleName { "." ModuleName }
 ```
 A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
@@ -486,7 +486,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 
 The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
-a module name, i.e. a ``QualifiedModuleName``.
+a module name, i.e. a ``ModuleQualifiedName``.
 
 ### 2.6.4. Identifier-Type Combinations
 In this section, we describe some nonterminals that combine an identifier and a type.

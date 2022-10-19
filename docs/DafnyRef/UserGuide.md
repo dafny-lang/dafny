@@ -954,7 +954,7 @@ implementation.
   `arr.Length`, or sequence length, etc. in executable code.  You can however,
   use `arr.Length as uint64` if you can prove your array is an appropriate
   size.  The compiler will report inappropriate integer use.
-- We do not support more advanced Dafny features like traits or co-inductive
+- We do not support more advanced Dafny features like traits or coinductive
   types.
 - Very limited support for higher order functions even for array init.  Use
   extern definitions like newArrayFill (see 
@@ -1025,7 +1025,20 @@ These options control how Dafny processes its input.
 
 ### 25.9.3. Controlling plugins {#sec-controlling-plugins}
 
-TO BE WRITTEN
+Dafny has a plugin capability. 
+For example, `dafny audit` and `dafny doc` 
+are under development. A plugin has access to an AST of the dafny input files
+after all parsing and resolution are performed (but not verification)
+and also to the command-line options.
+
+This facility is still _experimental_ and very much in flux, particularly 
+the form of the AST. The best guides to writing a new plugin are
+(a) the documentation in [the section of this manual on plugins](#sec-plugins) 
+and (b) example plugins in the
+`src/Tools` folder of the `dafny-lang/compiler-bootstrap` repo.
+
+The value of the option `-plugin` is a path to a dotnet dll that contains
+the compiled plugin.
 
 ### 25.9.4. Controlling output {#sec-controlling-output}
 
