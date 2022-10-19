@@ -5472,7 +5472,7 @@ namespace Microsoft.Dafny {
         } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
-          var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, o);
+          var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
           builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, errorMsgPrefix)));
         } else if (expr.Type.IsBitVectorType) {
           PutSourceIntoLocal();
