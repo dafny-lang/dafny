@@ -3872,11 +3872,11 @@ public class ChainingExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
 
   public ChainingExpression(Cloner cloner, ChainingExpression original) : base(cloner, original) {
-    E = cloner.CloneExpr(original.E);
     Operands = original.Operands.Select(cloner.CloneExpr).ToList();
     Operators = original.Operators;
     OperatorLocs = original.OperatorLocs.Select(cloner.Tok).ToList();
     PrefixLimits = original.PrefixLimits.Select(cloner.CloneExpr).ToList();
+    E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
   public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
@@ -3896,21 +3896,31 @@ public class ChainingExpression : ConcreteSyntaxExpression {
     Operators = operators;
     OperatorLocs = operatorLocs;
     PrefixLimits = prefixLimits;
+    E = ComputeDesugaring(operands, operators, operatorLocs, prefixLimits);
+  }
+
+  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression> prefixLimits)
+  {
     Expression desugaring;
     // Compute the desugaring
-    if (operators[0] == BinaryExpr.Opcode.Disjoint) {
-      Expression acc = operands[0];  // invariant:  "acc" is the union of all operands[j] where j <= i
+    if (operators[0] == BinaryExpr.Opcode.Disjoint)
+    {
+      Expression acc = operands[0]; // invariant:  "acc" is the union of all operands[j] where j <= i
       desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1]);
-      for (int i = 0; i < operators.Count; i++) {
+      for (int i = 0; i < operators.Count; i++)
+      {
         Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
         var opTok = operatorLocs[i];
         var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
         desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
         acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1]);
       }
-    } else {
+    }
+    else
+    {
       desugaring = null;
-      for (int i = 0; i < operators.Count; i++) {
+      for (int i = 0; i < operators.Count; i++)
+      {
         var opTok = operatorLocs[i];
         var op = operators[i];
         Contract.Assume(op != BinaryExpr.Opcode.Disjoint);
@@ -3919,15 +3929,22 @@ public class ChainingExpression : ConcreteSyntaxExpression {
         var e0 = operands[i];
         var e1 = operands[i + 1];
         Expression e;
-        if (k == null) {
+        if (k == null)
+        {
           e = new BinaryExpr(opTok, op, e0, e1);
-        } else {
-          e = new TernaryExpr(opTok, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
         }
+        else
+        {
+          e = new TernaryExpr(opTok,
+            op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0,
+            e1);
+        }
+
         desugaring = desugaring == null ? e : new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
       }
     }
-    E = desugaring;
+
+    return desugaring;
   }
 }
 
