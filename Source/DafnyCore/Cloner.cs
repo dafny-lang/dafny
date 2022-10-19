@@ -642,10 +642,10 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        var lhss = s.Locals.ConvertAll(c =>
-          CloneLocalVariable(c));
+        var lhss = CloneResolvedFields 
+          ? s.Locals 
+          : s.Locals.ConvertAll(CloneLocalVariable);
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
-
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.HasGhostModifier);
