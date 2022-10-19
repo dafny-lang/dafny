@@ -617,6 +617,8 @@ it is easy to establish the conclusion of our proof goal.
 Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
 general form of our proof goal:
 
+<p style="text-align: center;">
+$$
 \begin{array}{ll}
     & $f^{\uparrow}(x) \;\Longrightarrow\; R$   \\
   = & &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }    \\
@@ -624,6 +626,8 @@ general form of our proof goal:
   = & &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } \\
     & $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$               \\
 \end{array}
+$$
+</p>
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 ${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
@@ -674,12 +678,17 @@ proof using [the greatest forall definition](#eq-greatest-is-forall), which reli
 general form of our proof goal:
 
 
-|---|----------------------------------------------------------------------------------|
-|   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
+<p style="text-align: center;">
+$$
+\begin{array}{ll}
+    & $Q \;\Longrightarrow\; f^{\uparrow}(x)$                        \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }   \\
+    & $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$    \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } \\
+    & $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                  \\
+\end{array}
+$$
+</p>
 
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
