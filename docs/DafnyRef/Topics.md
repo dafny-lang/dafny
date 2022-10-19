@@ -618,7 +618,6 @@ Here's how we do the proof formally using [the least exists definition](#eq-leas
 general form of our proof goal:
 
 <p style="text-align: center;">
-$$
 \begin{array}{lll}
     & $f^{\uparrow}(x) \;\Longrightarrow\; R$  & \\
   = & &nbsp;&nbsp;&nbsp;&nbsp; & \textrm{ [the least exists definition](\#eq-least-is-exists) }    \\
@@ -626,7 +625,6 @@ $$
   = & &nbsp;&nbsp;&nbsp;&nbsp; & \textrm{ distribute $\;\Longrightarrow\;$ over $\exists$ to the left }  \\
     & $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$        &       \\
 \end{array}
-$$
 </p>
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
@@ -679,15 +677,13 @@ general form of our proof goal:
 
 
 <p style="text-align: center;">
-$$
 \begin{array}{lll}
     & $Q \;\Longrightarrow\; f^{\uparrow}(x)$           &             \\
   = & &nbsp;&nbsp;&nbsp;&nbsp;  & \textrm{ [the greatest forall definition](\#eq-greatest-is-forall) }   \\
     & $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$  &  \\
-  = & &nbsp;&nbsp;&nbsp;&nbsp;  & \textrm{ distribute} $\;\Longrightarrow\;$ \textrm{over} $\forall$ \textrm{to the right } \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp;  & \textrm{distribute} $\;\Longrightarrow\;$ \textrm{over} $\forall$ \textrm{to the right } \\
     & $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                 & \\
 \end{array}
-$$
 </p>
 
 
