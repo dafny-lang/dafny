@@ -432,6 +432,12 @@ inline DafnySequence<char> DafnySequenceFromString(std::string const& s) {
   return seq;
 }
 
+inline DafnySequence<char32_t> unicode_DafnySequenceFromString(std::u32string const& s) {
+  DafnySequence<char32_t> seq(s.size());
+  memcpy(seq.ptr(), &s[0], s.size());
+  return seq;
+}
+
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const DafnySequence<T>& s)
 {
@@ -764,6 +770,16 @@ DafnySequence<DafnySequence<char>> dafny_get_args(int argc, char* argv[]) {
   for(int i = 0; i < argc; i++) {
     std::string s = argv[i];
     dafnyArgs.start[i] = DafnySequenceFromString(s);
+  }
+  return dafnyArgs;
+}
+
+DafnySequence<DafnySequence<char32_t>> unicode_dafny_get_args(int argc, char* argv[]) {
+  DafnySequence<DafnySequence<char32_t>> dafnyArgs((uint64)argc);
+  for(int i = 0; i < argc; i++) {
+    std::string s = argv[i];
+    std::u32string s32(s.begin(), s.end());
+    dafnyArgs.start[i] = unicode_DafnySequenceFromString(s32);
   }
   return dafnyArgs;
 }

@@ -217,7 +217,7 @@ namespace Microsoft.Dafny {
     private static readonly Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
     
     private static string ToUTF16Escape(char c) {
-      return $"\\u{c:x4}";
+      return $"\\u{(int)c:x4}";
     }
     
     private static string ToUnicodeEscape(int c) {
@@ -236,7 +236,7 @@ namespace Microsoft.Dafny {
     }
     
     public static string UnicodeEscapesToUtf16Escapes(string s) {
-      char[] utf16CodeUnits = new char[2];
+      var utf16CodeUnits = new char[2];
       return UnicodeEscape.Replace(s, match => {
         var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
