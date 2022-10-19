@@ -929,12 +929,12 @@ Somewhat analogous to the creation of prefix predicates from extreme predicates,
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
 and postconditions of a prefix lemma are copied from those of the extreme lemma,
 except for the following replacements:
-for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
+* for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
 positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`;
-for a greatest lemma,
-Dafny looks in the postcondition to find calls (in positive, continuous positions)
-to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
-greatest predicate) and replaces these with `P#[_k](x)`.
+* for a greatest lemma,
+  Dafny looks in the postcondition to find calls (in positive, continuous positions)
+  to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
+  greatest predicate) and replaces these with `P#[_k](x)`.
 In each case, these predicates `P` are the lemma's _focal predicates_.
 
 The body of the extreme lemma is moved to the prefix lemma, but with
