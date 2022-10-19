@@ -527,21 +527,21 @@ For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two in
 functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
-<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
+<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$
    { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-     \right\} $$.</p>
+     \right\} $.</p>
 
-<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
+<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$
    { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-    \right\} $$.</p>
+    \right\} $.</p>
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
@@ -613,11 +613,13 @@ it is easy to establish the conclusion of our proof goal.
 Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
 general form of our proof goal:
 
+|---|--------------------------------------------------------------|
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
+|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                             |
+|---|--------------------------------------------------------------|
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 ${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
