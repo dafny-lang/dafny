@@ -2505,14 +2505,26 @@ namespace Microsoft.Dafny.Compilers {
       var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
         CreateNoWindow = true,
         UseShellExecute = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false
+        RedirectStandardOutput = true,
+        RedirectStandardError = true
       };
       foreach (var arg in DafnyOptions.O.MainArgs) {
         psi.ArgumentList.Add(arg);
       }
 
-      return 0 == RunProcess(Process.Start(psi), "c++", outputWriter);
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
+      }
+      return true;
     }
   }
 }
