@@ -5089,6 +5089,9 @@ namespace Microsoft.Dafny.Compilers {
       bvars = new List<BoundVar>();
       fexprs = new List<Expression>();
       foreach (var fv in fvs) {
+        if (fv.IsGhost) {
+          continue;
+        }
         fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
           Var = fv, // resolved here!
           Type = fv.Type

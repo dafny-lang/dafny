@@ -1,4 +1,5 @@
-/*-----------------------------------------------------------------------------
+/* (
+-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 // Copyright by the contributors to the Dafny Project
@@ -96,7 +97,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      if (declCaption.Contains("-by-method")) {
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+      } else {
+        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
       SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
@@ -2103,7 +2108,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt;
      List<Type> tupleArgTypes = null;
-     List<bool> argumentGhostness = null;
+     List<IToken> argumentGhostTokens = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -2177,7 +2182,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2188,10 +2193,14 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     | "->"           (. tok = t; arrowKind = 2; .)
     )
     Type<out t2>
-    (. if (tupleArgTypes != null) {
-         gt = tupleArgTypes;
-        } else {
+    (. if (tupleArgTypes == null) {
          gt = new List<Type>{ ty };
+       } else {
+         // make sure no "ghost" keyword was used in the tuple-looking type
+         foreach (var ghostToken in argumentGhostTokens.Where(ghostToken => ghostToken != null)) {
+           SemErr(ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
+         }
+         gt = tupleArgTypes;
        }
        var arity = gt.Count;
        theBuiltIns.CreateArrowTypeDecl(arity);
@@ -2211,26 +2220,27 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<IToken> argumentGhostTokens.> =
   "("                             (. tok = t;
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
-                                     var isGhost = false;
-                                     argumentGhostness = new List<bool>();
+                                     IToken ghostToken = null;
+                                     argumentGhostTokens = new List<IToken>();
                                   .)
-  [ [ "ghost"                     (. isGhost = true; .)
+  [ [ "ghost"                     (. ghostToken = t; .)
     ]
-    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
-    { ","                         (. isGhost = false; .)
-      [ "ghost"                   (. isGhost = true; .)
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
+    { ","                         (. ghostToken = null; .)
+      [ "ghost"                   (. ghostToken = t; .)
       ]
-      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
+  ")"                             (. if (tupleArgTypes.Count == 1 && argumentGhostTokens[0] == null) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
+                                       var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
