@@ -10,7 +10,7 @@ false (default) - don't print status of compilation to the console
 true - print information such as files being written by
     the compiler to the console";
   public override string PostProcess(DafnyOptions options) {
-    options.CompileVerbose = !Get(options);
+    options.CompileVerbose = Get(options);
     return null;
   }
 }
