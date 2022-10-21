@@ -12113,12 +12113,26 @@ namespace Microsoft.Dafny {
     }
 
     private class ClonerKeepLocalVariablesIfTypeNotSet : Cloner {
-      public override LocalVariable CloneLocalVariable(LocalVariable local) {
-        if (local.type == null) {
+      private HashSet<IVariable> alreadyCloned = new();
+
+      private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
+        if (!alreadyCloned.Contains(local)) {
+          alreadyCloned.Add(local);
           return local;
         }
 
-        return base.CloneLocalVariable(local);
+        return returnMethod(local);
+      }
+
+      public override LocalVariable CloneLocalVariable(LocalVariable local) {
+        return CloneIVariableHelper(local, base.CloneLocalVariable);
+      }
+
+      public override Formal CloneFormal(Formal local) {
+        return CloneIVariableHelper(local, base.CloneFormal);
+      }
+      public override BoundVar CloneBoundVar(BoundVar local) {
+        return CloneIVariableHelper(local, base.CloneBoundVar);
       }
     }
 
@@ -12129,7 +12143,7 @@ namespace Microsoft.Dafny {
     }
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
-      Cloner cloner = new Cloner();
+      Cloner cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
       return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
     }
 
@@ -12654,14 +12668,14 @@ namespace Microsoft.Dafny {
     }
 
     private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
-      var cloner = new Cloner();
+      var cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
       }
     }
 
     private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
-      var cloner = new Cloner();
+      var cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body), c.Attributes);
       }
