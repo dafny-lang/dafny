@@ -1148,7 +1148,6 @@ code (which can be helpful for debugging).
     ```
 
 ### 25.9.5. Controlling language features {#sec-controlling-language}
-{#sec-function-syntax}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
@@ -1159,7 +1158,7 @@ older versions of Dafny.
 * `-noExterns` - ignore `extern` and `dllimport` attributes in the
   program.
 
-* `-functionSyntax:<version>` - select what function syntax to
+* `-functionSyntax:<version>` - select what [function syntax]{#sec-function-syntax} to
   recognize. The syntax for functions is changing from Dafny version 3
   to version 4. This switch gives early access to the new syntax, and
   also provides a mode to help with migration. The valid arguments
