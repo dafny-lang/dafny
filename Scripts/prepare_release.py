@@ -420,8 +420,30 @@ class Release:
         progress("You can merge this branch by opening a PR at\n"
                  f"<{PR_URL}>.")
 
+class DryRunRelease(Release):
+    def _create_release_branch(self):
+        pass
+    def _consolidate_news_fragments(self):
+        pass
+    def _delete_news_fragments(self):
+        pass
+    def _commit_changes(self):
+        pass
+    def _push_release_branch(self):
+        pass
+    def _create_release_branch(self):
+        pass
+    def _tag_release(self):
+        pass
+    def _push_release_tag(self):
+        pass
+    def _push_release_tag(self):
+        pass
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dafny release helper")
+    parser.add_argument("--dry-run", help="Do not make any modifications (no file updates, no git commands).",
+                        action="store_true")
     parser.add_argument("version", help="Version number for this release (A.B.C-xyz)")
     parser.add_argument("action", help="Which part of the release process to run",
                         choices=["prepare", "release"])
@@ -430,7 +452,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     args = parse_arguments()
     try:
-        release = Release(args.version)
+        release = (DryRunRelease if args.dry_run else Release)(args.version)
         {"prepare": release.prepare,
          "release": release.release}[args.action]()
     except CannotReleaseError:
