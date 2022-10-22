@@ -4,7 +4,7 @@ ArrayElementInitResolution.dfy(38,33): Error: array-allocation initialization ex
 ArrayElementInitResolution.dfy(55,31): Error: array-allocation initialization expression expected to have type '(nat, nat, nat, nat, nat) ~> D' (instead got 'D') (perhaps write '(_, _, _, _, _) =>' in front of the expression you gave in order to make it an arrow type)
 ArrayElementInitResolution.dfy(64,21): Error: a ghost function is allowed only in specification contexts
 ArrayElementInitResolution.dfy(79,36): Error: initial value must be assignable to array's elements (expected 'int32', got 'int')
-ArrayElementInitResolution.dfy(86,30): Error: a ghost variable is allowed only in specification contexts
+ArrayElementInitResolution.dfy(86,30): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ArrayElementInitResolution.dfy(99,29): Error: initial value must be assignable to array's elements (expected 'bool', got 'char')
 ArrayElementInitResolution.dfy(116,28): Error: initial value must be assignable to array's elements (expected 'bool', got 'char')
 ArrayElementInitResolution.dfy(126,8): Error: the type of this variable is underspecified
