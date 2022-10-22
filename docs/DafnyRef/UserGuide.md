@@ -1134,8 +1134,7 @@ code (which can be helpful for debugging).
     }
     ```
 
-### 25.9.5. Controlling language features {#sec-controlling-language}
-{#sec-function-syntax}
+### 25.9.5. Controlling language features {#sec-controlling-language} {#sec-function-syntax}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
