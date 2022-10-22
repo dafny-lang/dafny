@@ -1984,13 +1984,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      wr.Write("function (");
-      Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
-      for (var i = 0; i < inNames.Count; i++) {
-        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
-      }
-      var w = wr.NewExprBlock(")");
-      return w;
+      throw new UnsupportedFeatureException(tok, Feature.FunctionValues);
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
@@ -2394,18 +2388,14 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(tok, Feature.Multisets);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        if (ct.Arg.IsCharType) {
-          throw new UnsupportedFeatureException(tok, Feature.SequenceDisplaysOfCharacters);
-        } else {
-          wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
-          for (var i = 0; i < elements.Count; i++) {
-            TrExpr(elements[i], wr, inLetExprBody, wStmts);
-            if (i < elements.Count - 1) {
-              wr.Write(",");
-            }
+        wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+        for (var i = 0; i < elements.Count; i++) {
+          TrExpr(elements[i], wr, inLetExprBody, wStmts);
+          if (i < elements.Count - 1) {
+            wr.Write(",");
           }
-          wr.Write("})");
         }
+        wr.Write("})");
       }
     }
 
