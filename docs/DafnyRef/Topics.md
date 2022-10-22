@@ -587,7 +587,7 @@ least and greatest solutions for $g$ in [the EvenNat equation](#eq-EvenNat).
 #### 24.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
-$x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
+$x$, that is, proving something of the form $Q \Longrightarrow g^{\downarrow}(x)$, is to
 construct a proof tree like the one for $g(6)$ in [the proof tree figure](#fig-proof-trees).
 For a proof in this direction, since we're just
 applying the defining equation, the fact that
@@ -604,14 +604,14 @@ _inductive datatype_.
 Least solutions like $g^{\downarrow}$ have been given the
 name _least predicate_.
 
-Let's prove $g^{\downarrow}(x) \Longrightarrow 0 \leq x \wedge x \text{even}$.
+Let's prove $g^{\downarrow}(x) \Longrightarrow 0 \leq x \wedge x \text{ even}$.
 We split our task into two cases, corresponding to which of the two
 proof rules in [the inductive rules](#g-ind-rule) was the
 last one applied to establish $g^{\downarrow}(x)$.  If it was the left-hand rule, then $x=0$,
 which makes it easy to establish the conclusion of our proof goal.  If it was the
 right-hand rule, then we unfold the proof tree one level and obtain $g^{\downarrow}(x-2)$.
 Since the proof tree for $g^{\downarrow}(x-2)$ is smaller than where we started, we invoke
-the _induction hypothesis_ and obtain $0 \leq (x-2) \;\wedge\; (x-2) \textrm{ even}$, from which
+the _induction hypothesis_ and obtain $0 \leq (x-2) \wedge (x-2) \textrm{ even}$, from which
 it is easy to establish the conclusion of our proof goal.
 
 Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
@@ -621,7 +621,7 @@ general form of our proof goal:
 $$
 \begin{array}{lll}
     & f^{\uparrow}(x) \;\Longrightarrow\; R  & \\
-  = & &nbsp;&nbsp;&nbsp;&nbsp; & \textrm{ [the least exists definition](\#eq-least-is-exists) }    \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp; & \textrm{ (the least exists definition) }    \\
     & (\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R    &     \\
   = & &nbsp;&nbsp;&nbsp;&nbsp; & \text{distribute} \;\Longrightarrow\; \text{over} \;\exists\; \text{to the left}  \\
     & \forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)        &       \\
@@ -653,7 +653,7 @@ plays a role (as long as we limit ourselves to a finite number of
 unfoldings).
 
 To go in the other direction, to establish a predicate defined as a greatest solution,
-like $Q \;\Longrightarrow\; g^{\uparrow}(x)$, we may need an infinite number of steps.  For this purpose,
+like $Q \Longrightarrow g^{\uparrow}(x)$, we may need an infinite number of steps.  For this purpose,
 we can use induction's dual, _coinduction_.  Were it not for one little detail, coinduction
 is as simple as continuations in programming: the next part of the proof obligation
 is delegated to the _coinduction hypothesis_.  The little detail is making sure that
@@ -667,7 +667,7 @@ or a new attempt by Kozen and Silva
 that aims to emphasize the simplicity, not the mystery, of
 coinduction [@KozenSilva:Coinduction].
 
-Let's prove $\mathit{true} \;\Longrightarrow\; g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
+Let's prove $\mathit{true} \Longrightarrow g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
 According to the right-hand rule of [these coinductive rules](#g-coind-rule), $g^{\uparrow}(x)$ follows if we
 establish $g^{\uparrow}(x-2)$, and that's easy to do by invoking the coinduction hypothesis.
 The "little detail", productivity, is satisfied in this proof because we applied
