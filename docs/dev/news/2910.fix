@@ -1,1 +1,1 @@
-Variable declarations in match cases, formals do not trigger errors anymore.
+Variable declarations and formals in match cases do not trigger errors anymore.
