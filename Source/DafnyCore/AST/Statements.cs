@@ -166,6 +166,8 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   }
 
   public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
+
+  public virtual IEnumerable<INode> ConcreteChildren => PreResolveSubStatements.Concat<INode>(PreResolveSubExpressions);
 }
 
 public class LList<T> {
@@ -532,6 +534,7 @@ public abstract class AssignmentRhs : INode {
   }
 
   public abstract IEnumerable<INode> Children { get; }
+  public abstract IEnumerable<INode> ConcreteChildren { get; }
 
   public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 }
@@ -565,6 +568,7 @@ public class ExprRhs : AssignmentRhs {
     }
   }
   public override IEnumerable<INode> Children => new[] { Expr };
+  public override IEnumerable<INode> ConcreteChildren => PreResolveSubExpressions;
 }
 
 /// <summary>
@@ -711,9 +715,16 @@ public class TypeRhs : AssignmentRhs, INode {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children =>
+    new[] { EType, Type }.OfType<UserDefinedType>()
+      .Concat<INode>(ArrayDimensions ?? Enumerable.Empty<INode>())
+      .Concat<INode>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<INode>())
+      .Concat<INode>(InitDisplay ?? Enumerable.Empty<INode>())
+      .Concat<INode>(Bindings != null ? Arguments : Enumerable.Empty<INode>());
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -722,6 +733,7 @@ public class HavocRhs : AssignmentRhs {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
 }
 
 public class VarDeclStmt : Statement {
@@ -1168,6 +1180,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
 
   public IToken NameToken => Tok;
   public IEnumerable<INode> Children => type != null ? type.Nodes : new List<INode>();
+  public IEnumerable<INode> ConcreteChildren => OptionalType != null ? new[] { OptionalType } : new List<INode>();
 }
 
 /// <summary>
@@ -2143,6 +2156,7 @@ public class MatchCaseStmt : MatchCase {
   }
 
   public override IEnumerable<INode> Children => body;
+  public override IEnumerable<INode> ConcreteChildren => body;
 
   public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

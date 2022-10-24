@@ -830,6 +830,8 @@ public abstract class Expression : INode {
   }
 
   public virtual IEnumerable<INode> Children => SubExpressions;
+
+  public virtual IEnumerable<INode> ConcreteChildren => Children;
 }
 
 /// <summary>
@@ -3396,6 +3398,7 @@ public abstract class MatchCase : IHasUsages {
 
   public IToken NameToken => tok;
   public abstract IEnumerable<INode> Children { get; }
+  public abstract IEnumerable<INode> ConcreteChildren { get; }
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
@@ -3411,6 +3414,7 @@ public class MatchCaseExpr : MatchCase {
   }
 
   public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] { body });
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
@@ -3589,6 +3593,7 @@ public abstract class ExtendedPattern : INode {
   }
 
   public abstract IEnumerable<INode> Children { get; }
+  public abstract IEnumerable<INode> ConcreteChildren { get; }
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3599,6 +3604,7 @@ public class DisjunctivePattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => Alternatives;
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class LitPattern : ExtendedPattern {
@@ -3658,6 +3664,7 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class IdPattern : ExtendedPattern, IHasUsages {
@@ -3704,6 +3711,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override IEnumerable<INode> ConcreteChildren => Children;
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
   }
@@ -3724,6 +3732,7 @@ public abstract class NestedMatchCase : INode {
   }
 
   public abstract IEnumerable<INode> Children { get; }
+  public abstract IEnumerable<INode> ConcreteChildren { get; }
 }
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3738,6 +3747,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   }
 
   public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3756,6 +3766,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   }
 
   public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class NestedMatchStmt : ConcreteSyntaxStatement {
@@ -3960,6 +3971,7 @@ public class FrameExpression : IHasUsages {
 
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] { E };
+  public IEnumerable<INode> ConcreteChildren => Children;
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -3984,6 +3996,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   }
 
   public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+  public override IEnumerable<INode> ConcreteChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }

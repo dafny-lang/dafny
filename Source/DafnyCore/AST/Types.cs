@@ -13,6 +13,7 @@ public abstract class Type : INode {
   public static readonly RealType Real = new RealType();
   public List<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public virtual IEnumerable<INode> Children => TypeArgs;
+  public virtual IEnumerable<INode> ConcreteChildren => TypeArgs;
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -2201,7 +2202,6 @@ public class MapType : CollectionType {
 }
 
 public class UserDefinedType : NonProxyType {
-  public List<IToken> OwnedTokens { get; set; } = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);

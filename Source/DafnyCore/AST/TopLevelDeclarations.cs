@@ -134,12 +134,8 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public virtual IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -523,6 +519,7 @@ public class ExportSignature : IHasUsages {
 
   public IToken NameToken => Tok;
   public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -964,6 +961,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
 
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => TopLevelDecls;
+  public IEnumerable<INode> ConcreteChildren => TopLevelDecls;
 }
 
 public class DefaultModuleDecl : ModuleDefinition {

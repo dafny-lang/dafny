@@ -34,6 +34,13 @@ namespace Microsoft.Dafny {
     /// </summary>
     IEnumerable<INode> Children { get; }
 
+    /// <summary>
+    /// These children should match what was parsed before the resolution phase.
+    /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
+    /// coverage of the original program
+    /// </summary>
+    IEnumerable<INode> ConcreteChildren { get; }
+
     List<IToken> OwnedTokens { get; }
   }
 
@@ -128,6 +135,8 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<INode> Children => new[] { DefaultModule };
+
+    public IEnumerable<INode> ConcreteChildren => Children;
   }
 
   public class Include : IComparable {
@@ -501,6 +510,8 @@ namespace Microsoft.Dafny {
     }
 
     public abstract IEnumerable<INode> Children { get; }
+    public abstract IEnumerable<INode> ConcreteChildren { get; }
+
     public abstract IToken NameToken { get; }
   }
 
@@ -627,6 +638,7 @@ namespace Microsoft.Dafny {
 
     public IToken NameToken => tok;
     public IEnumerable<INode> Children => Type.Nodes;
+    public IEnumerable<INode> ConcreteChildren => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
