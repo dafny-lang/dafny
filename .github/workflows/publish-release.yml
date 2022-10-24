@@ -1,0 +1,40 @@
+name: Publish Draft Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  dotnet-version: 6.0.x # SDK Version for building Dafny
+
+jobs:
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+    with:
+      sha: ${{ github.sha }}
+
+  get-version:
+    runs-on: ubuntu-22.04
+    steps:
+      - id: get-version
+        uses: battila7/get-version-action@v2
+      - run: echo ${{ steps.get-version.outputs.version }}
+      - run: echo ${{ steps.get-version.outputs.version-without-v }}
+    outputs:
+      version: ${{ steps.get-version.outputs.version-without-v }}
+
+  publish-release:
+    needs: [get-version]
+    uses: ./.github/workflows/publish-release-reusable.yml
+    with:
+      name: ${{ needs.get-version.outputs.version }}
+      sha: ${{ github.sha }}
+      tag_name: ${{ github.ref }}
+      draft: true
+      release_nuget: true
+      # We can probably automate pulling this out of RELEASE_NOTES.md in the future
+      release_notes: ""
+    secrets:
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}

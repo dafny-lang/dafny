@@ -19,36 +19,36 @@ namespace XUnitExtensions.Lit {
       string? errorFile = null;
       var redirectInIndex = argumentsList.IndexOf("<");
       if (redirectInIndex >= 0) {
-        inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]);
+        inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]).Single();
         argumentsList.RemoveRange(redirectInIndex, 2);
       }
       var redirectOutIndex = argumentsList.IndexOf(">");
       if (redirectOutIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentsList[redirectOutIndex + 1]);
+        outputFile = config.ApplySubstitutions(argumentsList[redirectOutIndex + 1]).Single();
         argumentsList.RemoveRange(redirectOutIndex, 2);
       }
       var redirectAppendIndex = argumentsList.IndexOf(">>");
       if (redirectAppendIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentsList[redirectAppendIndex + 1]);
+        outputFile = config.ApplySubstitutions(argumentsList[redirectAppendIndex + 1]).Single();
         appendOutput = true;
         argumentsList.RemoveRange(redirectAppendIndex, 2);
       }
       var redirectErrorIndex = argumentsList.IndexOf("2>");
       if (redirectErrorIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]);
+        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]).Single();
         argumentsList.RemoveRange(redirectErrorIndex, 2);
       }
 
-      var arguments = argumentsList.Select(config.ApplySubstitutions);
+      var arguments = argumentsList.SelectMany(config.ApplySubstitutions);
 
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
         return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
       }
 
-      commandSymbol = config.ApplySubstitutions(commandSymbol);
+      commandSymbol = config.ApplySubstitutions(commandSymbol).Single();
 
       return new LitCommandWithRedirection(
-        new ShellLitCommand(config, commandSymbol, arguments, config.PassthroughEnvironmentVariables),
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
         inputFile, outputFile, appendOutput, errorFile);
     }
 
@@ -66,7 +66,7 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;

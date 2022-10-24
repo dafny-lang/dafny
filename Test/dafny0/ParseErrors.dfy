@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------- chaining operators -----------------------------------
@@ -246,3 +246,33 @@ module AlreadyGhost {
   abstract least predicate A2() { true } by method { } // error (x2)
   abstract greatest predicate A3() { true } by method { } // error (x2)
 }
+
+// ------------------------- 'older' contextual keyword ------------------------------
+
+module Older {
+  function F(older x: X): R
+  predicate P(older older older x: X)
+  least predicate Q(older older older x: X) // error (x3): 'older' is an identifier here
+  method M(older x: X) // error: 'older' is an identifier here
+  function F(): (older r: R) // error: 'older' is an identifier here
+
+  twostate function W(a: A, new older new older b: B, nameonly older nameonly c: C := "hello"): int
+  function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
+  twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
+}
+
+// ---------------------- ghost arguments of arrow types -----------------------------------
+
+module ArrowTypes {
+  const f: (ghost int, int) -> int // error: arrow-type arguments are not allowed to be ghost
+
+  method M() {
+    var g: (real, (ghost int, int), bool) -> int;
+    var h: ((ghost int, int)) -> int;
+    var i: (bool, ghost real, int, ghost bv6) -> ORDINAL; // error (x2): ghost not allowed
+  }
+}
+
+// ---------------------- invalid newtype definition -----------------------------------
+
+newtype T {} // error: newtype is expected to have an '='

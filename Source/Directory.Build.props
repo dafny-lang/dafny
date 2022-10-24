@@ -1,13 +1,10 @@
 <Project>
 
-  <!-- Target framework -->
   <PropertyGroup>
+    <!-- Target framework -->
     <TargetFramework>net6.0</TargetFramework>
+    <VersionPrefix>3.9.0.41003<!--Version 3.9.0, year 2018+4, month 10, day 3.--></VersionPrefix>
+    <NoWarn>1701;1702;VSTHRD200</NoWarn>
   </PropertyGroup>
-
-  <!-- Boogie dependency -->
-  <ItemGroup>
-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
-  </ItemGroup>
 
 </Project>

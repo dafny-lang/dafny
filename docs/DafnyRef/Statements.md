@@ -1,34 +1,33 @@
-# 19. Statements
+# 20. Statements {#sec-statements}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 NonLabeledStmt =
   ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
   | CalcStmt | ExpectStmt | ForallStmt | IfStmt
   | MatchStmt | ModifyStmt
-  | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
+  | PrintStmt | ReturnStmt | RevealStmt
   | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
   )
 ````
-<!--
-TODO: RevealStmt, SkeletonStmt
--->
 
 Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
-## 19.1. Labeled Statement {#sec-labeled-stmt}
+Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+
+## 20.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
 referenced in a `break` or `continue` statement within the labeled statement
-(see [Section 19.2](#sec-break-continue)). That is, the break or continue that
+(see [Section 20.2](#sec-break-continue)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
-The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
@@ -38,7 +37,7 @@ labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
 same as any previous enclosing or dominating label.
 
-## 19.2. Break and Continue Statements {#sec-break-continue}
+## 20.2. Break and Continue Statements {#sec-break-continue}
 ````grammar
 BreakStmt =
   ( "break" LabelName ";"
@@ -234,14 +233,14 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 19.3. Block Statement
+## 20.3. Block Statement {#sec-block-statement}
 ````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
-## 19.4. Return Statement {#sec-return-statement}
+## 20.4. Return Statement {#sec-return-statement}
 ````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
@@ -262,7 +261,7 @@ as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## 19.5. Yield Statement {#sec-yield-statement}
+## 20.5. Yield Statement {#sec-yield-statement}
 ````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
@@ -288,7 +287,7 @@ These expressions are then evaluated, then they are
 assigned to the yield parameters, and then the iterator
 yields.
 
-## 19.6. Update and Call Statements {#sec-update-and-call-statement}
+## 20.6. Update and Call Statements {#sec-update-and-call-statement}
 ````grammar
 UpdateStmt =
     Lhs
@@ -384,7 +383,7 @@ Note that the form
 
 is diagnosed as a label in which the user forgot the `label` keyword.
 
-## 19.7. Update with Failure Statement (`:-`) {#sec-update-failure}
+## 20.7. Update with Failure Statement (`:-`) {#sec-update-failure}
 ````grammar
 UpdateFailureStmt  =
     [ Lhs { "," Lhs } ]
@@ -395,8 +394,10 @@ UpdateFailureStmt  =
     ";"
 ````
 
-A `:-` statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
+A `:-`[^elephant] statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
+
+[^elephant]: The `:-` token is called the elephant symbol or operator.
 
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
@@ -413,7 +414,7 @@ To use this form of update,
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
-`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 19.7.7](#sec-failure-return-keyword)).
+`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 20.7.7](#sec-failure-return-keyword)).
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call)
@@ -426,7 +427,7 @@ and the type of the first LHS expression must be assignable from the return type
 
 The following subsections show various uses and alternatives.
 
-### 19.7.1. Failure compatible types
+### 20.7.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
 ```dafny
@@ -439,7 +440,7 @@ A commonly used alternative that carries some value information is something lik
 ```
 
 
-### 19.7.2. Simple status return with no other outputs
+### 20.7.2. Simple status return with no other outputs
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
 ```dafny
@@ -474,7 +475,7 @@ if tmp.IsFailure() {
 ```
 In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
 
-### 19.7.3. Status return with additional outputs
+### 20.7.3. Status return with additional outputs
 
 The example in the previous subsection affects the program only through side effects or the status return itself.
 It may well be convenient to have additional out-parameters, as is allowed for `:=` updates;
@@ -518,7 +519,7 @@ if tmp.IsFailure() {
 ```
 
 
-### 19.7.4. Failure-returns with additional data
+### 20.7.4. Failure-returns with additional data
 
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data.
@@ -573,7 +574,7 @@ if tmp.IsFailure() {
 j := tmp.Extract();
 ```
 
-### 19.7.5. RHS with expression list
+### 20.7.5. RHS with expression list
 
 Instead of a failure-returning method call on the RHS of the statement,
 the RHS can instead be a list of expressions.
@@ -611,7 +612,7 @@ if tmp.IsFailure() {
   return;
 }
 ```
-### 19.7.6. Failure with initialized declaration.
+### 20.7.6. Failure with initialized declaration.
 
 The `:-` syntax can also be used in initialization, as in
 ```dafny
@@ -624,23 +625,23 @@ s :- M();
 ```
 with the semantics as described above.
 
-### 19.7.7. Keyword alternative {#sec-failure-return-keyword}
+### 20.7.7. Keyword alternative {#sec-failure-return-keyword}
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
 
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
-(cf. [Section 19.16](#sec-assert-statement))
+(cf. [Section 20.16](#sec-assert-statement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
-(cf. [Section 19.17](#sec-assume-statement))
+(cf. [Section 20.17](#sec-assume-statement))
 * `expect` means that the RHS evaluation should be assumed to be successful
 (like using `assume` above), but that the compiler should include a
 run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
-(cf. [Section 19.18](#sec-expect-statement))
+(cf. [Section 20.18](#sec-expect-statement))
 
 In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
@@ -675,7 +676,7 @@ For example, `assert P; E` can be an expression. However, in
 `:-`. To have the `assert` considered part of the expression use parentheses:
 `e :- (assert P; E);`.
 
-### 19.7.8. Key points
+### 20.7.8. Key points
 
 There are several points to note.
 
@@ -717,7 +718,7 @@ If there is a mix of failure-compatible types, then the program will need to use
 explicit handling of failure values.
 
 
-### 19.7.9. Failure returns and exceptions
+### 20.7.9. Failure returns and exceptions
 
 The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 
@@ -729,7 +730,7 @@ Not so in Dafny: a failure is passed up the call stack only if each caller has a
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
-## 19.8. Variable Declaration Statement {#sec-var-decl-statement}
+## 20.8. Variable Declaration Statement {#sec-var-decl-statement}
 ````grammar
 VarDeclStatement =
   [ "ghost" ] "var" { Attribute }
@@ -764,6 +765,13 @@ unless its type can be inferred, either from a given initial value, or
 from other uses of the variable. If initial values are given, the number
 of values must match the number of variables declared.
 
+The scope of the declared variable extends to the end of the block in which it is
+declared. However, be aware that if a simple variable declaration is followed
+by an expression (rather than a subsequent statement) then the `var` begins a
+[Let Expression](#sec-let-expression) and the scope of the introduced variables is
+only to the end of the expression. In this case, though, the `var` is in an expression
+context, not a statement context.
+
 Note that the type of each variable must be given individually. The following code
 
 ```dafny
@@ -774,7 +782,7 @@ error explaining that the type of `x` is underspecified if it cannot be
 inferred from uses of x.
 
 What follows the ``LocalIdentTypeOptional`` optionally combines the variable
-declarations with an update statement (cf. [Section 19.6](#sec-update-and-call-statement)).
+declarations with an update statement (cf. [Section 20.6](#sec-update-and-call-statement)).
 If the RHS is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
 if the `ghost` keyword is not part of the variable declaration statement.
@@ -795,9 +803,9 @@ function usesTuple() : int
 }
 ```
 
-The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
 
-## 19.9. Guards
+## 20.9. Guards {#sec-guards}
 ````grammar
 Guard = ( "*"
         | "(" "*" ")"
@@ -813,7 +821,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 19.10. Binding Guards
+## 20.10. Binding Guards {#sec-binding-guards}
 ````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional }
@@ -862,14 +870,13 @@ method M1() returns (ghost y: int)
 }
 ```
 
-## 19.11. If Statement {#sec-if-statement}
+## 20.11. If Statement {#sec-if-statement}
 ````grammar
 IfStmt = "if"
   ( AlternativeBlock(allowBindingGuards: true)
   |
     ( BindingGuard(allowLambda: true)
     | Guard
-    | ellipsis
     )
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
@@ -930,18 +937,17 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-TODO: Describe the ... refinement
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
-## 19.12. While Statement
+## 20.12. While Statement {#sec-while-statement}
 ````grammar
 WhileStmt =
   "while"
   ( LoopSpec
     AlternativeBlock(allowBindingGuards: false)
-  | ( Guard | ellipsis )
+  | Guard
     LoopSpec
     ( BlockStmt
-    | ellipsis
     | /* go body-less */
     )
   )
@@ -950,7 +956,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 19.14](#sec-loop-specification).
+These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -976,14 +982,12 @@ iteration of the loop. If false then terminate the loop.
 Keep the following commented out until we decide a better
 place to put it.
 
-* An ellipsis (`...`), which makes the while statement a _skeleton_
-`while` statement. TODO: What does that mean?
-
 The _body_ of the loop is usually a block statement, but it can also
-be a _skeleton_, denoted by ellipsis, or missing altogether.
+be missing altogether.
 TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
 a block statement with no statements inside?
 -->
+The form that used `...` (a refinement feature) as the guard is deprecated.
 
 The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
@@ -1005,9 +1009,7 @@ are executed and the while statement is repeated.
 If none of the guards evaluates to true, then the
 loop execution is terminated.
 
-TODO: Describe ... refinement
-
-## 19.13. For Loops
+## 20.13. For Loops {#sec-for-loops}
 ````grammar
 ForLoopStmt =
   "for" IdentTypeOptional ":="
@@ -1141,7 +1143,7 @@ The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
 
-## 19.14. Loop Specifications {#sec-loop-specification}
+## 20.14. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
@@ -1151,7 +1153,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 19.14.1. Loop invariants
+### 20.14.1. Loop invariants {sec-loop-invariants}
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1188,7 +1190,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop termination {#sec-loop-termination}
+### 20.14.2. Loop termination {#sec-loop-termination}
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1205,7 +1207,7 @@ conditions that Dafny needs to verify when using a `decreases` expression:
 * that it is bounded.
 
 That is, the expression must strictly decrease in a well-founded ordering
-(cf. [Section 23.7](#sec-well-founded-orders)).
+(cf. [Section 24.7](#sec-well-founded-orders)).
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other values can be used as well. In the case of
@@ -1260,7 +1262,7 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.14.3. Loop framing {#sec-loop-framing}
+### 20.14.3. Loop framing {#sec-loop-framing}
 
 The specification of a loop also includes _framing_, which says what the
 loop modifies. The loop frame includes both local variables and locations
@@ -1349,7 +1351,7 @@ every iteration, a proof obligation that
 * everything indicated in the loop `modifies` clause is allowed to be modified by the
   (effective `modifies` clause of the) enclosing loop or method.
 
-### 19.14.4. Body-less methods, functions, loops, and aggregate statements
+### 20.14.4. Body-less methods, functions, loops, and aggregate statements
 
 Methods (including lemmas), functions, loops, and `forall` statements are ordinarily
 declared with a body, that is, a curly-braces pair that contains (for methods, loops, and `forall`)
@@ -1365,7 +1367,9 @@ The compiler, on the other hand, will complain if it encounters a body-less meth
 compiler is supposed to generate code for the method, but it isn't clever enough to do that by
 itself without a given method body. If the method implementation is provided by code written
 outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
-compiler will no longer complain about the absence of a method body.
+compiler will no longer complain about the absence of a method body; the verifier will not 
+object either, even though there is now no proof that the Dafny specifications are satisfied
+by the external implementation.
 
 A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
 and the verifier is silently happy with not having a proof to check against the lemma specification.
@@ -1396,7 +1400,7 @@ is what you need in the context of the loop.
 
 There is one thing that works differently for body-less loops than for loops with bodies.
 It is the computation of syntactic loop targets, which become part of the loop frame
-(see [Section 19.14.3](#sec-loop-framing)). For a body-less loop, the local variables
+(see [Section 20.14.3](#sec-loop-framing)). For a body-less loop, the local variables
 computed as part of the loop frame are the mutable variables that occur free in the
 loop specification. The heap is considered a part of the loop frame if it is used
 for mutable fields in the loop specification or if the loop has an explicit `modifies` clause.
@@ -1451,7 +1455,7 @@ is omitting the proof of the claim made by the lemma specification. As with the
 other body-less constructs above, the verifier is silently happy with a body-less
 `forall` statement, but the compiler will complain.
 
-## 19.15. Match Statement {#sec-match-statement}
+## 20.15. Match Statement {#sec-match-statement}
 ````grammar
 MatchStmt =
   "match"
@@ -1463,14 +1467,14 @@ MatchStmt =
 CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-[ `ExtendedPattern` is defined in [Section 20.32](#sec-case-pattern).]
+[ `ExtendedPattern` is defined in [Section 21.33](#sec-case-pattern).]
 
-The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
+The `match` statement is used to do case analysis on a value of an inductive or coinductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the `CaseBinding_`s is
 the same as for match expressions and is described in
-[Section 20.32](#sec-case-pattern).
+[Section 21.33](#sec-case-pattern).
 
 The code below shows an example of a match statement.
 
@@ -1496,18 +1500,16 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 19.16. Assert Statement {#sec-assert-statement}
+## 20.16. Assert Statement {#sec-assert-statement}
 ````grammar
 AssertStmt =
     "assert"
     { Attribute }
-    ( [ LabelName ":" ]
-      Expression(allowLemma: false, allowLambda: true)
-      ( ";"
-      | "by" BlockStmt
-      )
-    | ellipsis
-      ";"
+    [ LabelName ":" ]
+    Expression(allowLemma: false, allowLambda: true)
+    ( ";"
+    | "by" BlockStmt
+    )
 ````
 
 `Assert` statements are used to express logical proposition that are
@@ -1522,17 +1524,26 @@ much as lemmas might be used in mathematical proofs.
 
 `Assert` statements are ignored by the compiler.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
-TO BE WRITTEN - assert by statements
+In the `by` form of the `assert` statement, there is an additional block of statements that provide the Dafny verifier with additional proof steps.
+Those statements are often a sequence of [lemmas](#sec-lemmas), [`calc`](#sec-calc-statement) statements, [`reveal`](#sec-reveal-statements) statements or other `assert` statements,
+combined with ghost control flow, ghost variable declarations and ghost update statements of variables declared in the `by` block.
+The intent is that those statements be evaluated in support of proving the `assert` statement.
+For that purpose, they could be simply inserted before the `assert` statement.
+But by using the `by` block, the statements in the block are discarded after the assertion is proved.
+As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
+proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
+their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
 
-## 19.17. Assume Statement {#sec-assume-statement}
+Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
+
+## 20.17. Assume Statement {#sec-assume-statement}
 ````grammar
 AssumeStmt =
     "assume"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     ";"
 ````
@@ -1551,16 +1562,15 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
-## 19.18. Expect Statement {#sec-expect-statement}
+## 20.18. Expect Statement {#sec-expect-statement}
 
 ````grammar
 ExpectStmt =
     "expect"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | ellipsis
     )
     [ "," Expression(allowLemma: false, allowLambda: true) ]
     ";"
@@ -1636,7 +1646,10 @@ indicates to the compiler
 that it should produce target code
 that is correspondingly annotated to mark the method
 as a unit test (e.g., an XUnit test) in the target language.
-Within that method one might use `expect` statements (as well as `print` statements)
+Alternatively, the `/runAllTests` option will produce a main method
+that invokes all methods with the `{:test}` attribute, and hence does not
+depend on any testing framework in the target language.
+Within such methods one might use `expect` statements (as well as `print` statements)
 to insert checks that the target program is behaving as expected.
 
 C) Compiler tests
@@ -1659,15 +1672,9 @@ then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
-Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
+Using `...` as the argument of the statement is deprecated.
 
-<!--
-Describe where refinement is described.
-
-If the proposition is `...` then (TODO: what does this mean?).
--->
-
-## 19.19. Print Statement
+## 20.19. Print Statement {#sec-print-statement}
 ````grammar
 PrintStmt =
     "print"
@@ -1703,13 +1710,18 @@ x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
 Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
+One can always write an explicit function to convert a data value to a string
+and then call it explicitly in a `print` statement or elsewhere.
 
 Dafny does not keep track of print effects. `print` statements are allowed
 only in non-ghost contexts and not in expressions, with one exception.
 The exception is that a function-by-method may contain `print` statements,
 whose effect may be observed as part of the run-time evaluation of such functions.
 
-## 19.20. Reveal Statement {#sec-reveal-statement}
+The verifier checks that each expression is well-defined, but otherwise 
+ignores the `print` statement.
+
+## 20.20. Reveal Statement {#sec-reveal-statement}
 ````grammar
 RevealStmt =
     "reveal"
@@ -1718,10 +1730,101 @@ RevealStmt =
     ";"
 ````
 
+The `reveal` statement makes available to the solver information that is otherwise not visible, as described in the following subsections.
 
-TODO
+### 20.20.1. Revealing assertions
 
-## 19.21. Forall Statement {#sec-forall-statement}
+If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
+is not used subsequently.  For example, consider
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0; // Fails also because the x: makes the first assertion opaque
+}
+```
+The first assertion fails. Without the label `x:`, the second would succeed because after a failing assertion, the 
+assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
+the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
+
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  reveal x;
+  assert i == 0; // Now succeeds
+}
+```
+or
+```dafny
+method m(i: int) {
+  assert x: i == 0; // Fails
+  assert i == 0 by { reveal x; } // Now succeeds
+}
+```
+At the point of the `reveal` statement, the labeled assertion is made visible and can be used in proving the second assertion.
+In this example there is no point to labeling an assertion and then immediately revealing it. More useful are the cases where
+the reveal is in an assert-by block or much later in the method body.
+
+### 20.20.2. Revealing preconditions
+
+In the same way as assertions, preconditions can be labeled.
+Within the body of a method, a precondition is an assumption; if the precondition is labeled then that assumption is not visible in the body of the method.
+A `reveal` statement naming the label of the precondition then makes the assumption visible.
+
+Here is a toy example:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+}
+```
+The above methhod will not verify. In particular, the second postcondition cannot be proved.
+However, if we add a `reveal L;` statement in the body of the method, then the precondition is visible 
+and both postconditions can be proved.
+
+One could also use this style:
+```
+method m(x: int, y: int) returns (z: int)
+  requires L: 0 < y
+  ensures z == x+y
+  ensures x < z
+{
+  z := x + y;
+  assert x < z by { reveal L; }
+}
+```
+
+The reason to possibly hide a precondition is the same as the reason to hide assertions: 
+sometimes less information is better for the solver as it helps the solver focus attention on 
+relevant information.
+
+Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
+an extended illustration of this technique to make all the dependencies of an `assert` explicit.
+
+### 20.20.3. Revealing function bodies
+
+Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
+However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
+just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
+possible where there might be information overload otherwise.
+
+But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
+body of the function can be _revealed_ using the reveal statement. Here is an example:
+```dafny
+function {:opaque} f(i: int): int { i + 1 }
+
+method m(int i) {
+  assert f(i) == i + 1;
+}
+```
+Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
+Note that the pseudo-function-call in the `reveal` statement is written without arguments.
+
+
+## 20.21. Forall Statement {#sec-forall-statement}
 ````grammar
 ForallStmt =
   "forall"
@@ -1733,10 +1836,11 @@ ForallStmt =
 ````
 
 The `forall` statement executes the body
-simultaneously for all quantified values in the specified range.
+simultaneously for all quantified values in the specified quantifier domain.
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
-
 In particular, a `forall` statement can be classified as one of the following:
 
 * _Assign_ - the `forall` statement is used for simultaneous assignment.
@@ -1820,27 +1924,20 @@ forall x :: P(x) ==> Q(x).
 ```
 
 The `forall` statement is also used extensively in the de-sugared forms of
-co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
+co-predicates and co-lemmas. See [datatypes](#sec-coinductive-datatypes).
 
-## 19.22. Modify Statement {#sec-modify-statement}
+## 20.22. Modify Statement {#sec-modify-statement}
 ````grammar
 ModifyStmt =
   "modify"
   { Attribute }
-  ( FrameExpression(allowLemma: false, allowLambda: true)
-    { "," FrameExpression(allowLemma: false, allowLambda: true) }
-  | ellipsis
-  )
-  ( BlockStmt
-  | ";"
-  )
+  FrameExpression(allowLemma: false, allowLambda: true)
+  { "," FrameExpression(allowLemma: false, allowLambda: true) }
+  ";"
 ````
 
-The `modify` statement has two forms which have two different
-purposes.
-
-When the `modify` statement ends with a semi-colon rather than
-a block statement its effect is to say that some undetermined
+The effect of the `modify` statement
+is to say that some undetermined
 modifications have been made to any or all of the memory
 locations specified by the [frame expressions](#sec-frame-expression).
 In the following example, a value is assigned to field `x`
@@ -1861,74 +1958,12 @@ class MyClass {
 }
 ```
 
-When the `modify` statement is followed by a block statement,
-we are instead specifying what can be modified in that
-block statement. Namely, only memory locations specified
-by the frame expressions of the block `modify` statement
-may be modified. Consider the following example.
+Using `...` as the argument of the statement is deprecated.
 
-```dafny
-class ModifyBody {
-  var x: int
-  var y: int
-  method M0()
-    modifies this
-  {
-    modify {} {
-      x := 3;  // error: violates the modifies clause
-               // on the line above
-    }
-  }
+The form of the `modify` statement which includes a block
+statement is also deprecated.
 
-  method M1()
-    modifies this
-  {
-    modify {} {
-      var o := new ModifyBody;
-      o.x := 3;  // fine
-    }
-  }
-
-  method M2()
-    modifies this
-  {
-    modify this {
-      x := 3;
-    }
-  }
-
-  method M3()
-    modifies this
-  {
-    var k: int;
-    modify {} { k := 4; } // fine. k is local
-  }
-}
-```
-
-The first `modify` statement in the example has an empty
-frame expression so the statement guarded by the
-modifies clause cannot modify any heap memory locations.
-So an error is reported when it tries to modify field `x`.
-
-The second `modify` statement also has an empty frame
-expression. But it allocates a new object and modifies it.
-Thus we see that the frame expressions on a block `modify`
-statement only limit what may be modified in already allocated
-memory. It does not limit what may be modified in
-new memory that is allocated within the block.
-
-The third `modify` statement has a frame expression that
-allows it to modify any of the fields of the current object,
-so the modification of field `x` is allowed.
-
-Finally, the fourth example shows that the restrictions imposed by
-the modify statement do not apply to local variables, only those
-that are heap-based.
-
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
-
-## 19.23. Calc Statement {#sec-calc-statement}
+## 20.23. Calc Statement {#sec-calc-statement}
 ````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
 
@@ -2054,10 +2089,3 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 19.24. Skeleton Statement
-````grammar
-SkeletonStmt =
-  ellipsis
-  ";"
-````
-TODO: Move to discussion of refinement?

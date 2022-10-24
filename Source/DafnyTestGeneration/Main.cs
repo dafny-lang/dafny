@@ -63,7 +63,7 @@ namespace DafnyTestGeneration {
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
       var boogiePrograms = Translator
-        .Translate(program, program.reporter)
+        .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
 
@@ -106,6 +106,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
+      TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
@@ -127,6 +128,8 @@ namespace DafnyTestGeneration {
       await foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
         yield return method.ToString();
       }
+
+      yield return TestMethod.EmitSynthesizeMethods();
 
       yield return "}";
     }

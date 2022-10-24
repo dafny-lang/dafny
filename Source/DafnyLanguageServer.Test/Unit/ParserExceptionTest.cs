@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var errorReporter = new ParserExceptionSimulatingErrorReporter();
       parser.Parse(documentItem, errorReporter, default);
       Assert.AreEqual($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
-      Assert.AreEqual($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
+      Assert.AreEqual($"file:///{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
     /// <summary>
@@ -56,6 +56,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
 
       public override int Count(ErrorLevel level) {
+        throw new NotImplementedException();
+      }
+
+      public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
         throw new NotImplementedException();
       }
     }

@@ -36,3 +36,12 @@ Dafny program verifier did not attempt verification
 [0, 1, 2, 4]
 [0, 2, 4]
 --> 5 <--
+
+Dafny program verifier did not attempt verification
+5 0 0 false 0 false 0
+5 3 5 3 5 3 
+5 3 5 3 5 3
+15
+[0, 1, 2, 4]
+[0, 2, 4]
+--> 5 <--

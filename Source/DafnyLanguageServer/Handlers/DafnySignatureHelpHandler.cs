@@ -29,8 +29,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
+    public override async Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
+      logger.LogDebug("received signature request for document {DocumentUri}", request.TextDocument.Uri);
+      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return null;
@@ -40,25 +41,25 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private class SignatureHelpProcessor {
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DafnyDocument document;
+      private readonly IdeState state;
       private readonly SignatureHelpParams request;
       private readonly CancellationToken cancellationToken;
 
-      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, SignatureHelpParams request, CancellationToken cancellationToken) {
+      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, IdeState state, SignatureHelpParams request, CancellationToken cancellationToken) {
         this.symbolGuesser = symbolGuesser;
-        this.document = document;
+        this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
       }
 
       public SignatureHelp? Process() {
-        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out var symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(state, GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);
       }
 
-      private Position GetOpenParenthesePosition() {
+      private Position GetOpenParenthesisPosition() {
         return new Position(request.Position.Line, request.Position.Character - 1);
       }
 

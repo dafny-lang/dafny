@@ -22,5 +22,10 @@
     /// Gets or sets the caching policy.
     /// </summary>
     public uint VerifySnapshots { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the display policy of verification result in the gutter.
+    /// </summary>
+    public bool GutterStatus { get; set; } = true;
   }
 }

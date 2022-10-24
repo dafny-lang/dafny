@@ -2,9 +2,7 @@ name: Test Brew release on Mac
 
 on:
   workflow_dispatch:
-    branches: [ master ]
-  push:
-    branches: [ master ]
+  # This would make more sense as a scheduled build like deep-tests.yml
   pull_request:
     branches: [ master ]
 
@@ -29,6 +27,10 @@ jobs:
         which dafny
         # -version is not supported in old dafny,
         # but this gives the version with an error
+        dotnet --list-sdks
+        go version
+        node --version
+        java -version
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
@@ -40,7 +42,7 @@ jobs:
     - name: Check Go compile
       run: |
         dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
+        env GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |

@@ -4,23 +4,35 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class Relocator : IRelocator {
+    public const string OutdatedPrefix = "Outdated: ";
+
     private readonly ILogger logger;
-    private readonly ILogger<SymbolTable> loggerSymbolTable;
+    private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
     public Relocator(
       ILogger<Relocator> logger,
-      ILogger<SymbolTable> loggerSymbolTable
+      ILogger<SignatureAndCompletionTable> loggerSymbolTable
       ) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
-    public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public Position RelocatePosition(Position position, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
+    }
+
+    public Range? RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
+    }
+
+    public SignatureAndCompletionTable RelocateSymbols(SignatureAndCompletionTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
 
@@ -28,26 +40,66 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
     }
 
+    public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
+      int lines,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
+      var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
+      return originalVerificationTree with {
+        Children = migratedChildren.ToList(),
+        Range = DocumentVerificationTree.LinesToRange(lines),
+        StatusCurrent = CurrentStatus.Obsolete
+      };
+    }
+
+    public ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigratePositions(originalPositions);
+      return migratePositions;
+    }
+
     private class ChangeProcessor {
+
       private readonly ILogger logger;
-      private readonly Container<TextDocumentContentChangeEvent> contentChanges;
+      // Invariant: Item1.Range == null <==> Item2 == null 
+      private readonly List<TextDocumentContentChangeEvent> contentChanges;
       private readonly CancellationToken cancellationToken;
-      private readonly ILogger<SymbolTable> loggerSymbolTable;
+      private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
       public ChangeProcessor(
         ILogger logger,
-        ILogger<SymbolTable> loggerSymbolTable,
+        ILogger<SignatureAndCompletionTable> loggerSymbolTable,
         Container<TextDocumentContentChangeEvent> contentChanges,
         CancellationToken cancellationToken
       ) {
         this.logger = logger;
-        this.contentChanges = contentChanges;
+        this.contentChanges = contentChanges.ToList();
         this.cancellationToken = cancellationToken;
         this.loggerSymbolTable = loggerSymbolTable;
       }
 
+      public Position MigratePosition(Position position) {
+        return contentChanges.Aggregate(position, (partiallyMigratedPosition, change) => {
+          if (change.Range == null) {
+            return partiallyMigratedPosition;
+          }
+
+          return MigratePosition(position, change);
+        });
+      }
+
+      public Range? MigrateRange(Range range) {
+        return contentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
+          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
+      }
+
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
         return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
+      }
+
+      public ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges) {
+        return contentChanges.Aggregate(originalRanges, MigratePositions);
       }
 
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
@@ -55,27 +107,47 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           return new List<Diagnostic>();
         }
 
-        return originalDiagnostics.SelectMany(diagnostic =>
-          MigrateDiagnostic(change.Range, change.Text, diagnostic)).ToList();
+        return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
+      }
+      private ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges, TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          return new List<Position> { }.ToImmutableList();
+        }
+
+        return originalRanges.SelectMany(position => MigratePosition(change, position)).ToImmutableList();
       }
 
-      private IEnumerable<Diagnostic> MigrateDiagnostic(Range changeRange, string changeText, Diagnostic diagnostic) {
+      // Requires changeEndOffset.change.Range to be not null
+      private IEnumerable<Position> MigratePosition(TextDocumentContentChangeEvent change, Position position) {
+        if (change.Range!.Contains(position)) {
+          return Enumerable.Empty<Position>();
+        }
+
+        return new List<Position> { MigratePosition(position, change) };
+      }
+
+      // TODO change the signature.
+      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(changeRange, changeText);
-        var newRange = MigrateRange(diagnostic.Range, changeRange, afterChangeEndOffset);
+        var newRange = MigrateRange(diagnostic.Range, change);
         if (newRange == null) {
           yield break;
         }
 
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
-          MigrateRelatedInformation(changeRange, related, afterChangeEndOffset)).ToList();
-        yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
+          MigrateRelatedInformation(change, related)).ToList();
+        yield return diagnostic with {
+          Message = diagnostic.Message.StartsWith(OutdatedPrefix) ? diagnostic.Message : OutdatedPrefix + diagnostic.Message,
+          Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+          Range = newRange,
+          RelatedInformation = newRelatedInformation
+        };
       }
 
-      private static IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(Range changeRange,
-        DiagnosticRelatedInformation related, Position afterChangeEndOffset) {
-        var migratedRange = MigrateRange(related.Location.Range, changeRange, afterChangeEndOffset);
+      private IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(TextDocumentContentChangeEvent change,
+        DiagnosticRelatedInformation related) {
+        var migratedRange = MigrateRange(related.Location.Range, change);
         if (migratedRange == null) {
           yield break;
         }
@@ -87,23 +159,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         };
       }
 
-      public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
+      public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
           cancellationToken.ThrowIfCancellationRequested();
-          Position? afterChangeEndOffset = null;
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
-            afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
-            migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
+            migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
           }
-          migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
+          migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, GetPositionAtEndOfAppliedChange(change));
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-        return new SymbolTable(
+        return new SignatureAndCompletionTable(
           loggerSymbolTable,
           originalSymbolTable.CompilationUnit,
           originalSymbolTable.Declarations,
@@ -115,52 +185,98 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
       private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
         IIntervalTree<Position, ILocalizableSymbol> previousLookupTree,
-        Range changeRange,
-        Position afterChangeEndOffset
+        TextDocumentContentChangeEvent change
       ) {
         var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
         foreach (var entry in previousLookupTree) {
           cancellationToken.ThrowIfCancellationRequested();
-          if (IsPositionBeforeChange(changeRange, entry.To)) {
+          if (IsPositionBeforeChange(change.Range!, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
-          } else if (IsPositionAfterChange(changeRange, entry.From)) {
-            var beforeChangeEndOffset = changeRange.End;
-            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
-            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
+          } else if (IsPositionAfterChange(change.Range!, entry.From)) {
+            var beforeChangeEndOffset = change.Range!.End;
+            var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset!);
+            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset!);
             migratedLookupTree.Add(from, to, entry.Value);
           }
         }
         return migratedLookupTree;
       }
 
-      private static Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
-        var changeStart = changeRange.Start;
-        var changeEof = changeText.GetEofPosition();
-        var characterOffset = changeEof.Character;
-        if (changeEof.Line == 0) {
-          characterOffset = changeStart.Character + changeEof.Character;
+      private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
+      private Position? GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          return null;
         }
-        return new Position(changeStart.Line + changeEof.Line, characterOffset);
+        return getPositionAtEndOfAppliedChangeCache.GetOrCreate(change, Compute);
+
+        Position Compute() {
+          var changeStart = change.Range!.Start;
+          var changeEof = GetEofPosition(change.Text);
+          var characterOffset = changeEof.Character;
+          if (changeEof.Line == 0) {
+            characterOffset = changeStart.Character + changeEof.Character;
+          }
+
+          return new Position(changeStart.Line + changeEof.Line, characterOffset);
+        }
       }
 
-      private static Range? MigrateRange(Range rangeToMigrate, Range changeRange, Position afterChangeEndOffset) {
-        if (!rangeToMigrate.Contains(changeRange) && rangeToMigrate.Intersects(changeRange)) {
+      /// <summary>
+      /// Gets the LSP position at the end of the given text.
+      /// </summary>
+      /// <param name="text">The text to get the LSP end of.</param>
+      /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
+      /// <returns>The LSP position at the end of the text.</returns>
+      /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
+      /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+      /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+      private static Position GetEofPosition(string text, CancellationToken cancellationToken = default) {
+        int line = 0;
+        int character = 0;
+        int absolutePosition = 0;
+        do {
+          cancellationToken.ThrowIfCancellationRequested();
+          if (IsEndOfLine(text, absolutePosition)) {
+            line++;
+            character = 0;
+          } else {
+            character++;
+          }
+          absolutePosition++;
+        } while (absolutePosition <= text.Length);
+        return new Position(line, character);
+      }
+
+      private static bool IsEndOfLine(string text, int absolutePosition) {
+        if (absolutePosition >= text.Length) {
+          return false;
+        }
+        return text[absolutePosition] switch {
+          '\n' => true,
+          '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
+          _ => false
+        };
+      }
+
+      public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
+        if (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!)) {
           // Do not migrate ranges that partially overlap with the change
           return null;
         }
 
-        var start = MigratePosition(rangeToMigrate.Start, changeRange, afterChangeEndOffset);
-        var end = MigratePosition(rangeToMigrate.End, changeRange, afterChangeEndOffset);
+        var start = MigratePosition(rangeToMigrate.Start, change);
+        var end = MigratePosition(rangeToMigrate.End, change);
         return new Range(start, end);
       }
 
-      private static Position MigratePosition(Position position, Range changeRange, Position afterChangeEndOffset) {
-        var changeIsAfterPosition = changeRange.Start >= position && changeRange.End != position;
+      private Position MigratePosition(Position position, TextDocumentContentChangeEvent change) {
+        var changeIsAfterPosition = change.Range!.Start >= position && change.Range!.End != position;
         if (changeIsAfterPosition) {
           return position;
         }
 
-        return GetPositionWithOffset(position, changeRange.End, afterChangeEndOffset);
+        return GetPositionWithOffset(position, change.Range!.End, GetPositionAtEndOfAppliedChange(change)!);
       }
 
       private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
@@ -182,7 +298,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
-        SymbolTable originalSymbolTable,
+        SignatureAndCompletionTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
         Range? changeRange,
         Position? afterChangeEndOffset
@@ -236,6 +352,38 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
         // The change overlaps with the start and/or the end of the range. We cannot compute a reliable change.
         return null;
+      }
+
+      public IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
+      }
+      private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          yield break;
+        }
+
+        foreach (var verificationTree in verificationTrees) {
+          var newRange = MigrateRange(verificationTree.Range, change);
+          if (newRange == null) {
+            continue;
+          }
+          var newNodeDiagnostic = verificationTree with {
+            Range = newRange,
+            Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
+            StatusVerification = verificationTree.StatusVerification,
+            StatusCurrent = CurrentStatus.Obsolete,
+            Finished = false,
+            Started = false
+          };
+          if (newNodeDiagnostic is AssertionVerificationTree assertionNodeDiagnostic) {
+            newNodeDiagnostic = assertionNodeDiagnostic with {
+              SecondaryPosition = assertionNodeDiagnostic.SecondaryPosition != null
+                ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition, change)
+                : null
+            };
+          }
+          yield return newNodeDiagnostic;
+        }
       }
     }
   }

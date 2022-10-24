@@ -1,19 +1,19 @@
 DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-default: parser runtime boogie exe
+default: exe
 
-all: runtime boogie exe refman
+all: exe refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-boogie: ${DIR}/Source/boogie/Binaries/Boogie.exe
+boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
-${DIR}/Source/boogie/Binaries/Boogie.exe:
-	(cd ${DIR}/../boogie ; dotnet build Source/boogie/Source/Boogie.sln )
+tests:
+	(cd ${DIR}; dotnet test Source/IntegrationTests)
 
-parser:
-	make -C ${DIR}/Source/Dafny -f Makefile.linux all
+${DIR}/boogie/Binaries/Boogie.exe:
+	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 
 refman:
 	make -C ${DIR}/docs/DafnyRef
@@ -31,11 +31,15 @@ z3-ubuntu:
 	unzip z3-4.8.5-x64-ubuntu-16.04.zip
 	mv z3-4.8.5-x64-ubuntu-16.04 ${DIR}/Binaries/z3
 
+format:
+	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
+
 clean:
-	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
+	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	(cd ${DIR} ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
-	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
+	make -C ${DIR}/Source/DafnyCore -f Makefile clean
+	(cd ${DIR}/Source/Dafny && rm -rf Scanner.cs Parser.cs obj )
 	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
 	make -C ${DIR}/docs/DafnyRef clean
-	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
+	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj

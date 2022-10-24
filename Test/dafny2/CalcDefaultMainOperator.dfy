@@ -1,4 +1,4 @@
-// RUN: %dafny /env:0 /rprint:- "%s" > "%t"
+// RUN: %dafny_0 /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma TestBool(F: bool, T: bool)

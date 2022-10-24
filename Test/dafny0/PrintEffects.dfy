@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %dafny /compile:3 /trackPrintEffects:1 "%s" >> "%t"
+// RUN: %dafny_0 /compile:3 /trackPrintEffects:1 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

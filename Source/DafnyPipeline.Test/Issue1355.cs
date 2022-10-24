@@ -27,7 +27,7 @@ namespace DafnyPipeline.Test {
       Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
       var dafnyProgram = new Program("programName", module, builtIns, reporter);
       Main.Resolve(dafnyProgram, reporter);
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
         var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);
         prog.Item2.Emit(tokenWriter);

@@ -12,6 +12,7 @@ import sys
 import time
 from urllib import request
 from http.client import IncompleteRead
+from urllib.error import HTTPError
 import zipfile
 import shutil
 import ntpath
@@ -116,10 +117,10 @@ class Release:
                             writer.write(reader.read())
                     flush("done!")
                     break
-                except IncompleteRead as e:
+                except (IncompleteRead, HTTPError):
                     if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                         raise
-            
+
 
     @staticmethod
     def zipify_path(fpath):
@@ -146,7 +147,8 @@ class Release:
                     flush("failed! (Is Dafny or the Dafny server running?)")
                     sys.exit(1)
                 else:
-                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
+                    flush("failed! (Retrying another %s)" %
+                        ("time" if remaining == 1 else f"{remaining} times"))
         flush("done!")
 
     def build(self):
@@ -158,7 +160,8 @@ class Release:
         run(["make", "--quiet", "clean"])
         self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
-        self.run_publish("DafnyDriver")
+        self.run_publish("DafnyRuntime")
+        self.run_publish("Dafny")
 
     def pack(self):
         try:
@@ -181,9 +184,8 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + OTHERS
-            for fpath in paths:
-                if os.path.isdir(fpath):
+            for fpath in pathsInDirectory(self.buildDirectory) + OTHERS:
+                if os.path.isdir(fpath) or fpath.endswith(".pdb"):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
@@ -224,7 +226,7 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
 
 def pathsInDirectory(directory):
-    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+    return [path.join(directory, file) for file in os.listdir(directory)]
 
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
@@ -248,34 +250,33 @@ def pack(args, releases):
         release.build()
         release.pack()
     if not args.skip_manual:
-        run(["make", "--quiet", "refman-release"])
+        run(["make", "--quiet", "refman"])
 
 def check_version_cs(args):
-    # Checking version.cs
-    fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
-    lines = fp.readlines()
-    qstart = lines[2].index('"')
-    qend = lines[2].index('"', qstart+1)
-    lastdot = lines[2].rindex('.',qstart)
-    v1 = lines[2][qstart+1:lastdot]
-    v2 = lines[2][lastdot+1:qend]
+    # Checking Directory.Build.props
+    with open(path.join(SOURCE_DIRECTORY, "Directory.Build.props")) as fp:
+        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)', fp.read())
+        if match:
+            (v1, v2) = match.groups()
+        else:
+            flush("The AssemblyVersion attribute in Directory.Build.props could not be found.")
+            return False
     now = time.localtime()
     year = now[0]
     month = now[1]
     day = now[2]
     v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
     if v2 != v3:
-        flush("The date in version.cs does not agree with today's date: " + v3 + " vs. " + v2)
+        flush("The date in Directory.Build.props does not agree with today's date: " + v3 + " vs. " + v2)
     if "-" in args.version:
         hy = args.version[:args.version.index('-')]
     else:
         hy = args.version
     if hy != v1:
-        flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1) and not args.trial:
+        flush("The version number in Directory.Build.props does not agree with the given version: " + hy + " vs. " + v1)
+    if (v2 != v3 or hy != v1):
         return False
-    fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + v1 + "." + v2)
     return True
 
 def parse_arguments():
@@ -283,20 +284,21 @@ def parse_arguments():
     parser.add_argument("version", help="Version number for this release")
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
-    parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--trial", help="ignore Directory.Build.props version discrepancies")
     parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
     parser.add_argument("--out", help="output zip file")
     return parser.parse_args()
 
 def main():
     args = parse_arguments()
-    if not DAFNY_RELEASE_REGEX.match(args.version):
-        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-        return
-    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+    if not args.trial:
+        if not DAFNY_RELEASE_REGEX.match(args.version):
+            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+            return
+        if not check_version_cs(args):
+            return
 
-    if not check_version_cs(args):
-        return
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
     flush("* Finding and downloading Z3 releases")

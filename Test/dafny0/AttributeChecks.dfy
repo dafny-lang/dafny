@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
+// RUN: %dafny_0 /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module JustAboutEverything {

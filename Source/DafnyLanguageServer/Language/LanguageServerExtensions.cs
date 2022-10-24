@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -29,13 +30,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
-        .AddSingleton<IProgramVerifier>(CreateVerifier)
+        .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
-      return DafnyProgramVerifier.Create(
+      return new DafnyProgramVerifier(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       );

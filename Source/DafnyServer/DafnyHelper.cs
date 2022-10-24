@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
-                     Dafny.Main.ParseIncludes(module, builtIns, new List<string>(), new Dafny.Errors(reporter)) == null);
+                     Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
         dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
       }
@@ -68,7 +68,9 @@ namespace Microsoft.Dafny {
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
         switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
+#pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
+#pragma warning restore VSTHRD002
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
@@ -89,7 +91,7 @@ namespace Microsoft.Dafny {
     public void Symbols() {
       ServerUtils.ApplyArgs(args, DafnyOptions.O);
       if (Parse() && Resolve()) {
-        var symbolTable = new SymbolTable(dafnyProgram);
+        var symbolTable = new LegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
         Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {

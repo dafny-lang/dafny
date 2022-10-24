@@ -2,6 +2,7 @@
 // RUN: %dafny /compile:3 /compileTarget:js "%s" %S/Extern3.js >> "%t"
 // RUN: %dafny /compile:3 /compileTarget:go "%s" %S/Extern4.go >> "%t"
 // RUN: %dafny /compile:3 /compileTarget:java "%s" %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:py "%s" %S/Extern5.py >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
