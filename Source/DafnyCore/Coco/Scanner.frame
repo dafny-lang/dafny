@@ -311,8 +311,11 @@ public class Scanner {
     Contract.Requires(fileName != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
       Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
       this._buffer = new Buffer(stream, false);
@@ -329,9 +332,12 @@ public class Scanner {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
-    Contract.Assert(tokens.next == null);
-    t = new Token(); // dummy because t is a non-null field
+    Contract.Assert(tokens.Next == null);
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;
     this.FullFilename = fullFilename;
@@ -466,6 +472,8 @@ public class Scanner {
   }
 
   private Token lastCommentToken = null;
+  private List<IToken> leadingComments = new List<IToken>();
+  private List<IToken> trailingComments = new List<IToken>();
 
   Token/*!*/ NextToken() {
     Contract.Ensures(Contract.Result<Token>() != null);
@@ -478,15 +486,26 @@ public class Scanner {
       lastWasCr = false;
     } else {
       // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
-      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
         triviaNewlines--;
         lastWasCr = (ch == '\r');
       }
     }
+    if(lastCommentToken != null) {
+      var includeLast = col != 0; // Block comment.
+      // This odd +1 is needed because Coco/R doesn't consume the last character of the comment.
+      lastCommentToken.val = buffer.GetString(lastCommentToken.pos, pos + (includeLast ? 1 : 0));
+      if(triviaTrailing) {
+        trailingComments.Add(lastCommentToken);
+      } else {
+        leadingComments.Add(lastCommentToken);
+      }
+      lastCommentToken = null;
+    }
     while (ch == ' ' ||
 -->scan1
     ) {
-      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
         if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
           triviaNewlines++;
         }
@@ -498,7 +517,12 @@ public class Scanner {
         posTrailingEndLeadingStart = pos;
       }
     }
+    lastCommentToken = new Token();
+    lastCommentToken.pos = pos; lastCommentToken.col = col; lastCommentToken.line = line;
+    lastCommentToken.Filename = this.Filename;
+    lastCommentToken.kind = Parser._commentToken;
 -->scan2
+    lastCommentToken = null;
     parsingTrivia = false;
     if(t == null) { // There is no trailing trivia before the first token
       posTrailingEndLeadingStart = 0;
@@ -509,12 +533,16 @@ public class Scanner {
       }
       // Extract the trivia from the buffers
       t.TrailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
+      t.TrailingComments = trailingComments;
+      trailingComments = new List<IToken>();
     }
     
     int recKind = noSym;
     int recEnd = pos;
     t = new Token();
     t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
+    t.LeadingComments = leadingComments;
+    leadingComments = new List<IToken>();
     
     t.pos = pos; t.col = col; t.line = line;
     t.Filename = this.Filename;
@@ -551,12 +579,12 @@ public class Scanner {
   // get the next token (possibly a token already seen during peeking)
   public Token/*!*/ Scan () {
    Contract.Ensures(Contract.Result<Token>() != null);
-    if (tokens.peekedTokens == null) {
-      Contract.Assert(pt.next == null);
+    if (tokens.Next == null) {
+      Contract.Assert(pt.Next == null);
       Peek(); // Keep linked structure
     }
 
-    pt = tokens = tokens.peekedTokens;
+    pt = tokens = (Token)tokens.Next;
     return tokens;
   }
 
@@ -564,10 +592,11 @@ public class Scanner {
   public Token/*!*/ Peek () {
     Contract.Ensures(Contract.Result<Token>() != null);
     do {
-      if (pt.peekedTokens == null) {
-        pt.peekedTokens = NextToken();
+      if (pt.Next == null) {
+        pt.Next = NextToken();
       }
-      pt = pt.peekedTokens;
+      pt.Next.Prev = pt;
+      pt = (Token)pt.Next;
     } while (pt.kind > maxT); // skip pragmas
 
     return pt;

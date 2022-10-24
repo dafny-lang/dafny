@@ -160,7 +160,14 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: module.RootToken);
+  Token firstToken;
+  if((module.RootToken.Filename ?? "") == "") { // This is the first module
+    module.RootToken.Filename = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
+    firstToken = module.RootToken;
+  } else {
+    firstToken = new Token(); // It's an included file
+  }
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: firstToken);
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
@@ -398,6 +405,7 @@ private static TokenClass ClassifyToken(int kind) { // FIXME rewrite as a dictio
       or _abstract
       or _protected
       or _nameonly
+      or _older
     => TokenClass.Modifier,
 
     _import
@@ -513,7 +521,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
 bool IsFromArrow() {
   scanner.ResetPeek();
   IToken x = scanner.Peek();
-  return la.kind == _openAngleBracket && x.kind == _minus
+  return la.kind == _openAngleBracket && x.kind == _dash
     && la.line == x.line && la.col == x.col - 1; 
 }
 
@@ -1193,7 +1201,6 @@ TOKENS
   sarrow = "->".
   qarrow = "~>".
   larrow = "-->".
-  minus = "-".
   dash = "-".
   blankFaceSmiley = ":-".
   excl = "!".
@@ -1225,7 +1232,6 @@ TOKENS
   exists = "exists".
   abstract = "abstract".
   protected = "protected".
-  nameonly = "nameonly".
   extends = "extends".
   provides = "provides".
   reveals = "reveals".
@@ -1239,7 +1245,6 @@ TOKENS
   while = "while".
   modify = "modify".
   module = "module".
-  new = "new".
   print = "print".
   fresh = "fresh".
   old = "old".

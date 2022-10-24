@@ -40,10 +40,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private void CollectBasicTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
-      var tok = program.DefaultModule.RootToken.next;
+      var tok = program.DefaultModule.RootToken.Next;
       while (tok != null) {
+        foreach (var leadingComment in tok.LeadingComments) {
+          builder.Push("parser", leadingComment);
+        }
         builder.Push("parser", tok);
-        tok = tok.next;
+        foreach (var trailingComment in tok.TrailingComments) {
+          builder.Push("parser", trailingComment);
+        }
+        tok = tok.Next;
       }
     }
 
@@ -53,12 +59,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override async Task Tokenize(SemanticTokensBuilder builder, ITextDocumentIdentifierParams identifier,
       CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(identifier.TextDocument);
-      if (document == null) {
+      var documentManager = documents.GetDocumentManager(identifier.TextDocument);
+      if (documentManager == null) {
         logger.LogWarning("Tokens requested for unloaded document {DocumentUri}", identifier.TextDocument.Uri);
         return;
       }
-
+      var document = await documentManager.GetLastDocumentAsync();
       var dafnyBuilder = new DafnySemanticTokensBuilder(builder);
       CollectBasicTokens(dafnyBuilder, document.Program);
       CollectSemanticTokens(dafnyBuilder, document.Program);

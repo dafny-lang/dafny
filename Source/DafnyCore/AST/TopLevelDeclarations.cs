@@ -328,6 +328,7 @@ abstract public class ModuleDecl : TopLevelDecl {
     return Signature;
   }
   public int Height;
+  public Token RootToken = new Token();
 
   public readonly bool Opened;
 

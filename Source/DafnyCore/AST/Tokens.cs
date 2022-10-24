@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
@@ -37,6 +38,10 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
+  List<IToken> TrailingComments { get; set; }
+  List<IToken> LeadingComments { get; set; }
+  IToken Next { get; set; } // The next token
+  IToken Prev { get; set; } // The previous token
 }
 
 /// <summary>
@@ -73,9 +78,15 @@ public record Token : IToken {
 
   public string val { get; set; } // Used by coco, so we can't rename it to Val
 
-  public string LeadingTrivia { get; set; }
+  public string LeadingTrivia { get; set; } = "";
 
-  public string TrailingTrivia { get; set; }
+  public string TrailingTrivia { get; set; } = "";
+  public List<IToken> TrailingComments { get; set; } = new();
+  public List<IToken> LeadingComments { get; set; } = new();
+
+  public IToken Next { get; set; } // The next token
+
+  public IToken Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 }
@@ -124,6 +135,22 @@ public abstract class TokenWrapper : IToken {
   }
   public virtual string TrailingTrivia {
     get { return WrappedToken.TrailingTrivia; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual IToken Next {
+    get { return WrappedToken.Next; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual List<IToken> TrailingComments {
+    get { return WrappedToken.TrailingComments; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual List<IToken> LeadingComments {
+    get { return WrappedToken.LeadingComments; }
     set { throw new NotSupportedException(); }
   }
 }
@@ -176,6 +203,16 @@ public class IncludeToken : TokenWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
+  }
+
+  public override IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { WrappedToken.Prev = value; }
+  }
+
+  public override IToken Next {
+    get { return WrappedToken.Next; }
+    set { WrappedToken.Next = value; }
   }
 }
 
