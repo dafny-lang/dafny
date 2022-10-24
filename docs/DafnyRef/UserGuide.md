@@ -1159,6 +1159,7 @@ older versions of Dafny.
   program.
 
 <a id="sec-function-syntax"/>
+
 * `-functionSyntax:<version>` - select what function syntax to
   recognize. The syntax for functions is changing from Dafny version 3
   to version 4. This switch gives early access to the new syntax, and
