@@ -682,7 +682,7 @@ general form of our proof goal:
 $$
 \begin{array}{lll}
     & Q \;\Longrightarrow\; f^{\uparrow}(x)           &             \\
-  = & &nbsp;&nbsp;&nbsp;&nbsp;  & \textrm{ [the greatest forall definition](\#eq-greatest-is-forall) }   \\
+  = & &nbsp;&nbsp;&nbsp;&nbsp;  & \textrm{ (the greatest forall definition) }   \\
     & Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)  &  \\
   = & &nbsp;&nbsp;&nbsp;&nbsp;  & \text{distribute} \;\Longrightarrow\; \text{over} \;\forall\; \text{to the right } \\
     & \forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)                 & \\
