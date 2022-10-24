@@ -1179,7 +1179,7 @@ older versions of Dafny.
     this flag on your version 3 program to flag all occurrences of
     `function` and `predicate` as parsing errors. These are ghost
     functions, so change those into the new syntax `ghost function` and
-    `ghost predicate`. Then, start using `-functionSyntax:4`. This will
+    `ghost predicate`. Then, start using <br/>`-functionSyntax:4`. This will
     flag all occurrences of `function method` and `predicate method` as
     parsing errors. So, change those to just `function` and `predicate`.
     As a result, your program will use version 4 syntax and have the
