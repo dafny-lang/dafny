@@ -2121,8 +2121,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    
-    
+
+
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
