@@ -142,7 +142,7 @@ then runs it with the three command-line arguments `1 2 3`
 If building a `.dfy` file containing the `Main` method requires additional
 `.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use 
 the `--input` option for each extra file or use `dafny build` to build the executable and then run it in an 
-addiotional step.
+additional step.
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
