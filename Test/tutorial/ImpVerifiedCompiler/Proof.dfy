@@ -208,17 +208,6 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 
 				assert impconf2 == (body,Kwhile(b,body,k),s1);
 				assert code_at(C,machconf2.0,compile_com(body)) by { resolve_code_at(); }
-
-				// Another example of failure for subset types. In the commented asserts, unlike in the constructor
-				// that follows, I do not introduce pc' and pc'' and make their nat type explicit, and in the end
-				// it doesn't work
-				
-				//assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1));
-
-				//assert code_at(C,(machconf2.0 + |compile_com(impconf2.0)|) + 1 + (-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1)),compile_com(CWhile(b,body)));
-
-				//assert compile_cont(C,k,((machconf2.0 + |compile_com(impconf2.0)|) + 1 + (-( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1))) + |compile_com(CWhile(b,body))|);
-
 				
 				assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|) by {
 
