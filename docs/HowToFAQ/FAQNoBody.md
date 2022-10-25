@@ -1,5 +1,5 @@
 ---
-title: Is there a way to prevent "Warning: note, this forall statement has no body" from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
+title: "Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."
 ---
 
 ## Question

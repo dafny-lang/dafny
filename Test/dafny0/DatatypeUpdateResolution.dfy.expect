@@ -3,11 +3,11 @@ DatatypeUpdateResolution.dfy(14,40): Error: member '40' does not exist in dataty
 DatatypeUpdateResolution.dfy(18,63): Error: duplicate update member 'otherbool'
 DatatypeUpdateResolution.dfy(20,25): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'otherbool' does not belong to 'MyNumericConstructor')
 DatatypeUpdateResolution.dfy(29,12): Error: member 'Make?' is not a destructor in datatype 'Dt'
-DatatypeUpdateResolution.dfy(53,9): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(55,9): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(61,9): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(63,17): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(70,9): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(71,17): Error: a ghost variable is allowed only in specification contexts
-DatatypeUpdateResolution.dfy(72,25): Error: a ghost variable is allowed only in specification contexts
+DatatypeUpdateResolution.dfy(53,9): Error: ghost variables such as a are allowed only in specification contexts. a was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(55,9): Error: ghost variables such as r are allowed only in specification contexts. r was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(61,9): Error: ghost variables such as a are allowed only in specification contexts. a was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(63,17): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(70,9): Error: ghost variables such as d are allowed only in specification contexts. d was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(71,17): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+DatatypeUpdateResolution.dfy(72,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 12 resolution/type errors detected in DatatypeUpdateResolution.dfy

@@ -19,23 +19,23 @@ Keys membership 4: This is expected
 70 52 66
 8 67 67
 4 4 3
-1 0 1 0
-1 0 0 0
-0 0 1
-0 0 0 1
+true false true false
+true false false false
+false false true
+false false false true
 0 20 4
 198 20 4
-0 2 0
-1 1 1 0
+0 2 false
+true true true false
 0 20 4
 198 20 4
-0 2 0
-0 0 1
-0 1 1 1
+0 2 false
+false false true
+false true true true
 jack wendy NULL
 jack NULL NULL
-ronald ronald 0
-1 1 1 0
+ronald ronald false
+true true true false
 jack wendy NULL
 jack NULL NULL
-ronald ronald 0
+ronald ronald false
