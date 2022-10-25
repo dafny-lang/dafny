@@ -887,6 +887,7 @@ namespace Dafny {
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
     bool EqualsAux(ISequence<object> other);
     ISequence<U> DowncastClone<U>(Func<T, U> converter);
+    string ToVerbatimString();
   }
 
   public abstract class Sequence<T> : ISequence<T> {
@@ -1078,15 +1079,17 @@ namespace Dafny {
     public override string ToString() {
       if (typeof(T) == typeof(char)) {
         return string.Concat(this);
-      } else if (typeof(T) == typeof(System.Text.Rune)) {
-        var builder = new System.Text.StringBuilder();
-        foreach(var rune in this) {
-          builder.Append(char.ConvertFromUtf32(((System.Text.Rune)(object)rune).Value));
-        }
-        return builder.ToString();
       } else {
         return "[" + string.Join(", ", ImmutableElements.Select(Dafny.Helpers.ToString)) + "]";
       }
+    }
+
+    public string ToVerbatimString() {
+      var builder = new System.Text.StringBuilder();
+      foreach(var rune in this) {
+        builder.Append(char.ConvertFromUtf32(((System.Text.Rune)(object)rune).Value));
+      }
+      return builder.ToString();
     }
 
     public bool Contains<G>(G g) {
@@ -1300,6 +1303,8 @@ namespace Dafny {
         return "null";
       } else if (g is bool) {
         return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
+      } else if (g is System.Text.Rune) {
+        return "'" + (System.Text.Rune)(object)g + "'";
       } else {
         return g.ToString();
       }

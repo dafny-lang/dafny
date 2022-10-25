@@ -269,6 +269,7 @@ public abstract class Type {
   public bool IsRealType { get { return NormalizeExpand() is RealType; } }
   public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
   public bool IsBitVectorType { get { return AsBitVectorType != null; } }
+  public bool IsStringType => AsSeqType != null && AsSeqType.Arg.IsCharType;
   public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
   public bool IsNumericBased() {
     var t = NormalizeExpand();

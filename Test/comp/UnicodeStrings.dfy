@@ -1,6 +1,4 @@
-// RUN: %baredafny verify --unicode-char "%s" %args > "%t"
-// RUN: %baredafny run --no-verify --unicode-char --target:cs "%s" %args >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
 newtype uint32 = x: int | 0 <= x < 0x1_0000_0000
 newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
@@ -29,6 +27,10 @@ function method MapToInt32(s: string): seq<int32> {
     [s[0] as int32] + MapToInt32(s[1..])
 }
 
+datatype Option<T> = Some(value: T) | None
+
+datatype StringOption = SomeString(value: string) | NoString
+
 method Main(args: seq<string>) {
   var trickyString := "Dafny is just so \U{1F60E}";
   print trickyString, "\n";
@@ -46,6 +48,29 @@ method Main(args: seq<string>) {
   var sarcastic := "Oh UNicOdE, tHaT's a REaL usEFuL FEaTuRe!";
   var sincere := MapToLower(sarcastic);
   print sincere, "\n";
+
+  print 'D', "\n";
+  print '\'', "\n";
+  print '\n', "\n";
+
+  var mightBeString := Some(trickyString);
+  print mightBeString, "\n";
+  print mightBeString.value, "\n";
+
+  var definitelyString := SomeString(trickyString);
+  print definitelyString, "\n";
+  print definitelyString.value, "\n";
+
+  var tupleOfString := (trickyString, 42);
+  print tupleOfString, "\n";
+
+  Print("D");
+  Print('D');
+  Print(0x1F60E as char);
+}
+
+method Print<T>(t: T) {
+  print t, "\n";
 }
 
 

@@ -35,6 +35,55 @@ public class Helpers {
        for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asUnicodeString(args[i]));
        return DafnySequence.fromArray(type, dafnyArgs);
     }
+
+    public static String ToStringLiteral(DafnySequence<? extends Integer> dafnyString) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\"");
+        for (int codePoint : dafnyString) {
+            AppendCodePointWithEscaping(builder, codePoint);
+        }
+        builder.append("\"");
+        return builder.toString();
+    }
+
+    // Note this is a Dafny character literal, not necessarily a valid Java character literal
+    public static String ToCharLiteral(int codePoint) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\'");
+        AppendCodePointWithEscaping(builder, codePoint);
+        builder.append("\'");
+        return builder.toString();
+    }
+
+    private static void AppendCodePointWithEscaping(StringBuilder builder, int codePoint) {
+        switch (codePoint) {
+            case '\n':
+                builder.append("\\n");
+                break;
+            case '\r':
+                builder.append("\\r");
+                break;
+            case '\t':
+                builder.append("\\t");
+                break;
+            case '\0':
+                builder.append("\\0");
+                break;
+            case '\'':
+                builder.append("\\'");
+                break;
+            case '\"':
+                builder.append("\\\"");
+                break;
+            case '\\':
+                builder.append("\\\\");
+                break;
+            default:    
+                builder.appendCodePoint(codePoint);
+                break;
+        }
+        
+    }
     
     public static <T> boolean Quantifier(Iterable<T> vals, boolean frall, Predicate<T> pred) {
         for (T t : vals) {

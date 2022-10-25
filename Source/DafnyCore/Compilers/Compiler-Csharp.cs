@@ -981,7 +981,14 @@ namespace Microsoft.Dafny.Compilers {
                     w.WriteLine($"{tempVar} += \", \";");
                   }
 
-                  w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
+                  if (arg.Type.IsStringType) {
+                    w.WriteLine($"{tempVar} += '\"';");
+                    w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString();");
+                    w.WriteLine($"{tempVar} += '\"';");
+                  } else {
+                    w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
+                  }
+                  
                   i++;
                 }
               }
@@ -1441,8 +1448,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
-
     private string CharTypeName() {
       // TODO: Figure out if there is any runtime code for using Rune instead of Int32
       return UnicodeChars ? "System.Text.Rune" : "char";
@@ -1846,7 +1851,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}({Expr(arg, false, wStmts)});");
+      var suffix = arg.Type.IsStringType ? ".ToVerbatimString()" : "";
+      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {

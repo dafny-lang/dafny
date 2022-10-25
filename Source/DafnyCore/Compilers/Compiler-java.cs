@@ -2047,7 +2047,11 @@ namespace Microsoft.Dafny.Compilers {
                 }
                 w.Write($"{tempVar}.append(");
                 var memberName = FieldName(arg, i);
-                if (IsJavaPrimitiveType(arg.Type)) {
+                if (UnicodeChars && arg.Type.IsCharType) {
+                  w.Write($"{DafnyHelpersClass}.ToCharLiteral(this.{memberName})");
+                } else if (UnicodeChars && arg.Type.IsStringType) {
+                  w.Write($"{DafnyHelpersClass}.ToStringLiteral(this.{memberName})");
+                } else if (IsJavaPrimitiveType(arg.Type)) {
                   w.Write($"this.{memberName}");
                 } else {
                   w.Write($"{DafnyHelpersClass}.toString(this.{memberName})");
@@ -2156,15 +2160,16 @@ namespace Microsoft.Dafny.Compilers {
             throw new cce.UnreachableException();
         }
       } else {
-        // TODO-RS: This doesn't handle strings printed out as part of datatypes
-        bool isString = arg.Type.AsSeqType != null &&
-                        arg.Type.AsSeqType.Arg.IsCharType;
         bool isGeneric = arg.Type.AsSeqType != null &&
                          arg.Type.AsSeqType.Arg.IsTypeParameter;
-        if (isString) {
+        if (arg.Type.IsStringType) {
           TrParenExpr(arg, wr, false, wStmts);
           wr.Write(".verbatimString()");
-        } else if (isGeneric) {
+        } else if (arg.Type.IsCharType) {
+          TrParenExpr(arg, wr, false, wStmts);
+        } else if (isGeneric && !UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+          // This happens to not work when --unicode-char is true anyway,
+          // but the guard is there to be more explicit that this is intentional.
           wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");

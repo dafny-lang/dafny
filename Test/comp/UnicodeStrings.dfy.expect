@@ -1,8 +1,6 @@
-
-Dafny program verifier finished with 4 verified, 0 errors
-
-Dafny program verifier did not attempt verification
 Dafny is just so 😎
 Dafny is just so 😎
 [67, 101, 99, 105, 32, 110, 39, 101, 115, 116, 32, 112, 97, 115, 32, 117, 110, 101, 32, 115, 116, 114, 105, 110, 103]
 oh unicode, that's a real useful feature!
+Option.Some([72, 101, 108, 108, 111, 33])
+Hello!
