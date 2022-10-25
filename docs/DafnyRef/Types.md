@@ -3003,16 +3003,16 @@ a := new T[n];
 The initial values of the array elements are arbitrary values of type
 `T`. 
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
-```
+```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
 The initialazation can also use an expression that returns a function of type `nat -> T`:
-```
+```dafny
 a := new int[5](i => i*i);
 ```
 In fact, the initializer can simply be a function name for the right type of function:
-```
-a := new int[5]{Square);
+```dafny
+a := new int[5](Square);
 ```
 
 The length of an array is retrieved using the immutable `Length`
