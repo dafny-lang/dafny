@@ -2061,12 +2061,36 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("_dafny.Char('{0}')", TranslateEscapes(v, isChar: true));
+        wr.Write("_dafny.Char(");
+        // See comment on the StringLiteralExpr case below.
+        if (Util.Utf16Escape.IsMatch(v)) {
+          char c = Util.UnescapedCharacters(v, false).Single();
+          wr.Write($"{(int)c}");
+        } else {
+          wr.Write("'{0}'", TranslateEscapes(v, isChar: true));
+        }
+        wr.Write(")");
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("_dafny.SeqOfString(");
-        TrStringLiteral(str, wr);
-        wr.Write(")");
+        // It may not be possible to translate \u escapes into a valid Go string,
+        // since Go string literals have to be encodable in UTF-8,
+        // but Dafny allows invalid sequences of surrogate characters.
+        // So if any are present, just emit a sequence of the direct UTF-16 code units instead.
+        var s = (string)str.Value;
+        if (!str.IsVerbatim && Util.Utf16Escape.IsMatch(s)) {
+          wr.Write("_dafny.SeqOfChars(");
+          var comma = "";
+          foreach (var c in Util.UnescapedCharacters(s, str.IsVerbatim)) {
+            wr.Write(comma);
+            wr.Write($"{(int)c}");
+            comma = ", ";
+          }
+          wr.Write(")");
+        } else {
+          wr.Write("_dafny.SeqOfString(");
+          TrStringLiteral(str, wr);
+          wr.Write(")");
+        }
       } else if (AsNativeType(e.Type) is NativeType nt) {
         wr.Write("{0}({1})", GetNativeTypeName(nt), (BigInteger)e.Value);
       } else if (e.Value is BigInteger i) {
@@ -2097,6 +2121,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    
+    
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {

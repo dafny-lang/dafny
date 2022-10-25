@@ -8,6 +8,7 @@ using System.Text;
 using System.Diagnostics.Contracts;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -195,6 +196,9 @@ namespace Microsoft.Dafny {
       UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(ch));
       return sb.ToString();
     }
+    
+    public static readonly Regex Utf16Escape = new Regex(@"(?<!\\)\\u([0-9a-fA-F]{4})");
+    
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.

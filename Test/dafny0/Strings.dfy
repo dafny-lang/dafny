@@ -1,4 +1,10 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=java %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {
@@ -40,12 +46,21 @@ method Main()
 
   var x?, y?, z? := WeirdStrings();
   
+  // Printing these invalid (in UTF-16) strings can lead to at least inconsistent
+  // output across the backends, but they should never crash.
+  // We assert that the invalid state is modelled correctly as well.
+  expect |x?| == 30;
+  expect x?[29] as int == 55296;
   print "Weird string X: ", x?, "\n";
+  expect |y?| == 30;
+  expect x?[29] as int == 55296;
   print "Weird string Y: ", y?, "\n";
+  expect |z?| > 2;
+  expect z?[0..2] == ['\ude0e', '\ud83d'];
   print "Weird string Z: ", z?, "\n";
   
   var c?, d? := WeirdChars();
-  print "These characters are quite confused: " + [c?, ' ', d?];
+  print "These characters are quite confused: ", c?, ' ', d?, "\n";
 }
 
 method GimmieAChar(s: string) returns (ch: char)
@@ -60,6 +75,7 @@ method GimmieAChar(s: string) returns (ch: char)
 }
 
 method Escapes() returns (x: string, y: string, z: string, zz: string)
+  ensures |zz| > 2
 {
   x := "I say \"hello\" \\ you say \'good bye'";
   y := @"I say ""hello"" \ you say 'good bye'";
