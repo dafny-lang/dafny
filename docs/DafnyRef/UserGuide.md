@@ -123,13 +123,11 @@ written command-line will still be valid.
 The following commands are recognized. In each case all files listed are parsed and typechecked.
 - `dafny verify` -- verifies the listed files. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
-This is similar to using the option `/compile:0` in the old-style command-line. 
 - `dafny translate` -- verifies the program and translates it to a source artifact, perhaps with information for
-a target language build tool, for the target platform, similar to the previous `/compile:0 '/spillTargetCode:2`.
+a target language build tool, for the target platform.
 `--no-verify` suppresses verification checks.
 - `dafny build` -- verifies (except if `--no-verify` is used) and compiles the Dafny program, producing an executable artifact for the target system. The command has options that enable being specific about the build platform and architecture.
-- `dafny run` -- verifies, compiles and runs the Dafny program. The option `--no-verify` suppresses verification checks. The `-t` or `--target` option states the target platform to compile to (default is C#). 
-This is similar to the old-style options `/compile:3` or `/compile:4`.
+- `dafny run` -- verifies, compiles and runs the Dafny program. The option `--no-verify` suppresses verification checks. The `-t` or `--target` option states the target platform to compile to (default is `cs` (meaning C#)). 
 `dafny run` takes only one .dfy file. Any other .dfy file and any other
 command-line argument that is not an option or its value or is after a `--`
 argument is considered a command-line argument for the user program being 
@@ -142,7 +140,9 @@ then runs it with the four command-line arguments `1 2 3 B.dfy`
 then runs it with the three command-line arguments `1 2 3`
   - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
 If building a `.dfy` file containing the `Main` method requires additional
-`.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use `dafny build` to build the executable or use the `--input` option for each extra file.
+`.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use 
+the `--input` option for each extra file or use `dafny build` to build the executable and then run it in an 
+addiotional step.
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
