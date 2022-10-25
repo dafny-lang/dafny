@@ -1851,7 +1851,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType ? ".ToVerbatimString()" : "";
+      var suffix = arg.Type.IsStringType && UnicodeChars ? ".ToVerbatimString()" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
