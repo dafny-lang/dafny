@@ -1,13 +1,14 @@
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 
 namespace Microsoft.Dafny;
 
 public interface ICommandSpec {
-  string Name { get; }
-
-  string Description { get; }
 
   IEnumerable<IOptionSpec> Options { get; }
 
-  void PostProcess(DafnyOptions dafnyOptions, Options options);
+  Command Create();
+
+  void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context);
 }
