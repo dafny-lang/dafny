@@ -26,6 +26,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
+    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false); // TODO: is this isGhost false correct?
+    
     // TODO see if I can replace this replacement with some resolution logic that only triggers when IdPattern.Type is not InferredTypeProxy.
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (boundVars.Any()) {
@@ -34,8 +36,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
       Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
-
-    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false); // TODO: is this isGhost false correct?
+    
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
