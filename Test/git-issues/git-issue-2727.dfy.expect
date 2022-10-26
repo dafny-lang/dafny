@@ -10,4 +10,5 @@ git-issue-2727.dfy(139,4): Error: The constant b cannot be assigned twice.
 git-issue-2727.dfy(150,9): Error: Constant field 'a' cannot be accessed before 'new;', because 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
 git-issue-2727.dfy(162,9): Error: Constant field 'c' cannot be accessed before 'new;' because of the dependency c -> a, and 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
 git-issue-2727.dfy(178,9): Error: Constant field 'a' cannot be accessed before 'new;', because 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
-12 resolution/type errors detected in git-issue-2727.dfy
+git-issue-2727.dfy(189,41): Error: Constant field 't' cannot be accessed before 'new;', because 't' depends on the object 'this' itself, that can potentially read other uninitialized constants.
+13 resolution/type errors detected in git-issue-2727.dfy

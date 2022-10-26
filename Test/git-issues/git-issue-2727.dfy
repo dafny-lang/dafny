@@ -181,6 +181,18 @@ class C extends Tr {
   }
 }
 
+class DeepThisError {
+  const d: Dummy
+  const t: set<DeepThisError> := {this}
+
+  constructor() {
+    var x := set n: DeepThisError | n in t :: n.d.i;
+    // Error above: cannot use 't' because it depends on "this" which might have uninitialized constants
+    d := new Dummy(1);
+    new;
+  }
+}
+
 method Main() {
   var c := new SecondInitializationError(5);
   var d := new RecursiveError();
