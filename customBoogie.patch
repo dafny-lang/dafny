@@ -1,8 +1,8 @@
 diff --git a/Source/Dafny.sln b/Source/Dafny.sln
-index ddfd6d91f..06e9bb1a2 100644
+index 990dfb068..178deed9b 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -41,6 +41,33 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
+@@ -36,6 +36,31 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
  EndProject
  Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
  EndProject
@@ -26,7 +26,6 @@ index ddfd6d91f..06e9bb1a2 100644
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "..\boogie\Source\Model\Model.csproj", "{D97C23B6-FB4A-4450-930E-58EC83D308A0}"
 +EndProject
-+EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMTLib", "..\boogie\Source\Provers\SMTLib\SMTLib.csproj", "{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}"
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCExpr", "..\boogie\Source\VCExpr\VCExpr.csproj", "{E760E37E-0257-4C96-89C4-722F85BABDBB}"
@@ -35,7 +34,7 @@ index ddfd6d91f..06e9bb1a2 100644
  EndProject
  Global
  	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-@@ -116,6 +143,72 @@ Global
+@@ -111,6 +136,68 @@ Global
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
  		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
@@ -104,7 +103,7 @@ index ddfd6d91f..06e9bb1a2 100644
  	EndGlobalSection
  	GlobalSection(SolutionProperties) = preSolution
  		HideSolutionNode = FALSE
-@@ -124,5 +217,18 @@ Global
+@@ -119,5 +206,17 @@ Global
  		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
  	EndGlobalSection
  	GlobalSection(NestedProjects) = preSolution
@@ -123,16 +122,15 @@ index ddfd6d91f..06e9bb1a2 100644
  	EndGlobalSection
  EndGlobal
 diff --git a/Source/DafnyCore/DafnyCore.csproj b/Source/DafnyCore/DafnyCore.csproj
-index a9e188817..f4f593de9 100644
+index 0f17aa923..f3d568500 100644
 --- a/Source/DafnyCore/DafnyCore.csproj
 +++ b/Source/DafnyCore/DafnyCore.csproj
-@@ -27,7 +27,7 @@
-       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+@@ -30,7 +30,7 @@
        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
 -      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.9" />
-+      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
++      <PackageReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  
    <ItemGroup>
