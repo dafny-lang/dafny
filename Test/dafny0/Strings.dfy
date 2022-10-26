@@ -58,9 +58,13 @@ method Main()
   expect |z?| > 2;
   expect z?[0..2] == ['\ude0e', '\ud83d'];
   print "Weird string Z: ", z?, "\n";
-  
+
   var c?, d? := WeirdChars();
   print "These characters are quite confused: ", c?, ' ', d?, "\n";
+
+  // Ensuring we're precise enough about identifying \u escapes
+  print "I'm afraid you'll find escape quite impossible, \\u007", "\n";
+  print "Luckily I have this nifty gadget from my good friend, \\\u0051", "\n";
 }
 
 method GimmieAChar(s: string) returns (ch: char)

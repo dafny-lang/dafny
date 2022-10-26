@@ -5140,7 +5140,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
+    protected virtual void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);

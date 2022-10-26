@@ -15,6 +15,8 @@ Weird string X: What even is this character: �
 Weird string Y: What even is this character: �
 Weird string Z: �� is not using surrogates correctly
 These characters are quite confused: � �
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q
 
 Dafny program verifier did not attempt verification
 ch = D
@@ -30,6 +32,8 @@ Weird string X: What even is this character: �
 Weird string Y: What even is this character: �
 Weird string Z: �� is not using surrogates correctly
 These characters are quite confused: � �
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q
 
 Dafny program verifier did not attempt verification
 ch = D
@@ -45,6 +49,8 @@ Weird string X: What even is this character: �
 Weird string Y: What even is this character: �
 Weird string Z: �� is not using surrogates correctly
 These characters are quite confused: � �
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q
 
 Dafny program verifier did not attempt verification
 ch = D
@@ -60,6 +66,8 @@ Weird string X: What even is this character: ?
 Weird string Y: What even is this character: ?
 Weird string Z: ?? is not using surrogates correctly
 These characters are quite confused: ? ?
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q
 
 Dafny program verifier did not attempt verification
 ch = D
@@ -75,3 +83,5 @@ Weird string X: What even is this character: �
 Weird string Y: What even is this character: �
 Weird string Z: �� is not using surrogates correctly
 These characters are quite confused: � �
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q

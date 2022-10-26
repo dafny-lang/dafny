@@ -197,13 +197,50 @@ namespace Microsoft.Dafny {
       return sb.ToString();
     }
 
-    public static readonly Regex Utf16Escape = new Regex(@"(?<!\\)\\u([0-9a-fA-F]{4})");
-
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
     /// </summary>
     public static IEnumerable<char> UnescapedCharacters(string p, bool isVerbatimString) {
+      if (isVerbatimString) {
+        foreach (var s in Escapes(p, true)) {
+          if (s == "\"\"") {
+            yield return '"';
+          } else {
+            foreach (var c in s) {
+              yield return c;
+            }
+          }
+        }
+      } else {
+        foreach (var s in Escapes(p, false)) {
+          switch (s) {
+            case @"\'":   yield return '\''; break;
+            case @"\""":  yield return '"';  break;
+            case @"\\":   yield return '\\'; break;
+            case @"\0":   yield return '\0'; break;
+            case @"\n":   yield return '\n'; break;
+            case @"\r":   yield return '\r'; break;
+            case @"\t":   yield return '\t'; break;
+            case { } when s.StartsWith(@"\u"):
+              yield return (char)Convert.ToInt32(s[2..], 16);
+              break;
+            default:
+              foreach (var c in s) {
+                yield return c;
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Enumerates the sequence of regular characters and escape sequences in the given string.
+    /// For example, "ab\tuv\u12345" may be broken up as ["a", "b", "\t", "u", "v", "\u1234", "5"].
+    /// Consecutive non-escaped characters may or may not be enumerated as a single string.
+    /// </summary>
+    public static IEnumerable<string> Escapes(string p, bool isVerbatimString) {
       Contract.Requires(p != null);
       if (isVerbatimString) {
         var skipNext = false;
@@ -211,42 +248,30 @@ namespace Microsoft.Dafny {
           if (skipNext) {
             skipNext = false;
           } else {
-            yield return ch;
             if (ch == '"') {
               skipNext = true;
+              yield return "\"";
+            } else {
+              yield return ch.ToString();
             }
           }
         }
       } else {
         var i = 0;
         while (i < p.Length) {
-          char special = ' ';  // ' ' indicates not special
           if (p[i] == '\\') {
             switch (p[i + 1]) {
-              case '\'': special = '\''; break;
-              case '\"': special = '\"'; break;
-              case '\\': special = '\\'; break;
-              case '0': special = '\0'; break;
-              case 'n': special = '\n'; break;
-              case 'r': special = '\r'; break;
-              case 't': special = '\t'; break;
               case 'u':
-                int ch = HexValue(p[i + 2]);
-                ch = 16 * ch + HexValue(p[i + 3]);
-                ch = 16 * ch + HexValue(p[i + 4]);
-                ch = 16 * ch + HexValue(p[i + 5]);
-                yield return (char)ch;
+                yield return p[i..(i + 6)];
                 i += 6;
-                continue;
+                break;
               default:
+                yield return p[i..(i + 2)];
+                i += 2;
                 break;
             }
-          }
-          if (special != ' ') {
-            yield return special;
-            i += 2;
           } else {
-            yield return p[i];
+            yield return p[i].ToString();
             i++;
           }
         }
