@@ -130,7 +130,7 @@ index 0f17aa923..f3d568500 100644
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
 -      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.9" />
-+      <PackageReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  
    <ItemGroup>
