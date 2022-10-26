@@ -1367,6 +1367,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
+    private const string AnyType = "interface{}"; // In Go 1.18, this type can be written as "any"
+
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1374,7 +1376,7 @@ namespace Microsoft.Dafny.Compilers {
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "any";
+        return AnyType;
       }
 
       if (xType is SpecialNativeType snt) {
@@ -1399,7 +1401,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
       } else if (xType.IsObjectQ) {
-        return "any";
+        return AnyType;
       } else if (xType.IsArrayType) {
         return "_dafny.Array";
       } else if (xType is UserDefinedType udt) {
@@ -1413,7 +1415,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is TupleTypeDecl) {
           return "_dafny.Tuple";
         } else if (udt.IsTypeParameter) {
-          return "any";
+          return AnyType;
         }
         if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
           // To use an external interface, we need to have values of the
