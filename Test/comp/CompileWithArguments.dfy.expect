@@ -2,22 +2,43 @@
 Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-dotnet says Hello csharp
+Csharp says hello
 
 Dafny program verifier did not attempt verification
-Someone says Yipee cpp
+Cpp says Yipee
 
 Dafny program verifier did not attempt verification
-java says heya java
+Java says --heya
 
 Dafny program verifier did not attempt verification
-node says Howdy javascript
+Javascript says howdy
 
 Dafny program verifier did not attempt verification
-Someone says Hello python
+Python says hello
 
 Dafny program verifier did not attempt verification
-Someone says Hello go go
-dotnet says Howdy ellel
-dotnet says Hello on the go
-dotnet says Aloha from dll
+Go go says hello
+dotnet says howdy
+dotnet says hello
+dotnet says aloha
+javascript says howdy
+javascript says hello
+javascript says aloha
+cpp says howdy
+cpp says hello
+cpp says aloha
+
+Dafny program verifier did not attempt verification
+Java says howdy
+Java says hello
+Java says aloha
+
+Dafny program verifier did not attempt verification
+Python says howdy
+Python says hello
+Python says aloha
+
+Dafny program verifier did not attempt verification
+Go says howdy
+Go says hello
+Go says aloha

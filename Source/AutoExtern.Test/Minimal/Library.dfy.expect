@@ -1,4 +1,5 @@
-﻿  trait {:compile false} {:extern} Intf {
+﻿
+  trait {:compile false} {:extern} Intf {
     var {:extern "Prop"} Intf_Prop: System.String // interface property
   }
 
