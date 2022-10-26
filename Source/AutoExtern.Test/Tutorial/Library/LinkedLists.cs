@@ -1,4 +1,6 @@
-namespace Library;
+// This file is translated with AutoExtern
+
+namespace App.Library;
 
 public interface LinkedList<T> {
   public int Length { get; }

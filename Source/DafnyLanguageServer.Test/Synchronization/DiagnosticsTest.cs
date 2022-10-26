@@ -52,6 +52,27 @@ method Multiply(x: int, y: int) returns (product: int)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
+
+    [TestMethod]
+    public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
     [TestMethod]
     public async Task OpeningOpaqueFunctionWorks() {
       var source = @"
