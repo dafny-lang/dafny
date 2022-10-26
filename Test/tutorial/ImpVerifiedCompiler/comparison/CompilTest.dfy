@@ -1,85 +1,96 @@
 include "SequencesTest.dfy"
 include "IMPTest.dfy"
 
-module Y refines SEQUENCES {
+module V {
 
 	import opened Z
 	
-	type stack = seq<int>
-	
-	type T(!new) = (nat,stack,store)	
+	type offset = int
+		
+	datatype instruction =
+		| Iconst(int)
+		| Ivar(ident)
+		| Isetvar(string)
+		| Iadd
+		| Iopp
+		| Ibranch(offset)
+		| Ibeq(offset,offset)
+		| Ible(offset,offset)
+		| Ihalt
+
+	type code = seq<instruction>
 
 }
+
+module Y refines SEQUENCES {
+
+	import opened Z
+
+	import opened V
+	
+	type stack = seq<int>
+
+	type T(!new) = (code,nat,stack,store)
+		
+	predicate R(x: T, y: T) {
+		var (C1,pc1,stk1,st1) := x;
+		var (C2,pc2,stk2,st2) := y;
+		C1 == C2 && 
+		if ! (pc1 < |C1|) then false else
+			match C1[pc1]
+				case Iconst(n) =>
+					&& pc2 == pc1 + 1
+					&& stk2 == [n] + stk1
+					&& st1 == st2
+				case Ivar(id) =>
+					&& pc2 == pc1 + 1
+					&& (id in st1) && (stk2 == [st1[id]] + stk1)
+					&& st1 == st2
+				case Isetvar(id) =>
+					&& pc2 == pc1 + 1
+					&& |stk1| > 0 && stk2 == stk1[1..]
+					&& st2 == st1[id := stk1[0]]  
+				case Iadd => 
+					&& pc2 == pc1 + 1
+					&& |stk1| > 1 && stk2 == [stk1[0] + stk1[1]] + stk1[2..]
+					&& st1 == st2
+				case Iopp => 
+					&& pc2 == pc1 + 1
+					&& |stk1| > 0 && stk2 == [-stk1[0]] + stk1[1..]
+					&& st1 == st2
+				case Ibranch(ofs) =>
+					&& pc2 == pc1 + 1 + ofs
+					&& stk2 == stk1
+					&& st1 == st2
+				case Ibeq(ofs1,ofs2) =>
+					&& |stk1| > 1 && pc2 == pc1 + 1 + (if stk1[0] == stk1[1] then ofs1 else ofs2)
+					&& stk2 == stk1[2..]
+					&& st1 == st2
+				case Ible(ofs1,ofs2) =>
+					&& |stk1| > 1 && pc2 == pc1 + 1 + (if stk1[1] <= stk1[0] then ofs1 else ofs2)
+					&& stk2 == stk1[2..]
+					&& st1 == st2
+				case Ihalt => false	
+	}
+	
+}
+
+import opened V
 
 type stack = Y.stack
 	
 type configuration = Y.T
 
-type offset = int
-
-datatype instruction =
-	| Iconst(int)
-	| Ivar(ident)
-	| Isetvar(string)
-	| Iadd
-	| Iopp
-	| Ibranch(offset)
-	| Ibeq(offset,offset)
-	| Ible(offset,offset)
-	| Ihalt
-
-type code = seq<instruction>
-
-predicate transition(c: code, conf1: configuration, conf2: configuration) {
-	var (pc1,stk1,st1) := conf1;
-	var (pc2,stk2,st2) := conf2;
-	if ! (pc1 < |c|) then false else
-		match c[pc1]
-			case Iconst(n) =>
-				&& pc2 == pc1 + 1
-				&& stk2 == [n] + stk1
-				&& st1 == st2
-			case Ivar(id) =>
-				&& pc2 == pc1 + 1
-				&& (id in st1) && (stk2 == [st1[id]] + stk1)
-				&& st1 == st2
-			case Isetvar(id) =>
-				&& pc2 == pc1 + 1
-				&& |stk1| > 0 && stk2 == stk1[1..]
-				&& st2 == st1[id := stk1[0]]  
-			case Iadd => 
-				&& pc2 == pc1 + 1
-				&& |stk1| > 1 && stk2 == [stk1[0] + stk1[1]] + stk1[2..]
-				&& st1 == st2
-			case Iopp => 
-				&& pc2 == pc1 + 1
-				&& |stk1| > 0 && stk2 == [-stk1[0]] + stk1[1..]
-				&& st1 == st2
-			case Ibranch(ofs) =>
-				&& pc2 == pc1 + 1 + ofs
-				&& stk2 == stk1
-				&& st1 == st2
-			case Ibeq(ofs1,ofs2) =>
-				&& |stk1| > 1 && pc2 == pc1 + 1 + (if stk1[0] == stk1[1] then ofs1 else ofs2)
-				&& stk2 == stk1[2..]
-				&& st1 == st2
-			case Ible(ofs1,ofs2) =>
-				&& |stk1| > 1 && pc2 == pc1 + 1 + (if stk1[1] <= stk1[0] then ofs1 else ofs2)
-				&& stk2 == stk1[2..]
-				&& st1 == st2
-			case Ihalt => false	
-}
-
-predicate transitions(C: code, conf1: configuration, conf2: configuration) {
-	Y.star((c1,c2) => transition(C,c1,c2),conf1,conf2)
+predicate transitions(conf1: configuration, conf2: configuration) {
+	Y.star(conf1,conf2)
 }
 
 predicate machine_terminates(C: code, s_init: store, s_final: store) {
-	exists pc: nat :: transitions(C,(0,[],s_init),(pc,[],s_final)) && pc < |C| && C[pc] == Ihalt
+	exists pc: nat :: transitions((C,0,[],s_init),(C,pc,[],s_final)) && pc < |C| && C[pc] == Ihalt
 }
 
 predicate machine_diverges(C: code, s_init: store) {
-	Y.inf((c1,c2) => transition(C,c1,c2),(0,[],s_init))
+	Y.inf((C,0,[],s_init))
 }
 
 function method compile_aexp(a: aexp): code {
@@ -169,66 +180,65 @@ lemma resolve_code_at()
 }
 
 lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
-	requires forall id: ident :: id_in_aexp(id,a) ==> id in s
+	requires forall id: ident :: X.id_in_aexp(id,a) ==> id in s
 	requires code_at(C,pc,compile_aexp(a))
-	ensures transitions(C,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk, s))
+	ensures transitions((C,pc,stk,s),(C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk, s))
 {
-	var conf1 := (pc,stk,s);
-	var conf2 := (pc + |compile_aexp(a)|, [aeval(s,a)] + stk, s);
-	var tr := (c1,c2) => transition(C,c1,c2);
+	var conf1 := (C,pc,stk,s);
+	var conf2 := (C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk, s);
 	match a {
 
 		case AConst(n) => { 
 
-			assert aeval(s,a) == n;
+			assert X.aeval(s,a) == n;
 			assert compile_aexp(a) == [Iconst(n)];
 			assert |compile_aexp(a)| == 1;
 			assert C[pc] == Iconst(n);
-			assert transition(C,(pc,stk,s),(pc + 1, [n] + stk,s));
-			assert transition(C,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk,s));
-			Y.star_one_sequent(tr,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk,s));
+			assert Y.R((C,pc,stk,s),(C,pc + 1, [n] + stk,s));
+			assert Y.R((C,pc,stk,s),(C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk,s));
+			Y.star_one_sequent((C,pc,stk,s),(C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk,s));
 			
 		}
 		
-		case AId(id) => Y.star_one_sequent(tr,conf1,conf2);
+		case AId(id) => Y.star_one_sequent(conf1,conf2);
 
 		case APlus(a1, a2) => {
 			assert code_at(C,pc,compile_aexp(a1)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a1,pc,stk);
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
-			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk);
-			var confi1 := (pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk,s);
-			assert Y.star(tr,conf1,confi1);  
-			var confi2 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[aeval(s,a2)] + ([aeval(s,a1)] + stk),s);
-			assert Y.star(tr,confi1,confi2);
-			Y.star_trans_sequent(tr,conf1,confi1,confi2);
-			Y.star_one_sequent(tr,confi2,conf2);
-			Y.star_trans_sequent(tr,conf1,confi2,conf2);
+			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[X.aeval(s,a1)] + stk);
+			var confi1 := (C,pc + |compile_aexp(a1)|,[X.aeval(s,a1)] + stk,s);
+			assert Y.star(conf1,confi1);  
+			var confi2 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk),s);
+			assert Y.star(confi1,confi2);
+			Y.star_trans_sequent(conf1,confi1,confi2);
+			Y.star_one_sequent(confi2,conf2);
+			Y.star_trans_sequent(conf1,confi2,conf2);
 		}
 
 		case AMinus(a1, a2) => {
 			assert code_at(C,pc,compile_aexp(a1)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a1,pc,stk);
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
-			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk);
-			var confi1 := (pc + |compile_aexp(a1)|,[aeval(s,a1)] + stk,s);
-			assert Y.star(tr,conf1,confi1);  
-			var confi2 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[aeval(s,a2)] + ([aeval(s,a1)] + stk),s);
-			assert Y.star(tr,confi1,confi2);
-			Y.star_trans_sequent(tr,conf1,confi1,confi2);
-			var confi3 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)| + 1,[-aeval(s,a2)] + ([aeval(s,a1)] + stk),s);
-			Y.star_one_sequent(tr,confi2,confi3);
-			Y.star_one_sequent(tr,confi3,conf2);
-			Y.star_trans_sequent(tr,conf1,confi2,conf2);
+			compile_aexp_correct(C,s,a2,pc + |compile_aexp(a1)|,[X.aeval(s,a1)] + stk);
+			var confi1 := (C,pc + |compile_aexp(a1)|,[X.aeval(s,a1)] + stk,s);
+			assert Y.star(conf1,confi1);  
+			var confi2 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|,[X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk),s);
+			assert Y.star(confi1,confi2);
+			Y.star_trans_sequent(conf1,confi1,confi2);
+			var confi3 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)| + 1,[-X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk),s);
+			Y.star_one_sequent(confi2,confi3);
+			Y.star_one_sequent(confi3,conf2);
+			Y.star_trans_sequent(conf1,confi2,conf2);
 			
 		}
 	}
 }
 
 lemma compile_aexp_correct_gen()
-	ensures forall C: code :: forall s: store :: forall a: aexp :: forall pc: nat :: forall stk: stack :: (forall id: ident :: id_in_aexp(id,a) ==> id in s) ==> code_at(C,pc,compile_aexp(a)) ==> transitions(C,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk, s)) {
-		forall C, s, a, pc: nat, stk ensures (forall id: ident :: id_in_aexp(id,a) ==> id in s) ==> code_at(C,pc,compile_aexp(a)) ==> transitions(C,(pc,stk,s),(pc + |compile_aexp(a)|, [aeval(s,a)] + stk, s)) {
-			if (forall id: ident :: id_in_aexp(id,a) ==> id in s) {
+	ensures forall C: code :: forall s: store :: forall a: aexp :: forall pc: nat :: forall stk: stack :: (forall id: ident :: X.id_in_aexp(id,a) ==> id in s) ==> code_at(C,pc,compile_aexp(a)) ==> transitions((C,pc,stk,s),(C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk, s)) {
+		forall C, s, a, pc: nat, stk ensures (forall id: ident :: X.id_in_aexp(id,a) ==> id in s) ==> code_at(C,pc,compile_aexp(a)) ==> transitions((C,pc,stk,s),(C,pc + |compile_aexp(a)|, [X.aeval(s,a)] + stk, s)) {
+			if (forall id: ident :: X.id_in_aexp(id,a) ==> id in s) {
 				if code_at(C,pc,compile_aexp(a)) {
 					compile_aexp_correct(C, s, a, pc, stk);
 				}
@@ -237,12 +247,11 @@ lemma compile_aexp_correct_gen()
 }
 
 lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0: nat, stk: stack)
-	requires forall id: ident :: id_in_bexp(id,b) ==> id in s
+	requires forall id: ident :: X.id_in_bexp(id,b) ==> id in s
 	requires code_at(C,pc,compile_bexp(b,d1,d0))
-	requires beval(s,b)
-	ensures transitions(C,(pc,stk,s),(pc + |compile_bexp(b,d1,d0)| + d1, stk, s))
+	requires X.beval(s,b)
+	ensures transitions((C,pc,stk,s),(C,pc + |compile_bexp(b,d1,d0)| + d1, stk, s))
 {
-	var tr := (c1,c2) => transition(C,c1,c2);
 	
 	match b {
 
@@ -250,92 +259,92 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 			assert {:split_here} true;
 			if d1 == 0 {
 			} else {
-				var conf1 := (pc,stk,s);
-				var conf2 := (pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
-				assert beval(s,b); 
+				var conf1 := (C,pc,stk,s);
+				var conf2 := (C,pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
+				assert X.beval(s,b); 
 				assert C[pc] == Ibranch(d1);
-				assert transition(C,conf1,conf2);
-				Y.star_one_sequent(tr,conf1,conf2);
+				assert Y.R(conf1,conf2);
+				Y.star_one_sequent(conf1,conf2);
 			}
 		}
 		
-		case BFalse => assert !beval(s,b);
+ 		case BFalse => assert !X.beval(s,b);
 			
 		case BEq(a1, a2) => {
 			assert {:split_here} true;			
 
-			var conf1 := (pc,stk,s);
-			var conf2 := (pc + |compile_aexp(a1)|, [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
-			assert Y.star(tr,conf1,conf2);
+			var conf1 := (C,pc,stk,s);
+			var conf2 := (C,pc + |compile_aexp(a1)|, [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			assert Y.star(conf1,conf2);
 			
-			var conf3i := ((pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [aeval(s,a2)] + ([aeval(s,a1)] + stk), s);
-			assert transitions(C,conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			var conf3i := (C,(pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk), s);
+			assert transitions(conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
 
-			var conf3 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [aeval(s,a2)] + [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf2,conf3) by {
+			var conf3 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf2,conf3) by {
 				assert (pc + |compile_aexp(a1)|) + |compile_aexp(a2)| == pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
-				assert [aeval(s,a2)] + ([aeval(s,a1)] + stk) == [aeval(s,a2)] + [aeval(s,a1)] + stk;
+				assert [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk) == [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			}
-			assert Y.star(tr,conf2,conf3);
+			assert Y.star(conf2,conf3);
 			
-			var stk' := [aeval(s,a2)] + [aeval(s,a1)] + stk;
+			var stk' := [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			assert C[pc + |compile_aexp(a1)| + |compile_aexp(a2)|] == Ibeq(d1,d0);
 			assert stk == stk'[2..];
 			assert |stk'| > 1;
 			var pcs := pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
 			assert pc + |compile_bexp(b,d1,d0)| + d1 == pcs + 1 + (if stk'[0] == stk'[1] then d1 else d0);
 
-			var conf4 := (pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
-			assert transition(C,conf3,conf4);
+			var conf4 := (C,pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
+			assert Y.R(conf3,conf4);
 			
-			Y.star_one_sequent(tr,conf3,conf4);
+			Y.star_one_sequent(conf3,conf4);
 
-			Y.star_trans_sequent(tr,conf1,conf2,conf3);
-			Y.star_trans_sequent(tr,conf1,conf3,conf4);
+			Y.star_trans_sequent(conf1,conf2,conf3);
+			Y.star_trans_sequent(conf1,conf3,conf4);
 			
 			}
 
 		case BLe(a1, a2) => {
 			assert {:split_here} true;
 
-			var conf1 := (pc,stk,s);
-			var conf2 := (pc + |compile_aexp(a1)|, [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
-			assert Y.star(tr,conf1,conf2);
+			var conf1 := (C,pc,stk,s);
+			var conf2 := (C,pc + |compile_aexp(a1)|, [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			assert Y.star(conf1,conf2);
 			
-			var conf3i := ((pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [aeval(s,a2)] + ([aeval(s,a1)] + stk), s);
-			assert transitions(C,conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			var conf3i := (C,(pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk), s);
+			assert transitions(conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
 
-			var conf3 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [aeval(s,a2)] + [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf2,conf3) by {
+			var conf3 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf2,conf3) by {
 				assert (pc + |compile_aexp(a1)|) + |compile_aexp(a2)| == pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
-				assert [aeval(s,a2)] + ([aeval(s,a1)] + stk) == [aeval(s,a2)] + [aeval(s,a1)] + stk;
+				assert [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk) == [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			}
-			assert Y.star(tr,conf2,conf3);
+			assert Y.star(conf2,conf3);
 			
-			var stk' := [aeval(s,a2)] + [aeval(s,a1)] + stk;
+			var stk' := [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			assert C[pc + |compile_aexp(a1)| + |compile_aexp(a2)|] == Ible(d1,d0);
 			assert stk == stk'[2..];
 			assert |stk'| > 1;
 			var pcs := pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
 			assert pc + |compile_bexp(b,d1,d0)| + d1 == pcs + 1 + (if stk'[1] <= stk'[0] then d1 else d0);
 
-			var conf4 := (pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
-			assert transition(C,conf3,conf4);
+			var conf4 := (C,pc + |compile_bexp(b,d1,d0)| + d1, stk, s);
+			assert Y.R(conf3,conf4);
 			
-			Y.star_one_sequent(tr,conf3,conf4);
+			Y.star_one_sequent(conf3,conf4);
 
-			Y.star_trans_sequent(tr,conf1,conf2,conf3);
-			Y.star_trans_sequent(tr,conf1,conf3,conf4);			
+			Y.star_trans_sequent(conf1,conf2,conf3);
+			Y.star_trans_sequent(conf1,conf3,conf4);			
 			
 			}
 			
 		case BNot(b1) => {
 			assert {:split_here} true;
 			
-			var conf1 := (pc,stk,s);
-			assert !beval(s,b1);
+			var conf1 := (C,pc,stk,s);
+			assert !X.beval(s,b1);
 
 			compile_bexp_correct_false(C, s, b1, pc, d0, d1, stk);
 			
@@ -344,128 +353,127 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 		case BAnd(b1, b2) => {
 			assert {:split_here} true;
 
-			var conf1 := (pc,stk,s);
+			var conf1 := (C,pc,stk,s);
 			assert code_at(C,pc,compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)) by { resolve_code_at(); }
-			var conf2 := (pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,stk,s);
-			assert transitions(C,conf1,conf2) by {
+			var conf2 := (C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,stk,s);
+			assert transitions(conf1,conf2) by {
 				compile_bexp_correct_true(C, s, b1, pc, 0, |compile_bexp(b2, d1, d0)| + d0, stk);
 			}
-			assert Y.star(tr,conf1,conf2);
+			assert Y.star(conf1,conf2);
 
 			assert code_at(C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,compile_bexp(b2, d1, d0)) by { resolve_code_at(); }
-			var conf3 := (pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d1,stk,s);
-			assert transitions(C,conf2,conf3) by {
+			var conf3 := (C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d1,stk,s);
+			assert transitions(conf2,conf3) by {
 			 	compile_bexp_correct_true(C, s, b2, pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|, d1, d0, stk);
 			}
-			assert Y.star(tr,conf2,conf3);
-			Y.star_trans_sequent(tr,conf1,conf2,conf3);
+			assert Y.star(conf2,conf3);
+			Y.star_trans_sequent(conf1,conf2,conf3);
 			
 			}
-		
-	}
+
+ 	}
 	
 }
 
 lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d0: nat, stk: stack)
-	requires forall id: ident :: id_in_bexp(id,b) ==> id in s
+	requires forall id: ident :: X.id_in_bexp(id,b) ==> id in s
 	requires code_at(C,pc,compile_bexp(b,d1,d0))
-	requires !beval(s,b)
-	ensures transitions(C,(pc,stk,s),(pc + (|compile_bexp(b,d1,d0)| + d0), stk, s))
-{
-	var tr := (c1,c2) => transition(C,c1,c2);
+	requires !X.beval(s,b)
+	ensures transitions((C,pc,stk,s),(C,pc + (|compile_bexp(b,d1,d0)| + d0), stk, s))
+ {
 	
-	match b {
+ 	match b {
 
-		case BTrue => assert beval(s,b);
+ 		case BTrue => assert X.beval(s,b);
 		
 		case BFalse => {
 			assert {:split_here} true;
 			if d0 == 0 {
 			} else {
-				var conf1 := (pc,stk,s);
-				var conf2 := (pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
-				assert !beval(s,b); 
+				var conf1 := (C,pc,stk,s);
+				var conf2 := (C,pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
+				assert !X.beval(s,b); 
 				assert C[pc] == Ibranch(d0);
-				assert transition(C,conf1,conf2);
-				Y.star_one_sequent(tr,conf1,conf2);
+				assert Y.R(conf1,conf2);
+				Y.star_one_sequent(conf1,conf2);
 			}
 		}
 			
 		case BEq(a1, a2) => {
-			assert {:split_here} true;			
+		 	assert {:split_here} true;			
 
-			var conf1 := (pc,stk,s);
-			var conf2 := (pc + |compile_aexp(a1)|, [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
-			assert Y.star(tr,conf1,conf2);
+		 	var conf1 := (C,pc,stk,s);
+		 	var conf2 := (C,pc + |compile_aexp(a1)|, [X.aeval(s,a1)] + stk, s);
+		 	assert transitions(conf1,conf2) by { resolve_code_at(); compile_aexp_correct(C,s,a1,pc,stk); }
+		 	assert Y.star(conf1,conf2);
 			
-			var conf3i := ((pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [aeval(s,a2)] + ([aeval(s,a1)] + stk), s);
-			assert transitions(C,conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			var conf3i := (C,(pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk), s);
+			assert transitions(conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
 
-			var conf3 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [aeval(s,a2)] + [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf2,conf3) by {
+			var conf3 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf2,conf3) by {
 				assert (pc + |compile_aexp(a1)|) + |compile_aexp(a2)| == pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
-				assert [aeval(s,a2)] + ([aeval(s,a1)] + stk) == [aeval(s,a2)] + [aeval(s,a1)] + stk;
+				assert [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk) == [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			}
-			assert Y.star(tr,conf2,conf3);
+			assert Y.star(conf2,conf3);
 			
-			var stk' := [aeval(s,a2)] + [aeval(s,a1)] + stk;
+			var stk' := [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			assert C[pc + |compile_aexp(a1)| + |compile_aexp(a2)|] == Ibeq(d1,d0);
 			assert stk == stk'[2..];
 			assert |stk'| > 1;
 			var pcs := pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
 			assert pc + |compile_bexp(b,d1,d0)| + d0 == pcs + 1 + (if stk'[0] == stk'[1] then d1 else d0);
 
-			var conf4 := (pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
-			assert transition(C,conf3,conf4);
+			var conf4 := (C,pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
+			assert Y.R(conf3,conf4);
 			
-			Y.star_one_sequent(tr,conf3,conf4);
+			Y.star_one_sequent(conf3,conf4);
 
-			Y.star_trans_sequent(tr,conf1,conf2,conf3);
-			Y.star_trans_sequent(tr,conf1,conf3,conf4);
-			
-			}
+			Y.star_trans_sequent(conf1,conf2,conf3);
+			Y.star_trans_sequent(conf1,conf3,conf4);
+		//assume false;	
+		}
 
 		case BLe(a1, a2) => {
 			assert {:split_here} true;
 
-			var conf1 := (pc,stk,s);
-			var conf2 := (pc + |compile_aexp(a1)|, [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
-			assert Y.star(tr,conf1,conf2);
+			var conf1 := (C,pc,stk,s);
+			var conf2 := (C,pc + |compile_aexp(a1)|, [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf1,conf2) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			assert Y.star(conf1,conf2);
 			
-			var conf3i := ((pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [aeval(s,a2)] + ([aeval(s,a1)] + stk), s);
-			assert transitions(C,conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
+			var conf3i := (C,(pc + |compile_aexp(a1)|) + |compile_aexp(a2)|, [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk), s);
+			assert transitions(conf2,conf3i) by { resolve_code_at(); compile_aexp_correct_gen(); }
 
-			var conf3 := (pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [aeval(s,a2)] + [aeval(s,a1)] + stk, s);
-			assert transitions(C,conf2,conf3) by {
+			var conf3 := (C,pc + |compile_aexp(a1)| + |compile_aexp(a2)|, [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk, s);
+			assert transitions(conf2,conf3) by {
 				assert (pc + |compile_aexp(a1)|) + |compile_aexp(a2)| == pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
-				assert [aeval(s,a2)] + ([aeval(s,a1)] + stk) == [aeval(s,a2)] + [aeval(s,a1)] + stk;
+				assert [X.aeval(s,a2)] + ([X.aeval(s,a1)] + stk) == [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			}
-			assert Y.star(tr,conf2,conf3);
+			assert Y.star(conf2,conf3);
 			
-			var stk' := [aeval(s,a2)] + [aeval(s,a1)] + stk;
+			var stk' := [X.aeval(s,a2)] + [X.aeval(s,a1)] + stk;
 			assert C[pc + |compile_aexp(a1)| + |compile_aexp(a2)|] == Ible(d1,d0);
 			assert stk == stk'[2..];
 			assert |stk'| > 1;
 			var pcs := pc + |compile_aexp(a1)| + |compile_aexp(a2)|;
 			assert pc + |compile_bexp(b,d1,d0)| + d0 == pcs + 1 + (if stk'[1] <= stk'[0] then d1 else d0);
 
-			var conf4 := (pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
-			assert transition(C,conf3,conf4);
+			var conf4 := (C,pc + |compile_bexp(b,d1,d0)| + d0, stk, s);
+			assert Y.R(conf3,conf4);
 			
-			Y.star_one_sequent(tr,conf3,conf4);
+			Y.star_one_sequent(conf3,conf4);
 
-			Y.star_trans_sequent(tr,conf1,conf2,conf3);
-			Y.star_trans_sequent(tr,conf1,conf3,conf4);			
+			Y.star_trans_sequent(conf1,conf2,conf3);
+			Y.star_trans_sequent(conf1,conf3,conf4);			
 			
 			}
 			
 		case BNot(b1) => {
 			assert {:split_here} true;
 			
-			var conf1 := (pc,stk,s);
-			assert beval(s,b1);
+			var conf1 := (C,pc,stk,s);
+			assert X.beval(s,b1);
 
 			compile_bexp_correct_true(C, s, b1, pc, d0, d1, stk);
 			
@@ -479,43 +487,43 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 			// If eval(s,b1) was false, we branched directly without executing b2
 			// Otherwise, eval(s,b2) was false
 
-			if beval(s,b1) {
+			if X.beval(s,b1) {
 
-				assert !beval(s,b2);
+				assert !X.beval(s,b2);
 
-				var conf1 := (pc,stk,s);
+				var conf1 := (C,pc,stk,s);
 
 				assert code_at(C,pc,compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)) by { resolve_code_at(); }
-				var conf2 := (pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,stk,s);
-				assert transitions(C,conf1,conf2) by {
+				var conf2 := (C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,stk,s);
+				assert transitions(conf1,conf2) by {
 					compile_bexp_correct_true(C, s, b1, pc, 0, |compile_bexp(b2, d1, d0)| + d0, stk);
 				}
-				assert Y.star(tr,conf1,conf2);
+				assert Y.star(conf1,conf2);
 
 				assert code_at(C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|,compile_bexp(b2, d1, d0)) by { resolve_code_at(); }
-				var conf3 := (pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d0,stk,s);
-				assert transitions(C,conf2,conf3) by {
+				var conf3 := (C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d0,stk,s);
+				assert transitions(conf2,conf3) by {
 			 		compile_bexp_correct_false(C, s, b2, pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)|, d1, d0, stk);
 				}
-				assert Y.star(tr,conf2,conf3);
-				Y.star_trans_sequent(tr,conf1,conf2,conf3);
+				assert Y.star(conf2,conf3);
+				Y.star_trans_sequent(conf1,conf2,conf3);
 
 			} else {
 
-				var conf1 := (pc,stk,s);
+				var conf1 := (C,pc,stk,s);
 
 				assert code_at(C,pc,compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)) by { resolve_code_at(); }	
-				var conf2 := (pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d0,stk,s);
-				assert transitions(C,conf1,conf2) by {
+				var conf2 := (C,pc + |compile_bexp(b1, 0, |compile_bexp(b2, d1, d0)| + d0)| + |compile_bexp(b2, d1, d0)| + d0,stk,s);
+				assert transitions(conf1,conf2) by {
 					compile_bexp_correct_false(C, s, b1, pc, 0, |compile_bexp(b2, d1, d0)| + d0, stk);
 				}
-				assert Y.star(tr,conf1,conf2);
+				assert Y.star(conf1,conf2);
 				
 			}
 			
 		}
-			
-	}
+
+ 	}
 	
 }
 
@@ -554,9 +562,9 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 				})))
 }
 
-predicate match_config(C: code, hl: conf, ll:configuration) {
+predicate match_config(hl: conf, ll:configuration) {
 	var (c,k,s) := hl;
-	var (pc,stk,str) := ll;
+	var (C,pc,stk,str) := ll;
 	&& code_at(C, pc, compile_com(c))
 	&& compile_cont(C, k, pc + |compile_com(c)|)
 	&& stk == []
@@ -565,7 +573,7 @@ predicate match_config(C: code, hl: conf, ll:configuration) {
 
 lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
 	requires compile_cont(C, k, pc)
-	ensures match_config(C, (CSkip, k, s), (pc, [], s))
+	ensures match_config((CSkip, k, s), (C,pc, [], s))
 {
 
 	assert pc < |C|;
@@ -580,7 +588,7 @@ lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
 
 least lemma compile_cont_Kstop_inv(C: code, pc: nat, s: store)
 	requires compile_cont(C,Kstop,pc)
-	ensures exists pc': nat :: Y.star((c1,c2) => transition(C,c1,c2), (pc, [], s), (pc', [], s)) && pc' < |C| && C[pc'] == Ihalt
+	ensures exists pc': nat :: Y.star((C,pc, [], s), (C,pc', [], s)) && pc' < |C| && C[pc'] == Ihalt
 {
 
 	match C[pc] {
@@ -598,7 +606,7 @@ least lemma compile_cont_Kstop_inv(C: code, pc: nat, s: store)
 
 least lemma compile_cont_Kseq_inv(C: code, c: com, k: cont, pc: nat, s: store)
 	requires compile_cont(C,Kseq(c,k),pc)
-	ensures exists pc': nat :: Y.star((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(c)|)
+	ensures exists pc': nat :: Y.star((C,pc, [], s),(C,pc', [], s)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(c)|)
 {
 }
 
@@ -617,7 +625,7 @@ lemma compile_cont_Kwhile_simp(C: code, b: bexp, c: com, k: cont, pc: nat, s: st
 
 least lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, s: store)
 	requires compile_cont(C,Kwhile(b,c,k),pc)
-	ensures exists pc': nat :: Y.plus((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|)
+	ensures exists pc': nat :: Y.plus((C,pc, [], s),(C,pc', [], s)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|)
 {
 
 	match C[pc] {
@@ -630,15 +638,15 @@ least lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, 
 
  				var pc': nat := pc + 1 + ofs;
 
-				assert transition(C,(pc, [], s),(pc', [], s));
- 				Y.plus_one((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s));
+				assert Y.R((C,pc, [], s),(C,pc', [], s));
+ 				Y.plus_one((C,pc, [], s),(C,pc', [], s));
 				
 				compile_cont_Kwhile_inv(C,b,c,k,pc',s);
 				
  			} else {
 
-				assert transition(C,(pc, [], s),(pc + 1 + ofs, [], s));
- 				Y.plus_one((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc + 1 + ofs, [], s));
+				assert Y.R((C,pc, [], s),(C,pc + 1 + ofs, [], s));
+ 				Y.plus_one((C,pc, [], s),(C,pc + 1 + ofs, [], s));
 				
 			}
 			
@@ -681,51 +689,50 @@ lemma nat_is_pos(n: nat)
 {
 }
 
-lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
-	requires step(impconf1,impconf2)
-	requires match_config(C, impconf1, machconf1)
+lemma simulation_step(impconf1: conf, impconf2: conf, machconf1: configuration)
+	requires X.R(impconf1,impconf2)
+	requires match_config(impconf1, machconf1)
 	ensures exists machconf2: configuration ::
 	&& (
-	|| (Y.plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2))
-	|| (Y.star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && measure(impconf2) < measure(impconf1))
+	|| (Y.plus(machconf1,machconf2))
+	|| (Y.star(machconf1,machconf2) && measure(impconf2) < measure(impconf1))
 	)
-	&& match_config(C, impconf2, machconf2)
+	&& match_config(impconf2, machconf2)
 {
 	match (impconf1.0,impconf1.1) {
 		
 		case (CAsgn(i, a), _) => {
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (C,pc1,stk1,str1) := machconf1;
 
-			assert (c2,k2,s2) == (CSkip,k1,s1[i := aeval(s1,a)]);
+			assert (c2,k2,s2) == (CSkip,k1,s1[i := X.aeval(s1,a)]);
 
 			var chunk := compile_aexp(a) + [Isetvar(i)];
 			assert code_at(C, pc1, chunk);
 			assert compile_cont(C, k1, pc1 + |chunk|);
 			assert (pc1,stk1,str1) == (pc1,[],s1);
 
-			var machconf2: configuration := (pc1 + |chunk|,[],s2);
-			var (pc2,stk2,str2) := machconf2;
+			var machconf2: configuration := (C,pc1 + |chunk|,[],s2);
+			var (C2,pc2,stk2,str2) := machconf2;
 
-			assert Y.star(tr,machconf1,machconf2) by {
+			assert Y.star(machconf1,machconf2) by {
 				
-				var machconf1': configuration := (pc1 + |compile_aexp(a)|, [aeval(s1,a)] + stk1, str1);
+				var machconf1': configuration := (C,pc1 + |compile_aexp(a)|, [X.aeval(s1,a)] + stk1, str1);
 				assert code_at(C, pc1, compile_aexp(a)) by { resolve_code_at(); }
-				assert transitions(C,machconf1,machconf1') by { compile_aexp_correct_gen(); }
-				assert Y.star(tr,machconf1,machconf1');
+				assert transitions(machconf1,machconf1') by { compile_aexp_correct_gen(); }
+				assert Y.star(machconf1,machconf1');
 
-				assert transition(C,machconf1',machconf2);
-				Y.star_one_sequent(tr,machconf1',machconf2);
+				assert Y.R(machconf1',machconf2);
+				Y.star_one_sequent(machconf1',machconf2);
 				
-				Y.star_trans_sequent(tr,machconf1,machconf1',machconf2);
+				Y.star_trans_sequent(machconf1,machconf1',machconf2);
 
 			}
 
-			assert match_config(C, impconf2, machconf2) by {
+			assert match_config(impconf2, machconf2) by {
 				
 				match_config_skip(C,k2,s2,pc2);
 
@@ -735,24 +742,23 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 		
 		case (CSeq(c1', c1''), k) => {
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (C,pc1,stk1,str1) := machconf1;
 
 			assert (c2,k2,s2) == (c1',Kseq(c1'',k),s2);
 			
-			assert (pc1,stk1,str1) == (pc1,[],s1);
+			assert (C,pc1,stk1,str1) == (C,pc1,[],s1);
 
 			var machconf2: configuration := machconf1; 
-			var (pc2,stk2,str2) := machconf2;
+			var (C2,pc2,stk2,str2) := machconf2;
 
 			assert measure(impconf2) < measure(impconf1);
 			
-			assert Y.star(tr,machconf1,machconf2);
+			assert Y.star(machconf1,machconf2);
 
-			assert match_config(C, impconf2, machconf2) by {
+			assert match_config(impconf2, machconf2) by {
 
 				assert s2 == str2;
 				assert stk2 == [];
@@ -774,11 +780,10 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 		
 		case (CIf(b, cifso, cifnotso), _) => {
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (C,pc1,stk1,str1) := machconf1;
 
 			var d1 := 0;
 			var code_ifso := compile_com(cifso);
@@ -786,26 +791,26 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var code_ifnot := compile_com(cifnotso);
 			var code_prologue := compile_bexp(b,d1,d0);
 			
-			if beval(s1,b) {
+			if X.beval(s1,b) {
 
 				assert (c2,k2,s2) == (cifso,k1,s1);
 
 				assert code_at(C,pc1,compile_bexp(b,0,|code_ifso| + 1)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
-				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_true(C,str1,b,pc1,d1,d0,stk1); }
-				assert Y.star(tr,machconf1,machconf2);
+				var machconf2: configuration := (C,pc1 + |compile_bexp(b,d1,d0)| + d1, stk1, s1);
+				assert transitions(machconf1,machconf2) by { compile_bexp_correct_true(C,str1,b,pc1,d1,d0,stk1); }
+				assert Y.star(machconf1,machconf2);
 
 				// Interesting example: if you hoist these two asserts, then the match_config cannot be concluded
-				assert match_config(C, impconf2, machconf2) by {
+				assert match_config(impconf2, machconf2) by {
 
-					assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); }
-					assert compile_cont(C, impconf2.1, (machconf2.0 + |compile_com(impconf2.0)|) + 1 + |compile_com(cifnotso)|);
-					assert C[machconf2.0 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|) by
+					assert code_at(C, machconf2.1, compile_com(impconf2.0)) by { resolve_code_at(); }
+					assert compile_cont(C, impconf2.1, (machconf2.1 + |compile_com(impconf2.0)|) + 1 + |compile_com(cifnotso)|);
+					assert C[machconf2.1 + |compile_com(impconf2.0)|] == Ibranch(|compile_com(cifnotso)|) by
 						{
 							assert code_at(C,pc1 + |compile_bexp(b,d1,d0)| + d1,compile_com(cifso)) by { resolve_code_at(); }
 						}
 				
-					assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
+					assert compile_cont(C, impconf2.1, machconf2.1 + |compile_com(impconf2.0)|);
 					
 				}
 				
@@ -814,20 +819,20 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 				assert (c2,k2,s2) == (cifnotso,k1,s1);
 
 				assert code_at(C,pc1,compile_bexp(b,0,|code_ifso| + 1)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, stk1, s1);
-				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,str1,b,pc1,d1,d0,stk1); }
-				assert Y.star(tr,machconf1,machconf2);
+				var machconf2 := (C,pc1 + |compile_bexp(b,d1,d0)| + d0, stk1, s1);
+				assert transitions(machconf1,machconf2) by { compile_bexp_correct_false(C,str1,b,pc1,d1,d0,stk1); }
+				assert Y.star(machconf1,machconf2);
 
-				assert code_at(C, machconf2.0, compile_com(impconf2.0)) by { resolve_code_at(); } 
+				assert code_at(C, machconf2.1, compile_com(impconf2.0)) by { resolve_code_at(); } 
 
 				assert compile_cont(C,k1,pc1 + |compile_com(c1)|);
 				assert k1 == k2;
 
-				assert impconf2.2 == machconf2.2;
-				assert machconf2.1 == [];
+				assert impconf2.2 == machconf2.3;
+				assert machconf2.2 == [];
 				
-				assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|);
-				assert match_config(C, impconf2, machconf2);
+				assert compile_cont(C, impconf2.1, machconf2.1 + |compile_com(impconf2.0)|);
+				assert match_config(impconf2, machconf2);
 				
 			}
 			
@@ -835,28 +840,27 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 		
 		case (CWhile(b, body), k) => {
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1: nat,stk1,str1) := machconf1;
+			var (C,pc1: nat,stk1,str1) := machconf1;
 
 			var d1 := 0;
 			var d0 := |compile_com(body)| + 1;
 
-			if beval(s1,b) {
+			if X.beval(s1,b) {
 
 				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d1, [], s1);
-				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_true(C,s1,b,pc1,d1,d0,stk1); }
-				assert Y.star(tr,machconf1,machconf2);
+				var machconf2: configuration := (C,pc1 + |compile_bexp(b,d1,d0)| + d1, [], s1);
+				assert transitions(machconf1,machconf2) by { compile_bexp_correct_true(C,s1,b,pc1,d1,d0,stk1); }
+				assert Y.star(machconf1,machconf2);
 
 				assert impconf2 == (body,Kwhile(b,body,k),s1);
-				assert code_at(C,machconf2.0,compile_com(body)) by { resolve_code_at(); }
+				assert code_at(C,machconf2.1,compile_com(body)) by { resolve_code_at(); }
 				
-				assert compile_cont(C, impconf2.1, machconf2.0 + |compile_com(impconf2.0)|) by {
+				assert compile_cont(C, impconf2.1, machconf2.1 + |compile_com(impconf2.0)|) by {
 
-					var pc: nat := machconf2.0 + |compile_com(impconf2.0)|;
+					var pc: nat := machconf2.1 + |compile_com(impconf2.0)|;
 					var ofs: int := -( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1);
 					assert C[pc] == Ibranch(ofs);
 					var pc' := pc + 1 + ofs;
@@ -871,20 +875,20 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 
 				}
 
-				assert match_config(C,impconf2,machconf2);
+				assert match_config(impconf2,machconf2);
 				
 				
 			} else {
 
 				assert code_at(C,pc1,compile_bexp(b,d1,d0)) by { resolve_code_at(); }
-				var machconf2 := (pc1 + |compile_bexp(b,d1,d0)| + d0, [], s1);
-				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,s1,b,pc1,d1,d0,stk1); }
-				assert Y.star(tr,machconf1,machconf2);
+				var machconf2 := (C,pc1 + |compile_bexp(b,d1,d0)| + d0, [], s1);
+				assert transitions(machconf1,machconf2) by { compile_bexp_correct_false(C,s1,b,pc1,d1,d0,stk1); }
+				assert Y.star(machconf1,machconf2);
 
 				assert impconf2 == (CSkip,k,s1);
 
-				assert compile_cont(C, k, machconf2.0);
-				match_config_skip(C,k,s1,machconf2.0);
+				assert compile_cont(C, k, machconf2.1);
+				match_config_skip(C,k,s1,machconf2.1);
 				
 			}
 			
@@ -892,23 +896,22 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 		
 		case (CSkip, Kseq(c, k)) => {
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (C,pc1,stk1,str1) := machconf1;
 
 			compile_cont_Kseq_inv(C,c,k,pc1,str1);
-			var pc': nat :| Y.star((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(c)|);
+			var pc': nat :| Y.star((C,pc1, [], str1),(C,pc', [], str1)) && code_at(C,pc',compile_com(c)) && compile_cont(C,k,pc' + |compile_com(c)|);
 
-			var machconf2: configuration := (pc',[],str1);
-			assert Y.star((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+			var machconf2: configuration := (C,pc',[],str1);
+			assert Y.star(machconf1,machconf2);
 
-			assert match_config(C, impconf2, machconf2) by {
-				assert impconf2.2 == machconf2.2;
-				assert machconf2.1 == [];
-				assert code_at(C, machconf2.0, compile_com(c2)) by { resolve_code_at(); } 
-				assert compile_cont(C, k2, machconf2.0 + |compile_com(c2)|); 
+			assert match_config(impconf2, machconf2) by {
+				assert impconf2.2 == machconf2.3;
+				assert machconf2.2 == [];
+				assert code_at(C, machconf2.1, compile_com(c2)) by { resolve_code_at(); } 
+				assert compile_cont(C, k2, machconf2.1 + |compile_com(c2)|); 
 				
 			}
 			
@@ -916,55 +919,57 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 		
 		case (CSkip, Kwhile(b, c, k)) =>	{
 			assert {:split_here} true;
-			var tr := (c1,c2) => transition(C,c1,c2);
 			
 			var (c1,k1,s1) := impconf1;
 			var (c2,k2,s2) := impconf2;
-			var (pc1,stk1,str1) := machconf1;
+			var (C:code,pc1:nat,stk1,str1) := machconf1;
 
+			assert compile_cont(C,Kwhile(b,c,k),pc1);
 			compile_cont_Kwhile_inv(C,b,c,k,pc1,str1);
 
-			var pc': nat :| Y.plus((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|);
+			// Another interesting case: in the version with modules, we need to first assert before we can skolemize
+			assert exists pc': nat :: Y.plus((C,pc1, [], str1),(C,pc', [], str1)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|);
+			
+			var pc': nat :| Y.plus((C,pc1, [], str1),(C,pc', [], str1)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|);
 
-			var machconf2: configuration := (pc', [], str1);
-			assert Y.plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
+			var machconf2: configuration := (C,pc', [], str1);
+			assert Y.plus(machconf1,machconf2);
 
-			assert match_config(C, impconf2, machconf2) by {
-				assert impconf2.2 == machconf2.2;
-				assert machconf2.1 == [];
-				assert code_at(C, machconf2.0, compile_com(c2)) by { resolve_code_at(); } 
-				assert compile_cont(C, k2, machconf2.0 + |compile_com(c2)|); 
+			assert match_config(impconf2, machconf2) by {
+			assert impconf2.2 == machconf2.3;
+			assert machconf2.2 == [];
+			assert code_at(C, machconf2.1, compile_com(c2)) by { resolve_code_at(); } 
+			assert compile_cont(C, k2, machconf2.1 + |compile_com(c2)|); 
 				
 			}			
-						
+			
 		}
-		
+	
 	}
 }
 
-least lemma simulation_steps(C: code, impconf1: conf, impconf2: conf, machconf1: configuration)
-	requires X.star(step,impconf1,impconf2)
-	requires match_config(C, impconf1, machconf1)
-	ensures exists machconf2: configuration :: Y.star((c1,c2) => transition(C,c1,c2),machconf1,machconf2) && match_config(C, impconf2, machconf2)
+least lemma simulation_steps(impconf1: conf, impconf2: conf, machconf1: configuration)
+	requires X.star(impconf1,impconf2)
+	requires match_config(impconf1, machconf1)
+	ensures exists machconf2: configuration :: Y.star(machconf1,machconf2) && match_config(impconf2, machconf2)
 {
-	var tr := (c1,c2) => transition(C,c1,c2);
 	if impconf1 == impconf2 {
 	} else {
-		var impconf_inter :| step(impconf1, impconf_inter) && X.star(step,impconf_inter, impconf2);
-		simulation_step(C,impconf1,impconf_inter,machconf1);
-		var machconf_inter :| Y.star(tr,machconf1,machconf_inter) && match_config(C, impconf_inter, machconf_inter);
-		simulation_steps(C, impconf_inter, impconf2, machconf_inter);
+		var impconf_inter :| X.R(impconf1, impconf_inter) && X.star(impconf_inter, impconf2);
+		simulation_step(impconf1,impconf_inter,machconf1);
+		var machconf_inter :| Y.star(machconf1,machconf_inter) && match_config(impconf_inter, machconf_inter);
+		simulation_steps(impconf_inter, impconf2, machconf_inter);
 		// I do not know why the skolemization needs this assert
 		// It might have to do with the lambda
-		assert exists machconf2: configuration :: Y.star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
-		var machconf2 :| Y.star((c1,c2) => transition(C,c1,c2),machconf_inter,machconf2) && match_config(C, impconf2, machconf2);
+		assert exists machconf2: configuration :: Y.star(machconf_inter,machconf2) && match_config(impconf2, machconf2);
+		var machconf2 :| Y.star(machconf_inter,machconf2) && match_config(impconf2, machconf2);
 		
-		Y.star_trans_sequent(tr,machconf1,machconf_inter,machconf2);
+		Y.star_trans_sequent(machconf1,machconf_inter,machconf2);
 	}
 }
 	
 lemma match_initial_configs(c: com, s: store)
-	ensures match_config((compile_program(c)), (c, Kstop, s), (0, [], s))
+	ensures match_config((c, Kstop, s), ((compile_program(c)),0, [], s))
 {
 	var C := compile_program(c);
 	assert code_at(C, 0, compile_com(c)) by {
@@ -976,107 +981,116 @@ lemma match_initial_configs(c: com, s: store)
 	assert compile_cont(C, Kstop, |compile_com(c)|);
 }
 
+least lemma code_never_changes(mc1: configuration, mc2: configuration)
+	requires Y.star(mc1,mc2)
+	ensures mc1.0 == mc2.0
+{
+}
+
 lemma compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
-	requires X.star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
+	requires X.star((c,Kstop,s1),(CSkip,Kstop,s2))
 	ensures machine_terminates(compile_program(c),s1,s2)
 {
-	var C := compile_program(c);
-	var impconf1 := (c,Kstop,s1);
-	var impconf2 := (CSkip,Kstop,s2);
-	var machconf1 := (0,[],s1);
+	var C: code := compile_program(c);
+	var impconf1: conf := (c,Kstop,s1);
+	var impconf2: conf := (CSkip,Kstop,s2);
+	var machconf1: configuration := (C,0,[],s1);
 	match_initial_configs(c,s1);
-	simulation_steps(C,impconf1,impconf2,machconf1);
+	simulation_steps(impconf1,impconf2,machconf1);
 	// Not explicitely typing leads to annoying errors due to subset types
-	var machconf1': configuration :| Y.star((c1,c2) => transition(C,c1,c2),machconf1,machconf1')
-		&& match_config(C, impconf2, machconf1');
+	var machconf1': configuration :| Y.star(machconf1,machconf1')
+		&& match_config(impconf2, machconf1');
 
-	var pc: nat := machconf1'.0;
+	var pc: nat := machconf1'.1;
+	assert machconf1'.0 == C by { code_never_changes(machconf1,machconf1'); }
 	assert compile_cont(C, Kstop, pc);
 	compile_cont_Kstop_inv(C, pc, s2);
 	
-	var pc': nat :| Y.star((c1,c2) => transition(C,c1,c2), machconf1', (pc', [], s2))
+	var pc': nat :| Y.star(machconf1', (C,pc', [], s2))
 	 && pc' < |C|
 	 && C[pc'] == Ihalt;
 
-	var machconf2: configuration := (pc',[],s2);
-	assert Y.star((c1,c2) => transition(C,c1,c2), machconf1', (pc', [], s2));
+	var machconf2: configuration := (C,pc',[],s2);
+	assert Y.star(machconf1', (C,pc', [], s2));
 	
-	Y.star_trans_sequent((c1,c2) => transition(C,c1,c2), machconf1, machconf1',(pc', [], s2));
+	Y.star_trans_sequent(machconf1, machconf1',(C,pc', [], s2));
 }
 
-lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
+lemma simulation_infseq_inv(impconf1: conf, machconf1: configuration)
 	decreases measure(impconf1)
-	requires X.inf(step,impconf1)
-	requires match_config(C,impconf1,machconf1)
+	requires X.inf(impconf1)
+	requires match_config(impconf1,machconf1)
 	ensures exists impconf2: conf :: exists machconf2: configuration ::
-	  X.inf(step,impconf2)
-		&& Y.plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
-		&& match_config(C,impconf2,machconf2)
+	  X.inf(impconf2)
+		&& Y.plus(machconf1,machconf2)
+		&& match_config(impconf2,machconf2)
 {
 	
-	var impconf2: conf :| step(impconf1,impconf2) && X.inf(step,impconf2);
-	X.star_one_sequent(step,impconf1,impconf2);
-	simulation_step(C, impconf1, impconf2, machconf1);
+	var impconf2: conf :| X.R(impconf1,impconf2) && X.inf(impconf2);
+	X.star_one_sequent(impconf1,impconf2);
+	simulation_step(impconf1, impconf2, machconf1);
 	var machconfi: configuration :| && (
-		|| (Y.plus((c1,c2) => transition(C,c1,c2),machconf1,machconfi))
-		|| (Y.star((c1,c2) => transition(C,c1,c2),machconf1,machconfi) && measure(impconf2) < measure(impconf1))
+		|| (Y.plus(machconf1,machconfi))
+		|| (Y.star(machconf1,machconfi) && measure(impconf2) < measure(impconf1))
 		)
-		&& match_config(C, impconf2, machconfi);
+		&& match_config(impconf2, machconfi);
 		
-		if Y.plus((c1,c2) => transition(C,c1,c2),machconf1,machconfi) {
+		if Y.plus(machconf1,machconfi) {
 			
 			var machconf2: configuration := machconfi;
 			
 		}
 		else {
 			
-			simulation_infseq_inv(C,impconf2,machconfi);
+			simulation_infseq_inv(impconf2,machconfi);
 			var impconf2: conf, machconf2: configuration :|
-				X.inf(step,impconf2)
-				&& Y.plus((c1,c2) => transition(C,c1,c2),machconfi,machconf2)
-				&& match_config(C,impconf2,machconf2);
+				X.inf(impconf2)
+				&& Y.plus(machconfi,machconf2)
+				&& match_config(impconf2,machconf2);
 
-			Y.star_plus_trans((c1,c2) => transition(C,c1,c2),machconf1,machconfi,machconf2);
+			Y.star_plus_trans(machconf1,machconfi,machconf2);
 			
 		}
 		
 }
 
-predicate {:opaque} XXX(C: code, mc: configuration) {
-	exists ic: conf :: X.inf(step,ic) && match_config(C,ic,mc)
+predicate {:opaque} XXX(mc: configuration) {
+	exists ic: conf :: X.inf(ic) && match_config(ic,mc)
 }
 	
 lemma compile_program_correct_diverging(c: com, s: store)
-	requires H: X.inf(step,(c,Kstop,s))
+	requires H: X.inf((c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
 {
 	var C: code := compile_program(c);
 	var impconf1: conf := (c,Kstop,s);
-	var machconf1: configuration := (0,[], s);
+	var machconf1: configuration := (C,0,[], s);
 	
-	assert XXX(C,machconf1) by {
+	assert XXX(machconf1) by {
 		reveal XXX();
 		reveal H;
 		match_initial_configs(c,s);
-		assert match_config(C,impconf1,machconf1);
+		assert match_config(impconf1,machconf1);
 	}
-
-	assert Y.always_steps((c1, c2) => transition(C,c1,c2),(mc) => XXX(C,mc)) by {
+	
+	assert Y.always_steps(XXX) by {
 		reveal Y.always_steps();
 		//forall a: T :: X(a) ==> exists b: T :: plus(R,a, b) && X(b)
-		forall a: configuration ensures ((mc) => XXX(C,mc))(a) ==> exists b: configuration :: Y.plus((c1, c2) => transition(C,c1,c2),a, b) && ((mc) => XXX(C,mc))(b) {
-			if ((mc) => XXX(C,mc))(a) {
-				assert exists ic: conf :: X.inf(step,ic) && match_config(C,ic,a) by {
-					reveal XXX();
-				}
-				var ic :| X.inf(step,ic) && match_config(C,ic,a);
-				simulation_infseq_inv(C,ic,a);
-			}
-		}
+		assume false;
+		//forall a: configuration ensures XXX(a) ==> exists b: configuration :: Y.plus(a, b) && XXX(b) {
+		// 	if XXX(a) {
+		// 		assert exists ic: conf :: X.inf(ic) && match_config(ic,a) by {
+		// 			reveal XXX();
+		// 		}
+		// 		var ic :| X.inf(ic) && match_config(ic,a);
+		// 		simulation_infseq_inv(ic,a);
+		// 	}
+		
+		//}
 	}
 	
 
-	Y.infseq_coinduction_principle_2((c1, c2) => transition(C,c1,c2),(mc) => XXX(C,mc),machconf1);
+	Y.infseq_coinduction_principle_2(XXX,machconf1);
 	
 }
 	
