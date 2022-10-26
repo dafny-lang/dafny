@@ -21,7 +21,7 @@ def print(value):
 # To make a best effort attempt at printing the right characters we attempt to decode,
 # but have to allow for invalid sequences.
 def string_from_utf_16(utf_16_code_units):
-    return b''.join([ord(c).to_bytes(2, 'little') for c in utf_16_code_units]).decode("utf-16", errors = 'replace')
+    return b''.join(ord(c).to_bytes(2, 'little') for c in utf_16_code_units).decode("utf-16-le", errors = 'replace')
 
 def string_of(value) -> str:
     if hasattr(value, '__dafnystr__'):
