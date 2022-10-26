@@ -1,10 +1,13 @@
-git-issue-2727.dfy(50,9): Error: Not all paths might have initialized the constant field a, which needs to be initialized at this point.
-git-issue-2727.dfy(56,10): Error: Not all paths might have initialized the constant field a2, which needs to be initialized at this point.
-git-issue-2727.dfy(68,6): Error: Cannot assign constant field in a loop statement.
-git-issue-2727.dfy(72,8): Error: Cannot assign constant field in a loop statement.
-git-issue-2727.dfy(76,8): Error: Cannot assign constant field in an alternative if-case statement.
-git-issue-2727.dfy(89,13): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
-git-issue-2727.dfy(90,10): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
-git-issue-2727.dfy(105,9): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
-git-issue-2727.dfy(115,4): Error: The constant b cannot be assigned twice.
-9 resolution/type errors detected in git-issue-2727.dfy
+git-issue-2727.dfy(74,9): Error: Not all paths might have initialized the constant field a, which needs to be initialized at this point.
+git-issue-2727.dfy(80,10): Error: Not all paths might have initialized the constant field a2, which needs to be initialized at this point.
+git-issue-2727.dfy(92,6): Error: Cannot assign constant field in a loop statement.
+git-issue-2727.dfy(96,8): Error: Cannot assign constant field in a loop statement.
+git-issue-2727.dfy(100,8): Error: Cannot assign constant field in an alternative if-case statement.
+git-issue-2727.dfy(113,13): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
+git-issue-2727.dfy(114,10): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
+git-issue-2727.dfy(129,9): Error: Missing initialization of constant field through the dependency a -> b, which needs to be initialized at this point.
+git-issue-2727.dfy(139,4): Error: The constant b cannot be assigned twice.
+git-issue-2727.dfy(150,9): Error: Constant field 'a' cannot be accessed before 'new;', because 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
+git-issue-2727.dfy(162,9): Error: Constant field 'c' cannot be accessed before 'new;' because of the dependency c -> a, and 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
+git-issue-2727.dfy(178,9): Error: Constant field 'a' cannot be accessed before 'new;', because 'a' depends on the non-static function 'B' that can potentially read other uninitialized constants.
+12 resolution/type errors detected in git-issue-2727.dfy

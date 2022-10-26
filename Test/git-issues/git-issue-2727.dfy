@@ -12,7 +12,7 @@ class NoError {
   const a: int
   const a2: int
   const a3: int
-  const b: int
+  const b: int := a3 + 1
   const c: int
   const d: Dummy
   const e: array<int>
@@ -30,10 +30,34 @@ class NoError {
       case _ =>
         a3 := a + 1;
     }
-    b := a3 + 1;
-    c := a2;
+    c := a2 + b; // a3 is defined so b can be used here
     d := new Dummy(c);
     e := new int[b];
+  }
+}
+
+
+class FunctionInitializationOK {
+  const a := B()
+  const b: int
+  static function method B(): int { 1 }
+
+  constructor (x: int) {
+    b := a + 1; // No problem here!
+    new;
+  }
+}
+
+class FunctionInitializationOK2 {
+  const a := B()
+  const b: int
+  var c: int
+  function method B(): int { b }
+
+  constructor (x: int) {
+    b := 1;
+    new;
+    c := a; // OK here
   }
 }
 
@@ -117,6 +141,45 @@ class MultipleAssignmentError {
   }
 }
 
+class FunctionInitializationError {
+  const a := B()
+  const b: int
+  function method B(): int { b }
+
+  constructor (x: int) {
+    b := a + 1; // Error: a is not guaranteed to be initialized here
+    new;
+    assert false; // We should never be able to prove this
+  }
+}
+class FunctionInitializationError2 {
+  const a := B()
+  const c := a;
+  const b: int
+  function method B(): int { b }
+
+  constructor (x: int) {
+    b := c + 1; // Error: a is not guaranteed to be initialized here
+    new;
+    assert false; // We should never be able to prove this
+  }
+}
+
+trait Tr {
+  const a := B()
+  const b: int
+  function method B(): int
+}
+
+class C extends Tr {
+  function method B(): int { b }
+
+  constructor (x: int) {
+    b := a + 1; // Error: a is not guaranteed to be initialized here
+    new;
+    assert false; // We should never be able to prove this
+  }
+}
 
 method Main() {
   var c := new SecondInitializationError(5);

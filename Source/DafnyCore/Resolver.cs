@@ -9281,6 +9281,13 @@ namespace Microsoft.Dafny {
               }
             }
           }
+        } else if (expr is FunctionCallExpr { tok: var tok, Function: { IsStatic: false } function }) {
+          var msg = "Constant field '" + visited[0].Name + "' cannot be accessed before 'new;'";
+          for (var i = 1; i < visited.Count; i++) {
+            msg += (i == 1 ? " because of the dependency " + visited[0].Name : "") + " -> " + visited[i].Name;
+          }
+          msg += ", " + (visited.Count > 1 ? "and" : "because") + " '" + visited[visited.Count - 1].Name + "' depends on the non-static function '" + function.Name + "' that can potentially read other uninitialized constants.";
+          return (msg, visited[0]);
         }
         foreach (var subExpr in expr.SubExpressions) {
           if (GetErrorIfConstantFieldNotInitialized(subExpr, visited) is var msgField && msgField != null) {
