@@ -215,13 +215,13 @@ namespace Microsoft.Dafny {
       } else {
         foreach (var s in Escapes(p, false)) {
           switch (s) {
-            case @"\'":   yield return '\''; break;
-            case @"\""":  yield return '"';  break;
-            case @"\\":   yield return '\\'; break;
-            case @"\0":   yield return '\0'; break;
-            case @"\n":   yield return '\n'; break;
-            case @"\r":   yield return '\r'; break;
-            case @"\t":   yield return '\t'; break;
+            case @"\'": yield return '\''; break;
+            case @"\""": yield return '"'; break;
+            case @"\\": yield return '\\'; break;
+            case @"\0": yield return '\0'; break;
+            case @"\n": yield return '\n'; break;
+            case @"\r": yield return '\r'; break;
+            case @"\t": yield return '\t'; break;
             case { } when s.StartsWith(@"\u"):
               yield return (char)Convert.ToInt32(s[2..], 16);
               break;
