@@ -79,7 +79,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         localVariable.type = substitutedSourceType;
         BoundVar = localVariable;
       } else {
-        BoundVar = new BoundVar(Tok, Id, substitutedSourceType);
+        var boundVar = new BoundVar(Tok, Id, substitutedSourceType);
+        boundVar.IsGhost = isGhost;
+        BoundVar = boundVar;
       }
 
       resolver.scope.Push(Id, BoundVar);
@@ -101,7 +103,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
       var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
-      yield return (new BoundVar(Tok, Id, Type), new IdentifierExpr(Tok, freshName));
+      var boundVar = new BoundVar(Tok, Id, Type);
+      boundVar.IsGhost = IsGhost;
+      yield return (boundVar, new IdentifierExpr(Tok, freshName));
       Id = freshName;
       Type = new InferredTypeProxy();
     }
