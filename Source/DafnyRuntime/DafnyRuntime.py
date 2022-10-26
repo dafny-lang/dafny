@@ -32,7 +32,7 @@ def string_of(value) -> str:
         return "true" if value else "false"
     elif isinstance(value, str):
         # This is only for Dafny char values.
-        # Dafny strings are represented as Seq's of indivdual char values,
+        # Dafny strings are represented as Seq's of individual char values,
         # and Seq defines __dafnystr__.
         return string_from_utf_16(value)
     elif isinstance(value, tuple):
