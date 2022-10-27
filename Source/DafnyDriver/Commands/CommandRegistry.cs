@@ -31,7 +31,9 @@ static class CommandRegistry {
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
-    InputsOption.Instance
+    InputsOption.Instance,
+    StrictDefiniteAssignmentOption.Instance,
+    EnforceDeterminism.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
