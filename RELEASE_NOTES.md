@@ -8,8 +8,6 @@ See [docs/dev/news/](docs/dev/news/).
 
 - The language server now supports all versions of z3 ≥ 4.8.5.  Dafny is still distributed with z3 4.8.5 and uses that version by default. (https://github.com/dafny-lang/dafny/pull/2820)
 
-- Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases. Run the Dafny CLI without arguments to view help for this new UI. (https://github.com/dafny-lang/dafny/pull/2823)
-
 ## Bug fixes
 
 - Correct error highlighting on function called with default arguments (https://github.com/dafny-lang/dafny/pull/2826)
@@ -37,6 +35,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 # 3.9.0
 
+- feat: Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases. Run the Dafny CLI without arguments to view help for this new UI. (https://github.com/dafny-lang/dafny/pull/2823)
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
 - feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
