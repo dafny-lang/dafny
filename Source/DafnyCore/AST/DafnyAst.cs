@@ -783,10 +783,17 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding {
+  public class ActualBinding : INode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
+
+    public IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
+
+    public IEnumerable<INode> ConcreteChildren => Children;
+
+    // Names are owned by the method call
+    public List<IToken> OwnedTokens => new();
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);

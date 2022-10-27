@@ -2631,7 +2631,7 @@ method Test() {
           return;
         }
         ProcessOwnedTokens(node.OwnedTokens);
-        foreach (var child in node.Children) {
+        foreach (var child in node.ConcreteChildren) {
           ProcessNode(child);
         }
       }

@@ -294,6 +294,8 @@ public class ConstantField : SpecialField, ICallable {
   public bool AllowsAllocation => true;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
@@ -383,6 +385,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
     Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
+
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -672,6 +676,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
     Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }

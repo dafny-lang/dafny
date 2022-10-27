@@ -366,6 +366,7 @@ public class LiteralModuleDecl : ModuleDecl {
   }
 
   public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
@@ -1169,6 +1170,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
       return Members.Concat(ParentTraits.SelectMany(parentTrait => parentTrait.Nodes));
     }
   }
+
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).

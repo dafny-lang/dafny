@@ -1146,6 +1146,7 @@ public class IdentifierExpr : Expression, IHasUsages {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Name = name;
+    OwnedTokens.Add(tok);
   }
   /// <summary>
   /// Constructs a resolved IdentifierExpr.
@@ -1157,6 +1158,7 @@ public class IdentifierExpr : Expression, IHasUsages {
     Name = v.Name;
     Var = v;
     Type = v.Type;
+    OwnedTokens.Add(tok);
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
@@ -2887,6 +2889,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   }
 
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
+  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
@@ -4333,6 +4337,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 
   public override IEnumerable<INode> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
+  public override IEnumerable<INode> ConcreteChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -4403,7 +4408,8 @@ public class ApplySuffix : SuffixExpr {
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => base.Children.Concat(Bindings != null && Args != null ? Args : Enumerable.Empty<INode>());
+  public override IEnumerable<INode> ConcreteChildren => base.ConcreteChildren.Concat(Bindings != null && Bindings.ArgumentBindings != null ? Bindings.ArgumentBindings : Enumerable.Empty<INode>());
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
