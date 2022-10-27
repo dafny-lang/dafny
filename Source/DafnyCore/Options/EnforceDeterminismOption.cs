@@ -1,7 +1,7 @@
 namespace Microsoft.Dafny;
 
-public class EnforceDeterminism : BooleanOption {
-  public static readonly EnforceDeterminism Instance = new();
+public class EnforceDeterminismOption : BooleanOption {
+  public static readonly EnforceDeterminismOption Instance = new();
 
   public override string LongName => "enforce-determinism";
 
@@ -12,5 +12,6 @@ the program.".TrimStart();
 
   public override string PostProcess(DafnyOptions options) {
     options.ForbidNondeterminism = Get(options);
+    return null;
   }
 }

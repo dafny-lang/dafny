@@ -14,6 +14,6 @@ that are ghost or whose types support auto-initialisation.";
 
   public override string PostProcess(DafnyOptions options) {
     options.DefiniteAssignmentLevel = Get(options) ? 2 : 1;
-    return "";
+    return null;
   }
 }

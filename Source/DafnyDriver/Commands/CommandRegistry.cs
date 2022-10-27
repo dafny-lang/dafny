@@ -33,7 +33,7 @@ static class CommandRegistry {
     BoogiePrintOption.Instance,
     InputsOption.Instance,
     StrictDefiniteAssignmentOption.Instance,
-    EnforceDeterminism.Instance,
+    EnforceDeterminismOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -149,6 +149,7 @@ static class CommandRegistry {
         options.OptionArguments[optionSpec] = value;
         optionFailure ??= optionSpec.PostProcess(dafnyOptions);
         if (optionFailure != null) {
+          optionFailure = $"Parsing option {option.Name} failed because: {optionFailure}";
           break;
         }
       }
