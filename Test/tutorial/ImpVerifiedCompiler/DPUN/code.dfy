@@ -297,10 +297,10 @@ module Problem_2_Solution_1 {
 		
 }
 
-// Note 1: depending on what this note is supposed to be, it might make sense to also
-// go over the split_true for case analysis
-
-// Note 2: extract examples of pain resulting from subset types
+// 3rd problem, which is really a flock of problems, have to do with not explicitely typing
+// a variable with a subset type. Problems arise in a variety of ways, and they are very
+// hard to diagnose, and very hard to simplify. The solution is always the same and simple:
+// always explicitely type variables, especially if the value can contain a subset type. 
 
 module Problem_3 {
 
@@ -343,7 +343,7 @@ module Problem_3_Solution_1 {
 
 // This one is not inherently problematic, but a major source of instability and headaches
 // solution is to type variable to catch difficulties ASAP
-module Problem_4 {
+module Problem_3_alt {
 
 	function f(x: int): int
 
@@ -371,3 +371,6 @@ module Problem_4 {
 	}
 		
 }
+
+// The frouth problem is simple to explain, so is the solution: use split_here in big
+// case analysis to avoid Dafny's fatigue
