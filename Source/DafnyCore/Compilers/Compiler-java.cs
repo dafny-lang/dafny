@@ -47,7 +47,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Iterators,
       Feature.SubsetTypeTests,
       Feature.TraitTypeParameters,
-      Feature.MethodSynthesis,
       Feature.TuplesWiderThan20
     };
 
