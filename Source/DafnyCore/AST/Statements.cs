@@ -1893,6 +1893,8 @@ public class CalcStmt : Statement {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
+  public override IEnumerable<INode> Children => Steps.Concat(new INode[] {Result}).Concat(Hints);
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lines != null);
