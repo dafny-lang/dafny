@@ -13987,12 +13987,12 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
-        if (e.Var != null) {
-          expr.Type = e.Var.Type;
+        if (e.Var == null) {
+          reporter.Error(MessageSource.Resolver, expr,
+            "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
+          expr.Type = e.Var.Type;
         }
-
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         TopLevelDecl d;
