@@ -53,3 +53,19 @@ let Library = (function() {
 
   return $module;
 })();
+
+let Nested = (function() {
+  let $module = {};
+
+  $module.Library = (function() {
+    let $module2 = {};
+
+    $module2.Foo = function() {
+      process.stdout.write("Nested.Library.Foo\n");
+    }
+
+    return $module2;
+  })();
+  
+  return $module;
+})();

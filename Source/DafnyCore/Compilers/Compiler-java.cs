@@ -2347,7 +2347,8 @@ namespace Microsoft.Dafny.Compilers {
       string baseName = Path.GetFileNameWithoutExtension(externFilename);
       var mainDir = Path.GetDirectoryName(mainProgram);
       Contract.Assert(mainDir != null);
-      var tgtDir = Path.Combine(mainDir, pkgName);
+      var segments = pkgName.Split(".");
+      var tgtDir = segments.Aggregate(mainDir, Path.Combine);
       var tgtFilename = Path.Combine(tgtDir, baseName + ".java");
       Directory.CreateDirectory(tgtDir);
       FileInfo file = new FileInfo(externFilename);
@@ -2381,7 +2382,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
+    private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*)\s*;$");
 
     // TODO: See if more types need to be added
     bool IsDirectlyComparable(Type t) {
