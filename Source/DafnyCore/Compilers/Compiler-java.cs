@@ -2094,7 +2094,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
-      wr.Write("System.out.print(");
+      wr.Write($"{DafnyHelpersClass}.utf8Out.print(");
       EmitToString(wr, arg, wStmts);
       wr.WriteLine(");");
     }

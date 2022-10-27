@@ -15,8 +15,19 @@ import java.lang.Iterable;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 
 public class Helpers {
+
+    public static PrintStream utf8Out;
+    static {
+        try {
+            utf8Out = new PrintStream(System.out, true, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static DafnySequence<? extends DafnySequence<? extends Character>> FromMainArguments(String[] args) {
        @SuppressWarnings("unchecked")

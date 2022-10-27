@@ -203,7 +203,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static IEnumerable<char> UnescapedCharacters(string p, bool isVerbatimString) {
       if (isVerbatimString) {
-        foreach (var s in Escapes(p, true)) {
+        foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {
             yield return '"';
           } else {
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        foreach (var s in Escapes(p, false)) {
+        foreach (var s in TokensWithEscapes(p, false)) {
           switch (s) {
             case @"\'": yield return '\''; break;
             case @"\""": yield return '"'; break;
@@ -240,7 +240,7 @@ namespace Microsoft.Dafny {
     /// For example, "ab\tuv\u12345" may be broken up as ["a", "b", "\t", "u", "v", "\u1234", "5"].
     /// Consecutive non-escaped characters may or may not be enumerated as a single string.
     /// </summary>
-    public static IEnumerable<string> Escapes(string p, bool isVerbatimString) {
+    public static IEnumerable<string> TokensWithEscapes(string p, bool isVerbatimString) {
       Contract.Requires(p != null);
       if (isVerbatimString) {
         var skipNext = false;

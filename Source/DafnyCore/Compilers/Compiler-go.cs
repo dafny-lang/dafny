@@ -2097,7 +2097,7 @@ namespace Microsoft.Dafny.Compilers {
       var v = (string)chr.Value;
       wr.Write("_dafny.Char(");
       // See comment in TrStringLiteral for why we can't just translate directly sometimes.
-      if (Util.Escapes(v, false).Any(e => e.StartsWith(@"\u"))) {
+      if (Util.TokensWithEscapes(v, false).Any(e => e.StartsWith(@"\u"))) {
         var c = Util.UnescapedCharacters(v, false).Single();
         wr.Write($"{(int)c}");
       } else {
@@ -2116,7 +2116,7 @@ namespace Microsoft.Dafny.Compilers {
       // _dafny.SeqOfString("..."), since there's no way to encode the right data in the Go string literal.
       // Instead, if any escapes are present, just emit a sequence of the direct UTF-16 code units instead.
       var s = (string)str.Value;
-      if (!str.IsVerbatim && Util.Escapes(s, false).Any(e => e.StartsWith(@"\u"))) {
+      if (!str.IsVerbatim && Util.TokensWithEscapes(s, false).Any(e => e.StartsWith(@"\u"))) {
         wr.Write("_dafny.SeqOfChars(");
         var comma = "";
         foreach (var c in Util.UnescapedCharacters(s, str.IsVerbatim)) {
