@@ -1,0 +1,1 @@
+don't crash on type synonyms and subset types of array types in LHSs of simultaneous assignments
