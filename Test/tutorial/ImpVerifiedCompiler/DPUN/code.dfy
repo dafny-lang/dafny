@@ -246,6 +246,8 @@ module Problem_2 {
 
 }
 
+// Solution, need to investigate whether it can be simplified in this context
+
 module Problem_2_Solution_1 {
 
 	import opened Smallstep
@@ -295,4 +297,77 @@ module Problem_2_Solution_1 {
 		
 }
 
+// Note 1: depending on what this note is supposed to be, it might make sense to also
+// go over the split_true for case analysis
 
+// Note 2: extract examples of pain resulting from subset types
+
+module Problem_3 {
+
+	predicate P(pc: int)
+		requires pc >= 0
+	
+	lemma premise_1()
+		ensures exists pc': nat :: P(pc')
+		
+	lemma conclusion(pc: nat)
+		ensures true
+ 	{
+
+		premise_1();
+		var pc' :| P(pc');
+
+	}
+		
+}
+
+module Problem_3_Solution_1 {
+
+	predicate P(pc: int)
+		requires pc >= 0
+	
+	lemma premise_1()
+		ensures exists pc': nat :: P(pc')
+		
+	lemma conclusion(pc: nat)
+		ensures true
+ 	{
+
+		premise_1();
+		var pc': nat :| P(pc');
+
+	}
+		
+}
+
+
+// This one is not inherently problematic, but a major source of instability and headaches
+// solution is to type variable to catch difficulties ASAP
+module Problem_4 {
+
+	function f(x: int): int
+
+	// Assume that Dafny can prove this on its own, but with some effort
+	lemma f_pos(x: int)
+		requires x >= 0
+		ensures f(x) >= 0
+	
+	predicate P(x: nat, y: nat)
+
+	lemma premise(x: int)
+		requires x >= 0
+		ensures exists y: nat :: P(x,y)
+
+	lemma conclusion(C: seq<int>, pc: nat)
+		ensures true
+ 	{
+
+		var a: nat := 4;
+		var b := f(a);
+		premise(b); // It could fail here, or worse, figure it out
+		var c :| P(b,c); // And now fail here, which can be tough to diagnose
+		// Also, note that b could be one value inside a deeper structure
+		
+	}
+		
+}
