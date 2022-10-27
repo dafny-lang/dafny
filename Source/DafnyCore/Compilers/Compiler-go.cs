@@ -2097,7 +2097,7 @@ namespace Microsoft.Dafny.Compilers {
       var v = (string)chr.Value;
       wr.Write("_dafny.Char(");
       // See comment in TrStringLiteral for why we can't just translate directly sometimes.
-      if (Util.TokensWithEscapes(v, false).Any(e => e.StartsWith(@"\u"))) {
+      if (Util.MightContainNonAsciiCharacters(v, false)) {
         var c = Util.UnescapedCharacters(v, false).Single();
         wr.Write($"{(int)c}");
       } else {
@@ -2109,14 +2109,16 @@ namespace Microsoft.Dafny.Compilers {
     protected override void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
-      // It may not be possible to translate \u escapes into a valid Go string,
+      // It may not be possible to translate a Dafny string into a valid Go string,
       // since Go string literals have to be encodable in UTF-8,
       // but Dafny allows invalid sequences of surrogate characters.
-      // That means in some cases we can't create a Dafny string value by emitting
+      // In addition, _dafny.SeqOfString iterates over the runes in the Go string
+      // rather than the equivalent UTF-16 code units.
+      // That means in many cases we can't create a Dafny string value by emitting
       // _dafny.SeqOfString("..."), since there's no way to encode the right data in the Go string literal.
-      // Instead, if any escapes are present, just emit a sequence of the direct UTF-16 code units instead.
+      // Instead, if any non-ascii characters might be present, just emit a sequence of the direct UTF-16 code units instead.
       var s = (string)str.Value;
-      if (!str.IsVerbatim && Util.TokensWithEscapes(s, false).Any(e => e.StartsWith(@"\u"))) {
+      if (Util.MightContainNonAsciiCharacters(s, false)) {
         wr.Write("_dafny.SeqOfChars(");
         var comma = "";
         foreach (var c in Util.UnescapedCharacters(s, str.IsVerbatim)) {

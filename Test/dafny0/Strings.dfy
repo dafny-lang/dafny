@@ -44,6 +44,28 @@ method Main()
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
 
+  // Testing non-ASCII characters directly in string literals.
+  // Code points outside the BMP are still not supported.
+  // See https://github.com/dafny-lang/dafny/issues/818.
+  
+  var firstNonAsciiChar := "Ā";
+  assert |firstNonAsciiChar| == 1;
+  expect |firstNonAsciiChar| == 1;
+  assert firstNonAsciiChar[0] == 256 as char;
+  expect firstNonAsciiChar[0] == 256 as char;
+
+  // Something above the surrogate range,
+  // and a verbatim string to make sure that's handled as well.
+  var highBMPChar := @"￮";
+  assert |highBMPChar| == 1;
+  expect |highBMPChar| == 1;
+  assert highBMPChar[0] == 0xFFEE as char;
+  expect highBMPChar[0] == 0xFFEE as char;
+ 
+  print "Let's go to the café", "\n";
+
+  // Testing invalid UTF-16 content that Dafny allows (at least until --unicode-char lands)
+
   var x?, y?, z? := WeirdStrings();
   
   // Printing these invalid (in UTF-16) strings can lead to at least inconsistent
