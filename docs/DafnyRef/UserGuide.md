@@ -1212,6 +1212,15 @@ older versions of Dafny.
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
 
+  This option can also be set locally (at the module level) using the `:options`
+  attribute:
+
+  ```dafny
+  module {:options "-functionSyntax:4"} M {
+    predicate CompiledPredicate() { true }
+  }
+  ```
+
 * `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
     The syntax for quantification domains is changing from Dafny version 3 to version 4,
     more specifically where quantifier ranges (`| <Range>`) are allowed.
