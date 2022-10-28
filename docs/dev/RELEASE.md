@@ -62,8 +62,11 @@ If something goes wrong with the `release` step:
 
 10. Make a documentation snapshot
    a. If you have not already, make a personal clone of the 
-      dafny-lang/dafny-lang.github.io repo
-   b. Be sure that repo has a clean status
+      dafny-lang/dafny-lang.github.io repo. The dafny repo and the 
+      dafny-lang.github.io repo should be in sibling folders.
+   b. Be sure that the dafny repo has a clean status, is up-to-date, and
+      is in the master branch; be sure the dafny-lang.github.io repo has
+      a clean status, is up-to-date, and is in the main branch.
    c. In the dafny-lang/dafny repo, execute the script
       `docs/make-snapshot X.Y.Z`, where X.Y.Z is the new release number
    d. Go to the Pull Request sites for both dafny-lang/dafny and
