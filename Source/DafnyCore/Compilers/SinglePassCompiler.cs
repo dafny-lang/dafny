@@ -1335,7 +1335,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
-              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by enforce-determinism option", wr);
+              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option", wr);
             }
 
             var wIter = CreateIterator(iter, wr);
