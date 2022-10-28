@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
@@ -2609,32 +2610,31 @@ method Test() {
         return;
       }
       // Step 1: Collect all the tokens of the program
-      var allTokens = new HashSet<int>();
+      var tokensWithoutOwner = new HashSet<int>();
+      var posToOwnerNode = new Dictionary<int, List<INode>>();
+
       var t = firstToken;
       while (t != null) {
         if (t.val != "") {
-          allTokens.Add(t.pos);
+          tokensWithoutOwner.Add(t.pos);
         }
 
         t = t.Next;
       }
 
-      void ProcessOwnedTokens(IEnumerable<IToken> ownedTokens) {
+      void ProcessOwnedTokens(INode node) {
+        var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
-          allTokens.Remove(token.pos);
+          tokensWithoutOwner.Remove(token.pos);
+          posToOwnerNode.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
         }
       }
-
 
       void ProcessNode(INode node) {
         if (node == null) {
           return;
         }
-
-        if (node is ArrowType arrowType && arrowType.tok.line > 20) {
-          node = node;
-        }
-        ProcessOwnedTokens(node.OwnedTokens);
+        ProcessOwnedTokens(node);
         foreach (var child in node.ConcreteChildren) {
           ProcessNode(child);
         }
@@ -2642,15 +2642,23 @@ method Test() {
       ProcessNode(dafnyProgram);
 
       // Step 3: Report any token that was not removed
-      if (allTokens.Count > 0) {
+      if (tokensWithoutOwner.Count > 0) {
         IToken? notOwnedToken = firstToken;
-        while (notOwnedToken != null && !allTokens.Contains(notOwnedToken.pos)) {
+        while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
           notOwnedToken = notOwnedToken.Next;
         }
 
         if (notOwnedToken == null) {
           return;
         }
+
+        var prevOwnedToken = notOwnedToken.Prev;
+        var nextOwnedToken = notOwnedToken.Next;
+        while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
+          nextOwnedToken = nextOwnedToken.Next;
+        }
+        var prevNodeOwning = posToOwnerNode[prevOwnedToken.pos];
+        var nextNodeOwning = nextOwnedToken != null ? posToOwnerNode[nextOwnedToken.pos] : null;
         var before = programNotIndented.Substring(0, notOwnedToken.pos);
         var after = programNotIndented.Substring(notOwnedToken.pos + notOwnedToken.val.Length);
         var beforeContextLength = Math.Min(before.Length, 50);

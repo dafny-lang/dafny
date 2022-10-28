@@ -4394,7 +4394,7 @@ ConstAtomExpression<out Expression e>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"                                        (. ownedTokens.Add(t); .)
   | ParensExpression<out e>
-  ) (. if(!(e is ParensExpression)) { e.OwnedTokens = ownedTokens; } .)
+  ) (. if(!(e is ParensExpression) && !(e is LiteralExpr)) { e.OwnedTokens = ownedTokens; } .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4412,7 +4412,7 @@ LiteralExpression<out Expression e>
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
-  )
+  ) (. e.OwnedTokens = new List<IToken>(){t}; .)
   .
 
 /*------------------------------------------------------------------------*/

@@ -889,6 +889,7 @@ public class UpdateStmt : ConcreteUpdateStatement {
 
   // Both resolved and unresolved are required. Duplicate usages will be filtered out.
   public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
+  public override IEnumerable<INode> ConcreteChildren => Lhss.Concat<INode>(Rhss);
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
@@ -990,6 +991,9 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
 public class AssignStmt : Statement {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
+  public override IEnumerable<INode> Children => new List<INode> { Lhs, Rhs }.OfType<INode>();
+  public override IEnumerable<INode> ConcreteChildren => Children;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);
