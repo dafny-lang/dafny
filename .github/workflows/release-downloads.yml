@@ -83,6 +83,7 @@ jobs:
     ## Check that a simple program compiles and runs on each supported platform
     - name: run quicktests
       run: |
+        npm install bignumber.js
         dafny/quicktest.sh > log.txt
         diff log.txt dafny/quicktest.out
     - name: Check C# compile
@@ -106,7 +107,6 @@ jobs:
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
-        npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node a.js dafny/DafnyRuntime.js > actual.txt
         diff expect.txt actual.txt
