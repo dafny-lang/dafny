@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..4]
+    public int DefiniteAssignmentLevel = 1; // [0..2]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -175,9 +175,7 @@ namespace Microsoft.Dafny {
       Version4,
     }
 
-    public bool ForbidNondeterminism {
-      get { return DefiniteAssignmentLevel == 3; }
-    }
+    public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
@@ -536,6 +534,10 @@ namespace Microsoft.Dafny {
             int da = 0;
             if (ps.GetIntArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
+            }
+
+            if (da == 3) {
+              ForbidNondeterminism = true;
             }
 
             return true;
