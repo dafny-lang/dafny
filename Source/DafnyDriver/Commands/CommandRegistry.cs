@@ -27,13 +27,18 @@ static class CommandRegistry {
     PluginOption.Instance,
     BoogieOption.Instance,
     PreludeOption.Instance,
+
+    // Related to warnings
+    StrictDefiniteAssignmentOption.Instance,
+    EnforceDeterminismOption.Instance,
+    WarnShadowingOption.Instance,
+    WarningsAsErrorsOption.Instance,
+
+    // Hidden
     UseBaseFileNameOption.Instance,
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
-    InputsOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
-    EnforceDeterminismOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {
