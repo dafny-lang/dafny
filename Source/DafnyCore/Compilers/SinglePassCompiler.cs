@@ -3092,7 +3092,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic loop forbidden by enforce-determinism option", wr);
+            Error(s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
           }
           // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
