@@ -1702,11 +1702,15 @@ IdentType<.out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId, List<ITok
 
 LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
 = (. IToken id;  Type ty;  Type optType = null;
+     var ownedTokens = new List<IToken>();
   .)
-  WildIdent<out id, allowWild>
-  [ ":" Type<out ty>             (. optType = ty; .)
+  WildIdent<out id, allowWild> (. ownedTokens.Add(t); .)
+  [ ":"                      (. ownedTokens.Add(t); .)
+    Type<out ty>             (. optType = ty; .)
   ]
-  (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
+  (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost);
+     var.OwnedTokens = ownedTokens;
+  .)
   .
 
 IdentTypeOptional<out BoundVar var>
@@ -1846,7 +1850,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance, L
     .)
     [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
     ]
-    TypeVariableName<out id>
+    TypeVariableName<out id> (. ownedTokens.Add(t); .)
     { TypeParameterCharacteristics<ref characteristics> }
     (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   }
@@ -2296,6 +2300,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     )                (. tok = t; ownedTokens.Add(t); .)
     Type<out t2>
     (. if (tupleArgTypes != null) {
+         // Otherwise they are discarded
+         ownedTokens = ty.OwnedTokens.Concat(ownedTokens).ToList();
          gt = tupleArgTypes;
         } else {
          gt = new List<Type>{ ty };
@@ -3139,7 +3145,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   "var"                                     (. if (!isGhost) { x = t; } ownedTokens.Add(t); .)
   ( IF(!IsPatternDecl())
     { Attribute<ref attrs> }
-    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); ownedTokens.Add(t); d.Attributes = attrs; attrs = null; .)
+    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     { ","                                     (. ownedTokens.Add(t); .)
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); ownedTokens.Add(t); d.Attributes = attrs; attrs = null; .)

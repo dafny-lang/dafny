@@ -2630,6 +2630,10 @@ method Test() {
         if (node == null) {
           return;
         }
+
+        if (node is ArrowType arrowType && arrowType.tok.line > 20) {
+          node = node;
+        }
         ProcessOwnedTokens(node.OwnedTokens);
         foreach (var child in node.ConcreteChildren) {
           ProcessNode(child);

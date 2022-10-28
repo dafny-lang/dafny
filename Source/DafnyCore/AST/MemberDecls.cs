@@ -379,6 +379,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   }
 
   public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
+    Concat<INode>(TypeArgs).
     Concat<INode>(Reads).
     Concat<INode>(Req.Select(e => e.E)).
     Concat(Ens.Select(e => e.E)).
@@ -673,7 +674,7 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
+  public override IEnumerable<INode> Children => (Body == null ? Enumerable.Empty<INode>() : new List<INode> { Body }).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
     Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
   public override IEnumerable<INode> ConcreteChildren => Children;

@@ -429,6 +429,7 @@ public class ModuleExportDecl : ModuleDecl {
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
+  public override IEnumerable<INode> ConcreteChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(IToken tok, ModuleDefinition parent,

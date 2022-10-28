@@ -2032,7 +2032,8 @@ public class ArrowType : UserDefinedType {
     }
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Args.Concat(new List<INode>() { Result }));
+  public override IEnumerable<INode> Children => Args.Concat(new List<INode>() { Result });
+  public override IEnumerable<INode> ConcreteChildren => Args.Concat(new List<INode>() { Result });
 }
 
 public abstract class CollectionType : NonProxyType {
