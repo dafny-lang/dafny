@@ -148,6 +148,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // Go ignores all filenames starting with underscores.  So we're forced
         // to rewrite "__default" to "default__".
+        moduleName = moduleName.Replace(".", "_");
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
           UnsupportedFeatureError(Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
