@@ -7,7 +7,7 @@ layout: default
 The current development work and git history of documentation is in the 
 `dafny-lang/dafny` repository, in the `docs` folder.
 
-This `dafny-lang/dafny.github.io` repo is the target for `https://dafny.org` 
+The `dafny-lang/dafny.github.io` repo is the target for `https://dafny.org` 
 and is the entry point to all the user-facing documentation about Dafny.
 
 At the top-level is just the index.html landing page, supporting files 

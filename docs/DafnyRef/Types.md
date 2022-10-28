@@ -3003,16 +3003,16 @@ a := new T[n];
 The initial values of the array elements are arbitrary values of type
 `T`. 
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
-```
+```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
 The initialazation can also use an expression that returns a function of type `nat -> T`:
-```
+```dafny
 a := new int[5](i => i*i);
 ```
 In fact, the initializer can simply be a function name for the right type of function:
-```
-a := new int[5]{Square);
+```dafny
+a := new int[5](Square);
 ```
 
 The length of an array is retrieved using the immutable `Length`
@@ -3259,7 +3259,7 @@ The in-parameters of the iterator are stored in immutable fields of
 the iterator class.  To illustrate in terms of the example above, the
 iterator class `Gen` contains the following field:
 ```dafny
-var start: int
+const start: int
 ```
 The yield-parameters also result in members of the iterator class:
 ```dafny
@@ -3353,8 +3353,7 @@ method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
 }
 ```
 
-TODO: The section above can use some rewriting, a summary of the
-defined members of an iterator, and more examples. Probably also a redesign.
+The design of iterators is [under discussion and may change](https://github.com/dafny-lang/dafny/issues/2440).
 
 <!--
 Make this a heading if it is uncommented
