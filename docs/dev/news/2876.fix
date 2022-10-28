@@ -1,3 +1,0 @@
-Previously, for a file printing the number of arguments, `dafny printing.dfy -compileTarget:js --args 1 2 3` would print 4: one for the executable, one for each argument.
-But `dafny -compile:2 -compileTarget:js printing.dfy; node ./printing.js` would print 5: One for `node`, one for `./printing.js`, and one for each argument.
-This fix ensures that `node ./printing.js` is considered as a single argument, and the first argument, to be consistent with every other language.
