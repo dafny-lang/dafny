@@ -2955,7 +2955,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by enforce-determinism option", wr);
+            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
           }
         } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
           TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
