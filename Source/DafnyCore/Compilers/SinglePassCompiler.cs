@@ -3016,7 +3016,7 @@ namespace Microsoft.Dafny.Compilers {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic if statement forbidden by enforce-determinism option", wr);
+            Error(s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
           }
           // we can compile the branch of our choice
           ConcreteSyntaxTree guardWriter;
