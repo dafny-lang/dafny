@@ -59,7 +59,7 @@ namespace XUnitExtensions.Lit {
       // `GetConsoleCP` to determine what encoding to use, then uses that when
       // `Console.WriteLine` is called (and replaces unsupported characters by
       // the fallback character `?`).  Here is a concrete demo, with character
-      // U+20AC (€) (which is supported by codepage 85001 but not 850):
+      // U+20AC (€) (which is supported by codepage 65001 but not 850):
       //
       // > mkdir demo
       // > cd demo
