@@ -729,7 +729,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
       if (compileName == null) {
         var externArgs = DafnyOptions.O.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
         if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-          compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+          compileName = DafnyOptions.O.Compiler.GetModuleCompileName(IsDefaultModule, (string)((StringLiteralExpr)externArgs[0]).Value);
         } else if (externArgs != null) {
           compileName = Name;
         } else {

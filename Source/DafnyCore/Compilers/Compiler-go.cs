@@ -67,6 +67,10 @@ namespace Microsoft.Dafny.Compilers {
       public bool SuppressDummy;
     }
 
+    public override string GetModuleCompileName(bool isDefaultModule, string moduleName) {
+      return moduleName.Replace(".", "_m");
+    }
+
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
@@ -148,7 +152,6 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // Go ignores all filenames starting with underscores.  So we're forced
         // to rewrite "__default" to "default__".
-        moduleName = moduleName.Replace(".", "_");
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
           UnsupportedFeatureError(Token.NoToken, Feature.AllUnderscoreExternalModuleNames,

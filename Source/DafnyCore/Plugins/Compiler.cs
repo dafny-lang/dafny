@@ -57,6 +57,12 @@ public abstract class Compiler {
   /// </summary>
   public abstract string PublicIdProtect(string name);
   /// <summary>
+  /// Qualify the name <c>moduleName</c>.
+  /// </summary>
+  public virtual string GetModuleCompileName(bool isDefaultModule, string moduleName) =>
+    PublicIdProtect(moduleName);
+  
+  /// <summary>
   /// Qualify the name <c>compileName</c> in module <c>moduleName</c>.
   /// </summary>
   public virtual string GetCompileName(bool isDefaultModule, string moduleName, string compileName) =>

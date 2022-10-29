@@ -1269,6 +1269,11 @@ namespace Microsoft.Dafny.Compilers {
         if (!m.IsToBeCompiled) {
           continue;
         }
+
+        bool compileModule = true;
+        if (Attributes.ContainsBool(m.Attributes, "compile", ref compileModule) && !compileModule) {
+          continue;
+        }
         var moduleIsExtern = false;
         string libraryName = null;
         if (!DafnyOptions.O.DisallowExterns) {
