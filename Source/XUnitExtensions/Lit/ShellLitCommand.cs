@@ -92,7 +92,7 @@ namespace XUnitExtensions.Lit {
       process.StartInfo.CreateNoWindow = false;
       Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-      // Finally, for Java + Ubuntu, we make sure to forward LANG:
+      // Finally, for Java + Ubuntu, we make sure to set LANG:
       process.StartInfo.EnvironmentVariables.Add("LANG", "C.UTF-8");
 
       process.Start();
