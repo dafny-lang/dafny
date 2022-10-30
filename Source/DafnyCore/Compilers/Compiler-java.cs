@@ -3765,9 +3765,24 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
-      } else {
+      }
+
+      if (from == null || to == null) {
         return wr;
       }
+      if (UnicodeChars && from.IsTypeParameter && to.IsCharType) {
+        wr.Write($"((dafny.CodePoint)(");
+        var w = wr.Fork();
+        wr.Write(")).value()");
+        return w;
+      }
+      if (UnicodeChars && from.IsCharType && to.IsTypeParameter) {
+        wr.Write($"new dafny.CodePoint(");
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+      return wr;
     }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {

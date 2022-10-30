@@ -36,11 +36,11 @@ public class Helpers {
        return DafnySequence.fromArray(type, dafnyArgs);
     }
 
-    public static String ToStringLiteral(DafnySequence<? extends Integer> dafnyString) {
+    public static String ToStringLiteral(DafnySequence<? extends CodePoint> dafnyString) {
         StringBuilder builder = new StringBuilder();
         builder.append("\"");
-        for (int codePoint : dafnyString) {
-            AppendCodePointWithEscaping(builder, codePoint);
+        for (CodePoint codePoint : dafnyString) {
+            AppendCodePointWithEscaping(builder, codePoint.value());
         }
         builder.append("\"");
         return builder.toString();
