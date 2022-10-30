@@ -109,7 +109,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new StringDafnySequence(s);
     }
 
-    public static DafnySequence<Integer> asUnicodeString(String s) {
+    public static DafnySequence<CodePoint> asUnicodeString(String s) {
         int[] codePoints = new int[s.codePointCount(0, s.length())];
         int charIndex = 0;
         for (int codePointIndex = 0; codePointIndex < codePoints.length; codePointIndex++) {

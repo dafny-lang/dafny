@@ -27,10 +27,10 @@ public class Helpers {
        return DafnySequence.fromArray(type, dafnyArgs);
     }
     
-    public static DafnySequence<? extends DafnySequence<? extends Integer>> UnicodeFromMainArguments(String[] args) {
+    public static DafnySequence<? extends DafnySequence<? extends CodePoint>> UnicodeFromMainArguments(String[] args) {
        @SuppressWarnings("unchecked")
-       TypeDescriptor<DafnySequence<? extends Integer>> type = DafnySequence.<Integer>_typeDescriptor(TypeDescriptor.INT);
-       dafny.Array<DafnySequence<? extends Integer>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
+       TypeDescriptor<DafnySequence<? extends CodePoint>> type = DafnySequence.<CodePoint>_typeDescriptor(TypeDescriptor.UNICODE_CHAR);
+       dafny.Array<DafnySequence<? extends CodePoint>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
        dafnyArgs.set(0, DafnySequence.asUnicodeString("java"));
        for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asUnicodeString(args[i]));
        return DafnySequence.fromArray(type, dafnyArgs);

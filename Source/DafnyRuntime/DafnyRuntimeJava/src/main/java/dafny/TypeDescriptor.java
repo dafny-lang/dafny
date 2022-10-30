@@ -116,8 +116,8 @@ public abstract class TypeDescriptor<T> {
         return new CharType(d);
     }
 
-    public static TypeDescriptor<Integer> unicodeCharWithDefault(char d) {
-        return new UnicodeCharType(d);
+    public static TypeDescriptor<CodePoint> unicodeCharWithDefault(char d) {
+        return new UnicodeCharType(new CodePoint(d));
     }
 
     @FunctionalInterface
@@ -131,7 +131,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
     public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
-    public static final TypeDescriptor<Integer> UNICODE_CHAR = new UnicodeCharType((int)'D');
+    public static final TypeDescriptor<CodePoint> UNICODE_CHAR = new UnicodeCharType(new CodePoint((int)'D'));
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -556,22 +556,22 @@ public abstract class TypeDescriptor<T> {
         }
     }
 
-    private static final class UnicodeCharType extends TypeDescriptor<Integer> {
-        private final Integer DEFAULT;
+    private static final class UnicodeCharType extends TypeDescriptor<CodePoint> {
+        private final CodePoint DEFAULT;
 
-        public UnicodeCharType(int d) {
-            super(Integer.TYPE);
+        public UnicodeCharType(CodePoint d) {
+            super(CodePoint.class);
             DEFAULT = d;
         }
 
         @Override
-        public Integer defaultValue() {
+        public CodePoint defaultValue() {
             return DEFAULT;
         }
 
         @Override
         public boolean isInstance(Object object) {
-            return object instanceof Integer;
+            return object instanceof CodePoint;
         }
 
         @Override
@@ -580,13 +580,13 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public Integer getArrayElement(Object array, int index) {
-            return ((int[]) array)[index];
+        public CodePoint getArrayElement(Object array, int index) {
+            return new CodePoint(((int[]) array)[index]);
         }
 
         @Override
-        public void setArrayElement(Object array, int index, Integer value) {
-            ((int[]) array)[index] = value;
+        public void setArrayElement(Object array, int index, CodePoint value) {
+            ((int[]) array)[index] = value.value();
         }
 
         @Override
@@ -595,8 +595,8 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public void fillArray(Object array, Integer value) {
-            Arrays.fill((int[]) array, value);
+        public void fillArray(Object array, CodePoint value) {
+            Arrays.fill((int[]) array, value.value());
         }
 
         @Override

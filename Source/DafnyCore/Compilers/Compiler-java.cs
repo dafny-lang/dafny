@@ -660,7 +660,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string CharTypeName(bool boxed) {
       if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        return boxed ? "Integer" : "int";
+        return boxed ? "dafny.CodePoint" : "int";
       } else {
         return boxed ? "Character" : "char";
       }
