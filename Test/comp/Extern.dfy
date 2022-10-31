@@ -54,7 +54,9 @@ module {:extern "Library"} Library {
   }
 }
 
-module {:compile false} {:extern "Nested"} Nested {
+// Expanded like this for the benefit of Go.
+// See https://github.com/dafny-lang/dafny/issues/2953.
+module {:compile false} Nested {
   module {:extern "Nested.Library"} Library {
     method {:extern} Foo()
   }
