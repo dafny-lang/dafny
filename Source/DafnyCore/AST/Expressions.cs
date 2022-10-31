@@ -1035,7 +1035,12 @@ public class DatatypeValue : Expression, IHasUsages {
   }
 
   public override IEnumerable<Expression> SubExpressions {
-    get { return Arguments; }
+    get {
+      return Bindings.Arguments != null ? Arguments :
+        Bindings.ArgumentBindings != null ? Bindings.ArgumentBindings.Select(binding => binding.Actual) :
+        new List<Expression>() { };
+      ;
+    }
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
