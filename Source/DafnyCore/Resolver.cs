@@ -4810,6 +4810,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
+      // Special case: strings.
+      super = super.AsSeqType is { } nonNull ? nonNull : super;
       if (polarities == null) {
         errorMsg.FlagAsError();
         return false;
