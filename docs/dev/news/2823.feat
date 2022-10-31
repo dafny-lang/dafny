@@ -1,1 +1,7 @@
 Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases. Run the Dafny CLI without arguments to view help for this new UI.
+The option definiteAssignment is replaced by two independent options, enforce-determinism and strict-definite-assignment, using the following mappoing:
+definiteAssignment => enforce-determinism, strict-definite-assignment
+0 => unmapped
+1 => false, false
+2 => false, true
+3 => true, true
