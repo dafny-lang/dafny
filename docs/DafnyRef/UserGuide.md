@@ -1221,6 +1221,9 @@ older versions of Dafny.
   implicitly static and field declarations are not allowed at the
   module scope.
 
+* `--enforce-determinism` add a check that only deterministic statements are used, so that
+  values seen during execution will be the same in every run of the program.
+
 ### 25.9.6. Controlling warnings {#sec-controlling-warnings}
 
 These options control what warnings Dafny produces, and whether to treat
