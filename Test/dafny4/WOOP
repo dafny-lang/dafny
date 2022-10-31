@@ -1,0 +1,7 @@
+// Dafny 3.9.0.41003
+// Command Line Options: /useBaseNameForFileName /vcsCores:2 /compileVerbose:0 /timeLimit:300 /arith:10 /Users/remywillems/SourceCode/dafny/Test/dafny4/git-issue250.dfy
+// git-issue250.dfy
+
+method Main()
+{
+}

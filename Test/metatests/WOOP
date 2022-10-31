@@ -1,0 +1,16 @@
+// Dafny 3.9.0.41003
+// Command Line Options: /useBaseNameForFileName /vcsCores:2 /compileVerbose:0 /timeLimit:300 /noVerify /compile:4 /compileTarget:go /Users/remywillems/SourceCode/dafny/Test/metatests/ConsistentWhenSupported.dfy
+// ConsistentWhenSupported.dfy
+
+iterator EmptyIterator() yields (r: bool)
+  ensures false
+{
+}
+
+method Main()
+{
+  var i := new EmptyIterator();
+  var more := i.MoveNext();
+  expect !more, "expectation violation"
+  print "All done iterating!\n";
+}

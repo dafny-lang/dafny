@@ -123,13 +123,26 @@ written command-line will still be valid.
 The following commands are recognized. In each case all files listed are parsed and typechecked.
 - `dafny verify` -- verifies the listed files. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
-This is similar to using the option `/compile:0` in the old-style command-line. 
-- `dafny run` -- verifies, compiles and runs the Dafny program. The option `--no-verify` suppresses verification checks. The `-t` or `--target` option states the target platform to compile to (default is C#). 
-This is similar to the old-style options `/compile:3` or `/compile:4`.
 - `dafny translate` -- verifies the program and translates it to a source artifact, perhaps with information for
-a target language build tool, for the target platform, similar to the previous `/compile:0 '/spillTargetCode:2`.
+a target language build tool, for the target platform.
 `--no-verify` suppresses verification checks.
 - `dafny build` -- verifies (except if `--no-verify` is used) and compiles the Dafny program, producing an executable artifact for the target system. The command has options that enable being specific about the build platform and architecture.
+- `dafny run` -- verifies, compiles and runs the Dafny program. The option `--no-verify` suppresses verification checks. The `-t` or `--target` option states the target platform to compile to (default is `cs` (meaning C#)). 
+`dafny run` takes only one .dfy file. Any other .dfy file and any other
+command-line argument that is not an option or its value or is after a `--`
+argument is considered a command-line argument for the user program being 
+built and run. For example,
+  - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments
+  - `dafny run A.dfy --no-verify` -- builds the Main program in `A.dfy` using the `--no-verify` option, and then runs the program with no command-line arguments
+  - `dafny run A.dfy 1 2 3 B.dfy` -- builds the Main program in `A.dfy` and
+then runs it with the four command-line arguments `1 2 3 B.dfy`
+  - `dafny run A.dfy 1 2 3 --input B.dfy` -- builds the Main program in `A.dfy` and `B.dfy`, and
+then runs it with the three command-line arguments `1 2 3`
+  - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
+If building a `.dfy` file containing the `Main` method requires additional
+`.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use 
+the `--input` option for each extra file or use `dafny build` to build the executable and then run it in an 
+additional step.
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
@@ -139,6 +152,7 @@ with an unsupported suffix, provoking an error message..
 - There must be at least one `.dfy` file.
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to.
+- The option `--` means that all subsequent command-line arguments are not options to the dafny tool; they are either files or arguments to the `dafny run` command.
 - Old-style options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance.
 - If an option takes an argument, the option name is followed by a `:` (old-style) or `=` (new-style) and then by the argument value, with no
@@ -1148,7 +1162,6 @@ code (which can be helpful for debugging).
     ```
 
 ### 25.9.5. Controlling language features {#sec-controlling-language}
-{#sec-function-syntax}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
@@ -1158,6 +1171,8 @@ older versions of Dafny.
 
 * `-noExterns` - ignore `extern` and `dllimport` attributes in the
   program.
+
+<a id="sec-function-syntax"/>
 
 * `-functionSyntax:<version>` - select what function syntax to
   recognize. The syntax for functions is changing from Dafny version 3
@@ -1178,7 +1193,8 @@ older versions of Dafny.
     this flag on your version 3 program to flag all occurrences of
     `function` and `predicate` as parsing errors. These are ghost
     functions, so change those into the new syntax `ghost function` and
-    `ghost predicate`. Then, start using `-functionSyntax:4`. This will
+    `ghost predicate`. Then, start using \
+    `-functionSyntax:4`. This will
     flag all occurrences of `function method` and `predicate method` as
     parsing errors. So, change those to just `function` and `predicate`.
     As a result, your program will use version 4 syntax and have the
@@ -1195,6 +1211,15 @@ older versions of Dafny.
   * `experimentalPredicateAlwaysGhost` - compiled functions are written
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
+
+  This option can also be set locally (at the module level) using the `:options`
+  attribute:
+
+  ```dafny
+  module {:options "-functionSyntax:4"} M {
+    predicate CompiledPredicate() { true }
+  }
+  ```
 
 * `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
     The syntax for quantification domains is changing from Dafny version 3 to version 4,

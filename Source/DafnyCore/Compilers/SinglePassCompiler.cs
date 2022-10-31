@@ -1354,7 +1354,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
-              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option", wr);
+              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option", wr);
             }
 
             var wIter = CreateIterator(iter, wr);
@@ -2947,7 +2947,7 @@ namespace Microsoft.Dafny.Compilers {
               var rhs = s.Rhss[i];
               if (rhs is HavocRhs) {
                 if (DafnyOptions.O.ForbidNondeterminism) {
-                  Error(rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+                  Error(rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
                 }
               } else {
                 lhss.Add(lhs);
@@ -2974,7 +2974,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
           }
         } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
           TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
@@ -2988,7 +2988,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "assign-such-that statement forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
         if (s.AssumeToken != null) {
           // Note, a non-ghost AssignSuchThatStmt may contain an assume
@@ -3035,7 +3035,7 @@ namespace Microsoft.Dafny.Compilers {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic if statement forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
           }
           // we can compile the branch of our choice
           ConcreteSyntaxTree guardWriter;
@@ -3060,7 +3060,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else {
           if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "binding if statement forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "binding if statement forbidden by the --enforce-determinism option", wr);
           }
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
@@ -3089,7 +3089,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
-          Error(s.Tok, "case-based if statement forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "case-based if statement forbidden by the --enforce-determinism option", wr);
         }
         foreach (var alternative in s.Alternatives) {
           ConcreteSyntaxTree guardWriter;
@@ -3111,7 +3111,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
           }
           // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
@@ -3128,7 +3128,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (stmt is AlternativeLoopStmt loopStmt) {
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(loopStmt.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
+          Error(loopStmt.Tok, "case-based loop forbidden by the --enforce-determinism option", wr);
         }
         if (loopStmt.Alternatives.Count != 0) {
           ConcreteSyntaxTree whileGuardWriter;
@@ -3176,7 +3176,7 @@ namespace Microsoft.Dafny.Compilers {
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
@@ -3339,7 +3339,7 @@ namespace Microsoft.Dafny.Compilers {
         if (s.Body != null) {
           TrStmt(s.Body, wr);
         } else if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
         EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
