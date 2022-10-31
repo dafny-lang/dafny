@@ -249,7 +249,7 @@ public class CompileNestedMatch {
         }
       }
 
-      new GhostInterest_Visitor(resolutionContext.CodeContext, null, false).Visit(result, nestedMatchStmt.IsGhost, null);
+      new GhostInterest_Visitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, false).Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
@@ -946,26 +946,14 @@ public class CompileNestedMatch {
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
       cPat.AssembleExpr(null); // TODO null?
       var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-      cLet.IsGhost = isGhost; //stmtPath.Body.All(g => g.IsGhost);
+      cLet.IsGhost = isGhost;
 
       var substitutions = new Dictionary<IVariable, Expression>() {
         { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, cLVar)}
       };
-      // var substituter = new Substituter(null, substitutions, new Dictionary<TypeParameter, Type>());
 
       var cloner = new SubstitutingCloner(substitutions, true);
       var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s)).ToList();
-      // foreach (var stmt in clonedBody) {
-      //   ((INode)stmt).Visit(node => {
-      //     ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
-      //       if (expr == null) {
-      //         return null;
-      //       }
-      //       return substituter.Substitute(expr);
-      //     });
-      //     return true;
-      //   });
-      // }
 
       return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new[] { cLet }.Concat(clonedBody).ToList(), stmtPath.Attributes);
     }

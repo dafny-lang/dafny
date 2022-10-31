@@ -4038,9 +4038,6 @@ public class NameSegment : ConcreteSyntaxExpression {
   public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
     Name = original.Name;
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
-    if (cloner.CloneResolvedFields) {
-      ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
-    }
   }
 }
 
@@ -4094,7 +4091,8 @@ public class ApplySuffix : SuffixExpr {
   }
 
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
-    base(cloner, original) {
+    base(cloner, original) 
+  {
     AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
     CloseParen = cloner.Tok(original.CloseParen);
     FormatTokens = original.FormatTokens;

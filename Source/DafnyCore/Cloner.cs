@@ -691,7 +691,7 @@ namespace Microsoft.Dafny {
         r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
 
       } else if (stmt is CallStmt s) {
-        r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs, s.MethodSelect, s.Args);
+        r = new CallStmt(this, s);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
