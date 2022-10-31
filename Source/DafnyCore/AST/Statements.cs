@@ -27,7 +27,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     Contract.Invariant(EndTok != null);
   }
 
-  [FilledInDuringResolution] public bool IsGhost;
+  [FilledInDuringResolution] public bool IsGhost { get; set; }
 
   protected Statement(Cloner cloner, Statement original) {
     this.Tok = cloner.Tok(original.Tok);
