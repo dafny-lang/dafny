@@ -4809,6 +4809,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
+      super = super.NormalizeExpandKeepConstraints();
+      sub = sub.NormalizeExpandKeepConstraints();
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
