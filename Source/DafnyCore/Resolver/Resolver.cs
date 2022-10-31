@@ -2290,7 +2290,7 @@ namespace Microsoft.Dafny {
             formals.Add(k);
             if (m is ExtremePredicate) {
               var cop = (ExtremePredicate)m;
-              formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+              formals.AddRange(cop.Formals.ConvertAll(p => cloner.CloneFormal(p, false)));
 
               List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
@@ -2310,7 +2310,7 @@ namespace Microsoft.Dafny {
             } else {
               var com = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
-              formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
+              formals.AddRange(com.Ins.ConvertAll(p => cloner.CloneFormal(p, false)));
               // prepend _k to the given decreases clause
               var decr = new List<Expression>();
               decr.Add(new IdentifierExpr(com.tok, k.Name));
@@ -2325,7 +2325,7 @@ namespace Microsoft.Dafny {
                 ? new List<AttributedExpression>()
                 : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
-                com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
+                com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(p => cloner.CloneFormal(p, false)),
                 req, cloner.CloneSpecFrameExpr(com.Mod), ens,
                 new Specification<Expression>(decr, null),
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known

@@ -1630,6 +1630,19 @@ public class ForallStmt : Statement {
     Contract.Invariant(Ens != null);
   }
 
+  public ForallStmt(Cloner cloner, ForallStmt original) : base(cloner.Tok(original.Tok), cloner.Tok(original.EndTok)) {
+    BoundVars = original.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
+    Range = cloner.CloneExpr(original.Range);
+    Ens = original.Ens.Select(cloner.CloneAttributedExpr).ToList();
+    Body = cloner.CloneStmt(original.Body);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+
+    if (cloner.CloneResolvedFields) {
+      Bounds = original.Bounds;
+      Kind = original.Kind;
+    }
+  }
+  
   public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
     : base(tok, endTok, attrs) {
     Contract.Requires(tok != null);

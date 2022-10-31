@@ -30,7 +30,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
     if (cloner.CloneResolvedFields) {
-      BoundVar = original.BoundVar;
+      BoundVar = cloner.CloneIVariable(original.BoundVar, false);
       Type = original.Type;
     } else {
       Type = new InferredTypeProxy(); // TODO seems wrong. Should always copy type no?

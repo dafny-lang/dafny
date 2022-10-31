@@ -707,7 +707,7 @@ public abstract class Expression : INode {
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
     ResolvedCloner cloner = new ResolvedCloner();
-    var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
+    var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
     var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
@@ -758,7 +758,7 @@ public abstract class Expression : INode {
     Contract.Requires(expr != null);
 
     ResolvedCloner cloner = new ResolvedCloner();
-    var newVars = expr.BoundVars.ConvertAll(cloner.CloneBoundVar);
+    var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {
       body = expr.Term;
@@ -1165,7 +1165,7 @@ public class IdentifierExpr : Expression, IHasUsages {
     Name = original.Name;
 
     if (cloner.CloneResolvedFields) {
-      Var = original.Var;
+      Var = cloner.CloneIVariable(original.Var, true);
     }
   }
 
@@ -2927,6 +2927,19 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.BodyEndTok = endTok;
   }
 
+  protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner.Tok(original.tok)) {
+    BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
+    Range = cloner.CloneExpr(original.Range);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    BodyStartTok = cloner.Tok(original.BodyStartTok);
+    BodyEndTok = cloner.Tok(original.BodyEndTok);
+    Term = cloner.CloneExpr(original.Term);
+    
+    if (cloner.CloneResolvedFields) {
+      Bounds = original.Bounds;
+    }
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
@@ -2998,6 +3011,15 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     this.UniqueId = FreshQuantId();
   }
 
+  protected QuantifierExpr(Cloner cloner, QuantifierExpr original) : base(cloner, original) {
+    if (cloner.CloneResolvedFields) {
+      if (original.SplitQuantifier != null) {
+        SplitQuantifier = original.SplitQuantifier.Select(cloner.CloneExpr).ToList();
+      }
+    }
+    this.UniqueId = FreshQuantId();
+  }
+
   public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
     // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
     Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);
@@ -3032,6 +3054,10 @@ public class ForallExpr : QuantifierExpr {
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
   }
+
+  public ForallExpr(Cloner cloner, ForallExpr original) : base(cloner, original) {
+  }
+
   public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
     if (Range == null) {
       return Term;
@@ -3298,7 +3324,7 @@ public class CasePattern<VT> where VT : IVariable {
     tok = cloner.Tok(original.tok);
     Id = original.Id;
     if (original.Var != null) {
-      Var = cloner.CloneResolvedFields ? original.Var : cloner.CloneIVariable(original.Var);
+      Var = cloner.CloneIVariable(original.Var, false);
     }
 
     if (cloner.CloneResolvedFields) {

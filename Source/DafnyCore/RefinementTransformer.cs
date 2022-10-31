@@ -398,7 +398,7 @@ namespace Microsoft.Dafny {
         var (dn, nwn) = ((NewtypeDecl)d, (NewtypeDecl)nw);
         Contract.Assert(nwn.BaseType == null && nwn.Var == null &&
                         nwn.Constraint == null && nwn.Witness == null);
-        nwn.Var = dn.Var == null ? null : refinementCloner.CloneBoundVar(dn.Var);
+        nwn.Var = dn.Var == null ? null : refinementCloner.CloneBoundVar(dn.Var, false);
         nwn.BaseType = nwn.Var?.Type ?? refinementCloner.CloneType(dn.BaseType); // Preserve newtype invariant that Var.Type is BaseType
         nwn.Constraint = dn.Constraint == null ? null : refinementCloner.CloneExpr(dn.Constraint);
         nwn.WitnessKind = dn.WitnessKind;
@@ -540,13 +540,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
+      var formals = f.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = f.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
       var result = f.Result ?? moreResult;
       if (result != null) {
-        result = refinementCloner.CloneFormal(result);
+        result = refinementCloner.CloneFormal(result, false);
       }
 
       List<AttributedExpression> ens;
@@ -611,7 +611,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
+      var ins = m.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = m.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
@@ -633,20 +633,25 @@ namespace Microsoft.Dafny {
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is LeastLemma) {
-        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, 
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is GreatestLemma) {
-        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, 
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
-        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, 
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, 
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
-        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, 
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m.IsByMethod);
       }
     }
@@ -700,8 +705,8 @@ namespace Microsoft.Dafny {
       return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
         nw.Name, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
-        nw.SignatureIsOmitted ? prev.Ins.ConvertAll(refinementCloner.CloneFormal) : nw.Ins,
-        nw.SignatureIsOmitted ? prev.Outs.ConvertAll(refinementCloner.CloneFormal) : nw.Outs,
+        nw.SignatureIsOmitted ? prev.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false)) : nw.Ins,
+        nw.SignatureIsOmitted ? prev.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)) : nw.Outs,
         refinementCloner.CloneSpecFrameExpr(prev.Reads),
         refinementCloner.CloneSpecFrameExpr(prev.Modifies),
         refinementCloner.CloneSpecExpr(prev.Decreases),

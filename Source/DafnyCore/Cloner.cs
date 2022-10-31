@@ -7,11 +7,11 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
-using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
   public class Cloner {
     public bool CloneResolvedFields { get; }
+    private readonly Dictionary<IVariable, IVariable> clones = new();
 
     public Cloner(bool cloneResolvedFields = false) {
       this.CloneResolvedFields = cloneResolvedFields;
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), CloneAttributes(dd.Attributes));
+        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), CloneAttributes(dd.Attributes));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny {
         if (dd.Var == null) {
           return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
@@ -78,8 +78,8 @@ namespace Microsoft.Dafny {
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ins = dd.Ins.ConvertAll(CloneFormal);
-        var outs = dd.Outs.ConvertAll(CloneFormal);
+        var ins = dd.Ins.ConvertAll(bv => CloneFormal(bv, false));
+        var outs = dd.Outs.ConvertAll(bv => CloneFormal(bv, false));
         var reads = CloneSpecFrameExpr(dd.Reads);
         var mod = CloneSpecFrameExpr(dd.Modifies);
         var decr = CloneSpecExpr(dd.Decreases);
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny {
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
-      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.IsGhost, ct.Formals.ConvertAll(CloneFormal), CloneAttributes(ct.Attributes));
+      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.IsGhost, ct.Formals.ConvertAll(bv => CloneFormal(bv, false)), CloneAttributes(ct.Attributes));
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
@@ -193,8 +193,12 @@ namespace Microsoft.Dafny {
         return CloneResolvedFields // TODO why do we need this if instead of always using the clone constructor ?
           ? new UserDefinedType(this, tt)
           : new UserDefinedType(Tok(tt.tok), CloneExpr(tt.NamePath));
-      } else if (t is InferredTypeProxy) {
-        return new InferredTypeProxy();
+      } else if (t is InferredTypeProxy proxy) {
+        var inferredTypeProxy = new InferredTypeProxy();
+        if (CloneResolvedFields) {
+          inferredTypeProxy.T = proxy.T;
+        }
+        return inferredTypeProxy;
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {
@@ -203,34 +207,49 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Formal CloneFormal(Formal formal) {
-      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation);
-      return f;
+    public Formal CloneFormal(Formal formal, bool isReference) {
+      return (Formal)clones.GetOrCreate(formal, () => isReference ? formal : 
+        new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
+        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation));
     }
 
-    public virtual BoundVar CloneBoundVar(BoundVar bv) {
-      var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.SyntacticType));
-      bvNew.IsGhost = bv.IsGhost;
-      return bvNew;
+    public virtual BoundVar CloneBoundVar(BoundVar bv, bool isReference) {
+      return (BoundVar)clones.GetOrCreate(bv, () => {
+        if (isReference) {
+          return bv;
+        }
+        var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.SyntacticType));
+        bvNew.IsGhost = bv.IsGhost;
+        return bvNew;
+      });
     }
 
-    public virtual LocalVariable CloneLocalVariable(LocalVariable local) {
-      return new LocalVariable(this, local);
+    public virtual LocalVariable CloneLocalVariable(LocalVariable local, bool isReference) {
+      return (LocalVariable)clones.GetOrCreate(local, () => isReference ? local : new LocalVariable(this, local));
     }
-    public virtual VT CloneIVariable<VT>(VT v) where VT : IVariable {
-      var iv = (IVariable)v;
-      if (iv is Formal formal) {
-        iv = CloneFormal(formal);
-      } else if (iv is BoundVar boundVar) {
-        iv = CloneBoundVar(boundVar);
-      } else if (iv is LocalVariable localVariable) {
-        iv = CloneLocalVariable(localVariable);
-      } else {
-        Contract.Assume(false);  // unexpected IVariable
-        iv = null;  // please compiler
+    public virtual VT CloneIVariable<VT>(VT v, bool isReference) 
+      where VT : IVariable 
+    {
+      var iv = (IVariable) v;
+      if (iv is Formal formal)
+      {
+        iv = CloneFormal(formal, isReference);
       }
-      return (VT)iv;
+      else if (iv is BoundVar boundVar)
+      {
+        iv = CloneBoundVar(boundVar, isReference);
+      }
+      else if (iv is LocalVariable localVariable)
+      {
+        iv = CloneLocalVariable(localVariable, isReference);
+      }
+      else
+      {
+        Contract.Assume(false); // unexpected IVariable
+        iv = null; // please compiler
+      }
+
+      return (VT) iv;
     }
 
     public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
@@ -272,7 +291,7 @@ namespace Microsoft.Dafny {
 
     public virtual Expression CloneExpr(Expression expr) {
       var result = CloneExprInner(expr);
-      if (CloneResolvedFields && expr.Type != null) {
+      if (CloneResolvedFields && expr != null && expr.Type != null) {
         result.Type = expr.Type;
       }
       return result;
@@ -424,12 +443,12 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);
         var tkEnd = Tok(e.BodyEndTok);
-        var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
+        var bvs = e.BoundVars.ConvertAll(bv => CloneBoundVar(bv, false));
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
         if (e is QuantifierExpr q) {
-          if (e is ForallExpr) {
-            return new ForallExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
+          if (e is ForallExpr forallExpr) {
+            return new ForallExpr(this, forallExpr);
           } else if (e is ExistsExpr) {
             return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
@@ -485,7 +504,7 @@ namespace Microsoft.Dafny {
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
+      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(bv => CloneBoundVar(bv, false)), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
@@ -614,7 +633,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForLoopStmt) {
         var s = (ForLoopStmt)stmt;
-        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex, false), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
           s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -623,7 +642,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneAttributedExpr), CloneStmt(s.Body));
+        r = new ForallStmt(this, s);
+        // r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneAttributedExpr), CloneStmt(s.Body));
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
@@ -658,7 +678,7 @@ namespace Microsoft.Dafny {
         var s = (VarDeclStmt)stmt;
         var lhss = CloneResolvedFields
           ? s.Locals
-          : s.Locals.ConvertAll(CloneLocalVariable);
+          : s.Locals.ConvertAll(v => CloneLocalVariable(v, false));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
@@ -689,7 +709,8 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(v => CloneBoundVar(v, false)), 
+        c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -750,8 +771,8 @@ namespace Microsoft.Dafny {
 
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
-      var formals = f.Formals.ConvertAll(CloneFormal);
-      var result = f.Result != null ? CloneFormal(f.Result) : null;
+      var formals = f.Formals.ConvertAll(p => CloneFormal(p, false));
+      var result = f.Result != null ? CloneFormal(f.Result, false) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
       var decreases = CloneSpecExpr(f.Decreases);
@@ -791,7 +812,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
 
       var tps = CloneResolvedFields ? m.TypeArgs : m.TypeArgs.ConvertAll(CloneTypeParam);
-      var ins = m.Ins.ConvertAll(CloneFormal);
+      var ins = m.Ins.ConvertAll(p => CloneFormal(p, false));
       var req = m.Req.ConvertAll(CloneAttributedExpr);
       var mod = CloneSpecFrameExpr(m.Mod);
       var decreases = CloneSpecExpr(m.Decreases);
@@ -804,20 +825,20 @@ namespace Microsoft.Dafny {
         return new Constructor(Tok(m.tok), m.Name, m.IsGhost, tps, ins,
           req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
       } else if (m is LeastLemma) {
-        return new LeastLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new LeastLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is GreatestLemma) {
-        return new GreatestLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new GreatestLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
-        return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new TwoStateLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
-        return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m.IsByMethod);
       }
     }
@@ -1282,7 +1303,7 @@ namespace Microsoft.Dafny {
 
     public override CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) {
       if (pat.Var != null) {
-        var newPat = new CasePattern<VT>(pat.tok, CloneIVariable(pat.Var));
+        var newPat = new CasePattern<VT>(pat.tok, CloneIVariable(pat.Var, false));
         newPat.AssembleExpr(null);
         return newPat;
       } else {
@@ -1295,7 +1316,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override BoundVar CloneBoundVar(BoundVar bv) {
+    public override BoundVar CloneBoundVar(BoundVar bv, bool isReference) {
       // The difference here from the overridden method is that we do CloneType(bv.Type) instead of CloneType(bv.SyntacticType)
       var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
       bvNew.IsGhost = bv.IsGhost;

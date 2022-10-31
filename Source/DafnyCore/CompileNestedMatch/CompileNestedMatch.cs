@@ -947,23 +947,24 @@ public class CompileNestedMatch {
       var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
       cLet.IsGhost = isGhost; //stmtPath.Body.All(g => g.IsGhost);
 
-      var substituter = new Substituter(null, new Dictionary<IVariable, Expression>() {
+      var substitutions = new Dictionary<IVariable, Expression>() {
         { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, cLVar)}
-      }, new Dictionary<TypeParameter, Type>());
+      };
+      // var substituter = new Substituter(null, substitutions, new Dictionary<TypeParameter, Type>());
 
-      var cloner = new Cloner(true);
+      var cloner = new SubstitutingCloner(substitutions, true);
       var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s)).ToList();
-      foreach (var stmt in clonedBody) {
-        ((INode)stmt).Visit(node => {
-          ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
-            if (expr == null) {
-              return null;
-            }
-            return substituter.Substitute(expr);
-          });
-          return true;
-        });
-      }
+      // foreach (var stmt in clonedBody) {
+      //   ((INode)stmt).Visit(node => {
+      //     ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
+      //       if (expr == null) {
+      //         return null;
+      //       }
+      //       return substituter.Substitute(expr);
+      //     });
+      //     return true;
+      //   });
+      // }
 
       return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new[] { cLet }.Concat(clonedBody).ToList(), stmtPath.Attributes);
     }
