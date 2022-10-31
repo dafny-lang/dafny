@@ -268,7 +268,7 @@ namespace Microsoft.Dafny {
     public Attributes CloneAttributes(Attributes attrs) {
       if (attrs == null) {
         return null;
-      } else if (attrs.Name.StartsWith("_")) {
+      } else if (!CloneResolvedFields && attrs.Name.StartsWith("_")) {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes) {
