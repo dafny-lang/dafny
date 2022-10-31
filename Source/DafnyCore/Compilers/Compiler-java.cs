@@ -1205,12 +1205,17 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write($"{CollectionTypeUnparameterizedName(ct)}.of(");
       string sep = "";
-      if (ct is SeqType && !IsJavaPrimitiveType(ct.Arg)) {
+      if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeChars && ct.Arg.IsCharType))) {
         wr.Write(TypeDescriptor(ct.Arg, wr, tok));
         sep = ", ";
       }
+
+      TypeParameter elementTypeParameter = new TypeParameter(Token.NoToken, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive,
+        new TypeParameter.TypeParameterCharacteristics());
+      Type elementType = new UserDefinedType(Token.NoToken, elementTypeParameter);
       foreach (Expression e in elements) {
         wr.Write(sep);
+        wr = EmitCoercionIfNecessary(e.Type, elementType, Token.NoToken, wr);
         TrExpr(e, wr, inLetExprBody, wStmts);
         sep = ", ";
       }
