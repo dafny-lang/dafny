@@ -1019,6 +1019,22 @@ let _dafny = (function() {
     a.splice(0, 2, args[0] + " " + args[1]);
     return a;
   }
+  $module.INTERNAL_ReadBytesFromFile = function(path) {
+    const fs = require("fs");
+    const emptySeq = _dafny.Seq.of();
+    if (typeof(fs) !== 'object') {
+      return [true, emptySeq, "fs module not found (file I/O is only supported on Node)"];
+    }
+    try {
+      const readOpts = { encoding: null };  // read as buffer, not string
+      const buf = fs.readFileSync(path, readOpts);
+      const readBytes = _dafny.Seq.from(buf.valueOf(), byte => new BigNumber(byte));
+      return [false, readBytes, emptySeq];
+    } catch (e) {
+      const errorMsg = _dafny.Seq.from(e.toString());
+      return [true, emptySeq, errorMsg];
+    }
+  }
   return $module;
 
   // What follows are routines private to the Dafny runtime

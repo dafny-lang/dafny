@@ -420,3 +420,10 @@ class defaults:
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)
     tuple = staticmethod(lambda *args: lambda: tuple(a() for a in args))
+
+def INTERNAL_ReadBytesFromFile(path: Seq) -> (bool, Seq, Seq):
+    try:
+        with open(string_of(path), "rb") as file:
+            return False, Seq(file.read()), Seq()
+    except Exception as e:
+        return True, Seq(), Seq(str(e))

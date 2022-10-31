@@ -3,16 +3,13 @@
 
 package dafny;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.math.BigDecimal;
-import java.util.Collection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
-import java.util.function.*;
-import java.util.ArrayList;
-import java.lang.Iterable;
-import java.util.stream.Collectors;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -214,6 +211,18 @@ public class Helpers {
             runnable.run();
         } catch (DafnyHaltException e) {
             System.out.println("[Program halted] " + e.getMessage());
+        }
+    }
+    
+    public static Tuple3<Boolean, DafnySequence<? extends Byte>, DafnySequence<? extends Character>>
+        INTERNAL_ReadBytesFromFile(DafnySequence<? extends Character> path) {
+        try {
+            final String pathStr = new String((char[]) path.toArray().unwrap());
+            final DafnySequence<Byte> readBytes = DafnySequence.fromBytes(Files.readAllBytes(Paths.get(pathStr)));
+            return Tuple3.create(false, readBytes, DafnySequence.empty(TypeDescriptor.CHAR));
+        } catch (Exception ex) {
+            final DafnySequence<Character> errorMsg = DafnySequence.of(ex.toString().toCharArray());
+            return Tuple3.create(true, DafnySequence.empty(TypeDescriptor.BYTE), errorMsg);
         }
     }
 }

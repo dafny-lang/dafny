@@ -2310,7 +2310,7 @@ namespace Microsoft.Dafny.Compilers {
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
+        // WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
       psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
       foreach (var arg in DafnyOptions.O.MainArgs) {
