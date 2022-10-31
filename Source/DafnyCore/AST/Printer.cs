@@ -2598,7 +2598,7 @@ namespace Microsoft.Dafny {
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+        if (e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
