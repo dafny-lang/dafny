@@ -33,7 +33,6 @@ trait Storage<T(!new)> {
 		requires Invariant()
 		ensures Invariant()
 		ensures result.Success? <==> exists index: nat :: index < |log| && log[index].key == key 
-		ensures result.Failure? <==> !exists index: nat :: index < |log| && log[index].key == key
 		ensures result.Success? ==> last_occurence(key).Success? && last_occurence(key).value == result.value
 		
 	function method fget(key: nat): Outcome<T>
@@ -70,7 +69,6 @@ class MapStorage<T(!new)> extends Storage<T> {
 		requires Invariant()
 		ensures Invariant()
 		ensures result.Success? <==> exists index: nat :: index < |log| && log[index].key == key
-		ensures result.Failure? <==> !exists index: nat :: index < |log| && log[index].key == key
 		ensures result.Success? ==> last_occurence(key).Success? && last_occurence(key).value == result.value
 	{
 		if key in storage {
@@ -122,7 +120,8 @@ class MapStorage<T(!new)> extends Storage<T> {
 		requires Invariant()
 		requires fget(key).Success?
 		ensures exists index: nat :: index < |log| && log[index].key == key
+		ensures last_occurence(key).Success? && last_occurence(key).value == fget(key).value
 	{
 	}
-
+	
 }
