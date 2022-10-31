@@ -946,7 +946,7 @@ public class CompileNestedMatch {
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
       cPat.AssembleExpr(null); // TODO null?
       var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
-      cLet.IsGhost = isGhost;
+      cLet.IsGhost = isGhost; // TODO remove ghost assignments in CompileNestedMatch
 
       var substitutions = new Dictionary<IVariable, Expression>() {
         { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, cLVar)}
