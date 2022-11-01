@@ -470,6 +470,7 @@ public class ReturnStmt : ProduceStmt {
   public bool ReverifyPost;  // set during pre-resolution refinement transformation
 
   public ReturnStmt(Cloner cloner, ReturnStmt original) : base(cloner, original) {
+    ReverifyPost = original.ReverifyPost;
   }
 
   public ReturnStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
@@ -1150,7 +1151,7 @@ public class CallStmt : Statement {
   }
 
   public CallStmt(Cloner cloner, CallStmt original) : base(cloner, original) {
-    MethodSelect = original.MethodSelect;
+    MethodSelect = (MemberSelectExpr) cloner.CloneExpr(original.MethodSelect);
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
