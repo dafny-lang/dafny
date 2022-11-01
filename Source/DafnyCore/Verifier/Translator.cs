@@ -1653,7 +1653,9 @@ namespace Microsoft.Dafny {
 
     void AddEnsures(List<Bpl.Ensures> list, Bpl.Ensures ens) {
       list.Add(ens);
-      if (!ens.Free) { this.assertionCount++; }
+      if (!ens.Free) {
+        this.assertionCount++;
+      }
     }
 
     void AddWellformednessCheck(IteratorDecl iter, Procedure proc) {
