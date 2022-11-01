@@ -1036,10 +1036,11 @@ public class DatatypeValue : Expression, IHasUsages {
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      return Bindings.Arguments != null ? Arguments :
-        Bindings.ArgumentBindings != null ? Bindings.ArgumentBindings.Select(binding => binding.Actual) :
-        new List<Expression>() { };
-      ;
+      // Arguments is available only when fully resolved. Otherwise,
+      // only unresolved arguments (Actual) are available.
+      return Arguments ??
+             Bindings.ArgumentBindings?.Select(binding => binding.Actual) ??
+             Enumerable.Empty<Expression>();
     }
   }
 
