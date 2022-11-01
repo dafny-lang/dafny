@@ -10,30 +10,25 @@ body:
         Thanks for taking the time to fill out this bug report!
         Are you having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
         Please do not report security issues on this public tracker.  Instead, see https://github.com/dafny-lang/dafny/blob/master/.github/SECURITY.md
-  - type: dropdown
+  - type: input
     id: dafnyversion
     attributes:
-      label: What version of Dafny were you using?
-      multiple: false
-      options:
-        - latest
-        - 3.9.X
-        - 3.8.X
-        - 3.7.X
-        - other
+      label: Dafny version
+      description: What version of Dafny were you using? Run `dafny --version` on the command-line or look at the bottom right of VSCode when viewing a Dafny file.
+      placeholder: ex. 4.0.0
     validations:
       required: true
   - type: textarea
     id: code
     attributes:
-      label: Code to produce this issue.
+      label: Code to produce this issue
       description: Please paste a minimal example that reproduces the issue.
       render: dafny
   - type: textarea
     id: environment
     attributes:
-      label: Command to run into the issue or logs
-      description: "Please paste here what you ran and what were your your logs that you think ought to be different:"
+      label: Command to run and results
+      description: "Please paste here what you ran (command, vscode) and what were your results that you think ought to be different:"
       render: code
   - type: textarea
     id: what-happened
