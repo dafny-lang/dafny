@@ -7747,7 +7747,7 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterest_Visitor(codeContext, this, false);
+      var visitor = new GhostInterestVisitor(codeContext, this, false);
       visitor.Visit(stmt, mustBeErasable, proofContext);
     }
 

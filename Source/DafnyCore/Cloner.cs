@@ -456,8 +456,8 @@ namespace Microsoft.Dafny {
         if (e is QuantifierExpr q) {
           if (e is ForallExpr forallExpr) {
             return new ForallExpr(this, forallExpr);
-          } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
+          } else if (e is ExistsExpr existsExpr) {
+            return new ExistsExpr(this, existsExpr);
           } else {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // unexpected quantifier expression

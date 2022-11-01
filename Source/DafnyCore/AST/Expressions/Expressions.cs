@@ -3079,6 +3079,10 @@ public class ExistsExpr : QuantifierExpr {
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
   }
+
+  public ExistsExpr(Cloner cloner, ExistsExpr existsExpr) : base(cloner, existsExpr) {
+  }
+
   public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
     if (Range == null) {
       return Term;

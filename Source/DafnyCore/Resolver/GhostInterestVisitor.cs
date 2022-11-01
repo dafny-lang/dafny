@@ -5,11 +5,11 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class GhostInterest_Visitor {
+class GhostInterestVisitor {
   readonly ICodeContext codeContext;
   readonly Resolver resolver;
   private readonly bool inConstructorInitializationPhase;
-  public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
+  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
     Contract.Requires(codeContext != null);
     Contract.Requires(resolver != null);
     this.codeContext = codeContext;
@@ -20,19 +20,19 @@ class GhostInterest_Visitor {
     Contract.Requires(stmt != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
+    resolver?.reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
   }
   protected void Error(Expression expr, string msg, params object[] msgArgs) {
     Contract.Requires(expr != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
+    resolver?.reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
   }
   protected void Error(IToken tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
+    resolver?.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
   }
   /// <summary>
   /// There are three kinds of contexts for statements.
@@ -246,7 +246,7 @@ class GhostInterest_Visitor {
       var s = (BlockStmt)stmt;
       s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       if (s is DividedBlockStmt ds) {
-        var giv = new GhostInterest_Visitor(this.codeContext, this.resolver, true);
+        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, true);
         ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
         ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
       } else {
@@ -258,7 +258,7 @@ class GhostInterest_Visitor {
       var s = (IfStmt)stmt;
       s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
       }
       Visit(s.Thn, s.IsGhost, proofContext);
       if (s.Els != null) {
@@ -276,7 +276,7 @@ class GhostInterest_Visitor {
       var s = (AlternativeStmt)stmt;
       s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
       }
       s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
@@ -296,7 +296,7 @@ class GhostInterest_Visitor {
 
       s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
         Error(s, "'decreases *' is not allowed on ghost loops");
@@ -324,7 +324,7 @@ class GhostInterest_Visitor {
 
       s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
         Error(s, "'decreases *' is not allowed on ghost loops");
@@ -350,7 +350,7 @@ class GhostInterest_Visitor {
 
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
       }
       if (s.IsGhost) {
         if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
@@ -426,7 +426,7 @@ class GhostInterest_Visitor {
       var s = (MatchStmt)stmt;
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
       }
       s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
@@ -443,7 +443,7 @@ class GhostInterest_Visitor {
       var hasGhostConstructor = idPatterns.Where(p => p.Ctor != null).Any(idPattern => idPattern.Ctor.IsGhost);
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || hasGhostConstructor;
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+        resolver?.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
       }
       s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));

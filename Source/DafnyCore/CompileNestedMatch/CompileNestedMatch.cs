@@ -249,7 +249,7 @@ public class CompileNestedMatch {
         }
       }
 
-      new GhostInterest_Visitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, false).Visit(result, nestedMatchStmt.IsGhost, null);
+      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, false).Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
