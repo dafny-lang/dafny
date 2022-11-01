@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-        If you are having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tagnames=dafny).	  
+        If you are having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
         Please do not report security issues on this public tracker.  Instead, see https://github.com/dafny-lang/dafny/blob/master/.github/SECURITY.md
   - type: dropdown
     id: dafnyversion
@@ -20,6 +20,8 @@ body:
         - 3.8.X
         - 3.7.X
         - other
+    validations:
+      required: true
   - type: textarea
     id: code
     attributes:
@@ -30,7 +32,7 @@ body:
     id: environment
     attributes:
       label: Command to run into the issue or logs
-      description: Please paste your logs that don't match what you would have expected, if any
+      description: Please paste here what you ran and what were your your logs that you think ought to be different:
       render: code
   - type: textarea
     id: what-happened

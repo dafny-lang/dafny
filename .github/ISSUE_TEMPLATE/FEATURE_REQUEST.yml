@@ -13,7 +13,6 @@ body:
       label: What is the feature you would like to see in a future version of Dafny?
       description: Describe the feature here.
       placeholder: I would like to have X
-      value: ""
     validations:
       required: true
       
