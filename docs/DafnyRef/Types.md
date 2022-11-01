@@ -596,7 +596,7 @@ initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+For more details see [Section 24.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
@@ -3003,16 +3003,16 @@ a := new T[n];
 The initial values of the array elements are arbitrary values of type
 `T`. 
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
-```
+```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
 The initialazation can also use an expression that returns a function of type `nat -> T`:
-```
+```dafny
 a := new int[5](i => i*i);
 ```
 In fact, the initializer can simply be a function name for the right type of function:
-```
-a := new int[5]{Square);
+```dafny
+a := new int[5](Square);
 ```
 
 The length of an array is retrieved using the immutable `Length`
