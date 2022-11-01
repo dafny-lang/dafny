@@ -1036,12 +1036,7 @@ public class DatatypeValue : Expression, IHasUsages {
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      // Arguments is available only when fully resolved. Otherwise,
-      // only unresolved arguments (Actual) are available.
-      return Arguments ??
-             Bindings.ArgumentBindings?.Select(binding => binding.Actual) ??
-             Enumerable.Empty<Expression>();
-    }
+      return Arguments ?? Enumerable.Empty<Expression>();
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
