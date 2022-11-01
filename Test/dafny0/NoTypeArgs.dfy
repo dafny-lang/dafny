@@ -1,8 +1,48 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(hd: T, tl: List)
 
+method M0() {
+  var l: List;
+  l := Cons(5, Nil);
+  assert l.hd == 5;
+
+  var k: MyClass<bool>;
+  k := new MyClass;
+  k.data := false;
+
+  var h := new MyClass;
+  h.data := false;
+
+  var y := new MyClass.Init(120);
+  var z: int := y.data;
+}
+
+method M1() {  // same thing as above, but with types filled in explicitly
+  var l: List<int>;
+  l := Cons(5, Nil);
+  assert l.hd == 5;
+
+  var k: MyClass<bool>;
+  k := new MyClass<bool>;
+  k.data := false;
+
+  var h := new MyClass<bool>;
+  h.data := false;
+
+  var y := new MyClass<int>.Init(120);
+  var z: int := y.data;
+}
+
+class MyClass<G(0)> {
+  var data: G
+  method Init(g: G)
+    modifies this
+  {
+    data := g;
+  }
+}
 
 // ---------------------------------------------------
 
@@ -23,6 +63,15 @@ function reverse(xs: List): List
   case Cons(t, rest) => concat(reverse(rest), Cons(t, Nil))
 }
 
+lemma Theorem(xs: List)
+  ensures reverse(reverse(xs)) == xs
+{
+  match xs
+  case Nil =>
+  case Cons(t, rest) =>
+    Lemma(reverse(rest), Cons(t, Nil));
+}
+
 lemma Lemma<A>(xs: List, ys: List)
   ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs))
 {
@@ -31,4 +80,16 @@ lemma Lemma<A>(xs: List, ys: List)
     assert forall ws: List<A> {:induction} :: concat(ws, Nil) == ws;
   case Cons(t, rest) =>
     assert forall a: List<A>, b, c {:induction} :: concat(a, concat(b, c)) == concat(concat(a, b), c);
+}
+
+// ------ Here are some test cases where the inferred arguments will be a prefix of the given ones
+
+method DoAPrefix<A, B, C>(xs: List) returns (ys: List<A>)
+{
+  ys := xs;
+}
+
+function FDoAPrefix<A, B, C>(xs: List): List<A>
+{
+  xs
 }
