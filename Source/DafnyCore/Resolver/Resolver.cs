@@ -3293,16 +3293,7 @@ namespace Microsoft.Dafny {
         }
         // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
-          if (fn.Body != null) {
-            var abstemious = true;
-            if (Attributes.ContainsBool(fn.Attributes, "abstemious", ref abstemious) && abstemious) {
-              if (CoCallResolution.GuaranteedCoCtors(fn) == 0) {
-                reporter.Error(MessageSource.Resolver, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
-              } else {
-                CheckDestructsAreAbstemiousCompliant(fn.Body);
-              }
-            }
-          }
+          new Abstemious(reporter).Check(fn);
           CheckOlderParameters(fn);
         }
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
@@ -3630,48 +3621,6 @@ namespace Microsoft.Dafny {
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
       }
-    }
-
-    private void CheckDestructsAreAbstemiousCompliant(Expression expr) {
-      Contract.Assert(expr != null);
-      expr = expr.Resolved;
-      if (expr is MemberSelectExpr) {
-        var e = (MemberSelectExpr)expr;
-        if (e.Member.EnclosingClass is CoDatatypeDecl) {
-          var ide = Expression.StripParens(e.Obj).Resolved as IdentifierExpr;
-          if (ide != null && ide.Var is Formal) {
-            // cool
-          } else {
-            reporter.Error(MessageSource.Resolver, expr, "an abstemious function is allowed to invoke a codatatype destructor only on its parameters");
-          }
-          return;
-        }
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        if (e.Source.Type.IsCoDatatype) {
-          var ide = Expression.StripParens(e.Source).Resolved as IdentifierExpr;
-          if (ide != null && ide.Var is Formal) {
-            // cool; fall through to check match branches
-          } else {
-            reporter.Error(MessageSource.Resolver, e.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
-            return;
-          }
-        }
-      } else if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
-          if (e.E0.Type.IsCoDatatype) {
-            reporter.Error(MessageSource.Resolver, expr, "an abstemious function is not only allowed to check codatatype equality");
-            return;
-          }
-        }
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        // ignore the statement part
-        CheckDestructsAreAbstemiousCompliant(e.E);
-        return;
-      }
-      expr.SubExpressions.Iter(CheckDestructsAreAbstemiousCompliant);
     }
 
     /// <summary>
@@ -16073,7 +16022,7 @@ namespace Microsoft.Dafny {
         return thn < els ? thn : els;
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        var childValues = e.SubExpressions.Select(child => GuaranteedCoCtorsAux(child)).ToList();
+        var childValues = e.Cases.Select(child => GuaranteedCoCtorsAux(child.Body)).ToList();
         return childValues.Any() ? childValues.Min() : 0;
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
