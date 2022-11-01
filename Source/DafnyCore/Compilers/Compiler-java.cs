@@ -1588,6 +1588,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TypeParameter elementTypeParameter = new TypeParameter(Token.NoToken, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive,
+        new TypeParameter.TypeParameterCharacteristics());
+      Type elementType = new UserDefinedType(Token.NoToken, elementTypeParameter);
+
+      wr = EmitCoercionIfNecessary(from: elementType, to: source.Type.AsCollectionType.TypeArgs[0], tok: source.tok, wr: wr);
+
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.AsMultiSetType != null) {
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
