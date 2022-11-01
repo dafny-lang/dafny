@@ -906,7 +906,7 @@ namespace Microsoft.Dafny {
     /// the expression is a binding guard, in which case a bound variable is introduced.
     /// Such a variable must not be substituted. 
     /// </summary>
-    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars) {
+    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars, bool ignoreSplits = false) {
 
       Expression newExpr = null;
 
@@ -918,8 +918,6 @@ namespace Microsoft.Dafny {
       if (q != null && q.SplitQuantifier != null) {
         if (forceSubstituteOfBoundVars) {
           return Substitute(q.SplitQuantifierExpression);
-        } else {
-          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
         }
       }
 
