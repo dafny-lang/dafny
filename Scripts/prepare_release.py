@@ -89,7 +89,8 @@ class NewsFragments:
     """
 
     IGNORED = {".gitignore", "README.md"}
-    KNOWN_EXTENSIONS = {".feat": "New features",
+    KNOWN_EXTENSIONS = {".break": "Breaking changes",
+                        ".feat": "New features",
                         ".fix": "Bug fixes"}
 
     def __init__(self) -> None:
