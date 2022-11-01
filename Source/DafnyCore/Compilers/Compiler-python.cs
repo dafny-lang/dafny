@@ -1715,11 +1715,10 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var segments = moduleName.Split(".");
-      var baseName = segments.Last();
       var mainDir = Path.GetDirectoryName(mainProgram);
       Contract.Assert(mainDir != null);
       var tgtDir = segments[..^1].Aggregate(mainDir, Path.Combine);
-      var tgtFilename = Path.Combine(tgtDir, baseName + ".py");
+      var tgtFilename = Path.Combine(tgtDir, segments[^1] + ".py");
       Directory.CreateDirectory(tgtDir);
       var file = new FileInfo(externFilename);
       file.CopyTo(tgtFilename, true);
