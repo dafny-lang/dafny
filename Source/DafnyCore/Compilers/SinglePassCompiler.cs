@@ -2650,10 +2650,11 @@ namespace Microsoft.Dafny.Compilers {
         // finally, the jump back to the head of the function
         EmitJumpToTailCallStart(wr);
 
-      } else if (expr is BinaryExpr bin && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None) {
-        Contract.Assert(accumulatorVar != null);
-        Contract.Assert(enclosingFunction != null);
-        Contract.Assert(enclosingFunction.IsAccumulatorTailRecursive);
+      } else if (expr is BinaryExpr bin
+                 && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
+                 && accumulatorVar != null
+                 && enclosingFunction != null
+                 && enclosingFunction.IsAccumulatorTailRecursive) {
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
