@@ -86,6 +86,22 @@ public abstract class Compiler {
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;
 
+  protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree? wr, params object[] args) {
+    reporter.Error(MessageSource.Compiler, tok, msg, args);
+    wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
+  }
+
+  public void Error(IToken tok, string msg, ConcreteSyntaxTree? wr, params object[] args) {
+    ReportError(Reporter!, tok, msg, wr, args);
+  }
+
+  public void UnsupportedFeatureError(UnsupportedFeatureException e, ConcreteSyntaxTree? wr = null) {
+    if (!UnsupportedFeatures.Contains(e.Feature)) {
+      throw new Exception($"'{e.Feature}' is not an element of the {TargetId} compiler's UnsupportedFeatures set");
+    }
+    Error(e.Token, e.Message, wr);
+  }
+
   /// <summary>
   /// Initialize <c>Reporter</c> and <c>OtherFileNames</c>.
   ///

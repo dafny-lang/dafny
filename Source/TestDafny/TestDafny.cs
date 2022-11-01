@@ -1,12 +1,13 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
 
-namespace TestDafny; 
+namespace TestDafny;
 
 [Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler, and assert the output matches the <test file>.expect file.")]
 public class ForEachCompilerOptions {
@@ -103,7 +104,7 @@ public class TestDafny {
     Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
       options.TestFile!,
-      // Here we can pass /noVerify to save time since we already verified the program. 
+      // Here we can pass /noVerify to save time since we already verified the program.
       "/noVerify",
       // /noVerify is interpreted pessimistically as "did not get verification success",
       // so we have to force compiling and running despite this.
@@ -176,12 +177,16 @@ public class TestDafny {
       return true;
     }
 
-    var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
-    if (prefixIndex < 0) {
+    var unsupportedRegex = new Regex(
+      Regex.Escape(UnsupportedFeatureException.MessagePrefix)
+      + @"(?<featureDescription>.+?)(?<customMessage> [(].*[)])?$");
+
+    var m = unsupportedRegex.Match(line);
+    if (!m.Success) {
       return false;
     }
 
-    var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
+    var featureDescription = m.Groups["featureDescription"].Value;
     var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
     if (compiler.UnsupportedFeatures.Contains(feature)) {
       return true;

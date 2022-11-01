@@ -64,25 +64,11 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
-    protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-
-      reporter.Error(MessageSource.Compiler, tok, msg, args);
-      wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
-    }
-
-    public void Error(IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
-      ReportError(Reporter, tok, msg, wr, args);
-    }
-
     protected void UnsupportedFeatureError(IToken tok, Feature feature, string message = null, ConcreteSyntaxTree wr = null, params object[] args) {
-      if (!UnsupportedFeatures.Contains(feature)) {
-        throw new Exception($"'{feature}' is not an element of the {TargetId} compiler's UnsupportedFeatures set");
+      if (message != null) {
+        message = String.Format(message, args);
       }
-
-      message ??= UnsupportedFeatureException.MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description;
-      Error(tok, message, wr, args);
+      UnsupportedFeatureError(new UnsupportedFeatureException(tok, feature, message), wr);
     }
 
     protected string IntSelect = ",int";
