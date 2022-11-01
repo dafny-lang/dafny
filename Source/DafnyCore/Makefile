@@ -3,7 +3,7 @@
 # nmake that.  --KRML
 all: Parser.cs
 
-Parser.cs: Coco/scanner.frame Coco/parser.frame Dafny.atg
+Parser.cs: Coco/Scanner.frame Coco/Parser.frame Dafny.atg
 	dotnet tool run coco Dafny.atg -namespace Microsoft.Dafny -frames Coco
 
 clean:
