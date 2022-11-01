@@ -32,7 +32,7 @@ body:
     id: environment
     attributes:
       label: Command to run into the issue or logs
-      description: Please paste here what you ran and what were your your logs that you think ought to be different:
+      description: "Please paste here what you ran and what were your your logs that you think ought to be different:"
       render: code
   - type: textarea
     id: what-happened
