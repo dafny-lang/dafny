@@ -5148,7 +5148,9 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) 
+      where VT : class, IVariable 
+    {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);

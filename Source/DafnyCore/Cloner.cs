@@ -164,6 +164,9 @@ namespace Microsoft.Dafny {
     }
 
     public virtual Type CloneType(Type t) {
+      if (t == null) {
+        return null;
+      }
       if (t is BasicType) {
         return t;
       } else if (t is SetType) {
@@ -228,8 +231,12 @@ namespace Microsoft.Dafny {
       return (LocalVariable)clones.GetOrCreate(local, () => isReference ? local : new LocalVariable(this, local));
     }
     public virtual VT CloneIVariable<VT>(VT v, bool isReference) 
-      where VT : IVariable 
+      where VT : class, IVariable 
     {
+      if (v == null) {
+        return null;
+      }
+      
       var iv = (IVariable) v;
       if (iv is Formal formal)
       {
@@ -516,7 +523,9 @@ namespace Microsoft.Dafny {
       return new ApplySuffix(this, e);
     }
 
-    public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
+    public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) 
+      where VT : class, IVariable 
+    {
       Contract.Requires(pat != null);
       return new CasePattern<VT>(this, pat);
     }

@@ -14612,7 +14612,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext) where VT : IVariable {
+    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext) 
+      where VT : class, IVariable 
+    {
       Contract.Requires(pat != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(resolutionContext != null);

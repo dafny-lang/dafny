@@ -3306,7 +3306,9 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> where VT : IVariable {
+public class CasePattern<VT> 
+  where VT : class, IVariable 
+{
   public readonly IToken tok;
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
