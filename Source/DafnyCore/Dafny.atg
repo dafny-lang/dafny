@@ -2860,9 +2860,10 @@ UpdateStmt<out Statement/*!*/ s>
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      Attributes attrs = null;
-     IToken suchThatAssume = null;
+     Attributes tokenAttrs = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2877,12 +2878,14 @@ UpdateStmt<out Statement/*!*/ s>
       }
     | ":|"                         (. x = t; .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                   (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+        ("expect"|"assert"|"assume")  (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
@@ -2893,7 +2896,8 @@ UpdateStmt<out Statement/*!*/ s>
   )
 | ":-"                             (. x = t; .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+      ("expect"|"assert"|"assume")  (. var tok = t; .)
+      { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
    { "," Rhs<out r>                (. rhss.Add(r); .)
@@ -2997,11 +3001,12 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;
      List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     IToken suchThatAssume = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
+     Attributes tokenAttrs = null;
      IToken endTok;
      s = dummyStmt;
   .)
@@ -3022,12 +3027,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
     | { Attribute<ref attrs> }
       ":|"                           (. assignTok = t; .)
       [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                     (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+         ("expect"|"assert"|"assume")  (. var tok = t; .)
+         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>               (. rhss.Add(r); .)
