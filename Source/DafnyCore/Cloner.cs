@@ -654,15 +654,7 @@ namespace Microsoft.Dafny {
         // r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneAttributedExpr), CloneStmt(s.Body));
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
-        // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
-        // we expect it to be here), we share the clone of that line as well.
-        var lineCount = s.Lines.Count;
-        var lines = new List<Expression>(lineCount);
-        for (int i = 0; i < lineCount; i++) {
-          lines.Add(i == lineCount - 1 && 2 <= lineCount && s.Lines[i] == s.Lines[i - 1] ? lines[i - 1] : CloneExpr(s.Lines[i]));
-        }
-        Contract.Assert(lines.Count == lineCount);
-        r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
+        r = new CalcStmt(this, s);
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
         r = new NestedMatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneNestedMatchCaseStmt), s.UsesOptionalBraces);

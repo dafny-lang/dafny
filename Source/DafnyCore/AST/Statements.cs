@@ -1603,6 +1603,7 @@ public class ForallStmt : Statement {
   public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
   public readonly List<AttributedExpression> Ens;
   public readonly Statement Body;
+  [FilledInDuringResolution]
   public List<Expression> ForallExpressions;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
 
@@ -1647,6 +1648,7 @@ public class ForallStmt : Statement {
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds;
       Kind = original.Kind;
+      ForallExpressions = original.ForallExpressions.Select(cloner.CloneExpr).ToList();
     }
   }
   
@@ -1942,10 +1944,32 @@ public class CalcStmt : Statement {
     this.UserSuppliedOp = userSuppliedOp;
     this.Lines = lines;
     this.Hints = hints;
+    Steps = new List<Expression>();
     this.StepOps = stepOps;
-    this.Steps = new List<Expression>();
     this.Result = null;
     this.Attributes = attrs;
+  }
+
+  public CalcStmt(Cloner cloner, CalcStmt original) : base(cloner, original) {
+    // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
+    // we expect it to be here), we share the clone of that line as well.
+    var lineCount = original.Lines.Count;
+    var lines = new List<Expression>(lineCount);
+    for (int i = 0; i < lineCount; i++) {
+      lines.Add(i == lineCount - 1 && 2 <= lineCount && original.Lines[i] == original.Lines[i - 1] ? lines[i - 1] : cloner.CloneExpr(original.Lines[i]));
+    }
+    UserSuppliedOp = cloner.CloneCalcOp(original.UserSuppliedOp);
+    Lines = lines;
+    StepOps = original.StepOps.ConvertAll(cloner.CloneCalcOp);
+    Hints = original.Hints.ConvertAll(cloner.CloneBlockStmt);
+
+    if (cloner.CloneResolvedFields) {
+      Steps = original.Steps.Select(cloner.CloneExpr).ToList();
+      Result = cloner.CloneExpr(original.Result);
+      Op = original.Op;
+    } else {
+      Steps = new List<Expression>();
+    }
   }
 
   public override IEnumerable<Statement> SubStatements {
