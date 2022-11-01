@@ -438,7 +438,10 @@ class GhostInterest_Visitor {
 
     } else if (stmt is NestedMatchStmt) {
       var s = (NestedMatchStmt)stmt;
-      s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source);
+
+      var idPatterns = s.Cases.SelectMany(kase => kase.Pat.DescendantsAndSelf).OfType<IdPattern>();
+      var hasGhostConstructor = idPatterns.Where(p => p.Ctor != null).Any(idPattern => idPattern.Ctor.IsGhost);
+      s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || hasGhostConstructor;
       if (!mustBeErasable && s.IsGhost) {
         resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
       }

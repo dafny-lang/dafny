@@ -3408,6 +3408,9 @@ public abstract class ExtendedPattern : INode {
 
   public abstract IEnumerable<INode> Children { get; }
 
+  public IEnumerable<INode> DescendantsAndSelf =>
+    new[] {this}.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
+
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable);
 
