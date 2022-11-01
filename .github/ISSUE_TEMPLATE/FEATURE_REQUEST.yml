@@ -11,7 +11,7 @@ body:
     id: what-do-you-want
     attributes:
       label: What is the feature you would like to see in a future version of Dafny?
-      description: Describe the feature here.
+      description: Describe the feature here. Markdown is supported.
       placeholder: I would like to have X
     validations:
       required: true
