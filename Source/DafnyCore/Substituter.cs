@@ -906,7 +906,7 @@ namespace Microsoft.Dafny {
     /// the expression is a binding guard, in which case a bound variable is introduced.
     /// Such a variable must not be substituted. 
     /// </summary>
-    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars, bool ignoreSplits = false) {
+    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars) {
 
       Expression newExpr = null;
 
