@@ -11,14 +11,20 @@ import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class TypeDescriptor<T> {
-    final Class<T> javaClass;
+    final Class<T> boxedClass;
+    final Class<?> unboxedClass;
 
     TypeDescriptor(Class<T> javaClass) {
-        this.javaClass = javaClass;
+        this(javaClass, javaClass);
+    }
+
+    TypeDescriptor(Class<T> boxedClass, Class<?> unboxedClass) {
+        this.boxedClass = boxedClass;
+        this.unboxedClass = unboxedClass;
     }
 
     public final boolean isPrimitive() {
-        return javaClass.isPrimitive();
+        return unboxedClass.isPrimitive();
     }
 
     public abstract T defaultValue();
@@ -29,11 +35,11 @@ public abstract class TypeDescriptor<T> {
 
     public final Object newArray(int length) {
         // Unlike most others, this Array operation is fast
-        return java.lang.reflect.Array.newInstance(javaClass, length);
+        return java.lang.reflect.Array.newInstance(unboxedClass, length);
     }
 
     public final Object newArray(int ... dims) {
-        return java.lang.reflect.Array.newInstance(javaClass, dims);
+        return java.lang.reflect.Array.newInstance(unboxedClass, dims);
     }
 
     public abstract T getArrayElement(Object array, int index);
@@ -75,7 +81,7 @@ public abstract class TypeDescriptor<T> {
 
     @Override
     public String toString() {
-        return javaClass.toString();
+        return boxedClass.toString();
     }
 
     public static <T> TypeDescriptor<T> reference(Class<T> javaClass) {
@@ -204,7 +210,7 @@ public abstract class TypeDescriptor<T> {
 
         @Override
         public boolean isInstance(Object object) {
-            return javaClass.isInstance(object);
+            return boxedClass.isInstance(object);
         }
 
         @Override
@@ -560,7 +566,7 @@ public abstract class TypeDescriptor<T> {
         private final CodePoint DEFAULT;
 
         public UnicodeCharType(CodePoint d) {
-            super(CodePoint.class);
+            super(CodePoint.class, Integer.TYPE);
             DEFAULT = d;
         }
 
