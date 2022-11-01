@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-        If you are having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
+        Are you having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
         Please do not report security issues on this public tracker.  Instead, see https://github.com/dafny-lang/dafny/blob/master/.github/SECURITY.md
   - type: dropdown
     id: dafnyversion
