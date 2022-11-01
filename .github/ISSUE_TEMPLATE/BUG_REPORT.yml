@@ -1,0 +1,56 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        If you are having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tagnames=dafny).	  
+        Please do not report security issues on this public tracker.  Instead, see https://github.com/dafny-lang/dafny/blob/master/.github/SECURITY.md
+  - type: dropdown
+    id: dafnyversion
+    attributes:
+      label: What version of Dafny were you using?
+      multiple: false
+      options:
+        - latest
+        - 3.9.X
+        - 3.8.X
+        - 3.7.X
+        - other
+  - type: textarea
+    id: code
+    attributes:
+      label: Code to produce this issue.
+      description: Please paste a minimal example that reproduces the issue.
+      render: dafny
+  - type: textarea
+    id: environment
+    attributes:
+      label: Command to run into the issue or logs
+      description: Please paste your logs that don't match what you would have expected, if any
+      render: code
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue here. What did you expect instead?
+      placeholder: Tell us what you see!
+      value: ""
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-systems
+    attributes:
+      label: What type of Operating System are you seeing the problem on?
+      multiple: true
+      options:
+        - Linux
+        - Windows
+        - Mac
+        - Other
+    validations:
+      required: true
+      
