@@ -24,6 +24,7 @@ features:
 
 clean:
 	@-rm -f DafnyRef.pdf
+	rm -rf _site
 
 grammar:
 	javac GrammarLinks.java && java -cp . GrammarLinks DafnyRef.md

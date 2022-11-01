@@ -1,17 +1,19 @@
 ﻿using System;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to publish telemetry events
-  /// of a <see cref="DafnyDocument"/> to the LSP client.
+  /// of a <see cref="Document"/> to the LSP client.
   /// </summary>
   public interface ITelemetryPublisher {
     protected enum TelemetryEventKind {
       UpdateComplete,
       UnhandledException,
-      SolverPath
+      SolverPath,
+      Z3Version
     }
 
     /// <summary>
@@ -31,12 +33,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Signal an unhandled error.
     /// </summary>
-    public void PublishUnhandledException(Exception e) {
-      PublishTelemetry(TelemetryEventKind.UnhandledException, e.ToString());
-    }
+    public void PublishUnhandledException(Exception e);
 
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
+    }
+
+    public void PublishZ3Version(string z3Version) {
+      PublishTelemetry(TelemetryEventKind.Z3Version, z3Version);
     }
   }
 }

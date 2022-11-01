@@ -8,15 +8,27 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
+
+    [TestMethod]
+    public async Task EmptyFileNoCodeWarning() {
+      var source = "";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(new Range(0, 0, 0, 0), diagnostics[0].Range);
+    }
 
     [TestMethod]
     public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
@@ -36,6 +48,27 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+
+    [TestMethod]
+    public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -148,6 +181,29 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithDefaultParamErrorHighlightsCallSite() {
+      var source = @"
+function test(x: int := 99): bool
+  requires x >= 100
+{
+  false
+}
+
+method A()
+{
+  var b := test();
+} ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(diagnostics[0].Range.Start.Line, 8);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -560,14 +616,67 @@ method t10() { assert false; }".TrimStart();
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
       for (int i = 0; i < 10; i++) {
+        diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual(5, diagnostics.Length, $"Iteration is {i}, Old to new history was: {diagnosticsReceiver.History.Stringify()}");
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
       }
+    }
+
+
+
+    [TestMethod]
+    public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
+      var source = @"
+module {:options ""/functionSyntax:4""} Library {
+  // Library
+  datatype Option<T> = Some(value: T) | None
+  datatype Result<T> = Success(value: T) | Failure(s: string, pos: int) {
+    predicate IsFailure() {
+      Failure?
+    }
+    function PropagateFailure<U>(): Result<U>
+      requires IsFailure()
+    {
+      Failure(s, pos)
+    }
+    function Extract(): T
+      requires !IsFailure()
+    {
+      value
+    }
+  }
+}
+module Parser {
+  import opened Library
+
+  datatype Parser = Parser(expected: string) | Log(p: Parser, message: string)
+  {
+    method {:termination false} Parse(s: string, i: nat)
+      returns (result: Result<(string, nat)>)
+    {
+      if Log? {
+        var v1 :- p.Parse(s, i); // Removing this line makes the language server not crash anymore.
+      }
+      
+      result := Failure(""bam"", i);
+    }
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      diagnosticsReceiver.ClearHistory();
+      var documentItem = CreateTestDocument(source, $"test1.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken.None);
+      Assert.AreEqual(0, diagnostics.Count(diagnostic =>
+        diagnostic.Severity != DiagnosticSeverity.Information &&
+        diagnostic.Severity != DiagnosticSeverity.Hint), $"Expected no issue");
     }
 
     [TestMethod]
@@ -830,13 +939,12 @@ method test2() {
 
       var resolutionDiagnosticsAfter = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, resolutionDiagnosticsAfter.Length);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] first, Diagnostic[] second) {
-      Assert.AreEqual(first.Length, second.Length);
-      foreach (var t in first.Zip(second)) {
-        Assert.AreEqual(t.First.Message, t.Second.Message);
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
+      Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
+      foreach (var t in Enumerable.Zip(expected, actual)) {
+        Assert.AreEqual(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
@@ -869,7 +977,8 @@ method Foo() {
       var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     [TestMethod]
@@ -887,7 +996,8 @@ module Foo {
       Assert.AreEqual(1, preChangeDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(preChangeDiagnostics, resolutionDiagnostics);
     }
 
     /**

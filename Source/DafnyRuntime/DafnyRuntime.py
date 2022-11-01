@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
 from collections import Counter
+from collections.abc import Iterable
 from functools import reduce
-from types import GeneratorType
-from itertools import chain, combinations
+from types import GeneratorType, FunctionType
+from itertools import chain, combinations, count
 import copy
 
 class classproperty(property):
@@ -14,15 +15,28 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    if value is None:
-        builtins.print("null", end="")
+    builtins.print(string_of(value), end="")
+
+def string_of(value) -> str:
+    if hasattr(value, '__dafnystr__'):
+        return value.__dafnystr__()
+    elif value is None:
+        return "null"
     elif isinstance(value, bool):
-        builtins.print("true" if value else "false", end="")
+        return "true" if value else "false"
+    elif isinstance(value, tuple):
+        return '(' + ', '.join(map(string_of, value)) + ')'
+    elif isinstance(value, FunctionType):
+        return "Function"
     else:
-        builtins.print(value, end="")
+        return str(value)
 
 @dataclass
 class Break(Exception):
+    target: str
+
+@dataclass
+class Continue(Exception):
     target: str
 
 class TailCall(Exception):
@@ -39,11 +53,13 @@ def label(name: str = None):
         if name is not None:
             raise g
 
-def _break(name):
-    raise Break(target=name)
-
-def _tail_call():
-    raise TailCall()
+@contextmanager
+def c_label(name: str = None):
+    try:
+        yield
+    except Continue as g:
+        if g.target != name:
+            raise g
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
@@ -64,10 +80,10 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def __str__(self) -> str:
+    def __dafnystr__(self) -> str:
         if self.isStr:
             return ''.join(self)
-        return '[' + ', '.join(map(str, self)) + ']'
+        return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
         return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
@@ -86,6 +102,52 @@ class Seq(tuple):
     def __hash__(self) -> int:
         return hash(tuple(self))
 
+    def __lt__(self, other):
+        return len(self) < len(other) and self == other[:len(self)]
+
+    def __le__(self, other):
+        return len(self) <= len(other) and self == other[:len(self)]
+
+class Array:
+    class Box(list):
+        def __dafnystr__(self) -> str:
+            return '[' + ', '.join(map(string_of, self)) + ']'
+
+    def __init__(self, initValue, *dims):
+        self.arr = initValue
+        self.dims = list(dims)
+        for i in reversed(self.dims):
+            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
+
+    def __dafnystr__(self) -> str:
+        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+
+    def __str__(self):
+        return self.__dafnystr__()
+
+    def length(self, i):
+        return self.dims[i] if i < len(self.dims) else None
+
+    def __len__(self):
+        return self.length(0)
+
+    def __getitem__(self, key):
+        if not isinstance(key, Iterable):
+            return self.arr[key]
+        arr = self.arr
+        for i in key:
+            arr = arr[i]
+        return arr
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, Iterable):
+            self.arr[key] = value
+            return
+        arr = self.arr
+        for i in range(len(key)-1):
+            arr = arr[key[i]]
+        arr[key[-1]] = value
+
 class Set(frozenset):
     @property
     def Elements(self):
@@ -97,8 +159,8 @@ class Set(frozenset):
         s = list(self)
         return map(Set, chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
-    def __str__(self) -> str:
-        return '{' + ', '.join(map(str, self)) + '}'
+    def __dafnystr__(self) -> str:
+        return '{' + ', '.join(map(string_of, self)) + '}'
 
     def union(self, other):
         return Set(super().union(self, other))
@@ -116,8 +178,8 @@ class Set(frozenset):
         return Set(super().__sub__(other))
 
 class MultiSet(Counter):
-    def __str__(self) -> str:
-        return 'multiset{' + ', '.join(map(str, self.elements())) + '}'
+    def __dafnystr__(self) -> str:
+        return 'multiset{' + ', '.join(map(string_of, self.elements())) + '}'
 
     def __len__(self):
         return reduce(lambda acc, key: acc + self[key], self, 0)
@@ -137,6 +199,14 @@ class MultiSet(Counter):
     @property
     def keys(self):
         return Set(key for key in self if self[key] > 0)
+
+    @property
+    def Elements(self):
+        return self.elements()
+
+    @property
+    def UniqueElements(self):
+        return self.keys
 
     def isdisjoint(self, other):
         return frozenset(self.keys).isdisjoint(frozenset(other.keys))
@@ -165,8 +235,8 @@ class MultiSet(Counter):
         return self[item] > 0
 
 class Map(dict):
-    def __str__(self) -> str:
-        return 'map[' + ', '.join(map(lambda i: f'{i[0]} := {i[1]}', self.items)) + ']'
+    def __dafnystr__(self) -> str:
+        return 'map[' + ', '.join(map(lambda i: f'{string_of(i[0])} := {string_of(i[1])}', self.items)) + ']'
 
     @property
     def Elements(self):
@@ -226,7 +296,7 @@ class BigOrdinal:
         return True
 
 class BigRational(Fraction):
-    def __str__(self):
+    def __dafnystr__(self):
         if self.denominator == 1:
             return f"{self.numerator}.0"
         correction = self.divides_a_power_of_10(self.denominator)
@@ -296,12 +366,6 @@ def euclidian_modulus(a, b):
     c = (-a) % bp
     return c if c == 0 else bp - c
 
-def newArray(initValue, *dims):
-    b = initValue
-    for i in reversed(list(dims)):
-        b = [copy.deepcopy(b) for _ in range(i)]
-    return b
-
 @dataclass
 class HaltException(Exception):
     message: str
@@ -312,11 +376,35 @@ def quantifier(vals, frall, pred):
             return not frall
     return frall
 
+def AllBooleans():
+    return [False, True]
+
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
+def AllIntegers():
+    return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
+
+def IntegerRange(lo, hi):
+    if lo is None:
+        return count(hi-1, -1)
+    if hi is None:
+        return count(lo)
+    return range(lo, hi)
+
+class Doubler:
+    def __init__(self, start):
+        self.start = start
+
+    def __iter__(self):
+        i = self.start
+        while True:
+            yield i
+            i *= 2
+
 class defaults:
     bool = staticmethod(lambda: False)
+    char = staticmethod(lambda: 'D')
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)

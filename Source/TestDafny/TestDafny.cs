@@ -27,7 +27,7 @@ public class FeaturesOptions {
 
 public class TestDafny {
 
-  private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+  private static readonly Assembly DafnyAssembly = typeof(Dafny.Dafny).Assembly;
 
   public static int Main(string[] args) {
     var result = -1;
@@ -141,7 +141,7 @@ public class TestDafny {
     if (dafnyCLIPath != null) {
       command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
     } else {
-      var dotnetArguments = new[] { DafnyDriverAssembly.Location }.Concat(argumentsWithDefaults);
+      var dotnetArguments = new[] { DafnyAssembly.Location }.Concat(argumentsWithDefaults);
       command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
     }
     return command.Execute(null, null, null, null);

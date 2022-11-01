@@ -17,9 +17,9 @@ in order of increasing binding power.
  `||`, `|`                | 3 | disjunction (or)
 --------------------------|------------------------------------
  `==`                     | 4 | equality
- `==#[k]`                 | 4 | prefix equality (co-inductive)
+ `==#[k]`                 | 4 | prefix equality (coinductive)
  `!=`                     | 4 | disequality
- `!=#[k]`                 | 4 | prefix disequality (co-inductive)
+ `!=#[k]`                 | 4 | prefix disequality (coinductive)
  `<`                      | 4 | less than
  `<=`                     | 4 | at most
  `>=`                     | 4 | at least
@@ -203,7 +203,7 @@ The `!!` represents disjointness for sets and multisets as explained in
 [Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
-co-inductive values for equality to a nesting level of k, as
+coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
 ## 21.6. Bit Shifts
@@ -729,6 +729,7 @@ If the value of an entire expression at a
 particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
+If the argument of `old` is a local variable or out-parameter. Dafny issues a warning.
 
 [^Old]: The semantics of `old` in Dafny differs from similar constructs in other specification languages like ACSL or JML.
 
@@ -1037,7 +1038,7 @@ CaseExpression(allowLemma, allowLambda) =
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
-type, a co-inductive type, or a base type.
+type, a coinductive type, or a base type.
 
 The ``Expression`` following the `match` keyword is called the
 _selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
@@ -1388,7 +1389,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
-  // co-inductive hypothesis
+  // coinductive hypothesis
   if (*) {
     Theorem0#<T>[_k-1](s);
   } else {
