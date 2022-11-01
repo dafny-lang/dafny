@@ -10,6 +10,7 @@
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
       <IsPackable>true</IsPackable>
   </PropertyGroup>
 
