@@ -26,21 +26,18 @@ body:
       label: Code to produce this issue.
       description: Please paste a minimal example that reproduces the issue.
       render: dafny
-      value: ""
   - type: textarea
     id: environment
     attributes:
       label: Command to run into the issue or logs
       description: Please paste your logs that don't match what you would have expected, if any
       render: code
-      value: ""
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
       description: Describe the issue here. What did you expect instead?
       placeholder: Tell us what you see!
-      value: ""
     validations:
       required: true
   - type: dropdown
