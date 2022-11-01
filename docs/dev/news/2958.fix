@@ -1,1 +1,0 @@
-The JS runtime now handles pathological number-to-BigNumber equality comparisons.
