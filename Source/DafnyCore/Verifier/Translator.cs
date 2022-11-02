@@ -166,6 +166,10 @@ namespace Microsoft.Dafny {
 
       if (d.IsVisibleInScope(verificationScope)) {
         Contract.Assert(d.IsRevealedInScope(verificationScope));
+        if (d is MemberDecl m && m.EnclosingClass.EnclosingModuleDefinition is { IsFacade: true }) {
+          return false;
+        }
+
         return true;
       }
       return false;
