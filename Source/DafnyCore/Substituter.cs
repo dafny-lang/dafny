@@ -95,7 +95,8 @@ namespace Microsoft.Dafny {
             anyChanges = true;
           }
         }
-        if (anyChanges) {
+        var ty = Resolver.SubstType(e.Type, typeMap);
+        if (anyChanges || !ty.Equals(e.Type)) {
           newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
         }
       } else if (expr is MemberSelectExpr) {
