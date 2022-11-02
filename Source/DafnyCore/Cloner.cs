@@ -507,129 +507,16 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      Statement r;
-      if (stmt is AssertStmt) {
-        var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), s.Label == null ? null : new AssertLabel(Tok(s.Label.Tok), s.Label.Name), null);
+      if (stmt is ICloneable<Statement> cloneable) {
+        var r = cloneable.Clone(this);
+        // add labels to the cloned statement
+        AddStmtLabels(r, stmt.Labels);
+        r.Attributes = CloneAttributes(stmt.Attributes);
 
-      } else if (stmt is ExpectStmt) {
-        var s = (ExpectStmt)stmt;
-        r = new ExpectStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneExpr(s.Message), CloneAttributes(s.Attributes));
-
-      } else if (stmt is AssumeStmt) {
-        var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
-
-      } else if (stmt is PrintStmt) {
-        var s = (PrintStmt)stmt;
-        r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneExpr));
-
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        r = new RevealStmt(Tok(s.Tok), Tok(s.EndTok), s.Exprs.ConvertAll(CloneExpr));
-
-      } else if (stmt is BreakStmt) {
-        var s = (BreakStmt)stmt;
-        if (s.TargetLabel != null) {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel, s.IsContinue);
-        } else {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakAndContinueCount, s.IsContinue);
-        }
-
-      } else if (stmt is ReturnStmt) {
-        var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(this, s);
-      } else if (stmt is YieldStmt) {
-        var s = (YieldStmt)stmt;
-        r = new YieldStmt(this, s);
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
-
-      } else if (stmt is DividedBlockStmt) {
-        r = CloneDividedBlockStmt((DividedBlockStmt)stmt);
-
-      } else if (stmt is BlockStmt) {
-        r = CloneBlockStmt((BlockStmt)stmt);
-
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), Tok(s.EndTok), s.IsBindingGuard, CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
-
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard),
-          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
-
-      } else if (stmt is ForLoopStmt) {
-        var s = (ForLoopStmt)stmt;
-        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex, false), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
-          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        r = new ForallStmt(this, s);
-        // r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneAttributedExpr), CloneStmt(s.Body));
-      } else if (stmt is CalcStmt) {
-        var s = (CalcStmt)stmt;
-        r = new CalcStmt(this, s);
-      } else if (stmt is NestedMatchStmt) {
-        var s = (NestedMatchStmt)stmt;
-        r = new NestedMatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneNestedMatchCaseStmt), s.UsesOptionalBraces);
-
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
-
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken), null);
-
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        r = new UpdateStmt(this, s);
-      } else if (stmt is AssignOrReturnStmt) {
-        var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : Tok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
-
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        var lhss = CloneResolvedFields
-          ? s.Locals
-          : s.Locals.ConvertAll(v => CloneLocalVariable(v, false));
-        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
-      } else if (stmt is VarDeclPattern) {
-        var s = (VarDeclPattern)stmt;
-        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.HasGhostModifier);
-
-      } else if (stmt is ModifyStmt) {
-        var s = (ModifyStmt)stmt;
-        var mod = CloneSpecFrameExpr(s.Mod);
-        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
-        r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
-
-      } else if (stmt is CallStmt s) {
-        r = new CallStmt(this, s);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        return r;
       }
 
-      // add labels to the cloned statement
-      AddStmtLabels(r, stmt.Labels);
-      r.Attributes = CloneAttributes(stmt.Attributes);
-
-      if (CloneResolvedFields) {
-        r.IsGhost = stmt.IsGhost;
-      }
-      return r;
+      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement TODO, make all statements inherit from ICloneable.
     }
 
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {

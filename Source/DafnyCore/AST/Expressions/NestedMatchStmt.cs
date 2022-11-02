@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement {
+public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -22,6 +22,16 @@ public class NestedMatchStmt : Statement {
         c.Attributes = attrs;
       }
     }
+  }
+
+  public NestedMatchStmt Clone(Cloner cloner) {
+    return new NestedMatchStmt(cloner, this);
+  }
+
+  public NestedMatchStmt(Cloner cloner, NestedMatchStmt original) : base(cloner, original) {
+    Source = cloner.CloneExpr(original.Source);
+    Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
+    UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);

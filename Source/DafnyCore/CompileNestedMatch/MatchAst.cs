@@ -92,7 +92,7 @@ public abstract class MatchCase : IHasUsages {
   }
 }
 
-public class MatchStmt : Statement {
+public class MatchStmt : Statement, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -105,7 +105,27 @@ public class MatchStmt : Statement {
   public readonly MatchingContext Context;
   [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
   public readonly bool UsesOptionalBraces;
-  public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
+  
+  [FilledInDuringResolution]
+  // TODO remove field?
+  public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it 
+
+  public MatchStmt Clone(Cloner cloner) {
+    return new MatchStmt(cloner, this);
+  }
+
+  public MatchStmt(Cloner cloner, MatchStmt original) : base(cloner, original) {
+    source = cloner.CloneExpr(original.Source);
+    cases = original.cases.Select(cloner.CloneMatchCaseStmt).ToList();
+    Context = original.Context;
+    MissingCases = original.MissingCases;
+    UsesOptionalBraces = original.UsesOptionalBraces;
+
+    if (cloner.CloneResolvedFields) {
+      OrigUnresolved = original.OrigUnresolved;
+    }
+  }
+
   public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
