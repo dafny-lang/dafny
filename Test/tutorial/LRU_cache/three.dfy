@@ -208,6 +208,11 @@ class LRUCache<T(!new,==)> {
 						if  Alloc(i) != cache_head && Alloc(i) != cache_tail {
 							if Alloc(i) == old_cache_head {
 								//assume i.more_recently_used.Alloc? && i.less_recently_used.Alloc?;
+
+								// It is only thanks to this proof that I figured out the invariants:
+								//&& (|cache| >= 2 ==> cache_head.deref.less_recently_used.Alloc?)
+								//&& (|cache| >= 2 ==> cache_tail.deref.more_recently_used.Alloc?)
+								// that were necessary
 							} else {
 								assert true;
 							}
