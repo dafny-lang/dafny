@@ -4952,10 +4952,10 @@ namespace Microsoft.Dafny.Compilers {
         var e = (LambdaExpr)expr;
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
-        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
+        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Term.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
-        TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
+        TrExpr(su.Substitute(e.Term), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

@@ -13376,7 +13376,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Term.Type, e.Reads.Count != 0, e.Range != null);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, builtIns.ObjectQ());
       } else if (expr is StmtExpr) {
@@ -15945,7 +15945,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
-        CheckCoCalls(e.Body, destructionLevel, coContext, coCandidates);
+        CheckCoCalls(e.Term, destructionLevel, coContext, coCandidates);
         if (e.Range != null) {
           CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
         }

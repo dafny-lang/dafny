@@ -2683,7 +2683,7 @@ namespace Microsoft.Dafny {
           readsPrefix = ", ";
         }
         wr.Write(" => ");
-        PrintExpression(e.Body, isFollowedBySemicolon);
+        PrintExpression(e.Term, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {

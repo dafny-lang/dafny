@@ -2348,9 +2348,6 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
     Reads = reads;
   }
 
-  // Synonym
-  public Expression Body => Term;
-
   public override IEnumerable<Expression> SubExpressions {
     get {
       yield return Term;
@@ -3262,7 +3259,8 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => ResolvedExpression == null
+    ? new[] {Lhs}.Concat(Args ?? Enumerable.Empty<INode>()) : new [] { ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

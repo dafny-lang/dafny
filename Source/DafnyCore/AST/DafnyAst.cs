@@ -786,7 +786,7 @@ namespace Microsoft.Dafny {
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
 
-    public IEnumerable<INode> Children => ArgumentBindings;
+    public IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
