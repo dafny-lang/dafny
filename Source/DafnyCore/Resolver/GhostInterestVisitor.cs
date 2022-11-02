@@ -452,11 +452,6 @@ class GhostInterestVisitor {
         // contexts, make sure they get treated for non-ghost use.
         ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
       }
-    } else if (stmt is ConcreteSyntaxStatement) {
-      var s = (ConcreteSyntaxStatement)stmt;
-      Visit(s.ResolvedStatement, mustBeErasable, proofContext);
-      s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
-
     } else if (stmt is SkeletonStatement) {
       var s = (SkeletonStatement)stmt;
       s.IsGhost = mustBeErasable;

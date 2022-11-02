@@ -1446,12 +1446,6 @@ namespace Microsoft.Dafny {
             wr.Write("}");
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        Indent(indent);
-        PrintStatement(s.ResolvedStatement, indent);
-        wr.WriteLine();
-
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {

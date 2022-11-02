@@ -19,14 +19,6 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
     this.context = context;
     this.focalPredicates = focalPredicates;
   }
-  public override Statement CloneStmt(Statement stmt) {
-    if (stmt is ConcreteSyntaxStatement) {
-      var s = (ConcreteSyntaxStatement)stmt;
-      return CloneStmt(s.ResolvedStatement);
-    } else {
-      return base.CloneStmt(stmt);
-    }
-  }
 
   public override Expression CloneExpr(Expression expr) {
     if (DafnyOptions.O.RewriteFocalPredicates) {

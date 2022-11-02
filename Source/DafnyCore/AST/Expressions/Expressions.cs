@@ -3348,25 +3348,6 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
 
-/// <summary>
-/// This class represents a piece of concrete syntax in the parse tree.  During resolution,
-/// it gets "replaced" by the statement in "ResolvedStatement".
-/// Adapted from ConcreteSyntaxStatement
-/// </summary>
-public abstract class ConcreteSyntaxStatement : Statement {
-  [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-  public ConcreteSyntaxStatement(IToken tok, IToken endtok)
-    : base(tok, endtok) {
-  }
-  public ConcreteSyntaxStatement(IToken tok, IToken endtok, Attributes attrs)
-    : base(tok, endtok, attrs) {
-  }
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      yield return ResolvedStatement;
-    }
-  }
-}
 public class ParensExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
   public ParensExpression(IToken tok, Expression e)

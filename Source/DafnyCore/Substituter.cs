@@ -771,9 +771,6 @@ namespace Microsoft.Dafny {
         rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
         rr.Result = Substitute(s.Result);
         r = rr;
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        r = SubstStmt(s.ResolvedStatement);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);

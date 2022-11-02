@@ -3285,10 +3285,6 @@ namespace Microsoft.Dafny.Compilers {
             EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, wr);
-
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;

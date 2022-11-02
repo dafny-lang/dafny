@@ -241,9 +241,6 @@ public class TailRecursion {
         }
       }
       return status;
-    } else if (stmt is ConcreteSyntaxStatement) {
-      var s = (ConcreteSyntaxStatement)stmt;
-      return CheckTailRecursive(s.ResolvedStatement, enclosingMethod, ref tailCall, reportErrors);
     } else if (stmt is AssignSuchThatStmt) {
     } else if (stmt is AssignOrReturnStmt) {
       // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
