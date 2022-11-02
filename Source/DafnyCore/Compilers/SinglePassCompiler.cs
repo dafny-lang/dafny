@@ -3457,7 +3457,6 @@ namespace Microsoft.Dafny.Compilers {
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
-      Contract.Requires(collectionWriter != null);
 
       collectionWriter = new ConcreteSyntaxTree();
 
