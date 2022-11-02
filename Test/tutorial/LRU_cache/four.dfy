@@ -43,14 +43,54 @@ class LRUCache<T(!new,==)> {
 	var cache_tail: Ref<Item<T>>
 	var cache: map<nat,Item<T>>
 
+	// lemma test1(i: Item<T>, i': Item<T>)
+	// 	requires i in Repr
+	// 	requires i' in Repr
+	// 	requires i != i'
+	// 	requires forall key: nat :: key in cache ==> cache[key] in Repr
+	// 	requires forall key: nat :: key in cache ==> cache[key].key == key
+	// 	requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
+	// 	requires |cache| == |Repr|
+	// 	ensures i.key != i'.key
+	//{
+	//}
+	// If X and Y are finite and same number of elements then f is injective iff f is surjective
+	// in conclusion, it is bijective
+
+	lemma test1(i: Item<T>)
+		requires i in Repr
+		requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
+		requires |cache| == |Repr|
+		ensures exists key: nat :: key in cache && cache[key] == i
+		
+	lemma test2(i: Item<T>)
+		requires i in Repr
+		requires forall key: nat :: key in cache ==> cache[key] in Repr
+		requires forall key: nat :: key in cache ==> cache[key].key == key
+		requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
+		requires |cache| == |Repr|
+		ensures i.key in cache
+		ensures cache[i.key] == i
+	{
+		test1(i);
+		var key: nat :| key in cache && cache[key] == i;
+	}
+
+	lemma foo<T>(e: T, S: set<T>)
+		requires e in S
+		ensures |S - {e}| == |S| - 1
+	
 	predicate Invariant()
 		reads this, Repr
 	{
 
+		&& cache_size >= 2 
+		
 		// Dynamic frame properties
 		&& (forall key: nat :: key in cache ==> cache[key] in Repr)
 		&& (cache_head.Ptr? ==> cache_head.deref in Repr)
 		&& (cache_tail.Ptr? ==> cache_tail.deref in Repr)
+		//&& (forall i: Item :: i in Repr ==> cache[i.key] == i)
 		&& (forall i: Item :: i in Repr ==> i.more_recently_used.Null? || i.more_recently_used.deref in Repr)
 		&& (forall i: Item :: i in Repr ==> i.less_recently_used.Null? || i.less_recently_used.deref in Repr)
 		
@@ -61,7 +101,10 @@ class LRUCache<T(!new,==)> {
 		&& (forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key'])
 
 		// Structural properties
-		&& (|cache| == 0 <==> Repr == {})
+		//&& (|cache| <= cache_size)
+		//&& (cache_head.Ptr? ==> cache_head.deref.key in cache)
+		//&& (cache_tail.Ptr? ==> cache_tail.deref.key in cache)
+		&& (|cache| == |Repr|)
 		&& (|cache| == 0 <==> cache_head == cache_tail == Null)
 		&& (|cache| == 1 ==> (cache_head == cache_tail && cache_head.Ptr?))
 		&& (cache_head.Ptr? ==> cache_head.deref.more_recently_used.Null?)
@@ -93,12 +136,14 @@ class LRUCache<T(!new,==)> {
 		Repr := {};
 	}
 
+	// We could do better with a log and prove that the order in the DLL correspond to the log
 	method promote(key: nat)
 		modifies this, Repr
 		requires key in cache
 		requires Invariant()
 		ensures Invariant()
-		//ensures cache_head.Some? ==> cache_head.value.key == key
+		//ensures |cache| >= 2 ==> cache_head.deref.key == key 
+		ensures storage == old(storage)
 	{
 		var item := cache[key];
 		if |cache| >= 2 {
@@ -138,6 +183,7 @@ class LRUCache<T(!new,==)> {
 		requires key !in cache
 		requires Invariant()
 		ensures Invariant()
+		ensures storage == old(storage)
 	{
 
 		if |cache| == 0 {
@@ -169,6 +215,29 @@ class LRUCache<T(!new,==)> {
 			cache_head := Ptr(item);
 
 		}
+
+		if |cache| == cache_size + 1 {
+			// Need to evict
+
+			var old_cache_tail := cache_tail; 
+			cache_tail := old_cache_tail.deref.more_recently_used;
+			cache_tail.deref.less_recently_used := Null;
+
+			test2(old_cache_tail.deref);
+			assert old_cache_tail.deref.key in cache;
+			//assert cache[old_cache_tail.deref.key] == old_cache_tail.deref; 
+
+			assert |Repr| == |cache|;
+			assert old_cache_tail.deref in Repr;
+			Repr := Repr - {old_cache_tail.deref};
+
+			assume |Repr| == |old(Repr)| - 1; 
+			
+			cache := cache - {old_cache_tail.deref.key};
+
+			assert |cache| == |old(cache)| - 1;
+			
+		}
 		
 	}
 	
@@ -176,6 +245,8 @@ class LRUCache<T(!new,==)> {
 		modifies this, Repr
 		requires Invariant()
 		ensures Invariant()
+		ensures key in storage ==> result.Success? && result.value == storage[key]
+		ensures result.Failure? ==> key !in storage
 	{
 		if key in cache {
 			result := Success(cache[key].value);
