@@ -1271,7 +1271,7 @@ namespace Microsoft.Dafny.Compilers {
         compileNestedMatch.Visit(module);
       }
 
-      Main.MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile + "WOOP", true);
+      Main.MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile == null ? null : DafnyOptions.O.DafnyPrintResolvedFile + "WOOP", true);
 
       Contract.Requires(program != null);
 
