@@ -57,8 +57,8 @@ method Main()
   var firstNonAsciiChar := "Ā";
   assert |firstNonAsciiChar| == 1;
   expect |firstNonAsciiChar| == 1;
-  assert firstNonAsciiChar[0] == 256 as char;
-  expect firstNonAsciiChar[0] == 256 as char;
+  assert firstNonAsciiChar[0] == 'Ā';
+  expect firstNonAsciiChar[0] == 'Ā';
 
   // Something above the surrogate range,
   // and a verbatim string to make sure that's handled as well.
