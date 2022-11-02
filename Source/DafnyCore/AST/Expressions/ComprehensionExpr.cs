@@ -362,7 +362,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.BodyEndTok = endTok;
   }
 
-  protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner.Tok(original.tok)) {
+  protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);

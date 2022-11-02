@@ -1037,7 +1037,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
     return new DatatypeValue(cloner, this);
   }
 
-  public DatatypeValue(Cloner cloner, DatatypeValue original) : base(cloner.Tok(original.tok)) {
+  public DatatypeValue(Cloner cloner, DatatypeValue original) : base(cloner, original) {
     DatatypeName = original.DatatypeName;
     MemberName = original.MemberName;
     Bindings = new ActualBindings(cloner, original.Bindings);
@@ -1177,7 +1177,7 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     return new IdentifierExpr(cloner, this);
   }
 
-  public IdentifierExpr(Cloner cloner, IdentifierExpr original) : base(cloner.Tok(original.tok)) {
+  public IdentifierExpr(Cloner cloner, IdentifierExpr original) : base(cloner, original) {
     Name = original.Name;
 
     if (cloner.CloneResolvedFields) {
@@ -1478,7 +1478,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
     return new MemberSelectExpr(cloner, this);
   }
 
-  public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner.Tok(original.tok)) {
+  public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner, original) {
     Obj = cloner.CloneExpr(original.Obj);
     MemberName = original.MemberName;
 
@@ -1832,7 +1832,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
     return new FunctionCallExpr(cloner, this);
   }
 
-  public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner.Tok(original.tok)) {
+  public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
     Name = original.Name;
     Receiver = cloner.CloneExpr(original.Receiver);
     OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
@@ -2360,7 +2360,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     return new BinaryExpr(cloner, this);
   }
 
-  public BinaryExpr(Cloner cloner, BinaryExpr original) : base(cloner.Tok(original.tok)) {
+  public BinaryExpr(Cloner cloner, BinaryExpr original) : base(cloner, original) {
     this.Op = original.Op;
     this.E0 = cloner.CloneExpr(original.E0);
     this.E1 = cloner.CloneExpr(original.E1);
