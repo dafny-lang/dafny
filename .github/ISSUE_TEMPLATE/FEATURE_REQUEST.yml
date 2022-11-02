@@ -15,4 +15,3 @@ body:
       placeholder: I would like to have X
     validations:
       required: true
-      
