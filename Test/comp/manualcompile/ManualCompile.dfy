@@ -23,4 +23,12 @@
 
 method Main() {
   print "hello, Dafny\n";
+
+  var firstNonAsciiChar := "Ā";
+  assert |firstNonAsciiChar| == 1;
+  expect |firstNonAsciiChar| == 1;
+  assert firstNonAsciiChar[0] == 'Ā';
+  expect firstNonAsciiChar[0] == 'Ā';
+  assert firstNonAsciiChar[0] == 256 as char;
+  expect firstNonAsciiChar[0] == 256 as char;
 }
