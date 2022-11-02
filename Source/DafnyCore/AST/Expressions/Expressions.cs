@@ -2904,10 +2904,6 @@ public abstract class ExtendedPattern : INode {
 
   public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
     ResolutionContext resolutionContext);
-
-
-  public abstract ExtendedPattern RemoveIllegalSubpatterns(Resolver resolver, bool inPattern,
-    bool inDisjunctivePattern);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -2928,15 +2924,6 @@ public class DisjunctivePattern : ExtendedPattern {
   public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
     ResolutionContext resolutionContext) {
     return Enumerable.Empty<(BoundVar var, Expression usage)>();
-  }
-
-  public override ExtendedPattern RemoveIllegalSubpatterns(Resolver resolver, bool inPattern, bool inDisjunctivePattern) {
-    if (inPattern) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns are not allowed inside other patterns");
-      return new IdPattern(Tok, resolver.FreshTempVarName("_", null), null, IsGhost);
-    }
-
-    return new DisjunctivePattern(Tok, Alternatives.Select(a => a.RemoveIllegalSubpatterns(resolver, true, inDisjunctivePattern: true)).ToList(), IsGhost);
   }
 }
 
@@ -3007,15 +2994,11 @@ public class LitPattern : ExtendedPattern {
     ResolutionContext resolutionContext) {
     return Enumerable.Empty<(BoundVar var, Expression usage)>();
   }
-
-  public override ExtendedPattern RemoveIllegalSubpatterns(Resolver resolver, bool inPattern, bool inDisjunctivePattern) {
-    return this;
-  }
 }
 
 public abstract class NestedMatchCase : INode {
   public readonly IToken Tok;
-  public ExtendedPattern Pat;
+  public readonly ExtendedPattern Pat;
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
     Contract.Requires(tok != null);

@@ -29,8 +29,6 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
-    Pat = Pat.RemoveIllegalSubpatterns(resolver, false, false);
-    
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     foreach (var boundVar in boundVars) {
       var localVariable = new LocalVariable(boundVar.var.Tok, boundVar.var.Tok, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
