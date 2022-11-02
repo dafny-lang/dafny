@@ -268,33 +268,13 @@ public class CompileNestedMatch {
     }
   }
 
-  private ExtendedPattern RemoveIllegalSubpatterns(ExtendedPattern pat, bool inDisjunctivePattern) {
-    switch (pat) {
-      case LitPattern:
-        return pat;
-      case IdPattern p:
-        if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          resolver.reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
-          return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
-        }
-        var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
-        return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
-      case DisjunctivePattern p:
-        resolver.reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
-        return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
-      default:
-        Contract.Assert(false);
-        return null;
-    }
-  }
-
   private IEnumerable<ExtendedPattern> FlattenDisjunctivePatterns(ExtendedPattern pat) {
     // TODO: Once we rewrite the pattern-matching compiler, we'll handle disjunctive patterns in it, too.
     // For now, we handle top-level disjunctive patterns by duplicating the corresponding cases here, and disjunctive
     // sub-patterns are unsupported.
     return pat is DisjunctivePattern p
-      ? p.Alternatives.Select(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern: true))
-      : Enumerable.Repeat(RemoveIllegalSubpatterns(pat, inDisjunctivePattern: false), 1);
+      ? p.Alternatives.Select(a => a)
+      : Enumerable.Repeat(pat, 1);
   }
 
   private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {

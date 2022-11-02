@@ -117,6 +117,15 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
+  public override ExtendedPattern RemoveIllegalSubpatterns(Resolver resolver, bool inPattern, bool inDisjunctivePattern) {
+    if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
+      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns may not bind variables");
+      return new IdPattern(Tok, resolver.FreshTempVarName("_", null), null, IsGhost);
+    }
+    var args = Arguments?.ConvertAll(a => a.RemoveIllegalSubpatterns(resolver, true, inDisjunctivePattern));
+    return new IdPattern(Tok, Id, Type, args, IsGhost) { ResolvedLit = ResolvedLit, BoundVar = BoundVar };
+  }
+
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
   }

@@ -25,6 +25,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     Type caseType,
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
+
+    Pat = Pat.RemoveIllegalSubpatterns(resolver, false, false);
     
     // TODO see if I can replace this replacement with some resolution logic that only triggers when IdPattern.Type is not InferredTypeProxy.
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
