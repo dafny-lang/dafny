@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
         if (auto_reqs.Count > 0) {
           Expression allReqsSatisfied = Andify(e.Term.tok, auto_reqs);
           Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
-          e.UpdateTerm(allReqsSatisfiedAndTerm);
+          e.Term = allReqsSatisfiedAndTerm;
           Reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
         }
       } else if (expr is SetComprehension) {

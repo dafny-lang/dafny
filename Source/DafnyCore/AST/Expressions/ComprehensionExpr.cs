@@ -34,10 +34,6 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
   IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
-  public void UpdateTerm(Expression newTerm) {
-    Term = newTerm;
-  }
-
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(BoundVars != null);
@@ -356,7 +352,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
 
     this.BoundVars = bvars;
     this.Range = range;
-    this.UpdateTerm(term);
+    this.Term = term;
     this.Attributes = attrs;
     this.BodyStartTok = tok;
     this.BodyEndTok = endTok;
