@@ -11,6 +11,11 @@ let _dafny = (function() {
       // and the catch-all else block handles that direction.
       // But the opposite direction doesn't work; handle it here.
       return b.equals(a);
+    } else if (typeof a === 'number' && BigNumber.isBigNumber(b)) {
+      // This conditional would be correct even without the `typeof a` part,
+      // but in most cases it's probably faster to short-circuit on a `typeof`
+      // than to call `isBigNumber`. (But it remains to properly test this.)
+      return b.isEqualTo(a);
     } else if (typeof a !== 'object' || a === null || b === null) {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
