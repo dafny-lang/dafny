@@ -9458,6 +9458,8 @@ namespace Microsoft.Dafny {
             } else if (Attributes.Contains(member.Attributes, "extern")) {
               // Extern functions do not need to be reimplemented.
               // TODO: When `:extern` is separated from `:compile false`, this should become `:compile false`.
+            } else if (member is Lemma && Attributes.Contains(member.Attributes, "opaque_reveal")) {
+              // reveal lemmas do not need to be reimplemented
             } else {
               reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
             }
