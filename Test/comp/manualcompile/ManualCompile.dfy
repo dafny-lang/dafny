@@ -12,10 +12,6 @@
 // RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/ManualCompile-java %S/ManualCompile-java/ManualCompile.java %S/ManualCompile-java/*/*.java
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/ManualCompile-java ManualCompile >> "%t"
 
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
-// RUN: g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I %binaryDir -o %S/ManualCompile.exe %S/ManualCompile.cpp
-// RUN: %S/ManualCompile.exe >> "%t"
-
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: python3 %S/ManualCompile-py/ManualCompile.py >> "%t"
 
