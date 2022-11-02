@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:4 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -615,6 +615,7 @@ module SnapTree {
           stack, N := rest, N+1;
 
           if p.right != null {
+            assert p.right.Contents <= Contents[N..];
             stack := Push(stack, N, p.right, Contents, T.Repr);
           }
           hasCurrent := stack != Nil;

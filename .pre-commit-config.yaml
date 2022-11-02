@@ -1,7 +1,8 @@
 repos:
--   repo: https://github.com/dotnet/format
-    rev: v5.1.225507
+-   repo: local
     hooks:
     -   id: dotnet-format
-        entry: dotnet-format Source/Dafny.sln -w --
-        
+        name: dotnet-format
+        language: system
+        entry: dotnet tool run dotnet-format --folder -w --include
+        types_or: ["c#"]

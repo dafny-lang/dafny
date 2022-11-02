@@ -601,6 +601,108 @@ module TwoStateAt {
     9
   }
 }
+
+module OlderParameters {
+  class C { }
+
+  trait Tr {
+    predicate P(a: C)
+
+    predicate Q(older a: C)
+
+    twostate predicate X(a: C)
+
+    twostate predicate Y(new a: C)
+  }
+
+  class Good extends Tr {
+    predicate P(a: C)
+
+    predicate Q(older a: C)
+
+    twostate predicate X(a: C)
+
+    twostate predicate Y(new a: C)
+  }
+
+  class Bad extends Tr {
+    predicate P(older a: C)
+
+    predicate Q(a: C)
+
+    twostate predicate X(new a: C)
+
+    twostate predicate Y(a: C)
+  }
+}
+
+module RefinementBase {
+  class C { }
+
+  predicate P(a: C)
+
+  predicate Q(older a: C)
+
+  twostate predicate X(a: C)
+
+  twostate predicate Y(new a: C)
+}
+
+module GoodRefinement refines RefinementBase {
+  predicate P(a: C)
+  {
+    true
+  }
+
+  predicate Q(older a: C)
+  {
+    true
+  }
+
+  twostate predicate X(a: C)
+  {
+    true
+  }
+
+  twostate predicate Y(new a: C)
+  {
+    true
+  }
+}
+
+module BadRefinement refines RefinementBase {
+  predicate P(older a: C)
+  {
+    true
+  }
+
+  predicate Q(a: C)
+  {
+    true
+  }
+
+  twostate predicate X(new a: C)
+  {
+    true
+  }
+
+  twostate predicate Y(a: C)
+  {
+    true
+  }
+}
+
+module RevealInsideIterator {
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
+
+  function {:opaque} G(): int
+  {
+    2
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
@@ -634,16 +736,16 @@ Twostate-Resolution.dfy(166,34): Error: two-state function ('Sp') can only be ca
 Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be called in a two-state context
 Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
-Twostate-Resolution.dfy(230,30): Error: ghost fields are allowed only in specification contexts
+Twostate-Resolution.dfy(230,30): Error: a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
 Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
 Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
-Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to in the overridden function, from new to non-new
-Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to in the overridden function, from non-new to new
-Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to in the overridden method, from new to non-new
-Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to in the overridden method, from non-new to new
+Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to in the overridden method, from non-new to new
+Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to in the overridden method, from new to non-new
 Twostate-Resolution.dfy(405,17): Error: no label 'DoesNotExist' in scope at this time
 Twostate-Resolution.dfy(415,21): Error: no label 'OnlyB' in scope at this time
 Twostate-Resolution.dfy(418,21): Error: an @-label can only be applied to a two-state function
@@ -651,19 +753,27 @@ Twostate-Resolution.dfy(445,20): Error: no label 'After' in scope at this time
 Twostate-Resolution.dfy(452,17): Error: an @-label can only be applied to a two-state function
 Twostate-Resolution.dfy(453,14): Error: an @-label can only be applied to a two-state lemma
 Twostate-Resolution.dfy(459,19): Error: an @-label can only be applied to a two-state function
-Twostate-Resolution.dfy(481,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(481,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
 Twostate-Resolution.dfy(482,26): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(483,26): Error: an @-label can only be applied to a two-state lemma
-Twostate-Resolution.dfy(487,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(487,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
 Twostate-Resolution.dfy(488,26): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(495,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(495,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(496,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(497,19): Error: to reveal a two-state function, do not list any parameters or @-labels
 Twostate-Resolution.dfy(500,17): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(501,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(501,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(507,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
-65 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(535,22): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
+Twostate-Resolution.dfy(536,16): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
+Twostate-Resolution.dfy(537,29): Error: parameter 'a' of function X cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(538,25): Error: parameter 'a' of function Y cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(558,20): Error: parameter 'a' of function P cannot be changed, compared to the corresponding function in the module it refines, from non-older to older
+Twostate-Resolution.dfy(559,14): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
+Twostate-Resolution.dfy(560,27): Error: parameter 'a' of function X cannot be changed, compared to the corresponding function in the module it refines, from non-new to new
+Twostate-Resolution.dfy(561,23): Error: parameter 'a' of function Y cannot be changed, compared to the corresponding function in the module it refines, from new to non-new
+73 resolution/type errors detected in Twostate-Resolution.dfy

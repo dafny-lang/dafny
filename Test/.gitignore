@@ -24,6 +24,9 @@
 **/*.dSYM
 **/*.exe
 
+# Python output
+**/*-py
+
 node_modules/
 package-lock.json
 packages

@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -32,6 +33,8 @@ method Main() {
   Add(4, 0);
   Add(0, 0);
   Add(19, 14);
+
+  BreaksAndContinues();
 }
 
 method TestM(lo: int, hi: int)
@@ -171,4 +174,266 @@ method Add(a: nat, b: nat) {
     }
   }
   print a, " + ", b, " == ", s, "\n";
+}
+
+// --------------- breaks and continues ---------------
+
+method BreaksAndContinues() {
+  var n0 := BC0();
+  var n1 := BC1();
+  var n2 := BC2();
+  print n0, " ", n1, " ", n2, "\n"; // 4 4 4
+
+  BC10();
+  BC11();
+
+  var b0 := BC20();
+  var b1 := BC21();
+  var b2 := BC22();
+  var c := BC30();
+  print b0, " ", b1, " ", b2, " ", c, "\n"; // true true true 15
+
+  LabelRegressions();
+}
+
+method BC0() returns (c: nat) { // 4
+  c := 0;
+  var i := 0;
+  while i < 10 { // 0 3 4 7
+    c := c + 1;
+    if i % 2 == 0 {
+      i := i + 3;
+      continue;
+    } else if i == 7 {
+      break;
+    }
+    i := i + 1;
+  }
+}
+
+method BC1() returns (c: nat) { // 4
+  c := 0;
+  var i := 0;
+  while // 0 3 4 7
+    decreases 10 - i
+  case i < 10 && i % 2 == 0 =>
+    c := c + 1;
+    i := i + 3;
+    continue;
+  case i < 10 && i == 7 =>
+    c := c + 1;
+    break;
+  case i < 10 && i != 7 && i % 2 == 1 =>
+    c := c + 1;
+    i := i + 1;
+}
+
+method BC2() returns (c: nat) { // 4
+  c := 0;
+  var i := 0;
+  for k := 0 to 10 { // 0 3 4 7
+    c := c + 1;
+    if i % 2 == 0 {
+      i := i + 3;
+      continue;
+    } else if i == 7 {
+      expect k == 3;
+      break;
+    }
+    i := i + 1;
+  }
+}
+
+// Test "break", "continue", and "break continue" for "for" loops
+method BC10() {
+  print "== BC10 ==";
+  for i := 0 to 10 {
+    print "\n", i, " ";
+    for j := 0 to 10 {
+      print "--";
+      if i == 0 && j == 3 {
+        break;
+      } else if i == 1 && j == 4 {
+        break continue;
+      } else if j == 2 {
+        continue;
+      }
+      print "++";
+    }
+    print " ***";
+  }
+  print "\n";
+}
+
+// Test "break", "continue", and "break continue" for "while" and "while-case" loops
+method BC11() {
+  print "== BC11 ==";
+  var i := 0;
+  while i < 10
+  {
+    print "\n", i, " ";
+    i := i + 1;
+    var j := 0;
+    var b := true;
+    while
+      decreases 10 - j, b
+    {
+      case j < 10 && !b =>
+        print "--";
+        if i - 1 == 0 && j == 3 {
+          break;
+        } else if i - 1 == 1 && j == 4 {
+          break continue;
+        } else if j == 1 {
+          j := j + 1;
+          continue;
+        }
+        print "++";
+        j := j + 1;
+      case j < 10 && b =>
+        print "||";
+        b := false;
+    }
+    print " ***";
+  }
+  print "\n";
+}
+
+// Test "continue Label" and "break Label" for "while" loops
+method BC20() returns (b: bool) {
+  b := false;
+  var i := 0;
+  label Loop:
+  while i < 10 {
+    if i == 929 {
+    } else if i < 7 {
+      i := i + 1;
+      continue Loop;
+    } else {
+      b := true;
+      break Loop;
+    }
+    assert false; // unreachable
+    expect false; // unreachable
+  }
+}
+
+// Test "continue Label" and "break Label" for "while-case" loops
+method BC21() returns (b: bool) {
+  b := false;
+  var i := 0;
+  label Loop:
+  while
+    decreases 10 - i
+  {
+    case i < 10 =>
+      if i == 929 {
+      } else if i < 7 {
+        i := i + 1;
+        continue Loop;
+      } else {
+        b := true;
+        break Loop;
+      }
+      assert false; // unreachable
+      expect false; // unreachable
+  }
+}
+
+// Test "continue Label" and "break Label" for "for" loops
+method BC22() returns (b: bool) {
+  b := false;
+  label Loop:
+  for i := 0 to 10 {
+    if i == 929 {
+    } else if i < 7 {
+      continue Loop;
+    } else {
+      b := true;
+      break Loop;
+    }
+    assert false; // unreachable
+    expect false; // unreachable
+  }
+}
+
+// Test "break break"
+method BC30() returns (c: nat) { // 15
+  c := 0;
+  while true {
+    for k := 0 to 10
+      invariant k <= 5
+    {
+      if k == 5 {
+        break break;
+      }
+      c := c + 1;
+    }
+  }
+
+  while {
+    case true =>
+      for k := 0 to 10
+        invariant k <= 5
+      {
+        if k == 5 {
+          break break;
+        }
+        c := c + 1;
+      }
+  }
+
+  for i := 0 to 100 {
+    for k := 0 to 10 {
+      if k == 5 {
+        break break;
+      }
+      c := c + 1;
+    }
+  }
+}
+
+method LabelRegressions() {
+  // The cases of if-case, while-case, and match statements are List<Statement>'s, which are essentially
+  // a BlockStmt but without the curly braces. Each Statement in such a List can have labels, so
+  // it's important to call TrStmtList on these in the Verifier, not just call TrStmt on every Statement
+  // in the List. (See also LabelRegressions() in Test/dafny0/ResolutionErrors.dfy.)
+  if {
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        if k % 2 == 0 {
+          continue Loop;
+        } else {
+          break Loop;
+        }
+      }
+  }
+
+  while {
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        if k % 2 == 0 {
+          continue Loop;
+        } else {
+          break Loop;
+        }
+      }
+      break;
+  }
+
+  match (0, 0) {
+    case (_, _) =>
+      label Loop:
+      for k := 0 to 10 {
+        if k % 2 == 0 {
+          continue Loop;
+        } else {
+          break Loop;
+        }
+      }
+  }
+
+  print "all good\n";
 }

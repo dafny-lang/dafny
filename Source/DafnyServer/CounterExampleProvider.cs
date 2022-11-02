@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterExampleGeneration;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 
 namespace DafnyServer {
@@ -55,7 +55,9 @@ namespace DafnyServer {
       foreach (var dafnyModel in specificModels) {
         var counterExample = new CounterExample();
         foreach (var state in dafnyModel.States) {
-          if (state == null) continue;
+          if (state == null) {
+            continue;
+          }
 
           var counterExampleState = new CounterExampleState {
             Name = state.FullStateName

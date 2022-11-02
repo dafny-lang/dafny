@@ -1,4 +1,4 @@
-# 2. Lexical and Low Level Grammar
+# 2. Lexical and Low Level Grammar {#sec-lexical-grammar}
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
@@ -68,7 +68,7 @@ denote the sequence of enclosed characters
   in this document a production starts with the defined identifier in
   the left margin and may be continued on subsequent lines if they
   are indented
-* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c or d e`
+* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
 * `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
 * `[ ]` option, e.g. `[a] b` means `a b` or `b`
 * `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
@@ -85,14 +85,11 @@ that are not present in the original grammar. We name these with a trailing
 underscore. If you inline these where they are referenced, the result should
 let you reconstruct the original grammar.
 
-<!-- TODO: grammar hyperlinks are not implemented -->
-
 ## 2.1. Dafny Input {#sec-unicode}
 
-Dafny source code files are readable text encoded as UTF-8 Unicode
-(because this is what the Coco/R-generated scanner and parser read).
+Dafny source code files are readable text encoded in UTF-8, where each decoded character has to be from the Basic Multilingual Plane and therefore encodable with a single UTF-16 code unit. This is what the Coco/R-generated scanner and parser read.
 All program text other than the contents of comments, character, string and verbatim string literals
-are printable and white-space ASCII characters,
+consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
 
 However, a current limitation of the Coco/R tool used by `dafny`
@@ -101,7 +98,7 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## 2.2. Tokens and whitespace
+## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
 
 * White space characters
@@ -115,7 +112,7 @@ separates tokens.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
-is syntactially or semantically invalid and the sequence could be separated into
+is syntactically or semantically invalid and the sequence could be separated into
 more than one valid token. For example, `assert56` is one identifier token,
 not a keyword `assert` followed by a number; `ifb!=0` begins with the token
 `ifb` and not with the keyword `if` and token `b`; `0xFFFFZZ` is an illegal
@@ -234,7 +231,7 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-## 2.4. Comments
+## 2.4. Comments {#sec-comments}
 Comments are in two forms.
 
 * They may go from `/*` to `*/` .
@@ -284,7 +281,7 @@ As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.5.1. Reserved Words
+### 2.5.1. Reserved Words {sec-reserved-words}
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
@@ -293,11 +290,11 @@ reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "const" | "constructor" | "copredicate" |
+    "const" | "constructor" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "export" | "extends" |
     "false" | "forall" | "fresh" | "function" | "ghost" |
-    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" |
@@ -324,7 +321,7 @@ is the type of two-dimensional arrays, etc.
 Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
 ordinary identifier.
 
-### 2.5.2. Identifiers
+### 2.5.2. Identifiers {#sec-identifiers}
 
 ````grammar
 ident = nondigitIdChar { idchar } - charToken - reservedword
@@ -335,7 +332,7 @@ are not identifiers if they look like a character literal
 or a reserved word (including array or bit-vector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### 2.5.3. Digits
+### 2.5.3. Digits {#sec-digits}
 ````grammar
 digits = digit {['_'] digit}
 ````
@@ -355,7 +352,7 @@ decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
-### 2.5.4. Escaped Character
+### 2.5.4. Escaped Character {#sec-escaped-characters}
 In this section the "\\" characters are literal.
 ````grammar
 escapedChar =
@@ -369,7 +366,7 @@ to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
-### 2.5.5. Character Constant Token
+### 2.5.5. Character Constant Token {#sec-character-constant-token}
 ````grammar
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
@@ -381,7 +378,7 @@ in its character, string, and verbatim strings constants and in its comments](#s
 constant has type `char`.
 
 
-### 2.5.6. String Constant Token
+### 2.5.6. String Constant Token {#sec-string-constant-token}
 ````grammar
 stringToken =
     '"' { stringChar | escapedChar }  '"'
@@ -390,20 +387,21 @@ stringToken =
 
 A string constant is either a normal string constant or a verbatim string constant.
 A normal string constant is enclosed by `"` and can contain characters from the
-``stringChar`` set and escapes.
+``stringChar`` set and ``escapedChar``s.
 
 A verbatim string constant is enclosed between `@"` and `"` and can
 consist of any characters (including newline characters) except that two
 successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
+Within a verbatim string constant, a backslash character represents itself and is not the first character of an `escapedChar`.
 
-### 2.5.7. Ellipsis
+### 2.5.7. Ellipsis {#sec-ellipsis}
 ````grammar
 ellipsis = "..."
 ````
 The ellipsis symbol is typically used to designate something missing that will
-later be inserted through refinement or is already present in a parent declaration..
+later be inserted through refinement or is already present in a parent declaration.
 
 ## 2.6. Low Level Grammar Productions {#sec-grammar}
 
@@ -428,8 +426,8 @@ the token following the "." may be an identifier,
   named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
   is treated as a string, not a number: internal
   underscores matter, so `10` is different from `1_0` and from `010`.
-* `m.requires` is used to denote the precondition for method `m`.
-* `m.reads` is used to denote the things that method `m` may read.
+* `m.requires` is used to denote the [precondition](#sec-requires-clause) for method `m`.
+* `m.reads` is used to denote the things that method `m` may [read](#sec-reads-clause).
 
 ````grammar
 NoUSIdent = ident - "_" { idchar }
@@ -473,11 +471,10 @@ ExportId = NoUSIdentOrDigits
 TypeNameOrCtorSuffix = NoUSIdentOrDigits
 ````
 
-Some parsing constexts
 
 ### 2.6.3. Qualified Names
 ```grammar
-QualifiedModuleName = ModuleName { "." ModuleName }
+ModuleQualifiedName = ModuleName { "." ModuleName }
 ```
 A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
@@ -489,7 +486,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 
 The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
-a module name, i.e. a ``QualifiedModuleName``.
+a module name, i.e. a ``ModuleQualifiedName``.
 
 ### 2.6.4. Identifier-Type Combinations
 In this section, we describe some nonterminals that combine an identifier and a type.
@@ -512,8 +509,8 @@ A `CIdentType` is used for a `const` declaration. The Type is optional because i
 the initializer.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" } IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
+    { "ghost" | "new" | "nameonly" | "older" } IdentType
     [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
@@ -523,6 +520,11 @@ If `allowGhostKeyword` is false, then `ghost` is not allowed.
 If `allowNewKeyword` is false, then `new` is not allowed.
 If `allowNameOnlyKeyword` is false, then `nameonly` is not allowed.
 If `allowDefault` is false, then `:= Expression` is not allowed.
+
+`older` is a context-sensitive keyword. It is recognized as a keyword only by `GIdentType` and
+only when `allowOlderKeyword` is true. If `allowOlderKeyword` is false, then a use of `older`
+is parsed by the `IdentType` production in `GIdentType`.
+
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
@@ -556,7 +558,67 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### 2.6.5. Numeric Literals
+### 2.6.5. Quantifier Domains {#sec-quantifier-domains}
+
+Several Dafny constructs bind one or more variables to a range of possible values.
+For example, the quantifier `forall x: nat | x <= 5 :: x * x <= 25` has the meaning
+"for all integers x between 0 and 5 inclusive, the square of x is at most 25".
+Similarly, the set comprehension `set x: nat | x <= 5 :: f(x)` can be read as
+"the set containing the result of applying f to x, for each integer x from 0 to 5 inclusive".
+The common syntax that specifies the bound variables and what values they take on
+is known as the *quantifier domain*; in the previous examples this is `x: nat | x <= 5`, 
+which binds the variable `x` to the values `0`, `1`, `2`, `3`, `4`, and `5`.
+
+Here are some more examples.
+
+- `x: byte` (where a value of type `byte` is an int-based number `x` in the range `0 <= x < 256`)
+- `x: nat | x <= 5`
+- `x <- integerSet`
+- `x: nat <- integerSet`
+- `x: nat <- integerSet | x % 2 == 0`
+- `x: nat, y: nat | x < 2 && y < 2`
+- `x: nat | x < 2, y: nat | y < x`
+- `i | 0 <= i < |s|, y <- s[i] | i < y`
+
+A quantifier domain declares one or more *quantified variables*, separated by commas.
+Each variable declaration can be nothing more than a variable name, but it 
+may also include any of three optional elements:
+
+1. The optional syntax `: T` declares the type of the quantified variable.
+   If not provided, it will be inferred from context.
+
+2. The optional syntax `<- C` attaches a collection expression `C` as a *quantified variable domain*.
+   Here a collection is any value of a type that supports the `in` operator, namely sets, multisets, maps, and sequences.
+   The domain restricts the bindings to the elements of the collection: `x <- C` implies `x in C`.
+   The example above can also be expressed as `var c := [0, 1, 2, 3, 4, 5]; forall x <- c :: x * x <= 25`.
+
+3. The optional syntax `| E` attaches a boolean expression `E` as a *quantified variable range*,
+   which restricts the bindings to values that satisfy this expression.
+   In the example above `x <= 5` is the range attached to the `x` variable declaration.
+
+Note that a variable's domain expression may reference any variable declared before it,
+and a variable's range expression may reference the attached variable (and usually does) and any variable declared before it.
+For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the expression `s[i]` is well-formed
+because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
+
+Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
+the `/functionSyntax:4` option needs to be provided to enable this feature (See [Section 25.9.5](#sec-controlling-language)).
+
+The general production for quantifier domains is:
+
+````grammar
+QuantifierDomain(allowLemma, allowLambda) =
+    QuantifierVarDecl(allowLemma, allowLambda) 
+    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+
+QuantifierVarDecl(allowLemma, allowLambda) =
+    IdentTypeOptional
+    [ <- Expression(allowLemma, allowLambda) ]
+    { Attribute }
+    [ | Expression(allowLemma, allowLambda) ]
+````
+
+### 2.6.6. Numeric Literals {#sec-numeric-literals}
 ````grammar
 Nat = ( digits | hexdigits )
 ````
@@ -566,4 +628,3 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-

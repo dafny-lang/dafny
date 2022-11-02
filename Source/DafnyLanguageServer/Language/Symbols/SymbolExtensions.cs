@@ -18,5 +18,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
     }
+    public static IEnumerable<TSymbol> AsEnumerable<TSymbol>(this TSymbol? symbol) where TSymbol : ISymbol {
+      if (symbol != null) {
+        yield return symbol;
+      }
+    }
   }
 }

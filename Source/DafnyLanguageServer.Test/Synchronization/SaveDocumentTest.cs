@@ -6,26 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
-  public class SaveDocumentTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
-    private IDictionary<string, string> _configuration;
-
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      _configuration = configuration;
-      _client = await InitializeClient();
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return _configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(_configuration).Build();
-    }
+  public class SaveDocumentTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
     public async Task LeavesDocumentUnchangedIfVerifyOnChange() {
@@ -34,11 +19,10 @@ function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var openedDocument));
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var savedDocument));
-      Assert.AreSame(openedDocument, savedDocument);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -51,11 +35,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var openedDocument));
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var savedDocument));
-      Assert.AreSame(openedDocument, savedDocument);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -68,11 +51,10 @@ function GetConstant() int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var openedDocument));
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var savedDocument));
-      Assert.AreSame(openedDocument, savedDocument);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -85,11 +67,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var openedDocument));
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var savedDocument));
-      Assert.AreSame(openedDocument, savedDocument);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -102,11 +83,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var openedDocument));
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var savedDocument));
-      Assert.AreNotSame(openedDocument, savedDocument);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -119,12 +99,13 @@ method DoIt() {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, afterSaveDiagnostics.Count());
+      var message = afterSaveDiagnostics.First();
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }
 }

@@ -5,6 +5,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -24,15 +27,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services, IConfiguration configuration) {
       return services
         .Configure<VerifierOptions>(configuration.GetSection(VerifierOptions.Section))
+        .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
-        .AddSingleton<IProgramVerifier>(CreateVerifier)
+        .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
-    private static DafnyProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
-      return DafnyProgramVerifier.Create(
+    private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
+      return new DafnyProgramVerifier(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       );

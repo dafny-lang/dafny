@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Methods_EverythingGoes {
@@ -270,5 +270,34 @@ module FiniteBecauseOfType {
     ghost var m := map x: int | true :: true := 6;  // this denotes a finite map, because the key type is bool
     var s'; s' := set x: int | true :: false;  // error: although this is a finite set, it's not clear it can be computed in finite time
     var m'; m' := map x: int | true :: true := 6;  // error: ditto
+  }
+}
+
+module WithoutOlder {
+  datatype List<T> = Nil | Cons(T, List<T>)
+
+  predicate ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
+    match xs
+    case Nil => true
+    case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
+  }
+
+  function Collection<X>(S: set<X>): iset<List<X>> {
+    iset zs: List<X> | ElementsContainedIn(zs, S) // error: needs 'older zs' for ElementsContainedIn
+  }
+}
+
+module WithOlder {
+  datatype List<T> = Nil | Cons(T, List<T>)
+
+  // For a proof the 'older' in the following line, see OlderVerification.dfy.
+  predicate ElementsContainedIn<X>(older xs: List<X>, S: set<X>) {
+    match xs
+    case Nil => true
+    case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
+  }
+
+  function Collection<X>(S: set<X>): iset<List<X>> {
+    iset zs: List<X> | ElementsContainedIn(zs, S)
   }
 }

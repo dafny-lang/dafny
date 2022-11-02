@@ -25,15 +25,15 @@ module A {
 
   import TTT = M
 
-  import M = M
+  import M
 
-  import MA = MA
+  import MA
 
   import MAI = MA.Inner
 
   import Inner = MA.Inner
 
-  import MB = MB
+  import MB
 
   import II = MB.I
   class ZZ {

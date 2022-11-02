@@ -14,18 +14,19 @@ function GetConstant(): int {
 }".TrimStart();
       var change = "function GetIt():int";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (0, 27)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function GetIt():int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -38,19 +39,20 @@ function GetConstant(): int {
 {
   2";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (1, 2)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function Get21(): int
 {
   21
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -61,18 +63,19 @@ function GetConstant(): int {
 }".TrimStart();
       var change = "/* test */ }";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((2, 0), (2, 1)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
   1
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -85,18 +88,19 @@ function GetConstant(): int {
 23
 /* test */ }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((1, 2), (2, 1)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function GetConstant(): int {
   23
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -130,13 +134,14 @@ method GetXY() returns (x: int, y: int)
         x := this.x;
         y := ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((10, 4), (13, 17)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 class Test {
     var x: int;
@@ -160,7 +165,7 @@ class Test {
         this.y
     }
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -171,18 +176,19 @@ function GetConstant(): int {
 }".TrimStart();
       var change = "Another";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 12), (0, 20)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function GetAnother(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -197,13 +203,14 @@ function GetConstant(): int {
 
 function Some";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 9), (0, 20)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = @"
 function It(): string {
   ""test""
@@ -212,7 +219,7 @@ function It(): string {
 function Some(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -223,15 +230,28 @@ function GetConstant(): int {
 }".TrimStart();
       var change = "";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (2, 1)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       var expected = "";
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+    }
+
+    [TestMethod]
+    public async Task ReplaceCompleteDocumentContent() {
+      var source = "function GetConstant(): int { 1 }";
+      var change = "function method ReturnSame(x: int): int { x }";
+      var documentItem = CreateTestDocument(source);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);
+      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
+      Assert.AreEqual(change, document.TextDocumentItem.Text);
     }
   }
 }

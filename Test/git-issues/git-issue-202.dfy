@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method push<T>(sequence: seq<T>, element: T) returns (new_sequence: seq<T>)
