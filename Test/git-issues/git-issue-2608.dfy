@@ -13,7 +13,7 @@ method GetNext(i: int) returns (j: int, possible: bool) {
 
 method Main()
 {
-  var i := 100;
+  var i := 10;
   var k := 27;
   while i > 0
     invariant i >= 0
