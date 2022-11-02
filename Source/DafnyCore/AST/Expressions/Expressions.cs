@@ -102,6 +102,14 @@ public abstract class Expression : INode {
   // Enables ranges to be correct.
   protected IToken[] FormatTokens = null;
 
+  protected Expression(Cloner cloner, Expression original) {
+    tok = cloner.Tok(original.tok);
+    
+    if (cloner.CloneResolvedFields && original.Type != null) {
+      Type = original.Type;
+    }
+  }
+
   /// Creates a token on the entire range of the expression.
   /// Used only for error reporting.
   public virtual RangeToken RangeToken {
@@ -1005,7 +1013,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasUsages {
+public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -1023,6 +1031,10 @@ public class DatatypeValue : Expression, IHasUsages {
     Contract.Invariant(cce.NonNullElements(Arguments));
     Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
     Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+  }
+
+  public DatatypeValue Clone(Cloner cloner) {
+    return new DatatypeValue(cloner, this);
   }
 
   public DatatypeValue(Cloner cloner, DatatypeValue original) : base(cloner.Tok(original.tok)) {
@@ -1134,7 +1146,7 @@ public class ImplicitThisExpr_ConstructorCall : ImplicitThisExpr {
   }
 }
 
-public class IdentifierExpr : Expression, IHasUsages {
+public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -1159,6 +1171,10 @@ public class IdentifierExpr : Expression, IHasUsages {
     Name = v.Name;
     Var = v;
     Type = v.Type;
+  }
+
+  public IdentifierExpr Clone(Cloner cloner) {
+    return new IdentifierExpr(cloner, this);
   }
 
   public IdentifierExpr(Cloner cloner, IdentifierExpr original) : base(cloner.Tok(original.tok)) {
@@ -1317,7 +1333,7 @@ public class SeqDisplayExpr : DisplayExpression {
   }
 }
 
-public class MemberSelectExpr : Expression, IHasUsages {
+public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
   public string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -1456,6 +1472,10 @@ public class MemberSelectExpr : Expression, IHasUsages {
     Contract.Invariant(MemberName != null);
     Contract.Invariant((Member != null) == (TypeApplication_AtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
     Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
+  }
+
+  public MemberSelectExpr Clone(Cloner cloner) {
+    return new MemberSelectExpr(cloner, this);
   }
 
   public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner.Tok(original.tok)) {
@@ -1699,7 +1719,7 @@ public class ApplyExpr : Expression {
   }
 }
 
-public class FunctionCallExpr : Expression, IHasUsages {
+public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
   public string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
@@ -1808,6 +1828,10 @@ public class FunctionCallExpr : Expression, IHasUsages {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
+  public FunctionCallExpr Clone(Cloner cloner) {
+    return new FunctionCallExpr(cloner, this);
+  }
+
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner.Tok(original.tok)) {
     Name = original.Name;
     Receiver = cloner.CloneExpr(original.Receiver);
@@ -1892,57 +1916,6 @@ public class MultiSetFormingExpr : Expression {
   }
 }
 
-public class OldExpr : Expression {
-  [Peer]
-  public readonly Expression E;
-  public readonly string/*?*/ At;
-  [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(E != null);
-  }
-
-  [Captured]
-  public OldExpr(IToken tok, Expression expr, string at = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(expr != null);
-    cce.Owner.AssignSame(this, expr);
-    E = expr;
-    At = at;
-  }
-
-  public override IEnumerable<Expression> SubExpressions {
-    get { yield return E; }
-  }
-}
-
-public class UnchangedExpr : Expression {
-  public readonly List<FrameExpression> Frame;
-  public readonly string/*?*/ At;
-  [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(Frame != null);
-  }
-
-  public UnchangedExpr(IToken tok, List<FrameExpression> frame, string/*?*/ at)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(frame != null);
-    this.Frame = frame;
-    this.At = at;
-  }
-
-  public override IEnumerable<Expression> SubExpressions {
-    get {
-      foreach (var fe in Frame) {
-        yield return fe.E;
-      }
-    }
-  }
-}
-
 public abstract class UnaryExpr : Expression {
   public readonly Expression E;
   [ContractInvariantMethod]
@@ -2019,7 +1992,7 @@ public class UnaryOpExpr : UnaryExpr {
   }
 }
 
-public class FreshExpr : UnaryOpExpr {
+public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
   public readonly string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
 
@@ -2028,6 +2001,14 @@ public class FreshExpr : UnaryOpExpr {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
     this.At = at;
+  }
+
+  public FreshExpr Clone(Cloner cloner) {
+    var result = new FreshExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+    if (cloner.CloneResolvedFields) {
+      result.AtLabel = AtLabel;
+    }
+    return result;
   }
 }
 
@@ -2070,7 +2051,7 @@ public class TypeTestExpr : TypeUnaryExpr {
   }
 }
 
-public class BinaryExpr : Expression {
+public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
   public enum Opcode {
     Iff,
     Imp,
@@ -2375,6 +2356,10 @@ public class BinaryExpr : Expression {
     Contract.Invariant(E1 != null);
   }
 
+  public BinaryExpr Clone(Cloner cloner) {
+    return new BinaryExpr(cloner, this);
+  }
+
   public BinaryExpr(Cloner cloner, BinaryExpr original) : base(cloner.Tok(original.tok)) {
     this.Op = original.Op;
     this.E0 = cloner.CloneExpr(original.E0);
@@ -2487,7 +2472,7 @@ public class TernaryExpr : Expression {
   }
 }
 
-public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr> {
   public readonly List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
@@ -2504,17 +2489,25 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
   IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
-  public void setTranslationDesugaring(Translator trans, Expression expr) {
+  public void SetTranslationDesugaring(Translator trans, Expression expr) {
     lastTranslatorUsed = trans;
     translationDesugaring = expr;
   }
 
-  public Expression getTranslationDesugaring(Translator trans) {
+  public Expression GetTranslationDesugaring(Translator trans) {
     if (lastTranslatorUsed == trans) {
       return translationDesugaring;
     } else {
       return null;
     }
+  }
+
+  public LetExpr Clone(Cloner cloner) {
+    var result = new LetExpr(cloner.Tok(tok), LHSs.ConvertAll(cloner.CloneCasePattern), RHSs.ConvertAll(cloner.CloneExpr), cloner.CloneExpr(Body), Exact, cloner.CloneAttributes(Attributes));
+    if (cloner.CloneResolvedFields) {
+      result.Constraint_Bounds = Constraint_Bounds;
+    }
+    return result;
   }
 
   public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
@@ -2568,389 +2561,6 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Rhs = cloner.CloneExpr(original.Rhs);
     Body = cloner.CloneExpr(original.Body);
   }
-}
-
-/// <summary>
-/// A ComprehensionExpr has the form:
-///   BINDER { x [: Type] [<- Domain] [Attributes] [| Range] } [:: Term(x)]
-/// Where BINDER is currently "forall", "exists", "iset"/"set", or "imap"/"map".
-///
-/// Quantifications used to only support a single range, but now each
-/// quantified variable can have a range attached.
-/// The overall Range is now filled in by the parser by extracting any implicit
-/// "x in Domain" constraints and per-variable Range constraints into a single conjunct.
-///
-/// The Term is optional if the expression only has one quantified variable,
-/// but required otherwise.
-///
-/// LambdaExpr also inherits from this base class but isn't really a comprehension,
-/// and should be considered implementation inheritance.
-/// </summary>
-public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
-  public virtual string WhatKind => "comprehension";
-  public readonly List<BoundVar> BoundVars;
-  public readonly Expression Range;
-  public Expression Term;
-
-  public IEnumerable<BoundVar> AllBoundVars => BoundVars;
-
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-
-  public void UpdateTerm(Expression newTerm) {
-    Term = newTerm;
-  }
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(BoundVars != null);
-    Contract.Invariant(Term != null);
-  }
-
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-
-  public abstract class BoundedPool {
-    [Flags]
-    public enum PoolVirtues { None = 0, Finite = 1, Enumerable = 2, IndependentOfAlloc = 4, IndependentOfAlloc_or_ExplicitAlloc = 8 }
-    public abstract PoolVirtues Virtues { get; }
-    /// <summary>
-    /// A higher preference is better.
-    /// A preference below 2 is a last-resort bounded pool. Bounds discovery will not consider
-    /// such a pool to be final until there are no other choices.
-    ///
-    /// For easy reference, here is the BoundedPool hierarchy and their preference levels:
-    ///
-    /// 0: AllocFreeBoundedPool
-    /// 0: ExplicitAllocatedBoundedPool
-    /// 0: SpecialAllocIndependenceAllocatedBoundedPool
-    /// 0: OlderBoundedPool
-    ///
-    /// 1: WiggleWaggleBound
-    ///
-    /// 2: SuperSetBoundedPool
-    /// 2: DatatypeInclusionBoundedPool
-    ///
-    /// 3: SubSetBoundedPool
-    ///
-    /// 4: IntBoundedPool with one bound
-    /// 5: IntBoundedPool with both bounds
-    /// 5: CharBoundedPool
-    ///
-    /// 8: DatatypeBoundedPool
-    ///
-    /// 10: CollectionBoundedPool
-    ///     - SetBoundedPool
-    ///     - MapBoundedPool
-    ///     - SeqBoundedPool
-    ///
-    /// 14: BoolBoundedPool
-    ///
-    /// 15: ExactBoundedPool
-    /// </summary>
-    public abstract int Preference(); // higher is better
-
-    public static BoundedPool GetBest(List<BoundedPool> bounds, PoolVirtues requiredVirtues) {
-      Contract.Requires(bounds != null);
-      bounds = CombineIntegerBounds(bounds);
-      BoundedPool best = null;
-      foreach (var bound in bounds) {
-        if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
-          if (best == null || bound.Preference() > best.Preference()) {
-            best = bound;
-          }
-        }
-      }
-      return best;
-    }
-    public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
-      Contract.Requires(vars != null);
-      Contract.Requires(bounds == null || vars.Count == bounds.Count);
-      Contract.Ensures(Contract.Result<List<VT>>() != null);
-      var missing = new List<VT>();
-      for (var i = 0; i < vars.Count; i++) {
-        if (bounds == null || bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
-          missing.Add(vars[i]);
-        }
-      }
-      return missing;
-    }
-    public static List<bool> HasBounds(List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) {
-      Contract.Requires(bounds != null);
-      Contract.Ensures(Contract.Result<List<bool>>() != null);
-      Contract.Ensures(Contract.Result<List<bool>>().Count == bounds.Count);
-      return bounds.ConvertAll(bound => bound != null && (bound.Virtues & requiredVirtues) == requiredVirtues);
-    }
-    static List<BoundedPool> CombineIntegerBounds(List<BoundedPool> bounds) {
-      var lowerBounds = new List<IntBoundedPool>();
-      var upperBounds = new List<IntBoundedPool>();
-      var others = new List<BoundedPool>();
-      foreach (var b in bounds) {
-        var ib = b as IntBoundedPool;
-        if (ib != null && ib.UpperBound == null) {
-          lowerBounds.Add(ib);
-        } else if (ib != null && ib.LowerBound == null) {
-          upperBounds.Add(ib);
-        } else {
-          others.Add(b);
-        }
-      }
-      // pair up the bounds
-      var n = Math.Min(lowerBounds.Count, upperBounds.Count);
-      for (var i = 0; i < n; i++) {
-        others.Add(new IntBoundedPool(lowerBounds[i].LowerBound, upperBounds[i].UpperBound));
-      }
-      for (var i = n; i < lowerBounds.Count; i++) {
-        others.Add(lowerBounds[i]);
-      }
-      for (var i = n; i < upperBounds.Count; i++) {
-        others.Add(upperBounds[i]);
-      }
-      return others;
-    }
-  }
-  public class ExactBoundedPool : BoundedPool {
-    public readonly Expression E;
-    public ExactBoundedPool(Expression e) {
-      Contract.Requires(e != null);
-      E = e;
-    }
-    public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 15;  // the best of all bounds
-  }
-  public class BoolBoundedPool : BoundedPool {
-    public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 14;
-  }
-  public class CharBoundedPool : BoundedPool {
-    public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 5;
-  }
-  public class AllocFreeBoundedPool : BoundedPool {
-    public Type Type;
-    public AllocFreeBoundedPool(Type t) {
-      Type = t;
-    }
-    public override PoolVirtues Virtues {
-      get {
-        if (Type.IsRefType) {
-          return PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        } else {
-          return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        }
-      }
-    }
-    public override int Preference() => 0;
-  }
-  public class ExplicitAllocatedBoundedPool : BoundedPool {
-    public ExplicitAllocatedBoundedPool() {
-    }
-    public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 0;
-  }
-  public class SpecialAllocIndependenceAllocatedBoundedPool : BoundedPool {
-    public SpecialAllocIndependenceAllocatedBoundedPool() {
-    }
-    public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 0;
-  }
-  public class IntBoundedPool : BoundedPool {
-    public readonly Expression LowerBound;
-    public readonly Expression UpperBound;
-    public IntBoundedPool(Expression lowerBound, Expression upperBound) {
-      Contract.Requires(lowerBound != null || upperBound != null);
-      LowerBound = lowerBound;
-      UpperBound = upperBound;
-    }
-    public override PoolVirtues Virtues {
-      get {
-        if (LowerBound != null && UpperBound != null) {
-          return PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        } else {
-          return PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        }
-      }
-    }
-    public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
-  }
-  public abstract class CollectionBoundedPool : BoundedPool {
-    public readonly Type BoundVariableType;
-    public readonly Type CollectionElementType;
-    public readonly bool IsFiniteCollection;
-
-    public CollectionBoundedPool(Type bvType, Type collectionElementType, bool isFiniteCollection) {
-      Contract.Requires(bvType != null);
-      Contract.Requires(collectionElementType != null);
-
-      BoundVariableType = bvType;
-      CollectionElementType = collectionElementType;
-      IsFiniteCollection = isFiniteCollection;
-    }
-
-    public override PoolVirtues Virtues {
-      get {
-        var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        if (IsFiniteCollection) {
-          v |= PoolVirtues.Finite;
-          if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
-            v |= PoolVirtues.Enumerable;
-          }
-        }
-        return v;
-      }
-    }
-    public override int Preference() => 10;
-  }
-  public class SetBoundedPool : CollectionBoundedPool {
-    public readonly Expression Set;
-
-    public SetBoundedPool(Expression set, Type bvType, Type collectionElementType, bool isFiniteCollection)
-      : base(bvType, collectionElementType, isFiniteCollection) {
-      Contract.Requires(set != null);
-      Contract.Requires(bvType != null);
-      Contract.Requires(collectionElementType != null);
-      Set = set;
-    }
-  }
-  public class SubSetBoundedPool : BoundedPool {
-    public readonly Expression UpperBound;
-    public readonly bool IsFiniteCollection;
-    public SubSetBoundedPool(Expression set, bool isFiniteCollection) {
-      UpperBound = set;
-      IsFiniteCollection = isFiniteCollection;
-    }
-    public override PoolVirtues Virtues {
-      get {
-        if (IsFiniteCollection) {
-          return PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        } else {
-          // it's still enumerable, because at run time, all sets are finite after all
-          return PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        }
-      }
-    }
-    public override int Preference() => 3;
-  }
-  public class SuperSetBoundedPool : BoundedPool {
-    public readonly Expression LowerBound;
-    public SuperSetBoundedPool(Expression set) { LowerBound = set; }
-    public override int Preference() => 2;
-    public override PoolVirtues Virtues {
-      get {
-        if (LowerBound.Type.MayInvolveReferences) {
-          return PoolVirtues.None;
-        } else {
-          return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-        }
-      }
-    }
-  }
-  public class MultiSetBoundedPool : CollectionBoundedPool {
-    public readonly Expression MultiSet;
-
-    public MultiSetBoundedPool(Expression multiset, Type bvType, Type collectionElementType)
-      : base(bvType, collectionElementType, true) {
-      Contract.Requires(multiset != null);
-      Contract.Requires(bvType != null);
-      Contract.Requires(collectionElementType != null);
-      MultiSet = multiset;
-    }
-  }
-  public class MapBoundedPool : CollectionBoundedPool {
-    public readonly Expression Map;
-
-    public MapBoundedPool(Expression map, Type bvType, Type collectionElementType, bool isFiniteCollection)
-      : base(bvType, collectionElementType, isFiniteCollection) {
-      Contract.Requires(map != null);
-      Contract.Requires(bvType != null);
-      Contract.Requires(collectionElementType != null);
-      Map = map;
-    }
-  }
-  public class SeqBoundedPool : CollectionBoundedPool {
-    public readonly Expression Seq;
-
-    public SeqBoundedPool(Expression seq, Type bvType, Type collectionElementType)
-      : base(bvType, collectionElementType, true) {
-      Contract.Requires(seq != null);
-      Contract.Requires(bvType != null);
-      Contract.Requires(collectionElementType != null);
-      Seq = seq;
-    }
-  }
-  public class DatatypeBoundedPool : BoundedPool {
-    public readonly DatatypeDecl Decl;
-
-    public DatatypeBoundedPool(DatatypeDecl d) {
-      Contract.Requires(d != null);
-      Decl = d;
-    }
-    public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 8;
-  }
-  public class DatatypeInclusionBoundedPool : BoundedPool {
-    public readonly bool IsIndDatatype;
-    public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
-    public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 2;
-  }
-
-  public class OlderBoundedPool : BoundedPool {
-    public OlderBoundedPool() {
-    }
-    public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-    public override int Preference() => 0;
-  }
-
-  [FilledInDuringResolution] public List<BoundedPool> Bounds;
-  // invariant Bounds == null || Bounds.Count == BoundVars.Count;
-
-  public List<BoundVar> UncompilableBoundVars() {
-    Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
-    var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
-  }
-
-  public ComprehensionExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(term != null);
-
-    this.BoundVars = bvars;
-    this.Range = range;
-    this.UpdateTerm(term);
-    this.Attributes = attrs;
-    this.BodyStartTok = tok;
-    this.BodyEndTok = endTok;
-  }
-
-  protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner.Tok(original.tok)) {
-    BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
-    Range = cloner.CloneExpr(original.Range);
-    Attributes = cloner.CloneAttributes(original.Attributes);
-    BodyStartTok = cloner.Tok(original.BodyStartTok);
-    BodyEndTok = cloner.Tok(original.BodyEndTok);
-    Term = cloner.CloneExpr(original.Term);
-    
-    if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds;
-    }
-  }
-
-  public override IEnumerable<Expression> SubExpressions {
-    get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
-      if (Range != null) { yield return Range; }
-      yield return Term;
-    }
-  }
-
-  public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
 }
 
 public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
@@ -3044,7 +2654,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   }
 }
 
-public class ForallExpr : QuantifierExpr {
+public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
   public override string WhatKind => "forall expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
@@ -3053,6 +2663,10 @@ public class ForallExpr : QuantifierExpr {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
+  }
+
+  public ForallExpr Clone(Cloner cloner) {
+    return new ForallExpr(cloner, this);
   }
 
   public ForallExpr(Cloner cloner, ForallExpr original) : base(cloner, original) {
@@ -3069,7 +2683,7 @@ public class ForallExpr : QuantifierExpr {
   }
 }
 
-public class ExistsExpr : QuantifierExpr {
+public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public override string WhatKind => "exists expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
@@ -3078,6 +2692,10 @@ public class ExistsExpr : QuantifierExpr {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
+  }
+
+  public ExistsExpr Clone(Cloner cloner) {
+    return new ExistsExpr(cloner, this);
   }
 
   public ExistsExpr(Cloner cloner, ExistsExpr existsExpr) : base(cloner, existsExpr) {
@@ -3094,7 +2712,7 @@ public class ExistsExpr : QuantifierExpr {
   }
 }
 
-public class SetComprehension : ComprehensionExpr {
+public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> {
   public override string WhatKind => "set comprehension";
 
   public readonly bool Finite;
@@ -3109,6 +2727,15 @@ public class SetComprehension : ComprehensionExpr {
     }
   }
 
+  public SetComprehension Clone(Cloner cloner) {
+    return new SetComprehension(cloner, this);
+  }
+
+  public SetComprehension(Cloner cloner, SetComprehension original) : base(cloner, original) {
+    TermIsImplicit = original.TermIsImplicit;
+    Finite = original.Finite;
+  }
+
   public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
     : base(tok, endTok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
     Contract.Requires(tok != null);
@@ -3121,13 +2748,22 @@ public class SetComprehension : ComprehensionExpr {
     Finite = finite;
   }
 }
-public class MapComprehension : ComprehensionExpr {
+public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> {
   public override string WhatKind => "map comprehension";
 
   public readonly bool Finite;
   public readonly Expression TermLeft;
 
   public List<Boogie.Function> ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
+
+  public MapComprehension Clone(Cloner cloner) {
+    return new MapComprehension(cloner, this);
+  }
+
+  public MapComprehension(Cloner cloner, MapComprehension original) : base(cloner, original) {
+    TermLeft = cloner.CloneExpr(original.TermLeft);
+    Finite = original.Finite;
+  }
 
   public MapComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
     : base(tok, endTok, bvars, range, termRight, attrs) {
@@ -3179,7 +2815,7 @@ public class MapComprehension : ComprehensionExpr {
   }
 }
 
-public class LambdaExpr : ComprehensionExpr {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public override string WhatKind => "lambda";
 
   public readonly List<FrameExpression> Reads;
@@ -3205,6 +2841,13 @@ public class LambdaExpr : ComprehensionExpr {
     }
   }
 
+  public LambdaExpr(Cloner cloner, LambdaExpr original) : base(cloner, original) {
+    Reads = original.Reads.ConvertAll(cloner.CloneFrameExpr);
+  }
+
+  public LambdaExpr Clone(Cloner cloner) {
+    return new LambdaExpr(cloner, this);
+  }
 }
 
 public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
@@ -3657,6 +3300,16 @@ public class FrameExpression : IHasUsages {
     FieldName = fieldName;
   }
 
+  public FrameExpression(Cloner cloner, FrameExpression original) {
+    this.tok = cloner.Tok(original.tok);
+    E = cloner.CloneExpr(original.E);
+    FieldName = original.FieldName;
+
+    if (cloner.CloneResolvedFields) {
+      Field = original.Field;
+    }
+  }
+
   public IToken NameToken => tok;
   public IEnumerable<INode> Children => new[] { E };
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
@@ -3671,7 +3324,7 @@ public class FrameExpression : IHasUsages {
 public abstract class ConcreteSyntaxExpression : Expression {
   [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 
-  protected ConcreteSyntaxExpression(Cloner cloner, ConcreteSyntaxExpression original) : base(cloner.Tok(original.tok)) {
+  protected ConcreteSyntaxExpression(Cloner cloner, ConcreteSyntaxExpression original) : base(cloner, original) {
     if (cloner.CloneResolvedFields && original.ResolvedExpression != null) {
       ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
     }
@@ -4038,7 +3691,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   public override IEnumerable<INode> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
 }
 
-public class NameSegment : ConcreteSyntaxExpression {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -4053,6 +3706,10 @@ public class NameSegment : ConcreteSyntaxExpression {
   public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
     Name = original.Name;
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
+  }
+
+  public NameSegment Clone(Cloner cloner) {
+    return new NameSegment(cloner, this);
   }
 }
 

@@ -9,6 +9,11 @@ using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  interface ICloneable<out T> {
+    T Clone(Cloner cloner);
+  }
+  
   public class Cloner {
     public bool CloneResolvedFields { get; }
     private readonly Dictionary<IVariable, IVariable> clones = new();
@@ -270,7 +275,7 @@ namespace Microsoft.Dafny {
     }
 
     public FrameExpression CloneFrameExpr(FrameExpression frame) {
-      return new FrameExpression(Tok(frame.tok), CloneExpr(frame.E), frame.FieldName);
+      return new FrameExpression(this, frame);
     }
     public Attributes CloneAttributes(Attributes attrs) {
       if (attrs == null) {
@@ -297,17 +302,23 @@ namespace Microsoft.Dafny {
     }
 
     public virtual Expression CloneExpr(Expression expr) {
+      if (expr == null) {
+        return null;
+      }
+
+      if (expr is ICloneable<Expression> cloneableExpression) {
+        return cloneableExpression.Clone(this);
+      }
+      
       var result = CloneExprInner(expr);
-      if (CloneResolvedFields && expr != null && expr.Type != null) {
+      if (CloneResolvedFields && expr.Type != null) {
         result.Type = expr.Type;
       }
       return result;
     }
 
     private Expression CloneExprInner(Expression expr) {
-      if (expr == null) {
-        return null;
-      } else if (expr is LiteralExpr) {
+      if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e is StaticReceiverExpr) {
           var ee = (StaticReceiverExpr)e;
@@ -338,12 +349,6 @@ namespace Microsoft.Dafny {
       } else if (expr is AutoGhostIdentifierExpr) {
         var e = (AutoGhostIdentifierExpr)expr;
         return new AutoGhostIdentifierExpr(this, e);
-      } else if (expr is IdentifierExpr) {
-        var e = (IdentifierExpr)expr;
-        return new IdentifierExpr(this, e);
-      } else if (expr is DatatypeValue) {
-        var e = (DatatypeValue)expr;
-        return new DatatypeValue(this, e);
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         if (expr is SetDisplayExpr) {
@@ -363,17 +368,12 @@ namespace Microsoft.Dafny {
         }
         return new MapDisplayExpr(Tok(expr.tok), e.Finite, pp);
 
-      } else if (expr is NameSegment) {
-        return CloneNameSegment(expr);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         return new ExprDotName(this, e);
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         return CloneApplySuffix(e);
-      } else if (expr is MemberSelectExpr) {
-        var e = (MemberSelectExpr)expr;
-        return new MemberSelectExpr(this, e);
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
         return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1),
@@ -389,9 +389,6 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         return new DatatypeUpdateExpr(this, e);
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(this, e);
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         return new ApplyExpr(Tok(e.tok), CloneExpr(e.Function), e.Args.ConvertAll(CloneExpr), Tok(e.CloseParen));
@@ -405,18 +402,6 @@ namespace Microsoft.Dafny {
         var e = (MultiSetFormingExpr)expr;
         return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
 
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        return new OldExpr(Tok(e.tok), CloneExpr(e.E), e.At);
-
-      } else if (expr is UnchangedExpr) {
-        var e = (UnchangedExpr)expr;
-        return new UnchangedExpr(Tok(e.tok), e.Frame.ConvertAll(CloneFrameExpr), e.At);
-
-      } else if (expr is FreshExpr) {
-        var e = (FreshExpr)expr;
-        return new FreshExpr(Tok(e.tok), CloneExpr(e.E), e.At);
-
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         return new UnaryOpExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
@@ -429,9 +414,6 @@ namespace Microsoft.Dafny {
         var e = (TypeTestExpr)expr;
         return new TypeTestExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
 
-      } else if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-        return new BinaryExpr(this, e);
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
@@ -439,40 +421,9 @@ namespace Microsoft.Dafny {
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         return new ChainingExpression(this, e);
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact, e.Attributes);
-
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         return new LetOrFailExpr(this, e);
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        var tk = Tok(e.tok);
-        var tkEnd = Tok(e.BodyEndTok);
-        var bvs = e.BoundVars.ConvertAll(bv => CloneBoundVar(bv, false));
-        var range = CloneExpr(e.Range);
-        var term = CloneExpr(e.Term);
-        if (e is QuantifierExpr q) {
-          if (e is ForallExpr forallExpr) {
-            return new ForallExpr(this, forallExpr);
-          } else if (e is ExistsExpr existsExpr) {
-            return new ExistsExpr(this, existsExpr);
-          } else {
-            Contract.Assert(false);
-            throw new cce.UnreachableException(); // unexpected quantifier expression
-          }
-        } else if (e is MapComprehension mc) {
-          return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range,
-            mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
-        } else if (e is LambdaExpr l) {
-          return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
-        } else {
-          Contract.Assert(e is SetComprehension);
-          var tt = (SetComprehension)e;
-          return new SetComprehension(tk, tkEnd, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term,
-            CloneAttributes(e.Attributes));
-        }
       } else if (expr is WildcardExpr) {
         return new WildcardExpr(Tok(expr.tok));
       } else if (expr is StmtExpr) {
