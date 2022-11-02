@@ -5,7 +5,7 @@ datatype Outcome<T> =
 datatype entry<T(!new,==)> = Entry(key: nat,value: T)
 	
 datatype Ref<T> =
-	| Alloc(deref: T)
+	| Ptr(deref: T)
 	| Null
 
 class Item<T(!new,==)> {
@@ -31,18 +31,6 @@ class Item<T(!new,==)> {
 	
 }
 
-// lemma test1<T(!new)>(x: Item<T>, y: Item<T>)
-// 	requires x == y
-// 	ensures x.less_recently_used == y.less_recently_used
-// {
-// }
-
-// twostate lemma test2<T(!new)>(x: Item<T>)
-// 	requires x == old(x)
-// 	ensures x.less_recently_used == old(x).less_recently_used
-// {
-// }
-
 class LRUCache<T(!new,==)> {
 
 	ghost var Repr: set<Item<T>>;
@@ -61,8 +49,8 @@ class LRUCache<T(!new,==)> {
 
 		// Dynamic frame properties
 		&& (forall key: nat :: key in cache ==> cache[key] in Repr)
-		&& (cache_head.Alloc? ==> cache_head.deref in Repr)
-		&& (cache_tail.Alloc? ==> cache_tail.deref in Repr)
+		&& (cache_head.Ptr? ==> cache_head.deref in Repr)
+		&& (cache_tail.Ptr? ==> cache_tail.deref in Repr)
 		&& (forall i: Item :: i in Repr ==> i.more_recently_used.Null? || i.more_recently_used.deref in Repr)
 		&& (forall i: Item :: i in Repr ==> i.less_recently_used.Null? || i.less_recently_used.deref in Repr)
 		
@@ -75,20 +63,20 @@ class LRUCache<T(!new,==)> {
 		// Structural properties
 		&& (|cache| == 0 <==> Repr == {})
 		&& (|cache| == 0 <==> cache_head == cache_tail == Null)
-		&& (|cache| == 1 ==> (cache_head == cache_tail && cache_head.Alloc?))
-		&& (cache_head.Alloc? ==> cache_head.deref.more_recently_used.Null?)
-		&& (cache_tail.Alloc? ==> cache_tail.deref.less_recently_used.Null?)
+		&& (|cache| == 1 ==> (cache_head == cache_tail && cache_head.Ptr?))
+		&& (cache_head.Ptr? ==> cache_head.deref.more_recently_used.Null?)
+		&& (cache_tail.Ptr? ==> cache_tail.deref.less_recently_used.Null?)
 		&& (|cache| == 1 ==> Repr == {cache_head.deref})
-		&& (|cache| >= 1 <==> cache_head.Alloc? && cache_tail.Alloc?)
+		&& (|cache| >= 1 <==> cache_head.Ptr? && cache_tail.Ptr?)
 		&& (|cache| >= 2 ==> cache_head != cache_tail)
-		&& (|cache| >= 2 ==> cache_head.deref.less_recently_used.Alloc?)
-		&& (|cache| >= 2 ==> cache_tail.deref.more_recently_used.Alloc?)
-		&& (forall i: Item :: i in Repr ==> (i.more_recently_used.Alloc? && i.less_recently_used.Alloc? <==> Alloc(i) != cache_head && Alloc(i) != cache_tail))
-		&& (forall i: Item :: i in Repr ==> (i.more_recently_used.Null? <==> Alloc(i) == cache_head))
-		&& (forall i: Item :: i in Repr ==> (i.less_recently_used.Null? <==> Alloc(i) == cache_tail))
-		&& (forall i: Item :: i in Repr ==> i.less_recently_used.Null? ||  i.less_recently_used.deref.more_recently_used == Alloc(i))
-		&& (forall i: Item :: i in Repr ==> i.more_recently_used.Null? || i.more_recently_used.deref.less_recently_used == Alloc(i))
-		&& (|cache| == 1 <== (cache_head == cache_tail && cache_head.Alloc?))
+		&& (|cache| >= 2 ==> cache_head.deref.less_recently_used.Ptr?)
+		&& (|cache| >= 2 ==> cache_tail.deref.more_recently_used.Ptr?)
+		&& (forall i: Item :: i in Repr ==> (i.more_recently_used.Ptr? && i.less_recently_used.Ptr? <==> Ptr(i) != cache_head && Ptr(i) != cache_tail))
+		&& (forall i: Item :: i in Repr ==> (i.more_recently_used.Null? <==> Ptr(i) == cache_head))
+		&& (forall i: Item :: i in Repr ==> (i.less_recently_used.Null? <==> Ptr(i) == cache_tail))
+		&& (forall i: Item :: i in Repr ==> i.less_recently_used.Null? ||  i.less_recently_used.deref.more_recently_used == Ptr(i))
+		&& (forall i: Item :: i in Repr ==> i.more_recently_used.Null? || i.more_recently_used.deref.less_recently_used == Ptr(i))
+		&& (|cache| == 1 <== (cache_head == cache_tail && cache_head.Ptr?))
 		&& (|cache| >= 2 <== cache_head != cache_tail)
 
 	}
@@ -114,8 +102,8 @@ class LRUCache<T(!new,==)> {
 	{
 		var item := cache[key];
 		if |cache| >= 2 {
-			if item.more_recently_used.Alloc? {
-				if item.less_recently_used.Alloc? {
+			if item.more_recently_used.Ptr? {
+				if item.less_recently_used.Ptr? {
 
 					// Get item out of the DLL
 					item.more_recently_used.deref.less_recently_used := item.less_recently_used;
@@ -124,7 +112,7 @@ class LRUCache<T(!new,==)> {
 					var old_cache_head := cache_head;
 					item.less_recently_used := old_cache_head;
 					item.more_recently_used := Null;
-					cache_head := Alloc(item);
+					cache_head := Ptr(item);
 					old_cache_head.deref.more_recently_used := cache_head;
 					
 				} else {
@@ -135,15 +123,12 @@ class LRUCache<T(!new,==)> {
 					var old_cache_head := cache_head;
 					item.less_recently_used := old_cache_head;
 					item.more_recently_used := Null;
-					cache_head := Alloc(item);
+					cache_head := Ptr(item);
 					old_cache_head.deref.more_recently_used := cache_head;
 					
 				}
 			}
 		}
-		// useful for debugging
-		assert |old(cache)| == |cache|;
-		assert |old(Repr)| == |Repr|;
 	}
 	
 	method put_cache(key: nat, value: T)
@@ -160,15 +145,15 @@ class LRUCache<T(!new,==)> {
 			var item: Item := new Item(key,value);
 			Repr := Repr + {item};
 			cache := cache[key := item];
-			cache_head := Alloc(item);
-			cache_tail := Alloc(item);
+			cache_head := Ptr(item);
+			cache_tail := Ptr(item);
 			
 		} else if |cache| == 1 {
 			
 			var item: Item := new Item(key,value);
 			cache := cache[key := item];		
 			Repr := Repr + {item};
-			cache_head := Alloc(item);
+			cache_head := Ptr(item);
 			cache_head.deref.less_recently_used := cache_tail;
 			cache_tail.deref.more_recently_used := cache_head;
 
@@ -180,14 +165,12 @@ class LRUCache<T(!new,==)> {
 			var old_cache_head := cache_head;
 			assert old_cache_head != cache_tail;
 			item.less_recently_used := cache_head;
-			old_cache_head.deref.more_recently_used := Alloc(item);
-			cache_head := Alloc(item);
+			old_cache_head.deref.more_recently_used := Ptr(item);
+			cache_head := Ptr(item);
 
 		}
 		
 	}
-
-	// Step 1: put, get, no promotion, no eviction
 	
 	method get(key: nat) returns (result: Outcome<T>)
 		modifies this, Repr
@@ -196,7 +179,7 @@ class LRUCache<T(!new,==)> {
 	{
 		if key in cache {
 			result := Success(cache[key].value);
-			//promote(key);
+			promote(key);
 		} else if key in storage {
 			var value: T := storage[key];
 			result := Success(value);
