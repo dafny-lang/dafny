@@ -635,8 +635,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public LocalVariable CloneLocalVariable(CasePattern<LocalVariable> pat, Type tt, LocalVariable bv) {
-      return new LocalVariable(pat.tok, pat.tok, pat.Id, tt, bv.IsGhost);
+    public LocalVariable CloneLocalVariable(CasePattern<LocalVariable> pat, Type tt, LocalVariable lv) {
+      return new LocalVariable(pat.tok, pat.tok, pat.Id, tt, lv.IsGhost);
     }
     public BoundVar CloneBoundVar(CasePattern<BoundVar> pat, Type tt, BoundVar bv) {
       return new BoundVar(pat.tok, pat.Id, tt);
