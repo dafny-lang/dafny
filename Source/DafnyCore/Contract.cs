@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -19,6 +20,8 @@ class Contract {
   public static void Invariant(bool condition, string userMessage = null)
   {
   }
+  
+  [Conditional("CONTRACTS_FULL")]
   public static void Ensures(bool condition, string userMessage = null)
   {
   }
