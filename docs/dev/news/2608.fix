@@ -1,1 +1,1 @@
-Labels should not be compiled in the case of variable declarations
+Labels are no longer compiled in the case of variable declarations
