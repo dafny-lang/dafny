@@ -1,10 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=java %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {
@@ -30,6 +24,12 @@ method M(a: char, b: char) returns (s: string, t: seq<char>)
   s := t[0..|s|];
 }
 
+// Note that actually printing strings with non-ASCII characters
+// is currently inconsistent across both languages and platforms.
+// See https://github.com/dafny-lang/dafny/pull/2938 for an
+// attempt to fix this that had to be reverted.
+// For now we're just making runtimes assertions about the contents of
+// strings rather than printing them and relying on the diff with the expect file.
 method Main()
 {
   var ch: char;
@@ -40,7 +40,7 @@ method Main()
   print "Escape X: ", x, "\n";
   print "Escape Y: ", y, "\n";
   print "Escape Z: ", z, "\n";
-  print "Escape ZZ: ", zz, "\n";
+  // Not printing zz as per the comment above
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
 
@@ -62,27 +62,26 @@ method Main()
   assert highBMPChar[0] == 0xFFEE as char;
   expect highBMPChar[0] == 0xFFEE as char;
  
-  print "Let's go to the café", "\n";
+  var coffeeInvitation :=  "Let's go to the café";
+  assert |coffeeInvitation| == 20;
+  expect |coffeeInvitation| == 20;
+  assert coffeeInvitation[19] == 'é';
+  expect coffeeInvitation[19] == 'é';
 
   // Testing invalid UTF-16 content that Dafny allows (at least until --unicode-char lands)
 
   var x?, y?, z? := WeirdStrings();
   
-  // Printing these invalid (in UTF-16) strings can lead to at least inconsistent
-  // output across the backends, but they should never crash.
-  // We assert that the invalid state is modelled correctly as well.
   expect |x?| == 30;
   expect x?[29] as int == 55296;
-  print "Weird string X: ", x?, "\n";
   expect |y?| == 30;
   expect x?[29] as int == 55296;
-  print "Weird string Y: ", y?, "\n";
   expect |z?| > 2;
   expect z?[0..2] == ['\ude0e', '\ud83d'];
-  print "Weird string Z: ", z?, "\n";
 
   var c?, d? := WeirdChars();
-  print "These characters are quite confused: ", c?, ' ', d?, "\n";
+  expect c? == 0xD800 as char;
+  expect d? == '\uDFFF';
 
   // Ensuring we're precise enough about identifying \u escapes
   print "I'm afraid you'll find escape quite impossible, \\u007", "\n";
