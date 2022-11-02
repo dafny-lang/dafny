@@ -5547,10 +5547,14 @@ namespace Microsoft.Dafny {
       if (rdt is SubsetTypeDecl) {
         baseType = ((SubsetTypeDecl)rdt).RhsWithArgument(udt.TypeArgs);
         kind = "subset type";
-      } else {
+      } else if (rdt is NewtypeDecl) {
         baseType = ((NewtypeDecl)rdt).BaseType;
         kind = "newtype";
+      } else {
+        baseType = ((TypeSynonymDecl)rdt).RhsWithArgument(udt.TypeArgs);
+        kind = "type synonym";
       }
+
       if (baseType.AsRedirectingType != null) {
         CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran, errorMsgPrefix);
       }
