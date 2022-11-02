@@ -95,7 +95,8 @@ class MapStorage<T(!new)> extends Storage<T> {
 
 		assert forall key: nat :: key in old(storage) <==> exists index: nat :: index < |old(log)| && old(log)[index].key == key;
 
-		forall key': nat ensures key' in storage ==> exists index: nat :: index < |log| && log[index].key == key' {
+		forall key': nat
+			ensures key' in storage ==> exists index: nat :: index < |log| && log[index].key == key' {
 			if key' in storage {
 				if key == key' {
 					var index: nat := |log| - 1;
