@@ -48,6 +48,12 @@ method Main()
   // Code points outside the BMP are still not supported.
   // See https://github.com/dafny-lang/dafny/issues/818.
   
+  var coffeeInvitation :=  "Let's go to the café";
+  assert |coffeeInvitation| == 20;
+  expect |coffeeInvitation| == 20;
+  assert coffeeInvitation[19] == 'é';
+  expect coffeeInvitation[19] == 'é';
+
   var firstNonAsciiChar := "Ā";
   assert |firstNonAsciiChar| == 1;
   expect |firstNonAsciiChar| == 1;
@@ -62,12 +68,6 @@ method Main()
   assert highBMPChar[0] == 0xFFEE as char;
   expect highBMPChar[0] == 0xFFEE as char;
  
-  var coffeeInvitation :=  "Let's go to the café";
-  assert |coffeeInvitation| == 20;
-  expect |coffeeInvitation| == 20;
-  assert coffeeInvitation[19] == 'é';
-  expect coffeeInvitation[19] == 'é';
-
   // Testing invalid UTF-16 content that Dafny allows (at least until --unicode-char lands)
 
   var x?, y?, z? := WeirdStrings();

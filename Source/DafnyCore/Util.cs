@@ -190,10 +190,10 @@ namespace Microsoft.Dafny {
     public static bool MightContainNonAsciiCharacters(string s, bool isVerbatimString) {
       // This is conservative since \u escapes could be ASCII characters,
       // but that's fine since this method is just used as a conservative guard.
-      return TokensWithEscapes(s, isVerbatimString).Any(e => 
+      return TokensWithEscapes(s, isVerbatimString).Any(e =>
         e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u"));
     }
-    
+
     /// <summary>
     /// Replaced any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
