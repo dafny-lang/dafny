@@ -53,6 +53,12 @@ public class CompileNestedMatch : IRewriter {
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
 
     ((INode)moduleDefinition).Visit(node => {
+      if (node != moduleDefinition && node is ModuleDefinition) {
+        // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
+        // so this is to prevent recursion into the uncloned definitions. 
+        return false;
+      }
+      
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }

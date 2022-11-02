@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
   public class Cloner {
     public bool CloneResolvedFields { get; }
     private readonly Dictionary<IVariable, IVariable> clones = new();
+    private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
 
     public Cloner(bool cloneResolvedFields = false) {
       this.CloneResolvedFields = cloneResolvedFields;
@@ -156,16 +157,18 @@ namespace Microsoft.Dafny {
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member) {
-      if (member is Field) {
-        var f = (Field)member;
-        return CloneField(f);
-      } else if (member is Function) {
-        var f = (Function)member;
-        return CloneFunction(f);
-      } else {
-        var m = (Method)member;
-        return CloneMethod(m);
-      }
+      return memberClones.GetOrCreate(member, () => {
+        if (member is Field) {
+          var f = (Field) member;
+          return CloneField(f);
+        } else if (member is Function) {
+          var f = (Function) member;
+          return CloneFunction(f);
+        } else {
+          var m = (Method) member;
+          return CloneMethod(m);
+        }
+      });
     }
 
     public virtual Type CloneType(Type t) {
@@ -879,6 +882,7 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// This cloner is used to clone a module into a _Compile module.  This is different from
   /// the standard cloner in the following ways:
+  ///  TODO remove this behavior since it's no longer needed.
   /// * "match" statements and "match" expressions obtain their original form, which may include
   ///   nested patterns.  The resolver will turn these into nested "match" constructs with simple
   ///   patterns.

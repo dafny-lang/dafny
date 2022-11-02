@@ -416,7 +416,6 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
       refinementTransformer = new RefinementTransformer(prog);
-      rewriters.Add(new CompileNestedMatch(this));
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));
@@ -445,7 +444,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
-
+      rewriters.Add(new CompileNestedMatch(this));
       rewriters.Add(new UselessOldLinter(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
