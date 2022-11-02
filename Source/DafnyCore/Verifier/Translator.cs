@@ -847,12 +847,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
 
-      var resolver = new Resolver();
-      resolver.reporter = p.Reporter;
-      new CompileNestedMatch(resolver).Visit(p.DefaultModuleDef);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        Main.MaybePrintProgram(p, DafnyOptions.O.DafnyPrintResolvedFile + "TR", true);
-      }
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {

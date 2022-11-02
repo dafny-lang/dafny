@@ -1264,14 +1264,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
-      var resolver = new Resolver();
-      resolver.reporter = new ErrorReporterSink(); // TODO this'll swallow errors if there's no translation.
-      var compileNestedMatch = new CompileNestedMatch(resolver);
-      foreach (var module in program.CompileModules) {
-        compileNestedMatch.Visit(module);
-      }
-
-      Main.MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile == null ? null : DafnyOptions.O.DafnyPrintResolvedFile + "WOOP", true);
 
       Contract.Requires(program != null);
 

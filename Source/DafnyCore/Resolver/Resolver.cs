@@ -416,6 +416,7 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
       refinementTransformer = new RefinementTransformer(prog);
+      rewriters.Add(new CompileNestedMatch(this));
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny; 
 
@@ -37,17 +38,21 @@ namespace Microsoft.Dafny;
 ///
 /// 
 /// </summary>
-public class CompileNestedMatch {
+public class CompileNestedMatch : IRewriter {
   private ResolutionContext resolutionContext;
   private readonly Resolver resolver;
 
-  public CompileNestedMatch(Resolver resolver) {
+  public CompileNestedMatch(Resolver resolver) : base(resolver.reporter) {
     this.resolver = resolver;
   }
 
-  public void Visit(ModuleDefinition program) {
+  internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
+    PostResolve(moduleDefinition);
+  }
 
-    ((INode)program).Visit(node => {
+  internal override void PostResolve(ModuleDefinition moduleDefinition) {
+
+    ((INode)moduleDefinition).Visit(node => {
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
