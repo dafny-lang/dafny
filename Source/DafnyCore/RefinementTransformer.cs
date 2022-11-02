@@ -738,7 +738,7 @@ namespace Microsoft.Dafny {
       foreach (var member in prev.Members) {
         int index;
         if (!declaredNames.TryGetValue(member.Name, out index)) {
-          var nwMember = refinementCloner.CloneMember(member);
+          var nwMember = refinementCloner.CloneMember(member, false);
           nwMember.RefinementBase = member;
           nw.Members.Add(nwMember);
         } else {
