@@ -46,6 +46,7 @@ body:
         - Linux
         - Windows
         - Mac
+        - WSL
         - Other
     validations:
       required: true
