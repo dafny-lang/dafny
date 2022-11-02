@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -93,7 +95,8 @@ namespace Microsoft.Dafny {
             anyChanges = true;
           }
         }
-        if (anyChanges) {
+        var ty = Resolver.SubstType(e.Type, typeMap);
+        if (anyChanges || !ty.Equals(e.Type)) {
           newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
         }
       } else if (expr is MemberSelectExpr) {
@@ -512,7 +515,7 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newPatterns = new List<CasePattern<BoundVar>>();
       foreach (var pat in patterns) {
-        var newPat = SubstituteCasePattern(pat, forceSubstitutionOfBoundVars);
+        var newPat = SubstituteCasePattern(pat, forceSubstitutionOfBoundVars, CloneBoundVar);
         newPatterns.Add(newPat);
         if (newPat != pat) {
           anythingChanged = true;
@@ -520,27 +523,29 @@ namespace Microsoft.Dafny {
       }
       return anythingChanged ? newPatterns : patterns;
     }
-    CasePattern<BoundVar> SubstituteCasePattern(CasePattern<BoundVar> pat, bool forceSubstitutionOfBoundVars) {
+    CasePattern<VT> SubstituteCasePattern<VT>(CasePattern<VT> pat, bool forceSubstitutionOfBoundVars,
+        Func<CasePattern<VT>, Type, VT, VT> cloneVt
+      ) where VT : IVariable {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
         var bv = pat.Var;
         var tt = Resolver.SubstType(bv.Type, typeMap);
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
-          var newBv = new BoundVar(pat.tok, pat.Id, tt);
+          var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+          var ie = new IdentifierExpr(newBv.Tok, newBv.Name);
           ie.Var = newBv;  // resolve here
           ie.Type = newBv.Type;  // resolve here
           substMap.Add(bv, ie);
-          var newPat = new CasePattern<BoundVar>(pat.tok, newBv);
+          var newPat = new CasePattern<VT>(pat.tok, newBv);
           newPat.AssembleExpr(null);
           return newPat;
         }
       } else if (pat.Arguments != null) {
         bool anythingChanged = false;
-        var newArgs = new List<CasePattern<BoundVar>>();
+        var newArgs = new List<CasePattern<VT>>();
         foreach (var arg in pat.Arguments) {
-          var newArg = SubstituteCasePattern(arg, forceSubstitutionOfBoundVars);
+          var newArg = SubstituteCasePattern(arg, forceSubstitutionOfBoundVars, cloneVt);
           newArgs.Add(newArg);
           if (newArg != arg) {
             anythingChanged = true;
@@ -548,7 +553,7 @@ namespace Microsoft.Dafny {
         }
         if (anythingChanged) {
           var patE = (DatatypeValue)pat.Expr;
-          var newPat = new CasePattern<BoundVar>(pat.tok, pat.Id, newArgs);
+          var newPat = new CasePattern<VT>(pat.tok, pat.Id, newArgs);
           newPat.Ctor = pat.Ctor;
           newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => Resolver.SubstType(tp, typeMap)));
           return newPat;
@@ -631,6 +636,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public LocalVariable CloneLocalVariable(CasePattern<LocalVariable> pat, Type tt, LocalVariable lv) {
+      return new LocalVariable(pat.tok, pat.tok, pat.Id, tt, lv.IsGhost);
+    }
+    public BoundVar CloneBoundVar(CasePattern<BoundVar> pat, Type tt, BoundVar bv) {
+      return new BoundVar(pat.tok, pat.Id, tt);
+    }
     /// <summary>
     /// This method (which currently is used only internally to class Substituter) performs substitutions in
     /// statements that can occur in a StmtExpr.  (For example, it does not bother to do anything with a
@@ -741,6 +752,11 @@ namespace Microsoft.Dafny {
         var s = (VarDeclStmt)stmt;
         var lhss = CreateLocalVarSubstitutions(s.Locals, false);
         var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
+        r = rr;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
+        var lhss = SubstituteCasePattern(s.LHS, false, CloneLocalVariable);
+        var rr = new VarDeclPattern(s.Tok, s.EndTok, lhss, (Expression)Substitute(s.RHS), s.HasGhostModifier);
         r = rr;
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
