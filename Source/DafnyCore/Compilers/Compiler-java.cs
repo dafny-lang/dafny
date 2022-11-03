@@ -2312,6 +2312,15 @@ namespace Microsoft.Dafny.Compilers {
         RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
+
+      // The following is consistent with C# (for more information on output
+      // encoding, see https://github.com/dafny-lang/dafny/issues/2976). In the
+      // future, we might want use UTF-8 unconditionally in all cases.
+      // https://docs.oracle.com/javase/8/docs/technotes/guides/intl/encoding.doc.html
+      // https://learn.microsoft.com/en-us/dotnet/api/system.text.encoding.getencodings?view=net-6.0#remarks
+      System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+      psi.ArgumentList.Add($"-Dfile.encoding={Console.Out.Encoding.WebName}");
+
       psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
       foreach (var arg in DafnyOptions.O.MainArgs) {
         psi.ArgumentList.Add(arg);
