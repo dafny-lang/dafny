@@ -146,6 +146,7 @@ namespace Microsoft.Dafny {
     }
   }
 
+  // TODO should this move to a verifier folder?
   public class TriggerGeneratingRewriter : IRewriter {
     internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
