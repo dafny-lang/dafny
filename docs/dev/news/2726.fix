@@ -1,1 +1,1 @@
-Tail recursion optimization not wrongly applied in the case of mixed tail-recursive code and non-tail-recursive code.
+Dafny now compiles functions that mix tail- and non-tail-recursive calls without crashing
