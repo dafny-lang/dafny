@@ -2652,9 +2652,8 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is BinaryExpr bin
                  && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
-                 && accumulatorVar != null
-                 && enclosingFunction != null
-                 && enclosingFunction.IsAccumulatorTailRecursive) {
+                 && enclosingFunction is { IsAccumulatorTailRecursive: true }) {
+        Contract.Assert(accumulatorVar != null);
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
