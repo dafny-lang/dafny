@@ -1,3 +1,14 @@
+lemma map_rm_card<U,V>(m: map<U,V>, k: U)
+	requires k in m
+	ensures |m - {k}| == |m| - 1
+
+lemma surjective_map_card<U,V>(m: map<U,V>, S: set<V>, i: V)
+		requires i in S
+		requires forall key: U :: key in m ==> m[key] in S
+		requires forall key, key': U :: key in m && key' in m && key != key' ==> m[key] != m[key']
+		requires |m| == |S|
+		ensures exists key: U :: key in m && m[key] == i
+	
 datatype Outcome<T> =
 	| Success(value: T)
 	| Failure
@@ -42,51 +53,6 @@ class LRUCache<T(!new,==)> {
 	var cache_head: Ref<Item<T>>
 	var cache_tail: Ref<Item<T>>
 	var cache: map<nat,Item<T>>
-
-	// lemma test1(i: Item<T>, i': Item<T>)
-	// 	requires i in Repr
-	// 	requires i' in Repr
-	// 	requires i != i'
-	// 	requires forall key: nat :: key in cache ==> cache[key] in Repr
-	// 	requires forall key: nat :: key in cache ==> cache[key].key == key
-	// 	requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
-	// 	requires |cache| == |Repr|
-	// 	ensures i.key != i'.key
-	//{
-	//}
-	// If X and Y are finite and same number of elements then f is injective iff f is surjective
-	// in conclusion, it is bijective
-
-	lemma test0<U,V>(n: nat)
-		ensures forall Y: set<V> :: forall m: map<U,V> :: |m| == |Y| == n && (forall x: U :: x in m ==> m[x] in Y) && (forall x, y: U :: x in m && y in m && x != y ==> m[x] != m[y]) ==> forall y: V :: y in Y ==>  exists x: U :: x in m && m[x] == y
-	
-	lemma test1(i: Item<T>)
-		requires i in Repr
-		requires forall key: nat :: key in cache ==> cache[key] in Repr
-		requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
-		requires |cache| == |Repr|
-		ensures exists key: nat :: key in cache && cache[key] == i
-		
-	lemma test2(i: Item<T>)
-		requires i in Repr
-		requires forall key: nat :: key in cache ==> cache[key] in Repr
-		requires forall key: nat :: key in cache ==> cache[key].key == key
-		requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
-		requires |cache| == |Repr|
-		ensures i.key in cache
-		ensures cache[i.key] == i
-	{
-		test1(i);
-		var key: nat :| key in cache && cache[key] == i;
-	}
-
-	lemma foo<T>(e: T, S: set<T>)
-		requires e in S
-		ensures |S - {e}| == |S| - 1
-
-	lemma bar<U,V>(m: map<U,V>, k: U)
-		requires k in m
-		ensures |m - {k}| == |m| - 1
 		
 	predicate Invariant()
 		reads this, Repr
@@ -235,7 +201,7 @@ class LRUCache<T(!new,==)> {
 			label halfway:
 				assert |cache| == |Repr|;
 
-			test2(old_cache_tail.deref);
+			surjective_map_card(cache,Repr,old_cache_tail.deref);
 			assert old_cache_tail.deref in Repr;
 			assert old_cache_tail.deref.key in cache;
 
@@ -244,7 +210,7 @@ class LRUCache<T(!new,==)> {
 			
 
 			assert |Repr| == |old@halfway(Repr)| - 1; 
-			bar(old@halfway(cache),old_cache_tail.deref.key);
+			map_rm_card(old@halfway(cache),old_cache_tail.deref.key);
 			assert |cache| == |old@halfway(cache)| - 1;
 			
 		}
