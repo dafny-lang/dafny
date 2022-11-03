@@ -583,7 +583,8 @@ public class CompileNestedMatch : IRewriter {
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, SyntaxContainer bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
     if (bodyContainer is CStmt c) {
-      List<Statement> body = UnboxStmtContainer(bodyContainer);
+      var cloner = new Cloner(true);
+      var body = UnboxStmtContainer(bodyContainer).Select(cloner.CloneStmt).ToList();
       newMatchCase = new MatchCaseStmt(tok, ctor, fromBoundVar, freshPatBV, body, c.Attributes);
     } else {
       var body = ((CExpr)bodyContainer).Body;
