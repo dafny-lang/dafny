@@ -1162,7 +1162,6 @@ code (which can be helpful for debugging).
     ```
 
 ### 25.9.5. Controlling language features {#sec-controlling-language}
-{#sec-function-syntax}
 
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
@@ -1172,6 +1171,8 @@ older versions of Dafny.
 
 * `-noExterns` - ignore `extern` and `dllimport` attributes in the
   program.
+
+<a id="sec-function-syntax"/>
 
 * `-functionSyntax:<version>` - select what function syntax to
   recognize. The syntax for functions is changing from Dafny version 3
@@ -1192,7 +1193,8 @@ older versions of Dafny.
     this flag on your version 3 program to flag all occurrences of
     `function` and `predicate` as parsing errors. These are ghost
     functions, so change those into the new syntax `ghost function` and
-    `ghost predicate`. Then, start using `-functionSyntax:4`. This will
+    `ghost predicate`. Then, start using \
+    `-functionSyntax:4`. This will
     flag all occurrences of `function method` and `predicate method` as
     parsing errors. So, change those to just `function` and `predicate`.
     As a result, your program will use version 4 syntax and have the
@@ -1209,6 +1211,15 @@ older versions of Dafny.
   * `experimentalPredicateAlwaysGhost` - compiled functions are written
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
+
+  This option can also be set locally (at the module level) using the `:options`
+  attribute:
+
+  ```dafny
+  module {:options "-functionSyntax:4"} M {
+    predicate CompiledPredicate() { true }
+  }
+  ```
 
 * `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
     The syntax for quantification domains is changing from Dafny version 3 to version 4,

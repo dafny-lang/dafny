@@ -2,8 +2,40 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.9.1
+
+## New features
+
+- The language server now supports all versions of z3 ≥ 4.8.5.  Dafny is still distributed with z3 4.8.5 and uses that version by default. (https://github.com/dafny-lang/dafny/pull/2820)
+
+## Bug fixes
+
+- Correct error highlighting on function called with default arguments (https://github.com/dafny-lang/dafny/pull/2826)
+
+- Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
+
+- A function used as a value in a non-ghost context must not have ghost parameters, and arrow types cannot have ghost parameters. (https://github.com/dafny-lang/dafny/pull/2847)
+
+- Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
+
+- Previously, for a file printing the number of arguments, `dafny printing.dfy -compileTarget:js --args 1 2 3` would print 4: one for the executable, one for each argument.
+  But `dafny -compile:2 -compileTarget:js printing.dfy; node ./printing.js` would print 5: One for `node`, one for `./printing.js`, and one for each argument.
+  This fix ensures that `node ./printing.js` is considered as a single argument, and the first argument, to be consistent with every other language.
+  (https://github.com/dafny-lang/dafny/pull/2876)
+
+- Handle sequence-to-string equality correctly in the JavaScript runtime (https://github.com/dafny-lang/dafny/pull/2877)
+
+- don't crash on type synonyms and subset types of array types in LHSs of simultaneous assignments (https://github.com/dafny-lang/dafny/pull/2884)
+
+- Removed an bogus optimization on the Language Server (https://github.com/dafny-lang/dafny/pull/2890)
+
+- The Dafny-to-Java compiler will now fully-qualify type casts in pattern destructors, avoiding "reference to TYPE is ambiguous" errors from javac. (https://github.com/dafny-lang/dafny/pull/2904)
+
+- Variable declarations and formals in match cases do not trigger errors anymore. (https://github.com/dafny-lang/dafny/pull/2910)
+
 # 3.9.0
 
+- feat: Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases. Run the Dafny CLI without arguments to view help for this new UI. (https://github.com/dafny-lang/dafny/pull/2823)
 - feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
 - feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
 - feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
