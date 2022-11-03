@@ -1,0 +1,17 @@
+name: Feature Request
+description: Request a feature for Dafny
+title: "[Feature request]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your feature request!
+  - type: textarea
+    id: what-do-you-want
+    attributes:
+      label: What is the feature you would like to see in a future version of Dafny?
+      description: Describe the feature here. Markdown is supported.
+      placeholder: I would like to have X
+    validations:
+      required: true
