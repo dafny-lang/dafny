@@ -341,22 +341,22 @@ public class CompileNestedMatch : IRewriter {
   /// 4 - Otherwise, all head-patterns are variables, let-bind the head-matchee as the head-pattern in each of the bodypatterns,
   ///     continue processing the matchees
   /// </summary>
-  private SyntaxContainer CompilePatternPaths(MatchCompilationState mti, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
-    if (mti.Debug) {
+  private SyntaxContainer CompilePatternPaths(MatchCompilationState state, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
+    if (state.Debug) {
       Console.WriteLine("DEBUG: In CompilePatternPaths:");
       PrintPatternPaths(context, matchees, paths);
     }
 
     // For each path, number of matchees (n) is the number of patterns held by the path
     if (!paths.TrueForAll(x => matchees.Count() == x.Patterns.Count)) {
-      resolver.reporter.Error(MessageSource.Resolver, mti.Tok, "Match is malformed, make sure constructors are fully applied");
+      resolver.reporter.Error(MessageSource.Resolver, state.Tok, "Match is malformed, make sure constructors are fully applied");
     }
 
     if (paths.Count == 0) {
       // ==[1]== If no path, then match is not syntactically exhaustive -- return null
-      if (mti.Debug) {
+      if (state.Debug) {
         Console.WriteLine("DEBUG: ===[1]=== No Path");
-        Console.WriteLine("\t{0} Potential exhaustiveness failure on context: {1}", mti.Tok.line, context.AbstractAllHoles().ToString());
+        Console.WriteLine("\t{0} Potential exhaustiveness failure on context: {1}", state.Tok.line, context.AbstractAllHoles().ToString());
       }
       // (Semantics) exhaustiveness is checked by the verifier, so no need for a warning here
       // reporter.Warning(MessageSource.Resolver, mti.Tok, "non-exhaustive case-statement");
@@ -364,97 +364,120 @@ public class CompileNestedMatch : IRewriter {
     }
 
     if (matchees is Cons<Expression> consMatchees) {
-      // Otherwise, start handling the first matchee
-      Expression currMatchee = consMatchees.Head;
-      var remainingMatchees = matchees.Skip(1).ToList();
+      return CompilePatternPathsForMatchee(state, context, paths, consMatchees);
+    }
 
-      // Get the datatype of the matchee
-      var currMatcheeType = resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
-        .NormalizeExpand();
-      if (currMatcheeType is TypeProxy) {
-        resolver.PartiallySolveTypeConstraints(true);
+    // ==[2]== No more matchees to process, return the first path and decrement the count of dropped paths
+    if (state.Debug) {
+      Console.WriteLine("DEBUG: ===[2]=== No Matchee");
+      Console.WriteLine("\treturn Bid:{0}", paths.First().CaseId);
+    }
+
+    for (int i = 1; i < paths.Count; i++) {
+      state.UpdateCaseCopyCount(paths[i].CaseId, -1);
+    }
+
+    return PackBody(state.CaseTok[paths.First().CaseId], paths.First());
+  }
+
+  private SyntaxContainer CompilePatternPathsForMatchee(MatchCompilationState state, MatchingContext context,
+    List<PatternPath> paths, Cons<Expression> consMatchees)
+  {
+    // Otherwise, start handling the first matchee
+    Expression currMatchee = consMatchees.Head;
+
+    // Get the datatype of the matchee
+    var currMatcheeType = resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
+      .NormalizeExpand();
+    if (currMatcheeType is TypeProxy)
+    {
+      resolver.PartiallySolveTypeConstraints(true);
+    }
+
+    var dtd = currMatcheeType.AsDatatype;
+
+    // Get all constructors of type matchee
+    var subst = new Dictionary<TypeParameter, Type>();
+    Dictionary<string, DatatypeCtor> ctors;
+    if (dtd == null)
+    {
+      ctors = null;
+    }
+    else
+    {
+      ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c); //resolver.datatypeCtors[dtd];
+      Contract.Assert(ctors != null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
+      subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs,
+        currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
+    }
+
+    // Get the head of each patterns
+    var patternHeads = paths.ConvertAll(GetPatternHead);
+
+    if (ctors != null && patternHeads.Exists(x =>
+          x is IdPattern {Arguments: { }} pattern && ctors.ContainsKey(pattern.Id)))
+    {
+      // ==[3]== If dtd is a datatype and at least one of the pattern heads is a constructor, create a match on currMatchee
+      if (state.Debug)
+      {
+        Console.WriteLine("DEBUG: ===[3]=== Constructor Case");
       }
 
-      var dtd = currMatcheeType.AsDatatype;
-
-      // Get all constructors of type matchee
-      var subst = new Dictionary<TypeParameter, Type>();
-      Dictionary<string, DatatypeCtor> ctors;
-      if (dtd == null) {
-        ctors = null;
-      } else {
-        ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c); //resolver.datatypeCtors[dtd];
-        Contract.Assert(ctors !=
-                        null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
-        subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs,
-          currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
+      return CompileHeadsContainingConstructor(state, context, consMatchees, subst, ctors, paths);
+    }
+    else if (dtd == null && patternHeads.Exists(x => (x is LitPattern || x is IdPattern {ResolvedLit: { }})))
+    {
+      // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
+      if (state.Debug)
+      {
+        Console.WriteLine("DEBUG: ===[3**]=== Constant Case");
       }
 
-      // Get the head of each patterns
-      var patternHeads = paths.ConvertAll(GetPatternHead);
+      return CompileHeadsContainingLiteralPattern(state, context, consMatchees, paths);
+    }
+    else
+    {
+      // ==[4]==  all head patterns are bound variables:
+      if (state.Debug)
+      {
+        Console.WriteLine("DEBUG: ===[4]=== Variable Case");
+      }
 
-      if (ctors != null && patternHeads.Exists(x =>
-            x is IdPattern pattern && pattern.Arguments != null && ctors.ContainsKey(pattern.Id))) {
-        // ==[3]== If dtd is a datatype and at least one of the pattern is a constructor, create a match on currMatchee
-        if (mti.Debug) {
-          Console.WriteLine("DEBUG: ===[3]=== Constructor Case");
+      var tailPaths = paths.Select(path =>
+      {
+        var (head, tail) = SplitPath(path);
+        if (!(head is IdPattern))
+        {
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // in Variable case with a constant pattern
         }
 
-        return CompileHeadsContainingConstructor(mti, context, consMatchees, subst, ctors, paths);
-      } else if (dtd == null && patternHeads.Exists(x => (x is LitPattern || x is IdPattern { ResolvedLit: { } }))) {
-        // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
-        if (mti.Debug) {
-          Console.WriteLine("DEBUG: ===[3**]=== Constant Case");
-        }
+        var currPattern = (IdPattern) head;
 
-        return CompileHeadsContainingLiteralPattern(mti, context, consMatchees, paths);
-      } else {
-        // ==[4]==  all head patterns are bound variables:
-        if (mti.Debug) {
-          Console.WriteLine("DEBUG: ===[4]=== Variable Case");
-        }
-
-        var tailPaths = paths.Select(path => {
-          var (head, tail) = SplitPath(path);
-          if (!(head is IdPattern)) {
+        if (currPattern.Arguments != null)
+        {
+          if (dtd == null)
+          {
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // in Variable case with a constant pattern
+            throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           }
-
-          var currPattern = (IdPattern)head;
-
-          if (currPattern.Arguments != null) {
-            if (dtd == null) {
-              Contract.Assert(false);
-              throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
-            } else {
-              resolver.reporter.Error(MessageSource.Resolver, currPattern.Tok,
-                "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
-            }
+          else
+          {
+            resolver.reporter.Error(MessageSource.Resolver, currPattern.Tok,
+              "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
-
-          // Optimization: Don't let-bind if name is a wildcard, either in source or generated
-          return LetBindNonWildCard(currPattern, currMatchee, tail);
-        }).ToList();
-
-        if (mti.Debug) {
-          Console.WriteLine("DEBUG: return");
         }
 
-        return CompilePatternPaths(mti, context.AbstractHole(), consMatchees.Tail, tailPaths);
-      }
-    } else {
-      // ==[2]== No more matchee to process, return the first path and decrement the count of dropped paths
-      if (mti.Debug) {
-        Console.WriteLine("DEBUG: ===[2]=== No Matchee");
-        Console.WriteLine("\treturn Bid:{0}", paths.First().CaseId);
+        // Optimization: Don't let-bind if name is a wildcard, either in source or generated
+        return LetBindNonWildCard(currPattern, currMatchee, tail);
+      }).ToList();
+
+      if (state.Debug)
+      {
+        Console.WriteLine("DEBUG: return");
       }
 
-      for (int i = 1; i < paths.Count; i++) {
-        mti.UpdateCaseCopyCount(paths[i].CaseId, -1);
-      }
-
-      return PackBody(mti.CaseTok[paths.First().CaseId], paths.First());
+      return CompilePatternPaths(state, context.AbstractHole(), consMatchees.Tail, tailPaths);
     }
   }
 
@@ -582,14 +605,14 @@ public class CompileNestedMatch : IRewriter {
 
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, SyntaxContainer bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
+    var cloner = new Cloner(true);
     if (bodyContainer is CStmt c) {
-      var cloner = new Cloner(true);
       var body = UnboxStmtContainer(bodyContainer).Select(cloner.CloneStmt).ToList();
       newMatchCase = new MatchCaseStmt(tok, ctor, fromBoundVar, freshPatBV, body, c.Attributes);
     } else {
       var body = ((CExpr)bodyContainer).Body;
       var attrs = ((CExpr)bodyContainer).Attributes;
-      newMatchCase = new MatchCaseExpr(tok, ctor, fromBoundVar, freshPatBV, body, attrs);
+      newMatchCase = new MatchCaseExpr(tok, ctor, fromBoundVar, freshPatBV, cloner.CloneExpr(body), attrs);
     }
     newMatchCase.Ctor = ctor;
     return newMatchCase;
@@ -868,7 +891,6 @@ public class CompileNestedMatch : IRewriter {
     }
   }
 
-
   private class StmtPatternPath : PatternPath {
     public IReadOnlyList<Statement> Body;
     public Attributes Attributes;
@@ -971,7 +993,7 @@ public class CompileNestedMatch : IRewriter {
     }
 
     if (bodyPath is ExprPatternPath exprPath) {
-      var cBVar = (BoundVar)var.BoundVar; //new BoundVar(var.Tok, name, type);
+      var cBVar = (BoundVar)var.BoundVar;
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
       cPat.AssembleExpr(null); // TODO null?
@@ -979,6 +1001,7 @@ public class CompileNestedMatch : IRewriter {
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
+      
       var letExpr = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
       letExpr.Type = exprPath.Body.Type;
       return new ExprPatternPath(exprPath.Tok, exprPath.CaseId, exprPath.Patterns, letExpr, exprPath.Attributes);
