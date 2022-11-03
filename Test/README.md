@@ -10,16 +10,16 @@ The xUnit LIT test interpreter is run through xUnit `Theory` parameterized tests
 hooks into the general-purpose `dotnet test` command:
 
 ```
-dotnet test -v:n Source/IntegrationTests
+dotnet test --logger "console;verbosity=normal" Source/IntegrationTests
 ```
 
-`-v:n` is optional, and increases the default logging verbosity so that you can see individual tests as the pass.
+`-logger "console;verbosity=normal"` is optional, and increases the default logging verbosity so that you can see individual tests as the pass.
 
 The file path of each test file, relative to the `Test` directory, is used as the display name of its corresponding test.
 This means you can use the `--filter` option to run a subset of tests, or even a single file:
 
 ```
-dotnet test -v:n Source/IntegrationTests --filter DisplayName~comp/Hello.dfy
+dotnet test --logger "console;verbosity=normal" Source/IntegrationTests --filter DisplayName~comp/Hello.dfy
 ```
 
 [See here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for more information about
