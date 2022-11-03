@@ -38,6 +38,30 @@ method Main()
   print "Escape ZZ: ", zz, "\n";
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
+
+  // Testing non-ASCII characters directly in string literals.
+  // Code points outside the BMP are still not supported.
+  // See https://github.com/dafny-lang/dafny/issues/818.
+  
+  var coffeeInvitation :=  "Let's go to the café";
+  assert |coffeeInvitation| == 20;
+  expect |coffeeInvitation| == 20;
+  assert coffeeInvitation[19] == 'é';
+  expect coffeeInvitation[19] == 'é';
+
+  var firstNonAsciiChar := "Ā";
+  assert |firstNonAsciiChar| == 1;
+  expect |firstNonAsciiChar| == 1;
+  assert firstNonAsciiChar[0] == 'Ā';
+  expect firstNonAsciiChar[0] == 'Ā';
+
+  // Something above the surrogate range,
+  // and a verbatim string to make sure that's handled as well.
+  var highBMPChar := @"￮";
+  assert |highBMPChar| == 1;
+  expect |highBMPChar| == 1;
+  assert highBMPChar[0] == 0xFFEE as char;
+  expect highBMPChar[0] == 0xFFEE as char;
 }
 
 method GimmieAChar(s: string) returns (ch: char)
