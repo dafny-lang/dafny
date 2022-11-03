@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
     internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(Reporter);
 
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+      foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
         finder.Visit(decl, null);
       }
 

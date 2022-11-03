@@ -825,8 +825,8 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   /// declarations.
   /// Note, an iterator declaration is a type, in this sense.
   /// Note, if the given list are the top-level declarations of a module, the yield will include
-  /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
-  /// .PrefixLemma field).
+  /// extreme predicates/lemmas but not their associated prefix predicates/lemmas (which are tucked
+  /// into the extreme predicate/lemma's PrefixPredicate/PrefixLemma field).
   /// </summary>
   public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
@@ -841,6 +841,21 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
             }
           }
         }
+      }
+    }
+  }
+
+  /// <summary>
+  /// Yields all functions and methods that are members of some type in the given list of
+  /// declarations, including prefix lemmas and prefix predicates.
+  /// </summary>
+  public static IEnumerable<ICallable> AllCallablesIncludingPrefixDeclarations(List<TopLevelDecl> declarations) {
+    foreach (var decl in AllCallables(declarations)) {
+      yield return decl;
+      if (decl is ExtremeLemma extremeLemma) {
+        yield return extremeLemma.PrefixLemma;
+      } else if (decl is ExtremePredicate extremePredicate) {
+        yield return extremePredicate.PrefixPredicate;
       }
     }
   }
