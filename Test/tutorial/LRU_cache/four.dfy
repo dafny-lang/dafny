@@ -57,8 +57,12 @@ class LRUCache<T(!new,==)> {
 	// If X and Y are finite and same number of elements then f is injective iff f is surjective
 	// in conclusion, it is bijective
 
+	lemma test0<U,V>(n: nat)
+		ensures forall Y: set<V> :: forall m: map<U,V> :: |m| == |Y| == n && (forall x: U :: x in m ==> m[x] in Y) && (forall x, y: U :: x in m && y in m && x != y ==> m[x] != m[y]) ==> forall y: V :: y in Y ==>  exists x: U :: x in m && m[x] == y
+	
 	lemma test1(i: Item<T>)
 		requires i in Repr
+		requires forall key: nat :: key in cache ==> cache[key] in Repr
 		requires forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key']
 		requires |cache| == |Repr|
 		ensures exists key: nat :: key in cache && cache[key] == i
@@ -79,7 +83,11 @@ class LRUCache<T(!new,==)> {
 	lemma foo<T>(e: T, S: set<T>)
 		requires e in S
 		ensures |S - {e}| == |S| - 1
-	
+
+	lemma bar<U,V>(m: map<U,V>, k: U)
+		requires k in m
+		ensures |m - {k}| == |m| - 1
+		
 	predicate Invariant()
 		reads this, Repr
 	{
@@ -101,9 +109,7 @@ class LRUCache<T(!new,==)> {
 		&& (forall key, key': nat :: key in cache && key' in cache && key != key' ==> cache[key] != cache[key'])
 
 		// Structural properties
-		//&& (|cache| <= cache_size)
-		//&& (cache_head.Ptr? ==> cache_head.deref.key in cache)
-		//&& (cache_tail.Ptr? ==> cache_tail.deref.key in cache)
+		&& (|cache| <= cache_size)
 		&& (|cache| == |Repr|)
 		&& (|cache| == 0 <==> cache_head == cache_tail == Null)
 		&& (|cache| == 1 ==> (cache_head == cache_tail && cache_head.Ptr?))
@@ -144,6 +150,7 @@ class LRUCache<T(!new,==)> {
 		ensures Invariant()
 		//ensures |cache| >= 2 ==> cache_head.deref.key == key 
 		ensures storage == old(storage)
+		ensures Repr == old(Repr)
 	{
 		var item := cache[key];
 		if |cache| >= 2 {
@@ -215,7 +222,7 @@ class LRUCache<T(!new,==)> {
 			cache_head := Ptr(item);
 
 		}
-
+			
 		if |cache| == cache_size + 1 {
 			// Need to evict
 
@@ -223,19 +230,22 @@ class LRUCache<T(!new,==)> {
 			cache_tail := old_cache_tail.deref.more_recently_used;
 			cache_tail.deref.less_recently_used := Null;
 
-			test2(old_cache_tail.deref);
-			assert old_cache_tail.deref.key in cache;
-			//assert cache[old_cache_tail.deref.key] == old_cache_tail.deref; 
-
-			assert |Repr| == |cache|;
-			assert old_cache_tail.deref in Repr;
-			Repr := Repr - {old_cache_tail.deref};
-
-			assume |Repr| == |old(Repr)| - 1; 
 			
-			cache := cache - {old_cache_tail.deref.key};
 
-			assert |cache| == |old(cache)| - 1;
+			label halfway:
+				assert |cache| == |Repr|;
+
+			test2(old_cache_tail.deref);
+			assert old_cache_tail.deref in Repr;
+			assert old_cache_tail.deref.key in cache;
+
+			cache := cache - {old_cache_tail.deref.key};
+			Repr := Repr - {old_cache_tail.deref};
+			
+
+			assert |Repr| == |old@halfway(Repr)| - 1; 
+			bar(old@halfway(cache),old_cache_tail.deref.key);
+			assert |cache| == |old@halfway(cache)| - 1;
 			
 		}
 		
@@ -264,6 +274,7 @@ class LRUCache<T(!new,==)> {
 		modifies this, Repr
 		requires Invariant()
 		ensures Invariant()
+		ensures Repr == old(Repr)
 	{
 		storage := storage[key := value];
 		if key in cache {
