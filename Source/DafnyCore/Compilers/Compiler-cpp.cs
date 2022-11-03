@@ -2485,19 +2485,7 @@ namespace Microsoft.Dafny.Compilers {
           targetFilename
         }
       };
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      return 0 == RunProcess(Process.Start(psi), outputWriter, "Error while compiling C++ files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -2505,26 +2493,14 @@ namespace Microsoft.Dafny.Compilers {
       var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
         CreateNoWindow = true,
         UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true
+        RedirectStandardOutput = false,
+        RedirectStandardError = false
       };
       foreach (var arg in DafnyOptions.O.MainArgs) {
         psi.ArgumentList.Add(arg);
       }
 
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      return 0 == RunProcess(Process.Start(psi), outputWriter);
     }
   }
 }
