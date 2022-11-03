@@ -858,7 +858,6 @@ public class CompileNestedMatch : IRewriter {
 
     public bool Debug;
     public readonly ResolutionContext CodeContext;
-    public List<ExtendedPattern> MissingCases;
     public Attributes Attributes;
 
     public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext, bool debug = false,
@@ -869,7 +868,6 @@ public class CompileNestedMatch : IRewriter {
       Array.Fill(CaseCopyCount, 1);
       this.Debug = debug;
       this.CodeContext = codeContext;
-      this.MissingCases = new List<ExtendedPattern>();
       this.Attributes = attrs;
     }
 
