@@ -1,1 +1,1 @@
-Tail recursion not activated if cannot
+Tail recursion optimization not wrongly applied in the case of mixed tail-recursive code and non-tail-recursive code.
