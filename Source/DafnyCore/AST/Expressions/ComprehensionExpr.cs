@@ -43,7 +43,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
-  public abstract class BoundedPool {
+  public abstract class BoundedPool : ICloneable<BoundedPool> {
     [Flags]
     public enum PoolVirtues { None = 0, Finite = 1, Enumerable = 2, IndependentOfAlloc = 4, IndependentOfAlloc_or_ExplicitAlloc = 8 }
     public abstract PoolVirtues Virtues { get; }
@@ -141,6 +141,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
       return others;
     }
+
+    public abstract BoundedPool Clone(Cloner cloner);
   }
   public class ExactBoundedPool : BoundedPool {
     public readonly Expression E;
@@ -150,14 +152,23 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 15;  // the best of all bounds
+    public override BoundedPool Clone(Cloner cloner) {
+      return new ExactBoundedPool(cloner.CloneExpr(E));
+    }
   }
   public class BoolBoundedPool : BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 14;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class CharBoundedPool : BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 5;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class AllocFreeBoundedPool : BoundedPool {
     public Type Type;
@@ -174,18 +185,27 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
     }
     public override int Preference() => 0;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class ExplicitAllocatedBoundedPool : BoundedPool {
     public ExplicitAllocatedBoundedPool() {
     }
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 0;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class SpecialAllocIndependenceAllocatedBoundedPool : BoundedPool {
     public SpecialAllocIndependenceAllocatedBoundedPool() {
     }
     public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 0;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class IntBoundedPool : BoundedPool {
     public readonly Expression LowerBound;
@@ -205,6 +225,9 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
     }
     public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
+    public override BoundedPool Clone(Cloner cloner) {
+      return new IntBoundedPool(cloner.CloneExpr(LowerBound), cloner.CloneExpr(UpperBound));
+    }
   }
   public abstract class CollectionBoundedPool : BoundedPool {
     public readonly Type BoundVariableType;
@@ -244,6 +267,10 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Contract.Requires(collectionElementType != null);
       Set = set;
     }
+
+    public override BoundedPool Clone(Cloner cloner) {
+      return new SetBoundedPool(cloner.CloneExpr(Set), BoundVariableType, CollectionElementType, IsFiniteCollection);
+    }
   }
   public class SubSetBoundedPool : BoundedPool {
     public readonly Expression UpperBound;
@@ -263,11 +290,18 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
     }
     public override int Preference() => 3;
+    public override BoundedPool Clone(Cloner cloner) {
+      return new SubSetBoundedPool(cloner.CloneExpr(UpperBound), IsFiniteCollection);
+    }
   }
   public class SuperSetBoundedPool : BoundedPool {
     public readonly Expression LowerBound;
     public SuperSetBoundedPool(Expression set) { LowerBound = set; }
     public override int Preference() => 2;
+    public override BoundedPool Clone(Cloner cloner) {
+      return new SuperSetBoundedPool(cloner.CloneExpr(LowerBound));
+    }
+
     public override PoolVirtues Virtues {
       get {
         if (LowerBound.Type.MayInvolveReferences) {
@@ -288,6 +322,10 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Contract.Requires(collectionElementType != null);
       MultiSet = multiset;
     }
+
+    public override BoundedPool Clone(Cloner cloner) {
+      return new MultiSetBoundedPool(cloner.CloneExpr(MultiSet), BoundVariableType, CollectionElementType);
+    }
   }
   public class MapBoundedPool : CollectionBoundedPool {
     public readonly Expression Map;
@@ -298,6 +336,9 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Contract.Requires(bvType != null);
       Contract.Requires(collectionElementType != null);
       Map = map;
+    }
+    public override BoundedPool Clone(Cloner cloner) {
+      return new MapBoundedPool(cloner.CloneExpr(Map), BoundVariableType, CollectionElementType, IsFiniteCollection);
     }
   }
   public class SeqBoundedPool : CollectionBoundedPool {
@@ -310,6 +351,10 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Contract.Requires(collectionElementType != null);
       Seq = seq;
     }
+
+    public override BoundedPool Clone(Cloner cloner) {
+      return new SeqBoundedPool(cloner.CloneExpr(Seq), BoundVariableType, CollectionElementType);
+    }
   }
   public class DatatypeBoundedPool : BoundedPool {
     public readonly DatatypeDecl Decl;
@@ -320,12 +365,18 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 8;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
   public class DatatypeInclusionBoundedPool : BoundedPool {
     public readonly bool IsIndDatatype;
     public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
     public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 2;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
 
   public class OlderBoundedPool : BoundedPool {
@@ -333,6 +384,9 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
     public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 0;
+    public override BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;
@@ -367,7 +421,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Term = cloner.CloneExpr(original.Term);
     
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds;
+      Bounds = original.Bounds.Select(b => b.Clone(cloner)).ToList();
     }
   }
 
