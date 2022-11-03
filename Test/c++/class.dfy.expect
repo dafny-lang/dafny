@@ -1,6 +1,6 @@
 
 Dafny program verifier finished with 16 verified, 0 errors
-1 1 0
+true true false
 103 102 102 106 105 105
 203 17 0 18 8 9 69 70
 202 17 0 18 8 9 69 70

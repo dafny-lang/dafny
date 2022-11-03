@@ -189,15 +189,23 @@ namespace Microsoft.Dafny {
 
     public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
       if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        if (s.Contains("\\u")) {
+        if (TokensWithEscapes(s, isVerbatimString).Any(t => t.StartsWith("\\u"))) {
           errors.SemErr(t, "\\u escape sequences not supported when Unicode chars are enabled");
         }
       } else {
-        if (s.Contains("\\U")) {
+        if (TokensWithEscapes(s, isVerbatimString).Any(t => t.StartsWith("\\U"))) {
           errors.SemErr(t, "\\U escape sequences not supported when Unicode chars are disabled");
         }
       }
     }
+    
+    public static bool MightContainNonAsciiCharacters(string s, bool isVerbatimString) {
+      // This is conservative since \u escapes could be ASCII characters,
+      // but that's fine since this method is just used as a conservative guard.
+      return TokensWithEscapes(s, isVerbatimString).Any(e =>
+        e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u"));
+    }
+
     /// <summary>
     /// Replaced any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
@@ -223,21 +231,28 @@ namespace Microsoft.Dafny {
     private static string ToUnicodeEscape(int c) {
       return $"\\U{c:x8}";
     }
+
+    private static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
+      return string.Join("", 
+        TokensWithEscapes(s, false)
+          .Select(token => pattern.Replace(token, evaluator)));
+    }
     
     public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
-      return UnicodeEscape.Replace(s, match => {
+      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
         var padChars = 8 - match.Groups[1].Length;
         return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + match.Groups[1];
       });
     }
     
     public static string UnicodeEscapesToLowercase(string s) {
-      return UnicodeEscape.Replace(s, match => $"\\u{{{match.Groups[1]}}}");
+      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => 
+        $"\\u{{{match.Groups[1]}}}");
     }
     
     public static string UnicodeEscapesToUtf16Escapes(string s) {
-      var utf16CodeUnits = new char[2];
-      return UnicodeEscape.Replace(s, match => {
+      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
+        var utf16CodeUnits = new char[2];
         var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
         if (codeUnits == 2) {
@@ -248,68 +263,53 @@ namespace Microsoft.Dafny {
       });
     }
 
-    // Some target languages that do not use UTF-16, such as Go,
-    // can't directly encode invalid sequences of surrogate values directly in a string literal.
-    // That means when using --unicode-char:false,
-    // there are valid Dafny string values using invalid sequences of surrogate code points
-    // that cannot be expressed as a target language string literal.
-    // It's technically possible to work around this by encoding Dafny string literals
-    // as something other than something like `DafnySeqFromString("...")`, but it doesn't seem worth it
-    // given it's so unlikely a program actually INTENDS to support invalid UTF-16 sequences.
-    // Instead we may reject a valid Dafny string literal here when --unicode-char is false.
-    public static string Utf16EscapesToUnicodeEscapes(IToken t, string s, ErrorReporter reporter) {
-      var builder = new StringBuilder(s.Length);
-      var valid = true;
-      var nextStart = 0;
-      while (nextStart < s.Length) {
-        var match = Utf16Escape.Match(s, nextStart);
-        if (!match.Success) {
-          builder.Append(s[nextStart..]);
-          break;
-        }
-        builder.Append(s[nextStart..match.Index]);
-        nextStart = match.Index + match.Length;
-        
-        var c1 = (char)Convert.ToInt32(match.Groups[1].Value, 16);
-        if (char.IsHighSurrogate(c1)) {
-          match = Utf16Escape.Match(s, nextStart);
-          if (!match.Success || match.Index != nextStart) {
-            valid = false;
-            break;
-          }
-          nextStart = match.Index + match.Length;
-
-          var c2 = (char)Convert.ToInt32(match.Groups[1].Value, 16);
-          if (!char.IsLowSurrogate(c2)) {
-            valid = false;
-            break;
-          }
-
-          var c = char.ConvertToUtf32(c1, c2);
-          builder.Append(ToUnicodeEscape(c));
-        } else if (char.IsLowSurrogate(c1)) {
-          valid = false;
-          break;
-        } else {
-          builder.Append(match.Value);
-        }
-      }
-
-      if (!valid) {
-        reporter.Error(MessageSource.Compiler, t, "Invalid UTF-16 sequences in string");
-        return s;
-      }
-
-      return builder.ToString();
-    }
-    
-
-    
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
     /// </summary>
     public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
+      if (isVerbatimString) {
+        foreach (var s in TokensWithEscapes(p, true)) {
+          if (s == "\"\"") {
+            yield return '"';
+          } else {
+            foreach (var c in s) {
+              yield return c;
+            }
+          }
+        }
+      } else {
+        foreach (var s in TokensWithEscapes(p, false)) {
+          switch (s) {
+            case @"\'": yield return '\''; break;
+            case @"\""": yield return '"'; break;
+            case @"\\": yield return '\\'; break;
+            case @"\0": yield return '\0'; break;
+            case @"\n": yield return '\n'; break;
+            case @"\r": yield return '\r'; break;
+            case @"\t": yield return '\t'; break;
+            case { } when s.StartsWith(@"\u"):
+              yield return Convert.ToInt32(s[2..], 16);
+              break;
+            case { } when s.StartsWith(@"\U"):
+              yield return Convert.ToInt32(s[3..^1], 16);
+              break;
+            default:
+              foreach (var c in s) {
+                yield return c;
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Enumerates the sequence of regular characters and escape sequences in the given string.
+    /// For example, "ab\tuv\u12345" may be broken up as ["a", "b", "\t", "u", "v", "\u1234", "5"].
+    /// Consecutive non-escaped characters may or may not be enumerated as a single string.
+    /// </summary>
+    public static IEnumerable<string> TokensWithEscapes(string p, bool isVerbatimString) {
       Contract.Requires(p != null);
       if (isVerbatimString) {
         var skipNext = false;
@@ -317,52 +317,38 @@ namespace Microsoft.Dafny {
           if (skipNext) {
             skipNext = false;
           } else {
-            yield return ch;
             if (ch == '"') {
               skipNext = true;
+              yield return "\"";
+            } else {
+              yield return ch.ToString();
             }
           }
         }
       } else {
         var i = 0;
         while (i < p.Length) {
-          char special = ' ';  // ' ' indicates not special
           if (p[i] == '\\') {
             switch (p[i + 1]) {
-              case '\'': special = '\''; break;
-              case '\"': special = '\"'; break;
-              case '\\': special = '\\'; break;
-              case '0': special = '\0'; break;
-              case 'n': special = '\n'; break;
-              case 'r': special = '\r'; break;
-              case 't': special = '\t'; break;
               case 'u':
-                int ch = HexValue(p[i + 2]);
-                ch = 16 * ch + HexValue(p[i + 3]);
-                ch = 16 * ch + HexValue(p[i + 4]);
-                ch = 16 * ch + HexValue(p[i + 5]);
-                yield return ch;
+                yield return p[i..(i + 6)];
                 i += 6;
-                continue;
+                break;
               case 'U':
-                int uch = HexValue(p[i + 3]);
-                i += 4;
-                while (p[i] != '}') {
-                  uch = 16 * uch + HexValue(p[i]);
-                  i++;
+                var closeBracketIndex = i + 2;
+                while (p[closeBracketIndex] != '}') {
+                  closeBracketIndex++;
                 }
-                yield return uch;
-                i++;
+                yield return p[i..(closeBracketIndex + 1)];
+                i = closeBracketIndex + 2;
                 continue;
               default:
+                yield return p[i..(i + 2)];
+                i += 2;
                 break;
             }
-          }
-          if (special != ' ') {
-            yield return special;
-            i += 2;
           } else {
-            yield return p[i];
+            yield return p[i].ToString();
             i++;
           }
         }
@@ -965,7 +951,8 @@ namespace Microsoft.Dafny {
 
       if (expr is IdentifierExpr expression) {
         if (expression.Var != null && expression.Var.IsGhost) {
-          reporter?.Error(MessageSource.Resolver, expression, "a ghost variable is allowed only in specification contexts");
+          reporter?.Error(MessageSource.Resolver, expression,
+              $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
           return false;
         }
 
@@ -976,6 +963,10 @@ namespace Microsoft.Dafny {
         if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
           var what = selectExpr.Member.WhatKindMentionGhost;
           reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} is allowed only in specification contexts");
+          return false;
+        } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+          var what = selectExpr.Member.WhatKindMentionGhost;
+          reporter?.Error(MessageSource.Resolver, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
           return false;
         } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
           var what = selectExpr.Member.WhatKind;
@@ -1286,6 +1277,8 @@ namespace Microsoft.Dafny {
         if (UsesSpecFeatures(e.Obj)) {
           return true;
         } else if (e.Member != null && e.Member.IsGhost) {
+          return true;
+        } else if (e.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
           return true;
         } else if (e.Member is DatatypeDestructor dtor) {
           return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
