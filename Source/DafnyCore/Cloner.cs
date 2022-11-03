@@ -195,7 +195,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Formal CloneFormal(Formal formal) {
+    public virtual Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
         CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation);
       return f;
@@ -647,7 +647,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken), null);
+        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : AttributedTok(s.AssumeToken), null);
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -655,7 +655,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : Tok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : AttributedTok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -833,6 +833,10 @@ namespace Microsoft.Dafny {
     public virtual IToken Tok(IToken tok) {
       Contract.Requires(tok != null);
       return tok;
+    }
+
+    public virtual AttributedToken AttributedTok(AttributedToken tok) {
+      return new AttributedToken(tok.Token, CloneAttributes(tok.Attrs));
     }
   }
 
