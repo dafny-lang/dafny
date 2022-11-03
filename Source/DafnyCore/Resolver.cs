@@ -2302,7 +2302,7 @@ namespace Microsoft.Dafny {
                 extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
                 extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
                 new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
-                extremePredicate.Body,
+                cloner.CloneExpr(extremePredicate.Body),
                 null,
                 extremePredicate);
               extraMember = extremePredicate.PrefixPredicate;
