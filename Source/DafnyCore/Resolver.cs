@@ -2290,50 +2290,50 @@ namespace Microsoft.Dafny {
             reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
             formals.Add(k);
             if (m is ExtremePredicate) {
-              var cop = (ExtremePredicate)m;
-              formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+              var extremePredicate = (ExtremePredicate)m;
+              formals.AddRange(extremePredicate.Formals.ConvertAll(cloner.CloneFormal));
 
-              List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+              List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
               // create prefix predicate
-              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
+              extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.tok, extraName, extremePredicate.HasStaticKeyword,
                 tyvars, k, formals,
-                cop.Req.ConvertAll(cloner.CloneAttributedExpr),
-                cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                cop.Ens.ConvertAll(cloner.CloneAttributedExpr),
-                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                cop.Body,
+                extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
+                extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
+                extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
+                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
+                extremePredicate.Body,
                 null,
-                cop);
-              extraMember = cop.PrefixPredicate;
+                extremePredicate);
+              extraMember = extremePredicate.PrefixPredicate;
               // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
+              moduleDef.CallGraph.AddEdge(extremePredicate.PrefixPredicate, extremePredicate);
             } else {
-              var com = (ExtremeLemma)m;
+              var extremeLemma = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
-              formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
+              formals.AddRange(extremeLemma.Ins.ConvertAll(cloner.CloneFormal));
               // prepend _k to the given decreases clause
               var decr = new List<Expression>();
-              decr.Add(new IdentifierExpr(com.tok, k.Name));
-              decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+              decr.Add(new IdentifierExpr(extremeLemma.tok, k.Name));
+              decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
               // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
-              var req = com is GreatestLemma
-                ? com.Req.ConvertAll(cloner.CloneAttributedExpr)
+              var req = extremeLemma is GreatestLemma
+                ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
                 : new List<AttributedExpression>();
-              var ens = com is GreatestLemma
+              var ens = extremeLemma is GreatestLemma
                 ? new List<AttributedExpression>()
-                : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
-              com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
-                com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                req, cloner.CloneSpecFrameExpr(com.Mod), ens,
+                : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
+              extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.tok, extraName, extremeLemma.HasStaticKeyword,
+                extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(cloner.CloneFormal),
+                req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
                 new Specification<Expression>(decr, null),
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-                cloner.CloneAttributes(com.Attributes), com);
-              extraMember = com.PrefixLemma;
+                cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
+              extraMember = extremeLemma.PrefixLemma;
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
+              moduleDef.CallGraph.AddEdge(extremeLemma.PrefixLemma, extremeLemma);
             }
 
             extraMember.InheritVisibility(m, false);
