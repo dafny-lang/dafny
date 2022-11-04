@@ -2714,7 +2714,6 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
-
           allTypeParameters.PushMarker();
           ResolveTypeParameters(d.TypeArgs, false, d);
           ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
@@ -14875,7 +14874,11 @@ namespace Microsoft.Dafny {
         if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
           // there's no type
         } else {
-          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          if (currentClass == null) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "there is no enclosing type that 'this' can refer to");
+          } else {
+            expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          }
         }
 
       } else if (expr is IdentifierExpr) {
