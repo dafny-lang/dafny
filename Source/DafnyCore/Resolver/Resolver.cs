@@ -4758,6 +4758,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
+      super = super.NormalizeExpandKeepConstraints();
+      sub = sub.NormalizeExpandKeepConstraints();
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
@@ -10673,7 +10675,11 @@ namespace Microsoft.Dafny {
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
@@ -10891,15 +10897,15 @@ namespace Microsoft.Dafny {
       if (s.KeywordToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.val == "expect") {
+        if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null);
-        } else if (s.KeywordToken.val == "assume") {
-          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, null);
-        } else if (s.KeywordToken.val == "assert") {
-          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, null);
+          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assume") {
+          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assert") {
+          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {

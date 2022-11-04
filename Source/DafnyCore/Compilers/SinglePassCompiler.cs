@@ -2663,10 +2663,10 @@ namespace Microsoft.Dafny.Compilers {
         // finally, the jump back to the head of the function
         EmitJumpToTailCallStart(wr);
 
-      } else if (expr is BinaryExpr bin && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None) {
+      } else if (expr is BinaryExpr bin
+                 && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
+                 && enclosingFunction is { IsAccumulatorTailRecursive: true }) {
         Contract.Assert(accumulatorVar != null);
-        Contract.Assert(enclosingFunction != null);
-        Contract.Assert(enclosingFunction.IsAccumulatorTailRecursive);
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
@@ -2854,14 +2854,16 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
+      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
+        if (!Attributes.Contains(attributes, "axiom")) {
+          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+        }
+      }
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is AssumeStmt) {
-          compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-        } else if (stmt is AssignSuchThatStmt) {
-          var s = (AssignSuchThatStmt)stmt;
-          if (s.AssumeToken != null) {
-            compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-          }
+          RejectAssume(stmt.Tok, stmt.Attributes, wr);
+        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
+          RejectAssume(stmt.Tok, attrs, wr);
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
@@ -2984,22 +2986,16 @@ namespace Microsoft.Dafny.Compilers {
         if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
-        if (s.AssumeToken != null) {
-          // Note, a non-ghost AssignSuchThatStmt may contain an assume
-          Error(s.AssumeToken, "an assume statement cannot be compiled", wr);
-        } else {
-          var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-          var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
-          if (missingBounds.Count != 0) {
-            foreach (var bv in missingBounds) {
-              Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
-            }
-          } else {
-            Contract.Assert(s.Bounds != null);
-            TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+        var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
+        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        if (missingBounds.Count != 0) {
+          foreach (var bv in missingBounds) {
+            Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
           }
+        } else {
+          Contract.Assert(s.Bounds != null);
+          TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
         }
-
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
         // TODO there's potential here to use target-language specific features such as exceptions
@@ -4343,7 +4339,9 @@ namespace Microsoft.Dafny.Compilers {
         //   <prelude>   // filled via copyInstrWriters -- copies out-parameters used in letexpr to local variables
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
-        if (ss.Labels != null) {
+        if (ss.Labels != null && !(ss is VarDeclPattern or VarDeclStmt)) {
+          // We are not breaking out of VarDeclPattern or VarDeclStmt, so the labels there are useless
+          // They were useful for verification
           w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
@@ -5148,7 +5146,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
+    protected virtual void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);

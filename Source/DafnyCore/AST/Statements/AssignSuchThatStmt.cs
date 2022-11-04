@@ -4,9 +4,19 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Attributed tokens are used when a subpart of a statement or expression can take attributes.
+/// (Perhaps in addition to attributes placed on the token itself.)
+///
+/// It is used in particular to attach `{:axiom}` tokens to the `assume` keyword
+/// on the RHS of `:|` and `:-` (in contrast, for `assume` statements, the
+/// `{:axiom}` attribute is directly attached to the statement-level
+/// attributes).
+/// </summary>
+public record AttributedToken(IToken Token, Attributes Attrs) { }
 public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt> {
   public readonly Expression Expr;
-  public readonly IToken AssumeToken;
+  public readonly AttributedToken AssumeToken;
 
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
@@ -28,7 +38,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
 
   public AssignSuchThatStmt(Cloner cloner, AssignSuchThatStmt original) : base(cloner, original) {
     Expr = cloner.CloneExpr(original.Expr);
-    AssumeToken = original.AssumeToken;
+    AssumeToken = cloner.AttributedTok(original.AssumeToken);
 
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds;
@@ -40,7 +50,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, IToken assumeToken, Attributes attrs)
+  public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
     : base(tok, endTok, lhss, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);

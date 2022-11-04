@@ -667,6 +667,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       return tok;
     }
+
+    public virtual AttributedToken AttributedTok(AttributedToken tok) {
+      return new AttributedToken(Tok(tok.Token), CloneAttributes(tok.Attrs));
+    }
   }
 
 

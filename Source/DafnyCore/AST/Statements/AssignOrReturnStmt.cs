@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt> {
   public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
-  public readonly IToken KeywordToken;
+  public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
@@ -32,14 +32,14 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public AssignOrReturnStmt(Cloner cloner, AssignOrReturnStmt original) : base(cloner, original) {
     Rhs = cloner.CloneExpr(original.Rhs);
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
-    KeywordToken = original.KeywordToken;
+    KeywordToken = cloner.AttributedTok(original.KeywordToken);
 
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
     }
   }
 
-  public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken keywordToken, List<AssignmentRhs> rhss = null)
+  public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
     : base(tok, endTok, lhss) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
