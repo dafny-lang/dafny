@@ -1034,9 +1034,8 @@ public class DatatypeValue : Expression, IHasUsages {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get { return Arguments; }
-  }
+  public override IEnumerable<Expression> SubExpressions =>
+    Arguments ?? Enumerable.Empty<Expression>();
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Ctor, 1);

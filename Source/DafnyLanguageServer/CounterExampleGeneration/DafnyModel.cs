@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -747,13 +748,16 @@ namespace DafnyServer.CounterexampleGeneration {
         }
         return result;
       }
+
       var seqLen = fSeqLength.OptEval(var.Element);
       if (seqLen != null) { // Elt is a sequence
         var length = DafnyModelVariableFactory.Get(state, seqLen, "Length", var);
         result.Add(length);
         (var as SeqVariable)?.SetLength(length);
-        // Sequence can be constructed with build operator:
+
+        // Sequences can be constructed with the build operator:
         List<Model.Element> elements = new();
+
         var substring = var.Element;
         while (fSeqBuild.AppWithResult(substring) != null) {
           elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
@@ -767,13 +771,21 @@ namespace DafnyServer.CounterexampleGeneration {
         if (elements.Count > 0) {
           return result;
         }
-        // Otherwise, sequence can be reconstructed index by index:
-        foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-          var e = DafnyModelVariableFactory.Get(state, Unbox(tpl.Result),
-            "[" + tpl.Args[1] + "]", var);
+
+        // Otherwise, sequences can be reconstructed index by index,
+        // ensuring indices are in ascending order.
+        IEnumerable<(Model.Element, BigInteger)> tpls =
+          fSeqIndex.AppsWithArg(0, var.Element)
+          .Select(tpl => (Unbox(tpl.Result), BigInteger.Parse(tpl.Args[1].ToString())))
+          .OrderBy(tpl => tpl.Item2);
+
+        foreach (var (res, idx) in tpls) {
+          var idxstr = idx.ToString();
+          var e = DafnyModelVariableFactory.Get(state, res, "[" + idxstr + "]", var);
           result.Add(e);
-          (var as SeqVariable)?.AddAtIndex(e, tpl.Args[1].ToString());
+          (var as SeqVariable)?.AddAtIndex(e, idxstr);
         }
+
         return result;
       }
       foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {
