@@ -231,7 +231,7 @@ namespace Microsoft.Dafny.Triggers {
                    expr is SeqConstructionExpr) {
           annotation = AnnotateOther(expr, false);
         } else {
-          annotation = AnnotateOther(expr, true);
+          annotation = AnnotateOther(expr, expr is not OldExpr);
         }
       }
 
@@ -245,7 +245,7 @@ namespace Microsoft.Dafny.Triggers {
           expr is SeqSelectExpr ||
           expr is MultiSelectExpr ||
           expr is MemberSelectExpr ||
-          expr is OldExpr ||
+          //expr is OldExpr ||
           expr is ApplyExpr ||
           expr is DisplayExpression ||
           expr is MapDisplayExpr ||

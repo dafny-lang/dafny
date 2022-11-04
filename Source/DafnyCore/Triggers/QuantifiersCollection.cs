@@ -75,9 +75,7 @@ namespace Microsoft.Dafny.Triggers {
       foreach (var q in quantifiers) {
         var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
         // filter out the candidates that was "second-class"
-        var filtered = TriggerUtils.Filter(candidates, tr => tr,
-          (tr, _) => !tr.IsTranslatedToFunctionCall() && !(tr.Expr is OldExpr),
-          (tr, _) => { }).ToList();
+        var filtered = TriggerUtils.Filter(candidates, tr => tr, (tr, _) => !tr.IsTranslatedToFunctionCall(), (tr, _) => { }).ToList();
         // if there are only "second-class" candidates, add them back.
         if (filtered.Count == 0) {
           filtered = candidates;
