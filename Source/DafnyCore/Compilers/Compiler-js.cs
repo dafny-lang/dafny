@@ -447,7 +447,12 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
-              cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+              if (arg.Type.IsStringType && UnicodeChars) {
+                cw.Write("{0}'\"' + this.{1}.toVerbatimString() + '\"'", sep, FormalName(arg, k));
+              } else {
+                cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+              }
+
               sep = " + \", \" + ";
               k++;
             }
