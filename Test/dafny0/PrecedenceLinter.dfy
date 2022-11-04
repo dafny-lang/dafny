@@ -558,3 +558,26 @@ module QualifiedNames {
              MyModule.MyFunction(x)
   }
 }  
+
+module MatchAcrossMultipleLines {
+  datatype PQ = P(int) | Q(bool)
+
+  method M(s: set<PQ>)
+    requires
+      (forall pq | pq in s :: match pq {
+          case P(x) => true
+          case Q(y) => y == false
+      })
+  {
+  }
+
+  datatype YZ = Y | Z
+
+  function F(A: bool, B: int, C: YZ): int
+    requires C != Y
+  {
+    if A then B else match C {
+      case Z => 3
+    }
+  }
+}
