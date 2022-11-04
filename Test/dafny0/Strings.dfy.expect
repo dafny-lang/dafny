@@ -1,5 +1,3 @@
-
-Dafny program verifier finished with 6 verified, 0 errors
 ch = D
 The string is: DDD
 Escape X: I say "hello" \ you say 'good bye'
@@ -8,3 +6,5 @@ Escape Z: There needs to be R&D
 	Yes, sir
 Here is the end
 *   *   *
+I'm afraid you'll find escape quite impossible, \u007
+Luckily I have this nifty gadget from my good friend, \Q
