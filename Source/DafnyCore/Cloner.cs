@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
   interface ICloneable<out T> {
     T Clone(Cloner cloner);
   }
-  
+
   public class Cloner {
     public bool CloneResolvedFields { get; }
     private readonly Dictionary<IVariable, IVariable> clones = new();
@@ -62,11 +62,11 @@ namespace Microsoft.Dafny {
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), 
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
-          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var, false), 
-            CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), 
+          return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var, false),
+            CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
@@ -164,15 +164,15 @@ namespace Microsoft.Dafny {
         if (isReference) {
           return member;
         }
-        
+
         if (member is Field) {
-          var f = (Field) member;
+          var f = (Field)member;
           return CloneField(f);
         } else if (member is Function) {
-          var f = (Function) member;
+          var f = (Function)member;
           return CloneFunction(f);
         } else {
-          var m = (Method) member;
+          var m = (Method)member;
           return CloneMethod(m);
         }
       });
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
     }
 
     public Formal CloneFormal(Formal formal, bool isReference) {
-      return (Formal)clones.GetOrCreate(formal, () => isReference ? formal : 
+      return (Formal)clones.GetOrCreate(formal, () => isReference ? formal :
         new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
         CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation));
     }
@@ -245,33 +245,25 @@ namespace Microsoft.Dafny {
     public virtual LocalVariable CloneLocalVariable(LocalVariable local, bool isReference) {
       return (LocalVariable)clones.GetOrCreate(local, () => isReference ? local : new LocalVariable(this, local));
     }
-    public virtual VT CloneIVariable<VT>(VT v, bool isReference) 
-      where VT : class, IVariable 
-    {
+    public virtual VT CloneIVariable<VT>(VT v, bool isReference)
+      where VT : class, IVariable {
       if (v == null) {
         return null;
       }
-      
-      var iv = (IVariable) v;
-      if (iv is Formal formal)
-      {
+
+      var iv = (IVariable)v;
+      if (iv is Formal formal) {
         iv = CloneFormal(formal, isReference);
-      }
-      else if (iv is BoundVar boundVar)
-      {
+      } else if (iv is BoundVar boundVar) {
         iv = CloneBoundVar(boundVar, isReference);
-      }
-      else if (iv is LocalVariable localVariable)
-      {
+      } else if (iv is LocalVariable localVariable) {
         iv = CloneLocalVariable(localVariable, isReference);
-      }
-      else
-      {
+      } else {
         Contract.Assume(false); // unexpected IVariable
         iv = null; // please compiler
       }
 
-      return (VT) iv;
+      return (VT)iv;
     }
 
     public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
@@ -319,7 +311,7 @@ namespace Microsoft.Dafny {
       if (expr is ICloneable<Expression> cloneableExpression) {
         return cloneableExpression.Clone(this);
       }
-      
+
       var result = CloneExprInner(expr);
       if (CloneResolvedFields && expr.Type != null) {
         result.Type = expr.Type;
@@ -458,9 +450,8 @@ namespace Microsoft.Dafny {
       return new NestedMatchCaseExpr(Tok(c.Tok), CloneExtendedPattern(c.Pat), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
-    public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) 
-      where VT : class, IVariable 
-    {
+    public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       return new CasePattern<VT>(this, pat);
     }
@@ -532,7 +523,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(v => CloneBoundVar(v, false)), 
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
         c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 

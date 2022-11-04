@@ -15,8 +15,7 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     Contract.Invariant(Mod != null);
   }
 
-  protected LoopStmt(Cloner cloner, LoopStmt original) : base(cloner, original)
-  {
+  protected LoopStmt(Cloner cloner, LoopStmt original) : base(cloner, original) {
     Invariants = original.Invariants.ConvertAll(cloner.CloneAttributedExpr);
     Decreases = cloner.CloneSpecExpr(original.Decreases);
     Mod = cloner.CloneSpecFrameExpr(original.Mod);

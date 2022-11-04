@@ -97,7 +97,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         var args = new List<ActualBinding>();
         args.Add(new ActualBinding(null, k));
         apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), 
+        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok),
           lhsClone, args, Tok(apply.CloseParen));
         var c = new ExprRhs(applyClone);
         reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);

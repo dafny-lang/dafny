@@ -16,8 +16,7 @@ class ResolvedCloner : Cloner {
     return new_t;
   }
 
-  public override CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat)
-  {
+  public override CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) {
     if (pat.Var != null) {
       var newPat = new CasePattern<VT>(pat.tok, CloneIVariable(pat.Var, false));
       newPat.AssembleExpr(null);

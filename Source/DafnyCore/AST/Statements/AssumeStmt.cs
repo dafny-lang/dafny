@@ -8,8 +8,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
     return new AssumeStmt(cloner, this);
   }
 
-  public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original)
-  {
+  public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
   public AssumeStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)

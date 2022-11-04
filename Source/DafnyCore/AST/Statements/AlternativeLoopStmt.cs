@@ -15,8 +15,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
     return new AlternativeLoopStmt(cloner, this);
   }
 
-  public AlternativeLoopStmt(Cloner cloner, AlternativeLoopStmt original) : base(cloner, original)
-  {
+  public AlternativeLoopStmt(Cloner cloner, AlternativeLoopStmt original) : base(cloner, original) {
     Alternatives = original.Alternatives.ConvertAll(cloner.CloneGuardedAlternative);
     UsesOptionalBraces = original.UsesOptionalBraces;
   }

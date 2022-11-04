@@ -103,9 +103,9 @@ public abstract class Expression : INode {
   protected IToken[] FormatTokens = null;
 
   protected Expression(Cloner cloner, Expression original) {
-    
+
     tok = cloner.Tok(original.tok);
-    
+
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
     }
@@ -2472,9 +2472,8 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> 
-  where VT : class, IVariable 
-{
+public class CasePattern<VT>
+  where VT : class, IVariable {
   public readonly IToken tok;
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -2575,7 +2574,7 @@ public abstract class ExtendedPattern : INode {
   public abstract IEnumerable<INode> Children { get; }
 
   public IEnumerable<INode> DescendantsAndSelf =>
-    new[] {this}.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
+    new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
 
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable);
@@ -3060,7 +3059,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
   public readonly List<IToken> OperatorLocs;
   public readonly List<Expression/*?*/> PrefixLimits;
   public readonly Expression E;
-  
+
   public ChainingExpression Clone(Cloner cloner) {
     return new ChainingExpression(cloner, this);
   }
@@ -3093,28 +3092,22 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(operands, operators, operatorLocs, prefixLimits);
   }
 
-  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression> prefixLimits)
-  {
+  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression> prefixLimits) {
     Expression desugaring;
     // Compute the desugaring
-    if (operators[0] == BinaryExpr.Opcode.Disjoint)
-    {
+    if (operators[0] == BinaryExpr.Opcode.Disjoint) {
       Expression acc = operands[0]; // invariant:  "acc" is the union of all operands[j] where j <= i
       desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1]);
-      for (int i = 0; i < operators.Count; i++)
-      {
+      for (int i = 0; i < operators.Count; i++) {
         Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
         var opTok = operatorLocs[i];
         var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
         desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
         acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1]);
       }
-    }
-    else
-    {
+    } else {
       desugaring = null;
-      for (int i = 0; i < operators.Count; i++)
-      {
+      for (int i = 0; i < operators.Count; i++) {
         var opTok = operatorLocs[i];
         var op = operators[i];
         Contract.Assume(op != BinaryExpr.Opcode.Disjoint);
@@ -3123,12 +3116,9 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
         var e0 = operands[i];
         var e1 = operands[i + 1];
         Expression e;
-        if (k == null)
-        {
+        if (k == null) {
           e = new BinaryExpr(opTok, op, e0, e1);
-        }
-        else
-        {
+        } else {
           e = new TernaryExpr(opTok,
             op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0,
             e1);
@@ -3260,7 +3250,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   public List<Expression> Args => Bindings.Arguments;
 
   public override IEnumerable<INode> Children => ResolvedExpression == null
-    ? new[] {Lhs}.Concat(Args ?? Enumerable.Empty<INode>()) : new [] { ResolvedExpression };
+    ? new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>()) : new[] { ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -3272,8 +3262,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   }
 
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
-    base(cloner, original) 
-  {
+    base(cloner, original) {
     AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
     CloseParen = cloner.Tok(original.CloseParen);
     FormatTokens = original.FormatTokens;

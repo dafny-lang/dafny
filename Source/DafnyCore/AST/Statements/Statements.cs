@@ -217,10 +217,10 @@ public class Label {
 }
 
 public class AssertLabel : Label {
-  
+
   [FilledInDuringTranslation]
   public Boogie.Expr E;
-  
+
   public AssertLabel(IToken tok, string label)
     : base(tok, label) {
     Contract.Requires(tok != null);
@@ -568,7 +568,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
 
   public VarDeclStmt(Cloner cloner, VarDeclStmt original) : base(cloner, original) {
     Locals = original.Locals.Select(l => cloner.CloneLocalVariable(l, false)).ToList();
-    Update = (ConcreteUpdateStatement) cloner.CloneStmt(original.Update);
+    Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
   }
 
   public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
@@ -682,8 +682,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
     return new UpdateStmt(cloner, this);
   }
 
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) 
-  {
+  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
     if (cloner.CloneResolvedFields) {

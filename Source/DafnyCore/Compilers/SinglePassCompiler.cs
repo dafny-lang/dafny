@@ -2480,15 +2480,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) 
-      where VT : class, IVariable 
-    {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) 
-      where VT : class, IVariable 
-    {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);

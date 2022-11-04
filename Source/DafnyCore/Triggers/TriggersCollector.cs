@@ -438,7 +438,7 @@ namespace Microsoft.Dafny.Triggers {
       var terms = candidateTerms.Where(term => variables.Any(x => !term.Variables.Contains(x))).ToList();
       return new TriggerAnnotation(true, CollectVariables(expr), terms);
     }
-    
+
     private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr) {
       var pts = CollectExportedCandidates(expr);
       // collects that argument boundvar of matchcaseexpr

@@ -58,7 +58,7 @@ public class CompileNestedMatch : IRewriter {
         // so this is to prevent recursion into the uncloned definitions. 
         return false;
       }
-      
+
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
@@ -381,16 +381,14 @@ public class CompileNestedMatch : IRewriter {
   }
 
   private SyntaxContainer CompilePatternPathsForMatchee(MatchCompilationState state, MatchingContext context,
-    List<PatternPath> paths, Cons<Expression> consMatchees)
-  {
+    List<PatternPath> paths, Cons<Expression> consMatchees) {
     // Otherwise, start handling the first matchee
     Expression currMatchee = consMatchees.Head;
 
     // Get the datatype of the matchee
     var currMatcheeType = resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
       .NormalizeExpand();
-    if (currMatcheeType is TypeProxy)
-    {
+    if (currMatcheeType is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
     }
 
@@ -399,12 +397,9 @@ public class CompileNestedMatch : IRewriter {
     // Get all constructors of type matchee
     var subst = new Dictionary<TypeParameter, Type>();
     Dictionary<string, DatatypeCtor> ctors;
-    if (dtd == null)
-    {
+    if (dtd == null) {
       ctors = null;
-    }
-    else
-    {
+    } else {
       ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c); //resolver.datatypeCtors[dtd];
       Contract.Assert(ctors != null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
       subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs,
@@ -415,54 +410,40 @@ public class CompileNestedMatch : IRewriter {
     var patternHeads = paths.ConvertAll(GetPatternHead);
 
     if (ctors != null && patternHeads.Exists(x =>
-          x is IdPattern {Arguments: { }} pattern && ctors.ContainsKey(pattern.Id)))
-    {
+          x is IdPattern { Arguments: { } } pattern && ctors.ContainsKey(pattern.Id))) {
       // ==[3]== If dtd is a datatype and at least one of the pattern heads is a constructor, create a match on currMatchee
-      if (state.Debug)
-      {
+      if (state.Debug) {
         Console.WriteLine("DEBUG: ===[3]=== Constructor Case");
       }
 
       return CompileHeadsContainingConstructor(state, context, consMatchees, subst, ctors, paths);
-    }
-    else if (dtd == null && patternHeads.Exists(x => (x is LitPattern || x is IdPattern {ResolvedLit: { }})))
-    {
+    } else if (dtd == null && patternHeads.Exists(x => (x is LitPattern || x is IdPattern { ResolvedLit: { } }))) {
       // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
-      if (state.Debug)
-      {
+      if (state.Debug) {
         Console.WriteLine("DEBUG: ===[3**]=== Constant Case");
       }
 
       return CompileHeadsContainingLiteralPattern(state, context, consMatchees, paths);
-    }
-    else
-    {
+    } else {
       // ==[4]==  all head patterns are bound variables:
-      if (state.Debug)
-      {
+      if (state.Debug) {
         Console.WriteLine("DEBUG: ===[4]=== Variable Case");
       }
 
-      var tailPaths = paths.Select(path =>
-      {
+      var tailPaths = paths.Select(path => {
         var (head, tail) = SplitPath(path);
-        if (!(head is IdPattern))
-        {
+        if (!(head is IdPattern)) {
           Contract.Assert(false);
           throw new cce.UnreachableException(); // in Variable case with a constant pattern
         }
 
-        var currPattern = (IdPattern) head;
+        var currPattern = (IdPattern)head;
 
-        if (currPattern.Arguments != null)
-        {
-          if (dtd == null)
-          {
+        if (currPattern.Arguments != null) {
+          if (dtd == null) {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
-          }
-          else
-          {
+          } else {
             resolver.reporter.Error(MessageSource.Resolver, currPattern.Tok,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
@@ -472,8 +453,7 @@ public class CompileNestedMatch : IRewriter {
         return LetBindNonWildCard(currPattern, currMatchee, tail);
       }).ToList();
 
-      if (state.Debug)
-      {
+      if (state.Debug) {
         Console.WriteLine("DEBUG: return");
       }
 
@@ -999,7 +979,7 @@ public class CompileNestedMatch : IRewriter {
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
-      
+
       var letExpr = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
       letExpr.Type = exprPath.Body.Type;
       return new ExprPatternPath(exprPath.Tok, exprPath.CaseId, exprPath.Patterns, letExpr, exprPath.Attributes);

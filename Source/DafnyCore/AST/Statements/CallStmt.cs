@@ -43,11 +43,11 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   }
 
   public CallStmt(Cloner cloner, CallStmt original) : base(cloner, original) {
-    MethodSelect = (MemberSelectExpr) cloner.CloneExpr(original.MethodSelect);
+    MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
-  
+
   /// <summary>
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.

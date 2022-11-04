@@ -23,7 +23,7 @@ class ConstructorWarning : IRewriter {
       }
     }
   }
-  
+
   public ConstructorWarning(ErrorReporter reporter) : base(reporter) {
   }
 }

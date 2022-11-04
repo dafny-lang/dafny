@@ -21,7 +21,7 @@ using Action = System.Action;
 namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringTranslationAttribute : System.Attribute { }
-  
+
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 

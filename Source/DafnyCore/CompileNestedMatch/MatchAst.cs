@@ -105,7 +105,7 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
   public readonly MatchingContext Context;
   [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
   public readonly bool UsesOptionalBraces;
-  
+
   [FilledInDuringResolution]
   // TODO remove field?
   public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it 

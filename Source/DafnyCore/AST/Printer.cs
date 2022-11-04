@@ -2810,9 +2810,8 @@ namespace Microsoft.Dafny {
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) 
-      where VT : class, IVariable 
-    {
+    void PrintCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

@@ -2639,7 +2639,7 @@ public abstract class TypeProxy : Type {
       }
     }
   }
-  
+
   public void AddSupertype(TypeConstraint c) {
     Contract.Requires(c != null);
     Contract.Requires(c.Sub == this);

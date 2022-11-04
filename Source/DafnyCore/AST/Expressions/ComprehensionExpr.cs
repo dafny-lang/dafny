@@ -419,7 +419,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     BodyStartTok = cloner.Tok(original.BodyStartTok);
     BodyEndTok = cloner.Tok(original.BodyEndTok);
     Term = cloner.CloneExpr(original.Term);
-    
+
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds.Select(b => b.Clone(cloner)).ToList();
     }

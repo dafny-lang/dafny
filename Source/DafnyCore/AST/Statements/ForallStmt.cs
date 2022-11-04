@@ -61,7 +61,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
       ForallExpressions = original.ForallExpressions.Select(cloner.CloneExpr).ToList();
     }
   }
-  
+
   public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
     : base(tok, endTok, attrs) {
     Contract.Requires(tok != null);

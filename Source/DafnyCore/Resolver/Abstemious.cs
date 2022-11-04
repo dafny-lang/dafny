@@ -22,7 +22,7 @@ public class Abstemious {
       }
     }
   }
-  
+
   private void CheckDestructsAreAbstemiousCompliant(Expression expr) {
     Contract.Assert(expr != null);
     expr = expr.Resolved;

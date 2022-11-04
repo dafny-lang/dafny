@@ -633,24 +633,24 @@ namespace Microsoft.Dafny {
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is LeastLemma) {
-        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, 
+        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is GreatestLemma) {
-        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, 
+        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
-        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, 
+        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, 
+        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
-        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, 
+        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m.IsByMethod);
       }

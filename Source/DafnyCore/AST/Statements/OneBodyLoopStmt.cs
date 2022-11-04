@@ -9,7 +9,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
   public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
-    Body = (BlockStmt) cloner.CloneStmt(original.Body);
+    Body = (BlockStmt)cloner.CloneStmt(original.Body);
     if (cloner.CloneResolvedFields) {
       BodySurrogate = new WhileStmt.LoopBodySurrogate(
         original.BodySurrogate.LocalLoopTargets.Select(v => cloner.CloneIVariable(v, true)).ToList(),

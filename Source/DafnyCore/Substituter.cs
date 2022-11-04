@@ -583,7 +583,7 @@ namespace Microsoft.Dafny {
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = new BoundVar(pat.tok, pat.Id, tt);
           newBv.IsGhost = bv.IsGhost;
-          
+
           // update substMap to reflect the new BoundVar substitutions
           var ie = new IdentifierExpr(newBv.tok, newBv.Name);
           ie.Var = newBv;  // resolve here

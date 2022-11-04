@@ -5,9 +5,8 @@ namespace Microsoft.Dafny;
 class SubstitutingCloner : Cloner {
   private readonly Dictionary<IVariable, Expression> substitutions;
 
-  public SubstitutingCloner(Dictionary<IVariable, Expression> substitutions, bool cloneResolvedFields) 
-    : base(cloneResolvedFields) 
-  {
+  public SubstitutingCloner(Dictionary<IVariable, Expression> substitutions, bool cloneResolvedFields)
+    : base(cloneResolvedFields) {
     this.substitutions = substitutions;
   }
 
