@@ -151,20 +151,14 @@ namespace Microsoft.Dafny {
   ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
   /// </summary>
   public class RefinementTransformer : IRewriter {
-    Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
-
-    Program program;
 
     public RefinementTransformer(ErrorReporter reporter)
       : base(reporter) {
-      rawCloner = new Cloner();
     }
 
     public RefinementTransformer(Program p)
       : this(p.Reporter) {
-      Contract.Requires(p != null);
-      program = p;
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
@@ -549,13 +543,10 @@ namespace Microsoft.Dafny {
         result = refinementCloner.CloneFormal(result, false);
       }
 
-      List<AttributedExpression> ens;
-      if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
-{
-        ens = f.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      } else {
-        ens = f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
-      }
+
+      var ens = refinementCloner.WithRefinementTokenWrapping(
+        () => f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr),
+        !checkPrevPostconditions); // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
 
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
@@ -615,12 +606,8 @@ namespace Microsoft.Dafny {
       var req = m.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
-      List<AttributedExpression> ens;
-      if (checkPreviousPostconditions) {
-        ens = m.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      } else {
-        ens = m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
-      }
+      var ens = refinementCloner.WithRefinementTokenWrapping(
+        () => m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);
 
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
@@ -697,9 +684,11 @@ namespace Microsoft.Dafny {
         newBody = MergeBlockStmt(nw.Body, prev.Body);
       }
 
-      var ens = prev.Ensures.ConvertAll(rawCloner.CloneAttributedExpr);
+      var ens = refinementCloner.WithRefinementTokenWrapping(() => 
+        prev.Ensures.ConvertAll(refinementCloner.CloneAttributedExpr));
       ens.AddRange(nw.Ensures);
-      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneAttributedExpr);
+      var yens = refinementCloner.WithRefinementTokenWrapping(() =>
+        prev.YieldEnsures.ConvertAll(refinementCloner.CloneAttributedExpr));
       yens.AddRange(nw.YieldEnsures);
 
       return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
@@ -1666,7 +1655,9 @@ namespace Microsoft.Dafny {
   }
 
   class RefinementCloner : Cloner {
-    ModuleDefinition moduleUnderConstruction;
+    readonly ModuleDefinition moduleUnderConstruction;
+    private bool wrapWithRefinementToken = true;
+
     public RefinementCloner(ModuleDefinition m) {
       moduleUnderConstruction = m;
     }
@@ -1677,8 +1668,22 @@ namespace Microsoft.Dafny {
         return CloneBlockStmt(m.BodyForRefinement);
       }
     }
+    
+    [Pure]
+    public T WithRefinementTokenWrapping<T>(Func<T> action, bool wrap = false) {
+      var current = wrapWithRefinementToken;
+      wrapWithRefinementToken = wrap;
+      var result = action();
+      wrapWithRefinementToken = current;
+      return result;
+    }
+    
     public override IToken Tok(IToken tok) {
-      return new RefinementToken(tok, moduleUnderConstruction);
+      if (wrapWithRefinementToken) {
+        return new RefinementToken(tok, moduleUnderConstruction);
+      }
+
+      return tok;
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
