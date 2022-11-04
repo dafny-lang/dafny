@@ -2256,6 +2256,14 @@ public class UserDefinedType : NonProxyType, INode {
     this.NamePath = namePath;
   }
 
+  public UserDefinedType(Cloner cloner, UserDefinedType original) 
+    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath))
+  {
+    if (cloner.CloneResolvedFields) {
+      ResolvedClass = original.ResolvedClass;
+    }
+  }
+
   /// <summary>
   /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.  If
   /// the given declaration takes type parameters, these are filled as references to the formal type parameters
@@ -2371,17 +2379,6 @@ public class UserDefinedType : NonProxyType, INode {
     ns.ResolvedExpression = r;
     ns.Type = r.Type;
     this.NamePath = ns;
-  }
-
-  public UserDefinedType(Cloner cloner, UserDefinedType original) {
-    tok = cloner.Tok(original.tok);
-    Name = original.Name;
-    NamePath = cloner.CloneExpr(original.NamePath);
-    TypeArgs = original.TypeArgs;
-
-    if (cloner.CloneResolvedFields) {
-      ResolvedClass = original.ResolvedClass;
-    }
   }
 
   public override bool Equals(Type that, bool keepConstraints = false) {

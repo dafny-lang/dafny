@@ -15,6 +15,9 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 1;
+    public override ComprehensionExpr.BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
 
   public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
