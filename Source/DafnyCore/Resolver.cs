@@ -13288,7 +13288,11 @@ namespace Microsoft.Dafny {
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
