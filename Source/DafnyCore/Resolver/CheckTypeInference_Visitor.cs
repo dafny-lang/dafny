@@ -10,49 +10,49 @@ namespace Microsoft.Dafny;
 // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
 partial class Resolver {
   public void CheckTypeInference_Member(MemberDecl member) {
-      if (member is ConstantField) {
-        var field = (ConstantField)member;
-        if (field.Rhs != null) {
-          CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
-        }
-        CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
-      } else if (member is Method) {
-        var m = (Method)member;
-        foreach (var formal in m.Ins) {
-          if (formal.DefaultValue != null) {
-            CheckTypeInference(formal.DefaultValue, m);
-          }
-        }
-        m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-        m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-        CheckTypeInference_Specification_FrameExpr(m.Mod, m);
-        CheckTypeInference_Specification_Expr(m.Decreases, m);
-        if (m.Body != null) {
-          CheckTypeInference(m.Body, m);
-        }
-      } else if (member is Function) {
-        var f = (Function)member;
-        foreach (var formal in f.Formals) {
-          if (formal.DefaultValue != null) {
-            CheckTypeInference(formal.DefaultValue, f);
-          }
-        }
-        var errorCount = reporter.Count(ErrorLevel.Error);
-        f.Req.Iter(e => CheckTypeInference(e.E, f));
-        f.Ens.Iter(e => CheckTypeInference(e.E, f));
-        f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
-        CheckTypeInference_Specification_Expr(f.Decreases, f);
-        if (f.Body != null) {
-          CheckTypeInference(f.Body, f);
-        }
-        if (errorCount == reporter.Count(ErrorLevel.Error)) {
-          if (f is ExtremePredicate cop) {
-            CheckTypeInference_Member(cop.PrefixPredicate);
-          } else if (f.ByMethodDecl != null) {
-            CheckTypeInference_Member(f.ByMethodDecl);
-          }
+    if (member is ConstantField) {
+      var field = (ConstantField)member;
+      if (field.Rhs != null) {
+        CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
+      }
+      CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
+    } else if (member is Method) {
+      var m = (Method)member;
+      foreach (var formal in m.Ins) {
+        if (formal.DefaultValue != null) {
+          CheckTypeInference(formal.DefaultValue, m);
         }
       }
+      m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
+      m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
+      CheckTypeInference_Specification_FrameExpr(m.Mod, m);
+      CheckTypeInference_Specification_Expr(m.Decreases, m);
+      if (m.Body != null) {
+        CheckTypeInference(m.Body, m);
+      }
+    } else if (member is Function) {
+      var f = (Function)member;
+      foreach (var formal in f.Formals) {
+        if (formal.DefaultValue != null) {
+          CheckTypeInference(formal.DefaultValue, f);
+        }
+      }
+      var errorCount = reporter.Count(ErrorLevel.Error);
+      f.Req.Iter(e => CheckTypeInference(e.E, f));
+      f.Ens.Iter(e => CheckTypeInference(e.E, f));
+      f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
+      CheckTypeInference_Specification_Expr(f.Decreases, f);
+      if (f.Body != null) {
+        CheckTypeInference(f.Body, f);
+      }
+      if (errorCount == reporter.Count(ErrorLevel.Error)) {
+        if (f is ExtremePredicate cop) {
+          CheckTypeInference_Member(cop.PrefixPredicate);
+        } else if (f.ByMethodDecl != null) {
+          CheckTypeInference_Member(f.ByMethodDecl);
+        }
+      }
+    }
   }
 
   private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
@@ -336,39 +336,39 @@ class CheckTypeInferenceVisitor : ResolverBottomUpVisitor {
               sense = false;
               goto case BinaryExpr.ResolvedOpcode.EqCommon;
             case BinaryExpr.ResolvedOpcode.EqCommon: {
-              var nntUdf = other.Type.AsNonNullRefType;
-              if (nntUdf != null) {
-                string name = null;
-                string hint = "";
-                other = other.Resolved;
-                if (other is IdentifierExpr) {
-                  name = string.Format("variable '{0}'", ((IdentifierExpr)other).Name);
-                } else if (other is MemberSelectExpr) {
-                  var field = ((MemberSelectExpr)other).Member as Field;
-                  // The type of the field may be a formal type parameter, in which case the hint is omitted
-                  if (field.Type.IsNonNullRefType) {
-                    name = string.Format("field '{0}'", field.Name);
+                var nntUdf = other.Type.AsNonNullRefType;
+                if (nntUdf != null) {
+                  string name = null;
+                  string hint = "";
+                  other = other.Resolved;
+                  if (other is IdentifierExpr) {
+                    name = string.Format("variable '{0}'", ((IdentifierExpr)other).Name);
+                  } else if (other is MemberSelectExpr) {
+                    var field = ((MemberSelectExpr)other).Member as Field;
+                    // The type of the field may be a formal type parameter, in which case the hint is omitted
+                    if (field.Type.IsNonNullRefType) {
+                      name = string.Format("field '{0}'", field.Name);
+                    }
                   }
-                }
-                if (name != null) {
-                  // The following relies on that a NonNullTypeDecl has a .Rhs that is a
-                  // UserDefinedType denoting the possibly null type declaration and that
-                  // these two types have the same number of type arguments.
-                  var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
-                  var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
-                  var possiblyNullTypeDecl = (ClassDecl)possiblyNullUdf.ResolvedClass;
-                  Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
-                  Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
-                  var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
+                  if (name != null) {
+                    // The following relies on that a NonNullTypeDecl has a .Rhs that is a
+                    // UserDefinedType denoting the possibly null type declaration and that
+                    // these two types have the same number of type arguments.
+                    var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
+                    var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
+                    var possiblyNullTypeDecl = (ClassDecl)possiblyNullUdf.ResolvedClass;
+                    Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
+                    Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
+                    var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
 
-                  hint = string.Format(" (to make it possible for {0} to have the value 'null', declare its type to be '{1}')", name, ty);
+                    hint = string.Format(" (to make it possible for {0} to have the value 'null', declare its type to be '{1}')", name, ty);
+                  }
+                  resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    string.Format("the type of the other operand is a non-null type, so this comparison with 'null' will always return '{0}'{1}",
+                      sense ? "false" : "true", hint));
                 }
-                resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                  string.Format("the type of the other operand is a non-null type, so this comparison with 'null' will always return '{0}'{1}",
-                    sense ? "false" : "true", hint));
+                break;
               }
-              break;
-            }
             case BinaryExpr.ResolvedOpcode.NotInSet:
             case BinaryExpr.ResolvedOpcode.NotInSeq:
             case BinaryExpr.ResolvedOpcode.NotInMultiSet:
@@ -377,26 +377,26 @@ class CheckTypeInferenceVisitor : ResolverBottomUpVisitor {
             case BinaryExpr.ResolvedOpcode.InSet:
             case BinaryExpr.ResolvedOpcode.InSeq:
             case BinaryExpr.ResolvedOpcode.InMultiSet: {
-              var ty = other.Type.NormalizeExpand();
-              var what = ty is SetType ? "set" : ty is SeqType ? "seq" : "multiset";
-              if (((CollectionType)ty).Arg.IsNonNullRefType) {
-                resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                  string.Format("the type of the other operand is a {0} of non-null elements, so the {1}inclusion test of 'null' will always return '{2}'",
-                    what, sense ? "" : "non-", sense ? "false" : "true"));
+                var ty = other.Type.NormalizeExpand();
+                var what = ty is SetType ? "set" : ty is SeqType ? "seq" : "multiset";
+                if (((CollectionType)ty).Arg.IsNonNullRefType) {
+                  resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    string.Format("the type of the other operand is a {0} of non-null elements, so the {1}inclusion test of 'null' will always return '{2}'",
+                      what, sense ? "" : "non-", sense ? "false" : "true"));
+                }
+                break;
               }
-              break;
-            }
             case BinaryExpr.ResolvedOpcode.NotInMap:
               goto case BinaryExpr.ResolvedOpcode.InMap;
             case BinaryExpr.ResolvedOpcode.InMap: {
-              var ty = other.Type.NormalizeExpand();
-              if (((MapType)ty).Domain.IsNonNullRefType) {
-                resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                  string.Format("the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{0}'",
-                    sense ? "false" : "true"));
+                var ty = other.Type.NormalizeExpand();
+                if (((MapType)ty).Domain.IsNonNullRefType) {
+                  resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    string.Format("the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{0}'",
+                      sense ? "false" : "true"));
+                }
+                break;
               }
-              break;
-            }
             default:
               break;
           }

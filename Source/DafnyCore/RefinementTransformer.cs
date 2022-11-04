@@ -684,7 +684,7 @@ namespace Microsoft.Dafny {
         newBody = MergeBlockStmt(nw.Body, prev.Body);
       }
 
-      var ens = refinementCloner.WithRefinementTokenWrapping(() => 
+      var ens = refinementCloner.WithRefinementTokenWrapping(() =>
         prev.Ensures.ConvertAll(refinementCloner.CloneAttributedExpr));
       ens.AddRange(nw.Ensures);
       var yens = refinementCloner.WithRefinementTokenWrapping(() =>
@@ -1668,7 +1668,7 @@ namespace Microsoft.Dafny {
         return CloneBlockStmt(m.BodyForRefinement);
       }
     }
-    
+
     [Pure]
     public T WithRefinementTokenWrapping<T>(Func<T> action, bool wrap = false) {
       var current = wrapWithRefinementToken;
@@ -1677,7 +1677,7 @@ namespace Microsoft.Dafny {
       wrapWithRefinementToken = current;
       return result;
     }
-    
+
     public override IToken Tok(IToken tok) {
       if (wrapWithRefinementToken) {
         return new RefinementToken(tok, moduleUnderConstruction);

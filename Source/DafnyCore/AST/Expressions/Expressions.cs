@@ -2665,12 +2665,12 @@ public class LitPattern : ExtendedPattern {
   public override void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
-    
+
     var literal = OptimisticallyDesugaredLit;
     if (sourceType.IsBitVectorType || sourceType.IsBigOrdinalType) {
       var n = (BigInteger)literal.Value;
       var absN = n < 0 ? -n : n;
-            
+
       // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
       // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
       if (n < 0 || literal.tok.val == "-0") {

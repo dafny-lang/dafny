@@ -465,7 +465,7 @@ namespace Microsoft.Dafny {
         ResolveTypeParameters(d.TypeArgs, true, d);
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
         allTypeParameters.PopMarker();
-      } 
+      }
 
       ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
 

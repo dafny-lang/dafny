@@ -2256,9 +2256,8 @@ public class UserDefinedType : NonProxyType, INode {
     this.NamePath = namePath;
   }
 
-  public UserDefinedType(Cloner cloner, UserDefinedType original) 
-    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath))
-  {
+  public UserDefinedType(Cloner cloner, UserDefinedType original)
+    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = original.ResolvedClass;
     }
