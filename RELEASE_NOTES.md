@@ -14,7 +14,6 @@
 - feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
 - fix: The DafnyServer package is now published to NuGet as well, which fixes the previously-broken version of the DafnyLanguageServer package. (https://github.com/dafny-lang/dafny/pull/2787)
 - deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
-- feat: Emit warnings about possibly missing parentheses, based on operator precedence and unusual identation (https://github.com/dafny-lang/dafny/pull/2783)
 
 # 3.8.1
 
