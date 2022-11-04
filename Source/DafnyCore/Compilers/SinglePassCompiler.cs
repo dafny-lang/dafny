@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+    protected static bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
     
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }

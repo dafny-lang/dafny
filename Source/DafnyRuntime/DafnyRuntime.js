@@ -453,6 +453,14 @@ let _dafny = (function() {
       return this.IsSubsetOf(that) && this.cardinality().isLessThan(that.cardinality());
     }
   }
+  $module.CodePoint = class CodePoint {
+    constructor(value) {
+      this.value = value
+    }
+    toString() {
+      return "'" + String.fromCodePoint(this.value) + "'";
+    }
+  }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
       super(...elems);
@@ -465,6 +473,9 @@ let _dafny = (function() {
     }
     toString() {
       return "[" + arrayElementsToString(this) + "]";
+    }
+    toVerbatimString() {
+      return this.map(c => String.fromCodePoint(c.value)).join("");
     }
     static update(s, i, v) {
       if (typeof s === "string") {
@@ -958,8 +969,14 @@ let _dafny = (function() {
   $module.PlusChar = function(a, b) {
     return String.fromCharCode(a.charCodeAt(0) + b.charCodeAt(0));
   }
+  $module.UnicodePlusChar = function(a, b) {
+    return new _dafny.CodePoint(a.value + b.value);
+  }
   $module.MinusChar = function(a, b) {
     return String.fromCharCode(a.charCodeAt(0) - b.charCodeAt(0));
+  }
+  $module.UnicodeMinusChar = function(a, b) {
+    return new _dafny.CodePoint(a.value - b.value);
   }
   $module.AllBooleans = function*() {
     yield false;

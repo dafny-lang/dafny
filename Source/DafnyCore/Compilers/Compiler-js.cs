@@ -836,13 +836,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    private static string StringFromCharMethodName() {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        return "fromCodePoint";
-      } else {
-        return "fromCharCode";
-      }
-    }    
+    private static string CharFromNumberMethodName() {
+      return UnicodeChars ? "new _dafny.CodePoint" : "String.fromCharCode";
+    }  
+    
+    private static string CharMethodPrefix() {
+      return UnicodeChars ? "Unicode" : "";
+    }  
     
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1082,23 +1082,22 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.AsSeqType != null &&
-                      arg.Type.AsSeqType.Arg.IsCharType;
+      bool isString = arg.Type.IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
       bool isGeneric = arg.Type.AsSeqType != null &&
                        arg.Type.AsSeqType.Arg.IsTypeParameter;
       var wStmts = wr.Fork();
-      if (isStringLiteral) {
-        // process.stdout.write(_dafny.toString(x));
-        wr.Write("process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine("));");
-      } else if (isString) {
-        // isString && !isStringLiteral
-        wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
-        TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine(")));");
-      } else if (isGeneric) {
+      if (isString) {
+        if (UnicodeChars) {
+          wr.Write($"process.stdout.write(");
+          TrParenExpr(arg, wr, false, wStmts);
+          wr.WriteLine(".toVerbatimString());");
+        } else {
+          wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
+          TrExpr(arg, wr, false, wStmts);
+          wr.WriteLine(")));");
+        }
+      } else if (isGeneric && !UnicodeChars) {
         // try { process.stdout.write(_dafny.toString(((x) instanceof Array && typeof((x)[0]) == \"string\") ? (x).join("") : (x))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
         wr.Write("try { process.stdout.write(_dafny.toString(");
         wr.Write("(");
@@ -1327,11 +1326,21 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("'{0}'", v == "\\0" ? "\\u0000" : v);  // JavaScript doesn't have a \0
+        var escaped = v == "\\0" ? "\\u0000" : v; // JavaScript doesn't have a \0
+        if (UnicodeChars) {
+          wr.Write($"new _dafny.CodePoint('{escaped}'.codePointAt(0))");
+        } else {
+          wr.Write($"'{escaped}'");
+        }
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        // TODO: the string should be converted to a Dafny seq<char>
-        TrStringLiteral(str, wr);
+        if (UnicodeChars) {
+          wr.Write($"new _dafny.Seq(...([...");
+          TrStringLiteral(str, wr);
+          wr.Write("].map(c => new _dafny.CodePoint(c.codePointAt(0)))))");
+        } else {
+          TrStringLiteral(str, wr);
+        }
       } else if (AsNativeType(e.Type) != null) {
         wr.Write(e.Value.ToString());
       } else if (e.Value is BigInteger) {
@@ -2113,7 +2122,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
           } else if (resultType.IsCharType) {
-            staticCallString = "_dafny.PlusChar";
+            staticCallString = $"_dafny.{CharMethodPrefix()}PlusChar";
           } else {
             callString = "plus"; truncateResult = true;
           }
@@ -2124,7 +2133,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
           } else if (resultType.IsCharType) {
-            staticCallString = "_dafny.MinusChar";
+            staticCallString = $"_dafny.{CharMethodPrefix()}MinusChar";
           } else {
             callString = "minus"; truncateResult = true;
           }
@@ -2233,12 +2242,12 @@ namespace Microsoft.Dafny.Compilers {
 
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (e.E.Type.IsCharType) {
-            wr.Write(".charCodeAt(0))");
+            wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0))");
           }
 
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
-          wr.Write($"String.{StringFromCharMethodName()}(");
+          wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (AsNativeType(e.E.Type) == null) {
             wr.Write(".toNumber()");
@@ -2257,11 +2266,11 @@ namespace Microsoft.Dafny.Compilers {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigNumber(");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(".charCodeAt(0))");
+              wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0))");
             } else {
               // char -> native
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(".charCodeAt(0)");
+              wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0)");
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
@@ -2301,7 +2310,7 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write($"String.{StringFromCharMethodName()}(");
+          wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".toBigNumber().toNumber())");
         } else {
@@ -2314,7 +2323,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsCharType) {
-          wr.Write($"String.{StringFromCharMethodName()}((");
+          wr.Write($"{CharFromNumberMethodName()}((");
         }
 
         TrExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2368,17 +2377,9 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         ConcreteSyntaxTree wrElements;
-        if (ct.Arg.IsCharType) {
-          // We're really constructing a string.
-          // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
-          wr.Write("[");
-          wrElements = wr.Fork();
-          wr.Write("].join(\"\")");
-        } else {
-          wr.Write($"{DafnySeqClass}.of(");
-          wrElements = wr.Fork();
-          wr.Write(")");
-        }
+        wr.Write($"{DafnySeqClass}.of(");
+        wrElements = wr.Fork();
+        wr.Write(")");
         string sep = "";
         foreach (var e in elements) {
           wrElements.Write(sep);

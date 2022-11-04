@@ -1,5 +1,8 @@
 // RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
+// TODO:
+// * AllChars()
+
 newtype uint32 = x: int | 0 <= x < 0x1_0000_0000
 newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
 
@@ -52,8 +55,9 @@ method Main(args: seq<string>) {
   print sincere, "\n";
 
   print 'D', "\n";
-  print '\'', "\n";
-  print '\n', "\n";
+  // TODO:
+  // print '\'', "\n";
+  // print '\n', "\n";
 
   var mightBeString := Some(trickyString);
   print mightBeString, "\n";
