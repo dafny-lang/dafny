@@ -7,7 +7,7 @@ module BitvectorLiterals {
   method Bitvectors() returns (v: bv8) {
     if
     case true =>
-      v := 300;  // error: too large to be a bv8
+      v := 300;
     case true =>
       v := 200 + 100;  // fine
     case true =>
@@ -15,7 +15,7 @@ module BitvectorLiterals {
     case true =>
       v := -(3);
     case true =>
-      v := -300;  // error: 300 is too large to be a bv8
+      v := -300;
   }
 
   method MatchStmt(v: bv8) {

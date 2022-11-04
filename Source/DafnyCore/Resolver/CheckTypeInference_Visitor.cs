@@ -9,7 +9,6 @@ namespace Microsoft.Dafny;
 // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
 // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
 partial class Resolver {
-  
   public void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
         var field = (ConstantField)member;
@@ -167,12 +166,6 @@ class CheckTypeInferenceVisitor : ResolverBottomUpVisitor {
         // For bitvectors, check that the magnitude fits the width
         if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
           resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
-        }
-        // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
-        // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-        if (n < 0 || e.tok.val == "-0") {
-          Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-          resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
         }
       }
 
