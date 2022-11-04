@@ -936,33 +936,105 @@ compilers treat it differently.
 
 ### 25.8.3. C\#
 
-{% include_relative integration-cs/IntegrationCS.md %}
+For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
+the build step then produces a `A.dll`, which can be used as a library or as an executable.
+
+The simple steps are these:
+- create a dotnet project file with the command `dotnet new console`
+- delete the `Program.cs` file
+- build the dafny program: `dafny build A.dfy B.dfy`
+- run the built program `dotnet A.dll`
+
+The last two steps can be combined:
+`dafny run A.dfy --input B.dfy`
+
+Note that all input .dfy files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
+
+
+Examples of how to integrate C# libraries and source code with Dafny source code
+are contained in [this separate document](integration-cs/IntegrationCS.md).
 
 ### 25.8.4. Java
 
-{% include_relative integration-java/IntegrationJava.md %}
+The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
+to a directory _A_`-java`. The `-out` option can be used to choose a
+different output directory. The file _A_`.dfy` is translated to _A_`.java`,
+which is placed in the output directory along with helper files.
+If more than one `.dfy` file is listed on the command-line, then the output
+directory name is taken from the first file, and `.java` files are written
+for each of the `.dfy` files. _A_`-java` will also likely contain
+translations to java for any library modules that are used.
+
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
+but not if dafny is only doing translation..
+
+Examples of how to integrate Java source code and libraries with Dafny source
+are contained in [this separate document](integration-java/IntegrationJava).
 
 ### 25.8.5. Javascript
 
-TO BE WRITTEN
+The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
+The build and run steps are simply
+- `dafny build -t:js A.dfy B.dfy`
+- `node A.js`
+Or, in one step,
+- `dafny run A.dfy --input B.dfy`
+
+Examples of how to integrate Javascript libraries and source code with Dafny source
+are contained in [this separate document](integration-js/IntegrationJavascript).
 
 ### 25.8.6. Go
 
-TO BE WRITTEN
+The Dafny-to-Go compiler translates all the given `.dfy` files into a single
+`.go` file in `A-go/src/A.go`; the output folder can be specified with the 
+`-out` option. For an input file `A.dfy` the default output folder is `A-go`.
+Some system runtime code is also placed in `A-go/src`.
+The build and run steps are
+- `dafny buld -t:go A.dfy B.dfy`
+- `./A`
+The uncompiled code can be compiled and run by `go` itself using
+- `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
 
-### 25.8.7. C++
+The one-step process is
+- `dafny run -t:go A.dfy --input B.dfy`
+
+The `GO111MODULE` variable is used because Dafny translates to pre-module Go code.
+When the implementation changes to current Go, the above command-line will
+change, though the `./A` alternative will still be supported.
+
+Examples of how to integrate Go source code and libraries with Dafny source
+are contained in [this separate document](integration-go/IntegrationGo).
+
+### 25.8.7. Python
+
+The Dafny-to-Python compiler is still under development. However, simple
+Dafny programs can be built and run as follows. The Dafny-to-Python
+compiler translates the `.dfy` files into a single `.py` file along with 
+supporting runtime library code, all placed in the output location (`A-py` for an input file A.dfy, by default).
+
+The build and run steps are
+- `dafny build -t:py A.dfy B.dfy`
+- `python A-py/A.py`
+
+In one step:
+- `dafny run -t:py A.dfy --input B.dfy`
+
+Examples of how to integrate Python libraries and source code with Dafny source
+are contained in [this separate document](integration-py/IntegrationPython).
+
+### 25.8.8. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
 implementation.
 
-- We do not support BigIntegers, so do not use `int`, or raw instances of
+- The C++ compiler does not support BigIntegers, so do not use `int`, or raw instances of
   `arr.Length`, or sequence length, etc. in executable code.  You can however,
   use `arr.Length as uint64` if you can prove your array is an appropriate
   size.  The compiler will report inappropriate integer use.
-- We do not support more advanced Dafny features like traits or coinductive
+- The C++ compiler does not support more advanced Dafny features like traits or coinductive
   types.
-- Very limited support for higher order functions even for array init.  Use
+- xiThere is very limited support for higher order functions even for array initialization.  Use
   extern definitions like newArrayFill (see 
   [extern.dfy](https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
   similar.  See also the example in [`functions.dfy`]
@@ -970,7 +1042,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 25.8.8. Supported features by target language {#sec-supported-features-by-target-language}
+### 25.8.9. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
