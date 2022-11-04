@@ -2136,7 +2136,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write(")");
       } else {
-        wr.Write("_dafny.{CharMethodPrefix()}SeqOfString(");
+        wr.Write($"_dafny.{CharMethodPrefix()}SeqOfString(");
         EmitStringLiteral(str.tok, s, str.IsVerbatim, wr);
         wr.Write(")");
       }

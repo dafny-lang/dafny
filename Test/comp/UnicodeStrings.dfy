@@ -6,6 +6,8 @@ newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
 // WARNING: Do not do this in real code!
 // It's a great example of what NOT to do when working with Unicode,
 // since the concept of upper/lower case is culture-specific.
+// TODO: more thorough testing of comparators, especially
+// edge cases where lexicographic comparision of UTF-8/16 would get the wrong answer.
 function method ToLower(ch: char): char {
   if 'A' <= ch <= 'Z' then
     ch - 'A' + 'a'

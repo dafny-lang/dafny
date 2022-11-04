@@ -810,9 +810,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
-      wr.Write($"{DafnyRuntimeModule}.print(");
-      TrExpr(arg, wr, false, wStmts);
-      wr.WriteLine(")");
+      if (UnicodeChars && arg.Type.IsStringType) {
+        wr.Write($"{DafnyRuntimeModule}.print(");
+        TrParenExpr(arg, wr, false, wStmts);
+        wr.WriteLine(".VerbatimString())");
+      } else {
+        wr.Write($"{DafnyRuntimeModule}.print({DafnyRuntimeModule}.string_of(");
+        TrExpr(arg, wr, false, wStmts);
+        wr.WriteLine("))");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
@@ -963,12 +969,27 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:
-          wr.Write($"'{(string)e.Value}'");
+          if (UnicodeChars) {
+            // TODO: Not escaping properly yet
+            wr.Write($"{DafnyRuntimeModule}.CodePoint('{(string)e.Value}')");  
+          } else {
+            wr.Write($"'{(string)e.Value}'");  
+          }
           break;
         case StringLiteralExpr str:
-          wr.Write($"{DafnyRuntimeModule}.Seq(");
-          TrStringLiteral(str, wr);
-          wr.Write(")");
+          if (UnicodeChars) {
+            wr.Write($"{DafnyRuntimeModule}.Seq(map({DafnyRuntimeModule}.CodePoint, ");
+            TrStringLiteral(str, wr);
+            // We pass str = None if --unicode-char is true because we no longer
+            // attempt to dynamically track what sequence values are actually strings
+            // with that flag enabled, and we don't want Seq trying to be clever about it.
+            wr.Write("), isStr = None)");
+          } else {
+            wr.Write($"{DafnyRuntimeModule}.Seq(");
+            TrStringLiteral(str, wr);
+            wr.Write(")");
+          }
+          
           break;
         case StaticReceiverExpr:
           wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1556,7 +1577,11 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
         } else if (e.ToType.IsCharType) {
-          (pre, post) = ("chr(", ")");
+          if (UnicodeChars) {
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");  
+          } else {
+            (pre, post) = ("chr(", ")");  
+          }
         }
       } else if (e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
@@ -1568,7 +1593,11 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
           (pre, post) = ("int(", ")");
         } else if (e.ToType.IsCharType) {
-          (pre, post) = ("chr(floor(", "))");
+          if (UnicodeChars) {
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");  
+          } else {
+            (pre, post) = ("chr(floor(", "))");
+          }
         }
       }
       wr.Write(pre);

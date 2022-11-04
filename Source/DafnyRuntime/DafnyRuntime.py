@@ -15,7 +15,7 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    builtins.print(string_of(value), end="")
+    builtins.print(value, end="")
 
 # Dafny strings are currently sequences of UTF-16 code units.
 # To make a best effort attempt at printing the right characters we attempt to decode,
@@ -72,16 +72,23 @@ def c_label(name: str = None):
         if g.target != name:
             raise g
 
+class CodePoint(str):
+    def __dafnystr__(self):
+        return f"'{self}'"
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         if __iterable is None:
             __iterable = []
-        self.isStr = isStr \
-                     or isinstance(__iterable, str) \
-                     or (isinstance(__iterable, Seq) and __iterable.isStr) \
-                     or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
-                         and len(__iterable) > 0)
+        if isStr is None:
+            self.isStr = False
+        else:
+            self.isStr = isStr \
+                        or isinstance(__iterable, str) \
+                        or (isinstance(__iterable, Seq) and __iterable.isStr) \
+                        or (not isinstance(__iterable, GeneratorType)
+                            and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
+                            and len(__iterable) > 0)
 
     @property
     def Elements(self):
@@ -91,8 +98,13 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
+    def VerbatimString(self):
+        return ''.join(self)
+
     def __dafnystr__(self) -> str:
         if self.isStr:
+            # This should never be true when using --unicode-char,
+            # so it is safe to assume we are a sequence of UTF-16 code units.
             return string_from_utf_16(self)
         return '[' + ', '.join(map(string_of, self)) + ']'
 
