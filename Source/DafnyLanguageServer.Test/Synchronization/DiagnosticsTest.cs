@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -47,6 +48,27 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+
+    [TestMethod]
+    public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -159,6 +181,29 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithDefaultParamErrorHighlightsCallSite() {
+      var source = @"
+function test(x: int := 99): bool
+  requires x >= 100
+{
+  false
+}
+
+method A()
+{
+  var b := test();
+} ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(diagnostics[0].Range.Start.Line, 8);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -898,7 +943,7 @@ method test2() {
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
-      foreach (var t in expected.Zip(actual)) {
+      foreach (var t in Enumerable.Zip(expected, actual)) {
         Assert.AreEqual(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }

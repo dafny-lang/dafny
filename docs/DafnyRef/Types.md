@@ -33,7 +33,7 @@ These are:
 * The basic scalar types: `bool`, `char`, `int`, `real`, `ORDINAL`, bitvector types
 * The built-in collection types: `set`, `iset`, `multiset`, `seq`, `string`, `map`, `imap`
 * Tuple Types
-* Inductive and co-inductive types
+* Inductive and coinductive types
 * Function (arrow) types
 * Subset and newtypes that are based on value types
 
@@ -61,7 +61,7 @@ NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
 
 A ``NamedType`` is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
-class, trait, inductive, co-inductive, synonym and opaque
+class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
 
 ````grammar
@@ -570,7 +570,7 @@ is a method whose type parameter is restricted to equality-supporting
 types when used in a non-ghost context.
 Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, arrow types, and inductive
+code.  Coinductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
@@ -596,7 +596,7 @@ initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+For more details see [Section 24.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
@@ -1320,8 +1320,26 @@ type Monad<T>
 can be used abstractly to represent an arbitrary parameterized monad.
 
 Even as an opaque type, the type
-may be given members such as constants, methods or functions. (TODO: Examples please)
+may be given members such as constants, methods or functions.
+For example,
+```
+abstract module P {
+  type T {
+    function ToString(): string
+  }
+}
 
+module X refines P {
+  newtype T = i | 0 <= i < 10 {
+    function ToString... {  "" }
+  }
+}
+```
+The abstract type `P.T` has a declared member `ToString`, which can be called wherever `P.T` may be used.
+In the refining module `X`, `T` is declared to be a `newtype`, in which `ToString` now has a body.
+
+It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
+type synonyms may not have members.
 
 ## 11.3. Subset types {#sec-subset-types}
 
@@ -2356,10 +2374,9 @@ function Fib(n: nat): nat {
 }
 ```
 
-The `by method` clause is allowed only for the `function` or `predicate`
-declarations (without `method`, `twostate`, `least`, and `greatest`, but
-possibly with `static`). The method
-inherits the in-parameters, attributes, and `requires` and `decreases`
+The `by method` clause is allowed only for non-ghost `function` or `predicate`
+declarations (without `twostate`, `least`, and `greatest`, but
+possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
 clauses of the function. The method also gets one out-parameter, corresponding
 to the function's result value (and the name of it, if present). Finally,
 the method gets an empty `modifies` clause and a postcondition
@@ -2445,9 +2462,12 @@ function Factorial(n: int): (f: int)
 }
 ```
 
-By default, a function is `ghost`, and cannot be called from non-ghost
+Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
-keywords "`function method`". [TODO: This use of keywords is proposed to change.]
+keywords "`function method`". From v4.0 on, a function is non-ghost by
+default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
+(See the [/functionSyntax option](#sec-function-syntax) for a description 
+of the migration path for this change in behavior.}
 
 Like methods, functions can be either _instance_ (which they are by default) or
 _static_ (when the function declaration contains the keyword `static`).
@@ -2983,16 +3003,16 @@ a := new T[n];
 The initial values of the array elements are arbitrary values of type
 `T`. 
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
-```
+```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
 The initialazation can also use an expression that returns a function of type `nat -> T`:
-```
+```dafny
 a := new int[5](i => i*i);
 ```
 In fact, the initializer can simply be a function name for the right type of function:
-```
-a := new int[5]{Square);
+```dafny
+a := new int[5](Square);
 ```
 
 The length of an array is retrieved using the immutable `Length`
@@ -3239,7 +3259,7 @@ The in-parameters of the iterator are stored in immutable fields of
 the iterator class.  To illustrate in terms of the example above, the
 iterator class `Gen` contains the following field:
 ```dafny
-var start: int
+const start: int
 ```
 The yield-parameters also result in members of the iterator class:
 ```dafny
@@ -3333,8 +3353,7 @@ method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
 }
 ```
 
-TODO: The section above can use some rewriting, a summary of the
-defined members of an iterator, and more examples. Probably also a redesign.
+The design of iterators is [under discussion and may change](https://github.com/dafny-lang/dafny/issues/2440).
 
 <!--
 Make this a heading if it is uncommented
@@ -3578,7 +3597,7 @@ DatatypeMemberDecl =
 ````
 
 Dafny offers two kinds of algebraic datatypes, those defined
-inductively (with `datatype`)  and those defined co-inductively (with `codatatype`).
+inductively (with `datatype`)  and those defined coinductively (with `codatatype`).
 The salient property of
 every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
@@ -3588,7 +3607,7 @@ its parameters.
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
-co-inductive datatypes, or arrow types.  Indeed, values of
+coinductive datatypes, or arrow types.  Indeed, values of
 inductive datatypes can be compared using Dafny's well-founded
 `<` ordering.
 
@@ -3700,17 +3719,13 @@ Note that only `<` is defined; not `<=` or `>` or `>=`.
 Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
 `z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
-## 19.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
-
-TODO: This section and particularly the subsections need rewriting using
-the least and greatest terminology, and to make the text fit better into
-the overall reference manual.
+## 19.2. Coinductive datatypes {#sec-coinductive-datatypes}
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
-_co-inductive datatypes_, whose constructors are evaluated lazily, and
+_coinductive datatypes_, whose constructors are evaluated lazily, and
 hence the language allows infinite structures.
-A co-inductive datatype is declared
+A coinductive datatype is declared
 using the keyword `codatatype`; other than that, it is declared and
 used like an inductive datatype.
 
@@ -3725,14 +3740,14 @@ finite or infinite), infinite streams (that is, lists that are always
 infinite), and infinite binary trees (that is, trees where every
 branch goes on forever), respectively.
 
-The paper [Co-induction Simply], by Leino and
+The paper [Co-induction Simply](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/coinduction.pdf), by Leino and
 Moskal[@LEINO:Dafny:Coinduction], explains Dafny's implementation and
-verification of co-inductive types. We capture the key features from that
+verification of coinductive types. We capture the key features from that
 paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
-## 19.3. Co-induction {#sec-coinduction}
+## 19.3. Coinduction {#sec-coinduction}
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
@@ -3740,25 +3755,25 @@ structures can be described using induction), it underlies program
 semantics (e.g., it explains how to reason about finite iteration and
 recursion), and it is used in proofs (e.g., supporting lemmas about
 data structures use inductive proofs). Whereas induction deals with
-finite things (data, behavior, etc.), its dual, co-induction, deals with
-possibly infinite things. Co-induction, too, is important in programming
+finite things (data, behavior, etc.), its dual, coinduction, deals with
+possibly infinite things. Coinduction, too, is important in programming
 and program verification: it arises in data definitions (e.g., lazy
 data structures), semantics (e.g., concurrency), and proofs (e.g.,
-showing refinement in a co-inductive big-step semantics). It is thus
-desirable to have good support for both induction and co-induction in a
+showing refinement in a coinductive big-step semantics). It is thus
+desirable to have good support for both induction and coinduction in a
 system for constructing and reasoning about programs.
 
 Co-datatypes and co-recursive functions make it possible to use lazily
-evaluated data structures (like in Haskell or Agda). Co-predicates,
+evaluated data structures (like in Haskell or Agda). _Greatest predicates_,
 defined by greatest fix-points, let programs state properties of such
 data structures (as can also be done in, for example, Coq). For the
-purpose of writing co-inductive proofs in the language, we introduce
-co-lemmas. Ostensibly, a co-lemma invokes the co-induction hypothesis
+purpose of writing coinductive proofs in the language, we introduce
+greatest and least lemmas. A greatest lemma invokes the coinduction hypothesis
 much like an inductive proof invokes the induction hypothesis. Underneath
-the hood, our co-inductive proofs are actually approached via induction:
-co-lemmas provide a syntactic veneer around this approach.
+the hood, our coinductive proofs are actually approached via induction:
+greatest and least lemmas provide a syntactic veneer around this approach.
 
-The following example gives a taste of how the co-inductive features in
+The following example gives a taste of how the coinductive features in
 Dafny come together to give straightforward definitions of infinite
 matters.
 ```dafny
@@ -3795,13 +3810,13 @@ greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
 The example defines a type `IStream` of infinite streams, with constructor `ICons` and
 destructors `head` and `tail`. Function `Mult` performs pointwise
 multiplication on infinite streams of integers, defined using a
-co-recursive call (which is evaluated lazily). Co-predicate `Below` is
+co-recursive call (which is evaluated lazily). Greatest predicate `Below` is
 defined as a greatest fix-point, which intuitively means that the
 co-predicate will take on the value true if the recursion goes on forever
-without determining a different value. The co-lemma states the theorem
+without determining a different value. The greatest lemma states the theorem
 `Below(a, Mult(a, a))`. Its body gives the proof, where the recursive
 invocation of the co-lemma corresponds to an invocation of the
-co-induction hypothesis.
+coinduction hypothesis.
 
 The proof of the theorem stated by the first co-lemma lends
 itself to the following intuitive reading: To prove that `a` is below
@@ -3811,27 +3826,27 @@ a property that does not always hold; the verifier is not fooled by the
 bogus proof attempt and instead reports the property as unproved.
 
 We argue that these definitions in Dafny are simple enough to level the
-playing field between induction (which is familiar) and co-induction
+playing field between induction (which is familiar) and coinduction
 (which, despite being the dual of induction, is often perceived as eerily
 mysterious). Moreover, the automation provided by our SMT-based verifier
-reduces the tedium in writing co-inductive proofs. For example, it
-verifies `Theorem_BelowSquare` from the program text given above— no
+reduces the tedium in writing coinductive proofs. For example, it
+verifies `Theorem_BelowSquare` from the program text given above---no
 additional lemmas or tactics are needed. In fact, as a consequence of the
 automatic-induction heuristic in Dafny, the verifier will
 automatically verify `Theorem_BelowSquare` even given an empty body.
 
 Just like there are restrictions on when an _inductive hypothesis_ can be
-invoked, there are restrictions on how a _co-inductive_ hypothesis can be
+invoked, there are restrictions on how a _coinductive_ hypothesis can be
 _used_. These are, of course, taken into consideration by Dafny's verifier.
-For example, as illustrated by the second co-lemma above, invoking the
-co-inductive hypothesis in an attempt to obtain the entire proof goal is
+For example, as illustrated by the second greatest lemma above, invoking the
+coinductive hypothesis in an attempt to obtain the entire proof goal is
 futile. (We explain how this works in [the section about greatest lemmas](#sec-colemmas)) Our initial experience
-with co-induction in Dafny shows it to provide an intuitive, low-overhead
+with coinduction in Dafny shows it to provide an intuitive, low-overhead
 user experience that compares favorably to even the best of today’s
-interactive proof assistants for co-induction. In addition, the
-co-inductive features and verification support in Dafny have other
+interactive proof assistants for coinduction. In addition, the
+coinductive features and verification support in Dafny have other
 potential benefits. The features are a stepping stone for verifying
-functional lazy programs with Dafny. Co-inductive features have also
+functional lazy programs with Dafny. Coinductive features have also
 shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
@@ -3875,10 +3890,10 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 19.3.2. Defining Co-inductive Datatypes
+### 19.3.2. Defining Coinductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
-contrast, values of a co-inductive datatype, or co-datatype for short,
+contrast, values of a coinductive datatype, or co-datatype for short,
 can be infinite. For example, a co-datatype can be used to represent
 infinite trees.
 
@@ -3900,7 +3915,7 @@ function FivesUp(n: int): Stream<int>
 }
 ```
 
-`Stream` is a co-inductive datatype whose values are possibly infinite
+`Stream` is a coinductive datatype whose values are possibly infinite
 lists. Function `Up` returns a stream consisting of all integers upwards
 of `n` and `FivesUp` returns a stream consisting of all multiples of 5
 upwards of `n` . The self-call in `Up` and the first self-call in `FivesUp`
@@ -3910,7 +3925,7 @@ not in a productive position and is therefore subject to termination
 checking; in particular, each recursive call must decrease the rank
 defined by the `decreases` clause.
 
-Analogous to the common finite list datatype, Stream declares two
+Analogous to the common finite list datatype, `Stream` declares two
 constructors, `SNil` and `SCons`. Values can be destructed using match
 expressions and statements. In addition, like for inductive datatypes,
 each constructor `C` automatically gives rise to a discriminator `C?` and
@@ -3974,7 +3989,7 @@ greatest predicate Pos(s: Stream<int>)
 // Automatically generated by the Dafny compiler:
 predicate Pos#[_k: nat](s: Stream<int>)
   decreases _k
-{ if _k = 0 then true else
+{ if _k == 0 then true else
   match s
   case SNil => true
   case SCons(x, rest) => x > 0 && Pos#[_k-1](rest)
@@ -3982,21 +3997,24 @@ predicate Pos#[_k: nat](s: Stream<int>)
 ```
 
 Some restrictions apply. To guarantee that the greatest fix-point always
-exists, the (implicit functor defining the) co-predicate must be
+exists, the (implicit functor defining the) greatest predicate must be
 monotonic. This is enforced by a syntactic restriction on the form of the
-body of co-predicates: after conversion to negation normal form (i.e.,
+body of greatest predicates: after conversion to negation normal form (i.e.,
 pushing negations down to the atoms), intra-cluster calls of
-co-predicates must appear only in _positive_ positions—that is, they must
+greatest predicates must appear only in _positive_ positions—that is, they must
 appear as atoms and must not be negated. Additionally, to guarantee
-soundness later on, we require that they appear in _co-friendly_
+soundness later on, we require that they appear in _continous_
 positions—that is, in negation normal form, when they appear under
 existential quantification, the quantification needs to be limited to a
-finite range[^fn-copredicate-restriction]. Since the evaluation of a co-predicate might not
-terminate, co-predicates are always ghost. There is also a restriction on
-the call graph that a cluster containing a co-predicate must contain only
-co-predicates, no other kinds of functions.
+finite range[^fn-copredicate-restriction]. Since the evaluation of a greatest predicate might not
+terminate, greatest predicates are always ghost. There is also a restriction on
+the call graph that a cluster containing a greatest predicate must contain only
+greatest predicates, no other kinds of functions.
 
-[^fn-copredicate-restriction]: Higher-order function support in Dafny is
+[^fn-copredicate-restriction]: To be specific, Dafny has two forms of 
+extreme predicates and lemmas, one in which `_k` has type `nat` and one in 
+which it has type `ORDINAL` (the default). The continuous restriction 
+applies only when `_k` is `nat`. Also, higher-order function support in Dafny is
     rather modest and typical reasoning patterns do not involve them, so this
     restriction is not as limiting as it would have been in, e.g., Coq.
 
@@ -4008,15 +4026,15 @@ from the co-predicate by
 * adding a parameter `_k` of type `nat` to denote the prefix length,
 
 * adding the clause `decreases _k;` to the prefix predicate (the
-  co-predicate itself is not allowed to have a decreases clause),
+  greatest predicate itself is not allowed to have a decreases clause),
 
-* replacing in the body of the co-predicate every intra-cluster
+* replacing in the body of the greatest predicate every intra-cluster
   call `Q(args)` to a greatest predicate by a call `Q#[_k - 1](args)`
   to the corresponding prefix predicate, and then
 
-* prepending the body with `if _k = 0 then true else`.
+* prepending the body with `if _k == 0 then true else`.
 
-For example, for co-predicate `Pos`, the definition of the prefix
+For example, for greatest predicate `Pos`, the definition of the prefix
 predicate `Pos#` is as suggested above. Syntactically, the prefix-length
 argument passed to a prefix predicate to indicate how many times to
 unroll the definition is written in square brackets, as in `Pos#[k](s)`.
@@ -4031,7 +4049,7 @@ It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### 19.3.5. Co-inductive Proofs
+### 19.3.5. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
@@ -4039,22 +4057,22 @@ In this section, we consider how such properties are established in the
 first place.
 
 #### 19.3.5.1. Properties About Prefix Predicates
-Among other possible strategies for establishing co-inductive properties
-we take the time-honored approach of reducing co-induction to
+Among other possible strategies for establishing coinductive properties
+we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
-assumption `D(P)` for every co-predicate `P`, where:
+assumption `D(P)` for every greatest predicate `P`, where:
 
 ```dafny
-D(P) = ? x • P(x) <==> ? k • P#[k](x)
+D(P) = forall x • P(x) <==> forall k • P#[k](x)
 ```
 
-In other words, a co-predicate is true iff its corresponding prefix
+In other words, a greatest predicate is true iff its corresponding prefix
 predicate is true for all finite unrollings.
 
 In Sec. 4 of the paper [Co-induction Simply] a soundness theorem of such
-assumptions is given, provided the co-predicates meet the co-friendly
+assumptions is given, provided the greatest predicates meet the continous
 restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
-here shown:
+shown here:
 
 ```dafny
 lemma UpPosLemma(n: int)
@@ -4078,8 +4096,8 @@ lemma UpPosLemmaK(k: nat, n: int)
 
 The lemma `UpPosLemma` proves `Pos(Up(n))` for every `n > 0`. We first
 show `Pos#[k](Up(n ))`, for `n > 0` and an arbitrary `k`, and then use
-the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
-`D(Pos)` is used (automatically) to establish the co-predicate.
+the forall statement to show `forall k • Pos#[k](Up(n))`. Finally, the axiom
+`D(Pos)` is used (automatically) to establish the greatest predicate.
 
 
 #### 19.3.5.2. Greatest lemmas {#sec-colemmas}
@@ -4089,7 +4107,7 @@ predicate holds for all prefix lengths `k`. In this section, we introduce
 _greatest lemma_ declarations, which bring about two benefits. The first benefit
 is that greatest lemmas are syntactic sugar and reduce the tedium of having to
 write explicit quantifications over `k`. The second benefit is that, in
-simple cases, the bodies of co-lemmas can be understood as co-inductive
+simple cases, the bodies of greatest lemmas can be understood as coinductive
 proofs directly. As an example consider the following greatest lemma.
 
 ```dafny
@@ -4100,7 +4118,7 @@ greatest lemma UpPosLemma(n: int)
   UpPosLemma(n+1);
 }
 ```
-This co-lemma can be understood as follows: `UpPosLemma` invokes itself
+This greatest lemma can be understood as follows: `UpPosLemma` invokes itself
 co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
@@ -4114,44 +4132,44 @@ _prefix lemma_. In the call graph, the cluster containing a greatest lemma must
 contain only greatest lemmas and prefix lemmas, no other methods or function.
 By decree, a greatest lemma and its corresponding prefix lemma are always
 placed in the same cluster. Both greatest lemmas and prefix lemmas are always
-ghosts.
+ghost code.
 
-The prefix lemma is constructed from the co-lemma by
+The prefix lemma is constructed from the greatest lemma by
 
 * adding a parameter `_k` of type `nat` to denote the prefix length,
 
-* replacing in the co-lemma’s postcondition the positive co-friendly
-  occurrences of co-predicates by corresponding prefix predicates,
+* replacing in the greatest lemma’s postcondition the positive continuous
+  occurrences of greatest predicates by corresponding prefix predicates,
   passing in `_k` as the prefix-length argument,
 
-* prepending `_k` to the (typically implicit) **decreases** clause of the co-lemma,
+* prepending `_k` to the (typically implicit) **decreases** clause of the greatest lemma,
 
-* replacing in the body of the co-lemma every intra-cluster call
+* replacing in the body of the greatest lemma every intra-cluster call
   `M(args)` to a greatest lemma by a call `M#[_k - 1](args)` to the
   corresponding prefix lemma, and then
 
 * making the body’s execution conditional on `_k != 0`.
 
-Note that this rewriting removes all co-recursive calls of co-lemmas,
+Note that this rewriting removes all co-recursive calls of greatest lemmas,
 replacing them with recursive calls to prefix lemmas. These recursive
-call are, as usual, checked to be terminating. We allow the pre-declared
+calls are, as usual, checked to be terminating. We allow the pre-declared
 identifier `_k` to appear in the original body of the
-co-lemma.[^fn-co-predicate-co-lemma-diffs]
+greatest lemma.[^fn-co-predicate-co-lemma-diffs]
 
 [^fn-co-predicate-co-lemma-diffs]: Note, two places where co-predicates
     and co-lemmas are not analogous are (a) co-predicates must not make
     recursive calls to their prefix predicates and (b) co-predicates cannot
     mention `_k`.
 
-We can now think of the body of the co-lemma as being replaced by a
+We can now think of the body of the greatest lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
 this new body will establish the greatest lemma’s declared postcondition (on
 account of the `D` axiom, and remembering that only the positive
-co-friendly occurrences of co-predicates in the co-lemma’s postcondition
+continuous occurrences of greatest predicates in the greatest lemma’s postcondition
 are rewritten), so there is no reason for the program verifier to check
 it.
 
-The actual desugaring of our co-lemma `UpPosLemma` is in fact the
+The actual desugaring of our greatest lemma `UpPosLemma` is in fact the
 previous code for the `UpPosLemma` lemma except that `UpPosLemmaK` is
 named `UpPosLemma#` and modulo a minor syntactic difference in how the
 `k` argument is passed.
@@ -4160,14 +4178,14 @@ In the recursive call of the prefix lemma, there is a proof obligation
 that the prefixlength argument `_k - 1` is a natural number.
 Conveniently, this follows from the fact that the body has been wrapped
 in an `if _k != 0` statement. This also means that the postcondition must
-hold trivially when `_k = 0`, or else a postcondition violation will be
+hold trivially when `_k == 0`, or else a postcondition violation will be
 reported. This is an appropriate design for our desugaring, because
-co-lemmas are expected to be used to establish co-predicates, whose
+greatest lemmas are expected to be used to establish greatest predicates, whose
 corresponding prefix predicates hold trivially when `_k = 0`. (To prove
-other predicates, use an ordinary lemma, not a co-lemma.)
+other predicates, use an ordinary lemma, not a greatest lemma.)
 
 It is interesting to compare the intuitive understanding of the
-co-inductive proof in using a co-lemma with the inductive proof in using
-the lemma. Whereas the inductive proof is performing proofs for deeper
-and deeper equalities, the co-lemma can be understood as producing the
+coinductive proof in using a greatest lemma with the inductive proof in using
+a lemma. Whereas the inductive proof is performing proofs for deeper
+and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.

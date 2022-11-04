@@ -17,6 +17,12 @@ class classproperty(property):
 def print(value):
     builtins.print(string_of(value), end="")
 
+# Dafny strings are currently sequences of UTF-16 code units.
+# To make a best effort attempt at printing the right characters we attempt to decode,
+# but have to allow for invalid sequences.
+def string_from_utf_16(utf_16_code_units):
+    return b''.join(ord(c).to_bytes(2, 'little') for c in utf_16_code_units).decode("utf-16-le", errors = 'replace')
+
 def string_of(value) -> str:
     if hasattr(value, '__dafnystr__'):
         return value.__dafnystr__()
@@ -24,6 +30,11 @@ def string_of(value) -> str:
         return "null"
     elif isinstance(value, bool):
         return "true" if value else "false"
+    elif isinstance(value, str):
+        # This is only for Dafny char values.
+        # Dafny strings are represented as Seq's of individual char values,
+        # and Seq defines __dafnystr__.
+        return string_from_utf_16(value)
     elif isinstance(value, tuple):
         return '(' + ', '.join(map(string_of, value)) + ')'
     elif isinstance(value, FunctionType):
@@ -82,7 +93,7 @@ class Seq(tuple):
 
     def __dafnystr__(self) -> str:
         if self.isStr:
-            return ''.join(self)
+            return string_from_utf_16(self)
         return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
@@ -368,7 +379,7 @@ def euclidian_modulus(a, b):
 
 @dataclass
 class HaltException(Exception):
-    message: Seq
+    message: str
 
 def quantifier(vals, frall, pred):
     for u in vals:
@@ -376,16 +387,19 @@ def quantifier(vals, frall, pred):
             return not frall
     return frall
 
+def AllBooleans():
+    return [False, True]
+
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
-def AllBooleans():
-    return [False, True]
+def AllIntegers():
+    return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
 
 def IntegerRange(lo, hi):
     if lo is None:
         return count(hi-1, -1)
-    elif hi is None:
+    if hi is None:
         return count(lo)
     return range(lo, hi)
 

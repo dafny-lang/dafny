@@ -1,5 +1,14 @@
 
 Dafny program verifier finished with 32 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+PriorityQueue_extrinsic: 3
+PriorityQueue_layered: 3
+PriorityQueue_intrinsic: 3
+PriorityQueue_on_intrinsic: 3
+PriorityQueue_direct: 3
+
+Dafny program verifier did not attempt verification
 PriorityQueue_extrinsic: 3
 PriorityQueue_layered: 3
 PriorityQueue_intrinsic: 3

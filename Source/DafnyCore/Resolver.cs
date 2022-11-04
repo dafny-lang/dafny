@@ -4810,6 +4810,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
+      super = super.NormalizeExpandKeepConstraints();
+      sub = sub.NormalizeExpandKeepConstraints();
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
@@ -12113,28 +12115,44 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class ClonerKeepLocalVariablesIfTypeNotSet : ClonerKeepParensExpressions {
-      public override LocalVariable CloneLocalVariable(LocalVariable local) {
-        if (local.type == null) {
+    private class ClonerButIVariablesAreKeptOnce : ClonerKeepParensExpressions {
+      private HashSet<IVariable> alreadyCloned = new();
+
+      private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
+        if (!alreadyCloned.Contains(local)) {
+          alreadyCloned.Add(local);
           return local;
         }
 
-        return base.CloneLocalVariable(local);
+        return returnMethod(local);
+      }
+
+      public override LocalVariable CloneLocalVariable(LocalVariable local) {
+        return CloneIVariableHelper(local, base.CloneLocalVariable);
+      }
+
+      public override Formal CloneFormal(Formal local) {
+        return CloneIVariableHelper(local, base.CloneFormal);
+      }
+      public override BoundVar CloneBoundVar(BoundVar local) {
+        return CloneIVariableHelper(local, base.CloneBoundVar);
       }
     }
 
+    private Cloner matchBranchCloner = new ClonerButIVariablesAreKeptOnce();
+
     // deep clone Patterns and Body
-    private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
-      Cloner cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
+    private RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
+      Cloner cloner = matchBranchCloner;
       return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x => cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
     }
 
-    private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
-      Cloner cloner = new ClonerKeepParensExpressions();
+    private RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
+      Cloner cloner = matchBranchCloner;
       return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
     }
 
-    private static RBranch CloneRBranch(RBranch branch) {
+    private RBranch CloneRBranch(RBranch branch) {
       if (branch is RBranchStmt) {
         return CloneRBranchStmt((RBranchStmt)branch);
       } else {
@@ -12655,14 +12673,14 @@ namespace Microsoft.Dafny {
     }
 
     private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
-      var cloner = new ClonerKeepParensExpressions();
+      var cloner = matchBranchCloner;
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
       }
     }
 
     private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
-      var cloner = new ClonerKeepParensExpressions();
+      var cloner = matchBranchCloner;
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body), c.Attributes);
       }
@@ -13488,15 +13506,15 @@ namespace Microsoft.Dafny {
       if (s.KeywordToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.val == "expect") {
+        if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null);
-        } else if (s.KeywordToken.val == "assume") {
-          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, null);
-        } else if (s.KeywordToken.val == "assert") {
-          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, null);
+          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assume") {
+          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assert") {
+          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
@@ -17012,7 +17030,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = DafnyOptions.O.ShowSnippets ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
+                var tok = ShowSnippetsOption.Instance.Get(DafnyOptions.O) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
@@ -17647,7 +17665,9 @@ namespace Microsoft.Dafny {
         AddXConstraint(e.E0.tok, "ContainerIndex", e.Seq.Type, e.E0.Type, "incorrect type for selection into {0} (got {1})");
         Contract.Assert(e.E1 == null);
         e.Type = new InferredTypeProxy() { KeepConstraints = true };
-        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, e.Type, "type does not agree with element type of {0} (got {1})");
+        AddXConstraint(e.tok, "ContainerResult",
+          e.Seq.Type, e.Type,
+          new SeqSelectOneErrorMsg(e.tok, e.Seq.Type, e.Type));
       } else {
         AddXConstraint(e.tok, "MultiIndexable", e.Seq.Type, "multi-selection of elements requires a sequence or array (got {0})");
         if (e.E0 != null) {
@@ -17662,7 +17682,48 @@ namespace Microsoft.Dafny {
         }
         var resultType = new InferredTypeProxy() { KeepConstraints = true };
         e.Type = new SeqType(resultType);
-        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "type does not agree with element type of {0} (got {1})");
+        AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "multi-selection has type {0} which is incompatible with expected type {1}");
+      }
+    }
+
+    /// <summary>
+    /// An error message for the type constraint for between a sequence select expression's actual and expected types.
+    /// If resolution successfully determines the sequences' element types, then this derived class mentions those
+    /// element types as clarifying context to the user.
+    /// </summary>
+    private class SeqSelectOneErrorMsg : TypeConstraint.ErrorMsgWithToken {
+      private static readonly string BASE_MESSAGE_FORMAT = "sequence has type {0} which is incompatible with expected type {1}";
+      private static readonly string ELEMENT_DETAIL_MESSAGE_FORMAT = " (element type {0} is incompatible with {1})";
+
+      private readonly Type exprSeqType;
+      private readonly Type expectedSeqType;
+
+      public override string Msg {
+        get {
+          // Resolution might resolve exprSeqType/expectedSeqType to not be sequences at all.
+          // In that case, it isn't possible to get the corresponding element types.
+          var rawExprElementType = exprSeqType.AsSeqType?.Arg;
+          var rawExpectedElementType = expectedSeqType.AsSeqType?.Arg;
+          if (rawExprElementType == null || rawExpectedElementType == null) {
+            return base.Msg;
+          }
+
+          var elementTypes = RemoveAmbiguity(new object[] { rawExprElementType, rawExpectedElementType });
+          Contract.Assert(elementTypes.Length == 2);
+          var exprElementType = elementTypes[0].ToString();
+          var expectedElementType = elementTypes[1].ToString();
+
+          string detail = string.Format(ELEMENT_DETAIL_MESSAGE_FORMAT, exprElementType, expectedElementType);
+          return base.Msg + detail;
+        }
+      }
+
+      public SeqSelectOneErrorMsg(IToken tok, Type exprSeqType, Type expectedSeqType)
+        : base(tok, BASE_MESSAGE_FORMAT, exprSeqType, expectedSeqType) {
+        Contract.Requires(exprSeqType != null);
+        Contract.Requires(expectedSeqType != null);
+        this.exprSeqType = exprSeqType;
+        this.expectedSeqType = expectedSeqType;
       }
     }
 
