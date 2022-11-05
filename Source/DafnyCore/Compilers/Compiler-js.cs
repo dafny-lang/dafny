@@ -2476,17 +2476,11 @@ namespace Microsoft.Dafny.Compilers {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("node", "") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
+      var psi = PrepareProcessStartInfo("node");
+      psi.RedirectStandardInput = true;
 
       try {
-        Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.Start();
+        Process nodeProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
@@ -2497,7 +2491,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        return 0 == RunProcess(nodeProcess, outputWriter);
+        return 0 == WaitForExit(nodeProcess, outputWriter);
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;

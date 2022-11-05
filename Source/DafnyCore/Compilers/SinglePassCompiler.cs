@@ -65,23 +65,38 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
-    public virtual int RunProcess(Process process, TextWriter outputWriter, string errorMessage = null) {
+    public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
+      var psi = new ProcessStartInfo(programName) {
+        UseShellExecute = false,
+        CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
+      };
+      foreach (var arg in args ?? Enumerable.Empty<string>()) {
+        psi.ArgumentList.Add(arg);
+      }
+      return psi;
+    }
+
+    public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
+      process.WaitForExit();
+      if (process.ExitCode != 0 && errorMessage != null) {
+        outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+      }
+      return process.ExitCode;
+    }
+
+    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
       try {
+        var process = Process.Start(psi);
         if (process == null) {
           return -1;
         }
-        process.WaitForExit();
-        if (process.ExitCode != 0 && errorMessage != null) {
-          outputWriter.WriteLine("{0} Process exited with exit code {1}",
-            errorMessage, process.ExitCode);
-        }
-        return process.ExitCode;
+        return WaitForExit(process, outputWriter, errorMessage);
       } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start {1}: {2}",
-          process.StartInfo.FileName, e.Message);
+        outputWriter.WriteLine("Error: Unable to start {1}: {2}", psi.FileName, e.Message);
         return -1;
       }
     }
+
 
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);

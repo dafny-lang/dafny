@@ -2464,43 +2464,28 @@ namespace Microsoft.Dafny.Compilers {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        ArgumentList = {
-          "-Wall",
-          "-Wextra",
-          "-Wpedantic",
-          "-Wno-unused-variable",
-          "-Wno-deprecated-copy",
-          "-Wno-unused-label",
-          "-Wno-unused-but-set-variable",
-          "-Wno-unknown-warning-option",
-          "-g",
-          "-std=c++17",
-          "-I", codebase,
-          "-o", ComputeExeName(targetFilename),
-          targetFilename
-        }
-      };
-      return 0 == RunProcess(Process.Start(psi), outputWriter, "Error while compiling C++ files.");
+      var psi = PrepareProcessStartInfo("g++", new List<string> {
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wno-unused-variable",
+        "-Wno-deprecated-copy",
+        "-Wno-unused-label",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unknown-warning-option",
+        "-g",
+        "-std=c++17",
+        "-I", codebase,
+        "-o", ComputeExeName(targetFilename),
+        targetFilename
+      });
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling C++ files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false
-      };
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
-
-      return 0 == RunProcess(Process.Start(psi), outputWriter);
+      var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.MainArgs);
+      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }

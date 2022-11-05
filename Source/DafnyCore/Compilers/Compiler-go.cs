@@ -3618,9 +3618,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      List<string> verb = new();
+      List<string> goArgs = new();
       if (run) {
-        verb.Add("run");
+        goArgs.Add("run");
       } else {
         string output;
         var outputToFile = !DafnyOptions.O.RunAfterCompile;
@@ -3655,37 +3655,22 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        verb.Add("build");
-        verb.Add("-o");
-        verb.Add(output);
+        goArgs.Add("build");
+        goArgs.Add("-o");
+        goArgs.Add(output);
       }
 
-      var psi = new ProcessStartInfo("go") {
-        CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
-        UseShellExecute = false,
-        RedirectStandardInput = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
-      foreach (var verbArg in verb) {
-        psi.ArgumentList.Add(verbArg);
-      }
-      psi.ArgumentList.Add(targetFilename);
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      goArgs.Add(targetFilename);
+      goArgs.AddRange(DafnyOptions.O.MainArgs);
+
+      var psi = PrepareProcessStartInfo("go", goArgs);
+
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
-        // Hence we set up a local temporary directory
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
-        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
-      }
-      return 0 == RunProcess(Process.Start(psi), outputWriter);
+
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     static string GoPath(string filename) {

@@ -2273,35 +2273,22 @@ namespace Microsoft.Dafny.Compilers {
 
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
-        files.Add($"\"{Path.GetFullPath(file)}\"");
+        files.Add(Path.GetFullPath(file));
       }
-      var classpath = GetClassPath(targetFilename);
-      var psi = new ProcessStartInfo("javac", "-encoding UTF8 " + string.Join(" ", files)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.EnvironmentVariables["CLASSPATH"] = classpath;
-      return 0 == RunProcess(Process.Start(psi), outputWriter, "Error while compiling Java files.");
+
+      var psi = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling Java files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      var psi = PrepareProcessStartInfo("java",
+        args: DafnyOptions.O.MainArgs.Prepend(Path.GetFileNameWithoutExtension(targetFilename)));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      return 0 == RunProcess(Process.Start(psi), outputWriter);
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {
