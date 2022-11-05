@@ -14,6 +14,7 @@ method Main() {
   TestTargetTypesAndConstructors();
   TestSelect();
   TestUpdate();
+  TestDiscriminators();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -27,11 +28,11 @@ method TestTargetTypesAndConstructors() {
 }
 
 method TestSelect() {
-  var r := SingletonRecord(62); // type of r should turn into int
-  var g := Compiled(63); // type of g should turn into int
+  var r := SingletonRecord(62);
+  var g := Compiled(63);
   var rst := (2, 5);
-  var xyz := (2, ghost 3, 5); // type of xyz should turn into Tuple2
-  var abc := (ghost 2, 3, ghost 5); // type of abc should turn into int
+  var xyz := (2, ghost 3, 5);
+  var abc := (ghost 2, 3, ghost 5);
 
   print r.u, " "; // 62
   print g.x, " "; // 63
@@ -41,11 +42,11 @@ method TestSelect() {
 }
 
 method TestUpdate() {
-  var r := SingletonRecord(62); // type of r should turn into int
-  var g := Compiled(63); // type of g should turn into int
+  var r := SingletonRecord(62);
+  var g := Compiled(63);
   var rst := (2, 5);
-  var xyz := (2, ghost 3, 5); // type of xyz should turn into Tuple2
-  var abc := (ghost 2, 3, ghost 5); // type of abc should turn into int
+  var xyz := (2, ghost 3, 5);
+  var abc := (ghost 2, 3, ghost 5);
 
   rst := rst.(0 := 888);
   xyz := xyz.(0 := 888);
@@ -66,4 +67,10 @@ method TestUpdate() {
   print rst.1, " "; // 1005
   print xyz.2, " "; // 1005
   print abc.1, "\n"; // 1003
+}
+
+method TestDiscriminators() {
+  var r := SingletonRecord(62);
+  var g := Compiled(63);
+  print r.SingletonRecord?, " ", g.Compiled?, "\n"; // true true
 }
