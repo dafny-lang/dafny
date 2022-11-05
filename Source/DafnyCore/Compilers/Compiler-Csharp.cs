@@ -988,7 +988,7 @@ namespace Microsoft.Dafny.Compilers {
                   } else {
                     w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
                   }
-                  
+
                   i++;
                 }
               }
@@ -1452,7 +1452,7 @@ namespace Microsoft.Dafny.Compilers {
       // TODO: Figure out if there is any runtime code for using Rune instead of Int32
       return UnicodeChars ? "System.Text.Rune" : "char";
     }
-    
+
     // This must be followed by the value to convert in parentheses
     private string ConvertToChar() {
       return UnicodeChars ? "new System.Text.Rune" : "(char)";
@@ -1468,7 +1468,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(e, wr, inLetExprBody, wStmts);
       }
     }
-    
+
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
         wr.Write("(");
@@ -1478,7 +1478,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(e, wr, inLetExprBody, wStmts);
       }
     }
-    
+
     private string CharMethodPrefix() {
       return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Runes" : "";
     }

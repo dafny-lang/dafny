@@ -34,7 +34,7 @@ static class CommandRegistry {
     InputsOption.Instance,
     StrictDefiniteAssignmentOption.Instance,
     EnforceDeterminismOption.Instance,
-    UnicodeCharactersOption.Instance, 
+    UnicodeCharactersOption.Instance,
   });
 
   static void AddCommand(ICommandSpec command) {

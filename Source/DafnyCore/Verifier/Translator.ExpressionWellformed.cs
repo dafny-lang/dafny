@@ -844,8 +844,8 @@ namespace Microsoft.Dafny {
               var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
               var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
-                builder.Add(Assert(GetToken(expr), 
-                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, 
+                builder.Add(Assert(GetToken(expr),
+                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
                     Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
               } else {
                 Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char

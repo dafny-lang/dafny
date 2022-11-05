@@ -1375,11 +1375,11 @@ namespace Microsoft.Dafny.Compilers {
     private static string CharTypeName() {
       return UnicodeChars ? "_dafny.CodePoint" : "_dafny.Char";
     }
-    
+
     private static string CharMethodPrefix() {
       return UnicodeChars ? "Unicode" : "";
     }
-    
+
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -2112,7 +2112,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("_dafny.IntOfString(\"{0}\")", i);
       }
     }
-    
+
     protected void TrCharLiteral(CharLiteralExpr chr, ConcreteSyntaxTree wr) {
       var v = (string)chr.Value;
       wr.Write($"{CharTypeName()}(");
@@ -2206,7 +2206,7 @@ namespace Microsoft.Dafny.Compilers {
       s = ShortHexEscape.Replace(s, match => "\\x0" + match.Groups[1]);
 
       s = Util.ExpandUnicodeEscapes(s, false);
-      
+
       return s;
     }
 

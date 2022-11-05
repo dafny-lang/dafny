@@ -843,12 +843,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private static string CharFromNumberMethodName() {
       return UnicodeChars ? "new _dafny.CodePoint" : "String.fromCharCode";
-    }  
-    
+    }
+
     private static string CharMethodPrefix() {
       return UnicodeChars ? "Unicode" : "";
-    }  
-    
+    }
+
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass

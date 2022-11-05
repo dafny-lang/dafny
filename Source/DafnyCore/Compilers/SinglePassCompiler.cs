@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string LambdaExecute = "";
 
     protected static bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
-    
+
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }

@@ -917,7 +917,7 @@ namespace Dafny {
     }
     public static ISequence<System.Text.Rune> RunesFromString(string s) {
       var runes = new List<System.Text.Rune>();
-      foreach(var rune in s.EnumerateRunes()) {
+      foreach (var rune in s.EnumerateRunes()) {
         runes.Add(rune);
       }
       return new ArraySequence<System.Text.Rune>(runes.ToArray());
@@ -1086,7 +1086,7 @@ namespace Dafny {
 
     public string ToVerbatimString() {
       var builder = new System.Text.StringBuilder();
-      foreach(var rune in this) {
+      foreach (var rune in this) {
         builder.Append(char.ConvertFromUtf32(((System.Text.Rune)(object)rune).Value));
       }
       return builder.ToString();

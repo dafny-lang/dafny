@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
         OutputOption.Instance,
         PluginOption.Instance,
         UseRuntimeLibOption.Instance,
-        UnicodeCharactersOption.Instance, 
+        UnicodeCharactersOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {

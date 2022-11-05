@@ -977,9 +977,9 @@ namespace Microsoft.Dafny.Compilers {
         case CharLiteralExpr:
           if (UnicodeChars) {
             // TODO: Not escaping properly yet
-            wr.Write($"{DafnyRuntimeModule}.CodePoint('{(string)e.Value}')");  
+            wr.Write($"{DafnyRuntimeModule}.CodePoint('{(string)e.Value}')");
           } else {
-            wr.Write($"'{(string)e.Value}'");  
+            wr.Write($"'{(string)e.Value}'");
           }
           break;
         case StringLiteralExpr str:
@@ -995,7 +995,7 @@ namespace Microsoft.Dafny.Compilers {
             TrStringLiteral(str, wr);
             wr.Write(")");
           }
-          
+
           break;
         case StaticReceiverExpr:
           wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1584,9 +1584,9 @@ namespace Microsoft.Dafny.Compilers {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
         } else if (e.ToType.IsCharType) {
           if (UnicodeChars) {
-            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");  
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");
           } else {
-            (pre, post) = ("chr(", ")");  
+            (pre, post) = ("chr(", ")");
           }
         }
       } else if (e.E.Type.IsCharType) {
@@ -1600,7 +1600,7 @@ namespace Microsoft.Dafny.Compilers {
           (pre, post) = ("int(", ")");
         } else if (e.ToType.IsCharType) {
           if (UnicodeChars) {
-            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");  
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");
           } else {
             (pre, post) = ("chr(floor(", "))");
           }

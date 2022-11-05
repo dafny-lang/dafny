@@ -198,7 +198,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     public static bool MightContainNonAsciiCharacters(string s, bool isVerbatimString) {
       // This is conservative since \u escapes could be ASCII characters,
       // but that's fine since this method is just used as a conservative guard.
@@ -223,40 +223,40 @@ namespace Microsoft.Dafny {
 
     private static readonly Regex Utf16Escape = new Regex(@"(?<!\\)\\u([0-9a-fA-F]{4})");
     private static readonly Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
-    
+
     private static string ToUTF16Escape(char c) {
       return $"\\u{(int)c:x4}";
     }
-    
+
     private static string ToUnicodeEscape(int c) {
       return $"\\U{c:x8}";
     }
 
     private static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
-      return string.Join("", 
+      return string.Join("",
         TokensWithEscapes(s, false)
           .Select(token => pattern.Replace(token, evaluator)));
     }
-    
+
     public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
       return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
         var padChars = 8 - match.Groups[1].Length;
         return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + match.Groups[1];
       });
     }
-    
+
     public static string UnicodeEscapesToLowercase(string s) {
-      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => 
+      return ReplaceTokensWithEscapes(s, UnicodeEscape, match =>
         $"\\u{{{match.Groups[1]}}}");
     }
-    
+
     public static string UnicodeEscapesToUtf16Escapes(string s) {
       return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
         var utf16CodeUnits = new char[2];
         var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
         if (codeUnits == 2) {
-          return ToUTF16Escape(utf16CodeUnits[0]) + ToUTF16Escape(utf16CodeUnits[1]);;
+          return ToUTF16Escape(utf16CodeUnits[0]) + ToUTF16Escape(utf16CodeUnits[1]); ;
         } else {
           return ToUTF16Escape(utf16CodeUnits[0]);
         }

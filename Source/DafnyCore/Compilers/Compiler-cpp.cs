@@ -910,7 +910,7 @@ namespace Microsoft.Dafny.Compilers {
         return "char";
       }
     }
-    
+
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs
     // depending on whether we are declaring a variable or talking about the class itself.
     // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
@@ -1482,7 +1482,7 @@ namespace Microsoft.Dafny.Compilers {
     private string CharMethodPrefix() {
       return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "unicode_" : "";
     }
-    
+
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       wr.Write($"{CharMethodPrefix()}DafnySequenceFromString(");
