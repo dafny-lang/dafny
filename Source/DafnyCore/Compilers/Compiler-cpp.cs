@@ -208,7 +208,7 @@ namespace Microsoft.Dafny.Compilers {
       if (typeArgs != null) {
         var targs = "";
         if (typeArgs.Count > 0) {
-          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, null)));
+          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, Token.NoToken)));
         }
 
         return targs;
@@ -1109,7 +1109,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string ActualTypeArgs(List<Type> typeArgs) {
       return typeArgs.Count > 0
-        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
+        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, Token.NoToken))) : "";
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
