@@ -2503,8 +2503,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false) {
-      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+      var memberStatus = GetMemberStatus(member);
+      if (memberStatus == MemberCompileStatus.Identity) {
         return SimpleLvalue(obj);
+      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("true"));
       } else if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Token.NoToken, wr);

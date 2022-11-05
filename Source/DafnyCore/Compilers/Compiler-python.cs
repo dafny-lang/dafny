@@ -1170,6 +1170,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
+      var memberStatus = GetMemberStatus(member);
+      if (memberStatus == MemberCompileStatus.Identity) {
+        return SimpleLvalue(obj);
+      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("True"));
+      }
       switch (member) {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {

@@ -994,6 +994,22 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
+    protected enum MemberCompileStatus { Ordinary, Identity, AlwaysTrue }
+
+    protected MemberCompileStatus GetMemberStatus(MemberDecl member) {
+      if (member.EnclosingClass is DatatypeDecl dt) {
+        if (OptimizesInvisibleDatatypeWrappers && IsInvisibleWrapper(dt, out var dtor) && dtor == member) {
+          // "member" is the sole destructor of an invisible datatype wrapper
+          return MemberCompileStatus.Identity;
+        } else if (member is DatatypeDiscriminator) {
+          // a discriminator of an inductive or coinductive datatype
+          return dt.Ctors.Count(c => !c.IsGhost) == 1 ? MemberCompileStatus.AlwaysTrue : MemberCompileStatus.Ordinary;
+        }
+      }
+
+      return MemberCompileStatus.Ordinary;
+    }
+
     protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
       if (!OptimizesInvisibleDatatypeWrappers || dt.IsExtern(out _, out _) || dt.Members.Any(member => member is Field)) {
         // don't optimize
@@ -2889,12 +2905,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       type = type.NormalizeExpandKeepConstraints();
+      type = SimplifyType(type);
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesSingletonTuples) {
+#if !KRML_DONE_DEBUGGING
+      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
+        Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
         var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
         Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
         return PlaceboValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
       }
+#endif
       bool usePlaceboValue = !type.HasCompilableValue;
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
@@ -2906,12 +2926,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       type = type.NormalizeExpandKeepConstraints();
+      type = SimplifyType(type);
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesSingletonTuples) {
+#if !KRML_DONE_DEBUGGING
+      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
+        Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
         var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
         Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
         return DefaultValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
       }
+#endif
       var usePlaceboValue = type.AsDatatype?.GetGroundingCtor().IsGhost == true;
       return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }

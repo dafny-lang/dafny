@@ -2443,8 +2443,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+      var memberStatus = GetMemberStatus(member);
+      if (memberStatus == MemberCompileStatus.Identity) {
         return SimpleLvalue(obj);
+      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("true"));
       } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out string compiledName, out string _, out string _);
         if (compiledName.Length != 0) {

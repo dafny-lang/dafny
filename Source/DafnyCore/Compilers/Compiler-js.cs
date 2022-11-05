@@ -1629,8 +1629,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+      var memberStatus = GetMemberStatus(member);
+      if (memberStatus == MemberCompileStatus.Identity) {
         return SimpleLvalue(obj);
+      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("true"));
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         Contract.Assert(dtor.CorrespondingFormals.Count == 1);
         var formal = dtor.CorrespondingFormals[0];
