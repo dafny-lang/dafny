@@ -4696,6 +4696,27 @@ namespace Microsoft.Dafny.Compilers {
         var collectionType = e.Type.AsCollectionType;
         Contract.Assert(collectionType != null);
         EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        if (e.Members.All(member => member.IsGhost)) {
+          // all fields to be updated are ghost, which doesn't change the value
+          TrExpr(e.Root, wr, inLetExprBody, wStmts);
+          return;
+        }
+        if (IsInvisibleWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+          var i = e.Members.IndexOf(dtor);
+          if (0 <= i) {
+            // the datatype is an invisible wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
+            // so proceed as with the rhs
+            Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
+            Contract.Assert(e.Members.Count == e.Updates.Count);
+            var rhs = e.Updates[i].Item3;
+            TrExpr(rhs, wr, inLetExprBody, wStmts);
+            return;
+          }
+        }
+        // the optimized cases don't apply, so proceed according to the desugaring
+        TrExpr(e.ResolvedExpression, wr, inLetExprBody, wStmts);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         if (e.Function is SpecialFunction) {
