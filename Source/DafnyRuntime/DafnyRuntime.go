@@ -264,6 +264,12 @@ func AllChars() Iterator {
   }
 }
 
+type CodePoint rune
+
+func (cp CodePoint) String() string {
+  return fmt.Sprintf("'%c'", rune(cp))
+}
+
 /******************************************************************************
  * Slices
  ******************************************************************************/
@@ -459,10 +465,18 @@ func SeqOfChars(values ...Char) Seq {
   return Seq{arr, true}
 }
 
+func SeqOfCodePoints(values ...CodePoint) Seq {
+  arr := make([]interface{}, len(values))
+  for i, v := range values {
+    arr[i] = v
+  }
+  return Seq{arr, false}
+}
+
 // SeqOfString converts the given string into a sequence of characters.
+// The given string must contain only ASCII characters!
 func SeqOfString(str string) Seq {
   // Need to make sure the elements of the array are Chars
-  // TODO-RS: This is not correct for UTF-16 in general, how much should I fix this?
   arr := make([]interface{}, len(str))
   for i, v := range str {
     arr[i] = Char(v)
@@ -471,14 +485,14 @@ func SeqOfString(str string) Seq {
 }
 
 func UnicodeSeqOfString(str string) Seq {
-  // Need to make sure the elements of the array are Chars
+  // Need to make sure the elements of the array are CodePoints
   arr := make([]interface{}, utf8.RuneCountInString(str))
   i := 0
   for _, v := range str {
-    arr[i] = Char(v)
+    arr[i] = CodePoint(v)
     i++
   }
-  return Seq{arr, true}
+  return Seq{arr, false}
 }
 
 func (seq Seq) SetString() Seq {
@@ -619,6 +633,14 @@ func (seq Seq) String() string {
   } else {
     return "[" + stringOfElements(seq.contents) + "]"
   }
+}
+
+func (seq Seq) VerbatimString() string {
+  s := ""
+  for _, c := range seq.contents {
+    s += fmt.Sprintf("%c", c.(CodePoint))
+  }
+  return s
 }
 
 /******************************************************************************
