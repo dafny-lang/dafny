@@ -663,10 +663,13 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
+
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
         return "Object";
       }
+
+      xType = SimplifyType(xType);
       if (xType is BoolType) {
         return boxed ? "Boolean" : "boolean";
       } else if (xType is CharType) {
@@ -696,12 +699,15 @@ namespace Microsoft.Dafny.Compilers {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
-        } else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+        }
+#if !KRML_DONE_DEBUGGING
+        else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
           // optimize singleton tuple into its argument
           var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
           Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
           return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
         }
+#endif
         var s = FullTypeName(udt, member);
         if (s.Equals("string")) {
           return "String";
@@ -1725,23 +1731,19 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override bool OptimizesSingletonTuples => true;
-    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-      if (dt is TupleTypeDecl tupleDecl) {
-        tuples.Add(tupleDecl.NonGhostDims);
-        return null;
-      } else {
-        var w = CompileDatatypeBase(dt, wr);
-        CompileDatatypeConstructors(dt, wr);
-        return w;
-      }
+      var w = CompileDatatypeBase(dt, wr);
+      CompileDatatypeConstructors(dt, wr);
+      return w;
     }
 
     IClassWriter CompileDatatypeBase(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       var DtT_TypeArgs = TypeParameters(dt.TypeArgs);
       var justTypeArgs = dt.TypeArgs.Count == 0 ? "" : " " + DtT_TypeArgs;
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
+      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
+
       var filename = $"{ModulePath}/{IdName(dt)}.java";
       wr = wr.NewFile(filename);
       FileCount += 1;
@@ -1768,13 +1770,13 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wDefault;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
-        wr.Write($"private static final {DtT_protected} theDefault = ");
+        wr.Write($"private static final {simplifiedTypeName} theDefault = ");
         wDefault = wr.Fork();
         wr.WriteLine(";");
-        var w = wr.NewBlock($"public static {DtT_protected} Default()");
+        var w = wr.NewBlock($"public static {simplifiedTypeName} Default()");
         w.WriteLine("return theDefault;");
       } else {
-        wr.Write($"public static{justTypeArgs} {DtT_protected} Default(");
+        wr.Write($"public static{justTypeArgs} {simplifiedTypeName} Default(");
         var typeParameters = Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}");
         wr.Write(typeParameters);
         var w = wr.NewBlock(")");
@@ -1793,7 +1795,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+        wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+        wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
       } else {
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
         var args = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));

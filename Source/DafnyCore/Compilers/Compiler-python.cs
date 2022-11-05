@@ -252,6 +252,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var DtT = dt.CompileName;
+      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
 
       var btw = wr.NewBlockPy($"class {DtT}:", close: BlockStyle.Newline);
 
@@ -270,7 +271,9 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+        wDefault.WriteLine($"return {ForcePlaceboValue(simplifiedType, wDefault, dt.tok)}");
+      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+        wDefault.WriteLine($"return {DefaultValue(dtor.Type, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
         var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";
@@ -631,6 +634,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
+      xType = SimplifyType(xType);
 
       if (xType.IsObjectQ) {
         return "object";

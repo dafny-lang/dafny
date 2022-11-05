@@ -78,6 +78,13 @@ public abstract class Compiler {
   public abstract bool SupportsInMemoryCompilation { get; }
 
   /// <summary>
+  /// Whether or not the compiler turns
+  ///     datatype Record = R(oneThing: X)
+  /// into just X.
+  /// </summary>
+  public virtual bool OptimizesInvisibleDatatypeWrappers => true;
+
+  /// <summary>
   /// Dafny features this compiler is known to not support.
   /// </summary>
   public virtual IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature>();

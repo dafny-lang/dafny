@@ -198,8 +198,6 @@ namespace Microsoft.Dafny.Compilers {
       return wIter;
     }
 
-    protected override bool OptimizesSingletonTuples => true;
-    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       // ===== For inductive datatypes:
       //
@@ -320,6 +318,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
+      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
@@ -507,7 +506,9 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
-          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+          wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+        } else if (IsInvisibleWrapper(dt, out var dtor)) {
+          wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
           var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
@@ -848,6 +849,7 @@ namespace Microsoft.Dafny.Compilers {
         return "object";
       }
 
+      xType = SimplifyType(xType);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -874,16 +876,15 @@ namespace Microsoft.Dafny.Compilers {
         string typeNameSansBrackets, brackets;
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
-
+      } else if (xType is UserDefinedType udt) {
+#if !KRML_DONE_DEBUGGING
         if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
           // optimize singleton tuple into its argument
           var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
           Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
           return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
         }
-
+#endif
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {

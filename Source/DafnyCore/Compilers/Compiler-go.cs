@@ -489,8 +489,6 @@ namespace Microsoft.Dafny.Compilers {
       return wRun;
     }
 
-    protected override bool OptimizesSingletonTuples => true;
-    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       // ===== For inductive datatypes:
       //
@@ -635,6 +633,8 @@ namespace Microsoft.Dafny.Compilers {
       string companionTypeName = FormatCompanionTypeName(name);
       string dataName = FormatDatatypeInterfaceName(name);
       string ifaceName = FormatLazyInterfaceName(name);
+      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       Func<DatatypeCtor, string> structOfCtor = ctor =>
         string.Format("{0}{1}_{2}", dt is CoDatatypeDecl ? "*" : "", name, ctor.CompileName);
@@ -737,11 +737,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"func ({companionTypeName}) Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{FormatDefaultTypeParameterValue(tp)} interface{{}}"));
       {
-        var wDefault = wr.NewBlock($") {name}");
+        var wDefault = wr.NewBlock($") {simplifiedTypeName}");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
-          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+          wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+        } else if (IsInvisibleWrapper(dt, out var dtor)) {
+          wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
           var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
@@ -1379,6 +1381,7 @@ namespace Microsoft.Dafny.Compilers {
         return "interface{}";
       }
 
+      xType = SimplifyType(xType);
       if (xType is SpecialNativeType snt) {
         return snt.Name;
       } else if (xType is BoolType) {
@@ -1412,16 +1415,18 @@ namespace Microsoft.Dafny.Compilers {
           return "ulong";
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
+        } else if (udt.IsTypeParameter) {
+          return "interface{}";
         } else if (cl is TupleTypeDecl tupleTypeDecl) {
+#if !KRML_DONE_DEBUGGING
           if (tupleTypeDecl.NonGhostDims == 1) {
             // optimize singleton tuple into its argument
             var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
             Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
             return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
           }
+#endif
           return "_dafny.Tuple";
-        } else if (udt.IsTypeParameter) {
-          return "interface{}";
         }
         if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
           // To use an external interface, we need to have values of the

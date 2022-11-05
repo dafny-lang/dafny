@@ -147,10 +147,6 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
-    /// Returns "true" if the compiler turns singleton tuples into the single component they represent.
-    /// </summary>
-    protected virtual bool OptimizesSingletonTuples => false;
-    /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
     /// </summary>
@@ -242,29 +238,10 @@ namespace Microsoft.Dafny.Compilers {
 
       foreach (var ta in typeArgs) {
         if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          var actual = SimplifyType(ta.Actual);
           wr.Write("{0}{1}", prefix, TypeDescriptor(ta.Actual, wr, tok));
           prefix = ", ";
         }
       }
-    }
-
-    /// <summary>
-    /// Recursively change any ghost component with just 1 non-ghost component into that component.
-    /// </summary>
-    protected Type SimplifyType(Type ty) {
-      Contract.Requires(ty != null);
-
-      if (ty.NormalizeExpandKeepConstraints() is UserDefinedType udt) {
-        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
-          // optimize singleton tuple into its argument
-          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-          return SimplifyType(udt.TypeArgs[nonGhostComponent]);
-        }
-        // TODO: simplify each type argument of "udt"
-      }
-      return ty;
     }
 
     /// <summary>
@@ -1017,6 +994,78 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
+    protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
+      if (!OptimizesInvisibleDatatypeWrappers || dt.IsExtern(out _, out _) || dt.Members.Any(member => member is Field)) {
+        // don't optimize
+        // TODO: also don't optimize if a constructor parameter involves the type itself
+      } else {
+        var i = dt.Ctors.FindIndex(ctor => !ctor.IsGhost);
+        if (0 <= i) {
+          if (dt.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
+            // there is exactly one non-ghost constructor
+            var ctor = dt.Ctors[i];
+            var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
+            if (0 <= j) {
+              if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
+                // there is exactly one non-ghost parameter to "ctor"
+                coreDestructor = ctor.Destructors[j];
+                return true;
+              }
+            }
+          }
+        }
+      }
+      coreDestructor = null;
+      return false;
+    }
+
+    /// <summary>
+    /// Remove any invisible type wrappers and simplify ghost typle types.
+    /// </summary>
+    protected Type SimplifyType(Type ty) {
+      Contract.Requires(ty != null);
+      Contract.Requires(ty is not TypeProxy);
+
+      ty = ty.NormalizeExpand();
+      if (!OptimizesInvisibleDatatypeWrappers) {
+        return ty;
+      }
+
+      if (ty is UserDefinedType udt) {
+        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims != 1) {
+          var nonGhostTupleTypeDecl = tupleTypeDecl.NonGhostTupleTypeDecl;
+          if (nonGhostTupleTypeDecl != null) {
+            var typeArgsForNonGhostTuple = new List<Type>();
+            var n = tupleTypeDecl.TypeArgs.Count;
+            Contract.Assert(tupleTypeDecl.ArgumentGhostness.Count == n);
+            Contract.Assert(udt.TypeArgs.Count == n);
+            for (var i = 0; i < n; i++) {
+              if (!tupleTypeDecl.ArgumentGhostness[i]) {
+                typeArgsForNonGhostTuple.Add(udt.TypeArgs[i]);
+              }
+            }
+            Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
+            Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
+            return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
+          }
+
+        } else if (udt.ResolvedClass is IndDatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
+          var typeSubst = Resolver.TypeSubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
+          var stype = Resolver.SubstType(dtor.Type, typeSubst).NormalizeExpand();
+          return SimplifyType(stype);
+        }
+      }
+
+      // Simplify the type arguments of "ty"
+      if (ty.TypeArgs.Count != 0) {
+        var simplifiedArguments = ty.TypeArgs.ConvertAll(SimplifyType);
+        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand() != simplifiedArguments[i])) {
+          Resolver.ReplaceTypeArguments(ty, simplifiedArguments);
+        }
+      }
+      return ty;
+    }
+
     protected void EmitArraySelect(string index, Type elmtType, ConcreteSyntaxTree wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -1339,7 +1388,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesSingletonTuples) {
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
@@ -4639,14 +4688,23 @@ namespace Microsoft.Dafny.Compilers {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
 
+        if (IsInvisibleWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+          var i = dtv.Ctor.Destructors.IndexOf(dtor);
+          Contract.Assert(0 <= i);
+          TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);
+          return;
+        }
+
+#if !KRML_DONE_DEBUGGING
         // optimize singleton tuple into its argument
-        if (dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+        if (OptimizesInvisibleDatatypeWrappers && dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          Contract.Assert(false); // KRML: This shouldn't happen, since we check for IsInvisibleWrapper above
           var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
           Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
           TrExpr(dtv.Arguments[nonGhostComponent], wr, inLetExprBody, wStmts);
           return;
         }
-
+#endif
         var wrArgumentList = new ConcreteSyntaxTree();
         string sep = "";
         for (int i = 0; i < dtv.Arguments.Count; i++) {

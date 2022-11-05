@@ -409,8 +409,6 @@ namespace Microsoft.Dafny.Compilers {
       return beforeYield;
     }
 
-    protected override bool OptimizesSingletonTuples => true;
-    
     private string DtTypeName(TopLevelDecl dt, bool typeVariables = true) {
       var name = "_I" + dt.CompileName;
       if (typeVariables) { name += TypeParameters(SelectNonGhost(dt, dt.TypeArgs)); }
@@ -490,6 +488,8 @@ namespace Microsoft.Dafny.Compilers {
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
+      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       // ContreteSyntaxTree for the interface
       var interfaceTree = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
@@ -507,19 +507,21 @@ namespace Microsoft.Dafny.Compilers {
 
       var wDefault = new ConcreteSyntaxTree();
       if (nonGhostTypeArgs.Count == 0) {
-        wr.FormatLine($"private static readonly {DtTypeName(dt)} theDefault = {wDefault};");
-        var w = wr.NewBlock($"public static {DtTypeName(dt)} Default()");
+        wr.FormatLine($"private static readonly {simplifiedTypeName} theDefault = {wDefault};");
+        var w = wr.NewBlock($"public static {simplifiedTypeName} Default()");
         w.WriteLine("return theDefault;");
       } else {
         var parameters = UsedTypeParameters(dt).Comma(tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}");
-        wr.Write($"public static {DtTypeName(dt)} Default({parameters})");
+        wr.Write($"public static {simplifiedTypeName} Default({parameters})");
         var w = wr.NewBlock();
         w.FormatLine($"return {wDefault};");
       }
 
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+        wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+        wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
       } else {
         if (dt is CoDatatypeDecl) {
           var wCo = wDefault;
@@ -1387,6 +1389,7 @@ namespace Microsoft.Dafny.Compilers {
         return "object";
       }
 
+      xType = SimplifyType(xType);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -1417,12 +1420,16 @@ namespace Microsoft.Dafny.Compilers {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, member);
           }
-        } else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+        }
+#if !KRML_DONE_DEBUGGING
+        else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          Contract.Assert(false); // KRML: This ought to never happen, since we called SimplifyTypes above
           // optimize singleton tuple into its argument
           var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
           Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
           return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
         }
+#endif
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
