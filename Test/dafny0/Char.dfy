@@ -1,6 +1,8 @@
 // RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+// TODO: Test with --unicode-char too
+
 class CharChar {
   var c: char;
   var d: char;

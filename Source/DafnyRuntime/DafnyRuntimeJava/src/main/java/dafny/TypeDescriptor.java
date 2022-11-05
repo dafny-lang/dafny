@@ -123,7 +123,7 @@ public abstract class TypeDescriptor<T> {
     }
 
     public static TypeDescriptor<CodePoint> unicodeCharWithDefault(char d) {
-        return new UnicodeCharType(new CodePoint(d));
+        return new UnicodeCharType(CodePoint.valueOf(d));
     }
 
     @FunctionalInterface
@@ -137,7 +137,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
     public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
-    public static final TypeDescriptor<CodePoint> UNICODE_CHAR = new UnicodeCharType(new CodePoint((int)'D'));
+    public static final TypeDescriptor<CodePoint> UNICODE_CHAR = new UnicodeCharType(CodePoint.valueOf((int)'D'));
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -587,7 +587,7 @@ public abstract class TypeDescriptor<T> {
 
         @Override
         public CodePoint getArrayElement(Object array, int index) {
-            return new CodePoint(((int[]) array)[index]);
+            return CodePoint.valueOf(((int[]) array)[index]);
         }
 
         @Override

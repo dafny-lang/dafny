@@ -1376,10 +1376,6 @@ namespace Microsoft.Dafny.Compilers {
       return UnicodeChars ? "_dafny.CodePoint" : "_dafny.Char";
     }
 
-    private static string CharMethodPrefix() {
-      return UnicodeChars ? "Unicode" : "";
-    }
-
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1664,7 +1660,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override Type NativeForm(Type type) {
-      if (type.AsSeqType is SeqType st && st.Arg.IsCharType) {
+      if (type.IsStringType) {
         return NativeStringType;
       } else {
         return type;

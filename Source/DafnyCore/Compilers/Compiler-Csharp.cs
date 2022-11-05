@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string CharMethodPrefix() {
+    protected new static string CharMethodPrefix() {
       return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Runes" : "";
     }
 
@@ -2087,10 +2087,11 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
+        var v = (string)e.Value;
         if (UnicodeChars) {
-          wr.Write($"{ConvertToChar()}('{(string)e.Value}')");
+          wr.Write($"{ConvertToChar()}('{Util.ExpandUnicodeEscapes(v, false)}')");
         } else {
-          wr.Write($"'{(string)e.Value}'");
+          wr.Write($"'{v}'");
         }
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName()}>.{CharMethodPrefix()}FromString({StringLiteral(str)})");

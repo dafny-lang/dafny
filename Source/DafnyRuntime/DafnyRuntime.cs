@@ -1342,8 +1342,16 @@ namespace Dafny {
       yield return true;
     }
     public static IEnumerable<char> AllChars() {
-      for (int i = 0; i < 0x10000; i++) {
+      for (int i = 0; i < 0x1_0000; i++) {
         yield return (char)i;
+      }
+    }
+    public static IEnumerable<System.Text.Rune> AllUnicodeChars() {
+      for (int i = 0; i < 0xD800; i++) {
+        yield return new System.Text.Rune(i);
+      }
+      for (int i = 0xE000; i < 0x11_0000; i++) {
+        yield return new System.Text.Rune(i);
       }
     }
     public static IEnumerable<BigInteger> AllIntegers() {

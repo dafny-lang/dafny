@@ -118,8 +118,8 @@ function {:identity} LitReal(x: real): real { x } uses {
 
 #if UNICODE_CHAR
 function char#IsChar(n: int): bool {
-  (0                  <= n && n <= 55295   /* 0xD7FF */) || 
-  (57344 /* 0xE000 */ <= n && n <= 1114111 /* 0x10FFFF */ )
+  (0                  <= n && n < 55296   /* 0xD800 */) || 
+  (57344 /* 0xE000 */ <= n && n < 1114112 /* 0x11_0000 */ )
 }
 #endif
 #if !UNICODE_CHAR

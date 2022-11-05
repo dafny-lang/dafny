@@ -165,7 +165,15 @@ public class Helpers {
     }
 
     public static Iterable<Character> AllChars() {
-        return () -> IntStream.range(0, 0x1000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
+        return () -> IntStream.range(0, 0x1_0000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
+    }
+
+    // Note we don't use CodePoint here because this is only used in the implementation of quantification,
+    // where we want to enumerate primitive values, and it's challenging to customize that logic
+    // to unbox CodePoints manually.
+    public static Iterable<Integer> AllUnicodeChars() {
+        return () -> IntStream.concat(IntStream.range(0, 0xD800), 
+                                      IntStream.range(0xE000, 0x11_0000)).iterator();
     }
 
     public static <G> String toString(G g) {

@@ -666,14 +666,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string CharMethodPrefix() {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        return "Unicode";
-      } else {
-        return "";
-      }
-    }
-
     private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1589,11 +1581,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TypeParameter elementTypeParameter = new TypeParameter(Token.NoToken, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive,
-        new TypeParameter.TypeParameterCharacteristics());
-      Type elementType = new UserDefinedType(Token.NoToken, elementTypeParameter);
-
-      wr = EmitCoercionIfNecessary(from: elementType, to: source.Type.AsCollectionType.TypeArgs[0], tok: source.tok, wr: wr);
+      wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.TypeArgs[0], tok: source.tok, wr: wr);
 
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.AsMultiSetType != null) {
@@ -2179,7 +2167,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(".verbatimString()");
         } else if (arg.Type.IsCharType) {
           if (UnicodeChars) {
-            wr.Write($"new {CharTypeName(true)}");
+            wr.Write($"{CharTypeName(true)}.valueOf");
           }
           TrParenExpr(arg, wr, false, wStmts);
         } else if (isGeneric && !UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
@@ -3469,7 +3457,8 @@ namespace Microsoft.Dafny.Compilers {
       if (ct is SetType) {
         var wStmts = wr.Fork();
         wr.Write($"{collName}.add(");
-        TrExpr(elmt, wr, inLetExprBody, wStmts);
+        var coercedWr = EmitCoercionIfNecessary(elmt.Type, NativeObjectType, elmt.tok, wr);
+        TrExpr(elmt, coercedWr, inLetExprBody, wStmts);
         wr.WriteLine(");");
       } else {
         Contract.Assume(false);  // unexpected collection type
@@ -3777,6 +3766,16 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
+    private class SpecialNativeType : UserDefinedType {
+      internal SpecialNativeType(string name) : base(Token.NoToken, name, null) { }
+    }
+
+    private readonly static SpecialNativeType NativeObjectType = new SpecialNativeType("object");
+
+    private bool IsObjectType(Type type) {
+      return type == NativeObjectType || type.IsTypeParameter;
+    }
+    
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
@@ -3785,14 +3784,14 @@ namespace Microsoft.Dafny.Compilers {
       if (from == null || to == null) {
         return wr;
       }
-      if (UnicodeChars && from.IsTypeParameter && to.IsCharType) {
+      if (UnicodeChars && IsObjectType(from) && to.IsCharType) {
         wr.Write($"((dafny.CodePoint)(");
         var w = wr.Fork();
         wr.Write(")).value()");
         return w;
       }
-      if (UnicodeChars && from.IsCharType && to.IsTypeParameter) {
-        wr.Write($"new dafny.CodePoint(");
+      if (UnicodeChars && from.IsCharType && IsObjectType(to)) {
+        wr.Write($"dafny.CodePoint.valueOf(");
         var w = wr.Fork();
         wr.Write(")");
         return w;

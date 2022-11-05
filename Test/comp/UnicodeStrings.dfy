@@ -2,6 +2,9 @@
 
 // TODO:
 // * AllChars()
+// * Character literal escape testing (\U doesn't always work in C#)
+// * Main method arguments
+
 
 newtype uint32 = x: int | 0 <= x < 0x1_0000_0000
 newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
@@ -73,10 +76,21 @@ method Main(args: seq<string>) {
   Print("D");
   Print('D');
   Print(0x1F60E as char);
+
+  AllCharsTest();
 }
 
 method Print<T>(t: T) {
   print t, "\n";
 }
 
+method AllCharsTest() {
+  var allChars := set c: char | true;
+  var allCodePoints := (set cp: int | 0 <= cp < 0xD800 :: cp as char)
+                     + (set cp: int | 0xE000 <= cp < 0x11_0000 :: cp as char);
+  // TODO:
+  // assert allChars == allCodePoints;
+  expect |allChars| == |allCodePoints|;
+  expect allChars == allCodePoints;
 
+}
