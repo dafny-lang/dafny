@@ -340,7 +340,13 @@ namespace Microsoft.Dafny.Compilers {
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}")
+        .Select(f => {
+          if (f.Type.IsStringType) {
+            return $"\"{{self.{IdProtect(f.CompileName)}.VerbatimString()}}\"";
+          } else {
+            return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
+          }
+        })
         .Comma();
 
       if (args.Length > 0 && dt is not CoDatatypeDecl) {

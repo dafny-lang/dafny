@@ -1022,13 +1022,14 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool value) {
         wr.Write(value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
-        wr.Write($"'{(string)e.Value}'");
-      } else if (e is StringLiteralExpr str) {
-        if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-          wr.Write($"{DafnySeqClass}.asUnicodeString(");
+        var v = (string)e.Value;
+        if (UnicodeChars && Util.MightContainNonAsciiCharacters(v, false)) {
+          wr.Write($"{Util.UnescapedCharacters(v, false).Single()}");
         } else {
-          wr.Write($"{DafnySeqClass}.asString(");
+          wr.Write($"'{v}'");
         }
+      } else if (e is StringLiteralExpr str) {
+        wr.Write(UnicodeChars ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
@@ -2177,6 +2178,9 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(arg, wr, false, wStmts);
           wr.Write(".verbatimString()");
         } else if (arg.Type.IsCharType) {
+          if (UnicodeChars) {
+            wr.Write($"new {CharTypeName(true)}");
+          }
           TrParenExpr(arg, wr, false, wStmts);
         } else if (isGeneric && !UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
           // This happens to not work when --unicode-char is true anyway,
