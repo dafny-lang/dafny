@@ -233,7 +233,15 @@ public class BuiltIns {
     argumentGhostness ??= new bool[dims].Select(_ => false).ToList();
     if (!tupleTypeDecls.TryGetValue(argumentGhostness, out var tt)) {
       Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
-      tt = new TupleTypeDecl(argumentGhostness, SystemModule, DontCompile());
+
+      var nonGhostDims = argumentGhostness.Count(x => !x);
+      TupleTypeDecl nonGhostTupleTypeDecl = null;
+      if (nonGhostDims != dims && nonGhostDims != 1) {
+        // make sure the corresponding non-ghost tuple type also exists
+        nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
+      }
+
+      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, DontCompile());
       if (tt.NonGhostDims > MaxNonGhostTupleSizeUsed) {
         MaxNonGhostTupleSizeToken = tok;
         MaxNonGhostTupleSizeUsed = tt.NonGhostDims;
