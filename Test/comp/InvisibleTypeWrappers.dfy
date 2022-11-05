@@ -13,8 +13,7 @@ datatype GhostOrNot = ghost Ghost(a: int, b: int) | Compiled(x: int)
 method Main() {
   TestTargetTypesAndConstructors();
   TestSelect();
-//  Tuples();
-//  M();
+  TestUpdate();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -39,4 +38,32 @@ method TestSelect() {
   print rst.1, " "; // 5
   print xyz.2, " "; // 5
   print abc.1, "\n"; // 3
+}
+
+method TestUpdate() {
+  var r := SingletonRecord(62); // type of r should turn into int
+  var g := Compiled(63); // type of g should turn into int
+  var rst := (2, 5);
+  var xyz := (2, ghost 3, 5); // type of xyz should turn into Tuple2
+  var abc := (ghost 2, 3, ghost 5); // type of abc should turn into int
+
+  rst := rst.(0 := 888);
+  xyz := xyz.(0 := 888);
+  abc := abc.(0 := 888); // no-op
+
+  print rst.1, " "; // 5
+  print xyz.2, " "; // 5
+  print abc.1, "\n"; // 3
+
+  r := r.(u := 1062); // rhs optimized to just 1062
+  g := g.(x := 1063); // rhs optimized to just 1063
+  rst := rst.(1 := 1005);
+  xyz := xyz.(2 := 1005);
+  abc := abc.(1 := 1003); // rhs optimized to just 1003
+
+  print r.u, " "; // 1062
+  print g.x, " "; // 1063
+  print rst.1, " "; // 1005
+  print xyz.2, " "; // 1005
+  print abc.1, "\n"; // 1003
 }
