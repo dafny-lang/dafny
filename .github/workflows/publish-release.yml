@@ -33,7 +33,7 @@ jobs:
       sha: ${{ github.sha }}
       tag_name: ${{ github.ref }}
       draft: true
-      release_nuget: true
+      release_nuget: false
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
       release_notes: ""
     secrets:
