@@ -1479,10 +1479,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected new static string CharMethodPrefix() {
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "Runes" : "";
-    }
-
     public string TypeHelperName(Type type, ConcreteSyntaxTree wr, IToken tok, Type/*?*/ otherType = null) {
       var xType = type.NormalizeExpand();
       if (xType is SeqType seqType) {
@@ -2094,7 +2090,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"'{v}'");
         }
       } else if (e is StringLiteralExpr str) {
-        wr.Format($"{DafnySeqClass}<{CharTypeName()}>.{CharMethodPrefix()}FromString({StringLiteral(str)})");
+        wr.Format($"{DafnySeqClass}<{CharTypeName()}>.{CharMethodQualifier()}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
         string nativeName = null, literalSuffix = null;
         bool needsCastAfterArithmetic = false;
@@ -3398,7 +3394,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<{CharTypeName()}>>.{CharMethodPrefix()}FromMainArguments(args)));");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<{CharTypeName()}>>.{CharMethodQualifier()}FromMainArguments(args)));");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -3406,7 +3402,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlock("try");
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (Dafny.HaltException e)");
-      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName()}>.{CharMethodPrefix()}FromString(e.Message);");
+      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName()}>.{CharMethodQualifier()}FromString(e.Message);");
       TrStmt(recoveryBody, catchBlock);
     }
 

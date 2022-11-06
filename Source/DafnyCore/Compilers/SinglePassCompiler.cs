@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string LambdaExecute = "";
 
     protected static bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
-    protected static string CharMethodPrefix() {
+    protected static string CharMethodQualifier() {
       return UnicodeChars ? "Unicode" : "";
     }
 
@@ -3458,7 +3458,7 @@ namespace Microsoft.Dafny.Compilers {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
         return new BoolType();
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
-        collectionWriter.Write($"{GetHelperModuleName()}.All{CharMethodPrefix()}Chars()");
+        collectionWriter.Write($"{GetHelperModuleName()}.All{CharMethodQualifier()}Chars()");
         return new CharType();
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;

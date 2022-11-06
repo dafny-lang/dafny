@@ -2123,7 +2123,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
           } else if (resultType.IsCharType) {
-            staticCallString = $"_dafny.{CharMethodPrefix()}PlusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier()}PlusChar";
           } else {
             callString = "plus"; truncateResult = true;
           }
@@ -2134,7 +2134,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
           } else if (resultType.IsCharType) {
-            staticCallString = $"_dafny.{CharMethodPrefix()}MinusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier()}MinusChar";
           } else {
             callString = "minus"; truncateResult = true;
           }

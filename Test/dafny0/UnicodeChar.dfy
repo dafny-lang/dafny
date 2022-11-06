@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /unicodeChar:1 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class CharChar {
@@ -43,7 +43,7 @@ class CharChar {
   method CharEq(s: string) {
     if "hello Dafny" <= s {
       assert s[6] == 'D';
-      assert s[7] == '\u0061';
+      assert s[7] == '\U{61}';
       if * {
         assert s[9] == '\n';  // error
       } else if * {
@@ -92,10 +92,10 @@ function BadToLower_Underflow(ch: char): char
 }
 
 lemma AboutChar(ch: char, dh: char)
-  requires 'r' < dh < '\uabcd'
+  requires 'r' < dh < '\U{abcd}'
   ensures ch == ch + '\0' == ch - '\0'
-  ensures dh - '\u0020' < dh
-  ensures dh + '\u0020' > dh
+  ensures dh - '\U{20}' < dh
+  ensures dh + '\U{20}' > dh
   ensures '\n' + dh == dh + '\n'
 {
 }

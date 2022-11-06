@@ -915,7 +915,7 @@ namespace Dafny {
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static ISequence<System.Text.Rune> RunesFromString(string s) {
+    public static ISequence<System.Text.Rune> UnicodeFromString(string s) {
       var runes = new List<System.Text.Rune>();
       foreach (var rune in s.EnumerateRunes()) {
         runes.Add(rune);
@@ -932,11 +932,11 @@ namespace Dafny {
 
       return Sequence<ISequence<char>>.FromArray(dafnyArgs);
     }
-    public static ISequence<ISequence<System.Text.Rune>> RunesFromMainArguments(string[] args) {
+    public static ISequence<ISequence<System.Text.Rune>> UnicodeFromMainArguments(string[] args) {
       Dafny.ISequence<System.Text.Rune>[] dafnyArgs = new Dafny.ISequence<System.Text.Rune>[args.Length + 1];
-      dafnyArgs[0] = Dafny.Sequence<System.Text.Rune>.RunesFromString("dotnet");
+      dafnyArgs[0] = Dafny.Sequence<System.Text.Rune>.UnicodeFromString("dotnet");
       for (var i = 0; i < args.Length; i++) {
-        dafnyArgs[i + 1] = Dafny.Sequence<System.Text.Rune>.RunesFromString(args[i]);
+        dafnyArgs[i + 1] = Dafny.Sequence<System.Text.Rune>.UnicodeFromString(args[i]);
       }
 
       return Sequence<ISequence<System.Text.Rune>>.FromArray(dafnyArgs);
