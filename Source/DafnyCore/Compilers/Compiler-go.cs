@@ -119,7 +119,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine("{0}.{1}({2}.FromMainArguments(os.Args))", companion, idName, GetHelperModuleName());
+      wBody.WriteLine($"{companion}.{idName}({GetHelperModuleName()}.{CharMethodQualifier()}FromMainArguments(os.Args))");
       Coverage.EmitTearDown(wBody);
     }
 

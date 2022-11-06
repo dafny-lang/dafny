@@ -457,6 +457,12 @@ let _dafny = (function() {
     constructor(value) {
       this.value = value
     }
+    equals(other) {
+      if (this === other) {
+        return true;
+      }
+      return this.value === other.value
+    }
     toString() {
       return "'" + String.fromCodePoint(this.value) + "'";
     }
@@ -470,6 +476,9 @@ let _dafny = (function() {
     }
     static Create(n, init) {
       return Seq.from({length: n}, (_, i) => init(new BigNumber(i)));
+    }
+    static UnicodeFromString(s) {
+      return new Seq(...([...s].map(c => new _dafny.CodePoint(c.codePointAt(0)))))
     }
     toString() {
       return "[" + arrayElementsToString(this) + "]";
@@ -1035,6 +1044,9 @@ let _dafny = (function() {
     var a = [...args];
     a.splice(0, 2, args[0] + " " + args[1]);
     return a;
+  }
+  $module.UnicodeFromMainArguments = function(args) {
+    return $module.FromMainArguments(args).map(_dafny.Seq.UnicodeFromString);
   }
   return $module;
 

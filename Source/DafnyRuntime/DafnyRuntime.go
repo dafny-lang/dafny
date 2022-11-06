@@ -20,6 +20,15 @@ func FromMainArguments(args []string) Seq {
   return SeqOf(dafnyArgs...)
 }
 
+func UnicodeFromMainArguments(args []string) Seq {
+  var size = len(args)
+  var dafnyArgs []interface{} = make([]interface{}, size)
+  for i, item := range args {
+    dafnyArgs[i] = UnicodeSeqOfString(item)
+  }
+  return SeqOf(dafnyArgs...)
+}
+
 /******************************************************************************
  * Generic values
  ******************************************************************************/

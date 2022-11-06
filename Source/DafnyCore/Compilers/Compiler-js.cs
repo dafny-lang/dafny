@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(_dafny.FromMainArguments(require('process').argv)));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
+      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.FullCompileName}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier()}FromMainArguments(require('process').argv)));");
       Coverage.EmitTearDown(wr);
     }
 
@@ -1336,9 +1336,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
         if (UnicodeChars) {
-          wr.Write($"new _dafny.Seq(...([...");
+          wr.Write($"_dafny.Seq.UnicodeFromString(");
           TrStringLiteral(str, wr);
-          wr.Write("].map(c => new _dafny.CodePoint(c.codePointAt(0)))))");
+          wr.Write(")");
         } else {
           TrStringLiteral(str, wr);
         }
