@@ -11,6 +11,8 @@ Strings and Characters
     * Go: CodePoint (wrapping `rune`)
   * Without --unicode-char
     * 
+* utilities
+  * Several cloned methods like Seq.[Unicode]FromString, CharMethodQualifier() used to distinguish in compilers
 * print
   * With --unicode-char
     * direct statically-known string printed verbatim (TODO: verbatim not a great name?)
