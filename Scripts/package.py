@@ -305,6 +305,7 @@ def main():
     releases = list(discover(args))
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
+        flush("printing releases Parva- {}").format(releases)
     download(releases)
 
     flush("* Building and packaging Dafny")
