@@ -1800,7 +1800,7 @@ namespace Microsoft.Dafny.Compilers {
         TrExpr(arg, wr, false, wStmts);
         wr.Write(")");
         if (!UnicodeChars) {
-          wr.Write(".SetString())");
+          wr.Write(".SetString()");
         }
         wr.WriteLine(")");
       }
