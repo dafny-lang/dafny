@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.Compilers {
       string additionalInfo = "";
 
       try {
-        if (Process.Start(psi) is {} process) {
+        if (Process.Start(psi) is { } process) {
           return process;
         }
       } catch (System.ComponentModel.Win32Exception e) {
@@ -100,7 +100,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
-      return StartProcess(psi, outputWriter) is {} process ?
+      return StartProcess(psi, outputWriter) is { } process ?
          WaitForExit(process, outputWriter, errorMessage) : -1;
     }
 
