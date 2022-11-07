@@ -144,15 +144,14 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(
-        $"{mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName}::{mainMethod.EnclosingClass.CompileName}::{mainMethod.Name}({CharMethodPrefix()}dafny_get_args(argc, argv));");
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
-      return wr.NewBlock($"int main(DafnySequence<DafnySequence<{CharTypeName()}>> {argsParameterName})");
+      return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -901,16 +900,6 @@ namespace Microsoft.Dafny.Compilers {
       Console.Error.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filename, tok.line, tok.col, msg);
     }
 
-    private static string CharTypeName() {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        return "char32_t";
-      } else {
-        // Note this is only 8 bits and therefore not actually an adequate
-        // native type for the old definition of `char` as UTF-16 code units.
-        return "char";
-      }
-    }
-
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs
     // depending on whether we are declaring a variable or talking about the class itself.
     // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
@@ -927,7 +916,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
-        return CharTypeName();
+        return "char";
       } else if (xType is IntType || xType is BigOrdinalType) {
         UnsupportedFeatureError(tok, Feature.UnboundedIntegers);
         return "BigNumber";
@@ -1479,15 +1468,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(i.ToString());
     }
 
-    private string CharMethodPrefix() {
-      return UnicodeCharactersOption.Instance.Get(DafnyOptions.O) ? "unicode_" : "";
-    }
-
-    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
-      wr.Write($"{CharMethodPrefix()}DafnySequenceFromString(");
+      wr.Write("DafnySequenceFromString(");
       if (!isVerbatim) {
-        wr.Write($"U\"{Util.ExpandUnicodeEscapes(str, false)}\"");
+        wr.Write("\"{0}\"", str);
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -1984,7 +1969,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      throw new UnsupportedFeatureException(tok, Feature.FunctionValues);
+      wr.Write("function (");
+      Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
+      for (var i = 0; i < inNames.Count; i++) {
+        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
+      }
+      var w = wr.NewExprBlock(")");
+      return w;
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
@@ -2288,9 +2279,9 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
         } else if (e.ToType.IsCharType) {
-          wr.Write($"({CharTypeName()})(");
+          wr.Write("_dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(")");
+          wr.Write(".Int32())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2388,14 +2379,18 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(tok, Feature.Multisets);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
-        for (var i = 0; i < elements.Count; i++) {
-          TrExpr(elements[i], wr, inLetExprBody, wStmts);
-          if (i < elements.Count - 1) {
-            wr.Write(",");
+        if (ct.Arg.IsCharType) {
+          throw new UnsupportedFeatureException(tok, Feature.SequenceDisplaysOfCharacters);
+        } else {
+          wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+          for (var i = 0; i < elements.Count; i++) {
+            TrExpr(elements[i], wr, inLetExprBody, wStmts);
+            if (i < elements.Count - 1) {
+              wr.Write(",");
+            }
           }
+          wr.Write("})");
         }
-        wr.Write("})");
       }
     }
 
