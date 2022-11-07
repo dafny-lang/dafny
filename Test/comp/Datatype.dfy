@@ -40,6 +40,8 @@ method Main() {
   var _, _ := UpdateRegression(6);
 
   TestGhostDestructors();
+
+  TestNumericDestructorNames();
 }
 
 function method Up(m: nat, n: nat): List
@@ -178,4 +180,16 @@ method TestGhostDestructors() {
 
   assert e == R(13, 23);
   expect e.x == 13;
+}
+
+datatype NumericDestructorNames = NumericDestructorNames(0: int, 0_3: int, 012: int)
+
+method TestNumericDestructorNames() {
+  // once, these were compiled incorrectly for Java
+  var j := NumericDestructorNames(800, 801, 802);
+  match j {
+    case NumericDestructorNames(a, b, c) =>
+      print a, " ", b, " ", c, "\n"; // 800 801 802
+  }
+  print j.0, " ", j.0_3, " ", j.012, "\n"; // 800 801 802
 }

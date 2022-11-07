@@ -3271,8 +3271,6 @@ namespace Microsoft.Dafny.Compilers {
       if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an invisible-wrapper type, handled above
         dtorName = $"dtor__{dtor.NameForCompilation}()";
-      } else if (int.TryParse(dtor.Name, out _)) {
-        dtorName = $"dtor_{dtor.Name}()";
       } else {
         dtorName = FieldName(dtor, formalNonGhostIndex);
       }
