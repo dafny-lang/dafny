@@ -2334,7 +2334,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string GetClassPath(string targetFilename) {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      var classpath = Environment.GetEnvironmentVariable("CLASSPATH") ?? "";
+      var classpath = Environment.GetEnvironmentVariable("CLASSPATH"); // String.join converts null to ""
       // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
       // Java ignores empty (oand other ill-formed) classpath entries
       return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
