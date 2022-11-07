@@ -2336,8 +2336,9 @@ namespace Microsoft.Dafny.Compilers {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       var classpath = Environment.GetEnvironmentVariable("CLASSPATH");
       // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
-      if (classpath != null && classpath.Length != 0) return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
-      else string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"));
+      return (classpath != null && classpath.Length != 0) 
+        ? string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
+        : string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"));
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
