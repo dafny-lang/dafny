@@ -2337,7 +2337,7 @@ namespace Microsoft.Dafny.Compilers {
       var classpath = Environment.GetEnvironmentVariable("CLASSPATH") ?? "";
       // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
       // Java ignores empty (oand other ill-formed) classpath entries
-      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath)
+      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
