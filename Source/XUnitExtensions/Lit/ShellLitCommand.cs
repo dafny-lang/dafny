@@ -59,7 +59,7 @@ namespace XUnitExtensions.Lit {
       // `GetConsoleCP` to determine what encoding to use, then uses that when
       // `Console.WriteLine` is called (and replaces unsupported characters by
       // the fallback character `?`).  Here is a concrete demo, with character
-      // U+20AC (€) (which is supported by codepage 85001 but not 850):
+      // U+20AC (€) (which is supported by codepage 65001 but not 850):
       //
       // > mkdir demo
       // > cd demo
@@ -92,7 +92,7 @@ namespace XUnitExtensions.Lit {
       process.StartInfo.CreateNoWindow = false;
       Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-      // Finally, for Java + Ubuntu, we make sure to forward LANG:
+      // Finally, for Java + Ubuntu, we make sure to set LANG:
       process.StartInfo.EnvironmentVariables.Add("LANG", "C.UTF-8");
       // … and For Python + Windows, we set PYTHONIOENCODING
       process.StartInfo.EnvironmentVariables.Add("PYTHONIOENCODING", "UTF-8");
