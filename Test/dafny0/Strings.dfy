@@ -68,11 +68,7 @@ method Main()
   assert highBMPChar[0] == 0xFFEE as char;
   expect highBMPChar[0] == 0xFFEE as char;
   
-  // Not printing zz as per the comment above
-  var c, d := CharEscapes();
-  print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
- 
-  // Testing invalid UTF-16 content that Dafny allows (at least until --unicode-char lands)
+  // Testing invalid UTF-16 content that Dafny allows (when --unicode-char=false)
 
   var x?, y?, z? := WeirdStrings();
   
