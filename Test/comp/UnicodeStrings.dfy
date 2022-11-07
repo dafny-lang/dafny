@@ -1,8 +1,7 @@
 // RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
 // TODO:
-// * Character literal escape testing (\U doesn't always work in C#)
-// * Main method arguments
+// * Parse errors with character literals
 
 newtype uint8 = x: int | 0 <= x < 0x100 
 newtype uint16 = x: int | 0 <= x < 0x1_0000 
@@ -83,7 +82,7 @@ method Main(args: seq<string>) {
   Print(0x1F60E as char);
 
   CharCasting();
-
+  CharComparisons();
   AllCharsTest();
 }
 
@@ -129,6 +128,18 @@ method CastChar(c: char) {
 
 method CharComparisons() {
   AssertAndExpect('a' < 'b');
+  AssertAndExpect('a' <= 'a');
+  AssertAndExpect('b' > 'a');
+  AssertAndExpect('b' >= 'a');
+
+  // Some evil edge cases to catch comparing
+  // encoded bytes lexicographically by accident 😈.
+  // UTF-8 seems to have the property that this comparison
+  // is the same, but UTF-16 doesn't.
+
+  // '￮' == [0xFFEE] in UTF-16
+  // '𝄞' == [0xD834, 0xDD1E] in UTF-16
+  AssertAndExpect('￮' < '\U{1D11E}');
 }
 
 method AllCharsTest() {

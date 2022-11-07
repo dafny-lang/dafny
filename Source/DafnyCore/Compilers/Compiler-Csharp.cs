@@ -2085,7 +2085,14 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
         if (UnicodeChars) {
-          wr.Write($"{ConvertToChar()}('{Util.ExpandUnicodeEscapes(v, false)}')");
+          // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
+          // For such values we construct the Rune value directly from the unescaped codepoint.
+          var codePoint = Util.UnescapedCharacters(v, false).Single();
+          if (codePoint >= 0x1_0000) {
+            wr.Write($"new System.Text.Rune(0x{codePoint:x})");
+          } else {
+            wr.Write($"{ConvertToChar()}('{Util.ExpandUnicodeEscapes(v, false)}')");
+          }
         } else {
           wr.Write($"'{v}'");
         }

@@ -23,3 +23,7 @@ Strings and Characters
     * chars always printed with escapes, single quotes
   * Without --unicode-char
     * Depends on the backend
+* Readability
+  * Character and string literals are still translated to literals in the target language as much as possible.
+    Such values are helpful as landmarks when trying to understand the compiled code.
+  * MightContainNonAsciiCharacters as conservative guard.

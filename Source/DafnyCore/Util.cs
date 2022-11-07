@@ -203,7 +203,7 @@ namespace Microsoft.Dafny {
       // This is conservative since \u escapes could be ASCII characters,
       // but that's fine since this method is just used as a conservative guard.
       return TokensWithEscapes(s, isVerbatimString).Any(e =>
-        e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u"));
+        e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u") || e.StartsWith(@"\U"));
     }
 
     /// <summary>
