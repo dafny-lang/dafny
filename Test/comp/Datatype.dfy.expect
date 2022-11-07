@@ -20,7 +20,7 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
-Record.Record(58)
+Record.Record(58, true)
 199
 
 Dafny program verifier did not attempt verification
@@ -42,7 +42,7 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
-Record.Record(58)
+Record.Record(58, true)
 199
 
 Dafny program verifier did not attempt verification
@@ -64,7 +64,7 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
-Record.Record(58)
+Record.Record(58, true)
 199
 
 Dafny program verifier did not attempt verification
@@ -86,7 +86,7 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
-Record.Record(58)
+Record.Record(58, true)
 199
 
 Dafny program verifier did not attempt verification
@@ -108,5 +108,5 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
-Record.Record(58)
+Record.Record(58, true)
 199

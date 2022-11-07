@@ -143,25 +143,25 @@ method PrintMaybe(x : Module.OptionInt) {
   case None => print "None\n";
 }
 
-datatype Record = Record(ghost x: int, y: int, ghost z: bool)
+datatype Record = Record(ghost x: int, y: int, ghost z: bool, w: bool)
 
 method UpdateRegression(six: int) returns (eight: int, ten: int) {
   eight, ten := 8, 10;
 
-  var r := Record(10, 20, true);
+  var r := Record(10, 20, true, true);
   r := r.(z := false);
   var twentytwo := 22;
   // In the following, the local variable "twentytwo", in-parameter "six", and
   // match-bound variable "yy" were once not adequately protected (in Java).
   match r {
-    case Record(_, yy, _) =>
+    case Record(_, yy, _, _) =>
       r := r.(y := twentytwo + ten + six + yy);
   }
-  print r, "\n"; // Record.Record(58)
+  print r, "\n"; // Record.Record(58, true)
 
   var f;
   match r {
-    case Record(_, yy, _) =>
+    case Record(_, yy, _, _) =>
       f := x => x + twentytwo + 3 + ten + six + yy;
   }
   print f(100), "\n"; // 199
