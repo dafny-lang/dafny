@@ -595,9 +595,7 @@ public class ModuleQualifiedId {
       this.Sig = null;
     } else {
       this.Decl = m;
-      this.Def = m is AliasModuleDecl ?
-        m.Signature.ModuleDef :
-        ((LiteralModuleDecl)m).ModuleDef;
+      this.Def = m.Signature.ModuleDef;
       this.Sig = m.Signature;
     }
   }
