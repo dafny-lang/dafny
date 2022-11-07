@@ -84,17 +84,24 @@ namespace Microsoft.Dafny.Compilers {
       return process.ExitCode;
     }
 
-    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
+    public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
+      string additionalInfo = "";
+
       try {
-        var process = Process.Start(psi);
-        if (process == null) {
-          return -1;
+        if (Process.Start(psi) is {} process) {
+          return process;
         }
-        return WaitForExit(process, outputWriter, errorMessage);
       } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start {1}: {2}", psi.FileName, e.Message);
-        return -1;
+        additionalInfo = $": {e.Message}";
       }
+
+      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      return null;
+    }
+
+    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
+      return StartProcess(psi, outputWriter) is {} process ?
+         WaitForExit(process, outputWriter, errorMessage) : -1;
     }
 
 
