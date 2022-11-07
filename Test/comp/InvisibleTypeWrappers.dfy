@@ -15,6 +15,8 @@ method Main() {
   TestSelect();
   TestUpdate();
   TestDiscriminators();
+  TestMatchStmt();
+  TestMatchExpr();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -73,4 +75,62 @@ method TestDiscriminators() {
   var r := SingletonRecord(62);
   var g := Compiled(63);
   print r.SingletonRecord?, " ", g.Compiled?, "\n"; // true true
+}
+
+method TestMatchStmt() {
+  var a := SingletonRecord(20);
+  var b := Compiled(21);
+  var c0 := (ghost 100, 101, a, ghost 103, 104);
+  var c1 := (c0, ghost 200);
+  var c := (ghost 300, c1);
+
+  match a {
+    case SingletonRecord(u0) => print u0, " "; // 20
+  }
+  match a {
+    case SingletonRecord(19) =>
+    case SingletonRecord(u1) => print u1, " "; // 20
+  }
+  match a {
+    case SingletonRecord(19) =>
+    case SingletonRecord(20) => print "*20 "; // *20
+    case SingletonRecord(_) =>
+  }
+
+  match b {
+    case Compiled(v) => print v, " "; // 21
+  }
+
+  match c {
+    case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => print w, "\n"; // 20
+  }
+}
+
+method TestMatchExpr() {
+  var a := SingletonRecord(20);
+  var b := Compiled(21);
+  var c0 := (ghost 100, 101, a, ghost 103, 104);
+  var c1 := (c0, ghost 200);
+  var c := (ghost 300, c1);
+
+  print match a {
+    case SingletonRecord(u0) => u0
+  }, " "; // 20
+  print match a {
+    case SingletonRecord(19) => -1
+    case SingletonRecord(u1) => u1
+  }, " "; // 20
+  print "*", match a {
+    case SingletonRecord(19) => -1
+    case SingletonRecord(20) => 20
+    case SingletonRecord(_) => -1
+  }, " "; // *20
+
+  print match b {
+    case Compiled(v) => v
+  }, " "; // 21
+
+  print match c {
+    case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => w
+  }, "\n"; // 20
 }

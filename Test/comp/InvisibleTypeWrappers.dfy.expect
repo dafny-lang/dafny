@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3
@@ -7,6 +7,8 @@ Dafny program verifier did not attempt verification
 5 5 3
 1062 1063 1005 1005 1003
 true true
+20 20 *20 21 20
+20 20 *20 21 20
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3
@@ -14,6 +16,8 @@ Dafny program verifier did not attempt verification
 5 5 3
 1062 1063 1005 1005 1003
 true true
+20 20 *20 21 20
+20 20 *20 21 20
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3
@@ -21,6 +25,8 @@ Dafny program verifier did not attempt verification
 5 5 3
 1062 1063 1005 1005 1003
 true true
+20 20 *20 21 20
+20 20 *20 21 20
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3
@@ -28,6 +34,8 @@ Dafny program verifier did not attempt verification
 5 5 3
 1062 1063 1005 1005 1003
 true true
+20 20 *20 21 20
+20 20 *20 21 20
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3
@@ -35,3 +43,5 @@ Dafny program verifier did not attempt verification
 5 5 3
 1062 1063 1005 1005 1003
 true true
+20 20 *20 21 20
+20 20 *20 21 20

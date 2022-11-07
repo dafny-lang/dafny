@@ -3261,14 +3261,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+        Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
+        Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
+        wr.Write(source);
+        return;
+      }
       string dtorName;
       if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
-        if (tupleTypeDecl.NonGhostDims == 1) {
-          wr.Write(source);
-          return;
-        } else {
-          dtorName = $"dtor__{dtor.NameForCompilation}()";
-        }
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an invisible-wrapper type, handled above
+        dtorName = $"dtor__{dtor.NameForCompilation}()";
       } else if (int.TryParse(dtor.Name, out _)) {
         dtorName = $"dtor_{dtor.Name}()";
       } else {

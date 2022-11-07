@@ -2848,12 +2848,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
-        if (tupleTypeDecl.NonGhostDims == 1) {
-          wr.Write(source);
-        } else {
-          wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Token.NoToken));
-        }
+      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+        Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
+        Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
+        wr.Write(source);
+      } else if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an invisible-wrapper type, handled above
+        wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         wr = EmitCoercionIfNecessary(from: dtor.Type, to: bvType, tok: dtor.tok, wr: wr);
