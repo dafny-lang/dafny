@@ -109,6 +109,17 @@ If the Dafny method (say `p()`) is not a member of any class and is in the top-l
 
 The dafny build and run steps invoke `javac` and `java`. Dafny will use the version of those tools that would be invoked at a terminal prompt (e.g., the ones
 found by a Linux `$PATH`). 
+There is no mechanism to supply options to these internal uses of `javac` and `java`. However, `dafny` does use the value of the environment variable `CLASSPATH`. For example, if you are writing a Dafny program, `Demo.java`, which calls
+methods in `Demo.jar`, you can build and run the program using
+```CLASSPATH=`pwd`/Demo.jar dafny run -t:java Demo.dfy```.
+
+There are two means to include other options in the build. 
+First, one could create scripts named `java` and `javac` that invoke the actual `java` and `javac` with the desired options or environment settings, and then
+place theses scripts on the system `$PATH`.
+
+Alternately, one can use `dafny translate` to create the `.java` translation of the Dafny program and then use regular Java build processes to combine the
+Dafny-generated Java code with other Java code.
+
 ## **Matching Dafny and Java types**
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
@@ -132,7 +143,7 @@ corresponding types in the Dafny declaration:
 | string                        | dafny.DafnySequence<? extends Character>  |
 | JavaString                    | java.lang.String                        |
 | C, C? (for class, iterator C) | (class) C                   |
-| (trait) T                     | (iterator) T                |
+| (trait) T                     | (interface) T                |
 | datatype, codatatype          | (class) C                   |
 | subset type                   | same as base type           |
 | tuple                         | dafny.Tuple_n_              |
@@ -145,11 +156,18 @@ corresponding types in the Dafny declaration:
 | function (arrow) types        | java.util.function.Function<T',U'> |
 |-------------------------------|------------------------------|
 
-The only type for which there is a bit of disconnect is `string`.
+Either there is a direct match between the Dafny-generated Java types and the types used in the Java code (as listed in the table above), or some wrapper
+code is needed either on the Java side or on the Dafny side.
 
+- If Dafny is calling a Java method in some Java library and no alterations
+to the Java library are possible or desired, then the Dafny code must be written
+in such a way that the Dafny types will translate directly to the Java types.
+Often this requires defining a Dafny class that corresponds to the Java class.
+- A second design calls for writing a Java wrapper that will translate between
+the Dafny-generated (Java) types and the types used in the desired method.
+The wrapper will do appropriate conversions and call the desired method.
 
 ## Aspects not yet implemented fully:
 
-- Having a .jar file on the build or run command-line
 - Calling non-static Java functions and methods from Dafny
 - Conversion between Dafny and Java strings
