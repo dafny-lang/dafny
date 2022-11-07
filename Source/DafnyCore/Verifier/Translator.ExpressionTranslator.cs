@@ -305,7 +305,7 @@ namespace Microsoft.Dafny {
           } else if (e is CharLiteralExpr) {
             // we expect e.Value to be a string representing exactly one char
             Boogie.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
-            foreach (int ch in Util.UnescapedCharacters((string)e.Value, false)) {
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, false)) {
               Contract.Assert(rawElement == null);  // we should get here only once
               rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
             }
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny {
           } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Boogie.Expr seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqEmpty, predef.BoxType);
-            foreach (int ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
               var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
               Boogie.Expr elt = BoxIfNecessary(GetToken(expr), rawElement, Type.Char);
               seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);

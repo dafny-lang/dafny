@@ -788,6 +788,8 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
+  highSurrogate = '\ud800' .. '\udbff'.
+  lowSurrogate = '\udc00' .. '\udfff'.
   // These symbols are used but not needed as a production: "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
@@ -806,7 +808,7 @@ CHARACTERS
   idcharMinusPosDigitMinusQuery = idchar - posDigit - '?'.
   idcharMinusTick = idchar - '\''.
   /* string literals */
-  charChar = ANY - '\'' - '\\' - cr - lf.
+  charChar = ANY - '\'' - '\\' - cr - lf - highSurrogate - lowSurrogate.
   stringChar = ANY - '"' - '\\' - cr - lf.
   verbatimStringChar = ANY - '"'.
 
@@ -856,6 +858,16 @@ TOKENS
   charToken =
       "'"
       ( charChar
+        // Coco parses at the level of C# chars, meaning UTF-16 code units.
+        // (See https://github.com/SSW-CocoR/CocoR-CSharp/issues/4)
+        // We're working around that by inserting surrogate pairs
+        // as needed after reading the UTF-8 bytes.
+        // But that means character literals can appear to have more than one "character"
+        // in them. Normally we would just allow more than one charChar here and reject
+        // invalid sequences of them later, but because we allow single quotes in the
+        // "ident" rule above, that would then overlap with identifiers.
+        // Instead we only allow a surrogate pair here.
+        | highSurrogate lowSurrogate
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
         | "\\U{" { hexdigit } "}"

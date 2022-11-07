@@ -266,8 +266,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
+    /// 
+    /// It also converts surrogate pairs to their equivalent code points
+    /// if --unicode-char is enabled - these are sythesized by the parser when
+    /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
     public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
+      var unicodeChars = UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {
@@ -293,6 +298,9 @@ namespace Microsoft.Dafny {
               break;
             case { } when s.StartsWith(@"\U"):
               yield return Convert.ToInt32(s[3..^1], 16);
+              break;
+            case { } when unicodeChars && char.IsHighSurrogate(s[0]):
+              yield return char.ConvertToUtf32(s[0], s[1]);
               break;
             default:
               foreach (var c in s) {
@@ -347,6 +355,9 @@ namespace Microsoft.Dafny {
                 i += 2;
                 break;
             }
+          } else if (char.IsHighSurrogate(p[i])) {
+            yield return p[i..(i + 2)];
+            i += 2;
           } else {
             yield return p[i].ToString();
             i++;

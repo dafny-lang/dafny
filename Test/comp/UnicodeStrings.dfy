@@ -1,7 +1,6 @@
 // RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
 // TODO:
-// * Parse errors with character literals
 
 newtype uint8 = x: int | 0 <= x < 0x100 
 newtype uint16 = x: int | 0 <= x < 0x1_0000 
@@ -139,7 +138,7 @@ method CharComparisons() {
 
   // '￮' == [0xFFEE] in UTF-16
   // '𝄞' == [0xD834, 0xDD1E] in UTF-16
-  AssertAndExpect('￮' < '\U{1D11E}');
+  AssertAndExpect('￮' < '𝄞');
 }
 
 method AllCharsTest() {
