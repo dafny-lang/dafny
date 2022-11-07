@@ -12883,6 +12883,7 @@ namespace Microsoft.Dafny {
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
+          return;
         }
 
         IdPattern idpat = (IdPattern)pat;
@@ -12914,6 +12915,7 @@ namespace Microsoft.Dafny {
         if (!(pat is IdPattern)) {
           Contract.Assert(pat is LitPattern);
           reporter.Error(MessageSource.Resolver, pat.Tok, "Constant pattern used in place of datatype");
+          return;
         }
         IdPattern idpat = (IdPattern)pat;
 
@@ -13287,7 +13289,11 @@ namespace Microsoft.Dafny {
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS

@@ -1,0 +1,3 @@
+git-issue-2496.dfy(5,2): Error: unresolved identifier: b1
+git-issue-2496.dfy(5,2): Error: an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs
+2 resolution/type errors detected in git-issue-2496.dfy
