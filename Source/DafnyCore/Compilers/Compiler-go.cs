@@ -2980,16 +2980,17 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
-            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+            } else if (!EqualsUpToParameters(eqType, SimplifyType(e1.Type))) {
               staticCallString = "_dafny.AreEqual";
-            } else if (IsOrderedByCmp(e0.Type)) {
+            } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
               postOpString = " == 0";
-            } else if (IsComparedByEquals(e0.Type)) {
+            } else if (IsComparedByEquals(eqType)) {
               callString = "Equals";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "==";
             } else {
               staticCallString = "_dafny.AreEqual";
@@ -2997,19 +2998,20 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
               postOpString = "/* handle */";
-            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+            } else if (!EqualsUpToParameters(eqType, SimplifyType(e1.Type))) {
               preOpString = "!";
               staticCallString = "_dafny.AreEqual";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "!=";
               postOpString = "/* dircomp */";
-            } else if (IsOrderedByCmp(e0.Type)) {
+            } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
               postOpString = " != 0";
-            } else if (IsComparedByEquals(e0.Type)) {
+            } else if (IsComparedByEquals(eqType)) {
               preOpString = "!";
               callString = "Equals";
             } else {

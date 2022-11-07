@@ -2741,11 +2741,12 @@ namespace Microsoft.Dafny.Compilers {
           doPossiblyNativeBinOp("^", "xor", out preOpString, out opString, out postOpString, out callString);
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
-            } else if (e0.Type.IsRefType) {
+            } else if (eqType.IsRefType) {
               opString = "== (Object) ";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "==";
             } else {
               staticCallString = "java.util.Objects.equals";
@@ -2753,11 +2754,12 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
-            } else if (e0.Type.IsRefType) {
+            } else if (eqType.IsRefType) {
               opString = "!= (Object) ";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "!=";
             } else {
               preOpString = "!";

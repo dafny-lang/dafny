@@ -2018,13 +2018,14 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "===";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "===";
-            } else if (e0.Type.IsIntegerType || e0.Type.IsBitVectorType) {
+            } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
               callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
+            } else if (eqType.IsRealType) {
               callString = "equals";
             } else {
               staticCallString = "_dafny.areEqual";
@@ -2032,14 +2033,15 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            var eqType = SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!==";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "!==";
-            } else if (e0.Type.IsIntegerType) {
+            } else if (eqType.IsIntegerType) {
               preOpString = "!";
               callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
+            } else if (eqType.IsRealType) {
               preOpString = "!";
               callString = "equals";
             } else {

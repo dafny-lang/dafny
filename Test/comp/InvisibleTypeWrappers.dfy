@@ -17,6 +17,7 @@ method Main() {
   TestDiscriminators();
   TestMatchStmt();
   TestMatchExpr();
+  TestEquality();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -133,4 +134,30 @@ method TestMatchExpr() {
   print match c {
     case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => w
   }, "\n"; // 20
+}
+
+datatype Color = Pink | Gray | Green(int)
+datatype AnotherSingletonRecord = AnotherSingletonRecord(color: Color)
+
+datatype OneBool = OneBool(b: bool)
+
+method TestEquality() {
+  var r0 := SingletonRecord(62);
+  var r1 := SingletonRecord(63);
+
+  print r0 == r0, " ", r0 == r1, "\n"; // true false
+
+  var s0 := AnotherSingletonRecord(Green(100));
+  var s1 := AnotherSingletonRecord(Pink);
+  var s2 := AnotherSingletonRecord(Green(100));
+  var s3 := AnotherSingletonRecord(Green(101));
+
+  print s0 == s0, " "; // true
+  print s0 == s1, " "; // false
+  print s0 == s2, " "; // true
+  print s0 == s3, "\n"; // false
+
+  var b0 := OneBool(false);
+  var b1 := OneBool(true);
+  print b0 == b0, " ", b0 == b1, "\n"; // false true
 }
