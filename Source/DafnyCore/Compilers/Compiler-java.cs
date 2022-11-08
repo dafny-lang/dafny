@@ -945,10 +945,13 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, ConcreteSyntaxTree wr) {
       string typeDescriptorExpr = null;
-      if (enclosingTypeDecl != null) {
-        var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+      if (enclosingTypeDecl == null) {
+        // use reference type
+        typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
+      } else {
+        var targetType = SimplifyType(UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl));
         var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
-        switch (AsJavaNativeType(enclosingType)) {
+        switch (AsJavaNativeType(targetType)) {
           case JavaNativeType.Byte:
             typeDescriptorExpr = $"{DafnyTypeDescriptor}.byteWithDefault({w ?? "(byte)0"})";
             break;
@@ -962,38 +965,33 @@ namespace Microsoft.Dafny.Compilers {
             typeDescriptorExpr = $"{DafnyTypeDescriptor}.longWithDefault({w ?? "0L"})";
             break;
           case null:
-            if (enclosingType.IsBoolType) {
+            if (targetType.IsBoolType) {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
-            } else if (enclosingType.IsCharType) {
+            } else if (targetType.IsCharType) {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
-            } else if (initializer == null) {
-              var d = DefaultValue(enclosingType, wr, enclosingType.tok);
+            } else if (targetType.IsTypeParameter) {
+              typeDescriptorExpr = TypeDescriptor(targetType, wr, enclosingTypeDecl.tok);
+            } else {
+              var d = initializer ?? DefaultValue(targetType, wr, enclosingTypeDecl.tok);
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
             }
             break;
         }
       }
-      if (typeDescriptorExpr == null) {
-        // use reference type
-        typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
-      }
 
-      if (usedTypeParams == null || usedTypeParams.Count == 0) {
+      if (typeParams.Count == 0) {
         // a static context in Java does not see the enclosing type parameters
         wr.WriteLine($"private static final {DafnyTypeDescriptor}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
+        typeDescriptorExpr = "_TYPE";
       }
       wr.Write($"public static {TypeParameters(typeParams, " ")}{DafnyTypeDescriptor}<{targetTypeName}> {TypeMethodName}(");
-      if (usedTypeParams != null) {
-        var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
-        wr.Write(Util.Comma(typeDescriptorParams, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+      if (typeParams.Count != 0) {
+        var typeDescriptorParams = typeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
+        wr.Write(typeDescriptorParams.Comma(tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBlock(")", "");
       var typeDescriptorCast = $"({DafnyTypeDescriptor}<{targetTypeName}>) ({DafnyTypeDescriptor}<?>)";
-      if (usedTypeParams == null || usedTypeParams.Count == 0) {
-        wTypeMethodBody.WriteLine($"return {typeDescriptorCast} _TYPE;");
-      } else {
-        wTypeMethodBody.WriteLine($"return {typeDescriptorCast} {typeDescriptorExpr};");
-      }
+      wTypeMethodBody.WriteLine($"return {typeDescriptorCast} {typeDescriptorExpr};");
     }
 
     private string CastIfSmallNativeType(Type t) {
@@ -2535,7 +2533,7 @@ namespace Microsoft.Dafny.Compilers {
         if (type.IsBuiltinArrowType) {
           relevantTypeArgs = type.TypeArgs;
         } else if (cl is DatatypeDecl dt) {
-          relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
+          relevantTypeArgs = udt.TypeArgs;
         } else {
           relevantTypeArgs = new List<Type>();
           for (int i = 0; i < cl.TypeArgs.Count; i++) {

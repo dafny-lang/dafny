@@ -161,3 +161,33 @@ method TestEquality() {
   var b1 := OneBool(true);
   print b0 == b0, " ", b0 == b1, "\n"; // false true
 }
+
+type Odd = x | x % 2 == 1 witness 13
+datatype SingleOdd = SingleOdd(u: Odd)
+
+datatype GenericSingle<X> = GenericSingle(x: X)
+datatype GenericDouble<X, Y> = GenericDouble(x: X, y: Y)
+
+method TestDefaultValues<T(0), U(0)>() {
+  var r: SingletonRecord;
+  var xyz: (int, ghost int, int);
+  var abc: (ghost int, int, ghost int);
+  var klm: AnotherSingletonRecord;
+  print r, " ", xyz, " ", abc, " ", klm, "\n"; // 0 (0, 0) 0 Color.Pink
+
+  var odd: Odd;
+  var s: SingleOdd;
+  print odd, " ", s, " "; // 13 13
+
+  var g1: GenericSingle<Odd>;
+  var g2: GenericDouble<Odd, int>;
+  print g1, " ", g2, " "; // 13 GenericDouble(13, 0)
+
+  var t: T;
+  var u: U;
+  print t, " ", u, "\n"; // 0 13
+}
+
+method TestTypeParameters<X, Y, Z>(x: GenericGhostOrNot<X>, y: GenericGhostOrNot<Y>, z: Z) {
+  print x, " ", y, " ", z, "\n"; // <gen> 3.14 2.7
+}

@@ -1038,11 +1038,11 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Remove any invisible type wrappers and simplify ghost typle types.
     /// </summary>
-    protected Type SimplifyType(Type ty) {
+    protected Type SimplifyType(Type ty, bool keepConstraints = false) {
       Contract.Requires(ty != null);
       Contract.Requires(ty is not TypeProxy);
 
-      ty = ty.NormalizeExpand();
+      ty = ty.NormalizeExpand(keepConstraints);
       if (!OptimizesInvisibleDatatypeWrappers) {
         return ty;
       }
@@ -1067,15 +1067,15 @@ namespace Microsoft.Dafny.Compilers {
 
         } else if (udt.ResolvedClass is IndDatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
           var typeSubst = Resolver.TypeSubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
-          var stype = Resolver.SubstType(dtor.Type, typeSubst).NormalizeExpand();
-          return SimplifyType(stype);
+          var stype = Resolver.SubstType(dtor.Type, typeSubst).NormalizeExpand(keepConstraints);
+          return SimplifyType(stype, keepConstraints);
         }
       }
 
       // Simplify the type arguments of "ty"
       if (ty.TypeArgs.Count != 0) {
-        var simplifiedArguments = ty.TypeArgs.ConvertAll(SimplifyType);
-        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand() != simplifiedArguments[i])) {
+        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(typeArg, keepConstraints));
+        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand(keepConstraints) != simplifiedArguments[i])) {
           Resolver.ReplaceTypeArguments(ty, simplifiedArguments);
         }
       }
@@ -2904,8 +2904,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      type = SimplifyType(type);
+      type = SimplifyType(type, true);
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
 #if !KRML_DONE_DEBUGGING
       if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
@@ -2925,8 +2924,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      type = SimplifyType(type);
+      type = SimplifyType(type, true);
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
 #if !KRML_DONE_DEBUGGING
       if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {

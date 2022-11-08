@@ -271,9 +271,9 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return {ForcePlaceboValue(simplifiedType, wDefault, dt.tok)}");
+        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(simplifiedType, wDefault, dt.tok)}");
       } else if (IsInvisibleWrapper(dt, out var dtor)) {
-        wDefault.WriteLine($"return {DefaultValue(dtor.Type, wDefault, dt.tok)}");
+        wDefault.WriteLine($"return lambda: {DefaultValue(dtor.Type, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
         var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";

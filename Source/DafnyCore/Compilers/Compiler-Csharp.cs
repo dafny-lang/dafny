@@ -1717,7 +1717,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
 
       var s = TypeName_UDT(fullCompileName, udt, wr, tok);
-      s += $"._TypeDescriptor({typeDescriptors.Comma(arg => TypeDescriptor(arg, wr, tok))})";
+      s += $".{TypeDescriptorMethodName}({typeDescriptors.Comma(arg => TypeDescriptor(arg, wr, tok))})";
       return s;
     }
 
