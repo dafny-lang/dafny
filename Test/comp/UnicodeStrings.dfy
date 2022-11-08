@@ -1,7 +1,5 @@
 // RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
-// TODO:
-
 newtype uint8 = x: int | 0 <= x < 0x100 
 newtype uint16 = x: int | 0 <= x < 0x1_0000 
 newtype uint32 = x: int | 0 <= x < 0x1_0000_0000 
@@ -15,8 +13,6 @@ newtype int64 = x: int | -0x8000_0000_0000_0000 <= x < 8000_0000_0000_0000
 // WARNING: Do not do this in real code!
 // It's a great example of what NOT to do when working with Unicode,
 // since the concept of upper/lower case is culture-specific.
-// TODO: more thorough testing of comparators, especially
-// edge cases where lexicographic comparision of UTF-8/16 would get the wrong answer.
 function method ToLower(ch: char): char {
   if 'A' <= ch <= 'Z' then
     ch - 'A' + 'a'
@@ -96,6 +92,7 @@ method AssertAndExpect(p: bool)
 }
 
 method CharCasting() {
+  // TODO: more edge cases for UTF-8/16
   var chars := "\0azAZ\U{10FFFF}";
   for i := 0 to |chars| {
     CastChar(chars[i]);
@@ -129,7 +126,7 @@ method CharComparisons() {
   AssertAndExpect('a' < 'b');
   AssertAndExpect('a' <= 'a');
   AssertAndExpect('b' > 'a');
-  AssertAndExpect('b' >= 'a');
+  AssertAndExpect('b' >= 'b');
 
   // Some evil edge cases to catch comparing
   // encoded bytes lexicographically by accident 😈.
@@ -142,11 +139,12 @@ method CharComparisons() {
 }
 
 method AllCharsTest() {
-  // var allChars := set c: char | true;
-  // var allCodePoints := (set cp: int | 0 <= cp < 0xD800 :: cp as char)
-  //                    + (set cp: int | 0xE000 <= cp < 0x11_0000 :: cp as char);
-  // assert forall c: char :: 0 <= c as int < 0xD800 || 0xE000 <= c as int < 0x11_0000;
-  // assert allChars == allCodePoints;
-  // expect allChars == allCodePoints;
-
+  // TODO: We get trigger warnings from these lines even when specifying /noVerify,
+  // which messes up the expectations for %testDafnyForEachCompiler
+  var allChars := set c: char | true;
+  var allCodePoints := (set cp: int | 0 <= cp < 0xD800 :: cp as char)
+                     + (set cp: int | 0xE000 <= cp < 0x11_0000 :: cp as char);
+  assert forall c: char :: 0 <= c as int < 0xD800 || 0xE000 <= c as int < 0x11_0000;
+  assert allChars == allCodePoints;
+  expect allChars == allCodePoints;
 }
