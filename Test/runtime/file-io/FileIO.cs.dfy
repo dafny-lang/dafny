@@ -1,4 +1,7 @@
-include "./FileIO.dfy"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%S/FileIO.expect" "%t"
+
+include "./AbstractFileIO.dfy"
 
 module FileIO_Csharp refines AbstractFileIO {
   export extends AbstractFileIO

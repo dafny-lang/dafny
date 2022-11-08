@@ -1,4 +1,7 @@
-include "./FileIO.dfy"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+include "./AbstractFileIO.dfy"
 
 abstract module AbstractTest {
   import FileIO : AbstractFileIO

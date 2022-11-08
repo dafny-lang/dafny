@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %baredafny run %args --no-verify --target:js "%s" -- "%S/ReadBytesFromFile.dfy.data" >> "%t"
-// RUN: %diff "%S/ReadBytesFromFile.dfy.expect" "%t"
+// RUN: %baredafny run %args --no-verify --target:js "%s" -- "%S/ReadBytesFromFile.data" >> "%t"
+// RUN: %diff "%S/ReadBytesFromFile.expect" "%t"
 
-include "./ReadBytesFromFile.dfy"
+include "./AbstractReadBytesFromFile.dfy"
 include "./FileIO.js.dfy"
 
 module Test refines AbstractTest {
