@@ -1088,7 +1088,12 @@ namespace Microsoft.Dafny.Compilers {
       bool isGeneric = arg.Type.AsSeqType != null &&
                        arg.Type.AsSeqType.Arg.IsTypeParameter;
       var wStmts = wr.Fork();
-      if (isString) {
+      if (isStringLiteral && !UnicodeChars) {
+        // process.stdout.write(_dafny.toString(x));
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false, wStmts);
+        wr.WriteLine("));");
+      } else if (isString) {
         if (UnicodeChars) {
           wr.Write($"process.stdout.write(");
           TrParenExpr(arg, wr, false, wStmts);
@@ -2378,9 +2383,17 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         ConcreteSyntaxTree wrElements;
-        wr.Write($"{DafnySeqClass}.of(");
-        wrElements = wr.Fork();
-        wr.Write(")");
+        if (ct.Arg.IsCharType && !UnicodeChars) {
+          // We're really constructing a string.
+          // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
+          wr.Write("[");
+          wrElements = wr.Fork();
+          wr.Write("].join(\"\")");
+        } else {
+          wr.Write($"{DafnySeqClass}.of(");
+          wrElements = wr.Fork();
+          wr.Write(")");
+        }
         string sep = "";
         foreach (var e in elements) {
           wrElements.Write(sep);
