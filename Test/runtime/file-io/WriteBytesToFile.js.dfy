@@ -7,7 +7,7 @@ include "./AbstractWriteBytesToFile.dfy"
 include "./FileIO.js.dfy"
 
 module Test refines AbstractTest {
-  import FileIO = FileIO_Javascript
+  import AbstractFileIO = FileIO
 
   function method ExpectedErrorMessagePrefix(): string {
     "Error: ENOENT"

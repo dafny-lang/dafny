@@ -4,7 +4,7 @@
 include "./AbstractFileIO.dfy"
 
 abstract module AbstractTest {
-  import FileIO : AbstractFileIO
+  import AbstractFileIO : AbstractFileIO
 
   function method ExpectedErrorMessagePrefix(): string
 
@@ -16,7 +16,7 @@ abstract module AbstractTest {
       expect |args| == 2;
       var dataFilePath := args[1];
 
-      var res := FileIO.ReadBytesFromFile(dataFilePath);
+      var res := AbstractFileIO.ReadBytesFromFile(dataFilePath);
       expect res.Success?, "unexpected failure: " + res.error;
 
       var readBytes := seq(|res.value|, i requires 0 <= i < |res.value| => res.value[i] as int);
@@ -24,7 +24,7 @@ abstract module AbstractTest {
     }
 
     {
-      var res := FileIO.ReadBytesFromFile("");
+      var res := AbstractFileIO.ReadBytesFromFile("");
       expect res.Failure?, "unexpected success";
       expect ExpectedErrorMessagePrefix() <= res.error, "unexpected error message: " + res.error;
     }

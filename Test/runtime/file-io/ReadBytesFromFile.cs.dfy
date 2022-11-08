@@ -6,7 +6,7 @@ include "./AbstractReadBytesFromFile.dfy"
 include "./FileIO.cs.dfy"
 
 module Test refines AbstractTest {
-  import FileIO = FileIO_Csharp
+  import AbstractFileIO = FileIO
 
   function method ExpectedErrorMessagePrefix(): string {
     "System.ArgumentException: "

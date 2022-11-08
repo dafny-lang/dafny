@@ -3,7 +3,7 @@
 
 include "./AbstractFileIO.dfy"
 
-module FileIO_Javascript refines AbstractFileIO {
+module FileIO refines AbstractFileIO {
   export extends AbstractFileIO
 
   method

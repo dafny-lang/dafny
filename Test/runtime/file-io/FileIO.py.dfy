@@ -3,7 +3,7 @@
 
 include "./AbstractFileIO.dfy"
 
-module FileIO_Python refines AbstractFileIO {
+module FileIO refines AbstractFileIO {
   export extends AbstractFileIO
 
   method

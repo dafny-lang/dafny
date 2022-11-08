@@ -6,7 +6,7 @@ include "./AbstractReadBytesFromFile.dfy"
 include "./FileIO.py.dfy"
 
 module Test refines AbstractTest {
-  import FileIO = FileIO_Python
+  import AbstractFileIO = FileIO
 
   function method ExpectedErrorMessagePrefix(): string {
     "[Errno 2]"

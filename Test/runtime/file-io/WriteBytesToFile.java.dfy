@@ -7,7 +7,7 @@ include "./AbstractWriteBytesToFile.dfy"
 include "./FileIO.java.dfy"
 
 module Test refines AbstractTest {
-  import FileIO = FileIO_Java
+  import AbstractFileIO = FileIO
 
   function method ExpectedErrorMessagePrefix(): string {
     "java.nio.file.FileSystemException: "

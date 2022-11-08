@@ -3,7 +3,7 @@
 
 include "./AbstractFileIO.dfy"
 
-module FileIO_Csharp refines AbstractFileIO {
+module FileIO refines AbstractFileIO {
   export extends AbstractFileIO
 
   method
