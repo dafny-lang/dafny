@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.IO;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using JetBrains.Annotations;
@@ -63,6 +64,46 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public CoverageInstrumenter Coverage;
+
+    public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
+      var psi = new ProcessStartInfo(programName) {
+        UseShellExecute = false,
+        CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
+      };
+      foreach (var arg in args ?? Enumerable.Empty<string>()) {
+        psi.ArgumentList.Add(arg);
+      }
+      return psi;
+    }
+
+    public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
+      process.WaitForExit();
+      if (process.ExitCode != 0 && errorMessage != null) {
+        outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+      }
+      return process.ExitCode;
+    }
+
+    public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
+      string additionalInfo = "";
+
+      try {
+        if (Process.Start(psi) is { } process) {
+          return process;
+        }
+      } catch (System.ComponentModel.Win32Exception e) {
+        additionalInfo = $": {e.Message}";
+      }
+
+      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      return null;
+    }
+
+    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
+      return StartProcess(psi, outputWriter) is { } process ?
+         WaitForExit(process, outputWriter, errorMessage) : -1;
+    }
+
 
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
