@@ -1019,6 +1019,16 @@ let _dafny = (function() {
     a.splice(0, 2, args[0] + " " + args[1]);
     return a;
   }
+  /**
+   * Attempts to read all bytes from the file at the given `path`, and returns an array of the following values:
+   *
+   *   - `isError`: true iff an exception was thrown during path string conversion or when reading the file
+   *   - `bytesRead`: the sequence of bytes from the file, or an empty sequence if `isError` is true
+   *   - `errorMsg`: the error message of the thrown error if `isError` is true, or an empty sequence otherwise
+   *
+   * We return these values individually because `Result` is not defined in the runtime but instead in library code.
+   * It is the responsibility of library code to construct an equivalent `Result` value.
+   */
   $module.INTERNAL_ReadBytesFromFile = function(path) {
     const fs = requireFilesystemModule();
     const emptySeq = _dafny.Seq.of();
@@ -1032,6 +1042,15 @@ let _dafny = (function() {
       return [true, emptySeq, errorMsg];
     }
   }
+  /**
+   * Attempts to write all given `bytes` to the file at the given `path`, and returns an array of the following values:
+   *
+   *   - `isError`: true iff an exception was thrown during path string conversion or when writing to the file
+   *   - `errorMsg`: the error message of the thrown error if `isError` is true, or an empty sequence otherwise
+   *
+   * We return these values individually because `Result` is not defined in the runtime but instead in library code.
+   * It is the responsibility of library code to construct an equivalent `Result` value.
+   */
   $module.INTERNAL_WriteBytesToFile = function(path, bytes) {
     const fs = requireFilesystemModule();
     try {

@@ -214,6 +214,20 @@ public class Helpers {
         }
     }
 
+    /**
+     * Attempts to read all bytes from the file at {@code path}, and returns a tuple of the following values:
+     * <dl>
+     *     <dt>{@code isError}</dt>
+     *     <dd>true iff an exception was thrown during path string conversion or when reading the file</dd>
+     *     <dt>{@code bytesRead}</dt>
+     *     <dd>the sequence of bytes read from the file, or an empty sequence if {@code isError} is true</dd>
+     *     <dt>{@code errorMsg}</dt>
+     *     <dd>the error message of the thrown exception if {@code isError} is true, or an empty sequence otherwise</dd>
+     * </dl>
+     * <p>
+     * We return these values individually because {@code Result} is not defined in the runtime but instead in library code.
+     * It is the responsibility of library code to construct an equivalent {@code Result} value.
+     */
     public static Tuple3<Boolean, DafnySequence<? extends Byte>, DafnySequence<? extends Character>>
         INTERNAL_ReadBytesFromFile(DafnySequence<? extends Character> path) {
         try {
@@ -227,6 +241,18 @@ public class Helpers {
         }
     }
 
+    /**
+     * Attempts to write {@code bytes} to the file at {@code path}, and returns a tuple of the following values:
+     * <dl>
+     *     <dt>{@code isError}</dt>
+     *     <dd>true iff an exception was thrown during path string conversion or when writing to the file</dd>
+     *     <dt>{@code errorMsg}</dt>
+     *     <dd>the error message of the thrown exception if {@code isError} is true, or an empty sequence otherwise</dd>
+     * </dl>
+     * <p>
+     * We return these values individually because {@code Result} is not defined in the runtime but instead in library code.
+     * It is the responsibility of library code to construct an equivalent {@code Result} value.
+     */
     public static Tuple2<Boolean, DafnySequence<? extends Character>>
         INTERNAL_WriteBytesToFile(DafnySequence<? extends Character> path, DafnySequence<? extends Byte> bytes) {
         try {
