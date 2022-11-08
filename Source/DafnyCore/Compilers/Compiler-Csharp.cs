@@ -928,7 +928,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
             var nm = FieldName(arg, i);
-            w.Write(IsDirectlyComparable(arg.Type)
+            w.Write(IsDirectlyComparable(SimplifyType(arg.Type))
               ? $" && this.{nm} == oth.{nm}"
               : $" && object.Equals(this.{nm}, oth.{nm})");
 

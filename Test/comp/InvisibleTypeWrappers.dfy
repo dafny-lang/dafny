@@ -190,6 +190,9 @@ datatype SingleOdd = SingleOdd(u: Odd)
 datatype GenericSingle<X> = GenericSingle(x: X)
 datatype GenericDouble<X, Y> = GenericDouble(x: X, y: Y)
 
+type SX = (ghost int, bool, ghost int)
+datatype SX4 = SX4(a: SX, ghost b: real) // represented as just bool
+
 method TestDefaultValues<T(0), U(0)>() {
   var r: SingletonRecord;
   var xyz: (int, ghost int, int);
@@ -207,7 +210,8 @@ method TestDefaultValues<T(0), U(0)>() {
 
   var t: T;
   var u: U;
-  print t, " ", u, "\n"; // 0 13
+  var sx4: SX4;
+  print t, " ", u, " ", sx4, "\n"; // 0 13 false
 }
 
 method TestTypeParameters<X, Y, Z>(x: GenericGhostOrNot<X>, y: GenericGhostOrNot<Y>, z: Z) {

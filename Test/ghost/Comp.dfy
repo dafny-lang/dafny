@@ -143,10 +143,10 @@ method MoreSingletonTests() {
   print arr2[1], " ", arr2[2], "\n"; // 0 15
 
   var sx3 := SX3(arr[2], 4.0);
-  print sx3, "\n"; // SX3(9)
+  print sx3, "\n"; // 9
   var arr3 := new SX3[20];
   UpdateArray(arr3, sx3);
-  print arr3[1], " ", arr3[2], "\n"; // SX3(0) SX3(9)
+  print arr3[1], " ", arr3[2], "\n"; // 0 9
 }
 
 method PrintOneSx(g: SX) {

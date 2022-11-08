@@ -1980,7 +1980,7 @@ namespace Microsoft.Dafny.Compilers {
           if (!arg.IsGhost) {
             var nm = FieldName(arg, i);
             w.Write(" && ");
-            if (IsDirectlyComparable(arg.Type)) {
+            if (IsDirectlyComparable(SimplifyType(arg.Type))) {
               w.Write($"this.{nm} == o.{nm}");
             } else {
               w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");

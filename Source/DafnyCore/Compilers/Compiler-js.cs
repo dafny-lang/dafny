@@ -482,7 +482,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               string nm = FormalName(arg, k);
-              if (IsDirectlyComparable(arg.Type)) {
+              if (IsDirectlyComparable(SimplifyType(arg.Type))) {
                 guard.Write(" && this.{0} === other.{0}", nm);
               } else {
                 guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);

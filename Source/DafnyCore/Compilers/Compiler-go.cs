@@ -861,11 +861,12 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               wCase.Write(" && ");
               string nm = DatatypeFieldName(arg, k);
-              if (IsDirectlyComparable(arg.Type)) {
+              var eqType = SimplifyType(arg.Type);
+              if (IsDirectlyComparable(eqType)) {
                 wCase.Write("data1.{0} == data2.{0}", nm);
-              } else if (IsOrderedByCmp(arg.Type)) {
+              } else if (IsOrderedByCmp(eqType)) {
                 wCase.Write("data1.{0}.Cmp(data2.{0}) == 0", nm);
-              } else if (IsComparedByEquals(arg.Type)) {
+              } else if (IsComparedByEquals(eqType)) {
                 wCase.Write("data1.{0}.Equals(data2.{0})", nm);
               } else {
                 wCase.Write("_dafny.AreEqual(data1.{0}, data2.{0})", nm);
