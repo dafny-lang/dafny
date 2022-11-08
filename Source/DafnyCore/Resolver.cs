@@ -2721,6 +2721,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
           Contract.Assert(dd.Constraint != null);  // follows from SubsetTypeDecl invariant
           scope.PushMarker();
+          scope.AllowInstance = false;
           var added = scope.Push(dd.Var.Name, dd.Var);
           Contract.Assert(added == Scope<IVariable>.PushResult.Success);
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
@@ -2748,7 +2749,10 @@ namespace Microsoft.Dafny {
               // Resolve the value expression
               if (field.Rhs != null) {
                 var ec = reporter.Count(ErrorLevel.Error);
+                scope.PushMarker();
+                scope.AllowInstance = currentClass is ClassDecl cd && !cd.IsDefaultClass;
                 ResolveExpression(field.Rhs, resolutionContext);
+                scope.PopMarker();
                 if (reporter.Count(ErrorLevel.Error) == ec) {
                   // make sure initialization only refers to constant field or literal expression
                   if (CheckIsConstantExpr(field, field.Rhs)) {
@@ -14875,7 +14879,7 @@ namespace Microsoft.Dafny {
           // there's no type
         } else {
           if (currentClass == null) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "there is no enclosing type that 'this' can refer to");
+            Contract.Assert(reporter.HasErrors);
           } else {
             expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
           }
