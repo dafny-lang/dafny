@@ -1465,6 +1465,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(e, wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else {
+        wr.Write("(char)");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
       }
     }
