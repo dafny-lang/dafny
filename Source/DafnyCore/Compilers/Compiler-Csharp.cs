@@ -981,7 +981,7 @@ namespace Microsoft.Dafny.Compilers {
                     w.WriteLine($"{tempVar} += \", \";");
                   }
 
-                  if (arg.Type.IsStringType) {
+                  if (arg.Type.IsStringType && UnicodeChars) {
                     w.WriteLine($"{tempVar} += '\"';");
                     w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString();");
                     w.WriteLine($"{tempVar} += '\"';");
