@@ -44,7 +44,7 @@ module TestMod {
   method TestClass(e:ExternClass) {
     var x := e.my_method0(0);
     var y := e.my_method1(1);
-    print x,y;
+    print x, y, "\n";
   }
 
   method TestExternClass2() {
