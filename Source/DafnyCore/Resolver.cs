@@ -2800,7 +2800,10 @@ namespace Microsoft.Dafny {
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
             var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            scope.PushMarker();
+            scope.AllowInstance = false;
             ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
+            scope.PopMarker();
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
