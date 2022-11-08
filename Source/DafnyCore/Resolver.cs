@@ -16609,6 +16609,9 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      if (!expr.Lhs.WasResolved()) {
+        return null;
+      }
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
