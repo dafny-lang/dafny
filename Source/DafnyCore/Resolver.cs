@@ -2750,7 +2750,11 @@ namespace Microsoft.Dafny {
               if (field.Rhs != null) {
                 var ec = reporter.Count(ErrorLevel.Error);
                 scope.PushMarker();
-                scope.AllowInstance = currentClass is ClassDecl cd && !cd.IsDefaultClass;
+                if ((currentClass is ClassDecl cd && !cd.IsDefaultClass) || currentClass is DatatypeDecl ||
+                    currentClass is OpaqueTypeDecl) {
+                } else {
+                  scope.AllowInstance = false;
+                }
                 ResolveExpression(field.Rhs, resolutionContext);
                 scope.PopMarker();
                 if (reporter.Count(ErrorLevel.Error) == ec) {
