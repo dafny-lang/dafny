@@ -2273,71 +2273,29 @@ namespace Microsoft.Dafny.Compilers {
 
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
-        files.Add($"\"{Path.GetFullPath(file)}\"");
+        files.Add(Path.GetFullPath(file));
       }
-      var classpath = GetClassPath(targetFilename);
-      var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.EnvironmentVariables["CLASSPATH"] = classpath;
-      var proc = Process.Start(psi)!;
-      DataReceivedEventHandler printer = (sender, e) => {
-        if (e.Data is not null) {
-          outputWriter.WriteLine(e.Data);
-        }
-      };
-      proc.ErrorDataReceived += printer;
-      proc.OutputDataReceived += printer;
-      proc.BeginErrorReadLine();
-      proc.BeginOutputReadLine();
-      proc.WaitForExit();
 
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling Java files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      var psi = PrepareProcessStartInfo("java",
+        args: DafnyOptions.O.MainArgs.Prepend(Path.GetFileNameWithoutExtension(targetFilename)));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      var classpath = Environment.GetEnvironmentVariable("CLASSPATH");
-      // Note that the items in the CLASSPATH must habs absolute paths because the compilation is performed in a subfolder of where the command-line is executed
-      var cp = classpath != null && classpath.Length != 0 ? (Path.PathSeparator + classpath) : "";
-      return "." + Path.PathSeparator + targetDirectory + Path.PathSeparator + Path.Combine(targetDirectory, "DafnyRuntime.jar") + cp;
+      var classpath = Environment.GetEnvironmentVariable("CLASSPATH"); // String.join converts null to ""
+      // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
+      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {

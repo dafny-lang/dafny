@@ -1743,27 +1743,8 @@ namespace Microsoft.Dafny.Compilers {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-      var psi = new ProcessStartInfo("python3") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
-      psi.ArgumentList.Add(targetFilename);
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
-
-      try {
-        using var pythonProcess = Process.Start(psi);
-        pythonProcess.StandardInput.Close();
-        pythonProcess.WaitForExit();
-        return pythonProcess.ExitCode == 0;
-      } catch (Exception e) {
-        outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
-        return false;
-      }
+      var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }
