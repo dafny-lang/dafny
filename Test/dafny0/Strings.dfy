@@ -40,7 +40,8 @@ method Main()
   print "Escape X: ", x, "\n";
   print "Escape Y: ", y, "\n";
   print "Escape Z: ", z, "\n";
-  print "Escape ZZ: ", zz, "\n";
+  // TODO: Won't work until https://github.com/dafny-lang/dafny/issues/2999 is addressed
+  // print "Escape ZZ: ", zz, "\n";
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
 

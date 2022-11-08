@@ -341,7 +341,7 @@ namespace Microsoft.Dafny.Compilers {
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
         .Select(f => {
-          if (f.Type.IsStringType) {
+          if (f.Type.IsStringType && UnicodeChars) {
             return $"\"{{self.{IdProtect(f.CompileName)}.VerbatimString()}}\"";
           } else {
             return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
