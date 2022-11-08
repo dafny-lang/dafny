@@ -139,12 +139,13 @@ method CharComparisons() {
 }
 
 method AllCharsTest() {
-  // TODO: We get trigger warnings from these lines even when specifying /noVerify,
-  // which messes up the expectations for %testDafnyForEachCompiler
-  var allChars := set c: char | true;
-  var allCodePoints := (set cp: int | 0 <= cp < 0xD800 :: cp as char)
-                     + (set cp: int | 0xE000 <= cp < 0x11_0000 :: cp as char);
-  assert forall c: char :: 0 <= c as int < 0xD800 || 0xE000 <= c as int < 0x11_0000;
+  var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
+  var allCodePoints := (set cp: int {:trigger Identity(cp)} | 0 <= cp < 0xD800 :: Identity(cp as char))
+                     + (set cp: int {:trigger Identity(cp)} | 0xE000 <= cp < 0x11_0000 :: Identity(cp as char));
+  assert forall c: char {:trigger Identity(c)} :: 0 <= Identity(c as int) < 0xD800 || 0xE000 <= Identity(c as int) < 0x11_0000;
+  assert forall c: char :: Identity(c) in allChars;
   assert allChars == allCodePoints;
   expect allChars == allCodePoints;
 }
+
+function method Identity<T>(x: T): T { x }
