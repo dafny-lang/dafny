@@ -224,7 +224,7 @@ def discover(args):
         for release_js in js["assets"]:
             flush("Parva - release js-{}".format(release_js))
             release = Release(release_js, args.version, args.out)
-            if release.os_name == "osx"
+            if release.os_name == "osx":
                 tmp_release_js = release_js
                 tmp_release_js["name"] = "z3-4.8.5-x64-osx-10.14.2.zip"
                 flush("Parva - tmp js {}".format(tmp_release_js))
