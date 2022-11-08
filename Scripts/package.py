@@ -304,12 +304,12 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if not args.trial:
-        if not DAFNY_RELEASE_REGEX.match(args.version):
-            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-            return
-        if not check_version_cs(args):
-            return
+    #if not args.trial:
+    #    if not DAFNY_RELEASE_REGEX.match(args.version):
+    #        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+    #        return
+    #    if not check_version_cs(args):
+    #        return
 
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
