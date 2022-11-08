@@ -1020,11 +1020,8 @@ let _dafny = (function() {
     return a;
   }
   $module.INTERNAL_ReadBytesFromFile = function(path) {
-    const fs = require("fs");
+    const fs = requireFilesystemModule();
     const emptySeq = _dafny.Seq.of();
-    if (typeof(fs) !== 'object') {
-      return [true, emptySeq, "fs module not found (file I/O is only supported on Node)"];
-    }
     try {
       const readOpts = { encoding: null };  // read as buffer, not string
       const buf = fs.readFileSync(path, readOpts);
@@ -1033,6 +1030,17 @@ let _dafny = (function() {
     } catch (e) {
       const errorMsg = _dafny.Seq.from(e.toString());
       return [true, emptySeq, errorMsg];
+    }
+  }
+  $module.INTERNAL_WriteBytesToFile = function(path, bytes) {
+    const fs = requireFilesystemModule();
+    try {
+      const buf = require("buffer").Buffer.from(bytes);
+      fs.writeFileSync(path, buf);  // no need to specify encoding because data is a Buffer
+      return [false, _dafny.Seq.of()];
+    } catch (e) {
+      const errorMsg = _dafny.Seq.from(e.toString());
+      return [true, errorMsg];
     }
   }
   return $module;
@@ -1070,5 +1078,12 @@ let _dafny = (function() {
         a = a.modulo(b);
       }
     }
+  }
+  function requireFilesystemModule() {
+    const fs = require("fs");
+    if (typeof(fs) !== 'object') {
+      return [true, _dafny.Seq.of(), "fs module not found (file I/O is only supported on Node)"];
+    }
+    return fs;
   }
 })();
