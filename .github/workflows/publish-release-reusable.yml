@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       release_nuget:
-        required: true
+        required: false
         type: boolean
     secrets:
       # Required if release_nuget is true

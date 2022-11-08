@@ -130,6 +130,9 @@ class Release:
     def run_publish(self, project):
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
+        if env["RUNTIME_IDENTIFIER"] == "osx.11.0-arm64":
+            flush("Parva ----- target acquired")
+        flush(" PARVA  target - {}".format(self.target))
         flush("   + Publishing " + project)
         remaining = 3
         exitStatus = 1
@@ -151,10 +154,11 @@ class Release:
                         ("time" if remaining == 1 else f"{remaining} times"))
         flush("done!")
 
-    def build(self):
+    def build(self,target =""):
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
-
+        if target != "":
+            self.target = target
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
@@ -163,12 +167,17 @@ class Release:
         self.run_publish("DafnyRuntime")
         self.run_publish("Dafny")
 
-    def pack(self):
+    def pack(self,target=""):
         try:
             os.remove(self.dafny_zip)
         except FileNotFoundError:
             pass
         missing = []
+        if target != "":
+            flush("Parva --- zipifying itt target is : {}  z3 archive: {}".format(self.target,self.z3_zip))
+            self.dafny_name = "dafny-3.9.1-arm64-osx-11.0.zip"
+            self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
+
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
                 z3_files_count = 0
@@ -212,7 +221,6 @@ def discover(args):
     req = request.Request(Z3_RELEASES_URL, None, options)
     with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
-
         for release_js in js["assets"]:
             release = Release(release_js, args.version, args.out)
             if release.platform == "x64":
@@ -245,10 +253,15 @@ def run(cmd):
 
 def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
+
     for release in releases:
-        flush("    + {}:".format(release.dafny_name), end=' ')
-        release.build()
-        release.pack()
+        flush("Parva   +dafny_name: {}  args: {}:".format(release.dafny_name,args), end=' ')
+        release.build("osx.11.0-arm64")
+        release.pack("osx.11.0-arm64")
+        '''if release.os_name == "osx":
+            release.build("osx.11.0-arm64")
+            release.pack("osx.11.0-arm64")'''
+
     if not args.skip_manual:
         run(["make", "--quiet", "refman"])
 
@@ -303,13 +316,11 @@ def main():
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args))
+    
     if args.os:
-        releases = list(filter(lambda release: release.os_name == args.os, releases))
-        flush("printing releases Parva- {}").format(releases)
+       releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
-
     flush("* Building and packaging Dafny")
     pack(args, releases)
-
 if __name__ == '__main__':
     main()
