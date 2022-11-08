@@ -1,5 +1,5 @@
-SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(909,14): Error: target object might be null
 SmallTests.dfy(901,14): Error: target object might be null
 SmallTests.dfy(34,11): Error: index out of range
@@ -54,7 +54,7 @@ SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that 
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
 Dafny program verifier finished with 56 verified, 48 errors
-SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy.tmp.dprint.dfy(803,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification

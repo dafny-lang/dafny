@@ -1831,6 +1831,7 @@ public class OldExpr : Expression {
   [Peer]
   public readonly Expression E;
   public readonly string/*?*/ At;
+  [FilledInDuringResolution] public bool Useless = false;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {
