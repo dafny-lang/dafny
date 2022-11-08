@@ -8,7 +8,8 @@
 
 datatype SingletonRecord = SingletonRecord(u: int)
 datatype GhostOrNot = ghost Ghost(a: int, b: int) | Compiled(x: int)
-//datatype GenericGhostOrNot<X> = ghost Ghost(a: int, b: int) | GenericCompiled(x: X)
+datatype GenericGhostOrNot<X> = ghost Ghost(a: int, b: int) | GenericCompiled(x: X)
+datatype GenericSingletonPlusGhost<X> = GenericSingletonPlusGhost(ghost decade: int, x: X)
 
 method Main() {
   TestTargetTypesAndConstructors();
@@ -18,6 +19,8 @@ method Main() {
   TestMatchStmt();
   TestMatchExpr();
   TestEquality();
+  TestDefaultValues<SingletonRecord, SingleOdd>();
+  TestTypeParameters(GenericCompiled("<gen>"), GenericCompiled(3.14), GenericCompiled(2.7));
 }
 
 method TestTargetTypesAndConstructors() {
@@ -26,8 +29,9 @@ method TestTargetTypesAndConstructors() {
   var rst := (2, 5);
   var xyz := (2, ghost 3, 5); // type of xyz should turn into Tuple2
   var abc := (ghost 2, 3, ghost 5); // type of abc should turn into int
+  var gen := GenericCompiled("<gen>");
 
-  print r, " ", g, " ", rst, " ", xyz, " ", abc, "\n"; // 62 63 (2, 5) (2, 5) 3
+  print r, " ", g, " ", rst, " ", xyz, " ", abc, " ", gen, "\n"; // 62 63 (2, 5) (2, 5) 3 <gen>
 }
 
 method TestSelect() {
@@ -36,12 +40,14 @@ method TestSelect() {
   var rst := (2, 5);
   var xyz := (2, ghost 3, 5);
   var abc := (ghost 2, 3, ghost 5);
+  var gen := GenericSingletonPlusGhost(1980, "<gen>");
 
   print r.u, " "; // 62
   print g.x, " "; // 63
   print rst.1, " "; // 5
   print xyz.2, " "; // 5
-  print abc.1, "\n"; // 3
+  print abc.1, " "; // 3
+  print gen.x, "\n"; // <gen>
 }
 
 method TestUpdate() {
@@ -50,32 +56,38 @@ method TestUpdate() {
   var rst := (2, 5);
   var xyz := (2, ghost 3, 5);
   var abc := (ghost 2, 3, ghost 5);
+  var gen := GenericSingletonPlusGhost(1980, "<gen>");
 
   rst := rst.(0 := 888);
   xyz := xyz.(0 := 888);
   abc := abc.(0 := 888); // no-op
+  gen := gen.(decade := 1982); // no-op
 
   print rst.1, " "; // 5
   print xyz.2, " "; // 5
-  print abc.1, "\n"; // 3
+  print abc.1, " "; // 3
+  print gen.x, "\n"; // <gen>
 
   r := r.(u := 1062); // rhs optimized to just 1062
   g := g.(x := 1063); // rhs optimized to just 1063
   rst := rst.(1 := 1005);
   xyz := xyz.(2 := 1005);
   abc := abc.(1 := 1003); // rhs optimized to just 1003
+  gen := gen.(x := "<neg>");
 
   print r.u, " "; // 1062
   print g.x, " "; // 1063
   print rst.1, " "; // 1005
   print xyz.2, " "; // 1005
-  print abc.1, "\n"; // 1003
+  print abc.1, " "; // 1003
+  print gen.x, "\n"; // <gen>
 }
 
 method TestDiscriminators() {
   var r := SingletonRecord(62);
   var g := Compiled(63);
-  print r.SingletonRecord?, " ", g.Compiled?, "\n"; // true true
+  var gen := GenericSingletonPlusGhost(1980, "<gen>");
+  print r.SingletonRecord?, " ", g.Compiled?, " ", gen.GenericSingletonPlusGhost?, "\n"; // true true true
 }
 
 method TestMatchStmt() {
@@ -84,6 +96,7 @@ method TestMatchStmt() {
   var c0 := (ghost 100, 101, a, ghost 103, 104);
   var c1 := (c0, ghost 200);
   var c := (ghost 300, c1);
+  var gen := GenericSingletonPlusGhost(1980, "<gen>");
 
   match a {
     case SingletonRecord(u0) => print u0, " "; // 20
@@ -103,7 +116,11 @@ method TestMatchStmt() {
   }
 
   match c {
-    case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => print w, "\n"; // 20
+    case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => print w, " "; // 20
+  }
+
+  match gen {
+    case GenericSingletonPlusGhost(_, s) => print s, "\n"; // <gen>
   }
 }
 
@@ -113,6 +130,7 @@ method TestMatchExpr() {
   var c0 := (ghost 100, 101, a, ghost 103, 104);
   var c1 := (c0, ghost 200);
   var c := (ghost 300, c1);
+  var gen := GenericSingletonPlusGhost(1980, "<gen>");
 
   print match a {
     case SingletonRecord(u0) => u0
@@ -133,7 +151,11 @@ method TestMatchExpr() {
 
   print match c {
     case (g300, ((g100, h101, SingletonRecord(w), g103, h104), g200)) => w
-  }, "\n"; // 20
+  }, " "; // 20
+
+  print match gen {
+    case GenericSingletonPlusGhost(_, s) => s
+  }, "\n"; // <gen>
 }
 
 datatype Color = Pink | Gray | Green(int)
