@@ -13,6 +13,13 @@ these are the abstract module `AbstractFileIO` and the concrete `FileIO_*` modul
 The `AbstractReadBytesFromFile.dfy` and `ReadBytesFromFile.*.dfy` files demonstrate intended usage
 (as do the `AbstractWriteBytesToFile.dfy` and `WriteBytesToFile.*.dfy` files).
 
+(Implementation note:
+it's necessary to define target languages' `extern`s in separate modules/files
+because there's no single module/symbol name that all target languages can share.
+For example, the top-level namespace in the C# runtime is `Dafny`,
+whereas the top-level package of the Java runtime is `dafny`.
+Python, Javascript, and Golang share the `_dafny` top-level namespace/package.)
+
 TODO:
 Once the runtime changes are merged,
 the wrapping modules are to be copied into [the libraries repository](https://github.com/dafny-lang/libraries)
