@@ -427,3 +427,11 @@ def INTERNAL_ReadBytesFromFile(path: Seq) -> (bool, Seq, Seq):
             return False, Seq(file.read()), Seq()
     except Exception as e:
         return True, Seq(), Seq(str(e))
+
+def INTERNAL_WriteBytesToFile(path: Seq, bytes_: Seq) -> (bool, Seq):
+    try:
+        with open(string_of(path), "wb") as file:
+            file.write(bytes(bytes_))
+            return False, Seq()
+    except Exception as e:
+        return True, Seq(str(e))
