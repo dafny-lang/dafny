@@ -12889,6 +12889,7 @@ namespace Microsoft.Dafny {
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
+          return;
         }
 
         IdPattern idpat = (IdPattern)pat;
@@ -12920,6 +12921,7 @@ namespace Microsoft.Dafny {
         if (!(pat is IdPattern)) {
           Contract.Assert(pat is LitPattern);
           reporter.Error(MessageSource.Resolver, pat.Tok, "Constant pattern used in place of datatype");
+          return;
         }
         IdPattern idpat = (IdPattern)pat;
 
@@ -16605,6 +16607,9 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      if (!expr.Lhs.WasResolved()) {
+        return null;
+      }
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
