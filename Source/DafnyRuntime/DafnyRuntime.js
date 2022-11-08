@@ -1022,7 +1022,7 @@ let _dafny = (function() {
   /**
    * Attempts to read all bytes from the file at the given `path`, and returns an array of the following values:
    *
-   *   - `isError`: true iff an exception was thrown during path string conversion or when reading the file
+   *   - `isError`: true iff an error was thrown during path string conversion or when reading the file
    *   - `bytesRead`: the sequence of bytes from the file, or an empty sequence if `isError` is true
    *   - `errorMsg`: the error message of the thrown error if `isError` is true, or an empty sequence otherwise
    *
@@ -1045,7 +1045,7 @@ let _dafny = (function() {
   /**
    * Attempts to write all given `bytes` to the file at the given `path`, and returns an array of the following values:
    *
-   *   - `isError`: true iff an exception was thrown during path string conversion or when writing to the file
+   *   - `isError`: true iff an error was thrown during path string conversion or when writing to the file
    *   - `errorMsg`: the error message of the thrown error if `isError` is true, or an empty sequence otherwise
    *
    * We return these values individually because `Result` is not defined in the runtime but instead in library code.
