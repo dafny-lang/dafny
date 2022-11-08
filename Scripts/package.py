@@ -25,7 +25,7 @@ import ntpath
 ## Get a specific Z3 release like this:
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
-Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64|arm64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
@@ -226,7 +226,7 @@ def discover(args):
             release = Release(release_js, args.version, args.out)
             if release.os_name == "osx":
                 tmp_release_js = release_js
-                tmp_release_js["name"] = "z3-4.8.5-x64-osx-10.14.2.zip"
+                tmp_release_js.update({'name':'z3-4.8.5-arm64-osx-11.0.zip'})
                 flush("Parva - tmp js {}".format(tmp_release_js))
                 tmp_release = Release(tmp_release_js, args.version, args.out)
                 yield tmp_release
@@ -265,9 +265,6 @@ def pack(args, releases):
         flush("Parva   +dafny_name: {}  args: {}:".format(release.dafny_name,args), end=' ')
         release.build()
         release.pack()
-        if release.os_name == "osx":
-            release.build("osx.11.0-arm64")
-            release.pack("osx.11.0-arm64")
 
     if not args.skip_manual:
         run(["make", "--quiet", "refman"])
@@ -323,8 +320,6 @@ def main():
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args))
-    
-    
     if args.os:
        releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
