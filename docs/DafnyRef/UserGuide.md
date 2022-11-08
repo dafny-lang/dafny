@@ -1034,7 +1034,7 @@ implementation.
   size.  The compiler will report inappropriate integer use.
 - The C++ compiler does not support more advanced Dafny features like traits or coinductive
   types.
-- xiThere is very limited support for higher order functions even for array initialization.  Use
+- There is very limited support for higher order functions even for array initialization.  Use
   extern definitions like newArrayFill (see 
   [extern.dfy](https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
   similar.  See also the example in [`functions.dfy`]
