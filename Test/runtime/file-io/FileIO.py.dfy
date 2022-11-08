@@ -10,4 +10,8 @@ module FileIO_Python refines AbstractFileIO {
     {:extern "_dafny", "INTERNAL_ReadBytesFromFile"} {:compile false}
     INTERNAL_ReadBytesFromFile(path: string)
     returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string)
+
+  // TODO
+  method INTERNAL_WriteBytesToFile(path: string, bytes: seq<bv8>)
+    returns (isError: bool, errorMsg: string) { return true, "NOT IMPLEMENTED YET"; }
 }

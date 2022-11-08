@@ -10,21 +10,18 @@ abstract module AbstractTest {
 
   method Main(args: seq<string>) {
     {
-      var expectedStr := "Hello world\nGoodbye\n";
-      var expectedBytes := seq(|expectedStr|, i requires 0 <= i < |expectedStr| => expectedStr[i] as int);
+      var str := "Hello world\nGoodbye\n";
+      var bytes := seq(|str|, i requires 0 <= i < |str| => str[i] as bv8);
 
       expect |args| == 2;
       var dataFilePath := args[1];
 
-      var res := FileIO.ReadBytesFromFile(dataFilePath);
+      var res := FileIO.WriteBytesToFile(dataFilePath, bytes);
       expect res.Success?, "unexpected failure: " + res.error;
-
-      var readBytes := seq(|res.value|, i requires 0 <= i < |res.value| => res.value[i] as int);
-      expect readBytes == expectedBytes, "read unexpected byte sequence";
     }
 
     {
-      var res := FileIO.ReadBytesFromFile("");
+      var res := FileIO.WriteBytesToFile("", []);
       expect res.Failure?, "unexpected success";
       expect ExpectedErrorMessagePrefix() <= res.error, "unexpected error message: " + res.error;
     }
