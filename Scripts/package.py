@@ -222,7 +222,14 @@ def discover(args):
     with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
         for release_js in js["assets"]:
+            flush("Parva - release js-{}".format(release_js))
             release = Release(release_js, args.version, args.out)
+            if release.os_name == "osx"
+                tmp_release_js = release_js
+                tmp_release_js["name"] = "z3-4.8.5-x64-osx-10.14.2.zip"
+                flush("Parva - tmp js {}".format(tmp_release_js))
+                tmp_release = Release(tmp_release_js, args.version, args.out)
+                yield tmp_release
             if release.platform == "x64":
                 flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
                 yield release
@@ -256,11 +263,11 @@ def pack(args, releases):
 
     for release in releases:
         flush("Parva   +dafny_name: {}  args: {}:".format(release.dafny_name,args), end=' ')
-        release.build("osx.11.0-arm64")
-        release.pack("osx.11.0-arm64")
-        '''if release.os_name == "osx":
+        release.build()
+        release.pack()
+        if release.os_name == "osx":
             release.build("osx.11.0-arm64")
-            release.pack("osx.11.0-arm64")'''
+            release.pack("osx.11.0-arm64")
 
     if not args.skip_manual:
         run(["make", "--quiet", "refman"])
@@ -316,6 +323,7 @@ def main():
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args))
+    
     
     if args.os:
        releases = list(filter(lambda release: release.os_name == args.os, releases))
