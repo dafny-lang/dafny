@@ -3775,7 +3775,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool IsObjectType(Type type) {
       return type == NativeObjectType || type.IsTypeParameter;
     }
-    
+
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
