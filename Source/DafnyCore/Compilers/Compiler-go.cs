@@ -1272,7 +1272,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      var xType = type.NormalizeExpandKeepConstraints();
+      var xType = SimplifyType(type, true);
       if (xType is BoolType) {
         return "_dafny.BoolType";
       } else if (xType is CharType) {

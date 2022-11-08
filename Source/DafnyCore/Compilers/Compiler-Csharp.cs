@@ -1616,7 +1616,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      type = type.NormalizeExpandKeepConstraints();
+      type = SimplifyType(type, true);
       if (type is BoolType) {
         return "Dafny.Helpers.BOOL";
       } else if (type is CharType) {

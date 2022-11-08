@@ -730,12 +730,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return "_dafny.Rtd_bool";
-      }
-
+      var xType = SimplifyType(type, true);
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {

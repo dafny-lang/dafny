@@ -559,7 +559,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return type.NormalizeExpandKeepConstraints() switch {
+      return SimplifyType(type) switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
