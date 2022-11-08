@@ -10301,7 +10301,7 @@ namespace Microsoft.Dafny {
             // method should have been filled in by now,
             // unless there was a function by method and a method of the same name
             // but then this error must have been reported.
-            Contract.Assert(reporter.ErrorCount >= 1);
+            Contract.Assert(reporter.ErrorCount > 0);
           }
         }
       }
