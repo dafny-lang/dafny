@@ -213,7 +213,7 @@ public class Helpers {
             System.out.println("[Program halted] " + e.getMessage());
         }
     }
-    
+
     public static Tuple3<Boolean, DafnySequence<? extends Byte>, DafnySequence<? extends Character>>
         INTERNAL_ReadBytesFromFile(DafnySequence<? extends Character> path) {
         try {
@@ -226,7 +226,7 @@ public class Helpers {
             return Tuple3.create(true, DafnySequence.empty(TypeDescriptor.BYTE), errorMsg);
         }
     }
-    
+
     public static Tuple2<Boolean, DafnySequence<? extends Character>>
         INTERNAL_WriteBytesToFile(DafnySequence<? extends Character> path, DafnySequence<? extends Byte> bytes) {
         try {
