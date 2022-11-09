@@ -1011,7 +1011,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (!OptimizesInvisibleDatatypeWrappers || dt.IsExtern(out _, out _) || dt.Members.Any(member => member is Field)) {
+      if (!OptimizesInvisibleDatatypeWrappers ||
+          !(dt is IndDatatypeDecl) ||
+          dt.IsExtern(out _, out _) ||
+          dt.Members.Any(member => member is Field)) {
         // don't optimize
         // TODO: also don't optimize if a constructor parameter involves the type itself
       } else {
