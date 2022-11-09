@@ -6,16 +6,16 @@
 // RUN: %diff "%s.expect" "%t"
 // The Java compiler lacks support for this (see dafny0/RuntimeTypeTests0.dfy).
 
-datatype X<+U> = X(x: U)
+datatype X<+U> = X(x: U, i: int)
 
 trait Tr {}
 class Cl extends Tr {
-    constructor () {}
+  constructor () {}
 }
 
 method Main() {
-    var cl := new Cl();
-    var e: X<Tr> := X(cl);
-    match e
-    case X(tr) => return;
+  var cl := new Cl();
+  var e: X<Tr> := X(cl, 1815);
+  match e
+  case X(tr, i) => return;
 }

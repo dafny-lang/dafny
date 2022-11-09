@@ -4991,7 +4991,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(logicalBody, wBody, true, wStmts);
+        TrExpr(logicalBody, wBody, inLetExprBody, wStmts);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
