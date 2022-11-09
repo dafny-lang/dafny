@@ -42,8 +42,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
   public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var indentationFormatter = new IndentationFormatter();
-    indentationFormatter.ReduceBlockiness = reduceBlockiness;
+    var indentationFormatter = new IndentationFormatter {
+      ReduceBlockiness = reduceBlockiness
+    };
     foreach (var include in program.DefaultModuleDef.Includes) {
       if (include.OwnedTokens.Count > 0) {
         indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens[0], 0);

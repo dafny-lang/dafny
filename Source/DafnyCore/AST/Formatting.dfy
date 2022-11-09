@@ -4,6 +4,17 @@
 /// It then prints every token (proven) in order, reindenting its leading trivia and trailing trivia
 
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
+  class {:extern "Text.StringBuilder"} {:compile false} CsStringBuilder {
+    ghost var built: CsString
+    constructor {:extern} ()
+    method {:extern "Append"} Append(s: CsString)
+      modifies this
+      ensures built == String.Concat(old(built), s)
+    // This hack is necessary because ToString is replaced by ToString_
+    // in the C# compiler, even if it's declared extern...
+    method {:extern @"ToString().ToString"} ToString() returns (r: CsString)
+      ensures r == built
+  }
   type {:extern "String"} CsString(!new,==) {
     ghost predicate {:extern} Contains(needle: CsString)
     lemma {:axiom} ContainsTransitive(other: CsString, needle: CsString)
@@ -121,7 +132,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         ensures forall token <- firstToken.allTokens :: s.Contains(token.val)
       {
         var token: IToken? := firstToken;
-        s := CsStringEmpty;
+        var sb := new CsStringBuilder();
         var currentIndent := CsStringEmpty;
         ghost var i := 0;
         var leadingTriviaWasPreceededByNewline := true;
@@ -133,7 +144,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
                     && token.Valid()
                     && i < |allTokens|
                     && token == allTokens[i]
-          invariant forall t <- allTokens[0..i] :: s.Contains(t.val)
+          invariant forall t <- allTokens[0..i] :: sb.built.Contains(t.val)
         {
           if(token.Next == null) {
             firstToken.TokenNextIsNullImpliesLastToken(token, i);
@@ -148,14 +159,17 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           var newLeadingTrivia := reindent.Reindent(token, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
           var newTrailingTrivia := reindent.Reindent(token, true, false, indentationAfter, indentationAfter);
           leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
-          ghost var sPrev := s;
-          s := String.Concat(s, String.Concat(newLeadingTrivia, String.Concat(token.val, newTrailingTrivia)));
+          ghost var sPrev := sb.built;
+          sb.Append(newLeadingTrivia);
+          sb.Append(token.val);
+          sb.Append(newTrailingTrivia);
           currentIndent := indentationAfter;
           ContainsTransitive();
-          assert {:split_here} forall t <- allTokens[0..i+1] :: s.Contains(t.val);
+          assert {:split_here} forall t <- allTokens[0..i+1] :: sb.built.Contains(t.val);
           token := token.Next;
           i := i + 1;
         }
+        s := sb.ToString();
       }
     }
   }
