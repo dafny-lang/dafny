@@ -1383,13 +1383,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = type.NormalizeExpand();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "object";
-      }
-
-      xType = SimplifyType(xType);
+      var xType = SimplifyType(type);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {

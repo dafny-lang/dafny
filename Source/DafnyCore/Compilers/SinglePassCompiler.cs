@@ -1043,6 +1043,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(ty is not TypeProxy);
 
       ty = ty.NormalizeExpand(keepConstraints);
+      Contract.Assert(ty is NonProxyType);
       if (!OptimizesInvisibleDatatypeWrappers) {
         return ty;
       }
