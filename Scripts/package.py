@@ -130,8 +130,6 @@ class Release:
     def run_publish(self, project):
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
-        if env["RUNTIME_IDENTIFIER"] == "osx.11.0-arm64":
-            flush("Parva ----- target acquired")
         flush(" PARVA  target - {}".format(self.target))
         flush("   + Publishing " + project)
         remaining = 3
