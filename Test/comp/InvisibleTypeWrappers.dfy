@@ -252,3 +252,26 @@ method TestMembers() {
   var f := MakeF(4 as bv7);
   print f, " ", f.F(), "\n"; // 4 (4, 4)
 }
+
+// --- Here are some test types to make sure DowncastClone methods are generated properly
+
+datatype XCell<B, -Unused> = MakeXCell(xdata: B, ii: int)
+datatype XList<X, Y> =
+  | KKK(aa: XCell<X, int>)
+  | LLL(bb: XList<X, Y>)
+
+datatype Cell<B> = MakeCell(data: B)
+datatype List<X, Y> =
+  | AAA(aa: Cell<X>)
+  | BBB(bb: List<X, Y>)
+datatype MetaList<X, Y> =
+  | MMM(mm: List<X, Y>)
+  | NNN(nn: MetaList<X, Y>)
+
+datatype SCell<B> = MakeSCell(sdata: seq<B>)
+datatype SList<X, Y> =
+  | RRR(rr: Cell<X>)
+  | SSS(ss: List<X, Y>)
+datatype SMetaList<X, Y> =
+  | TTT(tt: List<X, Y>)
+  | UUU(uu: MetaList<X, Y>)
