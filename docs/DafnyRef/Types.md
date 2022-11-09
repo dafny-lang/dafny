@@ -479,7 +479,8 @@ supported escape sequences are the following:
  `\n`               | line feed
  `\r`               | carriage return
  `\t`               | horizontal tab
- `\u`_xxxx_         | [universal (unicode) character](https://en.wikipedia.org/wiki/Universal_Character_Set_characters) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\u`_xxxx_         | [UTF-16 code unit](https://en.wikipedia.org/wiki/UTF-16) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\U{`_x..x_`}`     | [Unicode scalar value](https://unicode.org/glossary/#unicode_scalar_value) whose hexadecimal code is _x..x_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
@@ -487,6 +488,9 @@ character---both forms are provided in order to support the same
 escape sequences in string literals ([Section 10.3.5](#sec-strings)).
 In the form `\u`_xxxx_, the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
+Similarly in the form `\U{`_x..x_`}`, the `U` is always upper case,
+but the hexadecimal digits are case insensitive, and there must
+be at least one and at most six digits.
 
 Character values are ordered and can be compared using the standard
 relational operators:
