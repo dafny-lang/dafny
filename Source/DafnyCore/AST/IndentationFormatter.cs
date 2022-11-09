@@ -305,7 +305,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
   }
 
-  // functions, methods, predicates, iterators...
+  // functions, methods, predicates, iterators, can all be formatted using this method.
+  // See FormatterWorksForMethodsInModule in Formatter.cs to see how methods are formatted.
   void SetMethodLikeIndent(IToken startToken, IEnumerable<IToken> ownedTokens, int indent) {
     var indent2 = indent + SpaceTab;
     if (startToken.val != "{") {
