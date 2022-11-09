@@ -23,22 +23,16 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
   private readonly int SpaceTab = 2;
 
-  private readonly Dictionary<int, int> posToIndentBefore;
-  private readonly Dictionary<int, int> posToIndentLineBefore;
-  private readonly Dictionary<int, int> posToIndentAfter;
+  private readonly Dictionary<int, int> posToIndentBefore = new();
+  private readonly Dictionary<int, int> posToIndentLineBefore = new();
+  private readonly Dictionary<int, int> posToIndentAfter = new();
 
   // Used for bullet points && and ||
   private int binOpIndent = -1;
   private int binOpArgIndent = -1;
 
 
-  private IndentationFormatter(
-    Dictionary<int, int> posToIndentBefore,
-    Dictionary<int, int> posToIndentLineBefore,
-    Dictionary<int, int> posToIndentAfter) {
-    this.posToIndentBefore = posToIndentBefore;
-    this.posToIndentLineBefore = posToIndentLineBefore;
-    this.posToIndentAfter = posToIndentAfter;
+  private IndentationFormatter() {
     preResolve = true;
   }
 
@@ -48,10 +42,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
   public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var indentationFormatter = new IndentationFormatter(
-      new(),
-      new(),
-      new());
+    var indentationFormatter = new IndentationFormatter();
     indentationFormatter.ReduceBlockiness = reduceBlockiness;
     foreach (var include in program.DefaultModuleDef.Includes) {
       if (include.OwnedTokens.Count > 0) {
