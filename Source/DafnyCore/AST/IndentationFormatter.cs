@@ -323,6 +323,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var rightIndent = indent2 + SpaceTab;
     var commaIndent = indent2;
     var extraParenIndent = 0;
+    var firstParensClosed = false;
     foreach (var token in ownedTokens) {
       switch (token.val) {
         case "{":
@@ -350,9 +351,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           SetIndentations(token, rightIndent, commaIndent, rightIndent);
           break;
         case ")":
+          firstParensClosed = true;
           SetIndentations(token, rightIndent, indent + extraParenIndent, indent2);
           break;
-        case ">" or "]" or ")":
+        case ">" or "]":
           SetIndentations(token, rightIndent, indent2, indent2);
           break;
         case "}" when !posToIndentLineBefore.ContainsKey(token.pos):
@@ -360,7 +362,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           break;
         case "returns":
         case ":":
-          extraParenIndent = SpaceTab;
+          if (firstParensClosed) {
+            extraParenIndent = SpaceTab;
+          }
+
           break;
         case "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant" or "yield": {
             if (IsFollowedByNewline(token)) {
