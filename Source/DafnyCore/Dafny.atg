@@ -870,7 +870,7 @@ TOKENS
         | highSurrogate lowSurrogate
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
-        | "\\U{" { hexdigit } "}"
+        | "\\U{" hexdigit { hexdigit } "}"
       )
       "'".
   stringToken =
@@ -878,7 +878,7 @@ TOKENS
       { stringChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
-        | "\\U{" { hexdigit } "}"
+        | "\\U{" hexdigit { hexdigit } "}"
       }
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
@@ -4183,6 +4183,9 @@ LiteralExpression<out Expression e>
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
                                                   Util.ValidateEscaping(t, s, false, errors);
+                                                  if (Util.UnescapedCharacters(s, false).Count() > 1) {
+                                                    errors.SemErr(t, "too many characters in character literal");
+                                                  }
                                                   e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);

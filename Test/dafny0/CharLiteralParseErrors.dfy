@@ -8,6 +8,5 @@
 module UnicodeCharSupport {
   const goodLiteral := '$'
   const goodNonASCIILiteral := '€'
-  const goodNonBMPLiteral := '💰'
-  const badMultiCharLiteral := '€€'
+  const badNonBMPLiteral := '💰' // error: too many characters in character literal
 }

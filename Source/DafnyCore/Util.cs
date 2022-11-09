@@ -189,18 +189,37 @@ namespace Microsoft.Dafny {
 
     public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
       if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-        if (TokensWithEscapes(s, isVerbatimString).Any(t => t.StartsWith("\\u"))) {
-          errors.SemErr(t, "\\u escape sequences not supported when Unicode chars are enabled");
+        foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
+          if (token.StartsWith("\\u")) {
+            errors.SemErr(t, "\\u escape sequences are not permitted when Unicode chars are enabled");
+          }
+
+          if (token.StartsWith("\\U")) {
+            // At most 10 characters in total (\U{XXXXXX})
+            if (token.Length > 10) {
+              errors.SemErr(t, "\\U{X..X} escape sequence must have at most six hex digits");
+            } else {
+              var codePoint = Convert.ToInt32(token[3..^1], 16);
+              if (codePoint >= 0x11_0000) {
+                errors.SemErr(t, "\\U{X..X} escape sequence must be at most 10FFFF");
+              }
+              if (codePoint is >= 0xD800 and < 0xE000) {
+                errors.SemErr(t, "\\U{X..X} escape sequence must not be a surrogate");
+              }
+            }
+          }
         }
       } else {
-        if (TokensWithEscapes(s, isVerbatimString).Any(t => t.StartsWith("\\U"))) {
-          errors.SemErr(t, "\\U escape sequences not supported when Unicode chars are disabled");
+        foreach (var token2 in TokensWithEscapes(s, isVerbatimString)) {
+          if (token2.StartsWith("\\U")) {
+            errors.SemErr(t, "\\U escape sequences are not permitted when Unicode chars are disabled");
+          }
         }
       }
     }
 
     public static bool MightContainNonAsciiCharacters(string s, bool isVerbatimString) {
-      // This is conservative since \u escapes could be ASCII characters,
+      // This is conservative since \u and \U escapes could be ASCII characters,
       // but that's fine since this method is just used as a conservative guard.
       return TokensWithEscapes(s, isVerbatimString).Any(e =>
         e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u") || e.StartsWith(@"\U"));
