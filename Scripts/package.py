@@ -171,12 +171,11 @@ class Release:
         except FileNotFoundError:
             pass
         missing = []
-        if target != "":
-            flush("Parva --- zipifying itt target is : {}  z3 archive: {}".format(self.target,self.z3_zip))
-            self.dafny_name = "dafny-3.9.1-arm64-osx-11.0.zip"
-            self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
-
+        if self.target == "osx-arm64":
+            self.z3_name = "z3-4.8.5-x64-osx-10.14.2.zip"
+            self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
+            
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
