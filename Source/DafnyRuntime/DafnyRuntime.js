@@ -1006,7 +1006,7 @@ let _dafny = (function() {
     for (let i = 0; i < 0xD800; i++) {
       yield new _dafny.CodePoint(i);
     }
-    for (let i = 0xE0000; i < 0x11_0000; i++) {
+    for (let i = 0xE0000; i < 0x110000; i++) {
       yield new _dafny.CodePoint(i);
     }
   }
