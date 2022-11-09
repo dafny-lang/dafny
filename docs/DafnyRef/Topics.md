@@ -225,12 +225,6 @@ and will then raise the error that it's not possible to update the non-ghost var
 
 ## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
-TODO: This section needs rewriting
-
-This section is a tutorial on well-founded functions and extreme predicates.
-We place it here in preparation for [the section about class types](#sec-class-types)
-where function and predicate definitions are described.
-
 Recursive functions are a core part of computer science and mathematics.
 Roughly speaking, when the definition of such a function spells out a
 terminating computation from given arguments, we may refer to
@@ -268,7 +262,7 @@ available in the proof assistants Isabelle [@Paulson:CADE1994] and HOL
 [@Harrison:InductiveDefs].
 
 Dafny supports both well-founded functions and extreme predicates.
-This section is a tutorial that describes the difference in general
+This section describes the difference in general
 terms, and then describes novel syntactic support in Dafny for
 defining and proving lemmas with extreme predicates.  Although Dafny's
 verifier has at its core a first-order SMT solver, Dafny's logical
@@ -276,12 +270,12 @@ encoding makes it possible to reason about fixpoints in an automated
 way.
 
 The encoding for greatest predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-co-inductive-datatypes).
+[@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-coinductive-datatypes).
 
 ### 24.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
-write an equation like
+write a general equation like
 
 <p style="text-align: center;" id="eq-general">
 $$f = \mathcal{F}(f)$$
@@ -293,10 +287,10 @@ Because it takes a function as an argument,
 $\mathcal{F}$
 is referred to as a _functor_ (or _functional_, but not to be
 confused by the category-theory notion of a functor).
-Throughout, I will assume that
+Throughout, assume that
 $\mathcal{F}(f)$
 by itself is well defined,
-for example that it does not divide by zero.  I will also assume that
+for example that it does not divide by zero.  Also assume that
 $f$
 occurs
 only in fully applied calls in
@@ -307,8 +301,8 @@ $f$
 is a `boolean` function, that is, if
 $Y$
 is
-the type of booleans, then I call
-$f$
+the type of booleans, then 
+$f$ is called
 a _predicate_.
 
 For example, the common Fibonacci function over the
@@ -373,9 +367,7 @@ be some predicate defined on the ordinals and let $\mathit{P}_\downarrow$ be a p
 ordinals defined by the following equation:
 
 <p style="text-align: center;">
-$$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p)
-$$
+$\mathit{P}_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}_\downarrow(p)$
 </p>
 
 
@@ -410,11 +402,9 @@ Let's explore this, after a smidgen of lattice theory.
 For any complete lattice $(Y,\leq)$ and any set $X$, we can by _pointwise extension_ define
 a complete lattice $(X \to Y, \dot{\Rightarrow})$, where for any $f,g \colon X \to Y$,
 
-
-Equation
 <p style="text-align: center;">
 $$
-f \dot{\Rightarrow} q  \;\;\equiv\;\; \forall x \bullet\; f(x) \leq g(x)
+f \dot{\Rightarrow} g  \;\;\equiv\;\; \forall x \bullet\; f(x) \leq g(x)
 $$
 </p>
 
@@ -432,19 +422,19 @@ solutions to [the general equation](#eq-general) are the same as the least and g
 In casual speak, it happens that we say "fixpoint of [the general equation](#eq-general)", or more
 grotesquely, "fixpoint of $f$" when we really mean "fixpoint of $\mathcal{F}$".
 
-In conclusion of our little excursion into lattice theory, we have that, under the
+To conclude our little excursion into lattice theory, we have that, under the
 proviso of $\mathcal{F}$ being monotonic, the set of solutions in $f$ to [the general equation](#eq-general) is nonempty,
 and among these solutions, there is in the $\dot{\Rightarrow}$ ordering a least solution (that is,
 a function that returns `false` more often than any other) and a greatest solution (that
 is, a function that returns `true` more often than any other).
 
-When discussing extreme solutions, I will now restrict my attention to boolean functions
+When discussing extreme solutions, let's now restrict our attention to boolean functions
 (that is, with $Y$ being the type of booleans).  Functor $\mathcal{F}$ is monotonic
 if the calls to $f$ in $\mathcal{F}'(f)$ are in _positive positions_ (that is, under an even number
-of negations).  Indeed, from now on, I will restrict my attention to such monotonic
+of negations).  Indeed, from now on, we will restrict our attention to such monotonic
 functors $\mathcal{F}$.
 
-Let me introduce a running example.  Consider the following equation,
+Here is a running example.  Consider the following equation,
 where $x$ ranges over the integers:
 
 <p style="text-align: center;" id="eq-EvenNat" title="the EvenNat equation">
@@ -531,31 +521,37 @@ the recursive calls in the definition [the EvenNat equation](#eq-EvenNat) to try
 terminate.  However, there are useful ways to establish that an extreme predicate holds
 and there are ways to make use of one once it has been established.
 
-For any $\mathcal{F}$ as in [the general equation](#eq-general), I define two infinite series of well-founded
+For any $\mathcal{F}$ as in [the general equation](#eq-general), define two infinite series of well-founded
 functions, ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$
 where $k$ ranges over the natural numbers:
 
-<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">$$
+<p style="text-align: center;" id="eq-least-approx" title="the least approx definition">
+$$
    { {}^{\flat}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\flat}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-     \right\} $$.</p>
+     \right\} 
+$$
+</p>
 
-<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">$$
+<p style="text-align: center;" id="eq-greatest-approx" title="the greatest approx definition">
+$$
    { {}^{\sharp}\kern-1mm f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
       \mathcal{F}({ {}^{\sharp}\kern-1mm f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
-    \right\} $$.</p>
+    \right\} 
+$$
+</p>
 
-These functions are called the _iterates_ of $f$, and I will also refer to them
+These functions are called the _iterates_ of $f$, and we will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
 of $k$ as being a parameter).
 Alternatively, we can define ${ {}^{\flat}\kern-1mm f}_k$ and ${ {}^{\sharp}\kern-1mm f}_k$ without mentioning $x$:
-Let $\bot$ denote the function that always returns `false`, let $\top$
+let $\bot$ denote the function that always returns `false`, let $\top$
 denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
 exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
 Then, [the least approx definition](#eq-least-approx) and [the greatest approx definition](#eq-greatest-approx) can be stated equivalently as
@@ -569,7 +565,7 @@ such that $k \leq \ell$:
  {\;{}^{\flat}\kern-1mm f}_k    \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\flat}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad {\;{}^{\sharp}\kern-1mm f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\kern-1mm f}_k $$</p>
 
 In other words, every ${\;{}^{\flat}\kern-1mm f}\_{k}$ is a _pre-fixpoint_ of $f$ and every ${\;{}^{\sharp}\kern-1mm f}\_{k}$ is a _post-fixpoint_
-of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
+of $f$.  Next, define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
 terms of the prefix predicates:
 
 <p style="text-align: center;" id="eq-least-is-exists" title="the least exists definition">$$
@@ -581,7 +577,7 @@ By [the prefix postfix result](#eq-prefix-postfix), we also have that $f^{\downa
 is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
 $f^{\downarrow}$ and $f^{\uparrow}$ are the least and greatest fixpoints of $\mathcal{F}$.
 These equations let us do proofs by induction when dealing with extreme predicates.
-I will explain in [the extreme predicate section](#sec-friendliness) how to check for continuity.
+[The extreme predicate section](#sec-friendliness) explains how to check for continuity.
 
 Let's consider two examples, both involving function $g$ in
 [the EvenNat equation](#eq-EvenNat).  As it turns out, $g$'s defining functor is continuous,
@@ -591,7 +587,7 @@ least and greatest solutions for $g$ in [the EvenNat equation](#eq-EvenNat).
 #### 24.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
-$x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
+$x$, that is, proving something of the form $Q \Longrightarrow g^{\downarrow}(x)$, is to
 construct a proof tree like the one for $g(6)$ in [the proof tree figure](#fig-proof-trees).
 For a proof in this direction, since we're just
 applying the defining equation, the fact that
@@ -599,7 +595,7 @@ we're using a least solution for $g$ never plays a role (as long as we
 limit ourselves to finite derivations).
 
 The technique for going in the other direction, proving something _from_ an established
-$g^{\downarrow}$ property, that is, showing something of the form $g^{\downarrow}(x) \;\Longrightarrow\; R$, typically
+$g^{\downarrow}$ property, that is, showing something of the form $g^{\downarrow}(x) \Longrightarrow R$, typically
 uses induction on the structure of the proof tree.  When the antecedent of our proof
 obligation includes a predicate term $g^{\downarrow}(x)$, it is sound to
 imagine that we have been given a proof tree for $g^{\downarrow}(x)$.  Such a proof tree
@@ -608,24 +604,30 @@ _inductive datatype_.
 Least solutions like $g^{\downarrow}$ have been given the
 name _least predicate_.
 
-Let's prove $g^{\downarrow}(x) \;\Longrightarrow\; 0 \leq x \;\wedge\; x \textrm{ even}$.
+Let's prove $g^{\downarrow}(x) \Longrightarrow 0 \leq x \wedge x \text{ even}$.
 We split our task into two cases, corresponding to which of the two
 proof rules in [the inductive rules](#g-ind-rule) was the
 last one applied to establish $g^{\downarrow}(x)$.  If it was the left-hand rule, then $x=0$,
 which makes it easy to establish the conclusion of our proof goal.  If it was the
 right-hand rule, then we unfold the proof tree one level and obtain $g^{\downarrow}(x-2)$.
 Since the proof tree for $g^{\downarrow}(x-2)$ is smaller than where we started, we invoke
-the _induction hypothesis_ and obtain $0 \leq (x-2) \;\wedge\; (x-2) \textrm{ even}$, from which
+the _induction hypothesis_ and obtain $0 \leq (x-2) \wedge (x-2) \textrm{ even}$, from which
 it is easy to establish the conclusion of our proof goal.
 
 Here's how we do the proof formally using [the least exists definition](#eq-least-is-exists).  We massage the
 general form of our proof goal:
 
-|   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
-| = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R$                              |
-| = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)$                              |
+<p style="text-align: center;">
+$$
+\begin{array}{lll}
+    & f^{\uparrow}(x) \;\Longrightarrow\; R  & \\
+  = &  & \textrm{ (the least exists definition) }    \\
+    & (\exists k \bullet\; { {}^{\flat}\kern-1mm f}_k(x)) \;\Longrightarrow\; R    &     \\
+  = &  & \text{distribute} \;\Longrightarrow\; \text{over} \;\exists\; \text{to the left}  \\
+    & \forall k \bullet\; ({ {}^{\flat}\kern-1mm f}_k(x) \;\Longrightarrow\; R)        &       
+\end{array}
+$$
+</p>
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
 ${ {}^{\flat}\kern-1mm g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
@@ -638,7 +640,7 @@ follows.
 
 #### 24.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
 
-We can think of a given predicate $g^{\uparrow}(x)$ as being represented
+We can think of a predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
 since the proof may be infinite.
 Greatest solutions like $g^{\uparrow}$ have
@@ -651,7 +653,7 @@ plays a role (as long as we limit ourselves to a finite number of
 unfoldings).
 
 To go in the other direction, to establish a predicate defined as a greatest solution,
-like $Q \;\Longrightarrow\; g^{\uparrow}(x)$, we may need an infinite number of steps.  For this purpose,
+like $Q \Longrightarrow g^{\uparrow}(x)$, we may need an infinite number of steps.  For this purpose,
 we can use induction's dual, _coinduction_.  Were it not for one little detail, coinduction
 is as simple as continuations in programming: the next part of the proof obligation
 is delegated to the _coinduction hypothesis_.  The little detail is making sure that
@@ -665,7 +667,7 @@ or a new attempt by Kozen and Silva
 that aims to emphasize the simplicity, not the mystery, of
 coinduction [@KozenSilva:Coinduction].
 
-Let's prove $\mathit{true} \;\Longrightarrow\; g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
+Let's prove $\mathit{true} \Longrightarrow g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
 According to the right-hand rule of [these coinductive rules](#g-coind-rule), $g^{\uparrow}(x)$ follows if we
 establish $g^{\uparrow}(x-2)$, and that's easy to do by invoking the coinduction hypothesis.
 The "little detail", productivity, is satisfied in this proof because we applied
@@ -675,26 +677,30 @@ For anyone who may have felt that the intuitive proof felt too easy, here is a f
 proof using [the greatest forall definition](#eq-greatest-is-forall), which relies only on induction.  We massage the
 general form of our proof goal:
 
-<!--
-|~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
-|   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { [the greatest forall definition](#eq-greatest-is-forall) }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)$                                  |
--->
+
+<p style="text-align: center;">
+$$
+\begin{array}{lll}
+    & Q \;\Longrightarrow\; f^{\uparrow}(x)           &             \\
+  = &  & \textrm{ (the greatest forall definition) }   \\
+    & Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\kern-1mm f}_k(x)  &  \\
+  = &  & \text{distribute} \;\Longrightarrow\; \text{over} \;\forall\; \text{to the right } \\
+    & \forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\kern-1mm f}_k(x)                 &
+\end{array}
+$$
+</p>
+
 
 The last line can be proved by induction over $k$.  So, in our case, we prove
-<!--
 $\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\kern-1mm g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\kern-1mm g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}_{k-1}(x-2))$.  We establish the second
+If $k=0$, then ${ {}^{\sharp}\kern-1mm g}\_k(x)$ is $\mathit{true}$, so our goal holds trivially.
+If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}\_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\kern-1mm g}\_{k-1}(x-2))$.  We establish the second
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
--->
+
 
 ### 24.4.3. Other Techniques
 
-Although in this paper I consider only well-founded functions and extreme
+Although this section has considered only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
 the set of solutions to [the general equation](#eq-general) is nonempty.  For example, if all calls to $f$ in
 $\mathcal{F}'(f)$ are _tail-recursive calls_, then (under the assumption that $Y$ is nonempty) the set of
@@ -702,7 +708,7 @@ solutions is nonempty.  To see this, consider an attempted evaluation of $f(x)$ 
 to determine a definite result value because of an infinite chain of calls that applies $f$
 to each value of some subset $X'$ of $X$.  Then, apparently, the value of $f$ for any one
 of the values in $X'$ is not determined by the equation, but picking any particular result
-values for these makes for a consistent definition.
+value for these makes for a consistent definition.
 This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
 Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
 and HOL [@Krauss:PhD].
@@ -711,9 +717,9 @@ and HOL [@Krauss:PhD].
 
 This section explains with examples the support in
 Dafny for well-founded functions, extreme predicates,
-and proofs regarding these.
+and proofs regarding these, building on the concepts 
+explained in the previous section.
 
-TODO: This topic appears to replicate the previous section
 
 ### 24.5.1. Well-founded Functions in Dafny
 
@@ -750,7 +756,7 @@ keyword `function` to `predicate`.
 
 Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
-Here is the lemma we stated and proved in [the fib example](#sec-fib-example):
+Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
 ```dafny
 lemma FibProperty(n: nat)
@@ -919,9 +925,9 @@ lemma AlwaysAux(k: nat, x: int)
 
 While each of these proofs involves only basic proof rules, the setup feels a bit clumsy,
 even with the empty body of the auxiliary lemmas.  Moreover,
-the proofs do not reflect the intuitive proofs I described in
+the proofs do not reflect the intuitive proofs described in
 [the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).
-These shortcoming are addressed in the next subsection.
+These shortcomings are addressed in the next subsection.
 
 ### 24.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
@@ -940,12 +946,12 @@ Somewhat analogous to the creation of prefix predicates from extreme predicates,
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
 and postconditions of a prefix lemma are copied from those of the extreme lemma,
 except for the following replacements:
-For a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
-positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`.
-For a greatest lemma,
-Dafny looks in the postcondition to find calls (in positive, continuous positions)
-to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
-greatest predicate) and replaces these with `P#[_k](x)`.
+* for a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
+positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`;
+* for a greatest lemma,
+  Dafny looks in the postcondition to find calls (in positive, continuous positions)
+  to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
+  greatest predicate) and replaces these with `P#[_k](x)`.
 In each case, these predicates `P` are the lemma's _focal predicates_.
 
 The body of the extreme lemma is moved to the prefix lemma, but with
@@ -1011,8 +1017,8 @@ having been initialized.
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
 
-The `-definiteAssignment` option allows choosing different levels of 
-checking the definite assignment rules.
+The `--strict-definite-assignment` option will cause definite assignment rules
+to be enforced even for auto-initializable types.
 
 ## 24.7. Well-founded Orders {#sec-well-founded-orders}
 
@@ -1030,7 +1036,7 @@ are given in the following table:
 | `map<K, V>`               | `x.Keys` is a proper subset of `X.Keys`                |
 | inductive datatypes    | `x` is structurally included in `X`                            |
 | reference types | `x == null && X != null` |
-| co-inductive datatypes | `false` |
+| coinductive datatypes | `false` |
 | type parameter | `false` |
 | arrow types | `false` |
 

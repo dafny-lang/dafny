@@ -1,4 +1,5 @@
-/*-----------------------------------------------------------------------------
+/* (
+-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 // Copyright by the contributors to the Dafny Project
@@ -97,7 +98,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      if (declCaption.Contains("-by-method")) {
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+      } else {
+        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
       SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
@@ -2211,7 +2216,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      var ownedTokens = new List<IToken>();
      List<Type> gt;
      List<Type> tupleArgTypes = null;
-     List<bool> argumentGhostness = null;
+     List<IToken> argumentGhostTokens = null;
   .)
   ( "bool"                          (. tok = t; ownedTokens.Add(t); .)
   | "char"                          (. tok = t;  ty = new CharType(); ownedTokens.Add(t); .)
@@ -2285,7 +2290,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness, ownedTokens>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens, ownedTokens>
   | NamedType<out ty, out tok, inExpressionContext, ownedTokens>
   )
   (. ty.OwnedTokens = ownedTokens;
@@ -2299,12 +2304,16 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     | "->"           (. arrowKind = 2; .)
     )                (. tok = t; ownedTokens.Add(t); .)
     Type<out t2>
-    (. if (tupleArgTypes != null) {
+    (. if (tupleArgTypes == null) {
+         gt = new List<Type>{ ty };
+       } else {
          // Otherwise they are discarded
          ownedTokens = ty.OwnedTokens.Concat(ownedTokens).ToList();
+         // make sure no "ghost" keyword was used in the tuple-looking type
+         foreach (var ghostToken in argumentGhostTokens.Where(ghostToken => ghostToken != null)) {
+           SemErr(ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
+         }
          gt = tupleArgTypes;
-        } else {
-         gt = new List<Type>{ ty };
        }
        var arity = gt.Count;
        theBuiltIns.CreateArrowTypeDecl(arity);
@@ -2325,27 +2334,28 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness, List<IToken> ownedTokens.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<IToken> argumentGhostTokens, List<IToken> ownedTokens.> =
   "("                             (. tok = t; ownedTokens.Add(t);
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
-                                     var isGhost = false;
-                                     argumentGhostness = new List<bool>();
+                                     IToken ghostToken = null;
+                                     argumentGhostTokens = new List<IToken>();
                                   .)
-  [ [ "ghost"                     (. isGhost = true; ownedTokens.Add(t); .)
+  [ [ "ghost"                     (. ghostToken = t; ownedTokens.Add(t); .)
     ]
-    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
-    { ","                         (. isGhost = false; ownedTokens.Add(t); .)
-      [ "ghost"                   (. isGhost = true; ownedTokens.Add(t); .)
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
+    { ","                         (. ghostToken = null; ownedTokens.Add(t); .)
+      [ "ghost"                   (. ghostToken = t; ownedTokens.Add(t); .)
       ]
-      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
     }
   ]
   ")"                             (. ownedTokens.Add(t);
-                                     if (tupleArgTypes.Count == 1 && !isGhost) {
+                                     if (tupleArgTypes.Count == 1 && argumentGhostTokens[0] == null) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
+                                       var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
@@ -2981,9 +2991,10 @@ UpdateStmt<out Statement/*!*/ s>
      IToken startToken = Token.NoToken;
      var ownedTokens = new List<IToken>();
      Attributes attrs = null;
-     IToken suchThatAssume = null;
+     Attributes tokenAttrs = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; .)
@@ -3000,12 +3011,14 @@ UpdateStmt<out Statement/*!*/ s>
       }
     | ":|"                         (. x = t; ownedTokens.Add(t); .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                   (. suchThatAssume = t; ownedTokens.Add(t); .)
+        "assume"                      (. var tok = t; ownedTokens.Add(t); .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; ownedTokens.Add(t); .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; ownedTokens.Add(t); .)
+        ("expect"|"assert"|"assume")  (. var tok = t; ownedTokens.Add(t); .)
+        { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { ","                    (. ownedTokens.Add(t); .)
@@ -3017,7 +3030,7 @@ UpdateStmt<out Statement/*!*/ s>
   )
 | ":-"                             (. x = t; ownedTokens.Add(t); startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume") (. keywordToken = t; ownedTokens.Add(t); .)
+      ("expect"|"assert"|"assume") (. var tok = t; ownedTokens.Add(t); .){ Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
    { ","                           (. ownedTokens.Add(t); .)
@@ -3131,12 +3144,13 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;
      List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     AttributedToken suchThatAssume = null;
      var ownedTokens = new List<IToken>();
-     IToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
+     Attributes tokenAttrs = null;
      IToken endTok;
      s = dummyStmt;
   .)
@@ -3158,12 +3172,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
     | { Attribute<ref attrs> }
       ":|"                           (. assignTok = t; ownedTokens.Add(t); .)
       [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                     (. suchThatAssume = t; ownedTokens.Add(t); .)
+        "assume"                      (. var tok = t; ownedTokens.Add(t); .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; ownedTokens.Add(t); .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; ownedTokens.Add(t);.)
+         ("expect"|"assert"|"assume")  (. var tok = t; ownedTokens.Add(t);.)
+         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { ","                      (. ownedTokens.Add(t); .)

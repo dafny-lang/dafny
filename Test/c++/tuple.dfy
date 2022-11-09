@@ -43,5 +43,5 @@ method GenericCaller<A>(a:A)
 method Main() {
   var x := ReturnTuple();
   var y := x.0;
-  print y;
+  print y, "\n";
 }

@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..4]
+    public int DefiniteAssignmentLevel = 1; // [0..2]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -177,9 +177,7 @@ namespace Microsoft.Dafny {
       Version4,
     }
 
-    public bool ForbidNondeterminism {
-      get { return DefiniteAssignmentLevel == 3; }
-    }
+    public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
@@ -546,6 +544,10 @@ namespace Microsoft.Dafny {
             int da = 0;
             if (ps.GetIntArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
+            }
+
+            if (da == 3) {
+              ForbidNondeterminism = true;
             }
 
             return true;
@@ -1249,8 +1251,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /extractCounterexample
     If verification fails, report a detailed counterexample for the
-    first failing assertion. Requires specifying the /mv option as well
-    as /proverOpt:O:model_compress=false and
+    first failing assertion. Requires specifying the /mv:<file> option as well
+    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
+    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
 
 /countVerificationErrors:<n>

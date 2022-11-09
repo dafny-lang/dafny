@@ -3606,10 +3606,16 @@ namespace Microsoft.Dafny {
               }
             } else {
               var m = f.ByMethodDecl;
-              Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, false, null, m);
-              CheckExpression(m.Body, this, m);
-              DetermineTailRecursion(m);
+              if (m != null) {
+                Contract.Assert(!m.IsGhost);
+                ComputeGhostInterest(m.Body, false, null, m);
+                CheckExpression(m.Body, this, m);
+                DetermineTailRecursion(m);
+              } else {
+                // m should not be null, unless an error has been reported
+                // (e.g. function-by-method and method with the same name) 
+                Contract.Assert(reporter.ErrorCount > 0);
+              }
             }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -4809,6 +4815,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
+      super = super.NormalizeExpandKeepConstraints();
+      sub = sub.NormalizeExpandKeepConstraints();
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
@@ -10287,8 +10295,14 @@ namespace Microsoft.Dafny {
 
         if (f.ByMethodBody != null) {
           var method = f.ByMethodDecl;
-          Contract.Assert(method != null); // this should have been filled in by now
-          ResolveMethod(method);
+          if (method != null) {
+            ResolveMethod(method);
+          } else {
+            // method should have been filled in by now,
+            // unless there was a function by method and a method of the same name
+            // but then this error must have been reported.
+            Contract.Assert(reporter.ErrorCount > 0);
+          }
         }
       }
 
@@ -12112,28 +12126,44 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class ClonerKeepLocalVariablesIfTypeNotSet : Cloner {
-      public override LocalVariable CloneLocalVariable(LocalVariable local) {
-        if (local.type == null) {
+    private class ClonerButIVariablesAreKeptOnce : Cloner {
+      private HashSet<IVariable> alreadyCloned = new();
+
+      private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
+        if (!alreadyCloned.Contains(local)) {
+          alreadyCloned.Add(local);
           return local;
         }
 
-        return base.CloneLocalVariable(local);
+        return returnMethod(local);
+      }
+
+      public override LocalVariable CloneLocalVariable(LocalVariable local) {
+        return CloneIVariableHelper(local, base.CloneLocalVariable);
+      }
+
+      public override Formal CloneFormal(Formal local) {
+        return CloneIVariableHelper(local, base.CloneFormal);
+      }
+      public override BoundVar CloneBoundVar(BoundVar local) {
+        return CloneIVariableHelper(local, base.CloneBoundVar);
       }
     }
 
+    private Cloner matchBranchCloner = new ClonerButIVariablesAreKeptOnce();
+
     // deep clone Patterns and Body
-    private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
-      Cloner cloner = new ClonerKeepLocalVariablesIfTypeNotSet();
+    private RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
+      Cloner cloner = matchBranchCloner;
       return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x => cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
     }
 
-    private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
-      Cloner cloner = new Cloner();
+    private RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
+      Cloner cloner = matchBranchCloner;
       return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
     }
 
-    private static RBranch CloneRBranch(RBranch branch) {
+    private RBranch CloneRBranch(RBranch branch) {
       if (branch is RBranchStmt) {
         return CloneRBranchStmt((RBranchStmt)branch);
       } else {
@@ -12654,14 +12684,14 @@ namespace Microsoft.Dafny {
     }
 
     private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
-      var cloner = new Cloner();
+      var cloner = matchBranchCloner;
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
       }
     }
 
     private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
-      var cloner = new Cloner();
+      var cloner = matchBranchCloner;
       foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
         yield return new NestedMatchCaseStmt(c.Tok, pat, new List<Statement>(c.Body), c.Attributes);
       }
@@ -12865,6 +12895,7 @@ namespace Microsoft.Dafny {
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
+          return;
         }
 
         IdPattern idpat = (IdPattern)pat;
@@ -12896,6 +12927,7 @@ namespace Microsoft.Dafny {
         if (!(pat is IdPattern)) {
           Contract.Assert(pat is LitPattern);
           reporter.Error(MessageSource.Resolver, pat.Tok, "Constant pattern used in place of datatype");
+          return;
         }
         IdPattern idpat = (IdPattern)pat;
 
@@ -13269,7 +13301,11 @@ namespace Microsoft.Dafny {
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
@@ -13487,15 +13523,15 @@ namespace Microsoft.Dafny {
       if (s.KeywordToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.val == "expect") {
+        if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null);
-        } else if (s.KeywordToken.val == "assume") {
-          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, null);
-        } else if (s.KeywordToken.val == "assert") {
-          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, null);
+          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assume") {
+          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, s.KeywordToken.Attrs);
+        } else if (s.KeywordToken.Token.val == "assert") {
+          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
@@ -16573,6 +16609,9 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      if (!expr.Lhs.WasResolved()) {
+        return null;
+      }
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
