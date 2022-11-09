@@ -130,7 +130,6 @@ class Release:
     def run_publish(self, project):
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
-        flush(" PARVA  target - {}".format(self.target))
         flush("   + Publishing " + project)
         remaining = 3
         exitStatus = 1
@@ -171,13 +170,12 @@ class Release:
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
-                flush("Parva z3-zip : {}, directory : {}".format(self.z3_zip, self.directory))
+                #changing directory value for osx-arm64 to copyover files from z3-4.8.5-x64-osx-10.14.2.zip
                 if self.target == "osx-arm64":
                     self.directory = "z3-4.8.5-x64-osx-10.14.2"
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
                     fname = path.relpath(fileinfo.filename, self.directory)
-                    flush("Parva - fname: {} , fileinfo.filename : {}".format(fname, fileinfo.filename))
                     if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
@@ -217,12 +215,11 @@ def discover(args):
     with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
         for release_js in js["assets"]:
-            flush("Parva - release js-{}".format(release_js))
             release = Release(release_js, args.version, args.out)
+            # Copying assets of osx and chnaging value of "name" to include "arm64" as architecture and then add it to same list of releases. 
             if release.os_name == "osx":
                 tmp_release_js = release_js
-                tmp_release_js.update({'name':'z3-4.8.5-arm64-osx-11.0.zip'})
-                flush("Parva - tmp js {}".format(tmp_release_js))
+                tmp_release_js.update({'name': 'z3-4.8.5-arm64-osx-11.0.zip'})
                 tmp_release = Release(tmp_release_js, args.version, args.out)
                 yield tmp_release
             if release.platform == "x64":
@@ -257,7 +254,6 @@ def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
 
     for release in releases:
-        flush("Parva   +dafny_name: {}  args: {}:".format(release.dafny_name,args), end=' ')
         release.build()
         release.pack()
 
@@ -303,12 +299,12 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    #if not args.trial:
-    #    if not DAFNY_RELEASE_REGEX.match(args.version):
-    #        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-    #        return
-    #    if not check_version_cs(args):
-    #        return
+    if not args.trial:
+       if not DAFNY_RELEASE_REGEX.match(args.version):
+           flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+           return
+       if not check_version_cs(args):
+           return
 
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 

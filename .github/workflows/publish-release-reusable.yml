@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       release_nuget:
-        required: false
+        required: true
         type: boolean
     secrets:
       # Required if release_nuget is true
@@ -89,12 +89,12 @@ jobs:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
 
-#    - name: Upload package to NuGet
-#      if: ${{ inputs.release_nuget }}
-#      # Need --skip-duplicate for cases where we release a new Dafny
-#      # version but the runtime hasn't changed and is still the old
-#      # version.
-#      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      # Need --skip-duplicate for cases where we release a new Dafny
+      # version but the runtime hasn't changed and is still the old
+      # version.
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc
       run: |
