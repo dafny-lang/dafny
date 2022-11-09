@@ -19,10 +19,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
    *               y
    *             );
    */
-  public static bool ReduceBlockiness = true;
+  public bool ReduceBlockiness = true;
 
-
-  private static readonly int SpaceTab = 2;
+  private readonly int SpaceTab = 2;
 
   private readonly Dictionary<int, int> posToIndentBefore;
   private readonly Dictionary<int, int> posToIndentLineBefore;
@@ -48,12 +47,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   /// Creates an IndentationFormatter for the given program,
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
-  public static IndentationFormatter ForProgram(Program program) {
+  public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
     var indentationFormatter = new IndentationFormatter(
       new(),
       new(),
       new());
-
+    indentationFormatter.ReduceBlockiness = reduceBlockiness;
     foreach (var include in program.DefaultModuleDef.Includes) {
       if (include.OwnedTokens.Count > 0) {
         indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens[0], 0);

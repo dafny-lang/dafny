@@ -1833,8 +1833,6 @@ function Test(): int {
 
     [Fact]
     public void FormatterWorksForObjectCreation() {
-      var prev = IndentationFormatter.ReduceBlockiness;
-      IndentationFormatter.ReduceBlockiness = true;
       FormatterWorksFor(@"
 method Test() {
   var g := new ClassName.ConstructorName(
@@ -1865,8 +1863,7 @@ method Test() {
       argument6
     );
 }
-");
-      IndentationFormatter.ReduceBlockiness = false;
+", reduceBlockiness: true);
       FormatterWorksFor(@"
 method Test() {
   var g := new ClassName.ConstructorName(
@@ -1897,34 +1894,27 @@ method Test() {
       argument6
     );
 }
-");
-      IndentationFormatter.ReduceBlockiness = prev;
+", reduceBlockiness: false);
     }
 
     [Fact]
     public void FormatterWorksForSingleDatatypeConstructor() {
-      var prev = IndentationFormatter.ReduceBlockiness;
-      IndentationFormatter.ReduceBlockiness = true;
       FormatterWorksFor(@"
 datatype C = C(
   arg1: int,
   arg2: int
 )
-");
-      IndentationFormatter.ReduceBlockiness = false;
+", reduceBlockiness: true);
       FormatterWorksFor(@"
 datatype C = C(
                arg1: int,
                arg2: int
              )
-");
-      IndentationFormatter.ReduceBlockiness = prev;
+", reduceBlockiness: false);
     }
 
     [Fact]
     public void FormatterWorksForUsualMatchCasePatterns() {
-      var prev = IndentationFormatter.ReduceBlockiness;
-      IndentationFormatter.ReduceBlockiness = true;
       FormatterWorksFor(@"
 method test() {
   var longName := match x {
@@ -1944,8 +1934,7 @@ method test() {
     );
   }
 }
-");
-      IndentationFormatter.ReduceBlockiness = false;
+", reduceBlockiness: true);
       FormatterWorksFor(@"
 method test() {
   var longName := match x {
@@ -1965,8 +1954,7 @@ method test() {
               );
   }
 }
-");
-      IndentationFormatter.ReduceBlockiness = prev;
+", reduceBlockiness: false);
     }
 
     [Fact]
@@ -2557,7 +2545,7 @@ method Test() {
       FormatterWorksFor(test, test);
     }
 
-    private void FormatterWorksFor(string testCase, string expectedProgramString = null, bool expectNoToken = false) {
+    private void FormatterWorksFor(string testCase, string expectedProgramString = null, bool expectNoToken = false, bool reduceBlockiness = true) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
@@ -2588,8 +2576,7 @@ method Test() {
         //TODO(Mikael) Make sure every token is owned.
         //EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         var reprinted = firstToken != null && firstToken.line > 0 ?
-          Formatting.__default.printSourceReindent(firstToken,
-          IndentationFormatter.ForProgram(dafnyProgram))
+          Formatting.__default.printSourceReindent(firstToken, IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
           Console.Write("Double formatting is not stable:\n");
@@ -2606,7 +2593,7 @@ method Test() {
         Assert.Equal(0, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0 ? Formatting.__default.printSourceReindent(firstToken,
-          IndentationFormatter.ForProgram(dafnyProgram)) : reprinted;
+          IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness)) : reprinted;
         Assert.Equal(reprinted, reprinted2);
       }
     }

@@ -1,3 +1,7 @@
+/// Microsoft.Dafny.Formatting.printSourceReindent() takes
+/// - A first token, from which an entire program is available
+/// - A IIndentationFormatter, that knows how to indent every token
+/// It then prints every token (proven) in order, reindenting its leading trivia and trailing trivia
 
 module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
   type {:extern "String"} CsString(!new,==) {
