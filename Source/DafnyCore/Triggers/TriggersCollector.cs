@@ -245,7 +245,7 @@ namespace Microsoft.Dafny.Triggers {
           expr is SeqSelectExpr ||
           expr is MultiSelectExpr ||
           expr is MemberSelectExpr ||
-          expr is OldExpr ||
+          (expr is OldExpr { Useless: false }) ||
           expr is ApplyExpr ||
           expr is DisplayExpression ||
           expr is MapDisplayExpr ||

@@ -3606,10 +3606,16 @@ namespace Microsoft.Dafny {
               }
             } else {
               var m = f.ByMethodDecl;
-              Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, false, null, m);
-              CheckExpression(m.Body, this, m);
-              DetermineTailRecursion(m);
+              if (m != null) {
+                Contract.Assert(!m.IsGhost);
+                ComputeGhostInterest(m.Body, false, null, m);
+                CheckExpression(m.Body, this, m);
+                DetermineTailRecursion(m);
+              } else {
+                // m should not be null, unless an error has been reported
+                // (e.g. function-by-method and method with the same name) 
+                Contract.Assert(reporter.ErrorCount > 0);
+              }
             }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -10289,8 +10295,14 @@ namespace Microsoft.Dafny {
 
         if (f.ByMethodBody != null) {
           var method = f.ByMethodDecl;
-          Contract.Assert(method != null); // this should have been filled in by now
-          ResolveMethod(method);
+          if (method != null) {
+            ResolveMethod(method);
+          } else {
+            // method should have been filled in by now,
+            // unless there was a function by method and a method of the same name
+            // but then this error must have been reported.
+            Contract.Assert(reporter.ErrorCount > 0);
+          }
         }
       }
 
@@ -16597,6 +16609,9 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      if (!expr.Lhs.WasResolved()) {
+        return null;
+      }
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
