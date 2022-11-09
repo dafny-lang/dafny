@@ -405,6 +405,10 @@ def AllBooleans():
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
+def AllUnicodeChars():
+    return chain((CodePoint(chr(i)) for i in range(0xD800)), 
+                 (CodePoint(chr(i)) for i in range(0xE000, 0x11_0000)))
+
 def AllIntegers():
     return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
 
