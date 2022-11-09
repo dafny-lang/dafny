@@ -172,10 +172,11 @@ class Release:
             pass
         missing = []
         if self.target == "osx-arm64":
+            flush("Parva packing up correct z3")
             self.z3_name = "z3-4.8.5-x64-osx-10.14.2.zip"
             self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            
+            flush("Parva z3 used is - {}".format(self.z3_zip))
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
