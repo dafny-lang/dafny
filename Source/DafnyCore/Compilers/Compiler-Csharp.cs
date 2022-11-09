@@ -791,7 +791,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override bool NeedsCustomReceiver(MemberDecl member) {
-      Contract.Requires(member != null);
       //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
       if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
