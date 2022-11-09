@@ -154,6 +154,7 @@ class Release:
     def build(self):
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
+
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
@@ -214,6 +215,7 @@ def discover(args):
     req = request.Request(Z3_RELEASES_URL, None, options)
     with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
+
         for release_js in js["assets"]:
             release = Release(release_js, args.version, args.out)
             # Copying assets of osx and chnaging value of "name" to include "arm64" as architecture and then add it to same list of releases. 
@@ -252,11 +254,10 @@ def run(cmd):
 
 def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
-
     for release in releases:
+        flush("    + {}:".format(release.dafny_name), end=' ')
         release.build()
         release.pack()
-
     if not args.skip_manual:
         run(["make", "--quiet", "refman"])
 
@@ -300,11 +301,11 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     if not args.trial:
-       if not DAFNY_RELEASE_REGEX.match(args.version):
-           flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-           return
-       if not check_version_cs(args):
-           return
+        if not DAFNY_RELEASE_REGEX.match(args.version):
+            flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+            return
+        if not check_version_cs(args):
+            return
 
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
@@ -312,9 +313,11 @@ def main():
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args))
     if args.os:
-       releases = list(filter(lambda release: release.os_name == args.os, releases))
+        releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
+
     flush("* Building and packaging Dafny")
     pack(args, releases)
+
 if __name__ == '__main__':
     main()
