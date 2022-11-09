@@ -279,6 +279,24 @@ func (cp CodePoint) String() string {
   return fmt.Sprintf("'%c'", rune(cp))
 }
 
+// AllUnicodeChars returns an iterator that returns all Unicode scalar values.
+func AllUnicodeChars() Iterator {
+  c := int32(0)
+  return func() (interface{}, bool) {
+    if c >= 0x11_0000 {
+      return -1, false
+    } else {
+      if (c == 0xD800) {
+        // Skip over the surrogates
+        c = 0xE000
+      }
+      ans := CodePoint(c)
+      c++
+      return ans, true
+    }
+  }
+}
+
 /******************************************************************************
  * Slices
  ******************************************************************************/

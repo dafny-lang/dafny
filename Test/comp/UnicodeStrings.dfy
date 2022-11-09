@@ -139,13 +139,21 @@ method CharComparisons() {
 }
 
 method AllCharsTest() {
-  var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
-  var allCodePoints := (set cp: int {:trigger Identity(cp)} | 0 <= cp < 0xD800 :: Identity(cp as char))
+  ghost var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
+  ghost var allCodePoints := (set cp: int {:trigger Identity(cp)} | 0 <= cp < 0xD800 :: Identity(cp as char))
                      + (set cp: int {:trigger Identity(cp)} | 0xE000 <= cp < 0x11_0000 :: Identity(cp as char));
   assert forall c: char {:trigger Identity(c)} :: 0 <= Identity(c as int) < 0xD800 || 0xE000 <= Identity(c as int) < 0x11_0000;
   assert forall c: char :: Identity(c) in allChars;
   assert allChars == allCodePoints;
-  expect allChars == allCodePoints;
+
+  // I'd love to expect allChars == allCodePoints, but that's currently
+  // an O(n^2) operation in some runtimes that don't have hashcode-based
+  // set operations, and n here is over a million. :P
+  // Even just computing allChars at runtime seems to be too slow in Javascript. :(
+  // We calculate some small subsets here just as a basic sanity check
+  // all AllUnicodeChars() is implemented in the runtimes.
+  expect forall c: char {:trigger Identity(c)} :: 0 <= c as int < 0xD800 || 0xE000 <= c as int < 0x11_0000;
 }
 
+// Dummy identity function just to enable triggers that Dafny and Boogie are happy with
 function method Identity<T>(x: T): T { x }

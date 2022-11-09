@@ -1946,7 +1946,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
+      return t.IsBoolType || (t.IsCharType && !UnicodeChars) || AsNativeType(t) != null || t.IsRefType;
     }
 
     bool IsRepresentedAsBigNumber(Type t) {
@@ -2096,6 +2096,20 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
+          break;
+        case BinaryExpr.ResolvedOpcode.LtChar when UnicodeChars:
+          callString = "isLessThan";
+          break;
+        case BinaryExpr.ResolvedOpcode.LeChar when UnicodeChars:
+          callString = "isLessThanOrEqual";
+          break;
+        case BinaryExpr.ResolvedOpcode.GtChar when UnicodeChars:
+          callString = "isLessThan";
+          reverseArguments = true;
+          break;
+        case BinaryExpr.ResolvedOpcode.GeChar when UnicodeChars:
+          callString = "isLessThanOrEqual";
+          reverseArguments = true;
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           if (AsNativeType(resultType) != null) {

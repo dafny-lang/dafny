@@ -463,6 +463,12 @@ let _dafny = (function() {
       }
       return this.value === other.value
     }
+    isLessThan(other) {
+      return this.value < other.value
+    }
+    isLessThanOrEqual(other) {
+      return this.value <= other.value
+    }
     toString() {
       return "'" + String.fromCodePoint(this.value) + "'";
     }
@@ -994,6 +1000,14 @@ let _dafny = (function() {
   $module.AllChars = function*() {
     for (let i = 0; i < 0x10000; i++) {
       yield String.fromCharCode(i);
+    }
+  }
+  $module.AllUnicodeChars = function*() {
+    for (let i = 0; i < 0xD800; i++) {
+      yield new _dafny.CodePoint(i);
+    }
+    for (let i = 0xE0000; i < 0x11_0000; i++) {
+      yield new _dafny.CodePoint(i);
     }
   }
   $module.AllIntegers = function*() {
