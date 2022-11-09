@@ -152,11 +152,9 @@ class Release:
                         ("time" if remaining == 1 else f"{remaining} times"))
         flush("done!")
 
-    def build(self,target =""):
+    def build(self):
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
-        if target != "":
-            self.target = target
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
@@ -165,22 +163,21 @@ class Release:
         self.run_publish("DafnyRuntime")
         self.run_publish("Dafny")
 
-    def pack(self,target=""):
+    def pack(self):
         try:
             os.remove(self.dafny_zip)
         except FileNotFoundError:
             pass
         missing = []
-        if self.target == "osx-arm64":
-            flush("Parva packing up correct z3")
-            self.z3_name = "z3-4.8.5-x64-osx-10.14.2.zip"
-            self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            flush("Parva z3 used is - {}".format(self.z3_zip))
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
+                flush("Parva z3-zip : {}, directory : {}".format(self.z3_zip, self.directory))
+                if self.target == "osx-arm64":
+                    self.directory = "z3-4.8.5-x64-osx-10.14.2"
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
                     fname = path.relpath(fileinfo.filename, self.directory)
+                    flush("Parva - fname: {} , fileinfo.filename : {}".format(fname, fileinfo.filename))
                     if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
