@@ -1000,9 +1000,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
-      // Companion classes in JavaScript are just the same as the type
+      // Companion classes in JavaScript are just the same as the type, except for invisible type wrappers
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      return TypeName(type, wr, tok, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsInvisibleWrapper(dt, out _)) {
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
+      } else {
+        return TypeName(type, wr, tok, member);
+      }
     }
 
     // ----- Declarations -------------------------------------------------------------

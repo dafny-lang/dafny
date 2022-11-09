@@ -1381,12 +1381,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        if (member != null && (member.IsStatic || NeedsCustomReceiver(member)) && member.EnclosingClass.TypeArgs.Count != 0) {
-          return IdProtect(udt.FullCompanionCompileName);
-        } else {
-          return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok, false);
-        }
+      if (type is UserDefinedType udt) {
+        var name = udt.ResolvedClass is TraitDecl ? udt.FullCompanionCompileName : FullTypeName(udt, member, true);
+        return TypeName_UDT(name, udt, wr, tok, true);
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -2436,8 +2433,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      if (cl is DatatypeDecl) {
-        needsTypeParameter = isStatic;
+      if (cl is DatatypeDecl dt) {
+        needsTypeParameter = isStatic || IsInvisibleWrapper(dt, out _);
         needsTypeDescriptor = true;
       } else if (cl is TraitDecl) {
         needsTypeParameter = isStatic || lookasideBody;

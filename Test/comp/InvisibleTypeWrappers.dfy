@@ -21,6 +21,7 @@ method Main() {
   TestEquality();
   TestDefaultValues<SingletonRecord, SingleOdd>();
   TestTypeParameters(GenericCompiled("<gen>"), GenericCompiled(3.14), GenericCompiled(2.7));
+  TestMembers();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -216,4 +217,38 @@ method TestDefaultValues<T(0), U(0)>() {
 
 method TestTypeParameters<X, Y, Z>(x: GenericGhostOrNot<X>, y: GenericGhostOrNot<Y>, z: Z) {
   print x, " ", y, " ", z, "\n"; // <gen> 3.14 2.7
+}
+
+datatype Memberful<T> = MakeMemberful(tt: T) {
+  function method G<U>(t: T, u: U): (T, T, U) {
+    (tt, t, u)
+  }
+  method M<U>(t: T, u: U) {
+    print tt, " ", t, " ", u, "\n";
+  }
+}
+
+// The following type is not optimized, because it has a const member
+datatype HasConst<T> = MakeC(tt: T) {
+  const u: (T, T) := (tt, tt)
+}
+
+// This type is similar to HasConst, but has a function instead of a const, so it is optimized
+datatype HasFunction<T> = MakeF(tt: T) {
+  function method F(): (T, T) {
+    (tt, tt)
+  }
+}
+
+method TestMembers() {
+  var d := MakeMemberful(18.0);
+  var (a, b, c) := d.G(3.0, false);
+  print d, " ", a, " ", b, " ", c, "\n"; // 18.0 18.0 3.0 false
+  d.M(4.0, true); // 18.0 4.0 true
+
+  var h := MakeC(4 as bv7);
+  print h, " ", h.u, "\n"; // MakeC(4) (4, 4)
+
+  var f := MakeF(4 as bv7);
+  print f, " ", f.F(), "\n"; // 4 (4, 4)
 }

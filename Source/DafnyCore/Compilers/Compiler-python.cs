@@ -753,7 +753,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      return TypeName(type, wr, tok, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsInvisibleWrapper(dt, out _)) {
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
+      } else {
+        return TypeName(type, wr, tok, member);
+      }
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {

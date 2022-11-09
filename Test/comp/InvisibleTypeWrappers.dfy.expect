@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -15,6 +15,10 @@ true false
 0 (0, 0) 0 Color.Pink
 13 13 13 GenericDouble.GenericDouble(13, 0) 0 13 false
 <gen> 3.14 2.7
+18.0 18.0 3.0 false
+18.0 4.0 true
+HasConst.MakeC(4) (4, 4)
+4 (4, 4)
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -30,6 +34,10 @@ true false
 0 (0, 0) 0 Color.Pink
 13 13 13 GenericDouble.GenericDouble(13, 0) 0 13 false
 <gen> 3.14 2.7
+18.0 18.0 3.0 false
+18.0 4.0 true
+HasConst.MakeC(4) (4, 4)
+4 (4, 4)
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -45,6 +53,10 @@ true false
 0 (0, 0) 0 Color.Pink
 13 13 13 GenericDouble.GenericDouble(13, 0) 0 13 false
 <gen> 3.14 2.7
+18.0 18.0 3.0 false
+18.0 4.0 true
+HasConst.MakeC(4) (4, 4)
+4 (4, 4)
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -60,6 +72,10 @@ true false
 0 (0, 0) 0 Color.Pink
 13 13 13 GenericDouble.GenericDouble(13, 0) 0 13 false
 <gen> 3.14 2.7
+18.0 18.0 3.0 false
+18.0 4.0 true
+HasConst.MakeC(4) (4, 4)
+4 (4, 4)
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -75,3 +91,7 @@ true false
 0 (0, 0) 0 Color.Pink
 13 13 13 GenericDouble.GenericDouble(13, 0) 0 13 false
 <gen> 3.14 2.7
+18.0 18.0 3.0 false
+18.0 4.0 true
+HasConst.MakeC(4) (4, 4)
+4 (4, 4)

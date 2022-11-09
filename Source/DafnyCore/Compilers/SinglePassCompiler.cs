@@ -1830,7 +1830,8 @@ namespace Microsoft.Dafny.Compilers {
         return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost);
+        // Also, an invisible wrapper type has a receiver that's not part of the enclosing target class.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || IsInvisibleWrapper(datatypeDecl, out _);
       } else {
         return false;
       }
