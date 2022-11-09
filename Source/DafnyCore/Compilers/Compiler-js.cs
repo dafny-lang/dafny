@@ -1176,7 +1176,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       }
 
-      TrExpr(messageExpr, wr, false, wStmts);
+      TrParenExpr(messageExpr, wr, false, wStmts);
+      if (UnicodeChars && messageExpr.Type.IsStringType) {
+        wr.Write(".toVerbatimString()");
+      }
       wr.WriteLine(");");
     }
 
@@ -2272,7 +2275,7 @@ namespace Microsoft.Dafny.Compilers {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigNumber(");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0))");
+              wr.Write(UnicodeChars ? ".value)" : ".charCodeAt(0))");
             } else {
               // char -> native
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);

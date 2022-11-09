@@ -1881,9 +1881,12 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       }
 
-      wr.Write("(");
-      TrExpr(messageExpr, wr, false, wStmts);
-      wr.WriteLine(").String())");
+      TrParenExpr(messageExpr, wr, false, wStmts);
+      if (UnicodeChars && messageExpr.Type.IsStringType) {
+        wr.Write(".VerbatimString())");
+      } else {
+        wr.WriteLine(".String())");
+      }
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {

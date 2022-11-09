@@ -1896,6 +1896,10 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       TrExpr(messageExpr, wr, false, wStmts);
+      if (UnicodeChars && messageExpr.Type.IsStringType) {
+        wr.Write(".ToVerbatimString()");
+      }
+
       wr.WriteLine(");");
     }
 

@@ -864,14 +864,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
+      Contract.Requires(tok != null);
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
-      if (tok != null) {
-        wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + {DafnyRuntimeModule}.string_of(");
-      }
+      wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + ");
 
-      TrExpr(messageExpr, wr, false, wStmts);
-      wr.WriteLine("))");
+      if (UnicodeChars && messageExpr.Type.IsStringType) {
+        TrParenExpr(messageExpr, wr, false, wStmts);
+        wr.Write(".VerbatimString()");
+      } else {
+        wr.Write($"{DafnyRuntimeModule}.string_of(");
+        TrExpr(messageExpr, wr, false, wStmts);
+        wr.WriteLine(")");
+      }
+      
+      wr.WriteLine(")");
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
