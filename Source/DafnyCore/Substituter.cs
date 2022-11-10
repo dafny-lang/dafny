@@ -284,7 +284,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ComprehensionExpr) {
 
-        newExpr = SubstituteComprehensionExpr((ComprehensionExpr)expr, false);
+        newExpr = SubstituteComprehensionExpr((ComprehensionExpr)expr, true);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
@@ -692,7 +692,7 @@ namespace Microsoft.Dafny {
         r = SubstBlockStmt((BlockStmt)stmt);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, true) : Substitute(s.Guard);
+        var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, false) : Substitute(s.Guard);
         r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
 
     protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
       Contract.Requires(alt != null);
-      var guard = alt.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)alt.Guard, true) : Substitute(alt.Guard);
+      var guard = alt.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)alt.Guard, false) : Substitute(alt.Guard);
       return new GuardedAlternative(alt.Tok, alt.IsBindingGuard, guard, alt.Body.ConvertAll(SubstStmt));
     }
 
@@ -921,29 +921,34 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Substitution in a comprehension expression. 
-    /// Parameter 'isBindingGuard' should be set to false if and only if
+    /// Parameter 'forceSubstituteOfBoundVars' should be set to false if and only if
     /// the expression is a binding guard, in which case a bound variable is introduced.
     /// Such a variable must not be substituted. 
     /// </summary>
-    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool isBindingGuard) {
-      Contract.Assert(!isBindingGuard || expr is ExistsExpr);
+    protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars) {
+
       Expression newExpr = null;
 
       var e = (ComprehensionExpr)expr;
-      // For quantifiers and setComprehension we want to make sure that we don't introduce name clashes with
+      // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
       // the enclosing scopes.
 
-      if (e is QuantifierExpr { SplitQuantifier: { } } q && !isBindingGuard) {
-        return Substitute(q.SplitQuantifierExpression);
+      var q = e as QuantifierExpr;
+      if (q != null && q.SplitQuantifier != null) {
+        if (forceSubstituteOfBoundVars) {
+          return Substitute(q.SplitQuantifierExpression);
+        } else {
+          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
+        }
       }
 
-      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, !isBindingGuard && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
       var newRange = e.Range == null ? null : Substitute(e.Range);
       var newTerm = Substitute(e.Term);
       var newAttrs = SubstAttributes(e.Attributes);
       var newBounds = SubstituteBoundedPoolList(e.Bounds);
       if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes ||
-          newBounds != e.Bounds || isBindingGuard) {
+          newBounds != e.Bounds || !forceSubstituteOfBoundVars) {
         if (e is SetComprehension) {
           newExpr = new SetComprehension(e.BodyStartTok, e.BodyEndTok, ((SetComprehension)e).Finite, newBoundVars,
             newRange, newTerm, newAttrs);
