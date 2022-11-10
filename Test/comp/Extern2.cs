@@ -42,5 +42,11 @@ namespace Library {
     public static void P() {
       System.Console.WriteLine("AllExtern.P");
     }
+    public static Wrappers_Compile._IOption<BigInteger> MaybeInt() {
+      return Wrappers_Compile.Option<BigInteger>.create_Some(42);
+    }
+    public static Wrappers_Compile._IPair<BigInteger, BigInteger> IntPair() {
+      return Wrappers_Compile.Pair<BigInteger, BigInteger>.create_Pair(3, 7);
+    }
   }
 }

@@ -3,6 +3,7 @@ package Library
 import (
   "dafny"
   "fmt"
+  Wrappers "Wrappers_Compile"
 )
 
 type CompanionStruct_LibClass_ struct{}
@@ -85,4 +86,10 @@ type AllExtern struct{}
 var Companion_AllExtern_ = AllExtern{}
 func (AllExtern) P() {
   fmt.Print("AllExtern.P\n")
+}
+func (AllExtern) MaybeInt() Wrappers.Option {
+  return Wrappers.Companion_Option_.Create_Some_(42)
+}
+func (AllExtern) IntPair() Wrappers.Pair {
+  return Wrappers.Companion_Pair_.Create_Pair_(3, 7)
 }
