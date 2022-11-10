@@ -862,8 +862,7 @@ namespace Microsoft.Dafny.Compilers {
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        string typeNameSansBrackets, brackets;
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        TypeName_SplitArrayName(elType, wr, tok, out var typeNameSansBrackets, out var brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType udt) {
 #if !KRML_DONE_DEBUGGING

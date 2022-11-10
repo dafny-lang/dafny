@@ -304,7 +304,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
 
       var type = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
-      var initializer = TypeInitializationValue(type, wr, enclosingTypeDecl.tok, false, true);
+      var initializer = DefaultValue(type, wr, enclosingTypeDecl.tok, true);
 
       var targetTypeName = TypeName(type, wr, enclosingTypeDecl.tok);
       var typeDescriptorExpr = $"new {DafnyTypeDescriptor}<{targetTypeName}>({initializer})";
@@ -1559,10 +1559,9 @@ namespace Microsoft.Dafny.Compilers {
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             var arguments = Util.Comma(udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}");
             return $"(({arguments}) => {rangeDefaultValue})";
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
-            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
-            TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out string typeNameSansBrackets, out string brackets);
+            TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out var typeNameSansBrackets, out var brackets);
             return $"new {typeNameSansBrackets}[{Util.Comma(arrayClass.Dims, _ => "0")}]{brackets}";
           } else {
             // non-null (non-array) type

@@ -2866,31 +2866,33 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Note, C# reverses the order of brackets in array type names.
+    /// Note, C# and Java reverse the order of brackets in array type names.
     /// </summary>
     protected void TypeName_SplitArrayName(Type type, ConcreteSyntaxTree wr, IToken tok, out string typeNameSansBrackets, out string brackets) {
       Contract.Requires(type != null);
 
-      var xType = type.NormalizeExpand();
-      if (xType.IsArrayType) {
-        ArrayClassDecl at = xType.AsArrayType;
-        Contract.Assert(at != null);  // follows from type.IsArrayType
-        Type elType = UserDefinedType.ArrayElementType(xType);
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+      TypeName_SplitArrayName(type, out var innermostElementType, out brackets);
+      typeNameSansBrackets = TypeName(innermostElementType, wr, tok);
+    }
+
+    protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets, bool specialCaseAllDims = true) {
+      Contract.Requires(type != null);
+
+      var xType = SimplifyType(type);
+      var at = xType.AsArrayType;
+      if (at != null && (at.Dims == 1 || specialCaseAllDims)) {
+        var elType = xType.TypeArgs[0];
+        TypeName_SplitArrayName(elType, out innermostElementType, out brackets, specialCaseAllDims);
         brackets = TypeNameArrayBrackets(at.Dims) + brackets;
       } else {
-        typeNameSansBrackets = TypeName(type, wr, tok);
+        innermostElementType = type;
         brackets = "";
       }
     }
 
     protected virtual string TypeNameArrayBrackets(int dims) {
       Contract.Requires(0 <= dims);
-      var name = "[";
-      for (int i = 1; i < dims; i++) {
-        name += ",";
-      }
-      return name + "]";
+      return $"[{Util.Repeat(dims - 1, ",")}]";
     }
 
     protected bool ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance v, Type t) {

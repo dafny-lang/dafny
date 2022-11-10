@@ -686,7 +686,7 @@ namespace Microsoft.Dafny.Compilers {
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        return ArrayTypeName(elType, at.Dims, wr, tok);
+        return ArrayTypeName(elType, at.Dims, wr, tok, erased);
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
@@ -749,15 +749,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    string ArrayTypeName(Type elType, int dims, ConcreteSyntaxTree wr, IToken tok) {
+    string ArrayTypeName(Type elType, int dims, ConcreteSyntaxTree wr, IToken tok, bool erased) {
       elType = SimplifyType(elType);
       if (dims > 1) {
         arrays.Add(dims);
-        return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
+        if (erased) {
+          return DafnyMultiArrayClass(dims);
+        } else {
+          return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
+        }
       } else if (elType.IsTypeParameter) {
         return "java.lang.Object";
       } else {
-        return $"{TypeName(elType, wr, tok)}[]";
+        return $"{TypeName(elType, wr, tok, false, erased)}[]";
       }
     }
 
@@ -808,12 +812,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeNameArrayBrackets(int dims) {
-      var name = "[";
-      for (int i = 1; i < dims; i++) {
-        name += "][";
-      }
-
-      return name + "]";
+      return Util.Repeat(dims, "[]");
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
@@ -3140,30 +3139,26 @@ namespace Microsoft.Dafny.Compilers {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
             return $"(({Util.Comma(udt.TypeArgs.Count - 1, i => $"{BoxedTypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}")}) -> {rangeDefaultValue})";
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
-            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
-            string newarr = "";
+            var elType = udt.TypeArgs[0];
+            TypeName_SplitArrayName(elType, out var innermostElementType, out var brackets, false);
             string bareArray;
-            var elType = SimplifyType(udt.TypeArgs[0]);
-
-            if (elType.IsTypeParameter) {
-              var zeros = Util.Comma(Enumerable.Repeat("0", arrayClass.Dims));
-              bareArray = $"(Object{Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({zeros})";
+            var typeParameter = SimplifyType(innermostElementType).AsTypeParameter;
+            brackets += Util.Repeat(arrayClass.Dims - 1, "[]");
+            if (typeParameter != null) {
+              var cast = $"(java.lang.Object{brackets})";
+              bareArray = $"{cast}{FormatTypeDescriptorVariable(typeParameter)}.newArray({Util.Comma(arrayClass.Dims, _ => "0")})";
             } else {
-              bareArray = $"new {TypeName(elType, wr, tok, false, true)}{Repeat("[0]", arrayClass.Dims)}";
+              var typeNameSansBrackets = TypeName(innermostElementType, wr, udt.tok, false, true);
+              bareArray = $"new {typeNameSansBrackets}[0]{brackets}";
             }
-            if (arrayClass.Dims > 1) {
-              arrays.Add(arrayClass.Dims);
-              newarr += $"new {DafnyMultiArrayClass(arrayClass.Dims)}<>({TypeDescriptor(elType, wr, tok)}, ";
-              for (int i = 0; i < arrayClass.Dims; i++) {
-                newarr += "0, ";
-              }
-              newarr += $"{bareArray})";
+            if (arrayClass.Dims == 1) {
+              return bareArray;
             } else {
-              newarr = bareArray;
+              var zeros = Util.Repeat(arrayClass.Dims, "0, ");
+              return $"new {DafnyMultiArrayClass(arrayClass.Dims)}<>({TypeDescriptor(elType, wr, tok)}, {zeros}{bareArray})";
             }
-            return newarr;
           } else {
             return "null";
           }
@@ -3601,7 +3596,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, true)})");
         }
       } else {
-        wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok)}) ");
+        wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok, false)}) ");
         if (mustInitialize) {
           wr.Write($"{TypeDescriptor(elmtType, wr, tok)}.fillThenReturnArray(");
         }

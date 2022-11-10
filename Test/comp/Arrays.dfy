@@ -241,6 +241,51 @@ method MoreWithDefaults() {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
   print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
+
+  TestDefaultArrayValues<bool>();
+
+}
+
+datatype SingletonRecord = SingletonRecord(a: array<int>)
+datatype GenericSingletonRecord<X> = GenericSingletonRecord(x: X)
+
+method TestDefaultArrayValues<X>() {
+  var arr: array<array<int>>;
+  var srr: array<SingletonRecord>;
+  var grr: array<GenericSingletonRecord<array<int>>>;
+  var xrr: array<array<X>>;
+
+  var arr2: array2<array<int>>;
+  var srr2: array2<SingletonRecord>;
+  var grr2: array2<GenericSingletonRecord<array<int>>>;
+  var xrr2: array2<array<X>>;
+
+  var arr22: array2<array2<int>>;
+  var xrr22: array2<array2<X>>;
+
+  var arr12: array<array2<int>>;
+  var xrr12: array<array2<X>>;
+
+  var xrr1111: array<array<array<array<X>>>>;
+  var xrr1112: array<array<array<array2<X>>>>;
+  var xrr1121: array<array<array2<array<X>>>>;
+  var xrr1212: array<array2<array<array2<X>>>>;
+  var xrr1221: array<array2<array2<array<X>>>>;
+  var xrr2212: array2<array2<array<array2<X>>>>;
+  var xrr2221: array2<array2<array2<array<X>>>>;
+  var xrr2112: array2<array<array<array2<X>>>>;
+  var xrr2111: array2<array<array<array<X>>>>;
+
+  var lengths := arr.Length + srr.Length + grr.Length + xrr.Length +
+    MLen(arr2) + MLen(srr2) + MLen(grr2) + MLen(xrr2) +
+    MLen(arr22) + MLen(xrr22) + arr12.Length + xrr12.Length +
+    xrr1111.Length + xrr1112.Length + xrr1121.Length + xrr1212.Length + xrr1221.Length +
+    MLen(xrr2212) + MLen(xrr2221) + MLen(xrr2112) + MLen(xrr2111);
+  print lengths, "\n";
+}
+
+function method MLen(m: array2): nat {
+  m.Length0 + m.Length1
 }
 
 method Coercions() {
