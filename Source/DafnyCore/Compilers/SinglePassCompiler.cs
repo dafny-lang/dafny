@@ -2924,7 +2924,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       type = SimplifyType(type, true);
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
 #if !KRML_DONE_DEBUGGING
       if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
         Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
@@ -2933,7 +2932,6 @@ namespace Microsoft.Dafny.Compilers {
         return PlaceboValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
       }
 #endif
-      bool usePlaceboValue = !type.HasCompilableValue;
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -2943,8 +2941,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
+      var usePlaceboValue =
+        (type.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
       type = SimplifyType(type, true);
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
 #if !KRML_DONE_DEBUGGING
       if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
         Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
@@ -2953,7 +2952,6 @@ namespace Microsoft.Dafny.Compilers {
         return DefaultValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
       }
 #endif
-      var usePlaceboValue = type.AsDatatype?.GetGroundingCtor().IsGhost == true;
       return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
