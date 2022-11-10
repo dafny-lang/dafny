@@ -1,4 +1,4 @@
-/// Microsoft.Dafny.Formatting.printSourceReindent() takes
+/// Microsoft.Dafny.Formatting.ReindentProgramFromFirstToken() takes
 /// - A first token, from which an entire program is available
 /// - A IIndentationFormatter, that knows how to indent every token
 /// It then prints every token (proven) in order, reindenting its leading trivia and trailing trivia
@@ -127,7 +127,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       /** Prints the entire program while fixing identation, based on
           1) indentation information provided by the IIndentationFormatter reindent
           2) Reindentation algorithm provided by the same reindent */
-      method printSourceReindent(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
+      method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
         requires firstToken.Valid()
         ensures forall token <- firstToken.allTokens :: s.Contains(token.val)
       {

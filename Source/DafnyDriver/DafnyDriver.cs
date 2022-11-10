@@ -344,7 +344,7 @@ namespace Microsoft.Dafny {
           } else {
             var firstToken = dafnyProgram.GetFirstTopLevelToken();
             if (firstToken != null) {
-              var result = Formatting.__default.printSourceReindent(firstToken,
+              var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
                 IndentationFormatter.ForProgram(dafnyProgram));
               if (onlyPrint) {
                 Console.Out.Write(result);

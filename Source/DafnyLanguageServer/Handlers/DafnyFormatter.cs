@@ -37,7 +37,7 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
         result = lastDocument.TextDocumentItem.Text;
       } else {
         result =
-          Formatting.__default.printSourceReindent(firstToken,
+          Formatting.__default.ReindentProgramFromFirstToken(firstToken,
             IndentationFormatter.ForProgram(lastDocument.Program));
       }
 

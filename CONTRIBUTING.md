@@ -76,4 +76,4 @@ For example, `Formatting.dfy`
 - Defines `System.CsString` as an alias for c# strings and concatenation, so that we can interoperate with existing strings rather than using sequences of characters
 - Defines `CsStringEmpty` as an alias for `System.String.Empty`
 - Defines `Microsoft.Dafny.HelperString.FinishesByNewline` by also using externs. That helper is defined in `IndentationFormatter.cs`
-- Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `printSourceReindent`
+- Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `ReindentProgramFromFirstToken`

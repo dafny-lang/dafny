@@ -2576,7 +2576,7 @@ method Test() {
         //TODO(Mikael) Make sure every token is owned.
         //EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         var reprinted = firstToken != null && firstToken.line > 0 ?
-          Formatting.__default.printSourceReindent(firstToken, IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          Formatting.__default.ReindentProgramFromFirstToken(firstToken, IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
           Console.Write("Double formatting is not stable:\n");
@@ -2592,7 +2592,7 @@ method Test() {
         dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
-        var reprinted2 = firstToken != null && firstToken.line > 0 ? Formatting.__default.printSourceReindent(firstToken,
+        var reprinted2 = firstToken != null && firstToken.line > 0 ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
           IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness)) : reprinted;
         Assert.Equal(reprinted, reprinted2);
       }
