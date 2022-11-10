@@ -709,6 +709,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
+        from = SimplifyType(from);
+        to = SimplifyType(to);
         if (!IsTargetSupertype(to, from)) {
           // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
           // contain uninstantiated formal type parameters.

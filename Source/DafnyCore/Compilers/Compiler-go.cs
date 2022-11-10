@@ -3351,8 +3351,8 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      from = from?.NormalizeExpand();
-      to = to.NormalizeExpand();
+      from = from == null ? null : SimplifyType(from);
+      to = SimplifyType(to);
       if (from != null && from.IsArrowType && to.IsArrowType && !from.Equals(to)) {
         // Need to convert functions more often, so do this before the
         // EqualsUpToParameters check below

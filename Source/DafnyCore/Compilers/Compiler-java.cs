@@ -3728,6 +3728,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool NeedsCastFromTypeParameter => true;
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
+      from = from == null ? null : SimplifyType(from);
+      to = to == null ? null : SimplifyType(to);
       if (from == null || to == null || !from.IsArrayType || !to.IsArrayType) {
         return false;
       }
@@ -3745,6 +3747,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+      from = from == null ? null : SimplifyType(from);
+      to = to == null ? null : SimplifyType(to);
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
       } else {
