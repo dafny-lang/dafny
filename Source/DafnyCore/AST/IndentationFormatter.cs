@@ -2063,6 +2063,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
   #endregion
 
+  public string ReindentLeadingTrivia(IToken token, bool precededByNewline,
+    string indentationBefore, string lastIndentation) {
+    return Reindent(token, false, precededByNewline, indentationBefore, lastIndentation);
+  }
+
+  public string ReindentTrailingTrivia(IToken token, bool precededByNewline,
+    string indentationBefore, string lastIndentation) {
+    return Reindent(token, true, precededByNewline, indentationBefore, lastIndentation);
+  }
 
   #region Override for implementing IIndentationFormatter
   /// Given a space around a token (input),
@@ -2233,35 +2242,26 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   public void GetIndentation(IToken token, string currentIndentation,
-      out string indentationBefore, out bool indentationBeforeSet,
-      out string lastIndentation, out bool lastIndentationSet,
-      out string indentationAfter, out bool indentationAfterSet) {
+      out string indentationBefore,
+      out string lastIndentation,
+      out string indentationAfter) {
     if (token.kind == 0) {
       currentIndentation = "";
     }
     indentationBefore = currentIndentation;
-    indentationBeforeSet = false;
     lastIndentation = currentIndentation;
-    lastIndentationSet = false;
     indentationAfter = currentIndentation;
-    indentationAfterSet = false;
     if (posToIndentBefore.TryGetValue(token.pos, out var preIndentation)) {
       indentationBefore = IndentationBy(preIndentation);
-      indentationBeforeSet = true;
       lastIndentation = indentationBefore;
-      lastIndentationSet = true;
       indentationAfter = indentationBefore;
-      indentationAfterSet = true;
     }
     if (posToIndentLineBefore.TryGetValue(token.pos, out var sameLineIndentation)) {
       lastIndentation = IndentationBy(sameLineIndentation);
-      lastIndentationSet = true;
       indentationAfter = lastIndentation;
-      indentationAfterSet = true;
     }
     if (posToIndentAfter.TryGetValue(token.pos, out var postIndentation)) {
       indentationAfter = IndentationBy(postIndentation);
-      indentationAfterSet = true;
     }
   }
   #endregion
@@ -2276,12 +2276,12 @@ public static class HelperString {
   public static bool RemoveTrailingWhitespace = true;
 
   // A regex that checks if a particular string ends with a newline and some spaces.
-  private static readonly Regex FinishesByNewlineRegex =
+  private static readonly Regex EndsWithNewlineRegex =
     new(@"(\r?\n|\r)[ \t]*$");
 
   // This is used by Formatter.dfy
-  public static bool FinishesByNewline(string s) {
-    return FinishesByNewlineRegex.IsMatch(s);
+  public static bool EndsWithNewline(string s) {
+    return EndsWithNewlineRegex.IsMatch(s);
   }
 
   private static readonly string NoCommentDelimiter = @"(?:(?!/\*|\*/)[\s\S])*";

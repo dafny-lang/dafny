@@ -95,7 +95,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
     }
   }
   class {:extern "HelperString"} {:compile false} HelperString {
-    static predicate FinishesByNewline(input: CsString)
+    static predicate EndsWithNewline(input: CsString)
   }
 }
 module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
@@ -107,15 +107,23 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
 
       trait IIndentationFormatter {
-        function Reindent(token: IToken, trailingTrivia: bool, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
+
+        // Given the current indentation at this point
+        // returns the leading trivia but with its indentation corrected.
+        function ReindentLeadingTrivia(token: IToken, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
+
+        // Given the current indentation at this point
+        // returns the trailing trivia but with its indentation corrected.
+        function ReindentTrailingTrivia(token: IToken, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
+        
+        // Given a token and the current indentation, returns the expected indentation
+        // on the line before the token and at the token's line (used only if it's the first token on the line)
+        // and for the line after the token (used only it's not followed by a token on the same line)  
         method GetIndentation(token: IToken, currentIndentation: CsString)
           returns (
             indentationBefore: CsString,
-            indentationBeforeSet: bool,
             lastIndentation: CsString,
-            lastIndentationSet: bool,
-            indentationAfter: CsString,
-            indentationAfterSet: bool)
+            indentationAfter: CsString)
           requires token.Valid()
           ensures token.allTokens == old(token.allTokens)
       }
@@ -152,13 +160,13 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             firstToken.TokenNextIsIPlus1(token, i);
           }
           IsAllocated(allTokens[0..i]);
-          var indentationBefore, indentationBeforeSet,
-              lastIndentation, lastIndentationSet,
-              indentationAfter, indentationAfterSet := reindent.GetIndentation(token, currentIndent);
+          var indentationBefore,
+              lastIndentation,
+              indentationAfter := reindent.GetIndentation(token, currentIndent);
 
-          var newLeadingTrivia := reindent.Reindent(token, false, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
-          var newTrailingTrivia := reindent.Reindent(token, true, false, indentationAfter, indentationAfter);
-          leadingTriviaWasPreceededByNewline := HelperString.FinishesByNewline(token.TrailingTrivia);
+          var newLeadingTrivia := reindent.ReindentLeadingTrivia(token, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
+          var newTrailingTrivia := reindent.ReindentTrailingTrivia(token, false, indentationAfter, indentationAfter);
+          leadingTriviaWasPreceededByNewline := HelperString.EndsWithNewline(token.TrailingTrivia);
           ghost var sPrev := sb.built;
           sb.Append(newLeadingTrivia);
           sb.Append(token.val);

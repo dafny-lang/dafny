@@ -319,67 +319,7 @@ namespace Microsoft.Dafny {
       Program dafnyProgram;
       string err;
       if (Options.Format) {
-        if (dafnyFiles.Count == 0) {
-          // Let's list all the dafny files recursively in the working directory
-          dafnyFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dfy", SearchOption.AllDirectories)
-            .Select(name => new DafnyFile(name)).ToList();
-        }
-
-        var failed = new List<string>();
-        var onlyCheck = DafnyOptions.O.FormatCheck;
-        var onlyPrint = DafnyOptions.O.DafnyPrintFile == "-";
-        DafnyOptions.O.DafnyPrintFile = null;
-        var needFormatting = 0;
-        foreach (var dafnyFile in dafnyFiles) {
-          if (dafnyFile.UseStdin && !onlyCheck) {
-            continue;
-          }
-          // Might not be totally optimized but let's do that for now
-          err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out dafnyProgram);
-          string originalText = File.ReadAllText(dafnyFile.FilePath);
-          if (err != null) {
-            exitValue = ExitValue.DAFNY_ERROR;
-            Console.Error.WriteLine(err);
-            failed.Add(dafnyFile.BaseName);
-          } else {
-            var firstToken = dafnyProgram.GetFirstTopLevelToken();
-            if (firstToken != null) {
-              var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-                IndentationFormatter.ForProgram(dafnyProgram));
-              if (onlyPrint) {
-                Console.Out.Write(result);
-              } else if (onlyCheck) {
-                if (result != originalText) {
-                  Console.Out.WriteLine("The file " + dafnyFile.FilePath + " needs to be formatted");
-                  exitValue = ExitValue.DAFNY_ERROR;
-                  needFormatting += 1;
-                }
-              } else {
-                WriteFile(dafnyFile.FilePath, result);
-              }
-            } else {
-              Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
-              failed.Add(dafnyFile.BaseName);
-            }
-          }
-        }
-
-        var unchanged = dafnyFiles.Count - failed.Count - needFormatting;
-        var unchangedMessage = unchanged > 0 ? $" {Files(unchanged)} were already formatted." : "";
-        string Files(int num) {
-          return num + (num != 1 ? " files" : " file");
-        }
-        var errorMsg = failed.Count > 0 ? $" {Files(failed.Count)} failed to parse or were empty:\n" + string.Join("\n", failed) : "";
-        if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0)) {
-
-          Console.Out.WriteLine($"{Files(needFormatting)} formatted." + unchangedMessage + errorMsg);
-        }
-        if (onlyCheck) {
-          Console.Out.WriteLine(needFormatting > 0 ? $"Error: {Files(needFormatting)} need formatting." + unchangedMessage + errorMsg :
-            "All files correctly formatted");
-        }
-
-        return exitValue;
+        return DoFormatting(dafnyFiles, reporter, programName);
       }
 
       err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
@@ -416,6 +356,77 @@ namespace Microsoft.Dafny {
       if (dafnyProgram != null && DafnyOptions.O.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(DafnyOptions.O.ModelViewFile);
       }
+      return exitValue;
+    }
+
+    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, ErrorReporter reporter, string programName) {
+      var exitValue = ExitValue.SUCCESS;
+      if (dafnyFiles.Count == 0) {
+        // Let's list all the dafny files recursively in the working directory
+        dafnyFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dfy", SearchOption.AllDirectories)
+          .Select(name => new DafnyFile(name)).ToList();
+      }
+
+      var failed = new List<string>();
+      var onlyCheck = DafnyOptions.O.FormatCheck;
+      var onlyPrint = DafnyOptions.O.DafnyPrintFile == "-";
+      DafnyOptions.O.DafnyPrintFile = null;
+      var needFormatting = 0;
+      foreach (var dafnyFile in dafnyFiles) {
+        if (dafnyFile.UseStdin && !onlyCheck) {
+          continue;
+        }
+
+        // Might not be totally optimized but let's do that for now
+        var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
+        string originalText = File.ReadAllText(dafnyFile.FilePath);
+        if (err != null) {
+          exitValue = ExitValue.DAFNY_ERROR;
+          Console.Error.WriteLine((string?)err);
+          failed.Add(dafnyFile.BaseName);
+        } else {
+          var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          if (firstToken != null) {
+            var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+              IndentationFormatter.ForProgram(dafnyProgram));
+            if (onlyPrint) {
+              Console.Out.Write(result);
+            } else if (onlyCheck) {
+              if (result != originalText) {
+                Console.Out.WriteLine("The file " + dafnyFile.FilePath + " needs to be formatted");
+                exitValue = ExitValue.DAFNY_ERROR;
+                needFormatting += 1;
+              }
+            } else {
+              WriteFile(dafnyFile.FilePath, result);
+            }
+          } else {
+            Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+            failed.Add(dafnyFile.BaseName);
+          }
+        }
+      }
+
+      var unchanged = dafnyFiles.Count - failed.Count - needFormatting;
+      var unchangedMessage = unchanged > 0 ? $" {Files(unchanged)} were already formatted." : "";
+
+      string Files(int num) {
+        return num + (num != 1 ? " files" : " file");
+      }
+
+      var errorMsg = failed.Count > 0
+        ? $" {Files(failed.Count)} failed to parse or were empty:\n" + string.Join("\n", failed)
+        : "";
+      if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0)) {
+        Console.Out.WriteLine($"{Files(needFormatting)} formatted." + unchangedMessage + errorMsg);
+      }
+
+      if (onlyCheck) {
+        Console.Out.WriteLine(needFormatting > 0
+          ? $"Error: {Files(needFormatting)} need formatting." + unchangedMessage + errorMsg
+          : "All files correctly formatted");
+      }
+
       return exitValue;
     }
 
