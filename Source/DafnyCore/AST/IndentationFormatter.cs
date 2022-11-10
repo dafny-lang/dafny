@@ -46,8 +46,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var include in program.DefaultModuleDef.Includes) {
-      if (include.OwnedTokens.Count > 0) {
-        indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens[0], 0);
+      if (include.OwnedTokens.Any()) {
+        indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens.First(), 0);
       }
     }
 
@@ -375,8 +375,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   void SetTypeIndentation(Type type) {
-    var tokens = type.OwnedTokens;
-    if (tokens.Count == 0) {
+    var tokens = type.OwnedTokens.ToList();
+    if (!tokens.Any()) {
       return;
     }
 
@@ -387,6 +387,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
     var commaIndent = indent + 2;
     var rightIndent = indent + 2;
+    var first = true;
     foreach (var token in tokens) {
       switch (token.val) {
         case "<": {
@@ -759,7 +760,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
   }
 
-  private int SetModuleDeclIndent(List<IToken> ownedTokens, int indent) {
+  private int SetModuleDeclIndent(IEnumerable<IToken> ownedTokens, int indent) {
     var innerIndent = indent + SpaceTab;
     var indentedFirst = false;
     foreach (var token in ownedTokens) {
@@ -921,7 +922,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var indent2 = indent + SpaceTab;
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + SpaceTab;
-    if (datatypeDecl.OwnedTokens.TrueForAll(token =>
+    if (datatypeDecl.OwnedTokens.All(token =>
           token.val != "|" || IsFollowedByNewline(token) || token.Next.line == token.Prev.line)) {
       rightOfVerticalBarIndent = indent2;
     }
@@ -1235,7 +1236,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       }
     }
 
-    if (ownedTokens.Count == 0) {
+    if (!ownedTokens.Any()) {
       // Here it means all the tokens are owned by the surrounding variable declaration.
       // We still need to recover the rightIndent in this case:
       if (!IsFollowedByNewline(stmt.Tok)) {
@@ -1250,8 +1251,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
     foreach (var rhs in rhss) {
       var localIndent = rightIndent;
-      if (rhs is TypeRhs && !ReduceBlockiness && rhs.OwnedTokens.Count > 0) {
-        localIndent = GetNewTokenVisualIndent(rhs.OwnedTokens[0], localIndent);
+      if (rhs is TypeRhs && !ReduceBlockiness && rhs.OwnedTokens.Any()) {
+        localIndent = GetNewTokenVisualIndent(rhs.OwnedTokens.First(), localIndent);
       }
       SetIndentParensExpression(localIndent, rhs.OwnedTokens);
     }
@@ -1292,7 +1293,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
 
     foreach (var blockStmtBody in blockStmt.Body) {
-      if (blockStmtBody is not BlockStmt && blockStmt.OwnedTokens.Count > 0) {
+      if (blockStmtBody is not BlockStmt && blockStmt.OwnedTokens.Any()) {
         SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
       }
 
@@ -1465,7 +1466,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return false;
   }
 
-  private bool SetIndentParensExpression(int indent, List<IToken> ownedTokens) {
+  private bool SetIndentParensExpression(int indent, IEnumerable<IToken> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
 
@@ -1502,7 +1503,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private bool SetIndentComprehensionExpr(int indent, List<IToken> ownedTokens) {
+  private bool SetIndentComprehensionExpr(int indent, IEnumerable<IToken> ownedTokens) {
     var alreadyAligned = false;
     var assignIndent = indent;
     var afterAssignIndent = assignIndent + SpaceTab;
@@ -1542,7 +1543,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private bool SetIndentCases(int indent, List<IToken> ownedTokens, Action indentInside) {
+  private bool SetIndentCases(int indent, IEnumerable<IToken> ownedTokens, Action indentInside) {
     var matchCaseNoIndent = false;
     var caseIndent = indent;
     var afterArrowIndent = indent + SpaceTab;
@@ -1687,7 +1688,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
 
-  private bool SetIndentVarDeclStmt(int indent, List<IToken> ownedTokens, bool noLHS = false) {
+  private bool SetIndentVarDeclStmt(int indent, IEnumerable<IToken> ownedTokens, bool noLHS = false) {
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
     var afterSemicolonIndent = indent;
@@ -1763,13 +1764,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private void SetIndentLikeLoop(List<IToken> ownedTokens, Statement body, int indent) {
-    if (ownedTokens.Count > 0) {
-      SetOpeningIndentedRegion(ownedTokens[0], indent);
-    }
+  private void SetIndentLikeLoop(IEnumerable<IToken> ownedTokens, Statement body, int indent) {
     var decreasesElemIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
+    var first = true;
     foreach (var token in ownedTokens) {
+      if (first) {
+        SetOpeningIndentedRegion(token, indent);
+        first = false;
+      }
       if (SetIndentLabelTokens(token, indent)) {
         continue;
       }
@@ -1843,10 +1846,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
   private bool SetBinaryExprIndent(int indent, BinaryExpr binaryExpr) {
     if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
+      var ownedTokens = binaryExpr.OwnedTokens.ToList();
       // Alignment required.
-      if (binaryExpr.OwnedTokens.Count == 2) {
-        var firstToken = binaryExpr.OwnedTokens[0];
-        var secondToken = binaryExpr.OwnedTokens[1];
+      if (ownedTokens.Count == 2) {
+        var firstToken = ownedTokens[0];
+        var secondToken = ownedTokens[1];
         indent = GetNewTokenVisualIndent(firstToken, GetIndentBefore(firstToken));
         var c = 0;
         while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
@@ -1860,11 +1864,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         SetIndentations(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
       } else {
         if (binOpIndent > 0) {
-          SetIndentations(binaryExpr.OwnedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
-        } else if (binaryExpr.OwnedTokens.Count > 0) {
+          SetIndentations(ownedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
+        } else if (ownedTokens.Count > 0) {
           var startToken = binaryExpr.StartToken;
           var newIndent = GetNewTokenVisualIndent(startToken, GetIndentBefore(startToken));
-          SetIndentations(binaryExpr.OwnedTokens[0], newIndent, newIndent, newIndent);
+          SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
         }
       }
 

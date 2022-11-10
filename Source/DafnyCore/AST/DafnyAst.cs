@@ -41,7 +41,10 @@ namespace Microsoft.Dafny {
     /// </summary>
     IEnumerable<INode> ConcreteChildren { get; }
 
-    List<IToken> OwnedTokens { get; }
+    /// <summary>
+    /// These tokens are "owned" by the node, meaning 
+    /// </summary>
+    IEnumerable<IToken> OwnedTokens { get; }
   }
 
   public interface IDeclarationOrUsage : INode {
@@ -58,7 +61,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
-    public List<IToken> OwnedTokens { get; set; } = new();
+    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -112,18 +115,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // Get the firs token that is in the same file as the DefaultModule.RootToken.FileName
+    // (skips included tokens)
     public IToken GetFirstTopLevelToken() {
       if (DefaultModule.RootToken.Next == null) {
         return null;
       }
 
       var firstToken = DefaultModule.RootToken.Next;
-      var prevFile = "";
       // We skip all included files
-      while (firstToken != null && firstToken.Next != null && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
-        if (firstToken.Filename != prevFile) {
-          prevFile = firstToken.Filename;
-        }
+      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
         firstToken = firstToken.Next;
       }
 
@@ -145,7 +146,7 @@ namespace Microsoft.Dafny {
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
-    public List<IToken> OwnedTokens = new();
+    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
     public bool ErrorReported;
 
     public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
@@ -194,7 +195,7 @@ namespace Microsoft.Dafny {
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
-    public List<IToken> OwnedTokens = new List<IToken>();
+    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
@@ -437,7 +438,7 @@ namespace Microsoft.Dafny {
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : IVariable {
-    public List<IToken> OwnedTokens { get; set; } = new();
+    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -518,7 +519,7 @@ namespace Microsoft.Dafny {
   public abstract class NonglobalVariable : IVariable {
     public readonly IToken tok;
     readonly string name;
-    public List<IToken> OwnedTokens => new List<IToken>() { tok };
+    public IEnumerable<IToken> OwnedTokens => new List<IToken>() { tok };
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -793,7 +794,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<INode> ConcreteChildren => Children;
 
     // Names are owned by the method call
-    public List<IToken> OwnedTokens => new();
+    public IEnumerable<IToken> OwnedTokens => new List<IToken>();
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);

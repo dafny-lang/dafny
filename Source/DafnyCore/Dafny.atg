@@ -1875,12 +1875,12 @@ Variance<out TypeParameter.TPVarianceSyntax variance>
 
 /*------------------------------------------------------------------------*/
 TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
-= "(" (. characteristics.StartToken = t; .)
+= "(" (. characteristics.StartToken = t; var ownedTokens = new List<IToken>(); ownedTokens.Add(t); .)
   TPCharOption<ref characteristics>
-  { ","  (. characteristics.OwnedTokens.Add(t); .)
+  { ","  (. ownedTokens.Add(t); .)
     TPCharOption<ref characteristics>
   }
-  ")" (. characteristics.EndToken = t; .)
+  ")" (. characteristics.EndToken = t; ownedTokens.Add(t); characteristics.OwnedTokens = ownedTokens; .)
   .
 
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
@@ -3972,7 +3972,8 @@ EquivExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   ImpliesExpliesExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
     EquivOp                                                   (. x = t; .)
-    ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); e0.OwnedTokens.Add(x); .)
+    ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (.
+      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
   }
   .
 
@@ -4056,17 +4057,17 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens.Add(x); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens.Add(x); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens.Add(x); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens.Add(x); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
         }
         [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
@@ -4162,7 +4163,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
      }
-     if(e != null && (e.OwnedTokens == null || e.OwnedTokens.Count == 0)) {
+     if(e != null && (e.OwnedTokens == null || !e.OwnedTokens.Any())) {
        e.OwnedTokens = ownedTokens;
      }
   .)

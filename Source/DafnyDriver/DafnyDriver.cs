@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
 
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
-      } else if (options.Files.Count == 0 && options.Format == false) {
+      } else if (options.Files.Count == 0 && !options.Format) {
         options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0 && options.Format == false) {
+      if (dafnyFiles.Count == 0 && !options.Format) {
         options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }

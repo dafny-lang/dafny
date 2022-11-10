@@ -12,7 +12,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
 
   private Attributes attributes;
@@ -485,7 +485,7 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -598,7 +598,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs, INode {
+public class TypeRhs : AssignmentRhs {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -1105,7 +1105,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]

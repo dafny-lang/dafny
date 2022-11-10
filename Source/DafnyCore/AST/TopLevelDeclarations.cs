@@ -23,7 +23,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public IToken StartToken = Token.NoToken;
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public string Name;
   public bool IsRefining;
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -241,7 +241,7 @@ public class TypeParameter : TopLevelDecl {
   public struct TypeParameterCharacteristics {
     public IToken StartToken = null;
     public IToken EndToken = null;
-    public List<IToken> OwnedTokens { get; set; } = new();
+    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -476,7 +476,7 @@ public class ModuleExportDecl : ModuleDecl {
 public class ExportSignature : IHasUsages {
   public readonly IToken Tok;
   public readonly IToken ClassIdTok;
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public readonly bool Opaque;
   public readonly string ClassId;
   public readonly string Id;
@@ -632,7 +632,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public IToken StartToken = Token.NoToken;
   public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public List<IToken> OwnedTokens { get; set; } = new();
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
   public string FullDafnyName {
@@ -940,8 +940,9 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
     if (StartToken.line > 0) {
       return StartToken;
     }
-    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } && includes[0].OwnedTokens.Count > 0) {
-      return includes[0].OwnedTokens[0];
+    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } &&
+        includes[0].OwnedTokens.Any()) {
+      return includes[0].OwnedTokens.First();
     }
     IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
       if (decl.StartToken.line > 0) {
@@ -1836,7 +1837,7 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
-  List<IToken> OwnedTokens { get; }
+  IEnumerable<IToken> OwnedTokens { get; }
   IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
@@ -1950,7 +1951,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
   IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
@@ -2037,7 +2038,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  List<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
   IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
