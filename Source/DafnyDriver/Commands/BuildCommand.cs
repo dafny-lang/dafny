@@ -10,12 +10,13 @@ class BuildCommand : ICommandSpec {
     OutputOption.Instance,
     TargetOption.Instance,
     NoVerifyOption.Instance,
-    CompileVerboseOption.Instance,
-  }.Concat(CommandRegistry.CommonOptions);
+    CompileVerboseOption.Instance,    
+    VerificationTimeLimitOption.Instance,
+  }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("build", "Produce an executable binary or a library.");
-    result.AddArgument(CommandRegistry.FilesArgument);
+    result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 

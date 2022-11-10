@@ -19,23 +19,6 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 static class CommandRegistry {
   private static readonly HashSet<ICommandSpec> Commands = new();
 
-  public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
-    CoresOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    LibraryOption.Instance,
-    ShowSnippetsOption.Instance,
-    PluginOption.Instance,
-    BoogieOption.Instance,
-    PreludeOption.Instance,
-    UseBaseFileNameOption.Instance,
-    PrintOption.Instance,
-    ResolvedPrintOption.Instance,
-    BoogiePrintOption.Instance,
-    InputsOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
-    EnforceDeterminismOption.Instance,
-  });
-
   static void AddCommand(ICommandSpec command) {
     Commands.Add(command);
   }
@@ -45,12 +28,12 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new TestCommand());
+    AddCommand(new GenerateTestCommand());
+    AddCommand(new DeadCodeCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
     FileArgument.AddValidator(ValidateFileArgument());
-
-    FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
-    FilesArgument.AddValidator(ValidateFileArgument());
   }
 
   public static Argument<FileInfo> FileArgument { get; }
@@ -63,8 +46,6 @@ static class CommandRegistry {
       }
     };
   }
-
-  public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
@@ -131,7 +112,7 @@ static class CommandRegistry {
       if (singleFile != null) {
         dafnyOptions.AddFile(singleFile.FullName);
       }
-      var files = context.ParseResult.GetValueForArgument(FilesArgument);
+      var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
           dafnyOptions.AddFile(file.FullName);

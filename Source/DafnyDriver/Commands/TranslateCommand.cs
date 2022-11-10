@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 class TranslateCommand : ICommandSpec {
   public Command Create() {
     var result = new Command("translate", "Generate source and build files in a specified target language.");
-    result.AddArgument(CommandRegistry.FilesArgument);
+    result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 
@@ -25,5 +25,6 @@ class TranslateCommand : ICommandSpec {
       NoVerifyOption.Instance,
       CompileVerboseOption.Instance,
       IncludeRuntimeOption.Instance,
-    }.Concat(CommandRegistry.CommonOptions);
+      VerificationTimeLimitOption.Instance,
+    }.Concat(ICommandSpec.CommonOptions);
 }

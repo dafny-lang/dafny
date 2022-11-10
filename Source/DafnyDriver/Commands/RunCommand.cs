@@ -12,7 +12,10 @@ class RunCommand : ICommandSpec {
     new IOptionSpec[] {
       TargetOption.Instance,
       NoVerifyOption.Instance,
-    }.Concat(CommandRegistry.CommonOptions);
+      InputsOption.Instance,
+      EnforceDeterminismOption.Instance,
+      VerificationTimeLimitOption.Instance,
+    }.Concat(ICommandSpec.CommonOptions);
 
   public RunCommand() {
     userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
