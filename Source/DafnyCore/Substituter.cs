@@ -177,7 +177,10 @@ namespace Microsoft.Dafny {
         // BoogieWrapper before calling Substitute.
         Expression se = Substitute(e.E);
         if (se != e.E) {
-          newExpr = new OldExpr(expr.tok, se, e.At) { AtLabel = e.AtLabel ?? oldHeapLabel };
+          newExpr = new OldExpr(expr.tok, se, e.At) {
+            AtLabel = e.AtLabel ?? oldHeapLabel,
+            Useless = e.Useless
+          };
         }
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
