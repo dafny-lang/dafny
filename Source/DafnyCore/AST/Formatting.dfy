@@ -115,10 +115,10 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         // Given the current indentation at this point
         // returns the trailing trivia but with its indentation corrected.
         function ReindentTrailingTrivia(token: IToken, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
-        
+
         // Given a token and the current indentation, returns the expected indentation
         // on the line before the token and at the token's line (used only if it's the first token on the line)
-        // and for the line after the token (used only it's not followed by a token on the same line)  
+        // and for the line after the token (used only it's not followed by a token on the same line)
         method GetIndentation(token: IToken, currentIndentation: CsString)
           returns (
             indentationBefore: CsString,
