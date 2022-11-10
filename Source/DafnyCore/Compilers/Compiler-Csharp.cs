@@ -1180,7 +1180,6 @@ namespace Microsoft.Dafny.Compilers {
         bool lookasideBody) {
         return csharpSynthesizer.SynthesizeMethod(method, typeArgs, createBody, Writer(method.IsStatic, createBody, method), forBodyInheritance, lookasideBody);
       }
-
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }

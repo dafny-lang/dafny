@@ -729,7 +729,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
       }
-
+      
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(member.EnclosingClass.CompileName, member.EnclosingClass.TypeArgs, name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodDeclWriter, MethodWriter, lookasideBody);
       }
