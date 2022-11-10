@@ -1752,7 +1752,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt.IsRecordType) {
         var ctor = dt.Ctors[0];
         DatatypeFieldsAndConstructor(ctor, 0, wr);
-        
+
         // Also emit a "create" method that thunks to "create_<ctor_name>",
         // as a convenience for Java code to invoke directly,
         // and for backwards compatibility (as we used to ONLY emit the "create" method
