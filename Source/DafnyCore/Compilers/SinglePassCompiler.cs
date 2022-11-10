@@ -1040,6 +1040,19 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
+    protected bool CanBeLeftUninitialized(Type type) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt) {
+        if (dt.GetGroundingCtor().IsGhost) {
+          return true;
+        }
+        if (IsInvisibleWrapper(dt, out var dtor)) {
+          var typeSubst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          return CanBeLeftUninitialized(Resolver.SubstType(dtor.Type, typeSubst));
+        }
+      }
+      return false;
+    }
+
     /// <summary>
     /// Remove any invisible type wrappers and simplify ghost typle types.
     /// </summary>
@@ -1071,7 +1084,7 @@ namespace Microsoft.Dafny.Compilers {
             return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
           }
 
-        } else if (udt.ResolvedClass is IndDatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
+        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
           var typeSubst = Resolver.TypeSubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
           var stype = Resolver.SubstType(dtor.Type, typeSubst).NormalizeExpand(keepConstraints);
           return SimplifyType(stype, keepConstraints);
@@ -1088,9 +1101,6 @@ namespace Microsoft.Dafny.Compilers {
       return ty;
     }
 
-    protected void EmitArraySelect(string index, Type elmtType, ConcreteSyntaxTree wr) {
-      EmitArraySelect(new List<string>() { index }, elmtType, wr);
-    }
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -4432,7 +4442,7 @@ namespace Microsoft.Dafny.Compilers {
       if (tp.ArrayDimensions == null) {
         var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
         EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null) {
+      } else if (tp.ElementInit != null || tp.InitDisplay != null || CanBeLeftUninitialized(tp.EType)) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation

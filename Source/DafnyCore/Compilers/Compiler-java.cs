@@ -750,6 +750,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     string ArrayTypeName(Type elType, int dims, ConcreteSyntaxTree wr, IToken tok) {
+      elType = SimplifyType(elType);
       if (dims > 1) {
         arrays.Add(dims);
         return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
@@ -1417,6 +1418,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree EmitArraySelect(int dimCount, out List<ConcreteSyntaxTree> wIndices, Type elmtType, ConcreteSyntaxTree wr) {
+      elmtType = SimplifyType(elmtType);
       wIndices = new List<ConcreteSyntaxTree>();
       ConcreteSyntaxTree w;
       if (dimCount == 1) {
@@ -1483,6 +1485,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
+      elmtType = SimplifyType(elmtType);
       if (elmtType.IsTypeParameter) {
         return new GenericArrayElementLvalue(this, array, indices, elmtType.AsTypeParameter);
       } else {
@@ -3142,11 +3145,11 @@ namespace Microsoft.Dafny.Compilers {
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
             string newarr = "";
             string bareArray;
-            var elType = udt.TypeArgs[0];
+            var elType = SimplifyType(udt.TypeArgs[0]);
 
             if (elType.IsTypeParameter) {
-              bareArray =
-                $"(Object{Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
+              var zeros = Util.Comma(Enumerable.Repeat("0", arrayClass.Dims));
+              bareArray = $"(Object{Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({zeros})";
             } else {
               bareArray = $"new {TypeName(elType, wr, tok, false, true)}{Repeat("[0]", arrayClass.Dims)}";
             }
@@ -3598,9 +3601,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, true)})");
         }
       } else {
-        if (!elmtType.IsTypeParameter) {
-          wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok)}) ");
-        }
+        wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok)}) ");
         if (mustInitialize) {
           wr.Write($"{TypeDescriptor(elmtType, wr, tok)}.fillThenReturnArray(");
         }
