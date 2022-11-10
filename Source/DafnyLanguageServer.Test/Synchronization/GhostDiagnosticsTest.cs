@@ -16,6 +16,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GhostDiagnosticsShouldBeRepublished() {
+      var source = @"
+method Test() {
+  ghost var x := 2;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      });
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
+      Assert.AreEqual(new Range((1, 2), (1, 19)), diagnostics[0].Range);
+      ApplyChange(ref documentItem, ((1, 19), (1, 19)), "\n  print 2;");
+      // If diagnostics are not republished,  the inserted text will be marked as ghost forever.
+      report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Ghost statement", diagnostics[0].Message); Assert.AreEqual(new Range((1, 2), (1, 19)), diagnostics[0].Range);
+    }
+
+    [TestMethod]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
       var source = @"
 class C {

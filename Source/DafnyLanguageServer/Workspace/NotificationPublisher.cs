@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public void PublishNotifications(IdeState previousState, IdeState state) {
       PublishVerificationStatus(previousState, state);
       PublishDocumentDiagnostics(previousState, state);
-      PublishGhostDiagnostics(previousState, state);
+      PublishGhostDiagnostics(state);
     }
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
@@ -108,13 +108,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
-    private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {
-
+    private void PublishGhostDiagnostics(IdeState state) {
       var newParams = GetGhostness(state);
-      var previousParams = GetGhostness(previousState);
-      if (previousParams.Diagnostics.SequenceEqual(newParams.Diagnostics)) {
-        return;
-      }
+      // We don't check if the diagnostics are the same because otherwise this might
+      // lead to inconsistencies
       languageServer.TextDocument.SendNotification(newParams);
     }
 
