@@ -877,7 +877,7 @@ namespace Microsoft.Dafny.Compilers {
         TrExpr(messageExpr, wr, false, wStmts);
         wr.WriteLine(")");
       }
-      
+
       wr.WriteLine(")");
     }
 

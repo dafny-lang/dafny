@@ -1836,9 +1836,9 @@ namespace Microsoft.Dafny.Compilers {
 
       foreach (MemberDecl memberx in c.Members) {
         var member = (memberx as Function)?.ByMethodDecl ?? memberx;
-        if (!member.IsStatic) {
-          thisContext = c;
-        }
+        // if (!member.IsStatic) {
+        thisContext = c;
+        // }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
           if (TraitRepeatsInheritedDeclarations) {
             RedeclareInheritedMember(member, classWriter);

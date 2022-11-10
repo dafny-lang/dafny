@@ -3750,20 +3750,27 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool NeedsCastFromTypeParameter => true;
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
-      if (from == null || to == null || !from.IsArrayType || !to.IsArrayType) {
+      if (from == null || to == null) {
         return false;
       }
-      var dims = from.AsArrayType.Dims;
-      Contract.Assert(dims == to.AsArrayType.Dims);
-      if (dims > 1) {
-        return false;
+      if (from.IsArrayType && to.IsArrayType) {
+        var dims = from.AsArrayType.Dims;
+        Contract.Assert(dims == to.AsArrayType.Dims);
+        if (dims > 1) {
+          return false;
+        }
+
+        var udtFrom = (UserDefinedType)from.NormalizeExpand();
+        var udtTo = (UserDefinedType)to.NormalizeExpand();
+        return udtFrom.TypeArgs[0].IsTypeParameter && !udtTo.TypeArgs[0].IsTypeParameter;
       }
-      var udtFrom = (UserDefinedType)from.NormalizeExpand();
-      var udtTo = (UserDefinedType)to.NormalizeExpand();
-      if (!udtFrom.TypeArgs[0].IsTypeParameter || udtTo.TypeArgs[0].IsTypeParameter) {
-        return false;
+
+      if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
+        // Need to box from int to CodePoint, or unbox from CodePoint to int
+        return true;
       }
-      return true;
+
+      return false;
     }
 
     private class SpecialNativeType : UserDefinedType {
@@ -3777,25 +3784,32 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      if (IsCoercionNecessary(from, to)) {
-        return EmitDowncast(from, to, tok, wr);
-      }
-
       if (from == null || to == null) {
         return wr;
       }
-      if (UnicodeChars && IsObjectType(from) && to.IsCharType) {
-        wr.Write($"((dafny.CodePoint)(");
-        var w = wr.Fork();
-        wr.Write(")).value()");
-        return w;
+
+      if (from.IsArrayType && to.IsArrayType && IsCoercionNecessary(from, to)) {
+        return EmitDowncast(from, to, tok, wr);
       }
-      if (UnicodeChars && from.IsCharType && IsObjectType(to)) {
-        wr.Write($"dafny.CodePoint.valueOf(");
-        var w = wr.Fork();
-        wr.Write(")");
-        return w;
+
+      if (UnicodeChars) {
+        // Need to box from int to CodePoint, or unbox from CodePoint to int
+
+        if (IsObjectType(from) && to.IsCharType) {
+          wr.Write($"((dafny.CodePoint)(");
+          var w = wr.Fork();
+          wr.Write(")).value()");
+          return w;
+        }
+
+        if (from.IsCharType && IsObjectType(to)) {
+          wr.Write($"dafny.CodePoint.valueOf(");
+          var w = wr.Fork();
+          wr.Write(")");
+          return w;
+        }
       }
+
       return wr;
     }
 

@@ -1309,6 +1309,7 @@ namespace Dafny {
         return g.ToString();
       }
     }
+
     public static void Print<G>(G g) {
       System.Console.Write(ToString(g));
     }

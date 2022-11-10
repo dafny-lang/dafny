@@ -56,11 +56,6 @@ method Main(args: seq<string>) {
   var sincere := MapToLower(sarcastic);
   print sincere, "\n";
 
-  print 'D', "\n";
-  // TODO:
-  // print '\'', "\n";
-  // print '\n', "\n";
-
   var mightBeString := Some(trickyString);
   print mightBeString, "\n";
   print mightBeString.value, "\n";
@@ -72,17 +67,26 @@ method Main(args: seq<string>) {
   var tupleOfString := (trickyString, 42);
   print tupleOfString, "\n";
 
-  Print("D");
-  Print('D');
-  Print(0x1F60E as char);
-
+  CharPrinting();
   CharCasting();
   CharComparisons();
   AllCharsTest();
 }
 
-method Print<T>(t: T) {
-  print t, "\n";
+method CharPrinting() {
+  var chars := "D\0\r\n\\\"\'\U{1F60E}";
+  for i := 0 to |chars| {
+    print chars[i];
+  }
+  for i := 0 to |chars| {
+    var r := Print(chars[i]);
+    expect chars[i] == r;
+  }
+}
+
+method Print<T>(t: T) returns (r: T) {
+  print t;
+  return t;
 }
 
 method AssertAndExpect(p: bool) 
