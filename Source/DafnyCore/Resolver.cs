@@ -2750,9 +2750,7 @@ namespace Microsoft.Dafny {
               if (field.Rhs != null) {
                 var ec = reporter.Count(ErrorLevel.Error);
                 scope.PushMarker();
-                if ((currentClass is ClassDecl cd && !cd.IsDefaultClass) || currentClass is DatatypeDecl ||
-                    currentClass is OpaqueTypeDecl) {
-                } else {
+                if (currentClass == null || !currentClass.AcceptThis) {
                   scope.AllowInstance = false;
                 }
                 ResolveExpression(field.Rhs, resolutionContext);
@@ -2805,7 +2803,9 @@ namespace Microsoft.Dafny {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
             var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
             scope.PushMarker();
-            scope.AllowInstance = false;
+            if (d is not TopLevelDeclWithMembers topLevelDecl || !topLevelDecl.AcceptThis) {
+              scope.AllowInstance = false;
+            }
             ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
             scope.PopMarker();
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
