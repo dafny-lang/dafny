@@ -12,14 +12,12 @@ using System.Reactive;
 namespace Microsoft.Dafny {
 
   public class UselessOldLinter : IRewriter {
-    internal override void PostResolve(Program program) {
-      base.PostResolve(program);
-      foreach (var moduleDefinition in program.Modules()) {
-        foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-          foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new UselessOldLinterVisitor(this.Reporter);
-            visitor.Visit(callable, Unit.Default);
-          }
+    internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
+      base.PostResolveIntermediate(moduleDefinition);
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
+          var visitor = new UselessOldLinterVisitor(this.Reporter);
+          visitor.Visit(callable, Unit.Default);
         }
       }
     }
@@ -41,6 +39,7 @@ namespace Microsoft.Dafny {
         var usesHeap = false;
         FreeVariablesUtil.ComputeFreeVariables(oldExpr.E, fvs, ref usesHeap, true);
         if (!usesHeap) {
+          oldExpr.Useless = true;
           this.reporter.Warning(MessageSource.Rewriter, oldExpr.tok,
             $"Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect");
         }
