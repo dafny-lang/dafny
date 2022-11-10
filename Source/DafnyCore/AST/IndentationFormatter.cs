@@ -6,6 +6,45 @@ using Microsoft.VisualBasic;
 
 namespace Microsoft.Dafny;
 
+/** The first Dafny formatter
+ * 
+ * We want the guarantee that the reprinted program should be the same as the previous one, modulo whitespace.
+ * Our approach in this formatter consists of three phases:
+ * 1. Convert tokens to a double linked list so that we can traverse them from the beginning to the end and store the first token in the program (Scanner.frame, and all AST nodes)
+ * 2. Traverse the program on pre-resolved nodes, and decide on the indentation of each token when it's associated to a declaration, a node, a statement, etc.
+ * 3. Reprint the tokens in their original order by replacing their leading and trailing whitespace by their correctly indented counterpart
+ *
+ * Step 3. has been entirely written in Dafny, and offers the interesting guarantee that the final reprinted program will contain all the "val" of every token reachable from the first token provided in input.
+ *
+ * ## What is the indentation of a "token"?
+ *
+ * This formatter considers that each token has to be associated with 3 types of indentation.
+ * 1. The indentation about things that are before this token
+ * 2. The indentation of this token itself if it starts a new line
+ * 3. The indentation of things that are after this token.
+ * 
+ * Because the token printer will traverse the tokens in order, the indentation 1. is used only for the trivia associated to the token in the leading whitespace of that token, like `/* Comment about X * /` in the following example, which is in the leading trivia of `const`
+ *
+ * ```
+ * datatype Y :=
+ * | C
+ * // Comment about C
+ * | D
+ * // Comment about D
+ * 
+ * /* Comment about X * /
+ * const X := 2
+ * ```
+ * Note that in this same example, the indentation of `Comment about D` is possible because of the indentation stored in 3.
+ * The indentation of 2. makes is possible to have the token to be a delimiter of two indented regions, like this:
+ * 
+ * ```dafny
+ * if X then
+ * Y
+ * else // Here "else" has its own indentation
+ * Z
+ * ```
+ */
 public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentationFormatter {
 
   /* If true, the indentation will be
