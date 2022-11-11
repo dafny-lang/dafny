@@ -37,6 +37,8 @@ public interface ICommandSpec {
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
     StrictDefiniteAssignmentOption.Instance,
+    FunctionSyntaxOption.Instance,
+    QuantifierSyntaxOption.Instance,
   });
   
   IEnumerable<IOptionSpec> Options { get; }
