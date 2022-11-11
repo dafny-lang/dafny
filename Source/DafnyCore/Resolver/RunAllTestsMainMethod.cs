@@ -190,7 +190,7 @@ public class RunAllTestsMainMethod : IRewriter {
       }
     }
 
-    // For now just print a footer to call attention to any failed tests.
+    // Use an expect statement to halt if there are any failed tests.
     // Ideally we would just set the process return code instead of crashing the program,
     // but since Dafny main methods don't support that yet, that is deferred for now.
     //
