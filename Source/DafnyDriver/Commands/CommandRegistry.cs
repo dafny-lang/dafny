@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -64,6 +65,7 @@ static class CommandRegistry {
     var dafnyOptions = new DafnyOptions();
     var optionValues = new Dictionary<IOptionSpec, object>();
     var options = new Options(optionValues);
+    dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Options = options;
 
     var optionToSpec = Commands.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
