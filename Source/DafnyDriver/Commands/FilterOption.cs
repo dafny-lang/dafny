@@ -22,7 +22,7 @@ times.".TrimStart();
   }
 
   public override string PostProcess(DafnyOptions options) {
-    options.ProcsToCheck.AddRange(Get(options));
+    options.ProcsToCheck.AddRange(Get(options).Select(s => "*" + s + "*"));
     return null;
   }
 }
