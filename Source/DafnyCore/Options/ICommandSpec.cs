@@ -39,6 +39,9 @@ public interface ICommandSpec {
     StrictDefiniteAssignmentOption.Instance,
     FunctionSyntaxOption.Instance,
     QuantifierSyntaxOption.Instance,
+    WarnShadowingOption.Instance,
+    WarnMissingConstructorParenthesisOption.Instance,
+    WarningAsErrorsOption.Instance
   });
   
   IEnumerable<IOptionSpec> Options { get; }
