@@ -12,6 +12,7 @@ class RunCommand : ICommandSpec {
     new IOptionSpec[] {
       TargetOption.Instance,
       NoVerifyOption.Instance,
+      FilterOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 
   public RunCommand() {

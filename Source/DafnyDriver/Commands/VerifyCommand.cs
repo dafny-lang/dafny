@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
+  public IEnumerable<IOptionSpec> Options => new [] {
+    FilterOption.Instance
+  }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
     var result = new Command("verify", "Verify the program.");

@@ -11,6 +11,7 @@ class BuildCommand : ICommandSpec {
     TargetOption.Instance,
     NoVerifyOption.Instance,
     CompileVerboseOption.Instance,
+    FilterOption.Instance
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
