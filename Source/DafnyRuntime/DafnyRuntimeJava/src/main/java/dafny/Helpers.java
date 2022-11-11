@@ -214,6 +214,7 @@ public class Helpers {
             runnable.run();
         } catch (DafnyHaltException e) {
             System.out.println("[Program halted] " + e.getMessage());
+            System.exit(1);
         }
     }
 }
