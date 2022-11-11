@@ -41,7 +41,8 @@ public interface ICommandSpec {
     QuantifierSyntaxOption.Instance,
     WarnShadowingOption.Instance,
     WarnMissingConstructorParenthesisOption.Instance,
-    WarningAsErrorsOption.Instance
+    WarningAsErrorsOption.Instance,
+    TrackPrintEffects.Instance
   });
   
   IEnumerable<IOptionSpec> Options { get; }
