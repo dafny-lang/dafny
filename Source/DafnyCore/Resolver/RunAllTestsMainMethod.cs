@@ -83,10 +83,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-
-
-
-    var tok = Token.NoToken;
+    var tok = program.GetFirstTopLevelToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 
