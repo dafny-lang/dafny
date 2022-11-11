@@ -6,6 +6,17 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class TranslateCommand : ICommandSpec {
+  public IEnumerable<IOptionSpec> Options =>
+    new IOptionSpec[] {
+      OutputOption.Instance,
+      TargetOption.Instance,
+      NoVerifyOption.Instance,
+      CompileVerboseOption.Instance,
+      IncludeRuntimeOption.Instance,
+      EnforceDeterminismOption.Instance,
+      VerificationTimeLimitOption.Instance,
+    }.Concat(ICommandSpec.CommonOptions);
+  
   public Command Create() {
     var result = new Command("translate", "Generate source and build files in a specified target language.");
     result.AddArgument(ICommandSpec.FilesArgument);
@@ -17,14 +28,4 @@ class TranslateCommand : ICommandSpec {
     var noVerify = NoVerifyOption.Instance.Get(options);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
-
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      OutputOption.Instance,
-      TargetOption.Instance,
-      NoVerifyOption.Instance,
-      CompileVerboseOption.Instance,
-      IncludeRuntimeOption.Instance,
-      VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.CommonOptions);
 }

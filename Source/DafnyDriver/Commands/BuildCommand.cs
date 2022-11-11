@@ -10,7 +10,8 @@ class BuildCommand : ICommandSpec {
     OutputOption.Instance,
     TargetOption.Instance,
     NoVerifyOption.Instance,
-    CompileVerboseOption.Instance,    
+    CompileVerboseOption.Instance,   
+    EnforceDeterminismOption.Instance, 
     VerificationTimeLimitOption.Instance,
   }.Concat(ICommandSpec.CommonOptions);
 
