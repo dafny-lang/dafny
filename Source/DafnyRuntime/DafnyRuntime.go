@@ -597,7 +597,7 @@ func (seq Seq) UniqueElements() Set {
 func (seq Seq) String() string {
   if seq.isString {
     s := ""
-    // Note this doesn't produce the right string in UTF-8,
+    // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
     for _, c := range seq.contents {
       s += c.(Char).String()
