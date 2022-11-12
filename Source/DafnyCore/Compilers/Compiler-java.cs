@@ -659,7 +659,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string CharTypeName(bool boxed) {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (UnicodeChars) {
         return boxed ? "dafny.CodePoint" : "int";
       } else {
         return boxed ? "Character" : "char";
@@ -1163,10 +1163,10 @@ namespace Microsoft.Dafny.Compilers {
       if (type != null && type.AsArrayType != null) {
         arrays.Add(type.AsArrayType.Dims);
       }
-      if (type.IsDatatype && type.AsDatatype is TupleTypeDecl tupleDecl) {
+      if (type != null && type.IsDatatype && type.AsDatatype is TupleTypeDecl tupleDecl) {
         tuples.Add(tupleDecl.NonGhostDims);
       }
-      if (type.IsTypeParameter) {
+      if (type != null && type.IsTypeParameter) {
         EmitSuppression(wr);
       }
       wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(rhs == null); // follows from precondition
       } else if (rhs != null) {
         wr.WriteLine($" = {rhs};");
-      } else if (type.IsIntegerType) {
+      } else if (type != null && type.IsIntegerType) {
         wr.WriteLine(" = java.math.BigInteger.ZERO;");
       } else {
         wr.WriteLine(";");
@@ -2170,7 +2170,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write($"{CharTypeName(true)}.valueOf");
           }
           TrParenExpr(arg, wr, false, wStmts);
-        } else if (isGeneric && !UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        } else if (isGeneric && !UnicodeChars) {
           // This happens to not work when --unicode-char is true anyway,
           // but the guard is there to be more explicit that this is intentional.
           wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
@@ -2475,11 +2475,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is BoolType) {
         return $"{DafnyTypeDescriptor}.BOOLEAN";
       } else if (type is CharType) {
-        if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
-          return $"{DafnyTypeDescriptor}.UNICODE_CHAR";
-        } else {
-          return $"{DafnyTypeDescriptor}.CHAR";
-        }
+        return UnicodeChars ? $"{DafnyTypeDescriptor}.UNICODE_CHAR" : $"{DafnyTypeDescriptor}.CHAR";
       } else if (type is IntType) {
         return $"{DafnyTypeDescriptor}.BIG_INTEGER";
       } else if (type is BigOrdinalType) {
@@ -3750,6 +3746,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool NeedsCastFromTypeParameter => true;
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
+      if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
+        // Need to box from int to CodePoint, or unbox from CodePoint to int
+        return true;
+      }
+      
       if (from == null || to == null) {
         return false;
       }
@@ -3765,49 +3766,50 @@ namespace Microsoft.Dafny.Compilers {
         return udtFrom.TypeArgs[0].IsTypeParameter && !udtTo.TypeArgs[0].IsTypeParameter;
       }
 
-      if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
-        // Need to box from int to CodePoint, or unbox from CodePoint to int
-        return true;
-      }
-
       return false;
     }
 
-    private class SpecialNativeType : UserDefinedType {
-      internal SpecialNativeType(string name) : base(Token.NoToken, name, null) { }
+    protected override Type TypeForCoercionFromTypeParameter(Type type) {
+      return null;
     }
 
-    private readonly static SpecialNativeType NativeObjectType = new SpecialNativeType("object");
+    // We use null to represent java.lang.Object, as that's a decent
+    // default native type for "no type information".
+    // We don't use the SpecialNativeType approach that the Go compiler
+    // uses for string because that kind of compiler-specific Type implementation
+    // doesn't fit well into the generic logic on Types
+    // (see for example https://github.com/dafny-lang/dafny/issues/2989).
+    private static readonly Type NativeObjectType = null;
 
     private bool IsObjectType(Type type) {
       return type == NativeObjectType || type.IsTypeParameter;
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      if (from == null || to == null) {
-        return wr;
-      }
-
-      if (from.IsArrayType && to.IsArrayType && IsCoercionNecessary(from, to)) {
-        return EmitDowncast(from, to, tok, wr);
-      }
-
       if (UnicodeChars) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
-        if (IsObjectType(from) && to.IsCharType) {
+        if (IsObjectType(from) && to is { IsCharType: true }) {
           wr.Write($"((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
-        if (from.IsCharType && IsObjectType(to)) {
+        if (from is { IsCharType: true } && IsObjectType(to)) {
           wr.Write($"dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
           return w;
         }
+      }
+      
+      if (from == null || to == null) {
+        return wr;
+      }
+
+      if (from.IsArrayType && to.IsArrayType && IsCoercionNecessary(from, to)) {
+        return EmitDowncast(from, to, tok, wr);
       }
 
       return wr;

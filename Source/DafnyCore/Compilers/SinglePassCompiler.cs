@@ -700,6 +700,10 @@ namespace Microsoft.Dafny.Compilers {
       return NeedsCastFromTypeParameter;
     }
 
+    protected virtual Type TypeForCoercionFromTypeParameter(Type type) {
+      return type;
+    }
+
     /// <summary>
     /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.
     /// Needed in languages where either
@@ -4142,7 +4146,7 @@ namespace Microsoft.Dafny.Compilers {
               // functions to begin with (C#) or has dynamic typing so none of
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
-              type = p.Type;
+              type = TypeForCoercionFromTypeParameter(p.Type);
             } else {
               type = instantiatedType;
             }

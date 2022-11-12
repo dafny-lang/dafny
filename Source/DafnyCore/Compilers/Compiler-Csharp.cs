@@ -1471,7 +1471,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (e.Type.IsCharType && UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (e.Type.IsCharType && UnicodeChars) {
         wr.Write("(");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
         wr.Write(".Value)");

@@ -1304,10 +1304,23 @@ namespace Dafny {
       } else if (g is bool) {
         return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
       } else if (g is System.Text.Rune) {
-        return "'" + (System.Text.Rune)(object)g + "'";
+        return "'" + EscapeCharacter((System.Text.Rune)(object)g) + "'";
       } else {
         return g.ToString();
       }
+    }
+
+    private static string EscapeCharacter(System.Text.Rune r) {
+      switch (r.Value) {
+        case '\n': return "\\n";
+        case '\r': return "\\r";
+        case '\t': return "\\t";
+        case '\0': return "\\0";
+        case '\'': return "\\";
+        case '\"': return "\\\"";
+        case '\\': return "\\\\";
+        default: return r.ToString();
+      };
     }
 
     public static void Print<G>(G g) {
