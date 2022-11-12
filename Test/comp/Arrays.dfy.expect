@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 44 verified, 0 errors
+Dafny program verifier finished with 42 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
@@ -39,7 +39,6 @@ false false false
 0 0 0 0 0 
 0 0 0 0 0 
 (D, 0, false, 0, 0, 0, 0)
-0
 8 0
 false 0 null null
 8 8
@@ -91,7 +90,6 @@ false false false
 0 0 0 0 0 
 0 0 0 0 0 
 (D, 0, false, 0, 0, 0, 0)
-0
 8 0
 false 0 null null
 8 8
@@ -143,7 +141,6 @@ false false false
 0 0 0 0 0 
 0 0 0 0 0 
 (D, 0, false, 0, 0, 0, 0)
-0
 8 0
 false 0 null null
 8 8
@@ -195,7 +192,6 @@ false false false
 0 0 0 0 0 
 0 0 0 0 0 
 (D, 0, false, 0, 0, 0, 0)
-0
 8 0
 false 0 null null
 8 8
@@ -247,7 +243,6 @@ false false false
 0 0 0 0 0 
 0 0 0 0 0 
 (D, 0, false, 0, 0, 0, 0)
-0
 8 0
 false 0 null null
 8 8

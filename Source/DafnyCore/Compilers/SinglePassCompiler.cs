@@ -2875,14 +2875,14 @@ namespace Microsoft.Dafny.Compilers {
       typeNameSansBrackets = TypeName(innermostElementType, wr, tok);
     }
 
-    protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets, bool specialCaseAllDims = true) {
+    protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
       Contract.Requires(type != null);
 
-      var xType = SimplifyType(type);
-      var at = xType.AsArrayType;
-      if (at != null && (at.Dims == 1 || specialCaseAllDims)) {
-        var elType = xType.TypeArgs[0];
-        TypeName_SplitArrayName(elType, out innermostElementType, out brackets, specialCaseAllDims);
+      type = SimplifyType(type);
+      var at = type.AsArrayType;
+      if (at != null) {
+        var elementType = type.TypeArgs[0];
+        TypeName_SplitArrayName(elementType, out innermostElementType, out brackets);
         brackets = TypeNameArrayBrackets(at.Dims) + brackets;
       } else {
         innermostElementType = type;

@@ -811,6 +811,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
+      Contract.Requires(type != null);
+
+      type = SimplifyType(type);
+      var at = type.AsArrayType;
+      if (at != null && at.Dims == 1 && !SimplifyType(type.TypeArgs[0]).IsTypeParameter) {
+        TypeName_SplitArrayName(type.TypeArgs[0], out innermostElementType, out brackets);
+        brackets = TypeNameArrayBrackets(at.Dims) + brackets;
+      } else {
+        innermostElementType = type;
+        brackets = "";
+      }
+    }
+
     protected override string TypeNameArrayBrackets(int dims) {
       return Util.Repeat(dims, "[]");
     }
@@ -3142,13 +3156,12 @@ namespace Microsoft.Dafny.Compilers {
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
             var elType = udt.TypeArgs[0];
-            TypeName_SplitArrayName(elType, out var innermostElementType, out var brackets, false);
+            TypeName_SplitArrayName(elType, out var innermostElementType, out var brackets);
             string bareArray;
-            var typeParameter = SimplifyType(innermostElementType).AsTypeParameter;
             brackets += Util.Repeat(arrayClass.Dims - 1, "[]");
-            if (typeParameter != null) {
+            if (innermostElementType.IsTypeParameter) {
               var cast = $"(java.lang.Object{brackets})";
-              bareArray = $"{cast}{FormatTypeDescriptorVariable(typeParameter)}.newArray({Util.Comma(arrayClass.Dims, _ => "0")})";
+              bareArray = $"{cast}{FormatTypeDescriptorVariable(innermostElementType.AsTypeParameter)}.newArray({Util.Comma(arrayClass.Dims, _ => "0")})";
             } else {
               var typeNameSansBrackets = TypeName(innermostElementType, wr, udt.tok, false, true);
               bareArray = $"new {typeNameSansBrackets}[0]{brackets}";
