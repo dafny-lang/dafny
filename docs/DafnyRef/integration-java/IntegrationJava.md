@@ -169,7 +169,8 @@ Dafny-generated Java code with other Java code.
 ## **Matching Dafny and Java types**
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
-corresponding types in the Dafny declaration:
+corresponding types in the Dafny declaration, as shown in this table.
+Here, `T'` for a type parameter `T` indicates the Java type corresponding to a Dafny type `T`.:
 
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Java type                 |
