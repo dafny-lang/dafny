@@ -73,7 +73,7 @@ Or, in one build-and-run step:
 `dafny run -t:java Demo1.dfy --input Demo1.java`
 
 ## **Calling non-static Java methods from Dafny**
-../../../Source/DafnyCore/Compilers/Compiler-java.cs
+
 If the Java methods to be called are not static, then a receiver object 
 must also be created and shared between Java and Dafny. The following example
 shows how to do this.
@@ -93,9 +93,9 @@ module MM {
     d.p();
   }
 }
-```java
-In a `Demo1a.java` file:
 ```
+In a `Demo1a.java` file:
+```java
 package demo;
 public class Demo1a {
   public static Demo1a newDemo1a() { return new Demo1a(); }
