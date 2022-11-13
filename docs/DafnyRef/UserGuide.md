@@ -939,7 +939,7 @@ compilers treat it differently.
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (via `dotnet A.dll`).
 
-The simple steps are these:
+One possibility to run the dafny files as part of a `csproj` project is this one
 - create a dotnet project file with the command `dotnet new console`
 - delete the `Program.cs` file
 - build the dafny program: `dafny build A.dfy B.dfy`
