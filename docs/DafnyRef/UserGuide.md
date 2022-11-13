@@ -948,7 +948,7 @@ One possibility to run the dafny files as part of a `csproj` project is this one
 The last two steps can be combined:
 `dafny run A.dfy --input B.dfy`
 
-Note that all input .dfy files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
+Note that all input `.dfy` files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
 
 
 Examples of how to integrate C# libraries and source code with Dafny source code
