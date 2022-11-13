@@ -937,7 +937,7 @@ compilers treat it differently.
 ### 25.8.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
-the build step then produces a `A.dll`, which can be used as a library or as an executable.
+the build step then produces a `A.dll`, which can be used as a library or as an executable (via `dotnet A.dll`).
 
 The simple steps are these:
 - create a dotnet project file with the command `dotnet new console`
