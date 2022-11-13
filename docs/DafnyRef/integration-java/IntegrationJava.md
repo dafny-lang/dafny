@@ -42,7 +42,7 @@ Alternatively the build and run steps can be combined:
 
 ## **Calling Java from Dafny**
 
-Calling a Java method from Dafny requires declaring a shim in Dafny that gives a name and types
+Calling a Java method from Dafny requires declaring a [shim](https://en.wikipedia.org/wiki/Shim_(computing)) in Dafny that gives a name and types
 that can be referenced by Dafny code, while still being translated to the same name and types as in the Java code.
 
 For example, suppose we want to call a Java method `demo.Demo1.p()`. In `Demo1.java` we have
