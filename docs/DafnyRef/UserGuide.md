@@ -937,9 +937,9 @@ compilers treat it differently.
 ### 25.8.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
-the build step then produces a `A.dll`, which can be used as a library or as an executable.
+the build step then produces a `A.dll`, which can be used as a library or as an executable (via `dotnet A.dll`).
 
-The simple steps are these:
+One possibility to run the dafny files as part of a `csproj` project is this one
 - create a dotnet project file with the command `dotnet new console`
 - delete the `Program.cs` file
 - build the dafny program: `dafny build A.dfy B.dfy`
@@ -948,7 +948,7 @@ The simple steps are these:
 The last two steps can be combined:
 `dafny run A.dfy --input B.dfy`
 
-Note that all input .dfy files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
+Note that all input `.dfy` files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
 
 
 Examples of how to integrate C# libraries and source code with Dafny source code
@@ -962,11 +962,11 @@ different output directory. The file _A_`.dfy` is translated to _A_`.java`,
 which is placed in the output directory along with helper files.
 If more than one `.dfy` file is listed on the command-line, then the output
 directory name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files. _A_`-java` will also likely contain
+for each of the `.dfy` files. _A_`-java` will also contain
 translations to java for any library modules that are used.
 
 The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
-but not if dafny is only doing translation..
+but not if dafny is only doing translation.
 
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
