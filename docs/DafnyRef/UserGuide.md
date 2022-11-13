@@ -962,7 +962,7 @@ different output directory. The file _A_`.dfy` is translated to _A_`.java`,
 which is placed in the output directory along with helper files.
 If more than one `.dfy` file is listed on the command-line, then the output
 directory name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files. _A_`-java` will also likely contain
+for each of the `.dfy` files. _A_`-java` will also contain
 translations to java for any library modules that are used.
 
 The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
