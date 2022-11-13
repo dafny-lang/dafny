@@ -16,7 +16,7 @@ to the C# code. There are two aspects to this:
 
 ## Calling C# from Dafny
 
-Calling a C# method from Dafny requires declaring a shim in Dafny that gives a name and types
+Calling a C# method from Dafny requires declaring a [shim](https://en.wikipedia.org/wiki/Shim_(computing)) in Dafny that gives a name and types
 that can be referenced by Dafny code, while still having the same name as in the C# code.
 
 For example, suppose we want to call a C# method `Demo.p()`. In `Demo.cs` we have
