@@ -276,7 +276,16 @@ func AllChars() Iterator {
 type CodePoint rune
 
 func (cp CodePoint) String() string {
-  return fmt.Sprintf("'%c'", rune(cp))
+  switch (cp.value) {
+    case '\n': return "\\n";
+    case '\r': return "\\r";
+    case '\t': return "\\t";
+    case '\x00': return "\\0";
+    case '\'': return "\\'";
+    case '\"': return "\\\"";
+    case '\\': return "\\\\";
+    default: return fmt.Sprintf("'%c'", rune(cp))
+  }
 }
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.

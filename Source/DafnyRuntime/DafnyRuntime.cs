@@ -1316,7 +1316,7 @@ namespace Dafny {
         case '\r': return "\\r";
         case '\t': return "\\t";
         case '\0': return "\\0";
-        case '\'': return "\\";
+        case '\'': return "\\'";
         case '\"': return "\\\"";
         case '\\': return "\\\\";
         default: return r.ToString();
