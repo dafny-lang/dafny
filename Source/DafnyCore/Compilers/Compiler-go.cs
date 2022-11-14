@@ -819,7 +819,7 @@ namespace Microsoft.Dafny.Compilers {
               if (!arg.IsGhost) {
                 anyFormals = true;
                 if (UnicodeChars && arg.Type.IsStringType) {
-                  wCase.Write("{0}\"\\\"\" + data.{1}.VerbatimString() + \"\\\"\"", sep, DatatypeFieldName(arg, k));
+                  wCase.Write("{0}data.{1}.VerbatimString(true)", sep, DatatypeFieldName(arg, k));
                 } else {
                   wCase.Write("{0}_dafny.String(data.{1})", sep, DatatypeFieldName(arg, k));
                 }
@@ -1788,7 +1788,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isString && UnicodeChars) {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine(".VerbatimString())");
+        wr.WriteLine(".VerbatimString(false))");
       } else if (!isString ||
                  (arg.Resolved is MemberSelectExpr mse &&
                   mse.Member.IsExtern(out _, out _))) {
@@ -1883,7 +1883,7 @@ namespace Microsoft.Dafny.Compilers {
 
       TrParenExpr(messageExpr, wr, false, wStmts);
       if (UnicodeChars && messageExpr.Type.IsStringType) {
-        wr.Write(".VerbatimString())");
+        wr.Write(".VerbatimString(false))");
       } else {
         wr.WriteLine(".String())");
       }

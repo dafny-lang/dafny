@@ -982,9 +982,7 @@ namespace Microsoft.Dafny.Compilers {
                   }
 
                   if (arg.Type.IsStringType && UnicodeChars) {
-                    w.WriteLine($"{tempVar} += '\"';");
-                    w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString();");
-                    w.WriteLine($"{tempVar} += '\"';");
+                    w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString(true);");
                   } else {
                     w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
                   }
@@ -1848,7 +1846,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType && UnicodeChars ? ".ToVerbatimString()" : "";
+      var suffix = arg.Type.IsStringType && UnicodeChars ? ".ToVerbatimString(false)" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
@@ -1897,7 +1895,7 @@ namespace Microsoft.Dafny.Compilers {
 
       TrExpr(messageExpr, wr, false, wStmts);
       if (UnicodeChars && messageExpr.Type.IsStringType) {
-        wr.Write(".ToVerbatimString()");
+        wr.Write(".ToVerbatimString(false)");
       }
 
       wr.WriteLine(");");

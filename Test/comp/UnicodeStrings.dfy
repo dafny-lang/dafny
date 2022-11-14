@@ -38,6 +38,8 @@ datatype Option<T> = Some(value: T) | None
 
 datatype StringOption = SomeString(value: string) | NoString
 
+const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}"
+
 method Main(args: seq<string>) {
   var trickyString := "Dafny is just so \U{1F60E}";
   print trickyString, "\n";
@@ -60,11 +62,10 @@ method Main(args: seq<string>) {
   print mightBeString, "\n";
   print mightBeString.value, "\n";
 
-  var definitelyString := SomeString(trickyString);
+  var definitelyString := SomeString(stringThatNeedsEscaping);
   print definitelyString, "\n";
-  print definitelyString.value, "\n";
 
-  var tupleOfString := (trickyString, 42);
+  var tupleOfString := (stringThatNeedsEscaping, 42);
   print tupleOfString, "\n";
 
   CharPrinting();
@@ -74,7 +75,7 @@ method Main(args: seq<string>) {
 }
 
 method CharPrinting() {
-  var chars := "D\0\r\n\\\"\'\U{1F60E}";
+  var chars := stringThatNeedsEscaping;
   for i := 0 to |chars| {
     print chars[i], "\n";
   }

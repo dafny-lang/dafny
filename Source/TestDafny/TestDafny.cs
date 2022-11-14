@@ -124,7 +124,7 @@ public class TestDafny {
     }
 
     // If we hit errors, check for known unsupported features for this compilation target
-    if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
+    if (error == "" && OnlyUnsupportedFeaturesErrors(compiler, output)) {
       return 0;
     }
 

@@ -887,7 +887,7 @@ namespace Dafny {
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
     bool EqualsAux(ISequence<object> other);
     ISequence<U> DowncastClone<U>(Func<T, U> converter);
-    string ToVerbatimString();
+    string ToVerbatimString(bool asLiteral);
   }
 
   public abstract class Sequence<T> : ISequence<T> {
@@ -1084,10 +1084,21 @@ namespace Dafny {
       }
     }
 
-    public string ToVerbatimString() {
+    public string ToVerbatimString(bool asLiteral) {
       var builder = new System.Text.StringBuilder();
-      foreach (var rune in this) {
-        builder.Append(char.ConvertFromUtf32(((System.Text.Rune)(object)rune).Value));
+      if (asLiteral) {
+        builder.Append('"');
+      }
+      foreach (var c in this) {
+        var rune = (System.Text.Rune)(object)c;
+        if (asLiteral) {
+          builder.Append(Helpers.EscapeCharacter(rune));
+        } else {
+          builder.Append(char.ConvertFromUtf32(rune.Value));
+        }
+      }
+      if (asLiteral) {
+        builder.Append('"');
       }
       return builder.ToString();
     }
@@ -1310,7 +1321,7 @@ namespace Dafny {
       }
     }
 
-    private static string EscapeCharacter(System.Text.Rune r) {
+    public static string EscapeCharacter(System.Text.Rune r) {
       switch (r.Value) {
         case '\n': return "\\n";
         case '\r': return "\\r";

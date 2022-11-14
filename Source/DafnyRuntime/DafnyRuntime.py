@@ -75,17 +75,20 @@ def c_label(name: str = None):
 class CodePoint(str):
 
     escapes = {
-      '\n' : "\\n";
-      '\r' : "\\r";
-      '\t' : "\\t";
-      '\0' : "\\0";
-      '\'' : "\\'";
-      '\"' : "\\\"";
-      '\\' : "\\\\";
+      '\n' : "\\n",
+      '\r' : "\\r",
+      '\t' : "\\t",
+      '\0' : "\\0",
+      '\'' : "\\'",
+      '\"' : "\\\"",
+      '\\' : "\\\\",
     }
 
+    def __escaped__(self):
+        return self.escapes.get(self, self)
+
     def __dafnystr__(self):
-        return escapes.get(self, f"'{self}'")
+        return f"'{self.__escaped__()}'"
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
@@ -109,8 +112,11 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
-    def VerbatimString(self):
-        return ''.join(self)
+    def VerbatimString(self, asliteral):
+        if asliteral:
+            return f"\"{''.join(map(lambda c: c.__escaped__(), self))}\""
+        else:
+            return ''.join(self)
 
     def __dafnystr__(self) -> str:
         if self.isStr:

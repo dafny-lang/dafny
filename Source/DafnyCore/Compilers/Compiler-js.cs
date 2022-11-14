@@ -448,7 +448,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               anyFormals = true;
               if (arg.Type.IsStringType && UnicodeChars) {
-                cw.Write("{0}'\"' + this.{1}.toVerbatimString() + '\"'", sep, FormalName(arg, k));
+                cw.Write("{0}this.{1}.toVerbatimString(true)", sep, FormalName(arg, k));
               } else {
                 cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
               }
@@ -1097,7 +1097,7 @@ namespace Microsoft.Dafny.Compilers {
         if (UnicodeChars) {
           wr.Write($"process.stdout.write(");
           TrParenExpr(arg, wr, false, wStmts);
-          wr.WriteLine(".toVerbatimString());");
+          wr.WriteLine(".toVerbatimString(false));");
         } else {
           wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
           TrExpr(arg, wr, false, wStmts);
@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny.Compilers {
 
       TrParenExpr(messageExpr, wr, false, wStmts);
       if (UnicodeChars && messageExpr.Type.IsStringType) {
-        wr.Write(".toVerbatimString()");
+        wr.Write(".toVerbatimString(false)");
       }
       wr.WriteLine(");");
     }

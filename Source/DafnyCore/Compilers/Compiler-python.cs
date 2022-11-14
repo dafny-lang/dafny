@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
         .Where(f => !f.IsGhost)
         .Select(f => {
           if (f.Type.IsStringType && UnicodeChars) {
-            return $"\"{{self.{IdProtect(f.CompileName)}.VerbatimString()}}\"";
+            return $"{{self.{IdProtect(f.CompileName)}.VerbatimString(True)}}";
           } else {
             return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
           }
@@ -819,7 +819,7 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeChars && arg.Type.IsStringType) {
         wr.Write($"{DafnyRuntimeModule}.print(");
         TrParenExpr(arg, wr, false, wStmts);
-        wr.WriteLine(".VerbatimString())");
+        wr.WriteLine(".VerbatimString(False))");
       } else {
         wr.Write($"{DafnyRuntimeModule}.print({DafnyRuntimeModule}.string_of(");
         TrExpr(arg, wr, false, wStmts);
@@ -871,7 +871,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (UnicodeChars && messageExpr.Type.IsStringType) {
         TrParenExpr(messageExpr, wr, false, wStmts);
-        wr.Write(".VerbatimString()");
+        wr.Write(".VerbatimString(False)");
       } else {
         wr.Write($"{DafnyRuntimeModule}.string_of(");
         TrExpr(messageExpr, wr, false, wStmts);

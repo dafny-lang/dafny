@@ -275,18 +275,24 @@ func AllChars() Iterator {
 
 type CodePoint rune
 
-func (cp CodePoint) String() string {
-  switch (cp.value) {
+func (cp CodePoint) Escape() string {
+  switch (rune(cp)) {
     case '\n': return "\\n";
     case '\r': return "\\r";
     case '\t': return "\\t";
     case '\x00': return "\\0";
     case '\'': return "\\'";
-    case '\"': return "\\\"";
+    case '"': return "\\\"";
     case '\\': return "\\\\";
-    default: return fmt.Sprintf("'%c'", rune(cp))
+    default: return fmt.Sprintf("%c", rune(cp))
   }
 }
+
+func (cp CodePoint) String() string {
+  return fmt.Sprintf("'%s'", cp.Escape())
+}
+
+
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
 func AllUnicodeChars() Iterator {
@@ -671,10 +677,20 @@ func (seq Seq) String() string {
   }
 }
 
-func (seq Seq) VerbatimString() string {
+func (seq Seq) VerbatimString(asLiteral bool) string {
   s := ""
+  if asLiteral {
+    s += "\""
+  }
   for _, c := range seq.contents {
-    s += fmt.Sprintf("%c", c.(CodePoint))
+    if asLiteral {
+      s += c.(CodePoint).Escape()
+    } else {
+      s += fmt.Sprintf("%c", c.(CodePoint))
+    }
+  }
+  if asLiteral {
+    s += "\""
   }
   return s
 }

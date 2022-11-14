@@ -502,8 +502,12 @@ let _dafny = (function() {
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }
-    toVerbatimString() {
-      return this.map(c => String.fromCodePoint(c.value)).join("");
+    toVerbatimString(asLiteral) {
+      if (asLiteral) {
+        return '"' + this.map(c => _dafny.escapeCharacter(c)).join("") + '"';
+      } else {
+        return this.map(c => String.fromCodePoint(c.value)).join("");
+      }
     }
     static update(s, i, v) {
       if (typeof s === "string") {
