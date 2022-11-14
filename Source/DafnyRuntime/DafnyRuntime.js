@@ -39,6 +39,19 @@ let _dafny = (function() {
       return a.toString();
     }
   }
+  $module.escapeCharacter = function(cp) {
+    switch (cp.value) {
+      print
+      case '\n': return "\\n";
+      case '\r': return "\\r";
+      case '\t': return "\\t";
+      case '\0': return "\\0";
+      case '\'': return "\\";
+      case '\"': return "\\\"";
+      case '\\': return "\\\\";
+      default: return String.fromCodePoint(cp.value);
+    };
+  }
   $module.NewObject = function() {
     return { _tname: "object" };
   }
@@ -470,7 +483,7 @@ let _dafny = (function() {
       return this.value <= other.value
     }
     toString() {
-      return "'" + String.fromCodePoint(this.value) + "'";
+      return "'" + $module.escapeCharacter(this) + "'";
     }
   }
   $module.Seq = class Seq extends Array {
