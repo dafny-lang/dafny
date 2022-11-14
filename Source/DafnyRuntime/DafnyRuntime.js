@@ -41,7 +41,6 @@ let _dafny = (function() {
   }
   $module.escapeCharacter = function(cp) {
     switch (cp.value) {
-      print
       case '\n': return "\\n";
       case '\r': return "\\r";
       case '\t': return "\\t";
