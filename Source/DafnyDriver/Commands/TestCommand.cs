@@ -10,6 +10,7 @@ public class TestCommand : ICommandSpec {
     new IOptionSpec[] {
       TargetOption.Instance,
       NoVerifyOption.Instance,
+      EnforceDeterminismOption.Instance,
       VerificationTimeLimitOption.Instance,
     }.Concat(ICommandSpec.CommonOptions);
 
