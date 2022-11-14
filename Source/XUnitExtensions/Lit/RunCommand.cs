@@ -9,6 +9,11 @@ namespace XUnitExtensions.Lit {
     }
 
     private static ILitCommand ParseArguments(string[] tokens, LitTestConfiguration config) {
+      if (tokens[0] == "!") {
+        var operand = ParseArguments(tokens[1..], config);
+        return new NotCommand(operand);
+      }
+
       // Just supporting || for now since it's a precise way to ignore an exit code
       var seqOperatorIndex = Array.IndexOf(tokens, "||");
       if (seqOperatorIndex >= 0) {
