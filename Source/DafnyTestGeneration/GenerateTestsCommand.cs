@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
-public class GenerateTestCommand : ICommandSpec {  
+public class GenerateTestsCommand : ICommandSpec {  
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
       LoopUnrollOption.Instance,

@@ -30,7 +30,7 @@ static class CommandRegistry {
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
     AddCommand(new TestCommand());
-    AddCommand(new GenerateTestCommand());
+    AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
