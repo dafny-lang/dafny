@@ -12,11 +12,7 @@ public class FilterOption : CommandLineOption<IEnumerable<string>> {
   public override string ArgumentName => "pattern";
 
   public override string Description => @"
-(experimental) Only check proofs matched by pattern <p>. This option
-may be specified multiple times to match multiple patterns.
-The pattern <p> matches the whole proof name and may
-contain * wildcards which match any character zero or more
-times.".TrimStart();
+(experimental) Only check proofs matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times.".TrimStart();
   public override void Parse(CommandLineParseState ps, DafnyOptions options) {
     throw new System.NotImplementedException();
   }
