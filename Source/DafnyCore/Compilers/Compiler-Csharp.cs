@@ -1440,15 +1440,6 @@ namespace Microsoft.Dafny.Compilers {
             return TypeName(instantiatedTypeParameter, wr, tok, member);
           }
         }
-#if !KRML_DONE_DEBUGGING
-        else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
-          Contract.Assert(false); // KRML: This ought to never happen, since we called SimplifyTypes above
-          // optimize singleton tuple into its argument
-          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-          return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
-        }
-#endif
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;

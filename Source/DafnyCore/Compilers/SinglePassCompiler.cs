@@ -2946,14 +2946,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       type = SimplifyType(type, true);
-#if !KRML_DONE_DEBUGGING
-      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
-        Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
-        var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-        Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-        return PlaceboValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
-      }
-#endif
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -2966,14 +2958,6 @@ namespace Microsoft.Dafny.Compilers {
       var usePlaceboValue =
         (type.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
       type = SimplifyType(type, true);
-#if !KRML_DONE_DEBUGGING
-      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
-        Contract.Assert(false); // KRML: I don't expect we'll ever get here anymore, since we call SimplifyType above
-        var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-        Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-        return DefaultValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
-      }
-#endif
       return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -4777,16 +4761,6 @@ namespace Microsoft.Dafny.Compilers {
           return;
         }
 
-#if !KRML_DONE_DEBUGGING
-        // optimize singleton tuple into its argument
-        if (OptimizesInvisibleDatatypeWrappers && dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
-          Contract.Assert(false); // KRML: This shouldn't happen, since we check for IsInvisibleWrapper above
-          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-          TrExpr(dtv.Arguments[nonGhostComponent], wr, inLetExprBody, wStmts);
-          return;
-        }
-#endif
         var wrArgumentList = new ConcreteSyntaxTree();
         string sep = "";
         for (int i = 0; i < dtv.Arguments.Count; i++) {

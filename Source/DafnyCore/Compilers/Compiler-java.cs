@@ -693,14 +693,6 @@ namespace Microsoft.Dafny.Compilers {
             return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
         }
-#if !KRML_DONE_DEBUGGING
-        else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
-          // optimize singleton tuple into its argument
-          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-          return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
-        }
-#endif
         var s = FullTypeName(udt, member);
         if (s.Equals("string")) {
           return "String";

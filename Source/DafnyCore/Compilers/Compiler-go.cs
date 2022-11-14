@@ -1413,14 +1413,6 @@ namespace Microsoft.Dafny.Compilers {
         } else if (udt.IsTypeParameter) {
           return "interface{}";
         } else if (cl is TupleTypeDecl tupleTypeDecl) {
-#if !KRML_DONE_DEBUGGING
-          if (tupleTypeDecl.NonGhostDims == 1) {
-            // optimize singleton tuple into its argument
-            var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
-            Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
-            return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
-          }
-#endif
           return "_dafny.Tuple";
         }
         if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {

@@ -84,16 +84,5 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public override string SanitizedName =>
     sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-#if !KRML_DONE_DEBUGGING
-  public override string CompileName {
-    get {
-      var r = NonGhostTupleTypeDecl?.CompileName ?? $"Tuple{Dims}";
-      var previousName = $"Tuple{NonGhostDims}";
-      Contract.Assert(r == previousName);
-      return r;
-    }
-  }
-#else
   public override string CompileName => NonGhostTupleTypeDecl?.CompileName ?? $"Tuple{Dims}";
-#endif
 }
