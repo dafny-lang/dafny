@@ -157,7 +157,7 @@ corresponding types in Dafny:
 | string                        | Dafny.ISequence<char>  |
 | JavaString                    | java.lang.String                        |
 | C, C? (for class, iterator C) | (class) C                   |
-| (trait) T                     | (iterator) T                |
+| (trait) T                     | (interface) T                |
 | datatype, codatatype          | (class) C                   |
 | subset type                   | same as base type           |
 | tuple                         | \_System.\_ITuple_n_              |
