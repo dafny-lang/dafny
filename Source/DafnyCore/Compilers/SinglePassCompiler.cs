@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.IO;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using JetBrains.Annotations;
@@ -63,6 +64,46 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public CoverageInstrumenter Coverage;
+
+    public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
+      var psi = new ProcessStartInfo(programName) {
+        UseShellExecute = false,
+        CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
+      };
+      foreach (var arg in args ?? Enumerable.Empty<string>()) {
+        psi.ArgumentList.Add(arg);
+      }
+      return psi;
+    }
+
+    public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
+      process.WaitForExit();
+      if (process.ExitCode != 0 && errorMessage != null) {
+        outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+      }
+      return process.ExitCode;
+    }
+
+    public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
+      string additionalInfo = "";
+
+      try {
+        if (Process.Start(psi) is { } process) {
+          return process;
+        }
+      } catch (System.ComponentModel.Win32Exception e) {
+        additionalInfo = $": {e.Message}";
+      }
+
+      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      return null;
+    }
+
+    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
+      return StartProcess(psi, outputWriter) is { } process ?
+         WaitForExit(process, outputWriter, errorMessage) : -1;
+    }
+
 
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
@@ -2779,10 +2820,10 @@ namespace Microsoft.Dafny.Compilers {
         // finally, the jump back to the head of the function
         EmitJumpToTailCallStart(wr);
 
-      } else if (expr is BinaryExpr bin && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None) {
+      } else if (expr is BinaryExpr bin
+                 && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
+                 && enclosingFunction is { IsAccumulatorTailRecursive: true }) {
         Contract.Assert(accumulatorVar != null);
-        Contract.Assert(enclosingFunction != null);
-        Contract.Assert(enclosingFunction.IsAccumulatorTailRecursive);
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
@@ -4465,7 +4506,9 @@ namespace Microsoft.Dafny.Compilers {
         //   <prelude>   // filled via copyInstrWriters -- copies out-parameters used in letexpr to local variables
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
-        if (ss.Labels != null) {
+        if (ss.Labels != null && !(ss is VarDeclPattern or VarDeclStmt)) {
+          // We are not breaking out of VarDeclPattern or VarDeclStmt, so the labels there are useless
+          // They were useful for verification
           w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
@@ -5298,7 +5341,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
+    protected virtual void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
